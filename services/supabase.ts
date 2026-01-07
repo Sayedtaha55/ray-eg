@@ -1,21 +1,31 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// ملاحظة للمطور: قم بوضع القيم الحقيقية من لوحة تحكم Supabase في إعدادات البيئة (Secrets) الخاصة بالمنصة
-const getEnvVar = (name: string): string => {
-  if (typeof window !== 'undefined' && (window as any).process?.env?.[name]) {
-    return (window as any).process.env[name];
-  }
-  return '';
-};
+/**
+ * إعدادات الربط مع Supabase
+ * يتم جلب القيم من ملف .env في جذر المشروع
+ */
 
-// القيم الافتراضية هنا هي "مكان محجوز" - سيتم استبدالها تلقائياً عند وضع المفاتيح في منصة النشر
-const supabaseUrl = getEnvVar('SUPABASE_URL') || 'https://your-project-url.supabase.co';
-const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY') || 'your-anon-key-here';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://lsuewzeyfqmoqxflllmb.supabase.co';
+const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzdWV3emV5ZnFtb3F4ZmxsbG1iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3NjkwMjYsImV4cCI6MjA4MzM0NTAyNn0.vab-HI1aOvJxs_FJrnjxDbluFtucgiCn7qmDWzlVOzw';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+// التحقق من وجود المفاتيح وتنبيه المبرمج في المتصفح بشكل احترافي
+if (!supabaseUrl || supabaseUrl.includes('your-project-url') || !supabaseAnonKey) {
+  console.warn(
+    '%c [Supabase Configuration Required] %c\nيرجى وضع رابط المشروع ومفتاح الـ Anon في ملف .env لكي تعمل قاعدة البيانات.\nيمكنك العثور عليها في: Settings -> API',
+    'background: #ff0055; color: #fff; font-weight: bold; padding: 4px; border-radius: 4px;',
+    'color: #ff0055; font-weight: bold;'
+  );
+}
+
+// إنشاء العميل - نستخدم قيم افتراضية مؤقتة لمنع توقف التطبيق (Runtime Crash)
+const finalUrl = supabaseUrl || 'https://placeholder.supabase.co';
+const finalKey = supabaseAnonKey || 'placeholder-key';
+
+export const supabase = createClient(finalUrl, finalKey, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
+    detectSessionInUrl: true
   }
 });
