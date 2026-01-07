@@ -34,36 +34,28 @@ const BusinessLayout: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isDashboard) {
+    if (isDashboard && user?.shopId) {
       loadNotifications();
       
-      // Request permission for browser notifications
-      if ("Notification" in window && Notification.permission === "default") {
-        Notification.requestPermission();
-      }
+      // الاشتراك في قناة الإشعارات الحية لـ Supabase
+      const subscription = ApiService.subscribeToNotifications(user.shopId, (notif) => {
+        // تشغيل صوت تنبيه
+        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+        audio.play().catch(() => {});
+        
+        // إظهار توست للمستخدم
+        addToast(notif.title, 'info');
+        
+        // تحديث القائمة فوراً
+        setNotifications(prev => [notif, ...prev]);
+        setUnreadCount(prev => prev + 1);
+      });
 
-      // Listen for new notifications in real-time
-      const handleNewNotif = (e: any) => {
-        const notif = e.detail;
-        if (notif.shopId === user?.shopId) {
-          // Play sound
-          const audio = new Audio(notif.type === 'sale' ? 'https://assets.mixkit.co/active_storage/sfx/2012/2012-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-          audio.play().catch(() => {});
-
-          // Browser notification
-          if (Notification.permission === "granted") {
-            new Notification(notif.title, { body: notif.message });
-          }
-
-          addToast(notif.title, 'info');
-          loadNotifications();
-        }
+      return () => {
+        subscription.unsubscribe();
       };
-
-      window.addEventListener('new-notification', handleNewNotif);
-      return () => window.removeEventListener('new-notification', handleNewNotif);
     }
-  }, [isDashboard]);
+  }, [isDashboard, user?.shopId]);
 
   const handleMarkRead = async () => {
     if (!user?.shopId) return;
@@ -74,7 +66,6 @@ const BusinessLayout: React.FC = () => {
   const handleLogout = () => {
     localStorage.removeItem('ray_user');
     localStorage.removeItem('ray_token');
-    localStorage.removeItem('ray_session');
     window.dispatchEvent(new Event('auth-change'));
     navigate('/');
   };
@@ -133,7 +124,6 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Responsive Sidebar */}
       <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
@@ -167,7 +157,6 @@ const BusinessLayout: React.FC = () => {
         </div>
       </aside>
 
-      {/* Notifications Drawer */}
       <AnimatePresence>
         {isNotifOpen && (
           <>
@@ -207,7 +196,6 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <main className="flex-1 md:mr-80 overflow-x-hidden">
         <header className="hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 sticky top-0 z-40">
           <div className="flex flex-col text-right">

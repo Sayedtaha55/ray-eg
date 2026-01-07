@@ -83,7 +83,18 @@ export const ApiService = {
     return { user: authData.user, session: authData.session };
   },
 
-  // --- الإشعارات ---
+  // --- الإشعارات الحية (Realtime) ---
+  subscribeToNotifications(shopId: string, callback: (payload: any) => void) {
+    return supabase
+      .channel(`notifs-${shopId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'notifications', filter: `shop_id=eq.${shopId}` },
+        (payload) => callback(payload.new)
+      )
+      .subscribe();
+  },
+
   async getNotifications(shopId: string) {
     const { data } = await supabase
       .from('notifications')
@@ -102,38 +113,167 @@ export const ApiService = {
   },
 
   async addNotification(notif: any) {
-    await supabase.from('notifications').insert({
+    const { data, error } = await supabase.from('notifications').insert({
       shop_id: notif.shopId,
       title: notif.title,
       message: notif.message,
       type: notif.type,
       is_read: false,
       created_at: new Date().toISOString()
-    });
-    // Trigger a real-time event
-    window.dispatchEvent(new CustomEvent('new-notification', { detail: notif }));
+    }).select().single();
+
+    if (!error) {
+       window.dispatchEvent(new CustomEvent('new-notification', { detail: data }));
+    }
     return true;
   },
 
-  // --- إدارة النظام (Admin) ---
-  async getSystemAnalytics() {
-    try {
-      const { count: shopsCount } = await supabase.from('shops').select('*', { count: 'exact', head: true });
-      const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
-      const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-      const { data: recentSales } = await supabase.from('orders').select('total').order('created_at', { ascending: false }).limit(100);
+  // --- الخدمات العامة ---
+  async getShops() {
+    const { data } = await supabase.from('shops').select('*').eq('status', 'approved');
+    return data || [];
+  },
 
-      const totalRevenue = recentSales?.reduce((acc, s) => acc + (s.total || 0), 0) || 0;
+  async getOffers() {
+    const { data } = await supabase.from('offers').select('*').order('created_at', { ascending: false });
+    return data || [];
+  },
 
-      return {
-        totalShops: shopsCount || 0,
-        totalUsers: usersCount || 0,
-        totalOrders: ordersCount || 0,
-        totalRevenue: totalRevenue.toLocaleString(),
-      };
-    } catch (e) {
-      return { totalShops: 12, totalUsers: 450, totalOrders: 89, totalRevenue: "125,000" };
+  async getProducts(shopId?: string) {
+    let query = supabase.from('products').select('*');
+    if (shopId) query = query.eq('shop_id', shopId);
+    const { data } = await query;
+    return data || [];
+  },
+
+  async uploadImage(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, file);
+    if (uploadError) throw uploadError;
+    const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
+    return publicUrl;
+  },
+
+  async placeOrder(order: any) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data: orderData, error } = await supabase.from('orders').insert({ 
+      user_id: user?.id, 
+      total: order.total,
+      items: order.items,
+      status: 'pending',
+      created_at: new Date().toISOString() 
+    }).select().single();
+    
+    if (!error && order.items.length > 0) {
+      await this.addNotification({
+        shopId: order.items[0].shopId,
+        title: 'طلب شراء جديد! 💳',
+        message: `وصلك طلب بقيمة ج.م ${order.total}`,
+        type: 'sale'
+      });
     }
+
+    if (error) throw error;
+    return true;
+  },
+
+  async followShop(shopId: string) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Must be logged in to follow');
+    await supabase.from('follows').insert({ user_id: user.id, shop_id: shopId });
+    
+    await this.addNotification({
+      shopId: shopId,
+      title: 'متابع جديد! ✨',
+      message: 'أحدهم بدأ بمتابعة محلك الآن',
+      type: 'follow'
+    });
+
+    return true;
+  },
+
+  async updateProductStock(id: string, stock: number) {
+    await supabase.from('products').update({ stock }).eq('id', id);
+    return true;
+  },
+
+  async addProduct(product: any) {
+    const { error } = await supabase.from('products').insert({
+      shop_id: product.shopId,
+      name: product.name,
+      price: product.price,
+      stock: product.stock,
+      image_url: product.imageUrl
+    });
+    if (error) throw error;
+    return true;
+  },
+
+  async addSale(sale: any) {
+    const { data, error } = await supabase.from('orders').insert({
+      shop_id: sale.shopId,
+      total: sale.total,
+      items: sale.items,
+      type: sale.type,
+      status: 'completed',
+      created_at: new Date(sale.createdAt).toISOString()
+    }).select().single();
+    
+    if (!error) {
+      await this.addNotification({
+        shopId: sale.shopId,
+        title: 'عملية بيع كاشير 💰',
+        message: `تم تسجيل بيع بقيمة ج.م ${sale.total.toFixed(0)}`,
+        type: 'sale'
+      });
+    }
+
+    if (error) throw error;
+    return true;
+  },
+
+  async getReservations() {
+    const { data } = await supabase.from('reservations').select('*').order('created_at', { ascending: false });
+    return data || [];
+  },
+
+  async addReservation(res: Reservation) {
+    const { error } = await supabase.from('reservations').insert({
+      id: res.id,
+      item_id: res.itemId,
+      item_name: res.itemName,
+      item_image: res.itemImage,
+      item_price: res.itemPrice,
+      shop_id: res.shopId,
+      shop_name: res.shopName,
+      customer_name: res.customerName,
+      customer_phone: res.customerPhone,
+      status: res.status,
+      created_at: new Date(res.createdAt).toISOString()
+    });
+
+    if (!error) {
+      await this.addNotification({
+        shopId: res.shopId,
+        title: 'حجز جديد! 📅',
+        message: `${res.customerName} حجز ${res.itemName}`,
+        type: 'reservation'
+      });
+    }
+
+    if (error) throw error;
+    return true;
+  },
+
+  async getProductById(id: string) {
+    const { data } = await supabase.from('products').select('*').eq('id', id).single();
+    return data;
+  },
+
+  async getOfferByProductId(productId: string) {
+    const { data } = await supabase.from('offers').select('*').eq('id', productId).single();
+    return data;
   },
 
   async getPendingShops() {
@@ -176,7 +316,6 @@ export const ApiService = {
       user_email: feedback.userEmail || 'guest@test.com',
       created_at: new Date().toISOString()
     });
-    if (error) console.error('Error saving feedback', error);
     return true;
   },
 
@@ -185,149 +324,18 @@ export const ApiService = {
     return data || [];
   },
 
-  // --- الخدمات العامة ---
-  async getShops() {
-    const { data } = await supabase.from('shops').select('*').eq('status', 'approved');
-    return data || [];
-  },
+  async getSystemAnalytics() {
+    const { count: shopsCount } = await supabase.from('shops').select('*', { count: 'exact', head: true });
+    const { count: usersCount } = await supabase.from('profiles').select('*', { count: 'exact', head: true });
+    const { count: ordersCount } = await supabase.from('orders').select('*', { count: 'exact', head: true });
+    const { data: sales } = await supabase.from('orders').select('total');
+    const totalRevenue = sales?.reduce((acc, s) => acc + (s.total || 0), 0) || 0;
 
-  async getOffers() {
-    const { data } = await supabase.from('offers').select('*').order('created_at', { ascending: false });
-    return data || [];
-  },
-
-  async getProducts(shopId?: string) {
-    let query = supabase.from('products').select('*');
-    if (shopId) query = query.eq('shop_id', shopId);
-    const { data } = await query;
-    return data || [];
-  },
-
-  async uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const { error: uploadError } = await supabase.storage.from('images').upload(fileName, file);
-    if (uploadError) throw uploadError;
-    const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(fileName);
-    return publicUrl;
-  },
-
-  async placeOrder(order: any) {
-    const { data: { user } } = await supabase.auth.getUser();
-    const { error } = await supabase.from('orders').insert({ ...order, user_id: user?.id, created_at: new Date().toISOString() });
-    
-    // Notify Merchant
-    if (!error) {
-      await this.addNotification({
-        shopId: order.items[0].shopId,
-        title: 'طلب شراء جديد! 💳',
-        message: `وصلك طلب بقيمة ج.م ${order.total}`,
-        type: 'sale'
-      });
-    }
-
-    if (error) throw error;
-    return true;
-  },
-
-  async followShop(shopId: string) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('Must be logged in to follow');
-    await supabase.from('follows').insert({ user_id: user.id, shop_id: shopId });
-    
-    // Notify Merchant
-    await this.addNotification({
-      shopId: shopId,
-      title: 'متابع جديد! ✨',
-      message: 'أحدهم بدأ بمتابعة محلك الآن',
-      type: 'follow'
-    });
-
-    return true;
-  },
-
-  async updateProductStock(id: string, stock: number) {
-    await supabase.from('products').update({ stock }).eq('id', id);
-    return true;
-  },
-
-  async addProduct(product: any) {
-    const { error } = await supabase.from('products').insert({
-      id: product.id,
-      shop_id: product.shopId,
-      name: product.name,
-      price: product.price,
-      stock: product.stock,
-      image_url: product.imageUrl
-    });
-    if (error) throw error;
-    return true;
-  },
-
-  async addSale(sale: any) {
-    const { error } = await supabase.from('orders').insert({
-      id: sale.id,
-      shop_id: sale.shopId,
-      total: sale.total,
-      items: sale.items,
-      type: sale.type,
-      created_at: new Date(sale.createdAt).toISOString()
-    });
-    
-    if (!error) {
-      await this.addNotification({
-        shopId: sale.shopId,
-        title: 'عملية بيع كاشير 💰',
-        message: `تم تسجيل بيع بقيمة ج.م ${sale.total.toFixed(0)}`,
-        type: 'sale'
-      });
-    }
-
-    if (error) throw error;
-    return true;
-  },
-
-  async getReservations() {
-    const { data } = await supabase.from('reservations').select('*').order('created_at', { ascending: false });
-    return data || [];
-  },
-
-  async addReservation(res: Reservation) {
-    const { error } = await supabase.from('reservations').insert({
-      id: res.id,
-      item_id: res.itemId,
-      item_name: res.itemName,
-      item_image: res.itemImage,
-      item_price: res.itemPrice,
-      shop_id: res.shopId,
-      shop_name: res.shopName,
-      customer_name: res.customerName,
-      customer_phone: res.customerPhone,
-      status: res.status,
-      created_at: new Date(res.createdAt).toISOString()
-    });
-
-    // Notify Merchant
-    if (!error) {
-      await this.addNotification({
-        shopId: res.shopId,
-        title: 'حجز جديد! 📅',
-        message: `${res.customerName} حجز ${res.itemName}`,
-        type: 'reservation'
-      });
-    }
-
-    if (error) throw error;
-    return true;
-  },
-
-  async getProductById(id: string) {
-    const { data } = await supabase.from('products').select('*').eq('id', id).single();
-    return data;
-  },
-
-  async getOfferByProductId(productId: string) {
-    const { data } = await supabase.from('offers').select('*').eq('id', productId).single();
-    return data;
+    return {
+      totalShops: shopsCount || 0,
+      totalUsers: usersCount || 0,
+      totalOrders: ordersCount || 0,
+      totalRevenue: totalRevenue.toLocaleString(),
+    };
   }
 };

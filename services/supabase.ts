@@ -1,9 +1,21 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// ملاحظة: في بيئة الإنتاج يتم جلب هذه القيم من متغيرات البيئة
-// سيتم استخدام قيم افتراضية هنا، ويجب استبدالها بقيم مشروعك من لوحة تحكم Supabase
-const supabaseUrl = process.env.SUPABASE_URL || 'https://your-project-url.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'your-anon-key';
+// ملاحظة للمطور: قم بوضع القيم الحقيقية من لوحة تحكم Supabase في إعدادات البيئة (Secrets) الخاصة بالمنصة
+const getEnvVar = (name: string): string => {
+  if (typeof window !== 'undefined' && (window as any).process?.env?.[name]) {
+    return (window as any).process.env[name];
+  }
+  return '';
+};
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// القيم الافتراضية هنا هي "مكان محجوز" - سيتم استبدالها تلقائياً عند وضع المفاتيح في منصة النشر
+const supabaseUrl = getEnvVar('SUPABASE_URL') || 'https://your-project-url.supabase.co';
+const supabaseAnonKey = getEnvVar('SUPABASE_ANON_KEY') || 'your-anon-key-here';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+  }
+});
