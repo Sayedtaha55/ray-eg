@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Store, UtensilsCrossed, Menu, X, LogOut, Info, PlusCircle } from 'lucide-react';
+import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle } from 'lucide-react';
 import RayAssistant from './RayAssistant';
 import CartDrawer from './CartDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -86,12 +86,6 @@ const PublicLayout: React.FC = () => {
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center gap-6 max-w-2xl mx-8">
-            <div className="flex items-center gap-2">
-               <NavButton to="/shops" icon={<Store className="w-4 h-4" />} label="المحلات" active={location.pathname === '/shops'} />
-               <NavButton to="/restaurants" icon={<UtensilsCrossed className="w-4 h-4" />} label="المطاعم" active={location.pathname === '/restaurants'} />
-               {!user && <NavButton to="/signup?role=merchant" icon={<PlusCircle className="w-4 h-4 text-[#BD00FF]" />} label="سجل نشاطك" active={false} />}
-            </div>
-
             <div onClick={() => setAssistantOpen(true)} className="flex-1 group">
               <div className="relative flex items-center bg-slate-100/60 hover:bg-white rounded-[1.5rem] px-6 py-3 border border-transparent hover:border-[#00E5FF]/30 cursor-pointer transition-all duration-500">
                 <Sparkles className="w-4 h-4 text-[#00E5FF] ml-3" />
@@ -139,8 +133,6 @@ const PublicLayout: React.FC = () => {
                 <button onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
               <nav className="flex flex-col gap-6 flex-1">
-                <MobileNavItem to="/shops" onClick={() => setMobileMenuOpen(false)} icon={<Store />} label="المحلات" />
-                <MobileNavItem to="/restaurants" onClick={() => setMobileMenuOpen(false)} icon={<UtensilsCrossed />} label="المطاعم" />
                 {!user && <MobileNavItem to="/signup?role=merchant" onClick={() => setMobileMenuOpen(false)} icon={<PlusCircle className="text-[#BD00FF]" />} label="تسجيل نشاط جديد" />}
                 <MobileNavItem to="/about" onClick={() => setMobileMenuOpen(false)} icon={<Info />} label="من نحن" />
                 <MobileNavItem to={user?.role === 'merchant' ? '/business/dashboard' : '/profile'} onClick={() => setMobileMenuOpen(false)} icon={<User />} label={user ? 'حسابي' : 'دخول'} />

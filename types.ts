@@ -67,3 +67,11 @@ export interface Reservation {
   status: 'pending' | 'completed' | 'expired';
   createdAt: number;
 }
+
+export interface ShopGallery {
+  id: string;
+  shopId: string;
+  imageUrl: string;
+  caption?: string;
+  createdAt: number;
+}

@@ -6,21 +6,22 @@ import {
   Package, CalendarCheck, Settings, Smartphone, Palette, 
   Plus, DollarSign, Users, ShoppingBag, 
   CreditCard, TrendingUp, Bell, Clock, Tag, Trash2, Send, MessageSquare, Megaphone, CheckCircle2, ChevronRight,
-  MapPin, User, Phone, MessageCircle, X, Image as ImageIcon, Upload, Wand2, ShoppingCart, BarChart3, UserMinus, UserCheck, Search as SearchIcon
+  MapPin, User, Phone, MessageCircle, X, Image as ImageIcon, Upload, Wand2, ShoppingCart, BarChart3, UserMinus, UserCheck, Search as SearchIcon, Camera
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '../services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Product, Reservation, Offer } from '../types';
+import { Product, Reservation, Offer, ShopGallery } from '../types';
 import POSSystem from './POSSystem';
 import PageBuilder from './PageBuilder';
+import GalleryManager from './GalleryManager';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, BarChart, Bar } from 'recharts';
 import { useToast } from './Toaster';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
-type TabType = 'overview' | 'pos' | 'builder' | 'products' | 'reservations' | 'sales' | 'promotions' | 'growth' | 'chats' | 'settings' | 'reports' | 'customers';
+type TabType = 'overview' | 'pos' | 'builder' | 'products' | 'reservations' | 'sales' | 'promotions' | 'growth' | 'chats' | 'settings' | 'reports' | 'customers' | 'gallery';
 
 const MerchantDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,6 +33,7 @@ const MerchantDashboard: React.FC = () => {
   const [sales, setSales] = useState<any[]>([]);
   const [activeOffers, setActiveOffers] = useState<Offer[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
   const [loading, setLoading] = useState(true);
   const [showProductModal, setShowProductModal] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState<Product | null>(null);
@@ -51,13 +53,14 @@ const MerchantDashboard: React.FC = () => {
       const myShop = shops.find((s: any) => s.id === savedUser.shopId) || shops[0];
       setCurrentShop(myShop);
       
-      const [prodData, resData, salesData, notifData, analyticsData, allOffers] = await Promise.all([
+      const [prodData, resData, salesData, notifData, analyticsData, allOffers, galleryData] = await Promise.all([
         ApiService.getProducts(myShop.id),
         ApiService.getReservations(),
         ApiService.getAllOrders(),
         ApiService.getNotifications(myShop.id),
         ApiService.getShopAnalytics(myShop.id),
-        ApiService.getOffers()
+        ApiService.getOffers(),
+        ApiService.getShopGallery(myShop.id)
       ]);
 
       setProducts(prodData);
@@ -66,6 +69,7 @@ const MerchantDashboard: React.FC = () => {
       setNotifications(notifData.slice(0, 5));
       setAnalytics(analyticsData);
       setActiveOffers(allOffers.filter((o: any) => o.shopId === myShop.id));
+      setGalleryImages(galleryData || []);
     } catch (e) {
       console.error("Dashboard Sync Error:", e);
     } finally {
@@ -102,6 +106,7 @@ const MerchantDashboard: React.FC = () => {
     switch(activeTab) {
       case 'overview': return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
       case 'products': return <ProductsTab products={products} onAdd={() => setShowProductModal(true)} onMakeOffer={(p) => setShowOfferModal(p)} onDelete={handleDeleteProduct} />;
+      case 'gallery': return <GalleryTab images={galleryImages} onImagesChange={setGalleryImages} shopId={currentShop.id} primaryColor={currentShop.pageDesign?.primaryColor || '#00E5FF'} />;
       case 'promotions': return <PromotionsTab offers={activeOffers} onDelete={(id) => ApiService.deleteOffer(id).then(syncData)} />;
       case 'reservations': return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
       case 'sales': return <SalesTab sales={sales} />;
@@ -149,6 +154,7 @@ const MerchantDashboard: React.FC = () => {
       {/* Enhanced Navigation */}
       <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar sticky top-24 z-40 shadow-inner">
         <TabButton active={activeTab === 'overview'} onClick={() => setSearchParams({ tab: 'overview' })} icon={<TrendingUp size={18} />} label="نظرة عامة" />
+        <TabButton active={activeTab === 'gallery'} onClick={() => setSearchParams({ tab: 'gallery' })} icon={<Camera size={18} />} label="معرض الصور" />
         <TabButton active={activeTab === 'reports'} onClick={() => setSearchParams({ tab: 'reports' })} icon={<BarChart3 size={18} />} label="التقارير" />
         <TabButton active={activeTab === 'customers'} onClick={() => setSearchParams({ tab: 'customers' })} icon={<Users size={18} />} label="العملاء" />
         <TabButton active={activeTab === 'products'} onClick={() => setSearchParams({ tab: 'products' })} icon={<Package size={18} />} label="المخزون" />
@@ -927,6 +933,23 @@ const AddProductModal: React.FC<{ isOpen: boolean, onClose: () => void, shopId: 
         </form>
       </MotionDiv>
     </div>
+  );
+};
+
+// Gallery Tab Component
+const GalleryTab: React.FC<{ 
+  images: ShopGallery[], 
+  onImagesChange: (images: ShopGallery[]) => void, 
+  shopId: string, 
+  primaryColor: string 
+}> = ({ images, onImagesChange, shopId, primaryColor }) => {
+  return (
+    <GalleryManager 
+      shopId={shopId}
+      images={images}
+      onImagesChange={onImagesChange}
+      primaryColor={primaryColor}
+    />
   );
 };
 

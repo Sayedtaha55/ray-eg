@@ -1,6 +1,6 @@
 
 import { supabase } from './supabase';
-import { Shop, Product, Offer, Reservation, Category } from '../types';
+import { Shop, Product, Offer, Reservation, Category, ShopGallery } from '../types';
 import { MOCK_SHOPS } from '../constants';
 
 export const ApiService = {
@@ -524,5 +524,37 @@ export const ApiService = {
       totalShops: shops?.length || 0,
       totalOrders: orders?.length || 0
     };
+  },
+
+  // --- Gallery Section ---
+  async getShopGallery(shopId: string): Promise<ShopGallery[]> {
+    // For MVP, return mock data or localStorage data
+    const savedGallery = localStorage.getItem(`ray_gallery_${shopId}`);
+    if (savedGallery) {
+      return JSON.parse(savedGallery);
+    }
+    
+    // Return some default mock images for demo
+    return [
+      {
+        id: 'default_1',
+        shopId,
+        imageUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800',
+        caption: 'واجهة المحل الرئيسية',
+        createdAt: Date.now() - 86400000
+      },
+      {
+        id: 'default_2', 
+        shopId,
+        imageUrl: 'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800',
+        caption: 'منتجاتنا المميزة',
+        createdAt: Date.now() - 172800000
+      }
+    ];
+  },
+
+  async saveShopGallery(shopId: string, images: ShopGallery[]): Promise<void> {
+    // For MVP, save to localStorage
+    localStorage.setItem(`ray_gallery_${shopId}`, JSON.stringify(images));
   }
 };

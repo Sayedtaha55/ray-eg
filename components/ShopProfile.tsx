@@ -2,15 +2,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '../constants';
-import { Shop, Product, ShopDesign, Offer, Category } from '../types';
+import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '../types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Star, ChevronRight, X, Plus, Check, Heart, Users, 
   CalendarCheck, Eye, Layout, Palette, Layers, MousePointer2, 
   Zap, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
-  Info, Clock, MapPin, Phone, MessageCircle, Sliders, Monitor, Send
+  Info, Clock, MapPin, Phone, MessageCircle, Sliders, Monitor, Send, Camera
 } from 'lucide-react';
 import ReservationModal from './ReservationModal';
+import ShopGalleryComponent from './ShopGallery';
 import { ApiService } from '../services/api.service';
 import { useToast } from './Toaster';
 
@@ -240,7 +241,8 @@ const ShopProfile: React.FC = () => {
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [activeTab, setActiveTab] = useState<'products' | 'info'>('products');
+  const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
+  const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [hasFollowed, setHasFollowed] = useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
@@ -257,12 +259,14 @@ const ShopProfile: React.FC = () => {
         if (currentShopData) {
           setShop(JSON.parse(JSON.stringify(currentShopData)));
           setCurrentDesign(currentShopData.pageDesign);
-          const [prodData, allOffers] = await Promise.all([
+          const [prodData, allOffers, galleryData] = await Promise.all([
             ApiService.getProducts(currentShopData.id),
-            ApiService.getOffers()
+            ApiService.getOffers(),
+            ApiService.getShopGallery(currentShopData.id)
           ]);
           setProducts(prodData);
           setOffers(allOffers.filter((o: any) => o.shopId === currentShopData.id));
+          setGalleryImages(galleryData);
         } else {
           setError(true);
         }
@@ -399,6 +403,13 @@ const ShopProfile: React.FC = () => {
              layout={currentDesign.layout}
            />
            <NavTab 
+             active={activeTab === 'gallery'} 
+             onClick={() => setActiveTab('gallery')} 
+             label="معرض الصور" 
+             primaryColor={currentDesign.primaryColor}
+             layout={currentDesign.layout}
+           />
+           <NavTab 
              active={activeTab === 'info'} 
              onClick={() => setActiveTab('info')} 
              label="معلومات المتجر" 
@@ -446,6 +457,23 @@ const ShopProfile: React.FC = () => {
                   ))
                 )}
               </div>
+            </MotionDiv>
+          ) : activeTab === 'gallery' ? (
+            <MotionDiv key="gallery-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className="mb-8 md:mb-10">
+                <h2 className={`font-black mb-4 md:mb-6 ${isBold ? 'text-2xl md:text-4xl' : 'text-xl md:text-3xl'}`} style={{ color: currentDesign.primaryColor }}>
+                  معرض {shop.name}
+                </h2>
+                <p className="text-slate-600 text-sm md:text-base">
+                  استكشف صور ومعارض من {shop.name}
+                </p>
+              </div>
+              <ShopGalleryComponent 
+                images={galleryImages}
+                shopName={shop.name}
+                primaryColor={currentDesign.primaryColor}
+                layout={currentDesign.layout}
+              />
             </MotionDiv>
           ) : (
             <MotionDiv key="info-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
