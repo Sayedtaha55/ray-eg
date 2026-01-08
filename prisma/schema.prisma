@@ -1,1 +1,305 @@
-���Ȭʋ�>������~)^
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users table - Main user accounts
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  phone       String?  @unique
+  password    String
+  role        UserRole @default(CUSTOMER)
+  shopId      String?  @unique
+  isActive    Boolean  @default(true)
+  lastLogin   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop?    @relation("ShopOwner")
+  orders      Order[]
+  messages    Message[]
+  reservations Reservation[]
+  feedback    Feedback[]
+
+  @@map("users")
+}
+
+// Shops table - Merchant shops
+model Shop {
+  id            String     @id @default(cuid())
+  name          String
+  slug          String     @unique
+  description   String?
+  category      ShopCategory
+  governorate   String
+  city          String
+  address       String?
+  phone         String
+  email         String?
+  logoUrl       String?    @map("logo_url")
+  bannerUrl     String?    @map("banner_url")
+  status        ShopStatus @default(PENDING)
+  pageDesign    Json?      @map("page_design")
+  followers     Int        @default(0)
+  visitors      Int        @default(0)
+  rating        Float      @default(0)
+  isActive      Boolean    @default(true)
+  ownerId       String?    @unique
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  // Relations
+  owner         User?      @relation("ShopOwner", fields: [ownerId], references: [id])
+  products      Product[]
+  offers        Offer[]
+  orders        Order[]
+  messages      Message[]
+  notifications Notification[]
+  gallery       ShopGallery[]
+  analytics     ShopAnalytics[]
+  reservations  Reservation[]
+
+  @@map("shops")
+}
+
+// Products table
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  stock       Int      @default(0)
+  category    String   @default("عام")
+  imageUrl    String?  @map("image_url")
+  isActive    Boolean  @default(true)
+  shopId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  offers      Offer[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+}
+
+// Offers table
+model Offer {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  discount    Float    @default(0)
+  oldPrice    Float    @map("old_price")
+  newPrice    Float    @map("new_price")
+  imageUrl    String?  @map("image_url")
+  expiresAt   DateTime @map("expires_at")
+  isActive    Boolean  @default(true)
+  productId   String?  @map("product_id")
+  shopId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  product     Product? @relation(fields: [productId], references: [id])
+  shop        Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("offers")
+}
+
+// Orders table
+model Order {
+  id            String      @id @default(cuid())
+  total         Float
+  status        OrderStatus @default(PENDING)
+  paymentMethod String?     @map("payment_method")
+  paymentStatus String?     @map("payment_status")
+  notes         String?
+  userId        String
+  shopId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Relations
+  user          User        @relation(fields: [userId], references: [id])
+  shop          Shop        @relation(fields: [shopId], references: [id])
+  items         OrderItem[]
+
+  @@map("orders")
+}
+
+// Order items table
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String @map("order_id")
+  productId String @map("product_id")
+  quantity  Int
+  price     Float
+
+  // Relations
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+// Messages table - Chat system
+model Message {
+  id         String      @id @default(cuid())
+  content    String
+  senderId   String      @map("sender_id")
+  senderName String      @map("sender_name")
+  role       MessageRole
+  shopId     String      @map("shop_id")
+  isRead     Boolean     @default(false) @map("is_read")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  // Relations
+  shop       Shop        @relation(fields: [shopId], references: [id])
+  sender     User        @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+// Notifications table
+model Notification {
+  id        String   @id @default(cuid())
+  title     String
+  content   String
+  type      String
+  shopId    String   @map("shop_id")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  shop      Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("notifications")
+}
+
+// Reservations table
+model Reservation {
+  id            String           @id @default(cuid())
+  itemId        String           @map("item_id")
+  itemName      String           @map("item_name")
+  itemImage     String?          @map("item_image")
+  itemPrice     Float            @map("item_price")
+  shopId        String           @map("shop_id")
+  shopName      String           @map("shop_name")
+  customerName  String           @map("customer_name")
+  customerPhone String           @map("customer_phone")
+  status        ReservationStatus @default(PENDING)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt
+
+  // Relations
+  shop          Shop             @relation(fields: [shopId], references: [id])
+  customer      User             @relation(fields: [customerPhone], references: [phone])
+
+  @@map("reservations")
+}
+
+// Feedback table
+model Feedback {
+  id         String   @id @default(cuid())
+  content    String
+  userName   String   @map("user_name")
+  userEmail  String   @map("user_email")
+  rating     Int?
+  status     String   @default("pending")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  user       User     @relation(fields: [userEmail], references: [email])
+
+  @@map("feedback")
+}
+
+// Shop gallery table
+model ShopGallery {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  imageUrl  String   @map("image_url")
+  caption   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  shop      Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_gallery")
+}
+
+// Shop analytics table
+model ShopAnalytics {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  date          DateTime @default(now())
+  revenue       Float    @default(0)
+  ordersCount   Int      @default(0) @map("orders_count")
+  visitorsCount Int      @default(0) @map("visitors_count")
+  followersCount Int     @default(0) @map("followers_count")
+
+  // Relations
+  shop          Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_analytics")
+}
+
+// Enums
+enum UserRole {
+  CUSTOMER
+  MERCHANT
+  ADMIN
+}
+
+enum ShopCategory {
+  RETAIL
+  RESTAURANT
+  SERVICE
+  ELECTRONICS
+  FASHION
+  FOOD
+  HEALTH
+  OTHER
+}
+
+enum ShopStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum MessageRole {
+  CUSTOMER
+  MERCHANT
+  SYSTEM
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}

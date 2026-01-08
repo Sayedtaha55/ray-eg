@@ -23,7 +23,8 @@ export interface Shop {
   rating: number;
   pageDesign: ShopDesign;
   followers: number; 
-  visitors: number; 
+  visitors: number;
+  status: 'approved' | 'pending' | 'rejected';
   // تفاصيل إضافية للتواصل والمواعيد
   phone?: string;
   openingHours?: string;

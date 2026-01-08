@@ -27,7 +27,7 @@ export default defineConfig(({ mode }) => {
               router: ['react-router-dom'],
               ui: ['framer-motion', 'lucide-react'],
               charts: ['recharts'],
-              api: ['@supabase/supabase-js', '@google/genai']
+              api: ['@google/genai']
             }
           }
         },

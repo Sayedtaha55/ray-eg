@@ -33,7 +33,7 @@ const SignupPage: React.FC = () => {
     try {
       const response = await ApiService.signup({ ...formData, role });
       localStorage.setItem('ray_user', JSON.stringify(response.user));
-      // Accessing the token correctly from Supabase session
+      // Accessing the token correctly from session
       localStorage.setItem('ray_token', response.session?.access_token || '');
       window.dispatchEvent(new Event('auth-change'));
       

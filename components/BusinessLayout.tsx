@@ -37,7 +37,7 @@ const BusinessLayout: React.FC = () => {
     if (isDashboard && user?.shopId) {
       loadNotifications();
       
-      // الاشتراك في قناة الإشعارات الحية لـ Supabase
+      // الاشتراك في قناة الإشعارات الحية
       const subscription = ApiService.subscribeToNotifications(user.shopId, (notif) => {
         // تشغيل صوت تنبيه
         const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');

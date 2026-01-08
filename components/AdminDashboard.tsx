@@ -114,7 +114,7 @@ const AdminDashboard: React.FC = () => {
          {activeTab === 'stats' && (
            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               <div className="lg:col-span-2 bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl h-[400px] flex items-center justify-center text-slate-500 font-bold">
-                 [رسم بياني حقيقي سيظهر هنا عند ربط Supabase Analytics]
+                 [رسم بياني حقيقي سيظهر هنا عند ربط Analytics]
               </div>
               <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl">
                  <h3 className="text-xl font-black text-white mb-8">أحدث العمليات</h3>
