@@ -54,11 +54,16 @@ export const ApiService = {
     if (authData.user) {
       let shopId = null;
       if (data.role === 'merchant') {
+        // Generate unique slug with timestamp
+        const baseSlug = data.shopName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const timestamp = Date.now();
+        const uniqueSlug = `${baseSlug}-${timestamp}`;
+        
         const { data: shop, error: shopError } = await supabase
           .from('shops')
           .insert({
             name: data.shopName,
-            slug: data.shopName.toLowerCase().replace(/\s+/g, '-'),
+            slug: uniqueSlug,
             category: data.category,
             governorate: data.governorate,
             city: data.city,
