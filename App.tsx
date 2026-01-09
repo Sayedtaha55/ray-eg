@@ -1,27 +1,29 @@
 
 import React, { useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import PublicLayout from './components/PublicLayout';
-import HomeFeed from './components/HomeFeed';
-import ShopProfile from './components/ShopProfile';
-import BusinessLayout from './components/BusinessLayout';
-import BusinessLanding from './components/BusinessLanding';
-import MerchantDashboard from './components/MerchantDashboard';
-import ShopsPage from './components/ShopsPage';
-import RestaurantsPage from './components/RestaurantsPage';
-import LoginPage from './components/LoginPage';
-import SignupPage from './components/SignupPage';
-import ProfilePage from './components/ProfilePage';
-import AboutPage from './components/AboutPage';
-import ProductPage from './components/ProductPage';
-import AdminLayout from './components/AdminLayout';
-import AdminDashboard from './components/AdminDashboard';
-import AdminLogin from './components/AdminLogin';
-import AdminApprovals from './components/AdminApprovals';
-import AdminUsers from './components/AdminUsers';
-import AdminSettings from './components/AdminSettings';
-import AdminFeedback from './components/AdminFeedback';
-import AdminOrders from './components/AdminOrders';
+import {
+  PublicLayout,
+  HomeFeed,
+  ShopProfile,
+  BusinessLayout,
+  BusinessLanding,
+  MerchantDashboard,
+  ShopsPage,
+  RestaurantsPage,
+  LoginPage,
+  SignupPage,
+  ProfilePage,
+  AboutPage,
+  ProductPage,
+  AdminLayout,
+  AdminDashboard,
+  AdminLogin,
+  AdminApprovals,
+  AdminUsers,
+  AdminSettings,
+  AdminFeedback,
+  AdminOrders,
+} from './components';
 
 const { HashRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
 
@@ -60,6 +62,9 @@ const App: React.FC = () => {
         <Route path="/admin" element={<AdminLayout />}>
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="approvals" element={<AdminApprovals />} />
+          <Route path="shops" element={<AdminDashboard />} />
+          <Route path="shop-management" element={<AdminDashboard />} />
+          <Route path="themes" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="feedback" element={<AdminFeedback />} />

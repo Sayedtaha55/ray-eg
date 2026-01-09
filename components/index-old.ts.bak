@@ -1,0 +1,55 @@
+// Main components index file
+// This file provides centralized exports for all components
+
+// Layouts
+export { default as PublicLayout } from './layouts/PublicLayout';
+export { default as AdminLayout } from './layouts/AdminLayout';
+export { default as BusinessLayout } from './layouts/BusinessLayout';
+
+// Pages - Auth
+export { default as LoginPage } from './pages/auth/LoginPage';
+export { default as SignupPage } from './pages/auth/SignupPage';
+export { default as AdminLogin } from './pages/auth/AdminLogin';
+
+// Pages - Public
+export { default as HomeFeed } from './pages/public/HomeFeed';
+export { default as ShopsPage } from './pages/public/ShopsPage';
+export { default as RestaurantsPage } from './pages/public/RestaurantsPage';
+export { default as FilterPage } from './pages/public/FilterPage';
+export { default as ProductPage } from './pages/public/ProductPage';
+export { default as ShopProfile } from './pages/public/ShopProfile';
+export { default as AboutPage } from './pages/public/AboutPage';
+export { default as ProfilePage } from './pages/public/ProfilePage';
+
+// Pages - Admin
+export { default as AdminDashboard } from './pages/admin/AdminDashboard';
+export { default as AdminApprovals } from './pages/admin/AdminApprovals';
+export { default as AdminUsers } from './pages/admin/AdminUsers';
+export { default as AdminOrders } from './pages/admin/AdminOrders';
+export { default as AdminFeedback } from './pages/admin/AdminFeedback';
+export { default as AdminSettings } from './pages/admin/AdminSettings';
+
+// Pages - Business
+export { default as BusinessLanding } from './pages/business/BusinessLanding';
+export { default as MerchantDashboard } from './pages/business/MerchantDashboard';
+export { default as POSSystem } from './pages/business/POSSystem';
+export { default as PageBuilder } from './pages/business/PageBuilder';
+export { default as GalleryManager } from './pages/business/GalleryManager';
+
+// Pages - Shared
+export { default as CartDrawer } from './pages/shared/CartDrawer';
+export { default as ReservationModal } from './pages/shared/ReservationModal';
+export { default as RayAssistant } from './pages/shared/RayAssistant';
+
+// Features - Shop
+export { default as ShopGallery } from './features/shop/ShopGallery';
+
+// Common - Feedback
+export { default as Toaster } from './common/feedback';
+export { useToast, ToastProvider } from './common/feedback';
+
+// Re-export for convenience
+export * from './layouts';
+export * from './pages';
+export * from './features';
+export * from './common';

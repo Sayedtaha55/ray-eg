@@ -44,12 +44,18 @@ model Shop {
   governorate   String
   city          String
   address       String?
+  addressDetailed String?  @map("address_detailed")
   phone         String
   email         String?
+  openingHours  String?    @map("opening_hours")
   logoUrl       String?    @map("logo_url")
   bannerUrl     String?    @map("banner_url")
   status        ShopStatus @default(PENDING)
   pageDesign    Json?      @map("page_design")
+  theme         String?    @default("default") // Theme selection
+  customColors  Json?      @map("custom_colors") // Custom color scheme
+  customFonts   Json?      @map("custom_fonts")  // Custom font settings
+  layoutConfig  Json?      @map("layout_config") // Layout preferences
   followers     Int        @default(0)
   visitors      Int        @default(0)
   rating        Float      @default(0)
@@ -68,6 +74,7 @@ model Shop {
   gallery       ShopGallery[]
   analytics     ShopAnalytics[]
   reservations  Reservation[]
+  themeSettings ShopTheme[] // Theme settings
 
   @@map("shops")
 }
@@ -254,6 +261,49 @@ model ShopAnalytics {
   shop          Shop     @relation(fields: [shopId], references: [id])
 
   @@map("shop_analytics")
+}
+
+// Shop themes table
+model ShopTheme {
+  id          String   @id @default(cuid())
+  shopId      String   @map("shop_id")
+  name        String   // Theme name
+  primary     String   @default("#00E5FF") // Primary color
+  secondary   String   @default("#BD00FF") // Secondary color
+  accent      String   @default("#000000") // Accent color
+  background  String   @default("#FFFFFF") // Background color
+  text        String   @default("#000000") // Text color
+  fontFamily  String   @default("Inter") // Font family
+  borderRadius String  @default("1rem") // Border radius
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_themes")
+}
+
+// Theme templates table (predefined themes)
+model ThemeTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  displayName String  @map("display_name")
+  description String?
+  category    String   // modern, classic, minimal, etc.
+  primary     String   @default("#00E5FF")
+  secondary   String   @default("#BD00FF")
+  accent      String   @default("#000000")
+  background  String   @default("#FFFFFF")
+  text        String   @default("#000000")
+  fontFamily  String   @default("Inter")
+  borderRadius String  @default("1rem")
+  preview     String?  @map("preview") // Preview image URL
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@map("theme_templates")
 }
 
 // Enums

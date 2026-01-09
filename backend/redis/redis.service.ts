@@ -3,12 +3,12 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: Redis;
+  private client: Redis | null;
 
   async onModuleInit() {
     this.client = new Redis({
       host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT) || 6379,
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
       password: process.env.REDIS_PASSWORD,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
@@ -19,20 +19,29 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     this.client.on('error', (err) => {
-      console.error('❌ Redis connection error:', err);
+      console.warn('⚠️ Redis connection error (cache disabled):', err?.message || err);
     });
 
-    await this.client.connect();
+    try {
+      await this.client.connect();
+    } catch (err: any) {
+      console.warn('⚠️ Redis is not available. Continuing without cache.');
+      try {
+        await this.client.disconnect();
+      } catch {
+        // ignore
+      }
+      this.client = null;
+    }
   }
 
   async onModuleDestroy() {
-    if (this.client) {
-      await this.client.disconnect();
-    }
+    if (this.client) await this.client.disconnect();
   }
 
   // Basic operations
   async set(key: string, value: any, ttl?: number): Promise<void> {
+    if (!this.client) return;
     const serializedValue = JSON.stringify(value);
     if (ttl) {
       await this.client.setex(key, ttl, serializedValue);
@@ -42,6 +51,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async get<T>(key: string): Promise<T | null> {
+    if (!this.client) return null;
     const value = await this.client.get(key);
     if (!value) return null;
     
@@ -53,20 +63,24 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async del(key: string): Promise<void> {
+    if (!this.client) return;
     await this.client.del(key);
   }
 
   async exists(key: string): Promise<boolean> {
+    if (!this.client) return false;
     const result = await this.client.exists(key);
     return result === 1;
   }
 
   async expire(key: string, ttl: number): Promise<void> {
+    if (!this.client) return;
     await this.client.expire(key, ttl);
   }
 
   // Cache utilities
   async invalidatePattern(pattern: string): Promise<void> {
+    if (!this.client) return;
     const keys = await this.client.keys(pattern);
     if (keys.length > 0) {
       await this.client.del(...keys);
@@ -74,6 +88,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getMultiple<T>(keys: string[]): Promise<(T | null)[]> {
+    if (!this.client) return keys.map(() => null);
     const values = await this.client.mget(...keys);
     return values.map(value => {
       if (!value) return null;
@@ -86,6 +101,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async setMultiple(keyValuePairs: Record<string, any>, ttl?: number): Promise<void> {
+    if (!this.client) return;
     const pipeline = this.client.pipeline();
     
     Object.entries(keyValuePairs).forEach(([key, value]) => {
@@ -144,10 +160,12 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   // Analytics and monitoring
   async incrementCounter(key: string, amount = 1): Promise<number> {
+    if (!this.client) return 0;
     return this.client.incrby(key, amount);
   }
 
   async getCounter(key: string): Promise<number> {
+    if (!this.client) return 0;
     const value = await this.client.get(key);
     return value ? parseInt(value) : 0;
   }
@@ -155,6 +173,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // Health check
   async ping(): Promise<boolean> {
     try {
+      if (!this.client) return false;
       const result = await this.client.ping();
       return result === 'PONG';
     } catch {
