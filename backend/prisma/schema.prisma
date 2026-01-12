@@ -1,0 +1,313 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Enums
+enum UserRole {
+  USER
+  MERCHANT
+  ADMIN
+}
+
+enum ShopStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum NotificationType {
+  ORDER
+  MESSAGE
+  PROMOTION
+  SYSTEM
+}
+
+// Models
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  shop      Shop?
+  orders    Order[]
+  messages  Message[] @relation("SentMessages")
+  notifications Notification[]
+  feedback  Feedback[]
+  reservations Reservation[]
+  receivedMessages Message[] @relation("ReceivedMessages")
+  followingShops Shop[] @relation("ShopFollowers")
+
+  @@map("users")
+}
+
+model Shop {
+  id               String     @id @default(cuid())
+  name             String
+  slug             String     @unique
+  description      String?
+  logo             String?
+  coverImage       String?
+  phone            String?
+  email            String?
+  address          String?
+  addressDetailed  String?
+  openingHours     String?
+  website          String?
+  status           ShopStatus @default(PENDING)
+  ownerId          String   @unique
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  // Relations
+  owner            User       @relation(fields: [ownerId], references: [id])
+  products         Product[]
+  orders           Order[]
+  offers           Offer[]
+  gallery          ShopGallery[]
+  analytics        ShopAnalytics?
+  theme            ShopTheme?
+  followers        User[]     @relation("ShopFollowers")
+  reservations     Reservation[]
+  feedback         Feedback[]
+
+  @@map("shops")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  category    String
+  image       String?
+  inStock     Boolean  @default(true)
+  stock       Int?
+  shopId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  orderItems  OrderItem[]
+  offers      Offer[]
+  feedback    Feedback[]
+
+  @@map("products")
+}
+
+model Offer {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  discount    Float
+  startDate   DateTime
+  endDate     DateTime
+  shopId      String
+  productId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  product     Product? @relation(fields: [productId], references: [id])
+
+  @@map("offers")
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  totalAmount   Float
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod String?
+  deliveryAddress String?
+  userId        String
+  shopId        String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  // Relations
+  user          User          @relation(fields: [userId], references: [id])
+  shop          Shop          @relation(fields: [shopId], references: [id])
+  items         OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  quantity  Int
+  price     Float
+  orderId   String
+  productId String
+
+  // Relations
+  order     Order   @relation(fields: [orderId], references: [id])
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  senderId  String
+  receiverId String
+  shopId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  sender    User @relation("SentMessages", fields: [senderId], references: [id])
+  receiver  User @relation("ReceivedMessages", fields: [receiverId], references: [id])
+
+  @@map("messages")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  title     String
+  content   String
+  type      NotificationType
+  userId    String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  // Relations
+  user      User             @relation(fields: [userId], references: [id])
+
+  @@map("notifications")
+}
+
+model Reservation {
+  id          String   @id @default(cuid())
+  name        String
+  email       String
+  phone       String
+  date        DateTime
+  time        String
+  guests      Int
+  specialRequests String?
+  status      String   @default("pending")
+  shopId      String
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@map("reservations")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  rating    Int
+  comment   String?
+  userId    String
+  shopId    String?
+  productId String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  shop      Shop?    @relation(fields: [shopId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
+
+  @@map("feedback")
+}
+
+model ShopGallery {
+  id        String   @id @default(cuid())
+  imageUrl  String
+  caption   String?
+  shopId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  shop      Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_gallery")
+}
+
+model ShopAnalytics {
+  id             String   @id @default(cuid())
+  shopId         String   @unique
+  revenue        Float    @default(0)
+  ordersCount    Int      @default(0)
+  visitorsCount  Int      @default(0)
+  followersCount Int      @default(0)
+  lastUpdated    DateTime @default(now())
+
+  // Relations
+  shop           Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_analytics")
+}
+
+model ShopTheme {
+  id           String @id @default(cuid())
+  shopId       String @unique
+  templateId   String
+  primaryColor String
+  secondaryColor String
+  accentColor  String
+  backgroundColor String
+  textColor    String
+  fontFamily   String
+  borderRadius String
+  customCSS    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  shop         Shop   @relation(fields: [shopId], references: [id])
+
+  @@map("shop_themes")
+}
+
+model ThemeTemplate {
+  id           String @id @default(cuid())
+  name         String @unique
+  displayName  String
+  description  String
+  category     String
+  primaryColor String
+  secondaryColor String
+  accentColor  String
+  backgroundColor String
+  textColor    String
+  fontFamily   String
+  borderRadius String
+  createdAt    DateTime @default(now())
+
+  @@map("theme_templates")
+}

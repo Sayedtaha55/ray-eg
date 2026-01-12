@@ -39,14 +39,14 @@ COPY --from=builder /app/package.json ./package.json
 USER nextjs
 
 # Expose port
-EXPOSE 3000
+EXPOSE 4000
 
-ENV PORT 3000
+ENV PORT 4000
 ENV HOSTNAME "0.0.0.0"
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:3000/ || exit 1
+  CMD curl -f http://localhost:4000/monitoring/health || exit 1
 
 # Start the application
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "backend:start"]

@@ -1,5 +1,6 @@
 
 import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Inject } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -7,7 +8,7 @@ import { Roles } from './auth/decorators/roles.decorator';
 
 @Controller('api/v1/shops')
 export class ShopController {
-  constructor(private readonly shopService: ShopService) {}
+  constructor(@Inject(ShopService) private readonly shopService: ShopService) {}
 
   @Get()
   async findAll() {

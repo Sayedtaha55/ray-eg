@@ -1,8 +1,8 @@
 
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
-import { PrismaService } from './prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 type IncomingRole = 'customer' | 'merchant' | 'admin' | 'CUSTOMER' | 'MERCHANT' | 'ADMIN';
 type IncomingShopCategory =
@@ -18,8 +18,8 @@ type IncomingShopCategory =
 @Injectable()
 export class AuthService {
   constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
+    @Inject(PrismaService) private prisma: PrismaService,
+    @Inject(JwtService) private jwtService: JwtService,
   ) {}
 
   private slugify(value: string) {
@@ -47,9 +47,9 @@ export class AuthService {
 
   private normalizeRole(role?: IncomingRole) {
     const r = String(role || 'CUSTOMER').toUpperCase();
-    if (r === 'MERCHANT') return 'MERCHANT';
-    if (r === 'ADMIN') return 'ADMIN';
-    return 'CUSTOMER';
+    if (r === 'MERCHANT') return 'MERCHANT' as any;
+    if (r === 'ADMIN') return 'ADMIN' as any;
+    return 'CUSTOMER' as any;
   }
 
   private normalizeShopCategory(category?: IncomingShopCategory) {
@@ -64,7 +64,7 @@ export class AuthService {
       'HEALTH',
       'OTHER',
     ]);
-    return allowed.has(c) ? c : 'RETAIL';
+    return allowed.has(c) ? c : 'RETAIL' as any;
   }
 
   /**
@@ -88,6 +88,15 @@ export class AuthService {
       shopDescription,
     } = dto;
 
+    if (!email || typeof email !== 'string') {
+      throw new BadRequestException('البريد الإلكتروني مطلوب');
+    }
+    if (!password || typeof password !== 'string') {
+      throw new BadRequestException('كلمة المرور مطلوبة');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
     const normalizedRole = this.normalizeRole(role);
 
     // 1. التحقق من صحة المدخلات
@@ -107,7 +116,7 @@ export class AuthService {
 
     // 2. التأكد من عدم وجود المستخدم مسبقاً
     const existingUser = await this.prisma.user.findUnique({ 
-      where: { email: email.toLowerCase() } 
+      where: { email: normalizedEmail } 
     });
     
     if (existingUser) {
@@ -122,7 +131,7 @@ export class AuthService {
     const result = await this.prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {
-          email: email.toLowerCase(),
+          email: normalizedEmail,
           name,
           phone,
           password: hashedPassword,
@@ -140,11 +149,11 @@ export class AuthService {
           name: shopName,
           slug,
           description: shopDescription || null,
-          category: this.normalizeShopCategory(category) as any,
+          category: this.normalizeShopCategory(category),
           governorate,
           city,
           phone: shopPhone || phone,
-          email: shopEmail || email,
+          email: (shopEmail || normalizedEmail) as any,
           openingHours: openingHours || null,
           addressDetailed: addressDetailed || null,
           ownerId: createdUser.id,
@@ -166,8 +175,13 @@ export class AuthService {
    * تسجيل الدخول والتحقق الآمن
    */
   async login(email: string, pass: string) {
+    if (!email || typeof email !== 'string' || !pass || typeof pass !== 'string') {
+      throw new BadRequestException('البريد الإلكتروني وكلمة المرور مطلوبان');
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
     const user = await this.prisma.user.findUnique({ 
-      where: { email: email.toLowerCase() } 
+      where: { email: normalizedEmail } 
     });
     
     if (!user) {
@@ -201,10 +215,7 @@ export class AuthService {
     };
     
     return {
-      access_token: this.jwtService.sign(payload, {
-        expiresIn: '7d', // التوكن صالح لمدة أسبوع
-        secret: process.env.JWT_SECRET
-      }),
+      access_token: this.jwtService.sign(payload),
       user: {
         id: user.id,
         name: user.name,

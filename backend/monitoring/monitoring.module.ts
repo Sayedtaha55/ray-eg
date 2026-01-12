@@ -1,22 +1,18 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MonitoringService } from './monitoring.service';
-import { MonitoringMiddleware } from './monitoring.middleware';
-import { LoggerService } from '../logger/logger.service';
+import { LoggerModule } from '../logger/logger.module';
+import { MonitoringController } from './monitoring.controller';
+import { PrismaModule } from '../prisma/prisma.module';
+import { RedisModule } from '../redis/redis.module';
 
 @Module({
+  imports: [PrismaModule, RedisModule, LoggerModule],
+  controllers: [MonitoringController],
   providers: [
     MonitoringService,
-    LoggerService,
   ],
   exports: [
     MonitoringService,
-    LoggerService,
   ],
 })
-export class MonitoringModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer
-      .apply(MonitoringMiddleware)
-      .forRoutes('*');
-  }
-}
+export class MonitoringModule {}

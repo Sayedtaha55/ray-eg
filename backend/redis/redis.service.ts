@@ -81,10 +81,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   // Cache utilities
   async invalidatePattern(pattern: string): Promise<void> {
     if (!this.client) return;
-    const keys = await this.client.keys(pattern);
-    if (keys.length > 0) {
-      await this.client.del(...keys);
-    }
+
+    let cursor = '0';
+    do {
+      const result = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 500);
+      cursor = result[0];
+      const keys = result[1];
+      if (keys.length > 0) {
+        await this.client.del(...keys);
+      }
+    } while (cursor !== '0');
   }
 
   async getMultiple<T>(keys: string[]): Promise<(T | null)[]> {

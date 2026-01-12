@@ -1,13 +1,20 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { LoggerService } from '../logger/logger.service';
+import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private metrics: Map<string, any> = new Map();
   private alerts: any[] = [];
   private healthChecks: Map<string, () => Promise<boolean>> = new Map();
+  private metricsInterval: NodeJS.Timeout | null = null;
 
-  constructor(private readonly logger: LoggerService) {}
+  constructor(
+    @Inject(LoggerService) private readonly logger: LoggerService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+  ) {}
 
   onModuleInit() {
     this.startMetricsCollection();
@@ -15,12 +22,16 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleDestroy() {
+    if (this.metricsInterval) {
+      clearInterval(this.metricsInterval);
+      this.metricsInterval = null;
+    }
     this.logger.log('Monitoring service shutting down');
   }
 
   // Metrics collection
   private startMetricsCollection() {
-    setInterval(() => {
+    this.metricsInterval = setInterval(() => {
       this.collectSystemMetrics();
       this.checkAlerts();
     }, 30000); // Every 30 seconds
@@ -56,11 +67,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     // Alert if performance is poor
     if (duration > 5000) { // 5 seconds
-      this.createAlert('performance', `Slow operation: ${operation}`, {
-        operation,
-        duration,
-        threshold: 5000
-      });
+      this.createAlert('performance', `Slow operation: ${operation}`);
     }
   }
 
@@ -86,12 +93,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     // Alert for high error rates
     const errorRate = current.errors / current.count;
     if (errorRate > 0.1 && current.count > 10) { // 10% error rate
-      this.createAlert('api_error', `High error rate on ${method} ${endpoint}`, {
-        method,
-        endpoint,
-        errorRate: Math.round(errorRate * 100),
-        sampleSize: current.count
-      });
+      this.createAlert('api_error', `High error rate on ${method} ${endpoint}`);
     }
   }
 
@@ -113,12 +115,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     // Alert for slow database operations
     if (duration > 2000) { // 2 seconds
-      this.createAlert('database', `Slow database operation: ${operation} on ${table}`, {
-        operation,
-        table,
-        duration,
-        threshold: 2000
-      });
+      this.createAlert('database', `Slow database operation: ${operation} on ${table}`);
     }
   }
 
@@ -141,11 +138,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     // Alert for low cache hit rate
     if (current.totalRequests > 100 && current.hitRate < 50) {
-      this.createAlert('cache', `Low cache hit rate for ${operation}`, {
-        operation,
-        hitRate: current.hitRate,
-        totalRequests: current.totalRequests
-      });
+      this.createAlert('cache', `Low cache hit rate for ${operation}`);
     }
   }
 
@@ -153,7 +146,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private setupDefaultHealthChecks() {
     this.addHealthCheck('database', async () => {
       try {
-        // This would be implemented with actual database ping
+        await this.prisma.$queryRaw`SELECT 1`;
         return true;
       } catch {
         return false;
@@ -162,8 +155,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
 
     this.addHealthCheck('redis', async () => {
       try {
-        // This would be implemented with actual Redis ping
-        return true;
+        return await this.redis.ping();
       } catch {
         return false;
       }
@@ -172,7 +164,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     this.addHealthCheck('memory', async () => {
       const memUsage = process.memoryUsage();
       const memUsagePercent = (memUsage.heapUsed / memUsage.heapTotal) * 100;
-      return memUsagePercent < 90; // Alert if memory usage is > 90%
+      return memUsagePercent < 95; // Alert if memory usage is > 95%
     });
   }
 
@@ -203,10 +195,9 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Alerts
-  private createAlert(type: string, message: string, details?: any) {
+  private createAlert(message: string, details: any = {}) {
     const alert = {
-      id: Date.now().toString(),
-      type,
+      id: Math.random().toString(36).substr(2, 9),
       message,
       details,
       timestamp: new Date().toISOString(),
@@ -214,7 +205,13 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     };
 
     this.alerts.push(alert);
-    this.logger.warn(`ALERT: ${message}`, details);
+    
+    // Safe logging with fallback
+    if (this.logger && typeof this.logger.warn === 'function') {
+      this.logger.warn(`ALERT: ${message}`, details);
+    } else {
+      console.warn(`ALERT: ${message}`, details);
+    }
 
     // Keep only last 100 alerts
     if (this.alerts.length > 100) {
@@ -241,10 +238,10 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Dashboard data
-  getDashboardData() {
+  async getDashboardData() {
     return {
       metrics: this.getMetrics(),
-      health: this.getHealthStatus(),
+      health: await this.getHealthStatus(),
       alerts: {
         active: this.getAlerts(false).length,
         recent: this.getAlerts(false).slice(-10),
@@ -257,13 +254,13 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     // Check memory usage
     const memory = this.metrics.get('memory');
     if (memory && memory.heapUsed > 1000) { // 1GB
-      this.createAlert('memory', 'High memory usage detected', memory);
+      this.createAlert('memory', 'High memory usage detected');
     }
 
     // Check uptime (for restarts)
     const uptime = this.metrics.get('uptime');
     if (uptime && uptime < 60) { // Just restarted
-      this.createAlert('system', 'Application restarted', { uptime });
+      this.createAlert('system', 'Application restarted');
     }
   }
 

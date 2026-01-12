@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
@@ -6,9 +6,9 @@ import { MonitoringService } from './monitoring/monitoring.service';
 @Injectable()
 export class ShopService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
-    private readonly monitoring: MonitoringService
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(MonitoringService) private readonly monitoring: MonitoringService
   ) {}
 
   async getAllShops() {
@@ -151,10 +151,74 @@ export class ShopService {
   }
 
   async toggleFollow(shopId: string, userId: string) {
-    // This would need a followers table in the schema
-    // For now, return a mock response
-    this.monitoring.trackPerformance('toggleFollow', 0);
-    return { followed: true };
+    const startTime = Date.now();
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.shopFollower.findUnique({
+          where: {
+            shopId_userId: {
+              shopId,
+              userId,
+            },
+          },
+        });
+
+        if (existing) {
+          await tx.shopFollower.delete({
+            where: {
+              shopId_userId: {
+                shopId,
+                userId,
+              },
+            },
+          });
+
+          let updatedShop = await tx.shop.update({
+            where: { id: shopId },
+            data: { followers: { decrement: 1 } },
+            select: { id: true, slug: true, followers: true },
+          });
+
+          if (updatedShop.followers < 0) {
+            updatedShop = await tx.shop.update({
+              where: { id: shopId },
+              data: { followers: 0 },
+              select: { id: true, slug: true, followers: true },
+            });
+          }
+
+          return { followed: false, shop: updatedShop };
+        }
+
+        await tx.shopFollower.create({
+          data: {
+            shopId,
+            userId,
+          },
+        });
+
+        const updatedShop = await tx.shop.update({
+          where: { id: shopId },
+          data: { followers: { increment: 1 } },
+          select: { id: true, slug: true, followers: true },
+        });
+
+        return { followed: true, shop: updatedShop };
+      });
+
+      await this.redis.invalidateShopCache(result.shop.id, result.shop.slug);
+
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('transaction', 'shop_followers', duration, true);
+      this.monitoring.trackPerformance('toggleFollow', duration);
+
+      return { followed: result.followed, followers: result.shop.followers };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('transaction', 'shop_followers', duration, false);
+      throw error;
+    }
   }
 
   async updateShopDesign(shopId: string, designConfig: any) {
