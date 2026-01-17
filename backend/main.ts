@@ -7,7 +7,25 @@ import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
 
+function isPrivateIpv4Host(hostname: string) {
+  const parts = hostname.split('.').map((p) => Number(p));
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
+  const [a, b] = parts;
+  if (a === 10) return true;
+  if (a === 127) return true;
+  if (a === 192 && b === 168) return true;
+  if (a === 172 && b >= 16 && b <= 31) return true;
+  return false;
+}
+
 async function bootstrap() {
+  const configuredOriginsRaw = String(process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '').trim();
+  const allowedOrigins = configuredOriginsRaw
+    ? configuredOriginsRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [];
+
+  const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: (origin, callback) => {
@@ -15,6 +33,14 @@ async function bootstrap() {
         try {
           const url = new URL(origin);
           if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+            return callback(null, true);
+          }
+
+          if (isDev && isPrivateIpv4Host(url.hostname)) {
+            return callback(null, true);
+          }
+
+          if (allowedOrigins.includes(origin)) {
             return callback(null, true);
           }
         } catch {

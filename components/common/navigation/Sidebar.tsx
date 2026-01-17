@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Store,
   Palette,
-  Eye,
   MessageSquare,
   CreditCard
 } from 'lucide-react';
@@ -36,8 +35,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
     { icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', href: '/admin/dashboard' },
     { icon: <ShieldAlert size={20} />, label: 'طلبات الموافقة', href: '/admin/approvals' },
     { icon: <Store size={20} />, label: 'إدارة المتاجر', href: '/admin/shops' },
-    { icon: <Eye size={20} />, label: 'لوحات المتاجر', href: '/admin/shop-management' },
-    { icon: <Palette size={20} />, label: 'إدارة الثيمات', href: '/admin/themes' },
     { icon: <Users size={20} />, label: 'إدارة المستخدمين', href: '/admin/users' },
     { icon: <CreditCard size={20} />, label: 'كافة العمليات', href: '/admin/orders' },
     { icon: <MessageSquare size={20} />, label: 'مركز الاقتراحات', href: '/admin/feedback' },

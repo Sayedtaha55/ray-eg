@@ -1,4 +1,3 @@
-
 import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ShopService } from './shop.service';
@@ -39,6 +38,31 @@ export class ShopController {
       throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
     }
 
+    const latitude = (() => {
+      if (typeof body?.latitude === 'undefined') return undefined;
+      if (body.latitude === null) return null;
+      const v = Number(body.latitude);
+      if (Number.isNaN(v) || v < -90 || v > 90) return undefined;
+      return v;
+    })();
+
+    const longitude = (() => {
+      if (typeof body?.longitude === 'undefined') return undefined;
+      if (body.longitude === null) return null;
+      const v = Number(body.longitude);
+      if (Number.isNaN(v) || v < -180 || v > 180) return undefined;
+      return v;
+    })();
+
+    const isActive = (() => {
+      if (typeof body?.isActive === 'undefined') return undefined;
+      if (typeof body?.isActive === 'boolean') return body.isActive;
+      const raw = String(body.isActive).trim().toLowerCase();
+      if (raw === 'true') return true;
+      if (raw === 'false') return false;
+      return undefined;
+    })();
+
     return this.shopService.updateShopSettings(targetShopId, {
       name: typeof body?.name === 'string' ? body.name : undefined,
       description: typeof body?.description === 'string' ? body.description : undefined,
@@ -46,6 +70,8 @@ export class ShopController {
       governorate: typeof body?.governorate === 'string' ? body.governorate : undefined,
       city: typeof body?.city === 'string' ? body.city : undefined,
       addressDetailed: typeof body?.addressDetailed === 'string' ? body.addressDetailed : undefined,
+      latitude,
+      longitude,
       phone: typeof body?.phone === 'string' ? body.phone : undefined,
       email: typeof body?.email === 'string' ? body.email : undefined,
       openingHours: typeof body?.openingHours === 'string' ? body.openingHours : undefined,
@@ -53,6 +79,15 @@ export class ShopController {
       bannerUrl: typeof body?.bannerUrl === 'string' ? body.bannerUrl : undefined,
       whatsapp: typeof body?.whatsapp === 'string' ? body.whatsapp : undefined,
       customDomain: typeof body?.customDomain === 'string' ? body.customDomain : undefined,
+      isActive,
+      deliveryFee:
+        userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')
+          ? ((): number | null => {
+              const v = Number(body.deliveryFee);
+              if (Number.isNaN(v) || v < 0) return null;
+              return v;
+            })()
+          : undefined,
     });
   }
 
@@ -121,16 +156,29 @@ export class ShopController {
     if (!shop) {
       throw new NotFoundException('لم يتم العثور على المتجر');
     }
+    const status = String((shop as any)?.status || '').toUpperCase();
+    if (status !== 'APPROVED' && status !== 'SUSPENDED') {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
     // تسجيل زيارة (Analytics)
-    await this.shopService.incrementVisitors(shop.id);
     return shop;
+  }
+
+  @Post(':id/visit')
+  async trackVisit(@Param('id') id: string) {
+    const shopId = String(id || '').trim();
+    if (!shopId) {
+      throw new BadRequestException('id مطلوب');
+    }
+    await this.shopService.incrementVisitors(shopId);
+    return { ok: true };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/follow')
   async follow(@Param('id') id: string, @Request() req) {
     const userId = req.user?.id;
-    return this.shopService.toggleFollow(id, userId);
+    return this.shopService.followShop(id, userId);
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)

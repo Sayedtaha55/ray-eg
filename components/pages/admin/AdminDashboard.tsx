@@ -2,10 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { 
   Users, Store, ShoppingCart, DollarSign, Check, X, 
   Loader2, ShieldAlert, TrendingUp, Search, UserCheck, Eye,
-  LayoutDashboard, Bell, Settings, Filter, Palette, Edit, Plus
+  Bell, Settings, Filter, Edit, Plus
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
@@ -18,32 +19,64 @@ const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [pendingShops, setPendingShops] = useState<any[]>([]);
   const [allShops, setAllShops] = useState<any[]>([]);
-  const [themes, setThemes] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'stats' | 'approvals' | 'users' | 'shops' | 'themes' | 'shop-management'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'approvals' | 'users' | 'shops'>('stats');
   const { addToast } = useToast();
 
-  const openShopPreview = (shop: any) => {
-    window.open(`/#/shop/${shop.slug}`, '_blank');
+  const timeAgoAr = (input: any) => {
+    const t = input ? new Date(String(input)) : new Date();
+    const ms = Date.now() - t.getTime();
+    if (!Number.isFinite(ms) || ms < 0) return 'الآن';
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return 'منذ لحظات';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `منذ ${min} دقيقة`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `منذ ${hr} ساعة`;
+    const day = Math.floor(hr / 24);
+    return `منذ ${day} يوم`;
   };
 
-  const openMerchantDashboard = (shop: any) => {
-    window.open(`/#/business/dashboard?impersonateShopId=${shop.id}`, '_blank');
+  const getShopDeliveryFee = (shop: any): number | null => {
+    const raw = (shop?.layoutConfig as any)?.deliveryFee;
+    const n = typeof raw === 'number' ? raw : raw == null ? NaN : Number(raw);
+    if (Number.isNaN(n) || n < 0) return null;
+    return n;
   };
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, p, allS, t] = await Promise.all([
+      const [s, p, allS, ts, acts] = await Promise.all([
         ApiService.getSystemAnalytics(),
         ApiService.getPendingShops(),
         ApiService.getShops('all'),
-        ApiService.getThemeTemplates()
+        (ApiService as any).getSystemAnalyticsTimeseries?.(7) || Promise.resolve([]),
+        (ApiService as any).getSystemActivity?.(10) || Promise.resolve([]),
       ]);
       setStats(s);
       setPendingShops(p);
       setAllShops(allS);
-      setThemes(t);
+      const mapped = (Array.isArray(ts) ? ts : []).map((row: any) => {
+        const date = String(row?.date || '').trim();
+        const d = date ? new Date(date) : new Date();
+        return {
+          name: d.toLocaleDateString('ar-EG', { weekday: 'short' }),
+          revenue: Math.round(Number(row?.revenue || 0)),
+          orders: Number(row?.orders || 0),
+        };
+      });
+      setChartData(mapped);
+
+      const actMapped = (Array.isArray(acts) ? acts : []).map((a: any) => ({
+        id: String(a?.id || ''),
+        title: String(a?.title || ''),
+        createdAt: a?.createdAt,
+        color: String(a?.color || '#00E5FF'),
+      }));
+      setActivity(actMapped);
     } catch (e) {
       addToast('خطأ في جلب البيانات السحابية', 'error');
     } finally {
@@ -60,14 +93,10 @@ const AdminDashboard: React.FC = () => {
     const path = location.pathname;
     if (path.includes('/admin/shops')) {
       setActiveTab('shops');
-    } else if (path.includes('/admin/themes')) {
-      setActiveTab('themes');
     } else if (path.includes('/admin/approvals')) {
       setActiveTab('approvals');
     } else if (path.includes('/admin/users')) {
       setActiveTab('users');
-    } else if (path.includes('/admin/shop-management')) {
-      setActiveTab('shop-management');
     } else {
       setActiveTab('stats');
     }
@@ -83,6 +112,21 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const editShopDeliveryFee = async (shop: any) => {
+    try {
+      const current = getShopDeliveryFee(shop);
+      const raw = window.prompt('رسوم التوصيل الثابتة (ج.م)', current != null ? String(current) : '');
+      if (raw == null) return;
+      const fee = Number(String(raw).trim());
+      if (Number.isNaN(fee) || fee < 0) return;
+      await ApiService.updateMyShop({ shopId: String(shop.id), deliveryFee: fee });
+      addToast('تم تحديث رسوم التوصيل', 'success');
+      loadData();
+    } catch {
+      addToast('فشل تحديث رسوم التوصيل', 'error');
+    }
+  };
+
   if (loading && !stats) return <div className="h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" /></div>;
 
   return (
@@ -90,7 +134,7 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-slate-900/50 p-8 rounded-[3rem] border border-white/5">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter">نظام إدارة <span className="text-[#00E5FF]">تست</span></h1>
+          <h1 className="text-4xl font-black text-white tracking-tighter">نظام إدارة <span className="text-[#00E5FF]">Ray</span></h1>
           <p className="text-slate-400 font-bold mt-2">تحكم كامل في المنصة والتجار والمستخدمين.</p>
         </div>
         <div className="flex gap-4">
@@ -103,11 +147,12 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
          <AdminStatCard label="إجمالي المبيعات" value={`ج.م ${stats.totalRevenue}`} icon={<DollarSign />} color="cyan" />
          <AdminStatCard label="المستخدمين" value={stats.totalUsers} icon={<Users />} color="purple" />
          <AdminStatCard label="المحلات النشطة" value={stats.totalShops} icon={<Store />} color="blue" />
          <AdminStatCard label="الطلبات" value={stats.totalOrders} icon={<ShoppingCart />} color="amber" />
+         <AdminStatCard label="إجمالي الزيارات" value={(stats.totalVisits ?? 0)} icon={<Eye />} color="amber" />
       </div>
 
       {/* Tabs */}
@@ -115,8 +160,6 @@ const AdminDashboard: React.FC = () => {
          <AdminTabBtn active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} icon={<TrendingUp size={18} />} label="تحليلات النظام" />
          <AdminTabBtn active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<ShieldAlert size={18} />} label={`طلبات الموافقة (${pendingShops.length})`} />
          <AdminTabBtn active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} icon={<Store size={18} />} label={`المتاجر (${allShops.length})`} />
-         <AdminTabBtn active={activeTab === 'shop-management'} onClick={() => setActiveTab('shop-management')} icon={<Eye size={18} />} label="لوحات المتاجر" />
-         <AdminTabBtn active={activeTab === 'themes'} onClick={() => setActiveTab('themes')} icon={<Palette size={18} />} label={`الثيمات (${themes.length})`} />
          <AdminTabBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UserCheck size={18} />} label="إدارة المستخدمين" />
       </div>
 
@@ -164,6 +207,7 @@ const AdminDashboard: React.FC = () => {
                       <th className="text-right px-4 py-3 text-sm font-black text-slate-400">المتجر</th>
                       <th className="text-right px-4 py-3 text-sm font-black text-slate-400">الفئة</th>
                       <th className="text-right px-4 py-3 text-sm font-black text-slate-400">المدينة</th>
+                      <th className="text-right px-4 py-3 text-sm font-black text-slate-400">رسوم التوصيل</th>
                       <th className="text-right px-4 py-3 text-sm font-black text-slate-400">الحالة</th>
                       <th className="text-right px-4 py-3 text-sm font-black text-slate-400">الإجراءات</th>
                     </tr>
@@ -186,6 +230,19 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 py-4 text-slate-300">{shop.city}</td>
+                        <td className="px-4 py-4">
+                          {(() => {
+                            const fee = getShopDeliveryFee(shop);
+                            return (
+                              <button
+                                onClick={() => editShopDeliveryFee(shop)}
+                                className="px-3 py-1 bg-white/10 text-slate-200 rounded-xl text-xs font-black hover:bg-white/15"
+                              >
+                                {fee == null ? 'تحديد' : `ج.م ${fee}`}
+                              </button>
+                            );
+                          })()}
+                        </td>
                         <td className="px-4 py-4">
                           <span className={`px-3 py-1 rounded-xl text-xs font-black ${
                             shop.status === 'approved' 
@@ -225,141 +282,68 @@ const AdminDashboard: React.FC = () => {
            </MotionDiv>
          )}
 
-         {activeTab === 'shop-management' && (
-           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-8 rounded-[3rem] border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black text-white">لوحات المتاجر والمطاعم</h3>
-                <p className="text-slate-400 text-sm">لوحة التاجر (للإدارة) + صفحة العرض (للمعاينة)</p>
-              </div>
-              {(() => {
-                const approved = allShops.filter((shop) => (shop.status ?? 'approved') === 'approved');
-                const retail = approved.filter((shop) => shop.category === 'RETAIL');
-                const restaurants = approved.filter((shop) => shop.category === 'RESTAURANT');
-
-                const Section = ({ title, items }: any) => (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xl font-black text-white">{title}</h4>
-                      <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{items.length} عنصر</span>
-                    </div>
-                    {items.length === 0 ? (
-                      <div className="p-10 text-center text-slate-500 font-bold bg-white/5 rounded-[2rem] border border-white/5">
-                        لا يوجد عناصر هنا حالياً.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {items.map((shop: any) => (
-                          <motion.div
-                            key={shop.id}
-                            className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all"
-                            whileHover={{ scale: 1.02 }}
-                          >
-                            <div className="flex items-center gap-4 mb-4">
-                              <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-16 h-16 rounded-2xl object-cover" alt={shop.name} />
-                              <div>
-                                <h5 className="text-lg font-black text-white">{shop.name}</h5>
-                                <p className="text-sm text-slate-400">{shop.city}</p>
-                              </div>
-                            </div>
-                            <div className="space-y-2 mb-5">
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-400">المتابعين:</span>
-                                <span className="text-white font-bold">{shop.followers || 0}</span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-slate-400">الزيارات:</span>
-                                <span className="text-white font-bold">{shop.visitors || 0}</span>
-                              </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-3">
-                              <button
-                                onClick={() => openMerchantDashboard(shop)}
-                                className="py-3 bg-[#00E5FF] text-black rounded-xl font-black text-sm hover:scale-105 transition-all flex items-center justify-center gap-2"
-                              >
-                                <LayoutDashboard size={16} /> لوحة التاجر
-                              </button>
-                              <button
-                                onClick={() => openShopPreview(shop)}
-                                className="py-3 bg-white/10 text-white rounded-xl font-black text-sm hover:bg-white/20 transition-all flex items-center justify-center gap-2"
-                              >
-                                <Eye size={16} /> صفحة العرض
-                              </button>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-
-                if (approved.length === 0) {
-                  return (
-                    <div className="py-20 text-center text-slate-500 font-bold">
-                      لا توجد متاجر نشطة حالياً. قم بالموافقة على بعض الطلبات أولاً.
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="space-y-10">
-                    <Section title="لوحات المحلات" items={retail} />
-                    <Section title="لوحات المطاعم" items={restaurants} />
-                  </div>
-                );
-              })()}
-           </MotionDiv>
-         )}
-
-         {activeTab === 'themes' && (
-           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-8 rounded-[3rem] border border-white/5 shadow-2xl">
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-black text-white">إدارة الثيمات</h3>
-                <button className="px-6 py-3 bg-[#00E5FF] text-black rounded-xl font-black text-sm flex items-center gap-2 hover:scale-105 transition-all">
-                  <Plus size={18} /> ثيم جديد
-                </button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {themes.map((theme) => (
-                  <div key={theme.id} className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-lg font-black text-white">{theme.displayName}</h4>
-                      <Palette className="w-5 h-5 text-[#BD00FF]" />
-                    </div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="w-8 h-8 rounded-full border-2 border-white/20" style={{ backgroundColor: theme.primary }} />
-                      <div className="w-8 h-8 rounded-full border-2 border-white/20" style={{ backgroundColor: theme.secondary }} />
-                      <div className="w-8 h-8 rounded-full border-2 border-white/20" style={{ backgroundColor: theme.accent }} />
-                    </div>
-                    <p className="text-sm text-slate-400 mb-4">{theme.description}</p>
-                    <div className="flex items-center gap-2">
-                      <button className="flex-1 px-4 py-2 bg-[#00E5FF] text-black rounded-xl font-black text-sm hover:scale-105 transition-all">
-                        معاينة
-                      </button>
-                      <button className="flex-1 px-4 py-2 bg-white/10 text-white rounded-xl font-black text-sm hover:bg-white/20 transition-all">
-                        تعديل
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-           </MotionDiv>
-         )}
-
          {activeTab === 'stats' && (
            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              <div className="lg:col-span-2 bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl h-[400px] flex items-center justify-center text-slate-500 font-bold">
-                 [رسم بياني حقيقي سيظهر هنا عند ربط Analytics]
+            <div className="lg:col-span-2 bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-xl font-black text-white">إيراد آخر 7 أيام</h3>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">System</span>
               </div>
-              <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl">
-                 <h3 className="text-xl font-black text-white mb-8">أحدث العمليات</h3>
-                 <div className="space-y-6">
-                    <ActivityItem title="تسجيل تاجر جديد" time="منذ قليل" color="#00E5FF" />
-                    <ActivityItem title="طلب مكتمل" time="منذ ١٠ دقائق" color="#10b981" />
-                    <ActivityItem title="حجز مؤكد" time="منذ ساعة" color="#f59e0b" />
-                 </div>
+
+              <div className="flex-1">
+                {(() => {
+                  const hasNonZero = Array.isArray(chartData)
+                    ? chartData.some((p: any) => Number(p?.revenue || 0) > 0)
+                    : false;
+
+                  if (!hasNonZero) {
+                    return (
+                      <div className="h-full flex items-center justify-center text-slate-500 font-bold">
+                        لا توجد إيرادات خلال آخر 7 أيام.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="#00E5FF" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <XAxis dataKey="name" stroke="#64748b" tickLine={false} axisLine={false} />
+                        <YAxis
+                          stroke="#64748b"
+                          tickLine={false}
+                          axisLine={false}
+                          width={40}
+                          tickFormatter={(v) => (Number(v) === 0 ? '' : String(v))}
+                        />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="revenue" stroke="#00E5FF" fillOpacity={1} fill="url(#colorRevenue)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
               </div>
-           </MotionDiv>
-         )}
+            </div>
+
+            <div className="bg-slate-900 p-10 rounded-[3rem] border border-white/5 shadow-2xl">
+              <h3 className="text-xl font-black text-white mb-8">أحدث العمليات</h3>
+              <div className="space-y-6">
+                {Array.isArray(activity) && activity.length ? (
+                  activity.slice(0, 6).map((a: any) => (
+                    <ActivityItem key={a.id} title={a.title} time={timeAgoAr(a.createdAt)} color={a.color} />
+                  ))
+                ) : (
+                  <div className="text-slate-500 font-bold text-sm">لا توجد عمليات حديثة حالياً.</div>
+                )}
+              </div>
+            </div>
+          </MotionDiv>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -104,13 +104,16 @@ const RestaurantsPage: React.FC = () => {
                 <div className="flex items-center gap-3 justify-end mb-2">
                    <img src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" />
                    <h3 className="text-3xl font-black text-white">{shop.name}</h3>
+                   <span className={`px-4 py-1.5 rounded-full text-[11px] font-black ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
+                     {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
+                   </span>
                 </div>
                 <p className="text-white/60 font-bold text-lg flex items-center gap-2 justify-end">
                    <MapPin className="w-4 h-4" /> {shop.city}, {shop.governorate}
                 </p>
               </div>
               <Link 
-                to={`/shop/${shop.slug}`}
+                to={`/s/${shop.slug}`}
                 className="bg-white text-black px-8 py-4 rounded-2xl font-black text-lg hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl"
               >
                 اطلب الآن

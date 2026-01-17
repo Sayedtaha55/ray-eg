@@ -170,7 +170,7 @@ const ProfilePage: React.FC = () => {
               {activeTab === 'notifications' && (
                 <div className="space-y-4">
                   {[
-                    { title: 'أهلاً بك في تست!', desc: 'استمتع بأفضل العروض الحصرية في مصر.', type: 'promo' }
+                    { title: 'أهلاً بك في Ray!', desc: 'استمتع بأفضل العروض الحصرية في مصر.', type: 'promo' }
                   ].map((notif, i) => (
                     <div key={i} className="p-8 rounded-[2rem] border-r-8 bg-cyan-50 border-cyan-400 flex items-center gap-6 flex-row-reverse text-right">
                        <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center"><Zap size={20} /></div>

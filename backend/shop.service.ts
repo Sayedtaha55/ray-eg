@@ -50,6 +50,8 @@ export class ShopService {
       governorate?: string;
       city?: string;
       addressDetailed?: string | null;
+      latitude?: number | null;
+      longitude?: number | null;
       phone?: string;
       email?: string | null;
       openingHours?: string | null;
@@ -57,6 +59,8 @@ export class ShopService {
       bannerUrl?: string | null;
       whatsapp?: string | null;
       customDomain?: string | null;
+      deliveryFee?: number | null;
+      isActive?: boolean;
     },
   ) {
     const startTime = Date.now();
@@ -72,6 +76,7 @@ export class ShopService {
         ...prevLayout,
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
+        ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),
       };
 
       const updated = await this.prisma.shop.update({
@@ -83,11 +88,14 @@ export class ShopService {
           ...(typeof input.governorate === 'undefined' ? {} : { governorate: input.governorate }),
           ...(typeof input.city === 'undefined' ? {} : { city: input.city }),
           ...(typeof input.addressDetailed === 'undefined' ? {} : { addressDetailed: input.addressDetailed }),
+          ...(typeof input.latitude === 'undefined' ? {} : { latitude: input.latitude }),
+          ...(typeof input.longitude === 'undefined' ? {} : { longitude: input.longitude }),
           ...(typeof input.phone === 'undefined' ? {} : { phone: input.phone }),
           ...(typeof input.email === 'undefined' ? {} : { email: input.email }),
           ...(typeof input.openingHours === 'undefined' ? {} : { openingHours: input.openingHours }),
           ...(typeof input.logoUrl === 'undefined' ? {} : { logoUrl: input.logoUrl }),
           ...(typeof input.bannerUrl === 'undefined' ? {} : { bannerUrl: input.bannerUrl }),
+          ...(typeof input.isActive === 'undefined' ? {} : { isActive: input.isActive }),
           layoutConfig: nextLayout as any,
         },
       });
@@ -178,7 +186,7 @@ export class ShopService {
 
       // If not in cache, fetch from database
       const shops = await this.prisma.shop.findMany({
-        where: { isActive: true, status: 'APPROVED' },
+        where: { status: 'APPROVED' },
         include: {
           owner: {
             select: {
@@ -227,30 +235,35 @@ export class ShopService {
       // }
 
       // If not in cache, fetch from database
-      const shop = await this.prisma.shop.findUnique({
-        where: { slug },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          products: {
-            where: { isActive: true },
-            take: 10,
-          },
-          offers: {
-            where: { isActive: true },
-            take: 5,
-          },
-          gallery: {
-            where: { isActive: true },
-            take: 6,
+      const include = {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
           },
         },
-      });
+        products: {
+          where: { isActive: true },
+          take: 10,
+        },
+        offers: {
+          where: { isActive: true },
+          take: 5,
+        },
+        gallery: {
+          where: { isActive: true },
+          take: 6,
+        },
+      };
+
+      const shop = (await this.prisma.shop.findUnique({
+        where: { slug },
+        include,
+      })) || (await this.prisma.shop.findUnique({
+        where: { id: slug },
+        include,
+      }));
 
       if (shop) {
         // Cache the shop data for 1 hour
@@ -365,6 +378,56 @@ export class ShopService {
       this.monitoring.trackPerformance('toggleFollow', duration);
 
       return { followed: result.followed, followers: result.shop.followers };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('transaction', 'shop_followers', duration, false);
+      throw error;
+    }
+  }
+
+  async followShop(shopId: string, userId: string) {
+    const startTime = Date.now();
+
+    try {
+      const result = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.shopFollower.findUnique({
+          where: {
+            shopId_userId: {
+              shopId,
+              userId,
+            },
+          },
+        });
+
+        if (existing) {
+          const currentShop = await tx.shop.findUnique({
+            where: { id: shopId },
+            select: { followers: true },
+          });
+          return { followed: true, followers: currentShop?.followers ?? 0 };
+        }
+
+        await tx.shopFollower.create({
+          data: {
+            shopId,
+            userId,
+          },
+        });
+
+        const updatedShop = await tx.shop.update({
+          where: { id: shopId },
+          data: { followers: { increment: 1 } },
+          select: { followers: true },
+        });
+
+        return { followed: true, followers: updatedShop.followers };
+      });
+
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('transaction', 'shop_followers', duration, true);
+      this.monitoring.trackPerformance('followShop', duration);
+
+      return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('transaction', 'shop_followers', duration, false);

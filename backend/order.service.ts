@@ -7,6 +7,31 @@ export class OrderService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private getDeliveryFeeFromShop(shop: any): number | null {
+    const layout = (shop?.layoutConfig as any) || {};
+    const raw = (layout as any)?.deliveryFee;
+    const n = typeof raw === 'number' ? raw : raw == null ? NaN : Number(raw);
+    if (Number.isNaN(n) || n < 0) return null;
+    return n;
+  }
+
+  private stripDeliveryFeeFromNotes(notes: string) {
+    const raw = String(notes || '');
+    const lines = raw
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter(Boolean)
+      .filter((l) => !l.toUpperCase().startsWith('DELIVERY_FEE:'));
+    return lines.join('\n');
+  }
+
+  private withDeliveryFee(notes: any, fee: number | null) {
+    const base = this.stripDeliveryFeeFromNotes(typeof notes === 'string' ? notes : '');
+    if (fee == null) return base || null;
+    const next = base ? `${base}\nDELIVERY_FEE:${fee}` : `DELIVERY_FEE:${fee}`;
+    return next;
+  }
+
   private normalizeStatus(status?: string) {
     const s = String(status || '').trim().toUpperCase();
     if (s === 'DELIVERED') return 'DELIVERED' as any;
@@ -16,6 +41,38 @@ export class OrderService {
     if (s === 'CANCELLED' || s === 'CANCELED') return 'CANCELLED' as any;
     if (s === 'REFUNDED') return 'REFUNDED' as any;
     return 'PENDING' as any;
+  }
+
+  async updateOrder(orderId: string, input: { status?: string; notes?: string }) {
+    const id = String(orderId || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const data: any = {};
+    if (typeof input?.status === 'string' && String(input.status).trim()) {
+      data.status = this.normalizeStatus(input.status);
+    }
+    if (typeof input?.notes === 'string') {
+      data.notes = String(input.notes);
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('لا توجد بيانات للتحديث');
+    }
+
+    return this.prisma.order.update({
+      where: { id },
+      data,
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        shop: true,
+        user: true,
+        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
+      },
+    });
   }
 
   async listByShop(shopId: string, actor: { role: string; shopId?: string }, query?: { from?: Date; to?: Date }) {
@@ -42,6 +99,7 @@ export class OrderService {
             product: true,
           },
         },
+        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
 
@@ -67,6 +125,7 @@ export class OrderService {
         },
         shop: true,
         user: true,
+        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
   }
@@ -77,6 +136,7 @@ export class OrderService {
     items: Array<{ productId?: string; id?: string; quantity: number }>;
     total?: number;
     paymentMethod?: string;
+    notes?: string;
     status?: string;
   }, actor: { role: string; shopId?: string }) {
     const shopId = String(input?.shopId || '').trim();
@@ -113,6 +173,13 @@ export class OrderService {
     const productIds = Array.from(new Set(normalizedItems.map((i) => i.productId)));
 
     return this.prisma.$transaction(async (tx) => {
+      const shop = await tx.shop.findUnique({
+        where: { id: shopId },
+        select: { id: true, layoutConfig: true },
+      });
+      const deliveryFee = this.getDeliveryFeeFromShop(shop);
+      const safeNotes = this.withDeliveryFee(input?.notes, deliveryFee);
+
       const products = await tx.product.findMany({
         where: { id: { in: productIds }, shopId, isActive: true },
       });
@@ -161,6 +228,7 @@ export class OrderService {
           total,
           status,
           paymentMethod: input?.paymentMethod ? String(input.paymentMethod) : null,
+          notes: safeNotes,
           items: {
             create: normalizedItems.map((item) => ({
               productId: item.productId,
@@ -178,7 +246,107 @@ export class OrderService {
         },
       });
 
+      try {
+        await tx.notification.create({
+          data: {
+            shopId,
+            title: 'طلب جديد',
+            content: `تم إنشاء طلب جديد بقيمة ${Number(total || 0)} ج.م`,
+            type: 'ORDER',
+            isRead: false,
+          },
+        });
+      } catch {
+        // ignore
+      }
+
       return created;
+    });
+  }
+
+  async assignCourierToOrder(orderId: string, courierId: string) {
+    const id = String(orderId || '').trim();
+    const cId = String(courierId || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+    if (!cId) throw new BadRequestException('courierId مطلوب');
+
+    const courier = await this.prisma.user.findUnique({
+      where: { id: cId },
+      select: { id: true, role: true, isActive: true },
+    });
+    if (!courier || String(courier.role || '').toUpperCase() !== 'COURIER') {
+      throw new BadRequestException('courierId غير صحيح');
+    }
+    if (courier.isActive === false) {
+      throw new BadRequestException('حساب المندوب غير مفعل');
+    }
+
+    return this.prisma.order.update({
+      where: { id },
+      data: { courierId: courier.id },
+      include: {
+        items: { include: { product: true } },
+        shop: true,
+        user: true,
+        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
+      },
+    });
+  }
+
+  async listMyCourierOrders(courierId: string) {
+    const cId = String(courierId || '').trim();
+    if (!cId) throw new BadRequestException('غير مصرح');
+
+    return this.prisma.order.findMany({
+      where: { courierId: cId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: { include: { product: true } },
+        shop: true,
+        user: true,
+      },
+    });
+  }
+
+  async updateCourierOrder(orderId: string, input: { status?: string; codCollected?: boolean }, actor: { userId: string }) {
+    const id = String(orderId || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+    const actorId = String(actor?.userId || '').trim();
+    if (!actorId) throw new BadRequestException('غير مصرح');
+
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      select: { id: true, courierId: true },
+    });
+    if (!order) throw new BadRequestException('الطلب غير موجود');
+    if (!order.courierId || order.courierId !== actorId) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const data: any = {};
+    if (typeof input?.status === 'string' && String(input.status).trim()) {
+      const nextStatus = this.normalizeStatus(input.status);
+      data.status = nextStatus;
+      if (String(nextStatus).toUpperCase() === 'DELIVERED') {
+        data.deliveredAt = new Date();
+      }
+    }
+    if (input?.codCollected === true) {
+      data.codCollectedAt = new Date();
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('لا توجد بيانات للتحديث');
+    }
+
+    return this.prisma.order.update({
+      where: { id },
+      data,
+      include: {
+        items: { include: { product: true } },
+        shop: true,
+        user: true,
+      },
     });
   }
 }

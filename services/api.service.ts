@@ -676,7 +676,7 @@ class MockDatabase {
 
 const mockDb = new MockDatabase();
 
-const BACKEND_BASE_URL = ((import.meta as any)?.env?.VITE_BACKEND_URL as string) || 'http://localhost:4000';
+const BACKEND_BASE_URL = ((import.meta as any)?.env?.VITE_BACKEND_URL as string) || `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
 
 function toBackendUrl(url: string) {
   if (!url) return url;
@@ -686,14 +686,19 @@ function toBackendUrl(url: string) {
 async function backendPost<T>(path: string, body: any): Promise<T> {
   const token = getAuthToken();
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  const res = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'POST',
-    headers: {
-      ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: isFormData ? body : JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: isFormData ? body : JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`);
+  }
 
   if (!res.ok) {
     let message = 'Request failed';
@@ -742,12 +747,17 @@ function getAuthToken() {
 
 async function backendGet<T>(path: string): Promise<T> {
   const token = getAuthToken();
-  const res = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'GET',
-    headers: {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+      method: 'GET',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+  } catch {
+    throw new Error(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`);
+  }
 
   if (!res.ok) {
     let message = 'Request failed';
@@ -765,14 +775,19 @@ async function backendGet<T>(path: string): Promise<T> {
 
 async function backendPatch<T>(path: string, body: any): Promise<T> {
   const token = getAuthToken();
-  const res = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'PATCH',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`);
+  }
 
   if (!res.ok) {
     let message = 'Request failed';
@@ -790,14 +805,19 @@ async function backendPatch<T>(path: string, body: any): Promise<T> {
 
 async function backendPut<T>(path: string, body: any): Promise<T> {
   const token = getAuthToken();
-  const res = await fetch(`${BACKEND_BASE_URL}${path}`, {
-    method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify(body),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw new Error(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`);
+  }
 
   if (!res.ok) {
     let message = 'Request failed';
@@ -989,8 +1009,21 @@ export const ApiService = {
     });
     return normalizeShopFromBackend(updated);
   },
-  followShop: mockDb.followShop.bind(mockDb),
-  incrementVisitors: mockDb.incrementVisitors.bind(mockDb),
+  followShop: async (shopId: string) => {
+    return await backendPost<{ followed: boolean; followers: number }>(
+      `/api/v1/shops/${encodeURIComponent(shopId)}/follow`,
+      {},
+    );
+  },
+  incrementVisitors: async (shopId: string) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return { error: 'shopId مطلوب' } as any;
+    try {
+      return await backendPost<any>(`/api/v1/shops/${encodeURIComponent(sid)}/visit`, {});
+    } catch {
+      return await mockDb.incrementVisitors(sid);
+    }
+  },
 
   // Offers
   getOffers: async () => {
@@ -1081,6 +1114,15 @@ export const ApiService = {
       }
     }
 
+    if (localRole === 'COURIER') {
+      try {
+        const data = await backendGet<any[]>(`/api/v1/orders/courier/me`);
+        return (data || []).map(normalizeOrderFromBackend);
+      } catch {
+        // ignore
+      }
+    }
+
     const shopId = opts?.shopId || getLocalShopIdFromStorage();
     if (shopId) {
       const merchantParams = new URLSearchParams();
@@ -1099,7 +1141,7 @@ export const ApiService = {
     return [];
   },
   addSale: mockDb.addSale.bind(mockDb),
-  placeOrder: async (order: { items: any[]; total: number; paymentMethod?: string; shopId?: string }) => {
+  placeOrder: async (order: { items: any[]; total: number; paymentMethod?: string; shopId?: string; notes?: string }) => {
     // NOTE: backend expects a single shopId per order
     const shopId = order.shopId || order.items?.[0]?.shopId;
     return await backendPost<any>('/api/v1/orders', {
@@ -1107,7 +1149,25 @@ export const ApiService = {
       items: order.items,
       total: order.total,
       paymentMethod: order.paymentMethod,
+      notes: order.notes,
     });
+  },
+
+  updateOrder: async (id: string, payload: { status?: string; notes?: string }) => {
+    return await backendPatch<any>(`/api/v1/orders/${encodeURIComponent(id)}`, payload);
+  },
+
+  assignCourierToOrder: async (id: string, courierId: string) => {
+    return await backendPatch<any>(`/api/v1/orders/${encodeURIComponent(id)}/assign-courier`, { courierId });
+  },
+
+  getCourierOrders: async () => {
+    const data = await backendGet<any[]>(`/api/v1/orders/courier/me`);
+    return (data || []).map(normalizeOrderFromBackend);
+  },
+
+  updateCourierOrder: async (id: string, payload: { status?: string; codCollected?: boolean }) => {
+    return await backendPatch<any>(`/api/v1/orders/${encodeURIComponent(id)}/courier`, payload);
   },
 
   // Shop analytics / gallery
@@ -1158,9 +1218,52 @@ export const ApiService = {
   getAllUsers: mockDb.getAllUsers.bind(mockDb),
   deleteUser: mockDb.deleteUser.bind(mockDb),
   updateUserRole: mockDb.updateUserRole.bind(mockDb),
+  getCouriers: async () => {
+    return await backendGet<any[]>(`/api/v1/users/couriers`);
+  },
+  createCourier: async (payload: { name: string; email: string; password: string; phone?: string | null }) => {
+    return await backendPost<any>(`/api/v1/users/couriers`, payload);
+  },
 
   // Analytics
-  getSystemAnalytics: mockDb.getSystemAnalytics.bind(mockDb),
+  getSystemAnalytics: async () => {
+    try {
+      return await backendGet<any>('/api/v1/analytics/system');
+    } catch {
+      return await mockDb.getSystemAnalytics();
+    }
+  },
+  getSystemAnalyticsTimeseries: async (days: number = 7) => {
+    try {
+      return await backendGet<any[]>(`/api/v1/analytics/system/timeseries?days=${encodeURIComponent(String(days))}`);
+    } catch {
+      const stats = await mockDb.getSystemAnalytics();
+      const safeDays = Math.min(Math.max(Number(days) || 7, 1), 90);
+      const avg = Number(stats?.totalRevenue || 0) / safeDays;
+      const now = new Date();
+      const start = new Date(now);
+      start.setHours(0, 0, 0, 0);
+      start.setDate(start.getDate() - (safeDays - 1));
+      const out: any[] = [];
+      for (let i = 0; i < safeDays; i += 1) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        out.push({
+          date: d.toISOString().slice(0, 10),
+          revenue: avg,
+          orders: 0,
+        });
+      }
+      return out;
+    }
+  },
+  getSystemActivity: async (limit: number = 10) => {
+    try {
+      return await backendGet<any[]>(`/api/v1/analytics/system/activity?limit=${encodeURIComponent(String(limit))}`);
+    } catch {
+      return [];
+    }
+  },
   getPendingShops: async () => {
     const shops = await backendGet<any[]>('/api/v1/shops/admin/list?status=PENDING');
     return shops.map(normalizeShopFromBackend);

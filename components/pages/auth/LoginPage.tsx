@@ -6,7 +6,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
 
-const { Link, useNavigate } = ReactRouterDOM as any;
+const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const LoginPage: React.FC = () => {
@@ -16,7 +16,21 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState('');
   const [isForgotModalOpen, setForgotModalOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { addToast } = useToast();
+
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get('returnTo');
+  const followShopId = params.get('followShopId');
+
+  const buildSignupLink = (role?: string) => {
+    const q = new URLSearchParams();
+    if (role) q.set('role', role);
+    if (returnTo) q.set('returnTo', returnTo);
+    if (followShopId) q.set('followShopId', followShopId);
+    const qs = q.toString();
+    return `/signup${qs ? `?${qs}` : ''}`;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,10 +45,34 @@ const LoginPage: React.FC = () => {
       
       addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
 
+      if (returnTo) {
+        try {
+          if (followShopId) {
+            await ApiService.followShop(followShopId);
+            window.dispatchEvent(new Event('ray-db-update'));
+          }
+        } catch {
+          // ignore
+        }
+        navigate(returnTo);
+        return;
+      }
+
       if (response.user.role === 'admin') {
         navigate('/admin/dashboard');
       } else if (response.user.role === 'merchant') {
-        navigate('/business/dashboard');
+        try {
+          const myShop = await ApiService.getMyShop();
+          const status = String(myShop?.status || '').toLowerCase();
+          if (status !== 'approved') {
+            navigate('/business/pending');
+            return;
+          }
+          const isRestaurant = String(myShop?.category || '').toUpperCase() === 'RESTAURANT';
+          navigate(`/business/dashboard${isRestaurant ? '?tab=reservations' : ''}`);
+        } catch {
+          navigate('/business/pending');
+        }
       } else {
         navigate('/profile');
       }
@@ -104,11 +142,11 @@ const LoginPage: React.FC = () => {
         <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
            <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
            <div className="grid grid-cols-2 gap-4">
-              <Link to="/signup" className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+              <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
                  <UserPlus size={20} className="text-slate-900" />
                  <span className="font-black text-[10px]">تسجيل زبون</span>
               </Link>
-              <Link to="/signup?role=merchant" className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+              <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
                  <Store size={20} className="text-[#BD00FF]" />
                  <span className="font-black text-[10px]">تسجيل نشاط</span>
               </Link>

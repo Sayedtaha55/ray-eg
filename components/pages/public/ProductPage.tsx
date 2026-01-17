@@ -39,7 +39,11 @@ const ProductPage: React.FC = () => {
             if (originalProduct) setProduct(originalProduct);
             setOffer(o);
             const shops = await RayDB.getShops();
-            setShop(shops.find(s => s.id === o.shopId) || null);
+            const targetShop = shops.find(s => s.id === o.shopId) || null;
+            setShop(targetShop);
+            if (targetShop?.id) {
+              await RayDB.incrementVisitors(String(targetShop.id));
+            }
           } else {
             setError(true);
           }
@@ -49,7 +53,11 @@ const ProductPage: React.FC = () => {
           if (o) setOffer(o);
           
           const shops = await RayDB.getShops();
-          setShop(shops.find(s => s.id === (p as any).shop_id) || shops[0]);
+          const targetShop = shops.find(s => s.id === (p as any).shop_id) || shops[0];
+          setShop(targetShop);
+          if (targetShop?.id) {
+            await RayDB.incrementVisitors(String(targetShop.id));
+          }
           
           const favs = RayDB.getFavorites();
           setIsFavorite(favs.includes(p.id));
@@ -164,7 +172,7 @@ const ProductPage: React.FC = () => {
         >
           <div className="space-y-4">
              {shop && (
-               <Link to={`/shop/${shop.slug}`} className="inline-flex items-center gap-3 bg-slate-50 px-6 py-2 rounded-full border border-slate-100 group">
+               <Link to={`/s/${shop.slug}`} className="inline-flex items-center gap-3 bg-slate-50 px-6 py-2 rounded-full border border-slate-100 group">
                   <img src={shop.logoUrl || (shop as any).logo_url} className="w-6 h-6 rounded-full object-cover" />
                   <span className="text-sm font-black text-slate-900 group-hover:text-[#00E5FF] transition-colors">{shop.name}</span>
                </Link>
@@ -206,7 +214,7 @@ const ProductPage: React.FC = () => {
 
              {shop && (
                <button
-                 onClick={() => navigate(`/shop/${shop.slug}?chat=1`)}
+                 onClick={() => navigate(`/s/${shop.slug}?chat=1`)}
                  className="w-full py-5 bg-slate-50 text-slate-900 rounded-[2.5rem] font-black text-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-3 border border-slate-100"
                >
                  <Store size={22} /> محادثة المتجر
@@ -225,7 +233,7 @@ const ProductPage: React.FC = () => {
              <div className="flex items-center gap-4">
                 <ShieldCheck className="text-slate-300" />
                 <div>
-                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">ضمان تست</p>
+                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">ضمان Ray</p>
                    <p className="font-bold text-sm">منتج أصلي ١٠٠٪</p>
                 </div>
              </div>
@@ -242,7 +250,7 @@ const ProductPage: React.FC = () => {
           image: product.imageUrl || (product as any).image_url,
           price: currentPrice,
           shopId: shop?.id || 's1',
-          shopName: shop?.name || 'تست'
+          shopName: shop?.name || 'Ray'
         }}
       />
     </div>

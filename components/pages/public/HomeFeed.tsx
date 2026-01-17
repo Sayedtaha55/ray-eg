@@ -60,7 +60,7 @@ const HomeFeed: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `المستخدم بعت اقتراح أو شكوى عن تطبيق "تست" في مصر: "${feedbackText}". 
+        contents: `المستخدم بعت اقتراح أو شكوى عن تطبيق "Ray" في مصر: "${feedbackText}". 
         رد عليه بذكاء ومودة بلهجة مصرية روشة وقصيرة جداً.`,
       });
       setFeedbackResponse(response.text || 'شكراً ليك يا بطل، رأيك وصل وهنظبط الدنيا!');
@@ -176,7 +176,7 @@ const HomeFeed: React.FC = () => {
                  dir="rtl"
                >
                   <div className="flex items-center justify-between mb-6">
-                     <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين تست</h4>
+                     <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين Ray</h4>
                      <button onClick={() => setIsFeedbackOpen(false)}><X size={16} /></button>
                   </div>
                   

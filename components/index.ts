@@ -29,17 +29,22 @@ export { default as AdminOrders } from './pages/admin/AdminOrders';
 export { default as AdminFeedback } from './pages/admin/AdminFeedback';
 export { default as AdminSettings } from './pages/admin/AdminSettings';
 
+// Pages - Courier
+export { default as CourierOrders } from './pages/courier/CourierOrders';
+
 // Pages - Business
 export { default as BusinessLanding } from './pages/business/BusinessLanding';
 export { default as MerchantDashboard } from './pages/business/MerchantDashboard';
 export { default as POSSystem } from './pages/business/POSSystem';
 export { default as PageBuilder } from './pages/business/PageBuilder';
 export { default as GalleryManager } from './pages/business/GalleryManager';
+export { default as BusinessPendingApproval } from './pages/business/BusinessPendingApproval';
 
 // Pages - Shared
 export { default as CartDrawer } from './pages/shared/CartDrawer';
 export { default as ReservationModal } from './pages/shared/ReservationModal';
 export { default as RayAssistant } from './pages/shared/RayAssistant';
+export { default as NotFoundPage } from './pages/shared/NotFoundPage';
 
 // Features - Shop
 export { default as ShopGallery } from './features/shop/ShopGallery';

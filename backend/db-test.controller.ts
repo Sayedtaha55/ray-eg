@@ -1,5 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { Roles } from './auth/decorators/roles.decorator';
 import { PrismaService } from './prisma/prisma.service';
 
 @Controller('db-test')
@@ -7,6 +10,8 @@ export class DatabaseTestController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async testDatabase() {
     try {
       // Test basic database connection

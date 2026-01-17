@@ -24,11 +24,14 @@ export interface Shop {
   pageDesign: ShopDesign;
   followers: number; 
   visitors: number;
-  status: 'approved' | 'pending' | 'rejected';
+  status: 'approved' | 'pending' | 'rejected' | 'suspended';
+  isActive?: boolean;
   // تفاصيل إضافية للتواصل والمواعيد
   phone?: string;
   openingHours?: string;
   addressDetailed?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface Offer {

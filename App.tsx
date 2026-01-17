@@ -8,6 +8,7 @@ import {
   BusinessLayout,
   BusinessLanding,
   MerchantDashboard,
+  BusinessPendingApproval,
   ShopsPage,
   RestaurantsPage,
   LoginPage,
@@ -23,9 +24,11 @@ import {
   AdminSettings,
   AdminFeedback,
   AdminOrders,
+  CourierOrders,
+  NotFoundPage,
 } from './components';
 
-const { HashRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
+const { HashRouter, BrowserRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -36,8 +39,11 @@ const ScrollToTop = () => {
 };
 
 const App: React.FC = () => {
+  const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
+  const isDirectDeepLink = typeof window !== 'undefined' && window.location.hash === '' && window.location.pathname !== '/';
+  const Router = routerMode === 'browser' || isDirectDeepLink ? BrowserRouter : HashRouter;
   return (
-    <HashRouter>
+    <Router>
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<PublicLayout />}>
@@ -51,11 +57,18 @@ const App: React.FC = () => {
           <Route path="product/:id" element={<ProductPage />} />
         </Route>
         
-        <Route path="shop/:slug" element={<ShopProfile />} />
+        <Route path="/shop/:slug" element={<ShopProfile />} />
+
+        <Route path="/s/:slug" element={<ShopProfile />} />
+
+        <Route path="/business/pending" element={<BusinessLayout />}>
+          <Route index element={<BusinessPendingApproval />} />
+        </Route>
         
         <Route path="/business" element={<BusinessLayout />}>
           <Route index element={<BusinessLanding />} />
           <Route path="dashboard" element={<MerchantDashboard />} />
+          <Route path="pending" element={<BusinessPendingApproval />} />
         </Route>
 
         <Route path="/admin/gate" element={<AdminLogin />} />
@@ -63,15 +76,17 @@ const App: React.FC = () => {
           <Route path="dashboard" element={<AdminDashboard />} />
           <Route path="approvals" element={<AdminApprovals />} />
           <Route path="shops" element={<AdminDashboard />} />
-          <Route path="shop-management" element={<AdminDashboard />} />
-          <Route path="themes" element={<AdminDashboard />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="orders" element={<AdminOrders />} />
           <Route path="feedback" element={<AdminFeedback />} />
           <Route path="settings" element={<AdminSettings />} />
         </Route>
+
+        <Route path="/courier/orders" element={<CourierOrders />} />
+
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
-    </HashRouter>
+    </Router>
   );
 };
 

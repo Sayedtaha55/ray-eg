@@ -38,6 +38,13 @@ export class ProductService {
     });
   }
 
+  async listAllActive() {
+    return this.prisma.product.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async create(input: { shopId: string; name: string; price: number; stock?: number; category?: string; imageUrl?: string | null; description?: string | null }) {
     const created = await this.prisma.product.create({
       data: {

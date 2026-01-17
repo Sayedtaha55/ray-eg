@@ -21,7 +21,7 @@ const AdminSettings: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest pr-4">اسم المنصة</label>
-              <input className="w-full bg-slate-800 border-none rounded-xl py-4 px-6 text-white font-bold outline-none" defaultValue="تست - منصة التجارة الذكية" />
+              <input className="w-full bg-slate-800 border-none rounded-xl py-4 px-6 text-white font-bold outline-none" defaultValue="Ray - منصة التجارة الذكية" />
             </div>
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-500 uppercase tracking-widest pr-4">لغة النظام الافتراضية</label>

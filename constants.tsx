@@ -136,6 +136,21 @@ export const RayDB = {
   getProductById: async (id: string) => ApiService.getProductById(id),
   getOfferByProductId: async (productId: string) => ApiService.getOfferByProductId(productId),
   incrementVisitors: async (shopId: string) => {
-     await ApiService.incrementVisitors(shopId);
+     const sid = String(shopId || '').trim();
+     if (!sid) return;
+     try {
+       const key = `ray_visit:${sid}`;
+       const lastRaw = sessionStorage.getItem(key);
+       const last = lastRaw ? Number(lastRaw) : 0;
+       const now = Date.now();
+       if (Number.isFinite(last) && last > 0 && now - last < 5 * 60 * 1000) {
+         return;
+       }
+       sessionStorage.setItem(key, String(now));
+     } catch {
+       // ignore
+     }
+
+     await ApiService.incrementVisitors(sid);
   }
 };

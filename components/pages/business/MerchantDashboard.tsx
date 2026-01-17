@@ -8,6 +8,7 @@ import {
   CreditCard, TrendingUp, Bell, Clock, Tag, Trash2, Send, MessageSquare, Megaphone, CheckCircle2, ChevronRight,
   MapPin, User, Phone, MessageCircle, X, Image as ImageIcon, Upload, Wand2, ShoppingCart, BarChart3, UserMinus, UserCheck, Search as SearchIcon, Camera
 } from 'lucide-react';
+import L from 'leaflet';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -22,11 +23,12 @@ import { RayDB } from '@/constants';
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
-type TabType = 'overview' | 'pos' | 'builder' | 'products' | 'reservations' | 'sales' | 'promotions' | 'growth' | 'chats' | 'settings' | 'reports' | 'customers' | 'gallery';
+type TabType = 'overview' | 'pos' | 'builder' | 'products' | 'reservations' | 'sales' | 'promotions' | 'chats' | 'settings' | 'reports' | 'customers' | 'gallery';
 
 const MerchantDashboard: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = (searchParams.get('tab') as TabType) || 'overview';
+  const tabParam = searchParams.get('tab');
+  const activeTab = (tabParam as TabType) || 'overview';
   const impersonateShopId = searchParams.get('impersonateShopId');
   const [currentShop, setCurrentShop] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -52,6 +54,12 @@ const MerchantDashboard: React.FC = () => {
     setSearchParams(next as any, { replace: true } as any);
   };
 
+  useEffect(() => {
+    if (tabParam === 'growth') {
+      setTab('overview');
+    }
+  }, [tabParam]);
+
   const savedUserForView = (() => {
     try {
       return JSON.parse(localStorage.getItem('ray_user') || '{}');
@@ -63,6 +71,7 @@ const MerchantDashboard: React.FC = () => {
   const adminTargetShopId = isAdminView && impersonateShopId ? impersonateShopId : undefined;
 
   const syncData = async () => {
+    let redirected = false;
     const savedUserStr = localStorage.getItem('ray_user');
     if (!savedUserStr) {
       navigate('/login');
@@ -82,6 +91,20 @@ const MerchantDashboard: React.FC = () => {
         ? await ApiService.getShopAdminById(effectiveShopId)
         : await ApiService.getMyShop();
       setCurrentShop(myShop);
+
+      const status = String(myShop?.status || '').toLowerCase();
+      if (status !== 'approved') {
+        redirected = true;
+        navigate('/business/pending');
+        return;
+      }
+
+      const isRestaurant = String(myShop?.category || '').toUpperCase() === 'RESTAURANT';
+      if (isRestaurant && !searchParams.get('tab')) {
+        redirected = true;
+        setTab('reservations');
+        return;
+      }
 
       const now = new Date();
       const salesFrom = new Date(now);
@@ -109,7 +132,9 @@ const MerchantDashboard: React.FC = () => {
     } catch (e) {
       // Dashboard Sync Error - handled silently
     } finally {
-      setLoading(false);
+      if (!redirected) {
+        setLoading(false);
+      }
     }
   };
 
@@ -184,7 +209,6 @@ const MerchantDashboard: React.FC = () => {
       case 'reservations': return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
       case 'sales': return <SalesTab sales={sales} />;
       case 'chats': return <ChatsTab shopId={currentShop.id} />;
-      case 'growth': return <GrowthTab shop={currentShop} analytics={analytics} products={products} />;
       case 'reports': return <ReportsTab analytics={analytics} sales={sales} />;
       case 'customers': return <CustomersTab shopId={currentShop.id} />;
       case 'settings': return <SettingsTab shop={currentShop} onSaved={syncData} adminShopId={adminTargetShopId} />;
@@ -234,7 +258,6 @@ const MerchantDashboard: React.FC = () => {
         <TabButton active={activeTab === 'reservations'} onClick={() => setTab('reservations')} icon={<CalendarCheck size={18} />} label="الحجوزات" />
         <TabButton active={activeTab === 'chats'} onClick={() => setTab('chats')} icon={<MessageCircle size={18} />} label="المحادثات" />
         <TabButton active={activeTab === 'sales'} onClick={() => setTab('sales')} icon={<CreditCard size={18} />} label="المبيعات" />
-        <TabButton active={activeTab === 'growth'} onClick={() => setTab('growth')} icon={<Sparkles size={18} />} label="نمو AI" />
         <TabButton active={activeTab === 'settings'} onClick={() => setTab('settings')} icon={<Settings size={18} />} label="الإعدادات" />
       </div>
 
@@ -1055,6 +1078,8 @@ const SalesTab: React.FC<{ sales: any[] }> = ({ sales }) => (
                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الفاتورة</th>
                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ والوقت</th>
                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</th>
+               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">رسوم التوصيل</th>
+               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</th>
                <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">التفاصيل</th>
             </tr>
          </thead>
@@ -1064,6 +1089,18 @@ const SalesTab: React.FC<{ sales: any[] }> = ({ sales }) => (
                   <td className="p-6 font-black text-slate-900">#{sale.id.slice(0, 8).toUpperCase()}</td>
                   <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at).toLocaleString('ar-EG')}</td>
                   <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
+                  <td className="p-6 text-slate-500 font-black text-sm">
+                    {(() => {
+                      const raw = typeof sale?.notes === 'string' ? sale.notes : '';
+                      const lines = raw.split(/\r?\n/).map((l: any) => String(l).trim()).filter(Boolean);
+                      const feeLine = lines.find((l: any) => String(l).toUpperCase().startsWith('DELIVERY_FEE:'));
+                      if (!feeLine) return '-';
+                      const value = String(feeLine).split(':').slice(1).join(':').trim();
+                      const n = Number(value);
+                      if (Number.isNaN(n) || n < 0) return '-';
+                      return `ج.م ${n}`;
+                    })()}
+                  </td>
                   <td className="p-6">
                      <span className="text-xl font-black text-[#00E5FF]">ج.م {sale.total.toLocaleString()}</span>
                   </td>
@@ -1087,7 +1124,7 @@ const GrowthTabLegacy: React.FC<{shop: any, analytics: any, products: Product[]}
     setLoading(true); setInsight('');
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `أنا مساعد أعمال "تست". محل "${shop.name}" لديه إيرادات ج.م ${analytics.totalRevenue}. عدد المنتجات ${products.length}.
+      const prompt = `أنا مساعد أعمال "Ray". محل "${shop.name}" لديه إيرادات ج.م ${analytics.totalRevenue}. عدد المنتجات ${products.length}.
       حلل الأداء بلهجة مصرية روشة وقدم: 1) نصيحة نمو واحدة. 2) نص تسويقي جذاب لأهم منتج.`;
       
       const response = await ai.models.generateContent({
@@ -1252,7 +1289,7 @@ const GrowthTab: React.FC<{shop: any, analytics: any, products: Product[]}> = ({
     setLoading(true); setInsight('');
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-      const prompt = `أنا مساعد أعمال "تست". محل "${shop.name}" لديه إيرادات ج.م ${analytics.totalRevenue}. عدد المنتجات ${products.length}.
+      const prompt = `أنا مساعد أعمال "Ray". محل "${shop.name}" لديه إيرادات ج.م ${analytics.totalRevenue}. عدد المنتجات ${products.length}.
       حلل الأداء بلهجة مصرية روشة وقدم: 1) نصيحة نمو واحدة. 2) نص تسويقي جذاب لأهم منتج.`;
       
       const response = await ai.models.generateContent({
@@ -1379,6 +1416,7 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const { addToast } = useToast();
   const [saving, setSaving] = useState(false);
   const [savingReceiptTheme, setSavingReceiptTheme] = useState(false);
+  const [togglingActive, setTogglingActive] = useState(false);
 
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
@@ -1390,6 +1428,7 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const [category, setCategory] = useState(shop?.category || 'RETAIL');
   const [phone, setPhone] = useState(shop?.phone || '');
   const [email, setEmail] = useState(shop?.email || '');
+  const [isActive, setIsActive] = useState<boolean>(Boolean(shop?.isActive));
   const [whatsapp, setWhatsapp] = useState(shop?.layoutConfig?.whatsapp || '');
   const [customDomain, setCustomDomain] = useState(shop?.layoutConfig?.customDomain || '');
   const [logoUrl, setLogoUrl] = useState(shop?.logoUrl || shop?.logo_url || '');
@@ -1397,6 +1436,32 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const [openingHours, setOpeningHours] = useState(shop?.openingHours || shop?.opening_hours || '');
   const [addressDetailed, setAddressDetailed] = useState(shop?.addressDetailed || shop?.address_detailed || '');
   const [description, setDescription] = useState(shop?.description || '');
+
+  useEffect(() => {
+    setIsActive(Boolean(shop?.isActive));
+  }, [shop?.isActive]);
+
+  const [latitude, setLatitude] = useState<number | null>(
+    typeof shop?.latitude === 'number' ? shop.latitude : typeof shop?.lat === 'number' ? shop.lat : null,
+  );
+  const [longitude, setLongitude] = useState<number | null>(
+    typeof shop?.longitude === 'number' ? shop.longitude : typeof shop?.lng === 'number' ? shop.lng : null,
+  );
+  const [locatingShop, setLocatingShop] = useState(false);
+  const [locationError, setLocationError] = useState('');
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+        markerRef.current = null;
+      }
+    };
+  }, []);
 
   const receiptShopId = String(adminShopId || shop?.id || '');
   const [receiptShopName, setReceiptShopName] = useState('');
@@ -1413,6 +1478,95 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
     setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
     setReceiptFooterNote(String((theme as any)?.footerNote || ''));
   }, [receiptShopId]);
+
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    const defaultIcon = L.icon({
+      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize: [25, 41],
+      iconAnchor: [12, 41],
+      shadowSize: [41, 41],
+    });
+    (L.Marker.prototype as any).options.icon = defaultIcon;
+
+    const hasCoords = latitude != null && longitude != null;
+    const centerLat = hasCoords ? latitude! : 30.0444;
+    const centerLng = hasCoords ? longitude! : 31.2357;
+    const defaultZoom = hasCoords ? 15 : 12;
+
+    const ensureMarker = (lat: number, lng: number) => {
+      if (!mapRef.current) return;
+      if (!markerRef.current) {
+        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
+        markerRef.current.on('dragend', () => {
+          const p = markerRef.current?.getLatLng();
+          if (!p) return;
+          setLatitude(p.lat);
+          setLongitude(p.lng);
+        });
+      } else {
+        markerRef.current.setLatLng([lat, lng]);
+      }
+    };
+
+    if (!mapRef.current) {
+      mapRef.current = L.map(mapContainerRef.current, {
+        zoomControl: true,
+        attributionControl: false,
+      }).setView([centerLat, centerLng], defaultZoom);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+      }).addTo(mapRef.current);
+
+      mapRef.current.on('click', (e: any) => {
+        const p = e?.latlng;
+        if (!p) return;
+        setLatitude(p.lat);
+        setLongitude(p.lng);
+        ensureMarker(p.lat, p.lng);
+      });
+
+      if (hasCoords) {
+        ensureMarker(latitude!, longitude!);
+      }
+    } else {
+      mapRef.current.setView([centerLat, centerLng], mapRef.current.getZoom() || defaultZoom);
+      if (hasCoords) {
+        ensureMarker(latitude!, longitude!);
+      }
+    }
+
+    setTimeout(() => {
+      mapRef.current?.invalidateSize();
+    }, 0);
+  }, [latitude, longitude]);
+
+  const handleUseMyLocation = async () => {
+    setLocationError('');
+    if (!navigator.geolocation) {
+      setLocationError('المتصفح لا يدعم تحديد الموقع');
+      return;
+    }
+    setLocatingShop(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        setLatitude(lat);
+        setLongitude(lng);
+        setLocatingShop(false);
+      },
+      () => {
+        setLocatingShop(false);
+        setLocationError('فشل تحديد موقعك. تأكد من السماح بالوصول للموقع.');
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  };
 
   const handlePickImage = (kind: 'logo' | 'banner') => {
     if (kind === 'logo') {
@@ -1495,6 +1649,8 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
         bannerUrl,
         openingHours,
         addressDetailed,
+        latitude,
+        longitude,
         description,
       });
       addToast('تم حفظ إعدادات المتجر', 'success');
@@ -1507,8 +1663,47 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
     }
   };
 
+  const handleToggleActive = async () => {
+    setTogglingActive(true);
+    const next = !isActive;
+    try {
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        isActive: next,
+      });
+      setIsActive(next);
+      addToast(next ? 'تم فتح المتجر' : 'تم قفل المتجر', 'success');
+      onSaved();
+    } catch (e) {
+      const message = (e as any)?.message ? String((e as any).message) : '';
+      addToast(message ? `فشل تحديث حالة المتجر: ${message}` : 'فشل تحديث حالة المتجر', 'error');
+    } finally {
+      setTogglingActive(false);
+    }
+  };
+
   return (
     <div className="bg-white p-12 md:p-16 rounded-[3.5rem] border border-slate-100 shadow-sm">
+       <div className="mb-12 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 flex items-center justify-between gap-6 flex-row-reverse">
+          <div className="text-right">
+            <div className="text-sm font-black text-slate-700">حالة المتجر</div>
+            <div className="text-[12px] font-black text-slate-400 mt-1">
+              {isActive ? 'المتجر مفتوح ويظهر للعملاء' : 'المتجر مقفول ولن يظهر للعملاء'}
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={togglingActive}
+            onClick={handleToggleActive}
+            className={`${
+              isActive
+                ? 'bg-rose-600 hover:bg-rose-700'
+                : 'bg-emerald-600 hover:bg-emerald-700'
+            } text-white rounded-[1.5rem] font-black text-sm px-10 py-5 transition-all disabled:opacity-60`}
+          >
+            {togglingActive ? 'جارٍ التحديث...' : isActive ? 'قفل المتجر' : 'فتح المتجر'}
+          </button>
+       </div>
        <h3 className="text-3xl font-black mb-12">إعدادات المتجر العامة</h3>
        <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
           <div className="space-y-3">
@@ -1628,6 +1823,44 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
           <div className="space-y-3">
              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-6">العنوان التفصيلي</label>
              <input value={addressDetailed} onChange={(e) => setAddressDetailed(e.target.value)} className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] py-6 px-10 font-black text-lg text-right outline-none" />
+          </div>
+          <div className="space-y-3 md:col-span-2">
+             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-6">موقع المتجر على الخريطة</label>
+             <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-4 md:p-6">
+               <div className="flex flex-col md:flex-row-reverse items-start md:items-center justify-between gap-4 mb-4">
+                 <div className="text-right">
+                   <p className="font-black text-slate-800">حدد موقع متجرك</p>
+                   <p className="text-slate-400 font-bold text-xs">اضغط على الخريطة أو اسحب العلامة لتحديد المكان.</p>
+                 </div>
+                 <button
+                   type="button"
+                   onClick={handleUseMyLocation}
+                   disabled={locatingShop}
+                   className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all disabled:bg-slate-300"
+                 >
+                   {locatingShop ? 'جاري تحديد موقعي...' : 'استخدم موقعي'}
+                 </button>
+               </div>
+
+               {locationError ? (
+                 <div className="mb-4 p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl text-sm font-bold">{locationError}</div>
+               ) : null}
+
+               <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white">
+                 <div ref={mapContainerRef} className="w-full h-72" />
+               </div>
+
+               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="bg-white border border-slate-100 rounded-2xl px-6 py-4 text-right">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Latitude</p>
+                   <p className="font-black text-slate-800">{latitude == null ? 'غير محدد' : latitude.toFixed(6)}</p>
+                 </div>
+                 <div className="bg-white border border-slate-100 rounded-2xl px-6 py-4 text-right">
+                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Longitude</p>
+                   <p className="font-black text-slate-800">{longitude == null ? 'غير محدد' : longitude.toFixed(6)}</p>
+                 </div>
+               </div>
+             </div>
           </div>
           <div className="space-y-3 md:col-span-2">
              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-6">وصف المتجر</label>

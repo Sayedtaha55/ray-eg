@@ -117,7 +117,7 @@ const FilterPage: React.FC = () => {
                     </p>
                   </div>
                   <Link 
-                    to={`/shop/${shop.slug}`}
+                    to={`/s/${shop.slug}`}
                     className="flex items-center gap-2 text-sm font-black text-[#00E5FF] hover:gap-4 transition-all"
                   >
                     VISIT STORE <span className="text-xl">→</span>

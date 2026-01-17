@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://test-one-iota-82.vercel.app/sitemap.xml

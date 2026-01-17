@@ -11,10 +11,11 @@ export class ProductController {
 
   @Get()
   async list(@Query('shopId') shopId: string) {
-    if (!shopId) {
-      throw new BadRequestException('shopId مطلوب');
+    const sid = typeof shopId === 'string' ? String(shopId).trim() : '';
+    if (sid) {
+      return this.productService.listByShop(sid);
     }
-    return this.productService.listByShop(shopId);
+    return this.productService.listAllActive();
   }
 
   @Get(':id')

@@ -98,7 +98,12 @@ const ShopsPage: React.FC = () => {
                 <img src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-full h-full object-cover" alt={shop.name} />
               </div>
               <div>
-                <h3 className="text-xl md:text-2xl font-black mb-1">{shop.name}</h3>
+                <div className="flex items-center gap-2 flex-row-reverse justify-end mb-1">
+                  <h3 className="text-xl md:text-2xl font-black">{shop.name}</h3>
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black ${shop?.isActive === false ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                    {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
+                  </span>
+                </div>
                 <p className="text-slate-400 text-xs md:text-sm font-bold flex items-center gap-1">
                   <MapPin size={14} /> {shop.city}
                 </p>
@@ -111,7 +116,7 @@ const ShopsPage: React.FC = () => {
             </div>
 
             <Link 
-              to={`/shop/${shop.slug}`}
+              to={`/s/${shop.slug}`}
               className="w-full py-4 md:py-5 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-base md:text-lg flex items-center justify-center gap-2 md:gap-3 group-hover:bg-[#00E5FF] group-hover:text-black transition-all"
             >
               زيارة المتجر <ChevronLeft size={18} />

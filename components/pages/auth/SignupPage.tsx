@@ -1,12 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
 
-const { Link, useNavigate } = ReactRouterDOM as any;
+const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const SignupPage: React.FC = () => {
@@ -29,6 +29,26 @@ const SignupPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const params = new URLSearchParams(location.search);
+  const roleParam = params.get('role');
+  const returnTo = params.get('returnTo');
+  const followShopId = params.get('followShopId');
+
+  useEffect(() => {
+    if (roleParam === 'merchant') {
+      setRole('merchant');
+    }
+  }, [roleParam]);
+
+  const buildLoginLink = () => {
+    const q = new URLSearchParams();
+    if (returnTo) q.set('returnTo', returnTo);
+    if (followShopId) q.set('followShopId', followShopId);
+    const qs = q.toString();
+    return `/login${qs ? `?${qs}` : ''}`;
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,9 +61,33 @@ const SignupPage: React.FC = () => {
       // Accessing the token correctly from session
       localStorage.setItem('ray_token', response.session?.access_token || '');
       window.dispatchEvent(new Event('auth-change'));
+
+      if (returnTo) {
+        try {
+          if (followShopId) {
+            await ApiService.followShop(followShopId);
+            window.dispatchEvent(new Event('ray-db-update'));
+          }
+        } catch {
+          // ignore
+        }
+        navigate(returnTo);
+        return;
+      }
       
       if (role === 'merchant') {
-        navigate('/business/dashboard');
+        try {
+          const myShop = await ApiService.getMyShop();
+          const status = String(myShop?.status || '').toLowerCase();
+          if (status !== 'approved') {
+            navigate('/business/pending');
+            return;
+          }
+          const isRestaurant = String(myShop?.category || '').toUpperCase() === 'RESTAURANT';
+          navigate(`/business/dashboard${isRestaurant ? '?tab=reservations' : ''}`);
+        } catch {
+          navigate('/business/pending');
+        }
       } else {
         navigate('/profile');
       }
@@ -142,7 +186,6 @@ const SignupPage: React.FC = () => {
                      >
                         <option value={Category.RETAIL}>محل تجاري / ملابس / إلكترونيات</option>
                         <option value={Category.RESTAURANT}>مطعم / كافيه / أكلات</option>
-                        <option value={Category.SERVICE}>خدمات / صيانة / أخرى</option>
                      </select>
                    </div>
                 </div>
@@ -262,7 +305,7 @@ const SignupPage: React.FC = () => {
         </form>
 
         <div className="mt-10 text-center">
-           <p className="text-slate-400 font-bold">لديك حساب بالفعل؟ <Link to="/login" className="text-[#00E5FF] hover:underline">سجل دخولك</Link></p>
+           <p className="text-slate-400 font-bold">لديك حساب بالفعل؟ <Link to={buildLoginLink()} className="text-[#00E5FF] hover:underline">سجل دخولك</Link></p>
         </div>
       </MotionDiv>
     </div>

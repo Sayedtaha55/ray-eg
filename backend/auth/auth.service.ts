@@ -4,7 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
-type IncomingRole = 'customer' | 'merchant' | 'admin' | 'CUSTOMER' | 'MERCHANT' | 'ADMIN';
+type IncomingRole = 'customer' | 'merchant' | 'admin' | 'courier' | 'CUSTOMER' | 'MERCHANT' | 'ADMIN' | 'COURIER';
 type IncomingShopCategory =
   | 'RETAIL'
   | 'RESTAURANT'
@@ -49,6 +49,7 @@ export class AuthService {
     const r = String(role || 'CUSTOMER').toUpperCase();
     if (r === 'MERCHANT') return 'MERCHANT' as any;
     if (r === 'ADMIN') return 'ADMIN' as any;
+    if (r === 'COURIER') return 'COURIER' as any;
     return 'CUSTOMER' as any;
   }
 
@@ -123,6 +124,16 @@ export class AuthService {
       throw new ConflictException('البريد الإلكتروني مستخدم بالفعل في نظامنا');
     }
 
+    const normalizedPhone = phone ? String(phone).trim() : null;
+    if (normalizedPhone) {
+      const existingPhone = await this.prisma.user.findUnique({
+        where: { phone: normalizedPhone },
+      });
+      if (existingPhone) {
+        throw new ConflictException('رقم الهاتف مستخدم بالفعل في نظامنا');
+      }
+    }
+
     // 3. تشفير كلمة المرور (Hashing with Salt)
     const salt = await bcrypt.genSalt(12); // زيادة الـ Salt لزيادة الأمان
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -186,7 +197,9 @@ export class AuthService {
 
     // Default admin bootstrap (development/testing)
     // Allows the admin UI to work with real DB + JWT instead of mock fallbacks.
-    if (!user && (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com')) {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const allowBootstrap = String(process.env.ALLOW_DEV_ADMIN_BOOTSTRAP || '').toLowerCase() === 'true';
+    if (allowBootstrap && env !== 'production' && !user && (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com')) {
       const allowed = new Set(['1234', 'admin123']);
       if (allowed.has(pass)) {
         const salt = await bcrypt.genSalt(12);

@@ -5,9 +5,9 @@ import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Inf
 import { RayAssistant, CartDrawer } from '@/components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
+import BrandLogo from '@/components/common/BrandLogo';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
-const MotionDiv = motion.div as any;
 
 const PublicLayout: React.FC = () => {
   const [isAssistantOpen, setAssistantOpen] = useState(false);
@@ -63,7 +63,8 @@ const PublicLayout: React.FC = () => {
     RayDB.updateCartItemQuantity(lineId, delta);
   };
 
-  const hideCartButton = String(location?.pathname || '').startsWith('/shop/');
+  const pathname = String(location?.pathname || '');
+  const hideCartButton = pathname.startsWith('/shop/') || pathname.startsWith('/s/');
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] selection:bg-[#00E5FF] selection:text-black font-sans">
@@ -79,14 +80,9 @@ const PublicLayout: React.FC = () => {
               : 'bg-white/60 border-transparent'
           }`}
         >
-          <Link to="/" className="flex items-center gap-3 md:gap-5 group shrink-0">
-            <MotionDiv 
-              whileHover={{ scale: 1.1, rotate: -2 }}
-              className="w-10 h-10 md:w-16 md:h-16 bg-[#00E5FF] flex items-center justify-center rounded-xl md:rounded-[1.5rem] shadow-[0_15px_35px_rgba(0,229,255,0.3)] transition-all duration-500"
-            >
-              <span className="text-[#1A1A1A] font-black text-xl md:text-4xl tracking-tighter">T</span>
-            </MotionDiv>
-            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block">test.</span>
+          <Link to="/" className="flex items-center gap-2 md:gap-4">
+            <BrandLogo variant="public" iconOnly />
+            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block">Ray</span>
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center gap-6 max-w-2xl mx-8">
@@ -142,7 +138,7 @@ const PublicLayout: React.FC = () => {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110]" />
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white z-[120] p-8 flex flex-col shadow-2xl" dir="rtl" >
               <div className="flex justify-between items-center mb-12">
-                <span className="text-2xl font-black tracking-tighter uppercase">test.</span>
+                <span className="text-2xl font-black tracking-tighter uppercase">Ray</span>
                 <button onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
               <nav className="flex flex-col gap-6 flex-1">
@@ -165,8 +161,8 @@ const PublicLayout: React.FC = () => {
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20 text-right">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
-              <div className="w-8 h-8 bg-[#00E5FF] flex items-center justify-center rounded-lg"><span className="text-black font-black text-lg">T</span></div>
-              <span className="text-2xl font-black tracking-tighter uppercase">test.</span>
+              <BrandLogo variant="business" iconOnly />
+              <span className="text-2xl font-black tracking-tighter uppercase">Ray</span>
             </div>
             <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
           </div>

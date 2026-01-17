@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, Zap, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, MessageCircle, Palette } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, MessageCircle, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
+import BrandLogo from '@/components/common/BrandLogo';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -96,10 +97,8 @@ const BusinessLayout: React.FC = () => {
       <div className="min-h-screen bg-slate-900 text-white selection:bg-[#00E5FF] selection:text-slate-900 text-right font-sans" dir="rtl">
         <header className="max-w-[1400px] mx-auto px-4 md:px-6 h-24 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 md:gap-3">
-             <div className="w-8 h-8 md:w-10 md:h-10 bg-[#00E5FF] flex items-center justify-center rounded-xl shadow-lg shadow-cyan-500/20">
-                <span className="text-slate-900 font-black text-xl md:text-2xl leading-none">T</span>
-              </div>
-            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">تست للأعمال</span>
+            <BrandLogo variant="business" iconOnly />
+            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">Ray للأعمال</span>
           </Link>
           <div className="flex items-center gap-4 md:gap-8">
             <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
@@ -116,10 +115,8 @@ const BusinessLayout: React.FC = () => {
       {/* Mobile Header */}
       <header className="md:hidden h-20 bg-slate-900 text-white flex items-center justify-between px-6 sticky top-0 z-[60]">
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-[#00E5FF] flex items-center justify-center rounded-lg">
-            <span className="text-slate-900 font-black text-lg">T</span>
-          </div>
-          <span className="font-black tracking-tighter uppercase">test Biz</span>
+          <BrandLogo variant="business" iconOnly />
+          <span className="font-black tracking-tighter uppercase">Ray Biz</span>
         </Link>
         <div className="flex items-center gap-4">
            <button
@@ -156,10 +153,8 @@ const BusinessLayout: React.FC = () => {
       <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#00E5FF] flex items-center justify-center rounded-xl">
-              <span className="text-slate-900 font-black text-xl">T</span>
-            </div>
-            <span className="text-2xl font-black tracking-tighter uppercase">test Biz.</span>
+            <BrandLogo variant="business" iconOnly />
+            <span className="text-2xl font-black tracking-tighter uppercase">Ray Biz</span>
           </Link>
           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-white/10 rounded-full">
             <X className="w-6 h-6" />
@@ -177,7 +172,6 @@ const BusinessLayout: React.FC = () => {
           <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={activeTab === 'reservations'} />
           <NavItem to={buildDashboardUrl('chats')} onClick={() => setSidebarOpen(false)} icon={<MessageCircle size={20} />} label="المحادثات" active={activeTab === 'chats'} />
           <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={activeTab === 'sales'} />
-          <NavItem to={buildDashboardUrl('growth')} onClick={() => setSidebarOpen(false)} icon={<Zap size={20} />} label="مركز النمو AI" active={activeTab === 'growth'} />
           <NavItem to={buildDashboardUrl('settings')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={activeTab === 'settings'} />
         </nav>
 

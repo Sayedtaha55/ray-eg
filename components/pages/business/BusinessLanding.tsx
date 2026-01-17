@@ -66,9 +66,9 @@ const BusinessLanding: React.FC = () => {
            </div>
            <div className="order-1 lg:order-2 text-right">
               <div className="w-16 h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center text-[#BD00FF] mb-8 shadow-xl">
-                 <UtensilsCrossed size={32} />
+                <UtensilsCrossed size={32} />
               </div>
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">نظام تست <br/><span className="text-[#BD00FF]">للمطاعم.</span></h2>
+              <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">نظام Ray <br/><span className="text-[#BD00FF]">للمطاعم.</span></h2>
               <p className="text-xl text-slate-400 mb-10 leading-relaxed font-medium">نظام متكامل لإدارة الطلبات، المنيو الرقمي، وحجوزات الطاولات. مصمم لزيادة سرعة الخدمة وتقليل الأخطاء في المطبخ.</p>
               <ul className="space-y-6 mb-12">
                  <li className="flex items-center gap-4 flex-row-reverse text-lg font-black"><CheckCircle2 className="text-[#BD00FF]" /> منيو QR تفاعلي للزبائن</li>
@@ -109,7 +109,7 @@ const BusinessLanding: React.FC = () => {
                    <BenefitItem 
                     icon={<Users className="w-6 h-6" />}
                     title="وصول مباشر للعملاء"
-                    description="تواصل مع ملايين المستخدمين النشطين على منصة تست الذين يبحثون عن أفضل الصفقات يومياً."
+                    description="تواصل مع ملايين المستخدمين النشطين على منصة Ray الذين يبحثون عن أفضل الصفقات يومياً."
                    />
                    <BenefitItem 
                     icon={<TrendingUp className="w-6 h-6" />}

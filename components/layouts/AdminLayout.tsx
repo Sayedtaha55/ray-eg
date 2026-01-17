@@ -1,8 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, ChevronRight, Bell, Zap, Menu, X, MessageSquare, CreditCard, Store, Palette, Eye } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, ChevronRight, Bell, Zap, Menu, X, MessageSquare, CreditCard, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import BrandLogo from '@/components/common/BrandLogo';
 
 const { Link, Outlet, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -41,18 +42,14 @@ const AdminLayout: React.FC = () => {
       {/* Sidebar */}
       <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#BD00FF] flex items-center justify-center rounded-xl shadow-[0_0_20px_rgba(189,0,255,0.4)]">
-            <span className="text-white font-black text-xl">R</span>
-          </div>
-          <span className="text-2xl font-black tracking-tighter uppercase">تست <span className="text-[#BD00FF]">ROOT</span></span>
+          <BrandLogo variant="admin" iconOnly />
+          <span className="text-2xl font-black tracking-tighter uppercase">Ray <span className="text-[#BD00FF]">ROOT</span></span>
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto no-scrollbar">
            <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname === '/admin/dashboard'} />
            <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname === '/admin/approvals'} />
            <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname === '/admin/shops'} />
-           <AdminNavItem to="/admin/shop-management" icon={<Eye size={20} />} label="لوحات المتاجر" active={location.pathname === '/admin/shop-management'} />
-           <AdminNavItem to="/admin/themes" icon={<Palette size={20} />} label="إدارة الثيمات" active={location.pathname === '/admin/themes'} />
            <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname === '/admin/users'} />
            <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname === '/admin/orders'} />
            <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname === '/admin/feedback'} />
@@ -78,7 +75,7 @@ const AdminLayout: React.FC = () => {
                <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-black text-[#00E5FF]">S</div>
             </div>
             <div className="hidden md:block">
-               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">تست سيستم v1.1 - Root Access</p>
+               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Ray سيستم v1.1 - Root Access</p>
             </div>
          </header>
 

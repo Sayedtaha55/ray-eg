@@ -10,14 +10,19 @@ import { ReservationModule } from './reservation.module';
 import { OrderModule } from './order.module';
 import { OfferModule } from './offer.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { UsersModule } from './users.module';
+import { AnalyticsModule } from './analytics.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
+
+ const nodeEnv = process.env.NODE_ENV || 'development';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: ['.env', `.env.${nodeEnv}`, '.env.local', `.env.${nodeEnv}.local`],
     }),
     PrismaModule,
     // RedisModule, // Temporarily disabled
@@ -29,6 +34,8 @@ import { DatabaseTestController } from './db-test.controller';
     OrderModule,
     OfferModule,
     MonitoringModule,
+    UsersModule,
+    AnalyticsModule,
   ],
   controllers: [TestController, HealthController, DatabaseTestController],
 })

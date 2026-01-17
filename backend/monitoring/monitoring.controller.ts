@@ -1,5 +1,8 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { MonitoringService } from './monitoring.service';
 
 @Controller('monitoring')
@@ -21,6 +24,8 @@ export class MonitoringController {
   }
 
   @Get('metrics')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   getMetrics() {
     try {
       return this.monitoring.getMetrics();
@@ -34,6 +39,8 @@ export class MonitoringController {
   }
 
   @Get('alerts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   getAlerts() {
     try {
       return {
@@ -50,6 +57,8 @@ export class MonitoringController {
   }
 
   @Get('dashboard')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
   async getDashboard() {
     try {
       return await this.monitoring.getDashboardData();

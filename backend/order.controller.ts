@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Query, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
@@ -63,6 +63,17 @@ export class OrderController {
     });
   }
 
+  @Get('courier/me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('courier')
+  async listMyCourierOrders(@Request() req) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new BadRequestException('غير مصرح');
+    }
+    return this.orderService.listMyCourierOrders(String(userId));
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer', 'merchant', 'admin')
@@ -75,6 +86,7 @@ export class OrderController {
     const shopId = String(body?.shopId || '').trim();
     const items = Array.isArray(body?.items) ? body.items : [];
     const total = typeof body?.total === 'number' ? body.total : Number(body?.total);
+    const notes = typeof body?.notes === 'string' ? body.notes : undefined;
 
     return this.orderService.createOrder({
       shopId,
@@ -82,7 +94,38 @@ export class OrderController {
       items,
       total: Number.isNaN(total) ? undefined : total,
       paymentMethod: body?.paymentMethod,
+      notes,
       status: body?.status,
     }, { role: req.user?.role, shopId: req.user?.shopId });
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async update(@Param('id') id: string, @Body() body: any) {
+    const status = typeof body?.status === 'string' ? body.status : undefined;
+    const notes = typeof body?.notes === 'string' ? body.notes : undefined;
+    return this.orderService.updateOrder(id, { status, notes });
+  }
+
+  @Patch(':id/assign-courier')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async assignCourier(@Param('id') id: string, @Body() body: any) {
+    const courierId = typeof body?.courierId === 'string' ? body.courierId : String(body?.courierId || '').trim();
+    return this.orderService.assignCourierToOrder(id, courierId);
+  }
+
+  @Patch(':id/courier')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('courier')
+  async updateAsCourier(@Param('id') id: string, @Body() body: any, @Request() req) {
+    const status = typeof body?.status === 'string' ? body.status : undefined;
+    const codCollected = body?.codCollected === true;
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new BadRequestException('غير مصرح');
+    }
+    return this.orderService.updateCourierOrder(id, { status, codCollected }, { userId: String(userId) });
   }
 }
