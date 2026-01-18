@@ -6,9 +6,20 @@ import L from 'leaflet';
 import { ApiService } from '@/services/api.service';
 import { Shop } from '@/types';
 
-const { Link } = ReactRouterDOM as any;
+const { Link, useNavigate } = ReactRouterDOM as any;
 
 type Coords = { lat: number; lng: number };
+
+function escapeHtml(input: string) {
+  const s = String(input ?? '');
+  return s.replace(/[&<>"']/g, (ch) => {
+    if (ch === '&') return '&amp;';
+    if (ch === '<') return '&lt;';
+    if (ch === '>') return '&gt;';
+    if (ch === '"') return '&quot;';
+    return '&#39;';
+  });
+}
 
 function haversineDistanceKm(a: Coords, b: Coords) {
   const toRad = (x: number) => (x * Math.PI) / 180;
@@ -25,6 +36,7 @@ function haversineDistanceKm(a: Coords, b: Coords) {
 }
 
 const MapPage: React.FC = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -125,13 +137,30 @@ const MapPage: React.FC = () => {
       const lng = typeof (s as any)?.longitude === 'number' ? (s as any).longitude : null;
       if (lat == null || lng == null) continue;
 
-      const marker = L.marker([lat, lng]);
-      marker.bindPopup(
-        `<div dir="rtl" style="text-align:right; font-weight:700;">
-          <div style="font-size:14px;">${String((s as any)?.name || '')}</div>
-          <div style="font-size:12px; color:#64748b; margin-top:4px;">${String((s as any)?.city || '')}</div>
-        </div>`
-      );
+      const name = escapeHtml(String((s as any)?.name || ''));
+      const city = escapeHtml(String((s as any)?.city || ''));
+      const marker = L.marker([lat, lng], {
+        icon: L.divIcon({
+          className: '',
+          iconSize: [220, 54],
+          iconAnchor: [110, 54],
+          html: `<div dir="rtl" style="display:flex; flex-direction:column; align-items:center; gap:6px;">
+            <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.95); border:1px solid #e2e8f0; border-radius:999px; padding:6px 10px; box-shadow:0 10px 22px rgba(15,23,42,0.14);">
+              <div style="display:flex; flex-direction:column; text-align:right; line-height:1.15;">
+                <div style="font-weight:900; font-size:12px; color:#0f172a; white-space:nowrap; max-width:140px; overflow:hidden; text-overflow:ellipsis;">${name}</div>
+                <div style="font-weight:800; font-size:10px; color:#64748b; white-space:nowrap; max-width:140px; overflow:hidden; text-overflow:ellipsis;">${city}</div>
+              </div>
+              <div style="background:#0f172a; color:#ffffff; font-weight:900; font-size:10px; padding:4px 10px; border-radius:999px; white-space:nowrap;">زيارة</div>
+            </div>
+            <div style="width:10px; height:10px; background:#0f172a; border:2px solid #ffffff; border-radius:999px; box-shadow:0 8px 18px rgba(15,23,42,0.18);"></div>
+          </div>`,
+        }),
+      });
+      marker.on('click', () => {
+        const slugOrId = String((s as any)?.slug || (s as any)?.id || '').trim();
+        if (!slugOrId) return;
+        navigate(`/s/${slugOrId}`);
+      });
       marker.addTo(markersLayerRef.current);
     }
 
@@ -147,7 +176,7 @@ const MapPage: React.FC = () => {
     setTimeout(() => {
       mapRef.current?.invalidateSize();
     }, 0);
-  }, [visibleShops, coords?.lat, coords?.lng]);
+  }, [visibleShops, coords?.lat, coords?.lng, navigate]);
 
   const handleLocateMe = async () => {
     setLocationError('');
@@ -193,9 +222,11 @@ const MapPage: React.FC = () => {
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-        <div className="md:w-[420px] w-full">
-          <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 space-y-4">
+      <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
+        <div ref={mapContainerRef} className="w-full h-[70vh] md:h-[78vh]" />
+
+        <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[1000]">
+          <div className="bg-white/95 backdrop-blur border border-slate-100 rounded-[2rem] p-4 md:p-5 space-y-3">
             {locationError && (
               <p className="text-red-500 text-xs font-bold text-center">{String(locationError)}</p>
             )}
@@ -208,51 +239,9 @@ const MapPage: React.FC = () => {
               {locating ? <Loader2 className="animate-spin" size={16} /> : <><MapPin size={16} /> تحديد موقعي</>}
             </button>
 
-            <div className="text-xs font-black text-slate-500">
-              عدد الأنشطة الظاهرة: {visibleShops.length}
+            <div className="text-xs font-black text-slate-500 text-center">
+              {loading ? 'جاري التحميل...' : `عدد الأنشطة الظاهرة: ${visibleShops.length}`}
             </div>
-
-            <div className="max-h-[420px] overflow-y-auto no-scrollbar space-y-3">
-              {loading ? (
-                <div className="py-10 text-center text-slate-400 font-bold">جاري التحميل...</div>
-              ) : visibleShops.length === 0 ? (
-                <div className="py-10 text-center text-slate-400 font-bold">لا توجد أنشطة حالياً</div>
-              ) : (
-                visibleShops.map((s: any) => {
-                  const hasCoords = typeof s?.latitude === 'number' && typeof s?.longitude === 'number';
-                  return (
-                    <button
-                      key={String(s.id)}
-                      onClick={() => {
-                        if (!hasCoords) return;
-                        mapRef.current?.setView([s.latitude, s.longitude], 15);
-                      }}
-                      className="w-full text-right bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100 rounded-2xl p-4"
-                      disabled={!hasCoords}
-                    >
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-right">
-                          <div className="font-black text-slate-900 text-sm">{String(s?.name || '')}</div>
-                          <div className="text-slate-400 font-bold text-xs mt-1">{String(s?.city || '')}</div>
-                        </div>
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-black ${s?.isActive === false ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                          {s?.isActive === false ? 'مقفول' : 'مفتوح'}
-                        </span>
-                      </div>
-                      {!hasCoords && (
-                        <div className="text-[10px] font-black text-slate-400 mt-2">لم يتم تحديد الموقع بعد</div>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex-1">
-          <div className="rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
-            <div ref={mapContainerRef} className="w-full h-[520px] md:h-[700px]" />
           </div>
         </div>
       </div>
