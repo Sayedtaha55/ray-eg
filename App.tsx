@@ -11,6 +11,7 @@ import {
   BusinessPendingApproval,
   ShopsPage,
   RestaurantsPage,
+  MapPage,
   LoginPage,
   SignupPage,
   ProfilePage,
@@ -50,6 +51,7 @@ const App: React.FC = () => {
           <Route index element={<HomeFeed />} />
           <Route path="shops" element={<ShopsPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
+          <Route path="map" element={<MapPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
           <Route path="profile" element={<ProfilePage />} />

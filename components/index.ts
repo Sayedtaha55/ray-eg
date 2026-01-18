@@ -16,6 +16,7 @@ export { default as HomeFeed } from './pages/public/HomeFeed';
 export { default as ShopsPage } from './pages/public/ShopsPage';
 export { default as RestaurantsPage } from './pages/public/RestaurantsPage';
 export { default as FilterPage } from './pages/public/FilterPage';
+export { default as MapPage } from './pages/public/MapPage';
 export { default as ProductPage } from './pages/public/ProductPage';
 export { default as ShopProfile } from './pages/public/ShopProfile';
 export { default as AboutPage } from './pages/public/AboutPage';

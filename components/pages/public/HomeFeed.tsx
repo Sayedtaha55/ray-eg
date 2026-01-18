@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer, Shop } from '@/types';
-import { Sparkles, TrendingUp, ShoppingCart, CalendarCheck, Loader2, MessageSquarePlus, Send, X, AlertCircle, Eye, Wand2 } from 'lucide-react';
+import { Sparkles, TrendingUp, ShoppingCart, CalendarCheck, Loader2, MessageSquarePlus, Send, X, AlertCircle, Eye, Wand2, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import ReservationModal from '../shared/ReservationModal';
@@ -99,6 +99,13 @@ const HomeFeed: React.FC = () => {
          <p className="text-slate-400 text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-12">
             خصومات مميزة من أفضل المحلات والمطاعم في مصر.
          </p>
+
+         <Link
+           to="/map"
+           className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all shadow-xl"
+         >
+           الخريطة <MapPin className="w-4 h-4" />
+         </Link>
       </div>
 
       {/* Offers Grid */}

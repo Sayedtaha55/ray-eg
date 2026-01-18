@@ -996,6 +996,11 @@ export const ApiService = {
   },
   updateMyShop: async (payload: any) => {
     const shop = await backendPatch<any>('/api/v1/shops/me', payload);
+    try {
+      window.dispatchEvent(new Event('ray-db-update'));
+    } catch {
+      // ignore
+    }
     return normalizeShopFromBackend(shop);
   },
   getShopAdminById: async (id: string) => {
