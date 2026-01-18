@@ -4,28 +4,19 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
-import L from 'leaflet';
 import { 
   Star, ChevronRight, X, Plus, Check, Heart, Users, 
   CalendarCheck, Eye, Layout, Palette, Layers, MousePointer2, 
   Zap, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
-  Info, Clock, MapPin, Phone, MessageCircle, Sliders, Monitor, Send, Camera,
-  Tag
+  Info, Clock, MapPin, Phone, MessageCircle, Sliders, Monitor, Send, Camera
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
 import { ShopGallery as ShopGalleryComponent, useToast } from '@/components';
 import { ApiService } from '@/services/api.service';
 
-const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
+const { useParams, useNavigate } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
-
-const DEFAULT_SHOP_DESIGN: ShopDesign = {
-  primaryColor: '#00E5FF',
-  layout: 'modern',
-  bannerUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
-  headerType: 'centered',
-};
 
 const ProductCard: React.FC<{ 
   product: Product, 
@@ -33,9 +24,8 @@ const ProductCard: React.FC<{
   offer?: Offer,
   onAdd: (p: Product, price: number) => void,
   isAdded: boolean,
-  onReserve: (p: any) => void,
-  disabled?: boolean
-}> = ({ product, design, offer, onAdd, isAdded, onReserve, disabled }) => {
+  onReserve: (p: any) => void
+}> = ({ product, design, offer, onAdd, isAdded, onReserve }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
 
@@ -52,16 +42,6 @@ const ProductCard: React.FC<{
     e.stopPropagation();
     const state = RayDB.toggleFavorite(product.id);
     setIsFavorite(state);
-    // Notify other components that favorites changed
-    window.dispatchEvent(new Event('ray-db-update'));
-    
-    // Show toast notification
-    const message = state ? 'تمت إضافة المنتج للمفضلة! ❤️' : 'تم حذف المنتج من المفضلة';
-    const toast = document.createElement('div');
-    toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm animate-pulse';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => toast.remove(), 3000);
   };
 
   const currentPrice = offer ? offer.newPrice : product.price;
@@ -128,13 +108,8 @@ const ProductCard: React.FC<{
           
           <div className="flex gap-1.5 md:gap-2">
              <button 
-               disabled={Boolean(disabled)}
-               onClick={(e) => {
-                 e.stopPropagation();
-                 if (disabled) return;
-                 onAdd(product, currentPrice);
-               }}
-               className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 disabled:opacity-60 disabled:cursor-not-allowed ${
+               onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
+               className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
                  isAdded ? 'bg-green-500' : 'bg-slate-900'
                } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
              >
@@ -142,13 +117,8 @@ const ProductCard: React.FC<{
                <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
              </button>
              <button 
-               disabled={Boolean(disabled)}
-               onClick={(e) => {
-                 e.stopPropagation();
-                 if (disabled) return;
-                 onReserve({ ...product, price: currentPrice });
-               }}
-               className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
+               onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
+               className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
                style={{ backgroundColor: design.primaryColor }}
              >
                <CalendarCheck size={12} /> حجز
@@ -174,7 +144,7 @@ const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClo
       loadMessages(parsed.id);
       
       const sub = ApiService.subscribeToMessages(shop.id, (newMsg) => {
-        if (newMsg.userId === parsed.id) {
+        if (newMsg.sender_id === parsed.id || newMsg.role === 'merchant') {
           setMessages(prev => [...prev, newMsg]);
         }
       });
@@ -195,7 +165,6 @@ const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClo
     if (!inputText.trim() || !user) return;
     const msg = {
       shopId: shop.id,
-      userId: user.id,
       senderId: user.id,
       senderName: user.name,
       text: inputText,
@@ -222,7 +191,7 @@ const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClo
           <img src={shop.logoUrl || (shop as any).logo_url} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20" />
           <div className="text-right">
             <p className="font-black text-xs md:text-sm leading-none mb-1">{shop.name}</p>
-            <p className="text-[9px] md:text-[10px] text-green-400 font-bold flex items-center gap-1 justify-end">متصل الآن <span className="w-1 h-1 md:w-1.5 md:h-1.5 bg-green-400 rounded-full inline-block" /></p>
+            <p className="text-[9px] md:text-[10px] text-green-400 font-bold flex items-center gap-1 justify-end">متصل الآن <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-green-400 rounded-full" /></p>
           </div>
         </div>
         <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X size={18} /></button>
@@ -272,318 +241,319 @@ const ShopProfile: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
-  const [activeTab, setActiveTab] = useState<'products' | 'offers' | 'gallery' | 'info'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [hasFollowed, setHasFollowed] = useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
   const { addToast } = useToast();
-
-  const getAuthToken = () => {
-    try {
-      return localStorage.getItem('ray_token') || '';
-    } catch {
-      return '';
-    }
-  };
-
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
-
-  useEffect(() => {
-    if (activeTab === 'info') return;
-    if (mapRef.current) {
-      mapRef.current.remove();
-      mapRef.current = null;
-      markerRef.current = null;
-    }
-  }, [activeTab]);
-
-  useEffect(() => {
-    return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        markerRef.current = null;
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const shouldOpenChat = params.get('chat') === '1' || params.get('chat') === 'true';
-    if (shouldOpenChat) setShowChat(true);
-  }, [location.search]);
 
   useEffect(() => {
     const syncData = async () => {
-      if (!slug) return;
+      if (!slug) {
+        setError(true);
+        setLoading(false);
+        return;
+      }
       setLoading(true);
       setError(false);
       try {
         const currentShopData = await ApiService.getShopBySlug(slug);
         if (currentShopData) {
           setShop(JSON.parse(JSON.stringify(currentShopData)));
-          setCurrentDesign(currentShopData.pageDesign || DEFAULT_SHOP_DESIGN);
-          const status = String((currentShopData as any)?.status || '').toLowerCase();
-          if (status !== 'suspended') {
-            await RayDB.incrementVisitors(String(currentShopData.id));
-            const [prodData, allOffers, galleryData] = await Promise.all([
-              ApiService.getProducts(currentShopData.id),
-              ApiService.getOffers(),
-              ApiService.getShopGallery(currentShopData.id)
-            ]);
-            setProducts(prodData);
-            setOffers(allOffers.filter((o: any) => o.shopId === currentShopData.id));
-            setGalleryImages(galleryData);
-          } else {
-            setProducts([]);
-            setOffers([]);
-            setGalleryImages([]);
-          }
+          // Fallback to default design if pageDesign is missing or invalid
+          const design = currentShopData.pageDesign || {
+            layout: 'modern',
+            primaryColor: '#00E5FF',
+            secondaryColor: '#BD00FF',
+            bannerUrl: '/placeholder-banner.jpg'
+          };
+          setCurrentDesign(design);
+          const [prodData, allOffers, galleryData] = await Promise.all([
+            ApiService.getProducts(currentShopData.id),
+            ApiService.getOffers(),
+            ApiService.getShopGallery(currentShopData.id)
+          ]);
+          setProducts(prodData);
+          setOffers(allOffers.filter((o: any) => o.shopId === currentShopData.id));
+          setGalleryImages(galleryData);
         } else {
           setError(true);
         }
       } catch (err) {
-        // Error fetching shop data - handled silently
+        console.error('ShopProfile syncData error:', err);
         setError(true);
       } finally {
-        setTimeout(() => setLoading(false), 400);
+        setLoading(false);
       }
     };
     syncData();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    window.addEventListener('ray-db-update', syncData);
-    return () => {
-      window.removeEventListener('ray-db-update', syncData);
-    };
   }, [slug]);
-
-  useEffect(() => {
-    if (activeTab !== 'info') return;
-    if (!shop) return;
-    const lat = typeof (shop as any)?.latitude === 'number' ? (shop as any).latitude : null;
-    const lng = typeof (shop as any)?.longitude === 'number' ? (shop as any).longitude : null;
-    if (lat == null || lng == null) return;
-    if (!mapContainerRef.current) return;
-
-    const defaultIcon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      shadowSize: [41, 41],
-    });
-    (L.Marker.prototype as any).options.icon = defaultIcon;
-
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current, {
-        zoomControl: true,
-        attributionControl: false,
-      }).setView([lat, lng], 15);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(mapRef.current);
-
-      markerRef.current = L.marker([lat, lng], { draggable: false }).addTo(mapRef.current);
-    } else {
-      mapRef.current.setView([lat, lng], mapRef.current.getZoom() || 15);
-      markerRef.current?.setLatLng([lat, lng]);
-    }
-
-    setTimeout(() => {
-      mapRef.current?.invalidateSize();
-    }, 0);
-  }, [activeTab, shop?.id, (shop as any)?.latitude, (shop as any)?.longitude]);
-
-  const design = currentDesign || DEFAULT_SHOP_DESIGN;
-  const hasShopLocation = typeof (shop as any)?.latitude === 'number' && typeof (shop as any)?.longitude === 'number';
-  const googleMapsUrl = hasShopLocation ? `https://www.google.com/maps?q=${(shop as any).latitude},${(shop as any).longitude}` : '';
-  const isSuspended = String((shop as any)?.status || '').toLowerCase() === 'suspended';
 
   const handleShare = async () => {
     if (!shop) return;
     const shareData = {
       title: shop.name,
-      text: `شوفوا المحل ده على منصة Ray: ${shop.name}`,
-      url: typeof window !== 'undefined' ? window.location.href : '',
+      text: `شوفوا المحل ده على منصة تست: ${shop.name}`,
+      url: window.location.href,
     };
     try {
-      if (navigator.share) {
-        await navigator.share(shareData as any);
-      } else {
-        await navigator.clipboard.writeText(shareData.url);
-        addToast('تم نسخ الرابط', 'info');
+      if (navigator.share) await navigator.share(shareData);
+      else {
+        await navigator.clipboard.writeText(window.location.href);
+        addToast('تم نسخ الرابط لمشاركته!', 'info');
       }
-    } catch {
-      // ignore
-    }
-  };
-
-  const handleAddToCart = (product: Product, price: number) => {
-    const event = new CustomEvent('add-to-cart', {
-      detail: {
-        id: product.id,
-        productId: product.id,
-        name: product.name,
-        image: product.imageUrl || (product as any).image_url,
-        price,
-        quantity: 1,
-        shopId: (shop as any)?.id,
-        shopName: (shop as any)?.name,
-      },
-    });
-    window.dispatchEvent(event);
-    setAddedItemId(product.id);
-    setTimeout(() => setAddedItemId(null), 1200);
+    } catch (e) {}
   };
 
   if (loading) return (
-    <div className="min-h-[60vh] flex items-center justify-center" dir="rtl">
-      <Loader2 className="w-10 h-10 animate-spin text-[#00E5FF]" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+      <Loader2 className="w-12 h-12 md:w-16 md:h-16 text-[#00E5FF] animate-spin mb-4" />
+      <h2 className="text-xl md:text-2xl font-black tracking-tight">جاري تهيئة المتجر...</h2>
     </div>
   );
 
   if (error || !shop) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-      <AlertCircle className="w-14 h-14 text-slate-300 mb-6" />
-      <h2 className="text-2xl font-black mb-4">المحل غير متاح حالياً</h2>
-      <button onClick={() => navigate('/')} className="px-8 py-4 bg-slate-900 text-white rounded-full font-black flex items-center gap-3"><Home size={20} /> العودة للرئيسية</button>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+      <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />
+      <h2 className="text-2xl md:text-3xl font-black mb-4">المحل غير متاح حالياً</h2>
+      <button onClick={() => navigate('/')} className="px-8 py-4 md:px-10 md:py-5 bg-slate-900 text-white rounded-full font-black flex items-center gap-3 shadow-xl"><Home size={20} /> العودة للرئيسية</button>
     </div>
   );
 
-  if (isSuspended) return (
-    <div className="min-h-[60vh] flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-      <AlertCircle className="w-14 h-14 text-slate-300 mb-6" />
-      <h2 className="text-2xl font-black mb-4">المتجر غير متاح مؤقتاً</h2>
-      <p className="text-slate-500 font-bold max-w-xl mb-8">ممكن يكون صاحب المتجر بيجهّز تحديثات وتحسينات.</p>
-      <button onClick={() => navigate('/')} className="px-8 py-4 bg-slate-900 text-white rounded-full font-black flex items-center gap-3"><Home size={20} /> العودة للرئيسية</button>
-    </div>
-  );
-
-  const offerByProductId = new Map<string, Offer>();
-  offers.forEach((o: any) => {
-    const pid = String(o.productId || o.product_id || '');
-    if (pid) offerByProductId.set(pid, o);
-  });
+  const isRestaurant = shop.category === Category.RESTAURANT;
+  const isBold = currentDesign.layout === 'bold';
+  const isMinimal = currentDesign.layout === 'minimal';
+  
+  const categories = ['الكل', ...new Set(products.map(p => (p as any).category || 'عام'))];
+  const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
 
   return (
-    <div className="min-h-screen bg-slate-50" dir="rtl">
-      <div className="sticky top-0 z-[60] bg-white/90 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3 flex-row-reverse">
-            <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-xl border border-slate-100"><ChevronRight size={18} /></button>
-            <div className="text-right">
-              <div className="font-black text-lg md:text-2xl">{shop.name}</div>
-              <div className="text-[10px] md:text-xs font-bold text-slate-400">/s/{shop.slug}</div>
+    <div className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`} dir="rtl">
+      
+      {/* Site-like Header */}
+      <header className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
+        isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'
+      }`}>
+        <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-3 md:py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 md:gap-4">
+              <img 
+                src={shop.logoUrl || (shop as any).logo_url} 
+                className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md object-cover" 
+                alt={shop.name}
+              />
+              <div>
+                <h3 className={`font-black ${isBold ? 'text-lg md:text-2xl' : 'text-sm md:text-lg'}`} style={{ color: currentDesign.primaryColor }}>
+                  {shop.name}
+                </h3>
+                <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">
+                  {shop.category} • {shop.city}
+                </p>
+              </div>
+            </div>
+            
+            <nav className="hidden md:flex items-center gap-6 md:gap-8">
+              <button onClick={() => setActiveTab('products')} className={`text-xs md:text-sm font-black transition-colors ${
+                activeTab === 'products' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+              }`}>
+                {isRestaurant ? "المنيو" : "المعروضات"}
+              </button>
+              <button onClick={() => setActiveTab('gallery')} className={`text-xs md:text-sm font-black transition-colors ${
+                activeTab === 'gallery' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+              }`}>
+                معرض الصور
+              </button>
+              <button onClick={() => setActiveTab('info')} className={`text-xs md:text-sm font-black transition-colors ${
+                activeTab === 'info' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
+              }`}>
+                معلومات المتجر
+              </button>
+            </nav>
+            
+            <div className="flex items-center gap-2 md:gap-3">
+              <button 
+                onClick={() => setShowChat(true)}
+                className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
+                style={{ backgroundColor: currentDesign.primaryColor, color: '#000', borderColor: `${currentDesign.primaryColor}20` }}
+              >
+                <MessageCircle size={14} className="md:w-4 md:h-4" />
+              </button>
+              <button 
+                onClick={handleShare}
+                className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black"
+              >
+                <Share2 size={14} className="md:w-4 md:h-4" />
+              </button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleShare} className="p-2 bg-white rounded-xl border border-slate-100"><Share2 size={18} /></button>
-            <button onClick={() => navigate('/')} className="p-2 bg-white rounded-xl border border-slate-100"><Home size={18} /></button>
-          </div>
         </div>
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8">
-          <div className="flex gap-6 justify-end overflow-x-auto no-scrollbar">
-            <NavTab active={activeTab === 'products'} onClick={() => setActiveTab('products')} label="المنتجات" primaryColor={design.primaryColor} layout={design.layout} />
-            <NavTab active={activeTab === 'offers'} onClick={() => setActiveTab('offers')} label="العروض" primaryColor={design.primaryColor} layout={design.layout} />
-            <NavTab active={activeTab === 'gallery'} onClick={() => setActiveTab('gallery')} label="المعرض" primaryColor={design.primaryColor} layout={design.layout} />
-            <NavTab active={activeTab === 'info'} onClick={() => setActiveTab('info')} label="معلومات" primaryColor={design.primaryColor} layout={design.layout} />
-          </div>
-        </div>
+      </header>
+      
+      {/* Dynamic Navigation UI */}
+      <div className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[150] flex flex-col gap-4 items-end">
+         <AnimatePresence>
+            {showChat && <ChatWindow shop={shop} onClose={() => setShowChat(false)} />}
+         </AnimatePresence>
+         
+         <button 
+           onClick={() => setShowChat(!showChat)}
+           className={`w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white text-white ${showChat ? 'bg-red-500' : 'bg-slate-900'}`}
+           style={{ backgroundColor: !showChat ? currentDesign.primaryColor : undefined, color: !showChat ? '#000' : undefined }}
+         >
+            {showChat ? <X size={24} className="md:w-7 md:h-7" /> : <MessageCircle size={24} className="md:w-7 md:h-7" />}
+         </button>
       </div>
 
-      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-8">
-        {activeTab === 'products' && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {products.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={p}
-                design={design}
-                offer={offerByProductId.get(String(p.id))}
-                onAdd={handleAddToCart}
-                isAdded={addedItemId === p.id}
-                onReserve={(x) => setSelectedProductForRes(x)}
-              />
-            ))}
-          </div>
-        )}
+      {/* Header Buttons */}
+      <div className="fixed top-0 left-0 right-0 z-[110] p-3 md:p-4 flex justify-between items-center pointer-events-none">
+         <button onClick={() => navigate(-1)} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><ChevronRight size={20} className="md:w-6 md:h-6" /></button>
+         <button onClick={handleShare} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><Share2 size={20} className="md:w-6 md:h-6" /></button>
+      </div>
 
-        {activeTab === 'offers' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {offers.map((o: any) => (
-              <div key={o.id} className="bg-white rounded-[2rem] border border-slate-100 p-6 text-right">
-                <div className="font-black text-xl mb-2">{o.title}</div>
-                <div className="text-slate-500 font-bold text-sm mb-4">خصم {o.discount}%</div>
-                <button
-                  onClick={() => navigate(`/product/${o.productId || o.product_id || o.id}`)}
-                  className="px-6 py-3 rounded-2xl font-black text-sm text-black"
-                  style={{ backgroundColor: design.primaryColor }}
-                >
-                  مشاهدة العرض
-                </button>
+      {/* Hero Section */}
+      <section className={`relative transition-all duration-1000 overflow-hidden bg-slate-900 ${
+        isBold ? 'h-[45vh] md:h-[85vh] m-0 md:m-6 md:rounded-[4.5rem] shadow-2xl' : isMinimal ? 'h-[25vh] md:h-[45vh]' : 'h-[35vh] md:h-[60vh]'
+      }`}>
+        <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        <div className="absolute bottom-6 md:bottom-10 left-0 right-0 flex justify-center px-6">
+           <button onClick={() => setSpatialMode(true)} className="bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-full font-black text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-2xl active:scale-95 transition-all border border-slate-100 hover:gap-5">
+             <Eye size={16} className="md:w-5 md:h-5 text-[#00E5FF] animate-pulse" /> استكشاف المتجر 3D
+           </button>
+        </div>
+      </section>
+
+      {/* Brand Header */}
+      <div className={`max-w-[1400px] mx-auto px-4 md:px-12 relative z-10 pb-16 md:pb-24 ${isBold ? '-mt-16 md:-mt-48' : '-mt-10 md:-mt-24'}`}>
+        <div className={`flex flex-col items-center md:items-end md:flex-row-reverse gap-4 md:gap-16 ${isMinimal ? 'md:items-center' : ''}`}>
+          <MotionDiv 
+            initial={{ y: 30, opacity: 0 }} 
+            animate={{ y: 0, opacity: 1 }} 
+            className={`bg-white p-1 md:p-1.5 shadow-2xl shrink-0 ring-4 ring-white ${isBold ? 'rounded-[2rem] md:rounded-[3rem] w-24 h-24 md:w-64 md:h-64 rotate-3' : isMinimal ? 'rounded-xl md:rounded-2xl w-20 h-20 md:w-48 md:h-48' : 'rounded-full w-24 h-24 md:w-56 md:h-56'}`}
+          >
+            <img src={shop.logoUrl || (shop as any).logo_url} className={`w-full h-full object-cover ${isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem]' : isMinimal ? 'rounded-lg md:rounded-xl' : 'rounded-full'}`} />
+          </MotionDiv>
+          
+          <div className={`flex-1 text-center md:text-right ${isMinimal ? 'md:text-center' : ''}`}>
+            <div className={`flex items-center justify-center md:justify-start gap-2 mb-2 md:mb-3 flex-row-reverse ${isMinimal ? 'md:justify-center' : ''}`}>
+               {isRestaurant ? <Utensils size={14} className="md:w-4 md:h-4 text-[#BD00FF]" /> : <ShoppingBag size={14} className="md:w-4 md:h-4 text-[#00E5FF]" />}
+               <span className="text-slate-400 font-black text-[9px] md:text-xs uppercase tracking-widest">{shop.category} • {shop.city}</span>
+            </div>
+            <h1 className={`font-black tracking-tighter mb-4 md:mb-5 leading-tight ${isBold ? 'text-3xl md:text-8xl lg:text-[10rem]' : isMinimal ? 'text-2xl md:text-6xl' : 'text-3xl md:text-7xl'}`} style={{ color: currentDesign.primaryColor }}>{shop.name}</h1>
+            
+            <div className={`flex flex-wrap items-center justify-center md:justify-start gap-2 md:gap-4 mb-8 ${isMinimal ? 'md:justify-center' : ''}`}>
+              <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 md:px-5 md:py-2 rounded-full border border-slate-100 flex items-center gap-1.5 md:gap-2 shadow-sm">
+                 <Star size={12} className="md:w-[14px] md:h-[14px] text-amber-400 fill-current" />
+                 <span className="font-black text-xs md:text-sm">{shop.rating}</span>
               </div>
-            ))}
-          </div>
-        )}
-
-        {activeTab === 'gallery' && (
-          <div>
-            <ShopGalleryComponent images={galleryImages as any} shopName={shop.name} primaryColor={design.primaryColor} layout={design.layout} />
-          </div>
-        )}
-
-        {activeTab === 'info' && (
-          <div className="bg-slate-900 text-white rounded-[2.5rem] p-6 md:p-10">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 flex-row-reverse">
-                  <MapPin className="w-4 h-4 md:w-5 md:h-5 text-[#00E5FF] mt-1 shrink-0" />
-                  <div className="text-right">
-                    <div className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">العنوان</div>
-                    <div className="font-black text-sm md:text-base text-white">{(shop as any).addressDetailed || `${(shop as any).city || ''}${(shop as any).governorate ? `, ${(shop as any).governorate}` : ''}`}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 flex-row-reverse">
-                  <Phone className="w-4 h-4 md:w-5 md:h-5 text-[#BD00FF] mt-1 shrink-0" />
-                  <div className="text-right">
-                    <div className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">الهاتف</div>
-                    <div className="font-black text-sm md:text-base text-white">{(shop as any).phone || 'غير متاح'}</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3 flex-row-reverse">
-                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-slate-300 mt-1 shrink-0" />
-                  <div className="text-right">
-                    <div className="text-[10px] md:text-xs font-black text-slate-400 uppercase tracking-widest">مواعيد العمل</div>
-                    <div className="font-black text-sm md:text-base text-white">{(shop as any).openingHours || 'غير محدد'}</div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end gap-3 flex-row-reverse">
-                  {hasShopLocation ? (
-                    <a href={googleMapsUrl} target="_blank" rel="noreferrer" className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 font-black text-xs md:text-sm transition-all">
-                      فتح الموقع على Google Maps
-                    </a>
-                  ) : null}
-                  <button onClick={handleShare} className="px-5 py-3 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 font-black text-xs md:text-sm transition-all">
-                    مشاركة المتجر
-                  </button>
-                  <button onClick={() => navigate('/')} className="px-5 py-3 rounded-2xl font-black text-xs md:text-sm transition-all text-black" style={{ backgroundColor: design.primaryColor }}>
-                    العودة للمنصة
-                  </button>
-                </div>
+              <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 md:px-5 md:py-2 rounded-full border border-slate-100 flex items-center gap-1.5 md:gap-2 shadow-sm">
+                 <Users size={12} className="md:w-[14px] md:h-[14px] text-slate-400" />
+                 <span className="font-black text-xs md:text-sm">{shop.followers?.toLocaleString() || 0}</span>
               </div>
-
-              <div className="rounded-[2rem] overflow-hidden border border-white/10 bg-white/5 min-h-[260px]">
-                {hasShopLocation ? <div ref={mapContainerRef} className="w-full h-[260px] md:h-full" /> : <div className="w-full h-[260px] flex items-center justify-center text-slate-400 font-bold">لا يوجد موقع للمحل</div>}
-              </div>
+              <button 
+                onClick={() => { ApiService.followShop(shop.id); setHasFollowed(true); }}
+                className={`px-6 py-1.5 md:px-8 md:py-2.5 rounded-full font-black text-[11px] md:text-sm transition-all shadow-xl active:scale-95 ${hasFollowed ? 'bg-green-500 text-white' : 'bg-slate-900 text-white hover:bg-black'}`}
+              >
+                {hasFollowed ? 'متابع' : 'متابعة المتجر'}
+              </button>
             </div>
           </div>
-        )}
+        </div>
+
+        <AnimatePresence mode="wait">
+          {activeTab === 'products' ? (
+            <MotionDiv key="products-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className="flex overflow-x-auto no-scrollbar gap-2 mb-8 md:mb-10 pb-2">
+                {categories.map(cat => (
+                  <button 
+                    key={cat} 
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-5 py-2 md:px-6 md:py-2.5 rounded-full font-black text-[10px] md:text-xs whitespace-nowrap transition-all border ${activeCategory === cat ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+              
+              <div className={`grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+                {filteredProducts.length === 0 ? (
+                  <div className="col-span-full py-16 md:py-24 text-center text-slate-300 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
+                    <Info size={40} className="md:w-12 md:h-12 mx-auto mb-4 opacity-20" />
+                    لا توجد أصناف في هذا القسم حالياً.
+                  </div>
+                ) : (
+                  filteredProducts.map((p) => (
+                    <ProductCard 
+                      key={p.id} 
+                      product={p} 
+                      design={currentDesign!} 
+                      offer={offers.find(o => o.productId === p.id)}
+                      onAdd={(prod, price) => {
+                        setAddedItemId(prod.id);
+                        window.dispatchEvent(new CustomEvent('add-to-cart', { detail: { ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name } }));
+                        setTimeout(() => setAddedItemId(null), 1500);
+                      }} 
+                      isAdded={addedItemId === p.id} 
+                      onReserve={(data) => setSelectedProductForRes({...data, shopId: shop.id, shopName: shop.name})}
+                    />
+                  ))
+                )}
+              </div>
+            </MotionDiv>
+          ) : activeTab === 'gallery' ? (
+            <MotionDiv key="gallery-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
+              <div className="mb-8 md:mb-10">
+                <h2 className={`font-black mb-4 md:mb-6 ${isBold ? 'text-2xl md:text-4xl' : 'text-xl md:text-3xl'}`} style={{ color: currentDesign.primaryColor }}>
+                  معرض {shop.name}
+                </h2>
+                <p className="text-slate-600 text-sm md:text-base">
+                  استكشف صور ومعارض من {shop.name}
+                </p>
+              </div>
+              <ShopGalleryComponent 
+                images={galleryImages}
+                shopName={shop.name}
+                primaryColor={currentDesign.primaryColor}
+                layout={currentDesign.layout}
+              />
+            </MotionDiv>
+          ) : (
+            <MotionDiv key="info-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
+               <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 space-y-6 md:space-y-8 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
+                  <h3 className="text-xl md:text-2xl font-black mb-4">تفاصيل التواصل</h3>
+                  <div className="grid grid-cols-1 gap-5 md:gap-6">
+                    <InfoItem 
+                      icon={<MapPin className="md:w-5 md:h-5 text-[#00E5FF]" />} 
+                      title="العنوان" 
+                      value={shop.addressDetailed || `${shop.city}, ${shop.governorate}`} 
+                    />
+                    <InfoItem 
+                      icon={<Phone className="md:w-5 md:h-5 text-[#BD00FF]" />} 
+                      title="رقم الهاتف" 
+                      value={shop.phone || 'يرجى التواصل عبر واتساب'} 
+                    />
+                    <InfoItem 
+                      icon={<Clock className="md:w-5 md:h-5 text-slate-400" />} 
+                      title="مواعيد العمل" 
+                      value={shop.openingHours || 'من ١٠ صباحاً - ١٢ مساءً'} 
+                    />
+                  </div>
+               </div>
+               <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 flex flex-col justify-center items-center text-center space-y-6 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
+                  <div className={`w-16 h-16 md:w-24 md:h-24 bg-white rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-xl mb-2 ${isBold ? 'rotate-6' : ''}`}>
+                     <MessageCircle size={isBold ? 32 : 28} className="md:w-10 md:h-10 text-green-500" />
+                  </div>
+                  <h3 className="text-xl md:text-2xl font-black">تحدث مع المتجر</h3>
+                  <p className="text-slate-500 font-bold max-w-xs leading-relaxed text-xs md:text-base">هل لديك استفسار محدد؟ يمكنك التواصل مع إدارة المتجر مباشرة للحصول على رد سريع.</p>
+                  <button onClick={() => setShowChat(true)} className="w-full md:w-auto px-8 py-4 md:px-10 md:py-5 bg-green-500 text-white rounded-2xl md:rounded-[1.5rem] font-black text-sm md:text-base flex items-center justify-center gap-3 shadow-xl hover:scale-105 transition-transform active:scale-95">
+                     <MessageCircle size={18} className="md:w-5 md:h-5" /> فتح محادثة فورية
+                  </button>
+               </div>
+            </MotionDiv>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Reservation Modal */}
@@ -618,6 +588,77 @@ const ShopProfile: React.FC = () => {
           </MotionDiv>
         )}
       </AnimatePresence>
+
+      {/* Site-like Footer */}
+      <footer className={`mt-16 md:mt-24 border-t transition-all duration-500 ${
+        isBold ? 'bg-slate-900 border-slate-700' : isMinimal ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-200'
+      }`}>
+        <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-8 md:py-12">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8">
+            {/* Brand */}
+            <div className="text-center md:text-right">
+              <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                <img 
+                  src={shop.logoUrl || (shop as any).logo_url} 
+                  className="w-8 h-8 rounded-full border-2 border-white shadow-md object-cover" 
+                  alt={shop.name}
+                />
+                <h4 className={`font-black ${isBold ? 'text-lg' : 'text-base'}`} style={{ color: isBold ? '#fff' : currentDesign.primaryColor }}>
+                  {shop.name}
+                </h4>
+              </div>
+              <p className={`text-xs md:text-sm ${isBold ? 'text-slate-300' : 'text-slate-500'} font-bold leading-relaxed`}>
+                منصة متكاملة لتقديم أفضل الخدمات والمنتجات بجودة عالية.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div className="text-center md:text-right">
+              <h5 className={`font-black mb-3 ${isBold ? 'text-white' : 'text-slate-900'} text-sm md:text-base`}>روابط سريعة</h5>
+              <div className="space-y-2">
+                <button onClick={() => setActiveTab('products')} className={`block text-xs md:text-sm font-bold transition-colors ${
+                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                }`}>
+                  {isRestaurant ? "المنيو" : "المعروضات"}
+                </button>
+                <button onClick={() => setActiveTab('gallery')} className={`block text-xs md:text-sm font-bold transition-colors ${
+                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                }`}>
+                  معرض الصور
+                </button>
+                <button onClick={() => setActiveTab('info')} className={`block text-xs md:text-sm font-bold transition-colors ${
+                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
+                }`}>
+                  معلومات المتجر
+                </button>
+              </div>
+            </div>
+
+            {/* Contact */}
+            <div className="text-center md:text-right">
+              <h5 className={`font-black mb-3 ${isBold ? 'text-white' : 'text-slate-900'} text-sm md:text-base`}>تواصل معنا</h5>
+              <div className="space-y-2">
+                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {shop.phone || 'جاري تحديث رقم الهاتف'}
+                </p>
+                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
+                  جاري تحديث البريد الإلكتروني
+                </p>
+                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
+                  {shop.addressDetailed || `${shop.city}, ${shop.governorate}`}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright */}
+          <div className={`pt-6 border-t text-center text-xs md:text-sm font-bold ${
+            isBold ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'
+          }`}>
+            <p>جميع الحقوق محفوظة © {new Date().getFullYear()} {shop.name} • تطوير بواسطة منصة تست</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
