@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, UseGuards, Request, Body, Param, UploadedFile, UseInterceptors, Inject } from '@nestjs/common';
+import { Controller, Post, Get, Delete, UseGuards, Request, Body, Param, UploadedFile, UseInterceptors, Inject, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
@@ -7,6 +7,7 @@ import { GalleryService } from './gallery.service';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
+import { randomBytes } from 'crypto';
 
 @Controller('api/v1/gallery')
 export class GalleryController {
@@ -29,7 +30,7 @@ export class GalleryController {
         cb(null, dest);
       },
       filename: (req, file, cb) => {
-        const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
+        const randomName = randomBytes(16).toString('hex');
         cb(null, `${randomName}${extname(file.originalname)}`);
       }
     }),
@@ -41,7 +42,7 @@ export class GalleryController {
       if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new Error('Only JPEG, PNG, WebP, and AVIF images are allowed'), false);
+        cb(new BadRequestException('Only JPEG, PNG, WebP, and AVIF images are allowed') as any, false);
       }
     }
   }))

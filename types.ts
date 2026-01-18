@@ -30,8 +30,13 @@ export interface Shop {
   phone?: string;
   openingHours?: string;
   addressDetailed?: string;
+  displayAddress?: string;
+  mapLabel?: string;
   latitude?: number | null;
   longitude?: number | null;
+  locationSource?: string;
+  locationAccuracy?: number | null;
+  locationUpdatedAt?: string;
 }
 
 export interface Offer {

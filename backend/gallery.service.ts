@@ -13,6 +13,17 @@ export class GalleryService {
     // @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private getSharpMaxPixels() {
+    const raw = String(process.env.SHARP_MAX_INPUT_PIXELS || '40000000').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 40000000;
+    return Math.floor(n);
+  }
+
+  private createSharp(buffer: Buffer) {
+    return sharp(buffer, { limitInputPixels: this.getSharpMaxPixels() });
+  }
+
   private getVariantUrls(imageUrl: string) {
     if (!imageUrl) {
       return { thumbUrl: imageUrl, mediumUrl: imageUrl };
@@ -85,7 +96,7 @@ export class GalleryService {
     try {
       const inputBuffer = await fs.promises.readFile(file.path);
 
-      await sharp(inputBuffer)
+      await this.createSharp(inputBuffer)
         .rotate()
         .resize({
           width: 1600,
@@ -96,7 +107,7 @@ export class GalleryService {
         .webp({ quality: 80 })
         .toFile(outputPath);
 
-      await sharp(inputBuffer)
+      await this.createSharp(inputBuffer)
         .rotate()
         .resize({
           width: 900,
@@ -107,7 +118,7 @@ export class GalleryService {
         .webp({ quality: 78 })
         .toFile(mediumPath);
 
-      await sharp(inputBuffer)
+      await this.createSharp(inputBuffer)
         .rotate()
         .resize({
           width: 320,
@@ -235,14 +246,19 @@ export class GalleryService {
     const { thumbUrl, mediumUrl } = this.getVariantUrls(image.imageUrl);
     const filesToDelete = [image.imageUrl, mediumUrl, thumbUrl];
 
+    const baseDir = path.resolve(process.cwd(), 'uploads', 'gallery');
+
     for (const url of filesToDelete) {
-      const filePath = path.join(process.cwd(), url.replace(/^\//, ''));
-      if (fs.existsSync(filePath)) {
-        try {
-          fs.unlinkSync(filePath);
-        } catch {
-          // ignore
-        }
+      const u = String(url || '');
+      if (!u.startsWith('/uploads/gallery/')) continue;
+      const rel = u.replace(/^\/uploads\/gallery\//, '');
+      const filePath = path.resolve(baseDir, rel);
+      if (filePath !== baseDir && !filePath.startsWith(baseDir + path.sep)) continue;
+      if (!fs.existsSync(filePath)) continue;
+      try {
+        fs.unlinkSync(filePath);
+      } catch {
+        // ignore
       }
     }
 

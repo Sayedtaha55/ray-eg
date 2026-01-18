@@ -13,6 +13,7 @@ import {
   MessageSquare,
   CreditCard
 } from 'lucide-react';
+import { ApiService } from '@/services/api.service';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -63,9 +64,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
                    userRole === 'merchant' ? merchantNavItems : 
                    customerNavItems;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await ApiService.logout();
+    } catch {
+    }
     localStorage.removeItem('ray_user');
     localStorage.removeItem('ray_token');
+    window.dispatchEvent(new Event('auth-change'));
     navigate('/login');
   };
 

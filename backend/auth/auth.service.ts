@@ -98,7 +98,10 @@ export class AuthService {
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    const normalizedRole = this.normalizeRole(role);
+    let normalizedRole = this.normalizeRole(role);
+    if (normalizedRole !== 'CUSTOMER' && normalizedRole !== 'MERCHANT') {
+      normalizedRole = 'CUSTOMER' as any;
+    }
 
     // 1. التحقق من صحة المدخلات
     if (password.length < 8) {

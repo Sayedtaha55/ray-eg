@@ -10,7 +10,7 @@ const MotionDiv = motion.div as any;
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState('admin');
-  const [password, setPassword] = useState('1234');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();

@@ -16,8 +16,22 @@ import { JwtStrategy } from './jwt.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
-        secret: config.get<string>('JWT_SECRET') || 'fallback-secret-change-in-production',
-        signOptions: { expiresIn: '7d' },
+        secret: (() => {
+          const secret = config.get<string>('JWT_SECRET');
+          const env = String(process.env.NODE_ENV || '').toLowerCase();
+          if (!secret && env === 'production') {
+            throw new Error('JWT_SECRET must be set in production');
+          }
+          return secret || 'dev-fallback-secret-change-in-production';
+        })(),
+        signOptions: {
+          expiresIn: (() => {
+            const raw = String(config.get<string>('JWT_EXPIRES_IN') || '7d').trim();
+            if (/^\d+$/.test(raw)) return Number(raw);
+            if (/^\d+(ms|s|m|h|d|w|y)$/.test(raw)) return raw as any;
+            return '7d' as any;
+          })(),
+        },
       }),
     }),
   ],

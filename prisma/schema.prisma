@@ -47,8 +47,13 @@ model Shop {
   city          String
   address       String?
   addressDetailed String?  @map("address_detailed")
+  displayAddress String?   @map("display_address")
+  mapLabel       String?   @map("map_label")
   latitude      Float?
   longitude     Float?
+  locationSource String?   @map("location_source")
+  locationAccuracy Float?  @map("location_accuracy")
+  locationUpdatedAt DateTime? @map("location_updated_at")
   phone         String
   email         String?
   openingHours  String?    @map("opening_hours")

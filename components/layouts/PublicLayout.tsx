@@ -6,6 +6,7 @@ import { RayAssistant, CartDrawer } from '@/components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
+import { ApiService } from '@/services/api.service';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 
@@ -47,7 +48,11 @@ const PublicLayout: React.FC = () => {
     };
   }, []);
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await ApiService.logout();
+    } catch {
+    }
     localStorage.removeItem('ray_user');
     localStorage.removeItem('ray_token');
     setUser(null);

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import ReservationModal from '../shared/ReservationModal';
 import { GoogleGenAI } from "@google/genai";
+import { Skeleton } from '@/components/common/ui';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -73,14 +74,35 @@ const HomeFeed: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="h-[60vh] flex flex-col items-center justify-center gap-6">
-       <div className="relative">
-          <Loader2 className="w-16 h-16 text-[#00E5FF] animate-spin" />
-          <div className="absolute inset-0 flex items-center justify-center">
-             <div className="w-2 h-2 bg-[#BD00FF] rounded-full animate-ping" />
-          </div>
-       </div>
-       <p className="font-black text-slate-400 tracking-widest uppercase text-xs">جاري تسليط الشعاع على أفضل العروض...</p>
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative">
+      <div className="flex flex-col items-center text-center mb-10 md:mb-20">
+        <Skeleton className="h-9 w-44 rounded-full mb-10" />
+        <Skeleton className="h-12 md:h-20 w-[min(720px,90%)] mb-4" />
+        <Skeleton className="h-12 md:h-20 w-[min(560px,85%)] mb-8" />
+        <Skeleton className="h-6 w-[min(520px,85%)] mb-4" />
+        <Skeleton className="h-6 w-[min(420px,80%)] mb-10" />
+        <Skeleton className="h-14 w-44 rounded-2xl" />
+      </div>
+
+      <section className="mb-24">
+        <div className="flex items-center justify-between mb-12 md:mb-20 flex-row-reverse px-2">
+          <Skeleton className="h-10 w-72" />
+          <Skeleton className="h-6 w-28" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={`offer-skel-${idx}`} className="bg-white p-5 rounded-[3rem] border border-slate-50">
+              <Skeleton className="relative aspect-[4/5] rounded-[2.5rem] mb-6" />
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-6 w-16 rounded-full" />
+              </div>
+              <Skeleton className="h-5 w-56 mb-3" />
+              <Skeleton className="h-12 w-full rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 

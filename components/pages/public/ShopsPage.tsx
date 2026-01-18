@@ -5,6 +5,7 @@ import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { Skeleton } from '@/components/common/ui';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -81,7 +82,28 @@ const ShopsPage: React.FC = () => {
       {/* Shops Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
         {loading ? (
-          <div className="text-slate-400 font-bold">جاري التحميل...</div>
+          Array.from({ length: 6 }).map((_, idx) => (
+            <div
+              key={`shop-skel-${idx}`}
+              className="bg-white border border-slate-100 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] flex flex-col gap-6 md:gap-8"
+            >
+              <div className="flex items-center gap-4 md:gap-6">
+                <Skeleton className="w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-3xl" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-row-reverse justify-end mb-2">
+                    <Skeleton className="h-5 md:h-6 w-44" />
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                  </div>
+                  <div className="flex items-center gap-2 justify-end">
+                    <Skeleton className="h-4 w-28" />
+                  </div>
+                </div>
+              </div>
+
+              <Skeleton className="relative aspect-video rounded-2xl" />
+              <Skeleton className="w-full h-12 md:h-14 rounded-xl md:rounded-2xl" />
+            </div>
+          ))
         ) : shops.length === 0 ? (
           <div className="text-slate-400 font-bold">لا توجد محلات حالياً</div>
         ) : (

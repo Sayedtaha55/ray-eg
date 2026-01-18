@@ -5,6 +5,7 @@ import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { Skeleton } from '@/components/common/ui';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -77,7 +78,35 @@ const RestaurantsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
         {loading ? (
-          <div className="text-slate-400 font-bold">جاري التحميل...</div>
+          Array.from({ length: 4 }).map((_, idx) => (
+            <div
+              key={`restaurant-skel-${idx}`}
+              className="group relative h-[400px] rounded-[3.5rem] overflow-hidden shadow-xl bg-white"
+            >
+              <Skeleton className="absolute inset-0 w-full h-full rounded-none" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+
+              <div className="absolute top-8 left-8">
+                <div className="glass px-6 py-2.5 rounded-full flex items-center gap-2">
+                  <Skeleton className="h-4 w-24 rounded-full" />
+                </div>
+              </div>
+
+              <div className="absolute bottom-10 right-10 left-10 flex items-end justify-between flex-row-reverse">
+                <div className="text-right flex-1">
+                  <div className="flex items-center gap-3 justify-end mb-3">
+                    <Skeleton className="w-10 h-10 rounded-xl" />
+                    <Skeleton className="h-8 w-48" />
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                  </div>
+                  <div className="flex items-center gap-2 justify-end">
+                    <Skeleton className="h-5 w-40" />
+                  </div>
+                </div>
+                <Skeleton className="h-14 w-40 rounded-2xl" />
+              </div>
+            </div>
+          ))
         ) : restaurants.length === 0 ? (
           <div className="text-slate-400 font-bold">لا توجد مطاعم حالياً</div>
         ) : (

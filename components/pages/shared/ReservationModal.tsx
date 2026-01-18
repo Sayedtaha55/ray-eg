@@ -5,6 +5,7 @@ import { X, Phone, User, Clock, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Reservation } from '@/types';
 import { ApiService } from '@/services/api.service';
+import * as ReactRouterDOM from 'react-router-dom';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -25,6 +26,11 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
   const [step, setStep] = useState<'form' | 'success'>('form');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { useLocation, useNavigate } = ReactRouterDOM as any;
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const isAuthed = Boolean(localStorage.getItem('ray_user'));
 
   useEffect(() => {
     if (isOpen) {
@@ -46,6 +52,14 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
   const handleReserve = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!item) return;
+
+    if (!isAuthed) {
+      const returnTo = `${location.pathname}${location.search || ''}`;
+      onClose();
+      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -56,9 +70,6 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
         itemImage: String(item.image),
         itemPrice: Number(item.price),
         shopId: String(item.shopId),
-        shopName: String(item.shopName),
-        customerName: name,
-        customerPhone: phone,
       };
 
       await ApiService.addReservation(reservation);
@@ -111,13 +122,35 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                    </div>
                 </div>
 
+                {!isAuthed ? (
+                  <div className="space-y-6">
+                    <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 flex-row-reverse">
+                      <ShieldCheck size={20} className="text-amber-500 shrink-0" />
+                      <p className="text-xs font-bold text-amber-700 leading-relaxed">
+                        لازم تسجل دخول الأول علشان نضمن الأمان ونربط الحجز بحسابك.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const returnTo = `${location.pathname}${location.search || ''}`;
+                        onClose();
+                        navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+                      }}
+                      className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
+                    >
+                      تسجيل الدخول للحجز
+                    </button>
+                  </div>
+                ) : (
                 <form onSubmit={handleReserve} className="space-y-6">
                   <div className="space-y-2">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4">اسم المستلم</label>
                     <div className="relative">
                       <User className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
-                        required 
+                        disabled
                         className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-14 pl-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-bold text-right"
                         placeholder="الاسم بالكامل"
                         value={name}
@@ -131,7 +164,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     <div className="relative">
                       <Phone className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
-                        required 
+                        disabled
                         type="tel"
                         className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-14 pl-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-bold text-right"
                         placeholder="01x xxxx xxxx"
@@ -159,6 +192,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     {isSubmitting ? 'جاري إرسال الحجز...' : 'تأكيد الحجز مجاناً'}
                   </button>
                 </form>
+                )}
               </div>
             ) : (
               <div className="p-16 text-center">

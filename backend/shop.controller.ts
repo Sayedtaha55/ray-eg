@@ -63,6 +63,51 @@ export class ShopController {
       return undefined;
     })();
 
+    const locationAccuracy = (() => {
+      if (typeof body?.locationAccuracy === 'undefined') return undefined;
+      if (body.locationAccuracy === null) return null;
+      const v = Number(body.locationAccuracy);
+      if (Number.isNaN(v) || v < 0) return undefined;
+      return v;
+    })();
+
+    const locationSource = (() => {
+      if (typeof body?.locationSource === 'undefined') return undefined;
+      if (body.locationSource === null) return null;
+      const v = String(body.locationSource || '').trim().toLowerCase();
+      return v ? v : undefined;
+    })();
+
+    const displayAddress = (() => {
+      if (typeof body?.displayAddress === 'undefined') return undefined;
+      if (body.displayAddress === null) return null;
+      const v = String(body.displayAddress || '').trim();
+      return v ? v : null;
+    })();
+
+    const mapLabel = (() => {
+      if (typeof body?.mapLabel === 'undefined') return undefined;
+      if (body.mapLabel === null) return null;
+      const v = String(body.mapLabel || '').trim();
+      return v ? v : null;
+    })();
+
+    const shouldTouchLocationMeta =
+      typeof body?.latitude !== 'undefined' ||
+      typeof body?.longitude !== 'undefined' ||
+      typeof body?.locationAccuracy !== 'undefined' ||
+      typeof body?.locationSource !== 'undefined';
+
+    const locationUpdatedAt = (() => {
+      if (typeof body?.locationUpdatedAt === 'undefined') {
+        return shouldTouchLocationMeta ? new Date() : undefined;
+      }
+      if (body.locationUpdatedAt === null) return null;
+      const v = new Date(String(body.locationUpdatedAt));
+      if (Number.isNaN(v.getTime())) return undefined;
+      return v;
+    })();
+
     return this.shopService.updateShopSettings(targetShopId, {
       name: typeof body?.name === 'string' ? body.name : undefined,
       description: typeof body?.description === 'string' ? body.description : undefined,
@@ -70,8 +115,13 @@ export class ShopController {
       governorate: typeof body?.governorate === 'string' ? body.governorate : undefined,
       city: typeof body?.city === 'string' ? body.city : undefined,
       addressDetailed: typeof body?.addressDetailed === 'string' ? body.addressDetailed : undefined,
+      displayAddress,
+      mapLabel,
       latitude,
       longitude,
+      locationSource,
+      locationAccuracy,
+      locationUpdatedAt,
       phone: typeof body?.phone === 'string' ? body.phone : undefined,
       email: typeof body?.email === 'string' ? body.email : undefined,
       openingHours: typeof body?.openingHours === 'string' ? body.openingHours : undefined,

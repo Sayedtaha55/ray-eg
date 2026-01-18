@@ -15,9 +15,10 @@ export class MonitoringController {
       return await this.monitoring.getHealthStatus();
     } catch (error) {
       console.error('Health check error:', error);
+      const env = String(process.env.NODE_ENV || 'development').toLowerCase();
       return {
         status: 'unhealthy',
-        error: error.message,
+        error: env === 'production' ? 'Internal error' : error.message,
         timestamp: new Date().toISOString()
       };
     }

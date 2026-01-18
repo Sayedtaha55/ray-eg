@@ -5,6 +5,7 @@ import { Loader2, MapPin } from 'lucide-react';
 import L from 'leaflet';
 import { ApiService } from '@/services/api.service';
 import { Shop } from '@/types';
+import { Skeleton } from '@/components/common/ui';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 
@@ -42,6 +43,7 @@ const MapPage: React.FC = () => {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
+  const [mapReady, setMapReady] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -85,6 +87,8 @@ const MapPage: React.FC = () => {
         attributionControl: false,
       }).setView([30.0444, 31.2357], 12);
 
+      mapRef.current.whenReady(() => setMapReady(true));
+
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
       }).addTo(mapRef.current);
@@ -99,6 +103,7 @@ const MapPage: React.FC = () => {
         markersLayerRef.current = null;
         userMarkerRef.current = null;
       }
+      setMapReady(false);
     };
   }, []);
 
@@ -137,8 +142,10 @@ const MapPage: React.FC = () => {
       const lng = typeof (s as any)?.longitude === 'number' ? (s as any).longitude : null;
       if (lat == null || lng == null) continue;
 
-      const name = escapeHtml(String((s as any)?.name || ''));
-      const city = escapeHtml(String((s as any)?.city || ''));
+      const label = String((s as any)?.mapLabel ?? (s as any)?.map_label ?? (s as any)?.name ?? '').trim();
+      const secondary = String((s as any)?.displayAddress ?? (s as any)?.display_address ?? (s as any)?.city ?? '').trim();
+      const name = escapeHtml(label || String((s as any)?.name || ''));
+      const city = escapeHtml(secondary || String((s as any)?.city || ''));
       const marker = L.marker([lat, lng], {
         icon: L.divIcon({
           className: '',
@@ -225,6 +232,25 @@ const MapPage: React.FC = () => {
       <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
         <div ref={mapContainerRef} className="w-full h-[70vh] md:h-[78vh]" />
 
+        {!mapReady && (
+          <div className="absolute inset-0 z-[500] bg-slate-50 pointer-events-none">
+            <div className="absolute inset-0 p-6 md:p-8">
+              <div className="h-full w-full rounded-[2rem] border border-slate-200 bg-white/70 backdrop-blur-sm p-6 md:p-8">
+                <div className="grid grid-cols-1 gap-5">
+                  <Skeleton className="h-6 w-48" />
+                  <Skeleton className="h-4 w-72" />
+                  <div className="grid grid-cols-3 gap-4">
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                    <Skeleton className="h-20 w-full" />
+                  </div>
+                  <Skeleton className="h-[38vh] md:h-[44vh] w-full" />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[1000]">
           <div className="bg-white/95 backdrop-blur border border-slate-100 rounded-[2rem] p-4 md:p-5 space-y-3">
             {locationError && (
@@ -240,7 +266,13 @@ const MapPage: React.FC = () => {
             </button>
 
             <div className="text-xs font-black text-slate-500 text-center">
-              {loading ? 'جاري التحميل...' : `عدد الأنشطة الظاهرة: ${visibleShops.length}`}
+              {loading ? (
+                <div className="flex items-center justify-center">
+                  <Skeleton className="h-4 w-40" />
+                </div>
+              ) : (
+                `عدد الأنشطة الظاهرة: ${visibleShops.length}`
+              )}
             </div>
           </div>
         </div>

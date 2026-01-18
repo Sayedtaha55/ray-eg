@@ -4,12 +4,21 @@ import { Controller, Get } from '@nestjs/common';
 export class HealthController {
   @Get('health')
   getHealth() {
-    return {
+    const env = String(process.env.NODE_ENV || 'development').toLowerCase();
+    const base = {
       status: 'ok',
       timestamp: new Date().toISOString(),
+    };
+
+    if (env === 'production') {
+      return base;
+    }
+
+    return {
+      ...base,
       uptime: process.uptime(),
       memory: process.memoryUsage(),
-      environment: process.env.NODE_ENV || 'development'
+      environment: process.env.NODE_ENV || 'development',
     };
   }
 }

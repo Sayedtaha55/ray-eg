@@ -3,6 +3,32 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
 import { ReservationService } from './reservation.service';
+import { IsOptional, IsString, MinLength } from 'class-validator';
+
+class CreateReservationDto {
+  @IsString()
+  @MinLength(1)
+  itemId!: string;
+
+  @IsString()
+  @MinLength(1)
+  itemName!: string;
+
+  @IsOptional()
+  @IsString()
+  itemImage?: string;
+
+  itemPrice!: number;
+
+  @IsString()
+  @MinLength(1)
+  shopId!: string;
+}
+
+class UpdateReservationStatusDto {
+  @IsString()
+  status!: string;
+}
 
 @Controller('api/v1/reservations')
 export class ReservationController {
@@ -11,16 +37,19 @@ export class ReservationController {
   ) {}
 
   @Post()
-  async create(@Body() body: any) {
-    return this.reservationService.create({
+  @UseGuards(JwtAuthGuard)
+  async create(@Body() body: CreateReservationDto, @Request() req) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new BadRequestException('غير مصرح');
+    }
+
+    return this.reservationService.createForUser(String(userId), {
       itemId: body?.itemId,
       itemName: body?.itemName,
       itemImage: body?.itemImage,
       itemPrice: body?.itemPrice,
       shopId: body?.shopId,
-      shopName: body?.shopName,
-      customerName: body?.customerName,
-      customerPhone: body?.customerPhone,
     });
   }
 
@@ -53,7 +82,7 @@ export class ReservationController {
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async updateStatus(@Param('id') id: string, @Body() body: any, @Request() req) {
+  async updateStatus(@Param('id') id: string, @Body() body: UpdateReservationStatusDto, @Request() req) {
     return this.reservationService.updateStatus(id, body?.status, { role: req.user?.role, shopId: req.user?.shopId });
   }
 }

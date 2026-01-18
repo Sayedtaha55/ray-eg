@@ -9,6 +9,7 @@ import {
   Share2, ShieldCheck, Truck, Package, Store, Loader2, AlertCircle, Home
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
+import { Skeleton } from '@/components/common/ui';
 
 const { useParams, useNavigate, Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -107,9 +108,26 @@ const ProductPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-        <Loader2 className="w-12 h-12 text-[#00E5FF] animate-spin mb-4" />
-        <h2 className="text-xl font-black">جاري جلب المنتج...</h2>
+      <div className="min-h-screen bg-white" dir="rtl">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-10 md:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-16">
+            <div className="lg:col-span-6">
+              <Skeleton className="w-full aspect-[4/5] rounded-[2.5rem]" />
+            </div>
+            <div className="lg:col-span-6 space-y-6">
+              <Skeleton className="h-10 w-3/4" />
+              <Skeleton className="h-6 w-1/2" />
+              <div className="flex items-center gap-3 justify-end">
+                <Skeleton className="h-10 w-24 rounded-full" />
+                <Skeleton className="h-10 w-24 rounded-full" />
+              </div>
+              <Skeleton className="h-16 w-full rounded-2xl" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-14 w-full rounded-2xl" />
+              <Skeleton className="h-24 w-full rounded-3xl" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

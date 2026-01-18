@@ -1435,6 +1435,8 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const [bannerUrl, setBannerUrl] = useState(shop?.bannerUrl || shop?.banner_url || '');
   const [openingHours, setOpeningHours] = useState(shop?.openingHours || shop?.opening_hours || '');
   const [addressDetailed, setAddressDetailed] = useState(shop?.addressDetailed || shop?.address_detailed || '');
+  const [displayAddress, setDisplayAddress] = useState(shop?.displayAddress || shop?.display_address || '');
+  const [mapLabel, setMapLabel] = useState(shop?.mapLabel || shop?.map_label || '');
   const [description, setDescription] = useState(shop?.description || '');
 
   useEffect(() => {
@@ -1447,11 +1449,30 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const [longitude, setLongitude] = useState<number | null>(
     typeof shop?.longitude === 'number' ? shop.longitude : typeof shop?.lng === 'number' ? shop.lng : null,
   );
+  const [locationSource, setLocationSource] = useState<string>(
+    String(shop?.locationSource || shop?.location_source || '').trim().toLowerCase(),
+  );
+  const [locationAccuracy, setLocationAccuracy] = useState<number | null>(
+    typeof shop?.locationAccuracy === 'number'
+      ? shop.locationAccuracy
+      : typeof shop?.location_accuracy === 'number'
+        ? shop.location_accuracy
+        : null,
+  );
+  const [locationUpdatedAt, setLocationUpdatedAt] = useState<string>(
+    String(shop?.locationUpdatedAt || shop?.location_updated_at || ''),
+  );
   const [locatingShop, setLocatingShop] = useState(false);
   const [locationError, setLocationError] = useState('');
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
+
+  const touchLocationMeta = (source: string, accuracy: number | null) => {
+    setLocationSource(String(source || '').trim().toLowerCase());
+    setLocationAccuracy(typeof accuracy === 'number' ? accuracy : null);
+    setLocationUpdatedAt(new Date().toISOString());
+  };
 
   useEffect(() => {
     return () => {
@@ -1506,6 +1527,7 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
           if (!p) return;
           setLatitude(p.lat);
           setLongitude(p.lng);
+          touchLocationMeta('map', null);
         });
       } else {
         markerRef.current.setLatLng([lat, lng]);
@@ -1527,6 +1549,7 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
         if (!p) return;
         setLatitude(p.lat);
         setLongitude(p.lng);
+        touchLocationMeta('map', null);
         ensureMarker(p.lat, p.lng);
       });
 
@@ -1558,6 +1581,7 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
         const lng = pos.coords.longitude;
         setLatitude(lat);
         setLongitude(lng);
+        touchLocationMeta('gps', typeof pos?.coords?.accuracy === 'number' ? pos.coords.accuracy : null);
         setLocatingShop(false);
       },
       () => {
@@ -1635,6 +1659,8 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
   const handleSave = async () => {
     setSaving(true);
     try {
+      const computedDisplayAddress = String(displayAddress || '').trim() || String(addressDetailed || '').trim();
+      const computedMapLabel = String(mapLabel || '').trim() || String(name || '').trim();
       await ApiService.updateMyShop({
         ...(adminShopId ? { shopId: adminShopId } : {}),
         name,
@@ -1649,8 +1675,13 @@ const SettingsTab: React.FC<{shop: any, onSaved: () => void, adminShopId?: strin
         bannerUrl,
         openingHours,
         addressDetailed,
+        displayAddress: computedDisplayAddress ? computedDisplayAddress : null,
+        mapLabel: computedMapLabel ? computedMapLabel : null,
         latitude,
         longitude,
+        locationSource: locationSource ? locationSource : undefined,
+        locationAccuracy,
+        locationUpdatedAt: locationUpdatedAt ? locationUpdatedAt : undefined,
         description,
       });
       addToast('تم حفظ إعدادات المتجر', 'success');

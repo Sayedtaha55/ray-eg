@@ -690,6 +690,7 @@ async function backendPost<T>(path: string, body: any): Promise<T> {
   try {
     res = await fetch(`${BACKEND_BASE_URL}${path}`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -718,6 +719,7 @@ async function backendDelete<T>(path: string): Promise<T> {
   const token = getAuthToken();
   const res = await fetch(`${BACKEND_BASE_URL}${path}`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
@@ -751,6 +753,7 @@ async function backendGet<T>(path: string): Promise<T> {
   try {
     res = await fetch(`${BACKEND_BASE_URL}${path}`, {
       method: 'GET',
+      credentials: 'include',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
@@ -779,6 +782,7 @@ async function backendPatch<T>(path: string, body: any): Promise<T> {
   try {
     res = await fetch(`${BACKEND_BASE_URL}${path}`, {
       method: 'PATCH',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -809,6 +813,7 @@ async function backendPut<T>(path: string, body: any): Promise<T> {
   try {
     res = await fetch(`${BACKEND_BASE_URL}${path}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -844,15 +849,30 @@ function normalizeShopFromBackend(shop: any) {
   if (!shop) return shop;
   const logoUrl = shop.logoUrl ?? shop.logo_url;
   const bannerUrl = shop.bannerUrl ?? shop.banner_url;
+  const displayAddress = shop.displayAddress ?? shop.display_address;
+  const mapLabel = shop.mapLabel ?? shop.map_label;
+  const locationSource = shop.locationSource ?? shop.location_source;
+  const locationAccuracy = shop.locationAccuracy ?? shop.location_accuracy;
+  const locationUpdatedAt = shop.locationUpdatedAt ?? shop.location_updated_at;
   const status = String(shop.status || '').toLowerCase();
   return {
     ...shop,
     status,
     logoUrl,
     bannerUrl,
+    displayAddress,
+    mapLabel,
+    locationSource,
+    locationAccuracy,
+    locationUpdatedAt,
     // legacy snake_case for current UI
     logo_url: shop.logo_url ?? logoUrl,
     banner_url: shop.banner_url ?? bannerUrl,
+    display_address: shop.display_address ?? displayAddress,
+    map_label: shop.map_label ?? mapLabel,
+    location_source: shop.location_source ?? locationSource,
+    location_accuracy: shop.location_accuracy ?? locationAccuracy,
+    location_updated_at: shop.location_updated_at ?? locationUpdatedAt,
     pageDesign: shop.pageDesign || shop.page_design || shop.pageDesign || null,
   };
 }
@@ -940,6 +960,13 @@ export const ApiService = {
   },
   signup: async (data: any) => {
     return await signupViaBackend(data);
+  },
+  logout: async () => {
+    try {
+      return await backendPost<{ ok: boolean }>('/api/v1/auth/logout', {});
+    } catch {
+      return { ok: true } as any;
+    }
   },
 
   // Chat
@@ -1091,9 +1118,6 @@ export const ApiService = {
       itemImage: reservation.itemImage,
       itemPrice: reservation.itemPrice,
       shopId: reservation.shopId,
-      shopName: reservation.shopName,
-      customerName: reservation.customerName,
-      customerPhone: reservation.customerPhone,
     });
   },
   updateReservationStatus: async (id: string, status: string) => {

@@ -78,6 +78,13 @@ model Shop {
   email            String?
   address          String?
   addressDetailed  String?
+  displayAddress   String?
+  mapLabel         String?
+  latitude         Float?
+  longitude        Float?
+  locationSource   String?
+  locationAccuracy Float?
+  locationUpdatedAt DateTime?
   openingHours     String?
   website          String?
   status           ShopStatus @default(PENDING)

@@ -5,6 +5,7 @@ import { User, Settings, ShoppingBag, Heart, MapPin, Bell, LogOut, ChevronLeft, 
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
+import { ApiService } from '@/services/api.service';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -48,13 +49,13 @@ const ProfilePage: React.FC = () => {
     return () => window.removeEventListener('ray-db-update', loadData);
   }, [navigate]);
 
-  const logout = () => {
-    // مسح كافة بيانات الجلسة
+  const logout = async () => {
+    try {
+      await ApiService.logout();
+    } catch {
+    }
     localStorage.removeItem('ray_user');
     localStorage.removeItem('ray_token');
-    localStorage.removeItem('ray_session');
-    
-    // إخطار التطبيق وتوجيه المستخدم
     window.dispatchEvent(new Event('auth-change'));
     navigate('/');
   };

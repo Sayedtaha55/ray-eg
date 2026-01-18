@@ -55,6 +55,14 @@ async function bootstrap() {
     },
   });
 
+  if (String(process.env.TRUST_PROXY || '').toLowerCase() === 'true') {
+    const httpAdapter: any = app.getHttpAdapter?.();
+    const instance: any = httpAdapter?.getInstance?.();
+    if (instance && typeof instance.set === 'function') {
+      instance.set('trust proxy', 1);
+    }
+  }
+
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -72,7 +80,53 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  app.use('/uploads', express.static('uploads'));
+  app.use('/uploads', express.static('uploads', {
+    fallthrough: false,
+    dotfiles: 'ignore',
+    immutable: true,
+    maxAge: '30d',
+    setHeaders: (res, pathName) => {
+      if (pathName.endsWith('.webp') || pathName.endsWith('.png') || pathName.endsWith('.jpg') || pathName.endsWith('.jpeg') || pathName.endsWith('.avif')) {
+        res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+      }
+    },
+  }));
+
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    message: 'Too many login attempts, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/v1/auth/login', authLimiter);
+  app.use('/api/v1/auth/signup', authLimiter);
+
+  const galleryUploadLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 60,
+    message: 'Too many uploads, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/v1/gallery/upload', galleryUploadLimiter);
+
+  const reservationCreateLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: 40,
+    message: 'Too many reservation requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
+  app.use('/api/v1/reservations', (req: any, res: any, next: any) => {
+    if (String(req?.method || '').toUpperCase() === 'POST') {
+      return (reservationCreateLimiter as any)(req, res, next);
+    }
+    return next();
+  });
 
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000,

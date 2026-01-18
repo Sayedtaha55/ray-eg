@@ -1,6 +1,5 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
-import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class ReservationService {
@@ -46,24 +45,6 @@ export class ReservationService {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
 
-    const existingUser = await this.prisma.user.findUnique({ where: { phone: customerPhone } });
-
-    if (!existingUser) {
-      const rawPassword = `guest-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-      const hashedPassword = await bcrypt.hash(rawPassword, 10);
-      const email = `guest-${customerPhone.replace(/[^0-9]/g, '') || 'user'}-${Date.now()}@guest.local`;
-      await this.prisma.user.create({
-        data: {
-          email,
-          name: customerName || 'Guest',
-          phone: customerPhone,
-          password: hashedPassword,
-          role: 'CUSTOMER' as any,
-          isActive: true,
-        },
-      });
-    }
-
     return this.prisma.reservation.create({
       data: {
         itemId,
@@ -76,6 +57,48 @@ export class ReservationService {
         customerPhone,
         status: 'PENDING' as any,
       },
+    });
+  }
+
+  async createForUser(userId: string, input: {
+    itemId: string;
+    itemName: string;
+    itemImage?: string | null;
+    itemPrice: number;
+    shopId: string;
+  }) {
+    const uid = String(userId || '').trim();
+    if (!uid) throw new BadRequestException('غير مصرح');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: uid },
+      select: { id: true, name: true, phone: true },
+    });
+    if (!user) throw new BadRequestException('غير مصرح');
+
+    const customerPhone = String(user.phone || '').trim();
+    if (!customerPhone) {
+      throw new BadRequestException('يرجى إضافة رقم هاتف لحسابك لإتمام الحجز');
+    }
+
+    const shopId = String(input?.shopId || '').trim();
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, name: true },
+    });
+    if (!shop) throw new NotFoundException('المتجر غير موجود');
+
+    return this.create({
+      itemId: input?.itemId,
+      itemName: input?.itemName,
+      itemImage: input?.itemImage,
+      itemPrice: input?.itemPrice,
+      shopId: shop.id,
+      shopName: shop.name,
+      customerName: user.name,
+      customerPhone,
     });
   }
 

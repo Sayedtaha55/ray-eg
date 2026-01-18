@@ -86,6 +86,12 @@ const BusinessLayout: React.FC = () => {
       navigate('/admin/dashboard');
       return;
     }
+    (async () => {
+      try {
+        await ApiService.logout();
+      } catch {
+      }
+    })();
     localStorage.removeItem('ray_user');
     localStorage.removeItem('ray_token');
     window.dispatchEvent(new Event('auth-change'));

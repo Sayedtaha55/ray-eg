@@ -29728,3 +29728,1287 @@
   message: 'Performance: getAllShops_database',
   timestamp: '2026-01-18T18:27:31.024Z'
 }
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '51ms',
+  success: true,
+  timestamp: '2026-01-18T19:06:38.898Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '51ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:06:38.903Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '66ms',
+  success: true,
+  timestamp: '2026-01-18T19:06:39.150Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '66ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:06:39.152Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '20ms',
+  success: true,
+  timestamp: '2026-01-18T19:28:24.931Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '20ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:28:24.934Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '22ms',
+  success: true,
+  timestamp: '2026-01-18T19:28:24.964Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '22ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:28:24.967Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '44ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:43.087Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '44ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:30:43.090Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '16ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:43.189Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '16ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:30:43.191Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '24ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:46.324Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '24ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:30:46.328Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '21ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:46.358Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '21ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:30:46.362Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '520ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:49.248Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '520ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T19:30:49.250Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '28ms',
+  success: true,
+  timestamp: '2026-01-18T19:30:49.283Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '28ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T19:30:49.286Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '20ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:00.909Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '20ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:00.913Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '27ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:00.950Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '27ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:00.956Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '39ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:12.635Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '39ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:12.638Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '29ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:12.674Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '29ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:12.677Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '33ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:14.176Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '33ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:14.179Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '49ms',
+  success: true,
+  timestamp: '2026-01-18T19:31:14.243Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '49ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T19:31:14.246Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '106ms',
+  success: true,
+  timestamp: '2026-01-18T20:00:08.733Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '106ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:00:08.739Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '100ms',
+  success: true,
+  timestamp: '2026-01-18T20:00:08.931Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '100ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:00:08.939Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '21ms',
+  success: true,
+  timestamp: '2026-01-18T20:00:11.885Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '21ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:00:11.888Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '19ms',
+  success: true,
+  timestamp: '2026-01-18T20:00:12.042Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '19ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:00:12.045Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '107ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:04.913Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '107ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:04.922Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '14ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:05.110Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '14ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:05.114Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '11ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:05.133Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '11ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:05.135Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'orders',
+  duration: '309ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:05.525Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopAnalytics_database',
+  duration: '309ms',
+  level: 'info',
+  message: 'Performance: getShopAnalytics_database',
+  timestamp: '2026-01-18T20:02:05.531Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'orders',
+  duration: '116ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:05.723Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopAnalytics_database',
+  duration: '116ms',
+  level: 'info',
+  message: 'Performance: getShopAnalytics_database',
+  timestamp: '2026-01-18T20:02:05.725Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '22ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:08.999Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '22ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:09.005Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'orders',
+  duration: '62ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:09.106Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopAnalytics_database',
+  duration: '62ms',
+  level: 'info',
+  message: 'Performance: getShopAnalytics_database',
+  timestamp: '2026-01-18T20:02:09.111Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'update',
+  table: 'shops',
+  duration: '344ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:41.006Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'updateShopSettings_database',
+  duration: '344ms',
+  level: 'info',
+  message: 'Performance: updateShopSettings_database',
+  timestamp: '2026-01-18T20:02:41.008Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '15ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:41.034Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '15ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:41.038Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '14ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:41.059Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopById_database',
+  duration: '14ms',
+  level: 'info',
+  message: 'Performance: getShopById_database',
+  timestamp: '2026-01-18T20:02:41.062Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'orders',
+  duration: '18ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:41.155Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopAnalytics_database',
+  duration: '18ms',
+  level: 'info',
+  message: 'Performance: getShopAnalytics_database',
+  timestamp: '2026-01-18T20:02:41.158Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'orders',
+  duration: '21ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:41.245Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopAnalytics_database',
+  duration: '21ms',
+  level: 'info',
+  message: 'Performance: getShopAnalytics_database',
+  timestamp: '2026-01-18T20:02:41.249Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '495ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:47.376Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '495ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:02:47.378Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '15ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:47.400Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '15ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:02:47.402Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '55ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:52.609Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '55ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:02:52.617Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '27ms',
+  success: true,
+  timestamp: '2026-01-18T20:02:52.664Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '27ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:02:52.666Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '81ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:10.006Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '81ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:10.009Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '32ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:10.047Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '32ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:10.049Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '13ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:11.147Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '13ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:11.148Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '18ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:11.173Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '18ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:11.175Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '31ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:21.853Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '31ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:21.855Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '18ms',
+  success: true,
+  timestamp: '2026-01-18T20:03:22.330Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '18ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:03:22.333Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '18ms',
+  success: true,
+  timestamp: '2026-01-18T20:04:04.545Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '18ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:04:04.546Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '15ms',
+  success: true,
+  timestamp: '2026-01-18T20:04:04.565Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '15ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:04:04.568Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '23ms',
+  success: true,
+  timestamp: '2026-01-18T20:04:05.820Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '23ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:04:05.824Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '14ms',
+  success: true,
+  timestamp: '2026-01-18T20:04:05.864Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '14ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:04:05.868Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '16ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:41.134Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '16ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:05:41.136Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '18ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:41.169Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '18ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:05:41.172Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '14ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:48.586Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '14ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:05:48.588Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '17ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:48.610Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '17ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:05:48.613Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '14ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:49.963Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '14ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T20:05:49.964Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '12ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:49.980Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '12ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T20:05:49.981Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '26ms',
+  success: true,
+  timestamp: '2026-01-18T20:05:55.563Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '26ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:05:55.564Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '23ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:13.017Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '23ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:13.024Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '15ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:13.049Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '15ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:13.054Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '19ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:17.554Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '19ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:17.556Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '20ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:17.584Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '20ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:17.587Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '29ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:18.705Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '29ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:18.710Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '17ms',
+  success: true,
+  timestamp: '2026-01-18T20:08:19.291Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '17ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:08:19.297Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '48ms',
+  success: true,
+  timestamp: '2026-01-18T20:10:53.062Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '48ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T20:10:53.064Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '36ms',
+  success: true,
+  timestamp: '2026-01-18T20:10:53.106Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '36ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T20:10:53.108Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '35ms',
+  success: true,
+  timestamp: '2026-01-18T20:10:54.906Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '35ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:10:54.913Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '24ms',
+  success: true,
+  timestamp: '2026-01-18T20:10:54.954Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '24ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T20:10:54.960Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '2757ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:34.382Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  level: 'warn',
+  message: 'ALERT: database',
+  timestamp: '2026-01-18T21:24:34.534Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '2757ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:34.536Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '33ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:34.587Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '33ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:34.590Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '17ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:34.633Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '17ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:34.638Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '25ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:34.697Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '25ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:34.700Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '92ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:38.226Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '92ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:38.230Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findMany',
+  table: 'shops',
+  duration: '17ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:38.253Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getAllShops_database',
+  duration: '17ms',
+  level: 'info',
+  message: 'Performance: getAllShops_database',
+  timestamp: '2026-01-18T21:24:38.255Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '105ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:40.132Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '105ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T21:24:40.135Z'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'findUnique',
+  table: 'shops',
+  duration: '26ms',
+  success: true,
+  timestamp: '2026-01-18T21:24:40.168Z',
+  level: 'info',
+  message: 'Database Operation'
+}
+{
+  service: 'ray-marketplace',
+  operation: 'getShopBySlug_database',
+  duration: '26ms',
+  level: 'info',
+  message: 'Performance: getShopBySlug_database',
+  timestamp: '2026-01-18T21:24:40.171Z'
+}

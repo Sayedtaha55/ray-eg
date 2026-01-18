@@ -13,6 +13,7 @@ import {
 import ReservationModal from '../shared/ReservationModal';
 import { ShopGallery as ShopGalleryComponent, useToast } from '@/components';
 import { ApiService } from '@/services/api.service';
+import { Skeleton } from '@/components/common/ui';
 
 const { useParams, useNavigate } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
@@ -308,9 +309,32 @@ const ShopProfile: React.FC = () => {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
-      <Loader2 className="w-12 h-12 md:w-16 md:h-16 text-[#00E5FF] animate-spin mb-4" />
-      <h2 className="text-xl md:text-2xl font-black tracking-tight">جاري تهيئة المتجر...</h2>
+    <div className="min-h-screen bg-white" dir="rtl">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-6">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3 md:gap-4">
+            <Skeleton className="w-10 h-10 md:w-12 md:h-12 rounded-full" />
+            <div>
+              <Skeleton className="h-6 md:h-8 w-64 mb-2" />
+              <Skeleton className="h-4 w-40" />
+            </div>
+          </div>
+          <Skeleton className="h-10 w-28 rounded-full" />
+        </div>
+
+        <Skeleton className="w-full h-[220px] md:h-[320px] rounded-[2.5rem] mb-10" />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={`shop-prod-skel-${idx}`} className="bg-white border border-slate-100 rounded-[1.5rem] p-4">
+              <Skeleton className="aspect-[4/3] rounded-2xl mb-4" />
+              <Skeleton className="h-5 w-40 mb-2" />
+              <Skeleton className="h-4 w-28 mb-4" />
+              <Skeleton className="h-11 w-full rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 

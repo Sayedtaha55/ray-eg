@@ -50,8 +50,13 @@ export class ShopService {
       governorate?: string;
       city?: string;
       addressDetailed?: string | null;
+      displayAddress?: string | null;
+      mapLabel?: string | null;
       latitude?: number | null;
       longitude?: number | null;
+      locationSource?: string | null;
+      locationAccuracy?: number | null;
+      locationUpdatedAt?: Date | null;
       phone?: string;
       email?: string | null;
       openingHours?: string | null;
@@ -88,8 +93,13 @@ export class ShopService {
           ...(typeof input.governorate === 'undefined' ? {} : { governorate: input.governorate }),
           ...(typeof input.city === 'undefined' ? {} : { city: input.city }),
           ...(typeof input.addressDetailed === 'undefined' ? {} : { addressDetailed: input.addressDetailed }),
+          ...(typeof input.displayAddress === 'undefined' ? {} : { displayAddress: input.displayAddress }),
+          ...(typeof input.mapLabel === 'undefined' ? {} : { mapLabel: input.mapLabel }),
           ...(typeof input.latitude === 'undefined' ? {} : { latitude: input.latitude }),
           ...(typeof input.longitude === 'undefined' ? {} : { longitude: input.longitude }),
+          ...(typeof input.locationSource === 'undefined' ? {} : { locationSource: input.locationSource }),
+          ...(typeof input.locationAccuracy === 'undefined' ? {} : { locationAccuracy: input.locationAccuracy }),
+          ...(typeof input.locationUpdatedAt === 'undefined' ? {} : { locationUpdatedAt: input.locationUpdatedAt }),
           ...(typeof input.phone === 'undefined' ? {} : { phone: input.phone }),
           ...(typeof input.email === 'undefined' ? {} : { email: input.email }),
           ...(typeof input.openingHours === 'undefined' ? {} : { openingHours: input.openingHours }),

@@ -4,6 +4,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, ChevronRight, Bell, Zap, Menu, X, MessageSquare, CreditCard, Store } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandLogo from '@/components/common/BrandLogo';
+import { ApiService } from '@/services/api.service';
 
 const { Link, Outlet, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -21,8 +22,13 @@ const AdminLayout: React.FC = () => {
     }
   }, [navigate]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await ApiService.logout();
+    } catch {
+    }
     localStorage.clear();
+    window.dispatchEvent(new Event('auth-change'));
     navigate('/login');
   };
 
