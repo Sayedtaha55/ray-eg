@@ -5,6 +5,8 @@ import { PrismaService } from './prisma/prisma.service';
 import * as fs from 'fs';
 import * as path from 'path';
 import sharp from 'sharp';
+import ffmpegPath from 'ffmpeg-static';
+import { spawn } from 'child_process';
 
 @Injectable()
 export class GalleryService {
@@ -12,6 +14,56 @@ export class GalleryService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     // @Inject(RedisService) private readonly redis: RedisService,
   ) {}
+
+  private runFfmpeg(args: string[]) {
+    const ffmpegExe = (typeof ffmpegPath === 'string' && ffmpegPath.trim()) ? ffmpegPath : null;
+    if (!ffmpegExe) {
+      throw new BadRequestException('Video processing is not available (ffmpeg not found)');
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      const proc = spawn(ffmpegExe, args, { windowsHide: true });
+      let stderr = '';
+      proc.stderr.on('data', (d) => {
+        stderr += String(d || '');
+      });
+      proc.on('error', reject);
+      proc.on('close', (code) => {
+        if (code === 0) return resolve();
+        reject(new Error(stderr || `ffmpeg exited with code ${code}`));
+      });
+    });
+  }
+
+  private async optimizeVideo(inputPath: string, outputPath: string) {
+    await this.runFfmpeg([
+      '-y',
+      '-i', inputPath,
+      '-map', '0:v:0',
+      '-map', '0:a?',
+      '-vf', 'scale=1280:-2:force_original_aspect_ratio=decrease',
+      '-r', '30',
+      '-c:v', 'libx264',
+      '-preset', 'veryfast',
+      '-crf', '28',
+      '-pix_fmt', 'yuv420p',
+      '-movflags', '+faststart',
+      '-c:a', 'aac',
+      '-b:a', '96k',
+      outputPath,
+    ]);
+  }
+
+  private async generateVideoThumbnail(inputPath: string, outputPath: string) {
+    await this.runFfmpeg([
+      '-y',
+      '-ss', '00:00:01',
+      '-i', inputPath,
+      '-frames:v', '1',
+      '-vf', 'scale=640:-2:force_original_aspect_ratio=decrease',
+      outputPath,
+    ]);
+  }
 
   private getSharpMaxPixels() {
     const raw = String(process.env.SHARP_MAX_INPUT_PIXELS || '40000000').trim();
@@ -86,6 +138,62 @@ export class GalleryService {
 
     const uploadsDir = path.dirname(file.path);
     const baseName = path.parse(file.filename).name;
+    const mime = String(file?.mimetype || '').toLowerCase();
+    const isVideo = mime.startsWith('video/');
+
+    if (isVideo) {
+      const outputFilename = `${baseName}-opt.mp4`;
+      const outputPath = path.join(uploadsDir, outputFilename);
+      const thumbFilename = `${baseName}-thumb.webp`;
+      const thumbPath = path.join(uploadsDir, thumbFilename);
+
+      try {
+        await this.optimizeVideo(file.path, outputPath);
+        await this.generateVideoThumbnail(outputPath, thumbPath);
+      } catch {
+        try {
+          if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        } catch {
+          // ignore
+        }
+        throw new BadRequestException('Failed to process video');
+      }
+
+      try {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch {
+        // ignore
+      }
+
+      const galleryItem = await this.prisma.shopGallery.create({
+        data: {
+          shopId: targetShopId,
+          imageUrl: `/uploads/gallery/${outputFilename}`,
+          mediaType: 'VIDEO',
+          thumbUrl: `/uploads/gallery/${thumbFilename}`,
+          caption: caption || '',
+        } as any,
+      });
+
+      try {
+        // await this.redis.del(`gallery:${targetShopId}`);
+      } catch {}
+
+      return {
+        id: galleryItem.id,
+        imageUrl: galleryItem.imageUrl,
+        mediaType: (galleryItem as any).mediaType,
+        thumbUrl: (galleryItem as any).thumbUrl,
+        mediumUrl: (galleryItem as any).mediumUrl,
+        caption: galleryItem.caption,
+        createdAt: galleryItem.createdAt,
+      };
+    }
+
     const outputFilename = `${baseName}-opt.webp`;
     const outputPath = path.join(uploadsDir, outputFilename);
     const thumbFilename = `${baseName}-thumb.webp`;
@@ -147,16 +255,17 @@ export class GalleryService {
       // ignore
     }
 
-    // Create gallery entry
     const galleryImage = await this.prisma.shopGallery.create({
       data: {
         shopId: targetShopId,
         imageUrl: `/uploads/gallery/${outputFilename}`,
+        mediaType: 'IMAGE',
+        thumbUrl: `/uploads/gallery/${thumbFilename}`,
+        mediumUrl: `/uploads/gallery/${mediumFilename}`,
         caption: caption || '',
-      }
+      } as any,
     });
 
-    // Invalidate cache
     try {
       // await this.redis.del(`gallery:${targetShopId}`);
     } catch {}
@@ -164,6 +273,9 @@ export class GalleryService {
     return {
       id: galleryImage.id,
       imageUrl: galleryImage.imageUrl,
+      mediaType: (galleryImage as any).mediaType,
+      thumbUrl: (galleryImage as any).thumbUrl,
+      mediumUrl: (galleryImage as any).mediumUrl,
       ...this.getVariantUrls(galleryImage.imageUrl),
       caption: galleryImage.caption,
       createdAt: galleryImage.createdAt,
@@ -183,27 +295,36 @@ export class GalleryService {
 
     let images: any[] = [];
     try {
+      const selectFields: any = {
+        id: true,
+        imageUrl: true,
+        mediaType: true,
+        thumbUrl: true,
+        mediumUrl: true,
+        caption: true,
+        createdAt: true,
+      };
+
       images = await this.prisma.shopGallery.findMany({
         where: {
           shopId,
         },
         orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          imageUrl: true,
-          caption: true,
-          createdAt: true,
-        },
+        select: selectFields,
       });
     } catch (err: any) {
       console.error('getGalleryByShop failed:', err);
       throw new BadRequestException(err?.message || 'Failed to load gallery');
     }
 
-    const mapped = (images || []).map((img: any) => ({
-      ...img,
-      ...this.getVariantUrls(img?.imageUrl),
-    }));
+    const mapped = (images || []).map((img: any) => {
+      const variants = this.getVariantUrls(img?.imageUrl);
+      return {
+        ...img,
+        thumbUrl: img?.thumbUrl || variants.thumbUrl,
+        mediumUrl: img?.mediumUrl || variants.mediumUrl,
+      };
+    });
 
     // Cache for 5 minutes
     try {
@@ -242,11 +363,13 @@ export class GalleryService {
       throw new NotFoundException('Image not found');
     }
 
-    // Delete file from filesystem
-    const { thumbUrl, mediumUrl } = this.getVariantUrls(image.imageUrl);
-    const filesToDelete = [image.imageUrl, mediumUrl, thumbUrl];
-
     const baseDir = path.resolve(process.cwd(), 'uploads', 'gallery');
+    const variants = this.getVariantUrls((image as any).imageUrl);
+    const filesToDelete = [
+      (image as any).imageUrl,
+      (image as any).mediumUrl || variants.mediumUrl,
+      (image as any).thumbUrl || variants.thumbUrl,
+    ];
 
     for (const url of filesToDelete) {
       const u = String(url || '');

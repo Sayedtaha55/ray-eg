@@ -265,6 +265,9 @@ model ShopGallery {
   id        String   @id @default(cuid())
   shopId    String   @map("shop_id")
   imageUrl  String   @map("image_url")
+  mediaType MediaType @default(IMAGE) @map("media_type")
+  thumbUrl  String?  @map("thumb_url")
+  mediumUrl String?  @map("medium_url")
   caption   String?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
@@ -381,4 +384,9 @@ enum ReservationStatus {
   CONFIRMED
   CANCELLED
   COMPLETED
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }

@@ -23,6 +23,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
   const isMinimal = layout === 'minimal';
 
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
+  const selectedIsVideo = Boolean(selectedImage && (selectedImage as any).mediaType === 'VIDEO');
 
   const nextImage = () => {
     if (selectedIndex !== null && selectedIndex < images.length - 1) {
@@ -134,13 +135,22 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                 <X size={24} />
               </button>
 
-              {/* Image */}
+              {/* Media */}
               <div className="relative bg-black rounded-[2rem] overflow-hidden">
-                <img 
-                  src={selectedImage.imageUrl} 
-                  alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
-                  className="w-full h-auto max-h-[70vh] object-contain"
-                />
+                {selectedIsVideo ? (
+                  <video
+                    src={selectedImage.imageUrl}
+                    className="w-full h-auto max-h-[70vh] object-contain"
+                    controls
+                    playsInline
+                  />
+                ) : (
+                  <img 
+                    src={selectedImage.imageUrl} 
+                    alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                    className="w-full h-auto max-h-[70vh] object-contain"
+                  />
+                )}
 
                 {/* Navigation Arrows */}
                 {images.length > 1 && (
@@ -206,7 +216,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                       }`}
                     >
                       <img 
-                        src={img.imageUrl} 
+                        src={img.thumbUrl || img.imageUrl} 
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
                       />

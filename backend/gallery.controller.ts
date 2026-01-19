@@ -35,14 +35,22 @@ export class GalleryController {
       }
     }),
     limits: {
-      fileSize: 5 * 1024 * 1024, // 5MB
+      fileSize: 80 * 1024 * 1024, // 80MB
     },
     fileFilter: (req, file, cb) => {
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/avif'];
+      const allowedTypes = [
+        'image/jpeg',
+        'image/png',
+        'image/webp',
+        'image/avif',
+        'video/mp4',
+        'video/webm',
+        'video/quicktime',
+      ];
       if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
       } else {
-        cb(new BadRequestException('Only JPEG, PNG, WebP, and AVIF images are allowed') as any, false);
+        cb(new BadRequestException('Unsupported file type') as any, false);
       }
     }
   }))

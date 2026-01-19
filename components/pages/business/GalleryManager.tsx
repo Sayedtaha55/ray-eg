@@ -36,7 +36,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
 
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type.startsWith('image/')) {
+      if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
         try {
           // Upload to backend
           const result = await ApiService.addShopGalleryImage(shopId, {
@@ -46,21 +46,24 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
           
           if (!result.error) {
             // Create temporary preview URL
-            const imageUrl = URL.createObjectURL(file);
-            
+            const previewUrl = URL.createObjectURL(file);
+
             const newImage: ShopGallery = {
               id: result.id || `temp_${Date.now()}_${i}`,
               shopId,
-              imageUrl: result.imageUrl || imageUrl,
+              imageUrl: result.imageUrl || previewUrl,
+              mediaType: result.mediaType,
+              thumbUrl: result.thumbUrl,
+              mediumUrl: result.mediumUrl,
               caption: result.caption || '',
               createdAt: result.createdAt || Date.now()
             };
-            
+
             newImages.push(newImage);
           }
         } catch (error) {
           console.error('Upload failed:', error);
-          addToast('فشل رفع الصورة', 'error');
+          addToast('فشل رفع الملف', 'error');
         }
       }
     }
@@ -73,9 +76,9 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
         });
       }, 1000);
       
-      addToast(`تم إضافة ${newImages.length} صور بنجاح`, 'success');
+      addToast(`تم إضافة ${newImages.length} ملف بنجاح`, 'success');
     } else {
-      addToast('يرجى اختيار ملفات صور فقط', 'error');
+      addToast('يرجى اختيار صور أو فيديو فقط', 'error');
     }
 
     setUploading(false);
@@ -170,7 +173,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
             ref={fileInputRef}
             type="file"
             multiple
-            accept="image/*"
+            accept="image/*,video/*"
             onChange={(e) => handleFileUpload(e.target.files)}
             className="hidden"
           />

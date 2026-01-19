@@ -87,6 +87,7 @@ export interface ShopGallery {
   id: string;
   shopId: string;
   imageUrl: string;
+  mediaType?: 'IMAGE' | 'VIDEO';
   thumbUrl?: string;
   mediumUrl?: string;
   caption?: string;

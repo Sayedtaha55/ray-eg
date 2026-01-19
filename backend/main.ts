@@ -86,7 +86,15 @@ async function bootstrap() {
     immutable: true,
     maxAge: '30d',
     setHeaders: (res, pathName) => {
-      if (pathName.endsWith('.webp') || pathName.endsWith('.png') || pathName.endsWith('.jpg') || pathName.endsWith('.jpeg') || pathName.endsWith('.avif')) {
+      if (
+        pathName.endsWith('.webp') ||
+        pathName.endsWith('.png') ||
+        pathName.endsWith('.jpg') ||
+        pathName.endsWith('.jpeg') ||
+        pathName.endsWith('.avif') ||
+        pathName.endsWith('.mp4') ||
+        pathName.endsWith('.webm')
+      ) {
         res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
       }
     },

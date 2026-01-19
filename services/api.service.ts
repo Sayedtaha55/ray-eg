@@ -1258,6 +1258,7 @@ export const ApiService = {
     return (images || []).map((img: any) => ({
       ...img,
       imageUrl: toBackendUrl(img?.imageUrl),
+      mediaType: img?.mediaType,
       thumbUrl: toBackendUrl(img?.thumbUrl),
       mediumUrl: toBackendUrl(img?.mediumUrl),
     }));
@@ -1272,6 +1273,7 @@ export const ApiService = {
       return {
         ...created,
         imageUrl: toBackendUrl(created?.imageUrl),
+        mediaType: created?.mediaType,
         thumbUrl: toBackendUrl(created?.thumbUrl),
         mediumUrl: toBackendUrl(created?.mediumUrl),
       };

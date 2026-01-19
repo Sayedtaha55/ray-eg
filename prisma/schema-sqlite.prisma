@@ -255,6 +255,9 @@ model Feedback {
 model ShopGallery {
   id        String   @id @default(cuid())
   imageUrl  String
+  mediaType MediaType @default(IMAGE)
+  thumbUrl  String?
+  mediumUrl String?
   caption   String?
   shopId    String
   createdAt DateTime @default(now())
@@ -317,4 +320,9 @@ model ThemeTemplate {
   createdAt    DateTime @default(now())
 
   @@map("theme_templates")
+}
+
+enum MediaType {
+  IMAGE
+  VIDEO
 }
