@@ -9,38 +9,55 @@ const MotionDiv = motion.div as any;
 
 const BusinessLanding: React.FC = () => {
   return (
-    <div className="py-20 text-right" dir="rtl">
-      <div className="max-w-7xl mx-auto px-6">
-        {/* Hero Section */}
-        <div className="text-center max-w-4xl mx-auto mb-32">
-          <MotionDiv 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-5 py-2 bg-white/5 rounded-full text-[#00E5FF] font-black text-xs uppercase tracking-widest mb-10 border border-white/10"
-          >
-            <TrendingUp className="w-4 h-4" />
-            انضم لأكثر من ١٠٠٠ علامة تجارية في مصر
-          </MotionDiv>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-6xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.9]"
-          >
-            قم ببناء <br/> <span className="text-[#00E5FF]">إمبراطوريتك.</span>
-          </motion.h1>
-          <p className="text-xl md:text-2xl text-slate-400 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
-            منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
-          </p>
-          <div className="flex flex-col md:flex-row items-center justify-center gap-6">
-            <Link to="/business/dashboard" className="w-full md:w-auto bg-[#00E5FF] text-slate-900 px-14 py-6 rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-cyan-500/20">
-              ابدأ تجربتك المجانية
-            </Link>
-            <button className="w-full md:w-auto border border-slate-700 text-white px-14 py-6 rounded-[2rem] font-black text-xl hover:bg-white hover:text-slate-900 transition-all">
-              شاهد العرض التوضيحي
-            </button>
+    <div className="text-right" dir="rtl">
+      {/* Hero Section */}
+      <div className="relative min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
+        <video
+          className="absolute inset-0 w-full h-full object-cover"
+          autoPlay
+          muted
+          loop
+          playsInline
+          preload="metadata"
+          src="/videos/business-hero.mp4"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/80" />
+        <div className="relative z-10 w-full">
+          <div className="max-w-7xl mx-auto px-6 pt-36 pb-20 md:pt-44 md:pb-28">
+            <div className="text-center max-w-4xl mx-auto">
+              <MotionDiv 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-2 px-5 py-2 bg-white/5 rounded-full text-[#00E5FF] font-black text-xs uppercase tracking-widest mb-10 border border-white/10"
+              >
+                <TrendingUp className="w-4 h-4" />
+                انضم لأكثر من ١٠٠٠ علامة تجارية في مصر
+              </MotionDiv>
+              <motion.h1 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-6xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.9] text-white"
+              >
+                قم ببناء <br/> <span className="text-[#00E5FF]">إمبراطوريتك.</span>
+              </motion.h1>
+              <p className="text-xl md:text-2xl text-slate-200/80 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
+                منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
+              </p>
+              <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                <Link to="/business/dashboard" className="w-full md:w-auto bg-[#00E5FF] text-slate-900 px-14 py-6 rounded-[2rem] font-black text-xl hover:scale-105 transition-all shadow-2xl shadow-cyan-500/20">
+                  ابدأ تجربتك المجانية
+                </Link>
+                <button className="w-full md:w-auto border border-slate-200/30 text-white px-14 py-6 rounded-[2rem] font-black text-xl hover:bg-white hover:text-slate-900 transition-all">
+                  شاهد العرض التوضيحي
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 py-20">
 
         {/* Restaurant Specific Section */}
         <section className="mb-40 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-slate-800/20 p-12 md:p-24 rounded-[4rem] border border-slate-800/50">

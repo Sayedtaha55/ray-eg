@@ -83,8 +83,7 @@ const SignupPage: React.FC = () => {
             navigate('/business/pending');
             return;
           }
-          const isRestaurant = String(myShop?.category || '').toUpperCase() === 'RESTAURANT';
-          navigate(`/business/dashboard${isRestaurant ? '?tab=reservations' : ''}`);
+          navigate('/business/dashboard');
         } catch {
           navigate('/business/pending');
         }

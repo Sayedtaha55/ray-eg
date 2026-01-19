@@ -30,7 +30,12 @@ const ProductCard: React.FC<{
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
 
-  const isMinimal = design.layout === 'minimal';
+  const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (ShopDesign['productDisplay'] | undefined);
+  const displayMode = productDisplay || (design.layout === 'minimal' ? 'minimal' : 'cards');
+  const isList = displayMode === 'list';
+  const isCardless = displayMode === 'minimal';
+
+  const isMinimal = design.layout === 'minimal' || isCardless;
   const isModern = design.layout === 'modern';
   const isBold = design.layout === 'bold';
 
@@ -51,17 +56,23 @@ const ProductCard: React.FC<{
     <MotionDiv 
       initial={{ opacity: 0, y: 20 }} 
       animate={{ opacity: 1, y: 0 }} 
-      className={`group relative bg-white transition-all duration-500 flex flex-col h-full overflow-hidden ${
-        isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem] border-2 shadow-2xl p-2 md:p-2.5' : 
-        isModern ? 'rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-100 shadow-lg p-1.5' :
-        'rounded-none border-b border-slate-100 p-0 shadow-none'
+      className={`group relative transition-all duration-500 overflow-hidden ${
+        isList ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 p-3 md:p-4 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2rem]' :
+        isCardless ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 py-3 md:py-4 border-b border-slate-100 bg-transparent rounded-none' :
+        `bg-white flex flex-col h-full ${
+          isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem] border-2 shadow-2xl p-2 md:p-2.5' : 
+          isModern ? 'rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-100 shadow-lg p-1.5' :
+          'rounded-none border-b border-slate-100 p-0 shadow-none'
+        }`
       }`}
       style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
     >
       <div 
         onClick={() => navigate(`/product/${product.id}`)}
-        className={`relative aspect-square overflow-hidden cursor-pointer ${
-          isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'
+        className={`relative overflow-hidden cursor-pointer ${
+          (isList || isCardless)
+            ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
+            : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
         }`}
       >
         <img 
@@ -92,7 +103,7 @@ const ProductCard: React.FC<{
         </button>
       </div>
 
-      <div className={`p-2 md:p-4 flex flex-col flex-1 text-right ${isMinimal ? 'items-end' : ''}`}>
+      <div className={`${isList || isCardless ? 'flex-1 flex flex-col text-right' : `p-2 md:p-4 flex flex-col flex-1 text-right ${isMinimal ? 'items-end' : ''}`}`}>
         <h4 className={`font-black mb-2 line-clamp-2 leading-tight text-slate-800 ${isBold ? 'text-base md:text-xl' : 'text-xs md:text-base'}`}>
           {product.name}
         </h4>
@@ -349,12 +360,14 @@ const ShopProfile: React.FC = () => {
   const isRestaurant = shop.category === Category.RESTAURANT;
   const isBold = currentDesign.layout === 'bold';
   const isMinimal = currentDesign.layout === 'minimal';
+  const pageBgColor = currentDesign.pageBackgroundColor || (currentDesign as any).backgroundColor;
+  const productDisplayMode = (currentDesign.productDisplay || ((currentDesign as any).productDisplayStyle === 'list' ? 'list' : undefined) || 'cards') as any;
   
   const categories = ['الكل', ...new Set(products.map(p => (p as any).category || 'عام'))];
   const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
 
   return (
-    <div className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`} dir="rtl">
+    <div className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`} dir="rtl" style={pageBgColor ? ({ backgroundColor: pageBgColor } as any) : undefined}>
       
       {/* Site-like Header */}
       <header className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
@@ -501,7 +514,7 @@ const ShopProfile: React.FC = () => {
                 ))}
               </div>
               
-              <div className={`grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+              <div className={`${productDisplayMode === 'list' || productDisplayMode === 'minimal' ? 'flex flex-col gap-3 md:gap-4' : `grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}`}>
                 {filteredProducts.length === 0 ? (
                   <div className="col-span-full py-16 md:py-24 text-center text-slate-300 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
                     <Info size={40} className="md:w-12 md:h-12 mx-auto mb-4 opacity-20" />
@@ -623,7 +636,7 @@ const ShopProfile: React.FC = () => {
             <div className="text-center md:text-right">
               <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
                 <img 
-                  src={shop.logoUrl || (shop as any).logo_url} 
+                  src={((shop.logoUrl || (shop as any).logo_url || '').trim() || undefined)} 
                   className="w-8 h-8 rounded-full border-2 border-white shadow-md object-cover" 
                   alt={shop.name}
                 />

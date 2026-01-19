@@ -7,9 +7,14 @@ export enum Category {
 
 export interface ShopDesign {
   primaryColor: string;
+  secondaryColor?: string;
   layout: 'minimal' | 'modern' | 'bold';
   bannerUrl: string;
   headerType: 'centered' | 'side';
+  pageBackgroundColor?: string;
+  productDisplay?: 'cards' | 'list' | 'minimal';
+  backgroundColor?: string;
+  productDisplayStyle?: 'grid' | 'list';
 }
 
 export interface Shop {

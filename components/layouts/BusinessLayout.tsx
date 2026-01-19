@@ -14,6 +14,7 @@ const BusinessLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDashboard = location.pathname.includes('/dashboard');
+  const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -99,18 +100,32 @@ const BusinessLayout: React.FC = () => {
   };
 
   if (!isDashboard) {
+    const headerContent = (
+      <>
+        <Link to="/" className="flex items-center gap-2 md:gap-3">
+          <BrandLogo variant="business" iconOnly />
+          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">Ray للأعمال</span>
+        </Link>
+        <div className="flex items-center gap-4 md:gap-8">
+          <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
+          <Link to="/signup" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
+        </div>
+      </>
+    );
+
     return (
       <div className="min-h-screen bg-slate-900 text-white selection:bg-[#00E5FF] selection:text-slate-900 text-right font-sans" dir="rtl">
-        <header className="max-w-[1400px] mx-auto px-4 md:px-6 h-24 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2 md:gap-3">
-            <BrandLogo variant="business" iconOnly />
-            <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">Ray للأعمال</span>
-          </Link>
-          <div className="flex items-center gap-4 md:gap-8">
-            <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
-            <Link to="/signup" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
-          </div>
-        </header>
+        {isBusinessLanding ? (
+          <header className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
+            <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-24 flex items-center justify-between">
+              {headerContent}
+            </div>
+          </header>
+        ) : (
+          <header className="max-w-[1400px] mx-auto px-4 md:px-6 h-24 flex items-center justify-between">
+            {headerContent}
+          </header>
+        )}
         <Outlet />
       </div>
     );

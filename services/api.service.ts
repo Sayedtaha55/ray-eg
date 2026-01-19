@@ -709,6 +709,16 @@ async function backendPost<T>(path: string, body: any): Promise<T> {
     } catch {
       // ignore
     }
+    
+    // Handle 401 Unauthorized specifically
+    if (res.status === 401) {
+      // Clear invalid token and redirect to login
+      localStorage.removeItem('ray_token');
+      localStorage.removeItem('ray_user');
+      window.location.href = '/login';
+      throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+    }
+    
     throw new Error(message);
   }
 
@@ -721,6 +731,7 @@ async function backendDelete<T>(path: string): Promise<T> {
     method: 'DELETE',
     credentials: 'include',
     headers: {
+      'Content-Type': 'application/json',
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
   });
@@ -733,6 +744,16 @@ async function backendDelete<T>(path: string): Promise<T> {
     } catch {
       // ignore
     }
+    
+    // Handle 401 Unauthorized specifically
+    if (res.status === 401) {
+      // Clear invalid token and redirect to login
+      localStorage.removeItem('ray_token');
+      localStorage.removeItem('ray_user');
+      window.location.href = '/login';
+      throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+    }
+    
     throw new Error(message);
   }
 
@@ -755,6 +776,7 @@ async function backendGet<T>(path: string): Promise<T> {
       method: 'GET',
       credentials: 'include',
       headers: {
+        'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
@@ -770,6 +792,16 @@ async function backendGet<T>(path: string): Promise<T> {
     } catch {
       // ignore
     }
+    
+    // Handle 401 Unauthorized specifically
+    if (res.status === 401) {
+      // Clear invalid token and redirect to login
+      localStorage.removeItem('ray_token');
+      localStorage.removeItem('ray_user');
+      window.location.href = '/login';
+      throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+    }
+    
     throw new Error(message);
   }
 
@@ -801,6 +833,16 @@ async function backendPatch<T>(path: string, body: any): Promise<T> {
     } catch {
       // ignore
     }
+    
+    // Handle 401 Unauthorized specifically
+    if (res.status === 401) {
+      // Clear invalid token and redirect to login
+      localStorage.removeItem('ray_token');
+      localStorage.removeItem('ray_user');
+      window.location.href = '/login';
+      throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+    }
+    
     throw new Error(message);
   }
 

@@ -36,8 +36,7 @@ const BusinessPendingApproval: React.FC = () => {
 
       const status = String(myShop?.status || '').toLowerCase();
       if (status === 'approved') {
-        const isRestaurant = String(myShop?.category || '').toUpperCase() === 'RESTAURANT';
-        navigate(`/business/dashboard${isRestaurant ? '?tab=reservations' : ''}`, { replace: true } as any);
+        navigate('/business/dashboard', { replace: true } as any);
       }
     } catch (e: any) {
       setError(e?.message || 'فشل تحميل حالة الحساب');

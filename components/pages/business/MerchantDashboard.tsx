@@ -308,7 +308,7 @@ const OverviewTabLegacy: React.FC<{ shop: any, analytics: any, notifications: an
              <div className="flex items-center gap-2 text-green-500 font-black text-sm px-4 py-1 bg-green-50 rounded-full"><TrendingUp size={16} /> نمو مستمر</div>
           </div>
           <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={400}>
+            <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
@@ -470,7 +470,7 @@ const ReportsTab: React.FC<{ analytics: any, sales: any[] }> = ({ analytics, sal
           <div className="py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
         ) : (
           <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={400}>
+            <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
@@ -1354,7 +1354,7 @@ const OverviewTab: React.FC<{shop: any, analytics: any, notifications: any[]}> =
              <div className="flex items-center gap-2 text-green-500 font-black text-sm px-4 py-1 bg-green-50 rounded-full"><TrendingUp size={16} /> نمو مستمر</div>
           </div>
           <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={400}>
+            <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
               <AreaChart data={chartData}>
                 <defs>
                   <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
