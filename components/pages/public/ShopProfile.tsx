@@ -19,6 +19,11 @@ const { useParams, useNavigate } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
 
+const isVideoUrl = (url: string) => {
+  const u = String(url || '').toLowerCase();
+  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+};
+
 const hexToRgba = (hex: string, alpha: number) => {
   const raw = String(hex || '').replace('#', '').trim();
   const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
@@ -456,6 +461,7 @@ const ShopProfile: React.FC = () => {
   const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
 
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
+  const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
 
   return (
     <div
@@ -587,7 +593,21 @@ const ShopProfile: React.FC = () => {
       <section className={`relative transition-all duration-1000 overflow-hidden bg-slate-900 ${
         isBold ? 'h-[45vh] md:h-[85vh] m-0 md:m-6 md:rounded-[4.5rem] shadow-2xl' : isMinimal ? 'h-[25vh] md:h-[45vh]' : 'h-[35vh] md:h-[60vh]'
       }`}>
-        <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
+        {isVideoUrl(currentDesign.bannerUrl) ? (
+          <video
+            className="absolute inset-0 w-full h-full object-cover opacity-70"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            poster={bannerPosterUrl || undefined}
+          >
+            <source src={currentDesign.bannerUrl} type="video/mp4" />
+          </video>
+        ) : (
+          <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-6 md:bottom-10 left-0 right-0 flex justify-center px-6">
            <button onClick={() => setSpatialMode(true)} className="bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-full font-black text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-2xl active:scale-95 transition-all border border-slate-100 hover:gap-5">

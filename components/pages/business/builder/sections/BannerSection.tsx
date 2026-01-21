@@ -1,6 +1,11 @@
 import React from 'react';
 import { Layout, X } from 'lucide-react';
 
+const isVideoUrl = (url: string) => {
+  const u = String(url || '').toLowerCase();
+  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+};
+
 type Props = {
   config: any;
   setConfig: React.Dispatch<React.SetStateAction<any>>;
@@ -46,7 +51,7 @@ const BannerSection: React.FC<Props> = ({
 
     {(bannerPreview || config.bannerUrl) && (
       <div className="relative rounded-2xl overflow-hidden bg-slate-100">
-        {bannerFile && bannerFile.type.startsWith('video/') ? (
+        {(bannerFile && bannerFile.type.startsWith('video/')) || isVideoUrl(bannerPreview || config.bannerUrl) ? (
           <video src={bannerPreview || config.bannerUrl} className="w-full h-32 object-cover" controls />
         ) : (
           <img src={bannerPreview || config.bannerUrl} className="w-full h-32 object-cover" alt="Banner preview" />

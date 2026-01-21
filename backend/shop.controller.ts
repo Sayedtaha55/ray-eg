@@ -1,9 +1,14 @@
-import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ShopService } from './shop.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
+import * as fs from 'fs';
+import { randomBytes } from 'crypto';
 
 @Controller('api/v1/shops')
 export class ShopController {
@@ -139,6 +144,59 @@ export class ShopController {
             })()
           : undefined,
     });
+  }
+
+  @Post('me/banner')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  @UseInterceptors(
+    FileInterceptor('banner', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dest = './uploads/tmp';
+          try {
+            fs.mkdirSync(dest, { recursive: true });
+          } catch {
+          }
+          cb(null, dest);
+        },
+        filename: (req, file, cb) => {
+          const randomName = randomBytes(16).toString('hex');
+          cb(null, `${randomName}${extname(file.originalname)}`);
+        },
+      }),
+      limits: {
+        fileSize: 80 * 1024 * 1024,
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'image/avif',
+          'video/mp4',
+          'video/webm',
+          'video/quicktime',
+        ];
+        if (allowedTypes.includes(file.mimetype)) {
+          cb(null, true);
+        } else {
+          cb(new BadRequestException('Unsupported file type') as any, false);
+        }
+      },
+    }),
+  )
+  async uploadMyBanner(@Request() req, @UploadedFile() file: any, @Body() body: any) {
+    const userRole = String(req.user?.role || '').toUpperCase();
+    const shopIdFromToken = req.user?.shopId;
+    const shopIdFromBody = typeof body?.shopId === 'string' ? body.shopId : undefined;
+    const targetShopId = userRole === 'ADMIN' ? shopIdFromBody : shopIdFromToken;
+
+    if (!targetShopId) {
+      throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
+    }
+
+    return this.shopService.updateShopBannerFromUpload(targetShopId, file);
   }
 
   @Get('admin/list')

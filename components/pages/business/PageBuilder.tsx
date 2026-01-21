@@ -12,6 +12,11 @@ import { BUILDER_SECTIONS } from './builder/registry';
 
 const MotionDiv = motion.div as any;
 
+const isVideoUrl = (url: string) => {
+  const u = String(url || '').toLowerCase();
+  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+};
+
 const coerceBoolean = (value: any, fallback: boolean) => {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
@@ -171,6 +176,23 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!shopId) return;
     setSaving(true);
     try {
+      let uploadedBanner: any = null;
+      if (bannerFile) {
+        try {
+          uploadedBanner = await ApiService.uploadMyShopBanner({ file: bannerFile });
+          try {
+            if (bannerPreview && bannerPreview.startsWith('blob:')) {
+              URL.revokeObjectURL(bannerPreview);
+            }
+          } catch {
+          }
+          setBannerPreview('');
+          setBannerFile(null);
+        } catch {
+          addToast('فشل رفع بانر المتجر', 'error');
+        }
+      }
+
       // حفظ دائم في قاعدة البيانات
       const elementsVisibilityRaw = (config as any)?.elementsVisibility;
       const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
@@ -181,6 +203,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       const normalized = {
         ...config,
+        ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
+        ...(uploadedBanner?.bannerPosterUrl ? { bannerPosterUrl: uploadedBanner.bannerPosterUrl } : {}),
         headerTransparent: Boolean(config.headerTransparent),
         footerTransparent: Boolean(config.footerTransparent),
         headerOpacity: coerceNumber(config.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
@@ -193,6 +217,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         productDisplayStyle: config.productDisplayStyle || (config.productDisplay === 'list' ? 'list' : undefined),
       };
       await ApiService.updateShopDesign(shopId, normalized);
+
+      if (uploadedBanner?.bannerUrl) {
+        setConfig((prev: any) => ({
+          ...prev,
+          bannerUrl: uploadedBanner.bannerUrl,
+          bannerPosterUrl: uploadedBanner?.bannerPosterUrl || (prev as any)?.bannerPosterUrl,
+        }));
+      }
 
       try {
         await ApiService.updateMyShop({ logoUrl: logoDataUrl || '' });
@@ -509,7 +541,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <>
                       <div className="h-40 md:h-64 relative shrink-0">
                         {(bannerPreview || config.bannerUrl) ? (
-                          bannerFile && bannerFile.type.startsWith('video/') ? (
+                          (bannerFile && bannerFile.type.startsWith('video/')) || isVideoUrl(bannerPreview || config.bannerUrl) ? (
                             <video
                               src={bannerPreview || config.bannerUrl}
                               className="w-full h-full object-cover"
@@ -517,6 +549,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                               muted
                               loop
                               playsInline
+                              poster={String((config as any)?.bannerPosterUrl || '') || undefined}
                             />
                           ) : (
                             <img src={bannerPreview || config.bannerUrl} className="w-full h-full object-cover" />

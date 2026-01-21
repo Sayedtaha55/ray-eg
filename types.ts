@@ -10,6 +10,7 @@ export interface ShopDesign {
   secondaryColor?: string;
   layout: 'minimal' | 'modern' | 'bold';
   bannerUrl: string;
+  bannerPosterUrl?: string;
   headerType: 'centered' | 'side';
   headerBackgroundColor?: string;
   headerBackgroundImageUrl?: string;

@@ -5,6 +5,7 @@ import { MonitoringService } from './monitoring/monitoring.service';
 import { MediaCompressionService } from './media-compression.service';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
+import * as fs from 'fs';
 
 @Injectable()
 export class ShopService {
@@ -72,6 +73,132 @@ export class ShopService {
     const thumbUrl = written.thumb ? `${urlBase}/${baseName}-thumb.webp` : null;
 
     return { optUrl, mdUrl, thumbUrl };
+  }
+
+  async updateShopBannerFromUpload(shopId: string, file: any) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    const mime = String(file?.mimetype || '').toLowerCase();
+    const isVideo = mime.startsWith('video/');
+    const isImage = mime.startsWith('image/');
+
+    if (!isVideo && !isImage) {
+      try {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch {
+      }
+      throw new BadRequestException('Unsupported media type');
+    }
+
+    const current = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, pageDesign: true },
+    });
+
+    const outDir = path.resolve(process.cwd(), 'uploads', 'shops', shopId);
+    this.media.ensureDir(outDir);
+
+    const baseName = `banner-${Date.now()}-${randomBytes(6).toString('hex')}`;
+    const urlBase = `/uploads/shops/${encodeURIComponent(shopId)}`;
+
+    if (isVideo) {
+      const outputFilename = `${baseName}-opt.mp4`;
+      const outputPath = path.join(outDir, outputFilename);
+      const posterFilename = `${baseName}-thumb.webp`;
+      const posterPath = path.join(outDir, posterFilename);
+
+      try {
+        await this.media.optimizeVideoMp4(String(file.path), outputPath);
+        await this.media.generateVideoThumbnailWebp(outputPath, posterPath);
+      } catch {
+        try {
+          if (file?.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+          }
+        } catch {
+        }
+        throw new BadRequestException('Failed to process video');
+      }
+
+      try {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch {
+      }
+
+      const bannerUrl = `${urlBase}/${outputFilename}`;
+      const bannerPosterUrl = `${urlBase}/${posterFilename}`;
+
+      const prevDesign = (current?.pageDesign as any) || {};
+      const nextDesign = {
+        ...prevDesign,
+        bannerUrl,
+        bannerPosterUrl,
+      };
+
+      await this.prisma.shop.update({
+        where: { id: shopId },
+        data: { pageDesign: nextDesign as any },
+      });
+
+      return { bannerUrl, bannerPosterUrl };
+    }
+
+    // image
+    const outputFilename = `${baseName}-opt.webp`;
+    const mediumFilename = `${baseName}-md.webp`;
+    const thumbFilename = `${baseName}-thumb.webp`;
+
+    try {
+      const input = await fs.promises.readFile(String(file.path));
+      await this.media.writeWebpVariants({
+        input,
+        outDir,
+        baseName,
+        variants: [
+          { key: 'opt' as const, width: 1600, height: 1600, fit: 'inside' as const, quality: 80 },
+          { key: 'md' as const, width: 900, height: 900, fit: 'inside' as const, quality: 78 },
+          { key: 'thumb' as const, width: 480, height: 270, fit: 'cover' as const, quality: 75 },
+        ],
+      });
+    } catch {
+      try {
+        if (file?.path && fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      } catch {
+      }
+      throw new BadRequestException('Failed to process image');
+    }
+
+    try {
+      if (file?.path && fs.existsSync(file.path)) {
+        fs.unlinkSync(file.path);
+      }
+    } catch {
+    }
+
+    const bannerUrl = `${urlBase}/${outputFilename}`;
+    const bannerPosterUrl = `${urlBase}/${thumbFilename}`;
+
+    const prevDesign = (current?.pageDesign as any) || {};
+    const nextDesign = {
+      ...prevDesign,
+      bannerUrl,
+      bannerPosterUrl,
+    };
+
+    await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { pageDesign: nextDesign as any },
+    });
+
+    return { bannerUrl, bannerPosterUrl, bannerMediumUrl: `${urlBase}/${mediumFilename}` };
   }
 
   async getShopById(id: string) {

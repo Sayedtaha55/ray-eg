@@ -1040,6 +1040,17 @@ function normalizeShopFromBackend(shop: any) {
   const locationAccuracy = shop.locationAccuracy ?? shop.location_accuracy;
   const locationUpdatedAt = shop.locationUpdatedAt ?? shop.location_updated_at;
   const status = String(shop.status || '').toLowerCase();
+  const rawPageDesign = shop.pageDesign || shop.page_design || shop.pageDesign || null;
+  const normalizedPageDesign = (() => {
+    if (!rawPageDesign || typeof rawPageDesign !== 'object') return rawPageDesign;
+    const d: any = { ...(rawPageDesign as any) };
+    if (typeof d.bannerUrl === 'string') d.bannerUrl = toBackendUrl(d.bannerUrl);
+    if (typeof d.bannerPosterUrl === 'string') d.bannerPosterUrl = toBackendUrl(d.bannerPosterUrl);
+    if (typeof d.backgroundImageUrl === 'string') d.backgroundImageUrl = toBackendUrl(d.backgroundImageUrl);
+    if (typeof d.headerBackgroundImageUrl === 'string') d.headerBackgroundImageUrl = toBackendUrl(d.headerBackgroundImageUrl);
+    return d;
+  })();
+
   return {
     ...shop,
     status,
@@ -1058,7 +1069,7 @@ function normalizeShopFromBackend(shop: any) {
     location_source: shop.location_source ?? locationSource,
     location_accuracy: shop.location_accuracy ?? locationAccuracy,
     location_updated_at: shop.location_updated_at ?? locationUpdatedAt,
-    pageDesign: shop.pageDesign || shop.page_design || shop.pageDesign || null,
+    pageDesign: normalizedPageDesign,
   };
 }
 
@@ -1256,6 +1267,21 @@ export const ApiService = {
       // ignore
     }
     return normalizeShopFromBackend(shop);
+  },
+
+  uploadMyShopBanner: async (payload: { file: File; shopId?: string }) => {
+    const formData = new FormData();
+    formData.append('banner', payload.file);
+    if (payload.shopId) {
+      formData.append('shopId', payload.shopId);
+    }
+    const data = await backendPost<any>('/api/v1/shops/me/banner', formData);
+    return {
+      ...data,
+      bannerUrl: toBackendUrl(data?.bannerUrl),
+      bannerPosterUrl: toBackendUrl(data?.bannerPosterUrl),
+      bannerMediumUrl: toBackendUrl(data?.bannerMediumUrl),
+    };
   },
   getShopAdminById: async (id: string) => {
     const shop = await backendGet<any>(`/api/v1/shops/admin/${encodeURIComponent(id)}`);

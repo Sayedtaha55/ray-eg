@@ -10,6 +10,11 @@ import { Skeleton } from '@/components/common/ui';
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
+const isVideoUrl = (url: string) => {
+  const u = String(url || '').toLowerCase();
+  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+};
+
 const ShopsPage: React.FC = () => {
   const [governorate, setGovernorate] = useState('الكل');
   const [search, setSearch] = useState('');
@@ -133,7 +138,31 @@ const ShopsPage: React.FC = () => {
             </div>
             
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-50">
-               <img src={shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt="banner" />
+               {(() => {
+                 const bannerSrc = shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200';
+                 const poster = shop?.pageDesign?.bannerPosterUrl;
+                 if (isVideoUrl(bannerSrc)) {
+                   return (
+                     <video
+                       src={bannerSrc}
+                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                       autoPlay
+                       muted
+                       loop
+                       playsInline
+                       preload="metadata"
+                       poster={poster || undefined}
+                     />
+                   );
+                 }
+                 return (
+                   <img
+                     src={bannerSrc}
+                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                     alt="banner"
+                   />
+                 );
+               })()}
                <div className="absolute inset-0 bg-black/10" />
             </div>
 

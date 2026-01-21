@@ -10,6 +10,11 @@ import { Skeleton } from '@/components/common/ui';
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
+const isVideoUrl = (url: string) => {
+  const u = String(url || '').toLowerCase();
+  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+};
+
 const RestaurantsPage: React.FC = () => {
   const [governorate, setGovernorate] = useState('الكل');
   const [search, setSearch] = useState('');
@@ -118,7 +123,31 @@ const RestaurantsPage: React.FC = () => {
             transition={{ delay: idx * 0.1 }}
             className="group relative h-[400px] rounded-[3.5rem] overflow-hidden shadow-xl"
           >
-            <img src={shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200'} className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]" alt={shop.name} />
+            {(() => {
+              const bannerSrc = shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200';
+              const poster = shop?.pageDesign?.bannerPosterUrl;
+              if (isVideoUrl(bannerSrc)) {
+                return (
+                  <video
+                    src={bannerSrc}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    preload="metadata"
+                    poster={poster || undefined}
+                  />
+                );
+              }
+              return (
+                <img
+                  src={bannerSrc}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
+                  alt={shop.name}
+                />
+              );
+            })()}
             <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
             
             <div className="absolute top-8 left-8">
