@@ -269,6 +269,9 @@ model ShopGallery {
   thumbUrl  String?  @map("thumb_url")
   mediumUrl String?  @map("medium_url")
   caption   String?
+  duration  Int?     @map("duration") // Video duration in seconds
+  fileSize  BigInt?  @map("file_size") // File size in bytes
+  isHero    Boolean  @default(false) @map("is_hero") // Is this the hero video?
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now()) @map("created_at")
 

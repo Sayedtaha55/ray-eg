@@ -1,15 +1,78 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 // import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
+import { MediaCompressionService } from './media-compression.service';
+import * as path from 'path';
+import { randomBytes } from 'crypto';
 
 @Injectable()
 export class ShopService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     // @Inject(RedisService) private readonly redis: RedisService,
-    @Inject(MonitoringService) private readonly monitoring: MonitoringService
+    @Inject(MonitoringService) private readonly monitoring: MonitoringService,
+    @Inject(MediaCompressionService) private readonly media: MediaCompressionService,
   ) {}
+
+  private parseBase64DataUrl(dataUrl: string) {
+    const raw = String(dataUrl || '');
+    const m = raw.match(/^data:([^;]+);base64,(.+)$/i);
+    if (!m) return null;
+    const mime = String(m[1] || '').toLowerCase();
+    const base64 = String(m[2] || '');
+    return { mime, base64 };
+  }
+
+  private async persistShopImageFromDataUrl(params: {
+    shopId: string;
+    kind: 'logo' | 'banner';
+    dataUrl: string;
+  }) {
+    const parsed = this.parseBase64DataUrl(params.dataUrl);
+    if (!parsed) return null;
+    if (!parsed.mime.startsWith('image/')) {
+      throw new BadRequestException('Unsupported media type');
+    }
+
+    let input: Buffer;
+    try {
+      input = Buffer.from(parsed.base64, 'base64');
+    } catch {
+      throw new BadRequestException('Invalid image data');
+    }
+
+    const outDir = path.resolve(process.cwd(), 'uploads', 'shops', params.shopId);
+    this.media.ensureDir(outDir);
+
+    const baseName = `${params.kind}-${Date.now()}-${randomBytes(6).toString('hex')}`;
+
+    const variants =
+      params.kind === 'logo'
+        ? [
+            { key: 'opt' as const, width: 512, height: 512, fit: 'inside' as const, quality: 82 },
+            { key: 'thumb' as const, width: 160, height: 160, fit: 'cover' as const, quality: 75 },
+          ]
+        : [
+            { key: 'opt' as const, width: 1600, height: 1600, fit: 'inside' as const, quality: 80 },
+            { key: 'md' as const, width: 900, height: 900, fit: 'inside' as const, quality: 78 },
+            { key: 'thumb' as const, width: 480, height: 270, fit: 'cover' as const, quality: 75 },
+          ];
+
+    const written = await this.media.writeWebpVariants({
+      input,
+      outDir,
+      baseName,
+      variants,
+    });
+
+    const urlBase = `/uploads/shops/${encodeURIComponent(params.shopId)}`;
+    const optUrl = `${urlBase}/${baseName}-opt.webp`;
+    const mdUrl = written.md ? `${urlBase}/${baseName}-md.webp` : null;
+    const thumbUrl = written.thumb ? `${urlBase}/${baseName}-thumb.webp` : null;
+
+    return { optUrl, mdUrl, thumbUrl };
+  }
 
   async getShopById(id: string) {
     const startTime = Date.now();
@@ -76,12 +139,25 @@ export class ShopService {
         select: { id: true, slug: true, layoutConfig: true },
       });
 
+      const logoDataUrl = typeof input.logoUrl === 'string' ? input.logoUrl : '';
+      const bannerDataUrl = typeof input.bannerUrl === 'string' ? input.bannerUrl : '';
+
+      const persistedLogo = logoDataUrl.startsWith('data:')
+        ? await this.persistShopImageFromDataUrl({ shopId, kind: 'logo', dataUrl: logoDataUrl })
+        : null;
+      const persistedBanner = bannerDataUrl.startsWith('data:')
+        ? await this.persistShopImageFromDataUrl({ shopId, kind: 'banner', dataUrl: bannerDataUrl })
+        : null;
+
       const prevLayout = (current?.layoutConfig as any) || {};
       const nextLayout = {
         ...prevLayout,
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
         ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),
+        ...(persistedLogo?.thumbUrl ? { logoThumbUrl: persistedLogo.thumbUrl } : {}),
+        ...(persistedBanner?.thumbUrl ? { bannerThumbUrl: persistedBanner.thumbUrl } : {}),
+        ...(persistedBanner?.mdUrl ? { bannerMediumUrl: persistedBanner.mdUrl } : {}),
       };
 
       const updated = await this.prisma.shop.update({
@@ -103,8 +179,12 @@ export class ShopService {
           ...(typeof input.phone === 'undefined' ? {} : { phone: input.phone }),
           ...(typeof input.email === 'undefined' ? {} : { email: input.email }),
           ...(typeof input.openingHours === 'undefined' ? {} : { openingHours: input.openingHours }),
-          ...(typeof input.logoUrl === 'undefined' ? {} : { logoUrl: input.logoUrl }),
-          ...(typeof input.bannerUrl === 'undefined' ? {} : { bannerUrl: input.bannerUrl }),
+          ...(typeof input.logoUrl === 'undefined'
+            ? {}
+            : { logoUrl: persistedLogo?.optUrl ? persistedLogo.optUrl : input.logoUrl }),
+          ...(typeof input.bannerUrl === 'undefined'
+            ? {}
+            : { bannerUrl: persistedBanner?.optUrl ? persistedBanner.optUrl : input.bannerUrl }),
           ...(typeof input.isActive === 'undefined' ? {} : { isActive: input.isActive }),
           layoutConfig: nextLayout as any,
         },

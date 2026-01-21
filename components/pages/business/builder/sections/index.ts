@@ -1,0 +1,13 @@
+export { default as HeaderFooterSection } from './HeaderFooterSection';
+export { default as ColorsSection } from './ColorsSection';
+export { default as BackgroundSection } from './BackgroundSection';
+export { default as BannerSection } from './BannerSection';
+export { default as HeaderTypeSection } from './HeaderTypeSection';
+export { default as ProductsSection } from './ProductsSection';
+export { default as ProductPageSection } from './ProductPageSection';
+export { default as LayoutSection } from './LayoutSection';
+export { default as TypographySection } from './TypographySection';
+export { default as ButtonsSection } from './ButtonsSection';
+export { default as SpacingSection } from './SpacingSection';
+export { default as VisibilitySection } from './VisibilitySection';
+export { default as CustomCssSection } from './CustomCssSection';

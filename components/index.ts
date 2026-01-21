@@ -10,6 +10,7 @@ export { default as BusinessLayout } from './layouts/BusinessLayout';
 export { default as LoginPage } from './pages/auth/LoginPage';
 export { default as SignupPage } from './pages/auth/SignupPage';
 export { default as AdminLogin } from './pages/auth/AdminLogin';
+export { default as ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 
 // Pages - Public
 export { default as HomeFeed } from './pages/public/HomeFeed';
@@ -35,7 +36,8 @@ export { default as CourierOrders } from './pages/courier/CourierOrders';
 
 // Pages - Business
 export { default as BusinessLanding } from './pages/business/BusinessLanding';
-export { default as MerchantDashboard } from './pages/business/MerchantDashboard';
+export { default as BusinessHero } from './pages/business/BusinessHero';
+export { default as MerchantDashboard } from './pages/business/merchant-dashboard';
 export { default as POSSystem } from './pages/business/POSSystem';
 export { default as PageBuilder } from './pages/business/PageBuilder';
 export { default as GalleryManager } from './pages/business/GalleryManager';
@@ -86,3 +88,5 @@ export { default as Sidebar } from './common/navigation/Sidebar';
 // Common - Feedback
 export { default as Toaster } from './common/feedback/Toaster';
 export { useToast, ToastProvider } from './common/feedback/Toaster';
+export { default as ErrorBoundary } from './common/feedback/ErrorBoundary';
+export { default as BackendStatusBanner } from './common/feedback/BackendStatusBanner';

@@ -1,11 +1,57 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import * as winston from 'winston';
+import * as fs from 'fs';
 
 @Injectable()
 export class LoggerService implements OnModuleInit {
   private logger: winston.Logger;
 
   onModuleInit() {
+    const enableFileLogs =
+      process.env.NODE_ENV === 'production' ||
+      String(process.env.ENABLE_FILE_LOGS || '').toLowerCase() === 'true';
+
+    const transports: any[] = [];
+
+    if (enableFileLogs) {
+      try {
+        fs.mkdirSync('logs', { recursive: true });
+      } catch {
+        // ignore
+      }
+
+      transports.push(
+        // Error log file
+        new winston.transports.File({
+          filename: 'logs/error.log',
+          level: 'error',
+          maxsize: 5242880, // 5MB
+          maxFiles: 5,
+        }),
+      );
+
+      transports.push(
+        // Combined log file
+        new winston.transports.File({
+          filename: 'logs/combined.log',
+          maxsize: 5242880, // 5MB
+          maxFiles: 5,
+        }),
+      );
+    }
+
+    // Add console transport for development
+    if (process.env.NODE_ENV !== 'production') {
+      transports.push(
+        new winston.transports.Console({
+          format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.simple(),
+          ),
+        }),
+      );
+    }
+
     this.logger = winston.createLogger({
       level: process.env.LOG_LEVEL || 'info',
       format: winston.format.combine(
@@ -15,32 +61,8 @@ export class LoggerService implements OnModuleInit {
         winston.format.prettyPrint()
       ),
       defaultMeta: { service: 'ray-marketplace' },
-      transports: [
-        // Error log file
-        new winston.transports.File({
-          filename: 'logs/error.log',
-          level: 'error',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
-        }),
-        // Combined log file
-        new winston.transports.File({
-          filename: 'logs/combined.log',
-          maxsize: 5242880, // 5MB
-          maxFiles: 5,
-        }),
-      ],
+      transports,
     });
-
-    // Add console transport for development
-    if (process.env.NODE_ENV !== 'production') {
-      this.logger.add(new winston.transports.Console({
-        format: winston.format.combine(
-          winston.format.colorize(),
-          winston.format.simple()
-        )
-      }));
-    }
   }
 
   log(message: string, meta?: any) {

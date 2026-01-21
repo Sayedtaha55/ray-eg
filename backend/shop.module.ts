@@ -4,9 +4,10 @@ import { ShopService } from './shop.service';
 import { PrismaModule } from './prisma/prisma.module';
 // import { RedisModule } from './redis/redis.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
+import { MediaModule } from './media.module';
 
 @Module({
-  imports: [PrismaModule, /* RedisModule, */ MonitoringModule],
+  imports: [PrismaModule, MediaModule, /* RedisModule, */ MonitoringModule],
   controllers: [ShopController],
   providers: [ShopService],
   exports: [ShopService],

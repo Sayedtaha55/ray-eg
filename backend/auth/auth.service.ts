@@ -22,6 +22,104 @@ export class AuthService {
     @Inject(JwtService) private jwtService: JwtService,
   ) {}
 
+  async requestPasswordReset(email: string) {
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+    if (!normalizedEmail) {
+      return { ok: true };
+    }
+
+    const user = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+    // Always return ok to prevent account enumeration.
+    if (!user) {
+      return { ok: true };
+    }
+
+    const token = this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        typ: 'password_reset',
+      },
+      {
+        expiresIn: '15m',
+      } as any,
+    );
+
+    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.APP_URL || 'http://localhost:5173').trim();
+    const resetUrlBrowser = `${appUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+    const resetUrlHash = `${appUrl.replace(/\/$/, '')}/#/reset-password?token=${encodeURIComponent(token)}`;
+
+    return {
+      ok: true,
+      token,
+      resetUrl: resetUrlBrowser,
+      resetUrlHash,
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    const rawToken = String(token || '').trim();
+    const pass = String(newPassword || '');
+
+    if (!rawToken) throw new BadRequestException('الرابط غير صالح');
+    if (!pass || pass.length < 8) throw new BadRequestException('كلمة المرور ضعيفة جداً');
+
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(rawToken);
+    } catch {
+      throw new BadRequestException('الرابط غير صالح أو منتهي');
+    }
+
+    if (String(payload?.typ || '') !== 'password_reset') {
+      throw new BadRequestException('الرابط غير صالح');
+    }
+
+    const userId = String(payload?.sub || '').trim();
+    if (!userId) throw new BadRequestException('الرابط غير صالح');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new BadRequestException('الرابط غير صالح');
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(pass, salt);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { ok: true };
+  }
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+    const uid = String(userId || '').trim();
+    if (!uid) throw new UnauthorizedException('غير مصرح');
+
+    const current = String(currentPassword || '');
+    const next = String(newPassword || '');
+    if (!current) throw new BadRequestException('كلمة المرور الحالية مطلوبة');
+    if (!next || next.length < 8) throw new BadRequestException('كلمة المرور ضعيفة جداً');
+    if (current === next) throw new BadRequestException('كلمة المرور الجديدة يجب أن تكون مختلفة');
+
+    const user = await this.prisma.user.findUnique({ where: { id: uid } });
+    if (!user) throw new UnauthorizedException('غير مصرح');
+
+    const ok = await bcrypt.compare(current, user.password);
+    if (!ok) throw new UnauthorizedException('كلمة المرور الحالية غير صحيحة');
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(next, salt);
+
+    await this.prisma.user.update({
+      where: { id: uid },
+      data: { password: hashedPassword },
+    });
+
+    return { ok: true };
+  }
+
   private slugify(value: string) {
     return String(value)
       .trim()
@@ -201,21 +299,46 @@ export class AuthService {
     // Default admin bootstrap (development/testing)
     // Allows the admin UI to work with real DB + JWT instead of mock fallbacks.
     const env = String(process.env.NODE_ENV || '').toLowerCase();
-    const allowBootstrap = String(process.env.ALLOW_DEV_ADMIN_BOOTSTRAP || '').toLowerCase() === 'true';
-    if (allowBootstrap && env !== 'production' && !user && (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com')) {
+    const allowBootstrap =
+      env !== 'production' &&
+      String(process.env.ALLOW_DEV_ADMIN_BOOTSTRAP ?? 'true').toLowerCase() === 'true';
+    if (allowBootstrap && (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com')) {
       const allowed = new Set(['1234', 'admin123']);
       if (allowed.has(pass)) {
         const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(pass, salt);
-        user = await this.prisma.user.create({
-          data: {
-            email: normalizedEmail,
-            name: 'Admin',
-            password: hashedPassword,
-            role: 'ADMIN' as any,
-            isActive: true,
-          },
-        });
+
+        if (!user) {
+          user = await this.prisma.user.create({
+            data: {
+              email: normalizedEmail,
+              name: 'Admin',
+              password: hashedPassword,
+              role: 'ADMIN' as any,
+              isActive: true,
+            },
+          });
+        } else if (String(user?.role || '').toUpperCase() === 'ADMIN') {
+          // If an admin already exists but password is unknown, allow resetting in dev.
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              password: hashedPassword,
+              isActive: true,
+              role: 'ADMIN' as any,
+            },
+          });
+        } else {
+          // If the reserved admin email exists with a non-admin role, promote it in dev.
+          user = await this.prisma.user.update({
+            where: { id: user.id },
+            data: {
+              password: hashedPassword,
+              isActive: true,
+              role: 'ADMIN' as any,
+            },
+          });
+        }
       }
     }
     

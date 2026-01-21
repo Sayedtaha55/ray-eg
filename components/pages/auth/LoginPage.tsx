@@ -15,6 +15,9 @@ const LoginPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isForgotModalOpen, setForgotModalOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotResult, setForgotResult] = useState<any>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
@@ -84,6 +87,128 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-20 flex items-center justify-center min-h-[80vh]">
+      <AnimatePresence>
+        {isForgotModalOpen && (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+            onClick={() => {
+              if (forgotLoading) return;
+              setForgotModalOpen(false);
+              setForgotResult(null);
+            }}
+          >
+            <MotionDiv
+              initial={{ opacity: 0, y: 20, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 20, scale: 0.98 }}
+              className="w-full max-w-xl bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl p-8 md:p-10 text-right"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between flex-row-reverse gap-4 mb-6">
+                <div className="text-right">
+                  <h3 className="text-2xl font-black tracking-tight">نسيت كلمة المرور</h3>
+                  <p className="text-slate-400 font-bold text-sm mt-1">اكتب بريدك الإلكتروني علشان نجهز لك رابط إعادة تعيين.</p>
+                </div>
+                <button
+                  type="button"
+                  disabled={forgotLoading}
+                  onClick={() => {
+                    setForgotModalOpen(false);
+                    setForgotResult(null);
+                  }}
+                  className="p-2 bg-slate-50 hover:bg-slate-100 rounded-full disabled:opacity-60"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">البريد الإلكتروني</label>
+                  <input
+                    type="email"
+                    disabled={forgotLoading}
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                    value={forgotEmail}
+                    onChange={(e) => setForgotEmail(e.target.value)}
+                    placeholder="example@email.com"
+                  />
+                </div>
+
+                {forgotResult?.resetUrlHash && (
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3">
+                    <div className="text-sm font-black text-slate-700">رابط إعادة تعيين</div>
+                    <div className="text-[11px] font-bold text-slate-500 break-all bg-white border border-slate-100 rounded-xl p-3">
+                      {String(forgotResult.resetUrlHash)}
+                    </div>
+                    <div className="flex gap-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          try {
+                            navigator.clipboard.writeText(String(forgotResult.resetUrlHash));
+                            addToast('تم نسخ الرابط', 'success');
+                          } catch {
+                            addToast('تعذر نسخ الرابط', 'error');
+                          }
+                        }}
+                        className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-black text-xs hover:bg-black transition-all"
+                      >
+                        نسخ الرابط
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const url = String(forgotResult.resetUrlHash);
+                          const tokenParam = url.split('token=')[1] || '';
+                          const token = decodeURIComponent(tokenParam.split('&')[0] || '').trim();
+                          navigate(`/reset-password?token=${encodeURIComponent(token)}`);
+                          setForgotModalOpen(false);
+                          setForgotResult(null);
+                        }}
+                        className="flex-1 py-3 bg-[#00E5FF] text-slate-900 rounded-xl font-black text-xs hover:brightness-95 transition-all"
+                      >
+                        فتح الصفحة
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  disabled={forgotLoading}
+                  onClick={async () => {
+                    const e = String(forgotEmail || '').trim();
+                    if (!e) {
+                      addToast('اكتب البريد الإلكتروني أولاً', 'error');
+                      return;
+                    }
+                    setForgotLoading(true);
+                    setForgotResult(null);
+                    try {
+                      const res = await ApiService.forgotPassword({ email: e });
+                      setForgotResult(res);
+                      addToast('إذا كان البريد موجود، هتوصلك خطوات إعادة التعيين.', 'success');
+                    } catch (err: any) {
+                      addToast(err?.message || 'فشل إرسال رابط إعادة التعيين', 'error');
+                    } finally {
+                      setForgotLoading(false);
+                    }
+                  }}
+                  className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                >
+                  {forgotLoading ? <Loader2 className="animate-spin" size={18} /> : <KeyRound size={18} className="text-[#00E5FF]" />}
+                  {forgotLoading ? 'جاري التجهيز...' : 'إرسال رابط إعادة التعيين'}
+                </button>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
       <MotionDiv 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}

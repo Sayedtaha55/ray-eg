@@ -1,13 +1,57 @@
 
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Store, Zap, Smartphone, Globe, ArrowLeft, TrendingUp, Users, ShieldCheck, UtensilsCrossed, QrCode } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { ApiService } from '@/services/api.service';
+import type { ShopGallery } from '@/types';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const BusinessLanding: React.FC = () => {
+  const featuredShopId = String(import.meta.env.VITE_FEATURED_SHOP_ID || '').trim();
+  const [heroVideo, setHeroVideo] = useState<ShopGallery | null>(null);
+
+  const fallbackHero = useMemo(
+    () => ({
+      webm: '/videos/business-hero.webm',
+      mp4: '/videos/business-hero.mp4',
+      poster: '/videos/business-hero-poster.webp',
+    }),
+    [],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!featuredShopId) {
+      setHeroVideo(null);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    ApiService.getShopGallery(featuredShopId)
+      .then((items: any) => {
+        if (cancelled) return;
+        const list = Array.isArray(items) ? (items as ShopGallery[]) : [];
+        const firstVideo = list.find((x) => String((x as any)?.mediaType || '').toUpperCase() === 'VIDEO') || null;
+        setHeroVideo(firstVideo);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHeroVideo(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [featuredShopId]);
+
+  const heroMp4 = heroVideo?.imageUrl ? String(heroVideo.imageUrl) : fallbackHero.mp4;
+  const heroPoster = heroVideo?.thumbUrl ? String(heroVideo.thumbUrl) : fallbackHero.poster;
+  const hasDynamicHero = Boolean(heroVideo?.imageUrl);
+
   return (
     <div className="text-right" dir="rtl">
       {/* Hero Section */}
@@ -19,8 +63,12 @@ const BusinessLanding: React.FC = () => {
           loop
           playsInline
           preload="metadata"
-          src="/videos/business-hero.mp4"
-        />
+          poster={heroPoster}
+        >
+          {!hasDynamicHero && <source src={fallbackHero.webm} type="video/webm" />}
+          <source src={heroMp4} type="video/mp4" />
+          {!hasDynamicHero && <source src={fallbackHero.mp4} type="video/mp4" />}
+        </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/80" />
         <div className="relative z-10 w-full">
           <div className="max-w-7xl mx-auto px-6 pt-36 pb-20 md:pt-44 md:pb-28">

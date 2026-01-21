@@ -7,6 +7,7 @@ import {
   ShopProfile,
   BusinessLayout,
   BusinessLanding,
+  BusinessHero,
   MerchantDashboard,
   BusinessPendingApproval,
   ShopsPage,
@@ -27,6 +28,7 @@ import {
   AdminOrders,
   CourierOrders,
   NotFoundPage,
+  ResetPasswordPage,
 } from './components';
 
 const { HashRouter, BrowserRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
@@ -54,6 +56,7 @@ const App: React.FC = () => {
           <Route path="map" element={<MapPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
+          <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="product/:id" element={<ProductPage />} />
@@ -62,6 +65,8 @@ const App: React.FC = () => {
         <Route path="/shop/:slug" element={<ShopProfile />} />
 
         <Route path="/s/:slug" element={<ShopProfile />} />
+
+        <Route path="/business/:shopId/hero" element={<BusinessHero />} />
 
         <Route path="/business/pending" element={<BusinessLayout />}>
           <Route index element={<BusinessPendingApproval />} />

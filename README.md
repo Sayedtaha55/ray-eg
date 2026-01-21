@@ -1,5 +1,5 @@
 
-# 💎 Ray (تست) - Hyper-Modern Marketplace
+# 💎 Ray  - Hyper-Modern Marketplace
 
 [English](#english) | [العربية](#arabic)
 

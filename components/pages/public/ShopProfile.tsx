@@ -19,6 +19,53 @@ const { useParams, useNavigate } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
 
+const hexToRgba = (hex: string, alpha: number) => {
+  const raw = String(hex || '').replace('#', '').trim();
+  const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
+  if (normalized.length !== 6) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+const coerceBoolean = (value: any, fallback: boolean) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
+  if (typeof value === 'number') return value !== 0;
+  return fallback;
+};
+
+const coerceNumber = (value: any, fallback: number) => {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+const scopeCss = (css: string, scopeSelector: string) => {
+  const raw = String(css || '');
+  const safe = raw.replace(/<\s*\/\s*style/gi, '');
+  return safe.replace(/([^{}]+)\{/g, (match, selectorGroup) => {
+    const group = String(selectorGroup || '');
+    const trimmed = group.trim();
+    if (!trimmed) return match;
+    if (trimmed.startsWith('@')) return match;
+    if (trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed)) return match;
+
+    const prefixed = group
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => (s.includes(scopeSelector) ? s : `${scopeSelector} ${s}`))
+      .join(', ');
+
+    return `${prefixed}{`;
+  });
+};
+
 const ProductCard: React.FC<{ 
   product: Product, 
   design: ShopDesign, 
@@ -148,6 +195,8 @@ const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClo
   const [user, setUser] = useState<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
+
   useEffect(() => {
     const savedUser = localStorage.getItem('ray_user');
     if (savedUser) {
@@ -200,7 +249,11 @@ const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClo
     <MotionDiv initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white w-[calc(100vw-2rem)] md:w-[400px] h-[450px] md:h-[500px] rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100">
       <header className="p-5 md:p-6 bg-slate-900 text-white flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <img src={shop.logoUrl || (shop as any).logo_url} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20" />
+          {shopLogoSrc ? (
+            <img src={shopLogoSrc} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20 object-cover" alt={shop.name} />
+          ) : (
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20 bg-white/10" />
+          )}
           <div className="text-right">
             <p className="font-black text-xs md:text-sm leading-none mb-1">{shop.name}</p>
             <p className="text-[9px] md:text-[10px] text-green-400 font-bold flex items-center gap-1 justify-end">متصل الآن <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-green-400 rounded-full" /></p>
@@ -361,26 +414,91 @@ const ShopProfile: React.FC = () => {
   const isBold = currentDesign.layout === 'bold';
   const isMinimal = currentDesign.layout === 'minimal';
   const pageBgColor = currentDesign.pageBackgroundColor || (currentDesign as any).backgroundColor;
+  const pageBgImage = String((currentDesign as any).backgroundImageUrl || '');
   const productDisplayMode = (currentDesign.productDisplay || ((currentDesign as any).productDisplayStyle === 'list' ? 'list' : undefined) || 'cards') as any;
+
+  const headerTextColor = String(currentDesign.headerTextColor || '#0F172A');
+  const headerBackgroundColor = String(currentDesign.headerBackgroundColor || '#FFFFFF');
+  const headerBackgroundImageUrl = String((currentDesign as any).headerBackgroundImageUrl || '');
+  const headerOpacity = coerceNumber((currentDesign as any).headerOpacity, 95) / 100;
+  const headerTransparent = coerceBoolean((currentDesign as any).headerTransparent, false);
+  const headerBg = headerTransparent
+    ? hexToRgba(headerBackgroundColor, headerOpacity)
+    : headerBackgroundColor;
+
+  const footerTextColor = String(currentDesign.footerTextColor || (isBold ? '#FFFFFF' : '#0F172A'));
+  const footerBackgroundColor = String(
+    currentDesign.footerBackgroundColor || (isBold ? '#0F172A' : isMinimal ? '#FFFFFF' : '#F8FAFC')
+  );
+  const footerOpacity = coerceNumber((currentDesign as any).footerOpacity, 100) / 100;
+  const footerTransparent = coerceBoolean((currentDesign as any).footerTransparent, false);
+  const footerBg = footerTransparent ? 'transparent' : footerBackgroundColor;
+
+  const elementsVisibility = ((currentDesign as any)?.elementsVisibility || {}) as Record<string, any>;
+  const isVisible = (key: string, fallback: boolean = true) => {
+    if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
+    if (!(key in elementsVisibility)) return fallback;
+    return coerceBoolean(elementsVisibility[key], fallback);
+  };
+
+  const showHeaderNav = isVisible('headerNav', true);
+  const showHeaderChatButton = isVisible('headerChatButton', true);
+  const showHeaderShareButton = isVisible('headerShareButton', true);
+  const showFloatingChatButton = isVisible('floatingChatButton', true);
+  const showFooter = isVisible('footer', true);
+  const showFooterQuickLinks = isVisible('footerQuickLinks', true);
+  const showFooterContact = isVisible('footerContact', true);
+
+  const customCssRaw = typeof (currentDesign as any)?.customCss === 'string' ? String((currentDesign as any).customCss) : '';
+  const scopedCustomCss = customCssRaw ? scopeCss(customCssRaw, '#shop-profile-root') : '';
   
   const categories = ['الكل', ...new Set(products.map(p => (p as any).category || 'عام'))];
   const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
 
+  const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
+
   return (
-    <div className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`} dir="rtl" style={pageBgColor ? ({ backgroundColor: pageBgColor } as any) : undefined}>
+    <div
+      id="shop-profile-root"
+      className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`}
+      dir="rtl"
+      style={
+        (pageBgColor || pageBgImage)
+          ? ({
+              backgroundColor: pageBgColor,
+              backgroundImage: pageBgImage ? `url("${pageBgImage}")` : undefined,
+              backgroundSize: pageBgImage ? 'cover' : undefined,
+              backgroundPosition: pageBgImage ? 'center' : undefined,
+              backgroundRepeat: pageBgImage ? 'no-repeat' : undefined,
+            } as any)
+          : undefined
+      }
+    >
+      {scopedCustomCss ? <style>{scopedCustomCss}</style> : null}
       
       {/* Site-like Header */}
       <header className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
         isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'
-      }`}>
+      }`} style={{
+        backgroundColor: headerBg,
+        color: headerTextColor,
+        backgroundImage: (!headerTransparent && headerBackgroundImageUrl) ? `url("${headerBackgroundImageUrl}")` : undefined,
+        backgroundSize: (!headerTransparent && headerBackgroundImageUrl) ? 'cover' : undefined,
+        backgroundPosition: (!headerTransparent && headerBackgroundImageUrl) ? 'center' : undefined,
+        backgroundRepeat: (!headerTransparent && headerBackgroundImageUrl) ? 'no-repeat' : undefined,
+      }}>
         <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3 md:gap-4">
-              <img 
-                src={shop.logoUrl || (shop as any).logo_url} 
-                className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md object-cover" 
-                alt={shop.name}
-              />
+              {shopLogoSrc ? (
+                <img 
+                  src={shopLogoSrc} 
+                  className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md object-cover" 
+                  alt={shop.name}
+                />
+              ) : (
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md bg-slate-100" />
+              )}
               <div>
                 <h3 className={`font-black ${isBold ? 'text-lg md:text-2xl' : 'text-sm md:text-lg'}`} style={{ color: currentDesign.primaryColor }}>
                   {shop.name}
@@ -391,62 +509,78 @@ const ShopProfile: React.FC = () => {
               </div>
             </div>
             
-            <nav className="hidden md:flex items-center gap-6 md:gap-8">
-              <button onClick={() => setActiveTab('products')} className={`text-xs md:text-sm font-black transition-colors ${
-                activeTab === 'products' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}>
-                {isRestaurant ? "المنيو" : "المعروضات"}
-              </button>
-              <button onClick={() => setActiveTab('gallery')} className={`text-xs md:text-sm font-black transition-colors ${
-                activeTab === 'gallery' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}>
-                معرض الصور
-              </button>
-              <button onClick={() => setActiveTab('info')} className={`text-xs md:text-sm font-black transition-colors ${
-                activeTab === 'info' ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
-              }`}>
-                معلومات المتجر
-              </button>
-            </nav>
+            {showHeaderNav && (
+              <nav className="hidden md:flex items-center gap-6 md:gap-8">
+                <button
+                  onClick={() => setActiveTab('products')}
+                  style={activeTab === 'products' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                >
+                  {isRestaurant ? "المنيو" : "المعروضات"}
+                </button>
+                <button
+                  onClick={() => setActiveTab('gallery')}
+                  style={activeTab === 'gallery' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                >
+                  معرض الصور
+                </button>
+                <button
+                  onClick={() => setActiveTab('info')}
+                  style={activeTab === 'info' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                >
+                  معلومات المتجر
+                </button>
+              </nav>
+            )}
             
             <div className="flex items-center gap-2 md:gap-3">
-              <button 
-                onClick={() => setShowChat(true)}
-                className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
-                style={{ backgroundColor: currentDesign.primaryColor, color: '#000', borderColor: `${currentDesign.primaryColor}20` }}
-              >
-                <MessageCircle size={14} className="md:w-4 md:h-4" />
-              </button>
-              <button 
-                onClick={handleShare}
-                className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black"
-              >
-                <Share2 size={14} className="md:w-4 md:h-4" />
-              </button>
+              {showHeaderChatButton && (
+                <button 
+                  onClick={() => setShowChat(true)}
+                  className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
+                  style={{ backgroundColor: currentDesign.primaryColor, color: '#000', borderColor: `${currentDesign.primaryColor}20` }}
+                >
+                  <MessageCircle size={14} className="md:w-4 md:h-4" />
+                </button>
+              )}
+              {showHeaderShareButton && (
+                <button 
+                  onClick={handleShare}
+                  className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black"
+                >
+                  <Share2 size={14} className="md:w-4 md:h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
       </header>
       
       {/* Dynamic Navigation UI */}
-      <div className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[150] flex flex-col gap-4 items-end">
-         <AnimatePresence>
-            {showChat && <ChatWindow shop={shop} onClose={() => setShowChat(false)} />}
-         </AnimatePresence>
-         
-         <button 
-           onClick={() => setShowChat(!showChat)}
-           className={`w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white text-white ${showChat ? 'bg-red-500' : 'bg-slate-900'}`}
-           style={{ backgroundColor: !showChat ? currentDesign.primaryColor : undefined, color: !showChat ? '#000' : undefined }}
-         >
-            {showChat ? <X size={24} className="md:w-7 md:h-7" /> : <MessageCircle size={24} className="md:w-7 md:h-7" />}
-         </button>
-      </div>
+      {showFloatingChatButton && (
+        <div className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[150] flex flex-col gap-4 items-end">
+           <AnimatePresence>
+              {showChat && <ChatWindow shop={shop} onClose={() => setShowChat(false)} />}
+           </AnimatePresence>
+           
+           <button 
+             onClick={() => setShowChat(!showChat)}
+             className={`w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white text-white ${showChat ? 'bg-red-500' : 'bg-slate-900'}`}
+             style={{ backgroundColor: !showChat ? currentDesign.primaryColor : undefined, color: !showChat ? '#000' : undefined }}
+           >
+              {showChat ? <X size={24} className="md:w-7 md:h-7" /> : <MessageCircle size={24} className="md:w-7 md:h-7" />}
+           </button>
+        </div>
+      )}
 
       {/* Header Buttons */}
       <div className="fixed top-0 left-0 right-0 z-[110] p-3 md:p-4 flex justify-between items-center pointer-events-none">
          <button onClick={() => navigate(-1)} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><ChevronRight size={20} className="md:w-6 md:h-6" /></button>
-         <button onClick={handleShare} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><Share2 size={20} className="md:w-6 md:h-6" /></button>
+         {showHeaderShareButton && (
+           <button onClick={handleShare} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><Share2 size={20} className="md:w-6 md:h-6" /></button>
+         )}
       </div>
 
       {/* Hero Section */}
@@ -470,7 +604,11 @@ const ShopProfile: React.FC = () => {
             animate={{ y: 0, opacity: 1 }} 
             className={`bg-white p-1 md:p-1.5 shadow-2xl shrink-0 ring-4 ring-white ${isBold ? 'rounded-[2rem] md:rounded-[3rem] w-24 h-24 md:w-64 md:h-64 rotate-3' : isMinimal ? 'rounded-xl md:rounded-2xl w-20 h-20 md:w-48 md:h-48' : 'rounded-full w-24 h-24 md:w-56 md:h-56'}`}
           >
-            <img src={shop.logoUrl || (shop as any).logo_url} className={`w-full h-full object-cover ${isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem]' : isMinimal ? 'rounded-lg md:rounded-xl' : 'rounded-full'}`} />
+            {shopLogoSrc ? (
+              <img src={shopLogoSrc} className={`w-full h-full object-cover ${isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem]' : isMinimal ? 'rounded-lg md:rounded-xl' : 'rounded-full'}`} alt={shop.name} />
+            ) : (
+              <div className={`w-full h-full bg-slate-100 ${isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem]' : isMinimal ? 'rounded-lg md:rounded-xl' : 'rounded-full'}`} />
+            )}
           </MotionDiv>
           
           <div className={`flex-1 text-center md:text-right ${isMinimal ? 'md:text-center' : ''}`}>
@@ -627,75 +765,96 @@ const ShopProfile: React.FC = () => {
       </AnimatePresence>
 
       {/* Site-like Footer */}
-      <footer className={`mt-16 md:mt-24 border-t transition-all duration-500 ${
-        isBold ? 'bg-slate-900 border-slate-700' : isMinimal ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-200'
-      }`}>
-        <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-8 md:py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8">
-            {/* Brand */}
-            <div className="text-center md:text-right">
-              <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
-                <img 
-                  src={((shop.logoUrl || (shop as any).logo_url || '').trim() || undefined)} 
-                  className="w-8 h-8 rounded-full border-2 border-white shadow-md object-cover" 
-                  alt={shop.name}
-                />
-                <h4 className={`font-black ${isBold ? 'text-lg' : 'text-base'}`} style={{ color: isBold ? '#fff' : currentDesign.primaryColor }}>
-                  {shop.name}
-                </h4>
+      {showFooter && (
+        <footer
+          className={`mt-16 md:mt-24 border-t transition-all duration-500 ${
+            footerTransparent
+              ? 'bg-transparent border-transparent'
+              : isBold
+                ? 'bg-slate-900 border-slate-700'
+                : isMinimal
+                  ? 'bg-white border-slate-100'
+                  : 'bg-slate-50 border-slate-200'
+          }`}
+          style={{ backgroundColor: footerBg, color: footerTextColor }}
+        >
+          <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-8 md:py-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8">
+              {/* Brand */}
+              <div className="text-center md:text-right">
+                <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
+                  <img 
+                    src={((shop.logoUrl || (shop as any).logo_url || '').trim() || undefined)} 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-md object-cover" 
+                    alt={shop.name}
+                  />
+                  <h4 className={`font-black ${isBold ? 'text-lg' : 'text-base'}`} style={{ color: footerTextColor }}>
+                    {shop.name}
+                  </h4>
+                </div>
+                <p className="text-xs md:text-sm font-bold leading-relaxed" style={{ opacity: 0.8 }}>
+                  منصة متكاملة لتقديم أفضل الخدمات والمنتجات بجودة عالية.
+                </p>
               </div>
-              <p className={`text-xs md:text-sm ${isBold ? 'text-slate-300' : 'text-slate-500'} font-bold leading-relaxed`}>
-                منصة متكاملة لتقديم أفضل الخدمات والمنتجات بجودة عالية.
-              </p>
+
+              {/* Quick Links */}
+              {showFooterQuickLinks && (
+                <div className="text-center md:text-right">
+                  <h5 className="font-black mb-3 text-sm md:text-base" style={{ color: footerTextColor }}>روابط سريعة</h5>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setActiveTab('products')}
+                      className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80"
+                      style={{ color: footerTextColor, opacity: 0.8 }}
+                    >
+                      {isRestaurant ? "المنيو" : "المعروضات"}
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('gallery')}
+                      className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80"
+                      style={{ color: footerTextColor, opacity: 0.8 }}
+                    >
+                      معرض الصور
+                    </button>
+                    <button
+                      onClick={() => setActiveTab('info')}
+                      className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80"
+                      style={{ color: footerTextColor, opacity: 0.8 }}
+                    >
+                      معلومات المتجر
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Contact */}
+              {showFooterContact && (
+                <div className="text-center md:text-right">
+                  <h5 className="font-black mb-3 text-sm md:text-base" style={{ color: footerTextColor }}>تواصل معنا</h5>
+                  <div className="space-y-2">
+                    <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>
+                      {shop.phone || 'جاري تحديث رقم الهاتف'}
+                    </p>
+                    <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>
+                      جاري تحديث البريد الإلكتروني
+                    </p>
+                    <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>
+                      {shop.addressDetailed || `${shop.city}, ${shop.governorate}`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Quick Links */}
-            <div className="text-center md:text-right">
-              <h5 className={`font-black mb-3 ${isBold ? 'text-white' : 'text-slate-900'} text-sm md:text-base`}>روابط سريعة</h5>
-              <div className="space-y-2">
-                <button onClick={() => setActiveTab('products')} className={`block text-xs md:text-sm font-bold transition-colors ${
-                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-                }`}>
-                  {isRestaurant ? "المنيو" : "المعروضات"}
-                </button>
-                <button onClick={() => setActiveTab('gallery')} className={`block text-xs md:text-sm font-bold transition-colors ${
-                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-                }`}>
-                  معرض الصور
-                </button>
-                <button onClick={() => setActiveTab('info')} className={`block text-xs md:text-sm font-bold transition-colors ${
-                  isBold ? 'text-slate-400 hover:text-white' : 'text-slate-500 hover:text-slate-900'
-                }`}>
-                  معلومات المتجر
-                </button>
-              </div>
-            </div>
-
-            {/* Contact */}
-            <div className="text-center md:text-right">
-              <h5 className={`font-black mb-3 ${isBold ? 'text-white' : 'text-slate-900'} text-sm md:text-base`}>تواصل معنا</h5>
-              <div className="space-y-2">
-                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {shop.phone || 'جاري تحديث رقم الهاتف'}
-                </p>
-                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
-                  جاري تحديث البريد الإلكتروني
-                </p>
-                <p className={`text-xs md:text-sm font-bold ${isBold ? 'text-slate-300' : 'text-slate-600'}`}>
-                  {shop.addressDetailed || `${shop.city}, ${shop.governorate}`}
-                </p>
-              </div>
+            {/* Copyright */}
+            <div className={`pt-6 border-t text-center text-xs md:text-sm font-bold ${
+              isBold ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'
+            }`} style={{ color: footerTextColor, opacity: 0.75 }}>
+              <p>جميع الحقوق محفوظة © {new Date().getFullYear()} {shop.name} • تطوير بواسطة منصة تست</p>
             </div>
           </div>
-
-          {/* Copyright */}
-          <div className={`pt-6 border-t text-center text-xs md:text-sm font-bold ${
-            isBold ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'
-          }`}>
-            <p>جميع الحقوق محفوظة © {new Date().getFullYear()} {shop.name} • تطوير بواسطة منصة تست</p>
-          </div>
-        </div>
-      </footer>
+        </footer>
+      )}
     </div>
   );
 };

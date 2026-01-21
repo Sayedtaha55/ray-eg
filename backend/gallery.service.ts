@@ -65,6 +65,40 @@ export class GalleryService {
     ]);
   }
 
+  private async getVideoDuration(inputPath: string): Promise<number | null> {
+    const ffmpegExe = (typeof ffmpegPath === 'string' && ffmpegPath.trim()) ? ffmpegPath : null;
+    if (!ffmpegExe) {
+      return null;
+    }
+
+    return new Promise((resolve) => {
+      const proc = spawn(ffmpegExe, ['-i', inputPath, '-f', 'null', '-'], { windowsHide: true });
+      let stderr = '';
+      
+      proc.stderr.on('data', (d) => {
+        stderr += String(d || '');
+      });
+      
+      proc.on('close', () => {
+        // Parse duration from stderr
+        const durationMatch = stderr.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})/);
+        if (durationMatch) {
+          const hours = parseInt(durationMatch[1]);
+          const minutes = parseInt(durationMatch[2]);
+          const seconds = parseFloat(durationMatch[3]);
+          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+          resolve(Math.round(totalSeconds));
+        } else {
+          resolve(null);
+        }
+      });
+      
+      proc.on('error', () => {
+        resolve(null);
+      });
+    });
+  }
+
   private getSharpMaxPixels() {
     const raw = String(process.env.SHARP_MAX_INPUT_PIXELS || '40000000').trim();
     const n = Number(raw);
@@ -147,9 +181,14 @@ export class GalleryService {
       const thumbFilename = `${baseName}-thumb.webp`;
       const thumbPath = path.join(uploadsDir, thumbFilename);
 
+      let duration: number | null = null;
+
       try {
         await this.optimizeVideo(file.path, outputPath);
         await this.generateVideoThumbnail(outputPath, thumbPath);
+        
+        // Extract video duration
+        duration = await this.getVideoDuration(outputPath);
       } catch {
         try {
           if (file?.path && fs.existsSync(file.path)) {
@@ -176,6 +215,9 @@ export class GalleryService {
           mediaType: 'VIDEO',
           thumbUrl: `/uploads/gallery/${thumbFilename}`,
           caption: caption || '',
+          duration: duration || null,
+          fileSize: file?.size ? BigInt(file.size) : null,
+          isHero: false, // Default to false, can be updated later
         } as any,
       });
 

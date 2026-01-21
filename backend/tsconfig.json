@@ -3,6 +3,8 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {},
     "outDir": "../dist-backend",
     "rootDir": "./",
     "noEmit": true,
@@ -11,5 +13,12 @@
     "resolveJsonModule": true
   },
   "include": ["./**/*.ts"],
-  "exclude": ["../node_modules", "../dist", "../dist-backend"]
+  "exclude": [
+    "../node_modules",
+    "../dist",
+    "../dist-backend",
+    "../services",
+    "../components",
+    "../src"
+  ]
 }

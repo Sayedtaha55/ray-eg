@@ -12,6 +12,7 @@ import { OfferModule } from './offer.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { UsersModule } from './users.module';
 import { AnalyticsModule } from './analytics.module';
+import { CustomersModule } from './customers.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -36,6 +37,7 @@ import { DatabaseTestController } from './db-test.controller';
     MonitoringModule,
     UsersModule,
     AnalyticsModule,
+    CustomersModule,
   ],
   controllers: [TestController, HealthController, DatabaseTestController],
 })

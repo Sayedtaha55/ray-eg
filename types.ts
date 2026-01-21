@@ -11,10 +11,22 @@ export interface ShopDesign {
   layout: 'minimal' | 'modern' | 'bold';
   bannerUrl: string;
   headerType: 'centered' | 'side';
+  headerBackgroundColor?: string;
+  headerBackgroundImageUrl?: string;
+  headerTextColor?: string;
+  headerTransparent?: boolean;
+  headerOpacity?: number;
   pageBackgroundColor?: string;
+  backgroundImageUrl?: string;
   productDisplay?: 'cards' | 'list' | 'minimal';
   backgroundColor?: string;
   productDisplayStyle?: 'grid' | 'list';
+  footerBackgroundColor?: string;
+  footerTextColor?: string;
+  footerTransparent?: boolean;
+  footerOpacity?: number;
+  elementsVisibility?: Record<string, boolean>;
+  customCss?: string;
 }
 
 export interface Shop {

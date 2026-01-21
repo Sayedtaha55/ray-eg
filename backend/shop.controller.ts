@@ -214,6 +214,19 @@ export class ShopController {
     return shop;
   }
 
+  @Get(':id')
+  async findById(@Param('id') id: string) {
+    const shop = await this.shopService.getShopById(id);
+    if (!shop) {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
+    const status = String((shop as any)?.status || '').toUpperCase();
+    if (status !== 'APPROVED' && status !== 'SUSPENDED') {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
+    return shop;
+  }
+
   @Post(':id/visit')
   async trackVisit(@Param('id') id: string) {
     const shopId = String(id || '').trim();

@@ -45,16 +45,25 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string }> = ({ onClose,
     return () => window.removeEventListener('receipt-theme-update', loadTheme);
   }, [shopId]);
 
+  const getProductStock = (product: any) => {
+    const stock = product?.stock;
+    return typeof stock === 'number' && Number.isFinite(stock) ? stock : Number.POSITIVE_INFINITY;
+  };
+
   const addToCart = (product: any, qty: number = 1) => {
-    if (!product || product.stock <= 0) return;
+    if (!product) return;
+    const stock = getProductStock(product);
+    if (stock <= 0) return;
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       const currentQty = existing?.quantity || 0;
-      const nextQty = Math.min(product.stock, currentQty + qty);
+      const desiredQty = currentQty + qty;
+      const nextQty = Number.isFinite(stock) ? Math.min(stock, desiredQty) : desiredQty;
       if (existing) {
         return prev.map(item => item.id === product.id ? { ...item, quantity: nextQty } : item);
       }
-      return [...prev, { id: product.id, name: product.name, price: product.price, quantity: Math.min(product.stock, qty) }];
+      const initialQty = Number.isFinite(stock) ? Math.min(stock, qty) : qty;
+      return [...prev, { id: product.id, name: product.name, price: product.price, quantity: initialQty }];
     });
   };
 
@@ -63,8 +72,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string }> = ({ onClose,
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    const stock = products.find(p => p.id === id)?.stock;
-    const maxQty = (typeof stock === 'number' && stock >= 0) ? stock : Number.POSITIVE_INFINITY;
+    const product = products.find(p => p.id === id);
+    const maxQty = getProductStock(product);
     setCart(prev => prev
       .map(item => item.id === id
         ? { ...item, quantity: Math.min(maxQty, Math.max(0, item.quantity + delta)) }

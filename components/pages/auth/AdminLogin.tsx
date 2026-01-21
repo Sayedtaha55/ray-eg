@@ -25,7 +25,8 @@ const AdminLogin: React.FC = () => {
       localStorage.setItem('ray_user', JSON.stringify(res.user));
       localStorage.setItem('ray_token', res.session?.access_token || '');
       window.dispatchEvent(new Event('auth-change'));
-      if (res.user.role === 'admin') {
+      const role = String(res.user?.role || '').toLowerCase();
+      if (role === 'admin') {
         navigate('/admin/dashboard');
       } else {
         throw new Error('هذه المنطقة للمشرفين فقط!');
