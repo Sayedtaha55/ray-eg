@@ -13,6 +13,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { UsersModule } from './users.module';
 import { AnalyticsModule } from './analytics.module';
 import { CustomersModule } from './customers.module';
+import { NotificationModule } from './notification.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -38,6 +39,7 @@ import { DatabaseTestController } from './db-test.controller';
     UsersModule,
     AnalyticsModule,
     CustomersModule,
+    NotificationModule,
   ],
   controllers: [TestController, HealthController, DatabaseTestController],
 })

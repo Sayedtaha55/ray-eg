@@ -32,6 +32,7 @@ model User {
   reservations Reservation[]
   feedback    Feedback[]
   shopFollows ShopFollower[]
+  notifications Notification[]
 
   @@map("users")
 }
@@ -169,6 +170,7 @@ model Order {
   shop          Shop        @relation(fields: [shopId], references: [id])
   courier       User?       @relation("CourierOrders", fields: [courierId], references: [id])
   items         OrderItem[]
+  notifications Notification[]
 
   @@map("orders")
 }
@@ -213,11 +215,15 @@ model Notification {
   content   String
   type      String
   shopId    String   @map("shop_id")
+  userId    String?  @map("user_id")
+  orderId   String?  @map("order_id")
   isRead    Boolean  @default(false) @map("is_read")
   createdAt DateTime @default(now()) @map("created_at")
 
   // Relations
   shop      Shop     @relation(fields: [shopId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+  order     Order?   @relation(fields: [orderId], references: [id])
 
   @@map("notifications")
 }

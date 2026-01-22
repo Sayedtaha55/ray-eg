@@ -9,6 +9,12 @@ export type ReceiptTheme = {
   footerNote?: string;
 };
 
+export type NotificationSound = {
+  id: string;
+  name: string;
+  url: string;
+};
+
 export const MOCK_SHOPS: Shop[] = [
   
 ];
@@ -29,6 +35,87 @@ export const RayDB = {
     } catch {
       return [];
     }
+  },
+
+  getNotificationSounds: (): NotificationSound[] => {
+    try {
+      const raw = localStorage.getItem('ray_notification_sounds');
+      const parsed = raw ? JSON.parse(raw) : null;
+      const arr = Array.isArray(parsed) ? parsed : [];
+      const normalized = arr
+        .map((s: any) => ({
+          id: String(s?.id || ''),
+          name: String(s?.name || ''),
+          url: String(s?.url || ''),
+        }))
+        .filter((s: any) => s.id && s.url);
+
+      if (normalized.length > 0) return normalized;
+    } catch {
+    }
+
+    return [
+      {
+        id: 'default',
+        name: 'الافتراضي',
+        url: '/sounds/notif.mp3',
+      },
+    ];
+  },
+  syncNotificationSoundsFromPublic: async () => {
+    try {
+      const res = await fetch('/sounds/manifest.json', { cache: 'no-cache' });
+      if (!res.ok) return;
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : Array.isArray((data as any)?.sounds) ? (data as any).sounds : [];
+      const normalized = (list || [])
+        .map((s: any) => ({
+          id: String(s?.id || ''),
+          name: String(s?.name || ''),
+          url: String(s?.url || (s?.file ? `/sounds/${String(s.file).replace(/^\/+/, '')}` : '') || ''),
+        }))
+        .filter((s: any) => s.id && s.url);
+
+      if (normalized.length === 0) return;
+      RayDB.setNotificationSounds(normalized);
+    } catch {
+    }
+  },
+  setNotificationSounds: (sounds: NotificationSound[]) => {
+    const safe = Array.isArray(sounds) ? sounds : [];
+    localStorage.setItem('ray_notification_sounds', JSON.stringify(safe));
+    window.dispatchEvent(new Event('notification-sounds-update'));
+  },
+  addNotificationSound: (sound: { name: string; url: string }) => {
+    const name = String(sound?.name || '').trim();
+    const url = String(sound?.url || '').trim();
+    if (!url) return;
+    const next: NotificationSound = {
+      id: `${Date.now()}`,
+      name: name || 'صوت جديد',
+      url,
+    };
+    const prev = RayDB.getNotificationSounds();
+    RayDB.setNotificationSounds([next, ...prev]);
+    RayDB.setSelectedNotificationSoundId(next.id);
+  },
+  getSelectedNotificationSoundId: (): string => {
+    try {
+      return String(localStorage.getItem('ray_notification_sound_id') || 'default');
+    } catch {
+      return 'default';
+    }
+  },
+  setSelectedNotificationSoundId: (id: string) => {
+    const sid = String(id || '').trim() || 'default';
+    localStorage.setItem('ray_notification_sound_id', sid);
+    window.dispatchEvent(new Event('notification-sounds-update'));
+  },
+  getSelectedNotificationSoundUrl: (): string => {
+    const id = RayDB.getSelectedNotificationSoundId();
+    const sounds = RayDB.getNotificationSounds();
+    const found = sounds.find((s) => s.id === id) || sounds[0];
+    return String(found?.url || '');
   },
   setCart: (items: any[]) => {
     const safe = Array.isArray(items) ? items : [];

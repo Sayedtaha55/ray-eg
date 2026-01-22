@@ -21,35 +21,69 @@ const ShopsPage: React.FC = () => {
 
   const [shopsList, setShopsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
+    const PAGE_SIZE = 18;
     let mounted = true;
-    ApiService.getShops('approved')
-      .then((data: any[]) => {
+    let timer: any;
+
+    const fetchFirstPage = async () => {
+      setLoading(true);
+      setHasMore(true);
+      try {
+        const data = await ApiService.getShops('approved', {
+          take: PAGE_SIZE,
+          skip: 0,
+          category: Category.RETAIL,
+          governorate: governorate === 'الكل' ? undefined : governorate,
+          search: search.trim() ? search.trim() : undefined,
+        });
         if (!mounted) return;
-        setShopsList(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
+        const list = Array.isArray(data) ? data : [];
+        setShopsList(list);
+        setHasMore(list.length >= PAGE_SIZE);
+      } catch {
         if (!mounted) return;
         setShopsList([]);
-      })
-      .finally(() => {
+        setHasMore(false);
+      } finally {
         if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+
+    timer = setTimeout(fetchFirstPage, 250);
     return () => {
       mounted = false;
+      if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [governorate, search]);
 
-  const shops = shopsList
-    .filter((s) => String(s?.status || '').toLowerCase() === 'approved')
-    .filter(
-      (s) =>
-        s.category === Category.RETAIL &&
-        (governorate === 'الكل' || s.governorate === governorate) &&
-        String(s?.name || '').toLowerCase().includes(search.toLowerCase()),
-    );
+  const loadMore = async () => {
+    const PAGE_SIZE = 18;
+    if (loadingMore || loading || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await ApiService.getShops('approved', {
+        take: PAGE_SIZE,
+        skip: shopsList.length,
+        category: Category.RETAIL,
+        governorate: governorate === 'الكل' ? undefined : governorate,
+        search: search.trim() ? search.trim() : undefined,
+      });
+      const list = Array.isArray(next) ? next : [];
+      setShopsList((prev) => [...prev, ...list]);
+      setHasMore(list.length >= PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const shops = shopsList;
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-12 text-right" dir="rtl">
@@ -122,7 +156,7 @@ const ShopsPage: React.FC = () => {
           >
             <div className="flex items-center gap-4 md:gap-6">
               <div className="w-16 h-16 md:w-24 md:h-24 rounded-2xl md:rounded-3xl overflow-hidden border border-slate-100 shrink-0">
-                <img src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-full h-full object-cover" alt={shop.name} />
+                <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-full h-full object-cover" alt={shop.name} />
               </div>
               <div>
                 <div className="flex items-center gap-2 flex-row-reverse justify-end mb-1">
@@ -157,6 +191,7 @@ const ShopsPage: React.FC = () => {
                  }
                  return (
                    <img
+                     loading="lazy"
                      src={bannerSrc}
                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                      alt="banner"
@@ -176,6 +211,18 @@ const ShopsPage: React.FC = () => {
           ))
         )}
       </div>
+
+      {shops.length > 0 && hasMore && (
+        <div className="mt-10 md:mt-16 flex items-center justify-center">
+          <button
+            onClick={loadMore}
+            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+            disabled={loadingMore}
+          >
+            <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

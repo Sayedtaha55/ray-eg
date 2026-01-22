@@ -15,6 +15,13 @@ export class GalleryService {
     // @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private getFfmpegTimeoutMs() {
+    const raw = String(process.env.FFMPEG_TIMEOUT_MS || '120000').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 120000;
+    return Math.floor(n);
+  }
+
   private runFfmpeg(args: string[]) {
     const ffmpegExe = (typeof ffmpegPath === 'string' && ffmpegPath.trim()) ? ffmpegPath : null;
     if (!ffmpegExe) {
@@ -24,11 +31,22 @@ export class GalleryService {
     return new Promise<void>((resolve, reject) => {
       const proc = spawn(ffmpegExe, args, { windowsHide: true });
       let stderr = '';
+      const timeoutMs = this.getFfmpegTimeoutMs();
+      const timer = setTimeout(() => {
+        try {
+          proc.kill('SIGKILL');
+        } catch {
+          // ignore
+        }
+        reject(new Error('ffmpeg timeout'));
+      }, timeoutMs);
+
       proc.stderr.on('data', (d) => {
         stderr += String(d || '');
       });
       proc.on('error', reject);
       proc.on('close', (code) => {
+        clearTimeout(timer);
         if (code === 0) return resolve();
         reject(new Error(stderr || `ffmpeg exited with code ${code}`));
       });
@@ -74,12 +92,22 @@ export class GalleryService {
     return new Promise((resolve) => {
       const proc = spawn(ffmpegExe, ['-i', inputPath, '-f', 'null', '-'], { windowsHide: true });
       let stderr = '';
+      const timeoutMs = this.getFfmpegTimeoutMs();
+      const timer = setTimeout(() => {
+        try {
+          proc.kill('SIGKILL');
+        } catch {
+          // ignore
+        }
+        resolve(null);
+      }, timeoutMs);
       
       proc.stderr.on('data', (d) => {
         stderr += String(d || '');
       });
       
       proc.on('close', () => {
+        clearTimeout(timer);
         // Parse duration from stderr
         const durationMatch = stderr.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})/);
         if (durationMatch) {
@@ -94,6 +122,7 @@ export class GalleryService {
       });
       
       proc.on('error', () => {
+        clearTimeout(timer);
         resolve(null);
       });
     });
@@ -106,8 +135,8 @@ export class GalleryService {
     return Math.floor(n);
   }
 
-  private createSharp(buffer: Buffer) {
-    return sharp(buffer, { limitInputPixels: this.getSharpMaxPixels() });
+  private createSharp(input: string) {
+    return sharp(input, { limitInputPixels: this.getSharpMaxPixels() });
   }
 
   private getVariantUrls(imageUrl: string) {
@@ -244,10 +273,10 @@ export class GalleryService {
     const mediumPath = path.join(uploadsDir, mediumFilename);
 
     try {
-      const inputBuffer = await fs.promises.readFile(file.path);
+      const base = this.createSharp(file.path).rotate();
 
-      await this.createSharp(inputBuffer)
-        .rotate()
+      await base
+        .clone()
         .resize({
           width: 1600,
           height: 1600,
@@ -257,8 +286,8 @@ export class GalleryService {
         .webp({ quality: 80 })
         .toFile(outputPath);
 
-      await this.createSharp(inputBuffer)
-        .rotate()
+      await base
+        .clone()
         .resize({
           width: 900,
           height: 900,
@@ -268,8 +297,8 @@ export class GalleryService {
         .webp({ quality: 78 })
         .toFile(mediumPath);
 
-      await this.createSharp(inputBuffer)
-        .rotate()
+      await base
+        .clone()
         .resize({
           width: 320,
           height: 320,

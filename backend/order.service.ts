@@ -7,6 +7,47 @@ export class OrderService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private getPagination(paging?: { page?: number; limit?: number }) {
+    const page = typeof paging?.page === 'number' ? paging.page : undefined;
+    const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
+    if (page == null && limit == null) return null;
+
+    const safeLimitRaw = limit == null ? 20 : limit;
+    const safeLimit = Math.min(Math.max(Math.floor(safeLimitRaw), 1), 100);
+    const safePage = Math.max(Math.floor(page == null ? 1 : page), 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    return { take: safeLimit, skip };
+  }
+
+  private async createOrderStatusNotifications(params: {
+    tx: any;
+    shopId: string;
+    userId: string;
+    orderId: string;
+    status: string;
+  }) {
+    const status = String(params.status || '').toUpperCase();
+    const title = 'تحديث حالة الطلب';
+    const content = `تم تحديث حالة طلبك إلى: ${status}`;
+
+    try {
+      await params.tx.notification.create({
+        data: {
+          shopId: params.shopId,
+          userId: params.userId,
+          orderId: params.orderId,
+          title,
+          content,
+          type: 'ORDER_STATUS',
+          isRead: false,
+        },
+      });
+    } catch {
+      // ignore
+    }
+  }
+
   private getDeliveryFeeFromShop(shop: any): number | null {
     const layout = (shop?.layoutConfig as any) || {};
     const raw = (layout as any)?.deliveryFee;
@@ -59,7 +100,12 @@ export class OrderService {
       throw new BadRequestException('لا توجد بيانات للتحديث');
     }
 
-    return this.prisma.order.update({
+    const before = await this.prisma.order.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true, shopId: true },
+    });
+
+    const updated = await this.prisma.order.update({
       where: { id },
       data,
       include: {
@@ -73,9 +119,30 @@ export class OrderService {
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
+
+    try {
+      if (before?.userId && before?.shopId && before?.status !== updated?.status) {
+        await this.createOrderStatusNotifications({
+          tx: this.prisma,
+          shopId: String(before.shopId),
+          userId: String(before.userId),
+          orderId: String(before.id),
+          status: String(updated.status),
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    return updated;
   }
 
-  async listByShop(shopId: string, actor: { role: string; shopId?: string }, query?: { from?: Date; to?: Date }) {
+  async listByShop(
+    shopId: string,
+    actor: { role: string; shopId?: string },
+    query?: { from?: Date; to?: Date },
+    paging?: { page?: number; limit?: number },
+  ) {
     const targetShopId = String(shopId || '').trim();
     if (!targetShopId) throw new BadRequestException('shopId مطلوب');
 
@@ -86,6 +153,8 @@ export class OrderService {
 
     const from = query?.from;
     const to = query?.to;
+
+    const pagination = this.getPagination(paging);
 
     const orders = await this.prisma.order.findMany({
       where: {
@@ -101,15 +170,18 @@ export class OrderService {
         },
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
+      ...(pagination ? pagination : {}),
     });
 
     return orders;
   }
 
-  async listAllAdmin(query?: { shopId?: string; from?: Date; to?: Date }) {
+  async listAllAdmin(query?: { shopId?: string; from?: Date; to?: Date }, paging?: { page?: number; limit?: number }) {
     const shopId = query?.shopId ? String(query.shopId).trim() : undefined;
     const from = query?.from;
     const to = query?.to;
+
+    const pagination = this.getPagination(paging);
 
     return this.prisma.order.findMany({
       where: {
@@ -127,6 +199,7 @@ export class OrderService {
         user: true,
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
+      ...(pagination ? pagination : {}),
     });
   }
 
@@ -260,6 +333,22 @@ export class OrderService {
         // ignore
       }
 
+      try {
+        await tx.notification.create({
+          data: {
+            shopId,
+            userId,
+            orderId: created.id,
+            title: 'تم استلام طلبك',
+            content: `تم إنشاء طلبك بنجاح بقيمة ${Number(total || 0)} ج.م`,
+            type: 'ORDER',
+            isRead: false,
+          },
+        });
+      } catch {
+        // ignore
+      }
+
       return created;
     });
   }
@@ -293,10 +382,11 @@ export class OrderService {
     });
   }
 
-  async listMyCourierOrders(courierId: string) {
+  async listMyCourierOrders(courierId: string, paging?: { page?: number; limit?: number }) {
     const cId = String(courierId || '').trim();
     if (!cId) throw new BadRequestException('غير مصرح');
 
+    const pagination = this.getPagination(paging);
     return this.prisma.order.findMany({
       where: { courierId: cId },
       orderBy: { createdAt: 'desc' },
@@ -305,6 +395,7 @@ export class OrderService {
         shop: true,
         user: true,
       },
+      ...(pagination ? pagination : {}),
     });
   }
 
@@ -339,7 +430,12 @@ export class OrderService {
       throw new BadRequestException('لا توجد بيانات للتحديث');
     }
 
-    return this.prisma.order.update({
+    const before = await this.prisma.order.findUnique({
+      where: { id },
+      select: { id: true, status: true, userId: true, shopId: true },
+    });
+
+    const updated = await this.prisma.order.update({
       where: { id },
       data,
       include: {
@@ -348,5 +444,21 @@ export class OrderService {
         user: true,
       },
     });
+
+    try {
+      if (before?.userId && before?.shopId && before?.status !== updated?.status) {
+        await this.createOrderStatusNotifications({
+          tx: this.prisma,
+          shopId: String(before.shopId),
+          userId: String(before.userId),
+          orderId: String(before.id),
+          status: String(updated.status),
+        });
+      }
+    } catch {
+      // ignore
+    }
+
+    return updated;
   }
 }

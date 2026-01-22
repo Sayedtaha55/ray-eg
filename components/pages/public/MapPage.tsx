@@ -3,6 +3,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
 import L from 'leaflet';
+import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
+import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ApiService } from '@/services/api.service';
 import { Shop } from '@/types';
 import { Skeleton } from '@/components/common/ui';
@@ -72,9 +75,9 @@ const MapPage: React.FC = () => {
     if (!mapContainerRef.current) return;
 
     const defaultIcon = L.icon({
-      iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-      iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-      shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconUrl: markerIconUrl,
+      iconRetinaUrl: markerIconRetinaUrl,
+      shadowUrl: markerShadowUrl,
       iconSize: [25, 41],
       iconAnchor: [12, 41],
       shadowSize: [41, 41],

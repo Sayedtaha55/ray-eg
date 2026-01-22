@@ -1,5 +1,21 @@
 import { Shop, Product, Offer, Reservation, Category, ShopGallery } from '../types';
 
+ let rayDbUpdateTimer: any;
+ function dispatchRayDbUpdateDebounced() {
+   try {
+     if (rayDbUpdateTimer) clearTimeout(rayDbUpdateTimer);
+     rayDbUpdateTimer = setTimeout(() => {
+       try {
+         window.dispatchEvent(new Event('ray-db-update'));
+       } catch {
+         // ignore
+       }
+     }, 150);
+   } catch {
+     // ignore
+   }
+ }
+
 // Mock implementation since we removed Supabase
 class MockDatabase {
   private shops: any[] = [];
@@ -1189,21 +1205,124 @@ export const ApiService = {
   subscribeToMessages: mockDb.subscribeToMessages.bind(mockDb),
 
   // Notifications
-  subscribeToNotifications: mockDb.subscribeToNotifications.bind(mockDb),
-  getNotifications: mockDb.getNotifications.bind(mockDb),
-  markNotificationsRead: mockDb.markNotificationsRead.bind(mockDb),
+  subscribeToNotifications: (shopId: string, callback: (payload: any) => void) => {
+    let stopped = false;
+    let lastId: string | null = null;
+
+    const poll = async () => {
+      if (stopped) return;
+      const sid = String(shopId || '').trim();
+      if (!sid) return;
+      try {
+        const data = await backendGet<any[]>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}?take=1`);
+        const first = Array.isArray(data) && data.length > 0 ? data[0] : null;
+        const id = first?.id ? String(first.id) : null;
+        if (id && id !== lastId) {
+          lastId = id;
+          callback({
+            ...first,
+            is_read: Boolean(first?.isRead ?? first?.is_read),
+            created_at: first?.createdAt || first?.created_at,
+            message: first?.content || first?.message,
+          });
+        }
+      } catch {
+        // ignore
+      }
+    };
+
+    const timer = setInterval(() => {
+      poll();
+    }, 15000);
+
+    poll();
+
+    return {
+      unsubscribe: () => {
+        stopped = true;
+        clearInterval(timer);
+      },
+    };
+  },
+  getNotifications: async (shopId: string) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      const data = await backendGet<any[]>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}?take=50`);
+      return (data || []).map((n: any) => ({
+        ...n,
+        is_read: Boolean(n?.isRead ?? n?.is_read),
+        created_at: n?.createdAt || n?.created_at,
+        message: n?.content || n?.message,
+      }));
+    } catch {
+      return await mockDb.getNotifications(sid);
+    }
+  },
+  markNotificationsRead: async (shopId: string) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return { ok: true } as any;
+    try {
+      return await backendPatch<any>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}/read`, {});
+    } catch {
+      return await mockDb.markNotificationsRead(sid);
+    }
+  },
+
+  getMyNotifications: async (opts?: { take?: number; skip?: number }) => {
+    const params = new URLSearchParams();
+    if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+    if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+    const qs = params.toString();
+    return await backendGet<any[]>(`/api/v1/notifications/me${qs ? `?${qs}` : ''}`);
+  },
+  getMyUnreadNotificationsCount: async () => {
+    return await backendGet<{ count: number }>(`/api/v1/notifications/me/unread-count`);
+  },
+  markMyNotificationsRead: async () => {
+    return await backendPatch<any>(`/api/v1/notifications/me/read`, {});
+  },
+  markMyNotificationRead: async (id: string) => {
+    return await backendPatch<any>(`/api/v1/notifications/me/${encodeURIComponent(id)}/read`, {});
+  },
 
   // Shops
-  getShops: async (filterStatus: 'approved' | 'pending' | 'rejected' | 'all' | '' = 'approved') => {
+  getShops: async (
+    filterStatus: 'approved' | 'pending' | 'rejected' | 'all' | '' = 'approved',
+    opts?: { take?: number; skip?: number; category?: string; governorate?: string; search?: string },
+  ) => {
     const status = String(filterStatus || 'approved').toLowerCase();
     // Public shops list (approved only)
     if (!status || status === 'approved') {
+      const applyClientFilters = (items: any[]) => {
+        let out = items;
+        if (opts?.category) {
+          const wanted = String(opts.category).toUpperCase();
+          out = out.filter((s: any) => String(s?.category || '').toUpperCase() === wanted);
+        }
+        if (opts?.governorate) {
+          const gov = String(opts.governorate).trim();
+          out = out.filter((s: any) => String(s?.governorate || '').trim() === gov);
+        }
+        if (opts?.search) {
+          const q = String(opts.search).trim();
+          if (q) out = out.filter((s: any) => String(s?.name || '').includes(q));
+        }
+        return out;
+      };
       try {
-        const shops = await backendGet<any[]>('/api/v1/shops');
-        return shops.map(normalizeShopFromBackend);
+        const params = new URLSearchParams();
+        if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+        if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+        if (opts?.category) params.set('category', String(opts.category));
+        if (opts?.governorate) params.set('governorate', String(opts.governorate));
+        if (opts?.search) params.set('search', String(opts.search));
+        const qs = params.toString();
+        const shops = await backendGet<any[]>(`/api/v1/shops${qs ? `?${qs}` : ''}`);
+        return applyClientFilters(shops.map(normalizeShopFromBackend));
       } catch {
         const shops = await mockDb.getShops('approved');
-        return (shops || []).map(normalizeShopFromBackend);
+        return applyClientFilters((shops || []).map(normalizeShopFromBackend));
       }
     }
 
@@ -1262,7 +1381,7 @@ export const ApiService = {
   updateMyShop: async (payload: any) => {
     const shop = await backendPatch<any>('/api/v1/shops/me', payload);
     try {
-      window.dispatchEvent(new Event('ray-db-update'));
+      dispatchRayDbUpdateDebounced();
     } catch {
       // ignore
     }
@@ -1311,9 +1430,14 @@ export const ApiService = {
   },
 
   // Offers
-  getOffers: async () => {
+  getOffers: async (opts?: { take?: number; skip?: number; shopId?: string }) => {
     try {
-      const offers = await backendGet<any[]>('/api/v1/offers');
+      const params = new URLSearchParams();
+      if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+      if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+      if (opts?.shopId) params.set('shopId', String(opts.shopId));
+      const qs = params.toString();
+      const offers = await backendGet<any[]>(`/api/v1/offers${qs ? `?${qs}` : ''}`);
       return offers || [];
     } catch {
       const offers = await mockDb.getOffers();
@@ -1322,27 +1446,43 @@ export const ApiService = {
   },
   createOffer: async (offer: any) => {
     const created = await backendPost<any>('/api/v1/offers', offer);
-    window.dispatchEvent(new Event('ray-db-update'));
+    dispatchRayDbUpdateDebounced();
     return created;
   },
   deleteOffer: async (offerId: string) => {
     const deleted = await backendDelete<any>(`/api/v1/offers/${encodeURIComponent(offerId)}`);
-    window.dispatchEvent(new Event('ray-db-update'));
+    dispatchRayDbUpdateDebounced();
     return deleted;
   },
   getOfferByProductId: async (productId: string) => {
-    const offers = await backendGet<any[]>('/api/v1/offers');
-    return (offers || []).find((o: any) => o.productId === productId || o.product_id === productId);
+    try {
+      const params = new URLSearchParams();
+      params.set('productId', String(productId));
+      params.set('take', '1');
+      params.set('skip', '0');
+      const offers = await backendGet<any[]>(`/api/v1/offers?${params.toString()}`);
+      return Array.isArray(offers) && offers.length > 0 ? offers[0] : null;
+    } catch {
+      return null;
+    }
+  },
+
+  getOfferById: async (id: string) => {
+    try {
+      return await backendGet<any>(`/api/v1/offers/${encodeURIComponent(id)}`);
+    } catch {
+      return null;
+    }
   },
 
   // Products
-  getProducts: async (shopId?: string) => {
-    if (shopId) {
-      const products = await backendGet<any[]>(`/api/v1/products?shopId=${encodeURIComponent(shopId)}`);
-      return products.map(normalizeProductFromBackend);
-    }
-    // Fetch all products when no shopId is provided
-    const products = await backendGet<any[]>('/api/v1/products');
+  getProducts: async (shopId?: string, opts?: { page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (shopId) params.set('shopId', String(shopId));
+    if (typeof opts?.page === 'number') params.set('page', String(opts.page));
+    if (typeof opts?.limit === 'number') params.set('limit', String(opts.limit));
+    const qs = params.toString();
+    const products = await backendGet<any[]>(`/api/v1/products${qs ? `?${qs}` : ''}`);
     return products.map(normalizeProductFromBackend);
   },
   getProductById: async (id: string) => {

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
@@ -9,7 +9,6 @@ import {
   Loader2,
   MapPin,
   Megaphone,
-  MessageCircle,
   Package,
   Palette,
   Settings,
@@ -19,6 +18,7 @@ import {
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { RayDB } from '@/constants';
 import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
 import { useToast } from '@/components';
 import MerchantSettings from '@/src/components/MerchantDashboard/Settings';
@@ -30,7 +30,6 @@ import AddProductModal from './modals/AddProductModal';
 import CreateOfferModal from './modals/CreateOfferModal';
 import TabButton from './components/TabButton';
 
-import ChatsTab from './tabs/ChatsTab';
 import CustomersTab from './tabs/CustomersTab';
 import GalleryTab from './tabs/GalleryTab';
 import OverviewTab from './tabs/OverviewTab';
@@ -51,7 +50,6 @@ type TabType =
   | 'reservations'
   | 'sales'
   | 'promotions'
-  | 'chats'
   | 'settings'
   | 'reports'
   | 'customers'
@@ -72,7 +70,6 @@ const DASHBOARD_TABS: DashboardTabConfig[] = [
   { id: 'products', label: 'المخزون', icon: <Package size={18} /> },
   { id: 'promotions', label: 'العروض', icon: <Megaphone size={18} /> },
   { id: 'reservations', label: 'الحجوزات', icon: <CalendarCheck size={18} /> },
-  { id: 'chats', label: 'المحادثات', icon: <MessageCircle size={18} /> },
   { id: 'sales', label: 'المبيعات', icon: <CreditCard size={18} /> },
   { id: 'builder', label: 'التصميم', icon: <Palette size={18} /> },
   { id: 'settings', label: 'الإعدادات', icon: <Settings size={18} /> },
@@ -112,8 +109,28 @@ const MerchantDashboardPage: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showOfferModal, setShowOfferModal] = useState<Product | null>(null);
 
+  const hasInitializedOrdersRef = useRef(false);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  const addToastRef = useRef(addToast);
+  useEffect(() => {
+    addToastRef.current = addToast;
+  }, [addToast]);
+
+  const syncInFlightRef = useRef(false);
+
+  const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
+  const getDateRanges = () => {
+    const now = new Date();
+    const salesFrom = new Date(now);
+    salesFrom.setFullYear(salesFrom.getFullYear() - 1);
+    const analyticsFrom = new Date(now);
+    analyticsFrom.setDate(analyticsFrom.getDate() - 30);
+    return { now, salesFrom, analyticsFrom };
+  };
 
   const shopCategory = currentShop?.category;
   const visibleTabs = DASHBOARD_TABS.filter((t) => isTabVisibleForCategory(t, shopCategory));
@@ -152,7 +169,9 @@ const MerchantDashboardPage: React.FC = () => {
   const isAdminView = String(savedUserForView?.role || '').toLowerCase() === 'admin';
   const adminTargetShopId = isAdminView && impersonateShopId ? impersonateShopId : undefined;
 
-  const syncData = useCallback(async () => {
+  const loadShop = useCallback(async () => {
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
     let redirected = false;
     setLoading(true);
 
@@ -166,7 +185,7 @@ const MerchantDashboardPage: React.FC = () => {
       const savedUser = JSON.parse(savedUserStr);
       const role = String(savedUser?.role || '').toLowerCase();
       if (role !== 'merchant' && !(role === 'admin' && impersonateShopId)) {
-        addToast('هذه الصفحة للتجار فقط', 'error');
+        addToastRef.current('هذه الصفحة للتجار فقط', 'error');
         navigate('/login');
         return;
       }
@@ -185,64 +204,116 @@ const MerchantDashboardPage: React.FC = () => {
         return;
       }
 
-      const now = new Date();
-      const salesFrom = new Date(now);
-      salesFrom.setFullYear(salesFrom.getFullYear() - 1);
-
-      const analyticsFrom = new Date(now);
-      analyticsFrom.setDate(analyticsFrom.getDate() - 30);
-
-      const results = await Promise.allSettled([
-        ApiService.getProducts(effectiveShop.id),
-        ApiService.getReservations(effectiveShop.id),
-        ApiService.getAllOrders({ shopId: effectiveShop.id, from: salesFrom.toISOString(), to: now.toISOString() }),
-        ApiService.getNotifications(effectiveShop.id),
-        ApiService.getShopAnalytics(effectiveShop.id, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
-        ApiService.getOffers(),
-        ApiService.getShopGallery(effectiveShop.id),
-      ]);
-
-      const firstRejection = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
-      if (firstRejection?.reason) {
-        const message = (firstRejection as any).reason?.message || String((firstRejection as any).reason);
-        addToast(message, 'error');
-      }
-
-      const prodRes = results[0];
-      if (prodRes.status === 'fulfilled') setProducts(prodRes.value);
-
-      const reservationsRes = results[1];
-      if (reservationsRes.status === 'fulfilled') setReservations(reservationsRes.value);
-
-      const salesRes = results[2];
-      if (salesRes.status === 'fulfilled') {
-        setSales(salesRes.value.filter((s: any) => s.shop_id === effectiveShop.id || s.shopId === effectiveShop.id));
-      }
-
-      const notifRes = results[3];
-      if (notifRes.status === 'fulfilled') setNotifications(notifRes.value.slice(0, 5));
-
-      const analyticsRes = results[4];
-      if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value);
-
-      const offersRes = results[5];
-      if (offersRes.status === 'fulfilled') setActiveOffers(offersRes.value.filter((o: any) => o.shopId === effectiveShop.id));
-
-      const galleryRes = results[6];
-      if (galleryRes.status === 'fulfilled') setGalleryImages(galleryRes.value || []);
+      return effectiveShop;
     } catch (e) {
       const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
-      addToast(message, 'error');
+      addToastRef.current(message, 'error');
     } finally {
       if (!redirected) {
         setLoading(false);
       }
+      syncInFlightRef.current = false;
     }
-  }, [addToast, impersonateShopId, navigate]);
+    return null;
+  }, [impersonateShopId, navigate]);
+
+  const ensureTabData = useCallback(async (tab: TabType, shop: any, force = false) => {
+    const shopId = shop?.id ? String(shop.id) : '';
+    if (!shopId) return;
+
+    const key = `${tab}:${shopId}`;
+    const state = tabLoadStateRef.current[key] || { loaded: false, inFlight: false };
+    if (!force && state.loaded) return;
+    if (state.inFlight) return;
+
+    tabLoadStateRef.current[key] = { ...state, inFlight: true };
+    try {
+      const { now, salesFrom, analyticsFrom } = getDateRanges();
+
+      if (tab === 'products') {
+        const list = await ApiService.getProducts(shopId);
+        setProducts(list);
+      } else if (tab === 'reservations') {
+        const list = await ApiService.getReservations(shopId);
+        setReservations(list);
+      } else if (tab === 'sales') {
+        const list = await ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() });
+        setSales(list.filter((s: any) => s.shop_id === shopId || s.shopId === shopId));
+      } else if (tab === 'overview') {
+        const [notif, analytics] = await Promise.all([
+          ApiService.getNotifications(shopId),
+          ApiService.getShopAnalytics(shopId, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
+        ]);
+        setNotifications((notif || []).slice(0, 5));
+        setAnalytics(analytics);
+      } else if (tab === 'reports') {
+        const [orders, analytics] = await Promise.all([
+          ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() }),
+          ApiService.getShopAnalytics(shopId, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
+        ]);
+        setSales((orders || []).filter((s: any) => s.shop_id === shopId || s.shopId === shopId));
+        setAnalytics(analytics);
+      } else if (tab === 'promotions') {
+        const offers = await ApiService.getOffers();
+        setActiveOffers((offers || []).filter((o: any) => o.shopId === shopId));
+      } else if (tab === 'gallery') {
+        const images = await ApiService.getShopGallery(shopId);
+        setGalleryImages(images || []);
+      }
+    } catch (e) {
+      const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
+      addToastRef.current(message, 'error');
+    } finally {
+      tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
+    }
+  }, []);
+
+  const refreshShopAndActiveTab = useCallback(async (forceTab = true) => {
+    const shop = (await loadShop()) || currentShop;
+    if (!shop) return;
+    await ensureTabData(resolveDashboardTab(searchParams.get('tab'), shop?.category), shop, forceTab);
+  }, [currentShop, ensureTabData, loadShop, searchParams]);
 
   useEffect(() => {
-    syncData();
-  }, [syncData]);
+    loadShop();
+  }, [loadShop]);
+
+  useEffect(() => {
+    if (!currentShop) return;
+    ensureTabData(resolveDashboardTab(tabParam, currentShop?.category), currentShop);
+  }, [currentShop, ensureTabData, tabParam]);
+
+  useEffect(() => {
+    if (loading) return;
+
+    const ids = new Set(
+      (sales || [])
+        .map((o: any) => String(o?.id || o?.orderId || o?.order_id || '').trim())
+        .filter((id: string) => Boolean(id))
+    );
+
+    if (!hasInitializedOrdersRef.current) {
+      knownOrderIdsRef.current = ids;
+      hasInitializedOrdersRef.current = true;
+      return;
+    }
+
+    let hasNew = false;
+    for (const id of ids) {
+      if (!knownOrderIdsRef.current.has(id)) {
+        hasNew = true;
+        break;
+      }
+    }
+
+    knownOrderIdsRef.current = ids;
+
+    if (!hasNew) return;
+    const url = RayDB.getSelectedNotificationSoundUrl();
+    if (!url) return;
+    const audio = new Audio(url);
+    audio.play().catch(() => {});
+  }, [loading, sales]);
 
   useEffect(() => {
     if (!currentShop) return;
@@ -254,30 +325,46 @@ const MerchantDashboardPage: React.FC = () => {
 
   useEffect(() => {
     const onOrdersUpdated = () => {
-      syncData();
+      const t = setTimeout(() => {
+        refreshShopAndActiveTab(true);
+      }, 150);
+      return () => clearTimeout(t);
     };
-    window.addEventListener('orders-updated', onOrdersUpdated);
+    const handler = () => {
+      const cleanup = onOrdersUpdated();
+      if (typeof cleanup === 'function') {
+        // ignore
+      }
+    };
+    window.addEventListener('orders-updated', handler);
     return () => {
-      window.removeEventListener('orders-updated', onOrdersUpdated);
+      window.removeEventListener('orders-updated', handler);
     };
-  }, [syncData]);
+  }, [refreshShopAndActiveTab]);
 
   useEffect(() => {
+    let timer: any;
     const onDbUpdate = () => {
-      syncData();
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        refreshShopAndActiveTab(true);
+      }, 200);
     };
     window.addEventListener('ray-db-update', onDbUpdate);
     return () => {
+      if (timer) clearTimeout(timer);
       window.removeEventListener('ray-db-update', onDbUpdate);
     };
-  }, [syncData]);
+  }, [refreshShopAndActiveTab]);
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
     try {
       await ApiService.deleteProduct(id);
       addToast('تم حذف المنتج', 'success');
-      syncData();
+      if (currentShop) {
+        await ensureTabData('products', currentShop, true);
+      }
     } catch {
       addToast('فشل حذف المنتج', 'error');
     }
@@ -303,7 +390,9 @@ const MerchantDashboardPage: React.FC = () => {
       }
 
       addToast('تم تحديث حالة الحجز', 'success');
-      syncData();
+      if (currentShop) {
+        await ensureTabData('reservations', currentShop, true);
+      }
     } catch {
       addToast('فشل التحديث', 'error');
     }
@@ -335,7 +424,7 @@ const MerchantDashboardPage: React.FC = () => {
         return (
           <PromotionsTab
             offers={activeOffers}
-            onDelete={(id) => ApiService.deleteOffer(id).then(syncData)}
+            onDelete={(id) => ApiService.deleteOffer(id).then(() => currentShop ? ensureTabData('promotions', currentShop, true) : undefined)}
             onCreate={() => setTab('products')}
           />
         );
@@ -343,14 +432,12 @@ const MerchantDashboardPage: React.FC = () => {
         return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
       case 'sales':
         return <SalesTab sales={sales} />;
-      case 'chats':
-        return <ChatsTab shopId={currentShop.id} />;
       case 'reports':
         return <ReportsTab analytics={analytics} sales={sales} />;
       case 'customers':
         return <CustomersTab shopId={currentShop.id} />;
       case 'settings':
-        return <MerchantSettings shop={currentShop} onSaved={syncData} adminShopId={adminTargetShopId} />;
+        return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
       default:
         return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
     }
@@ -428,12 +515,17 @@ const MerchantDashboardPage: React.FC = () => {
 
       <AddProductModal isOpen={showProductModal} onClose={() => {
         setShowProductModal(false);
-        syncData();
+        if (currentShop) {
+          ensureTabData('products', currentShop, true);
+        }
       }} shopId={currentShop.id} />
 
       <CreateOfferModal product={showOfferModal} onClose={() => {
         setShowOfferModal(null);
-        syncData();
+        if (currentShop) {
+          ensureTabData('promotions', currentShop, true);
+          ensureTabData('products', currentShop, true);
+        }
       }} shopId={currentShop.id} />
     </div>
   );

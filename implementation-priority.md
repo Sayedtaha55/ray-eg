@@ -3,22 +3,27 @@
 ## 🎯 المرحلة الأولى (1-3 أشهر) - الأساس القوي
 
 ### 1. تحسينات الأداء الفورية
-- [ ] إضافة Redis caching layer
-- [ ] تحسين قاعدة البيانات بالفهرسة
-- [ ] إضافة CDN للصور والملفات الثابتة
-- [ ] تفعيل GZIP compression
+- [x] تحسين صفحات الجمهور: Pagination/Lazy loading للصور وتقليل الـ payload
+- [ ] إضافة Redis caching layer (اختياري حسب حجم الترافيك)
+- [ ] تحسين قاعدة البيانات بالفهرسة (مهم عند الانتقال لـ Postgres)
+- [ ] إضافة CDN للصور والملفات الثابتة (Production)
+- [ ] تفعيل GZIP/Brotli compression (Production)
 
 ### 2. تحسينات الأمان
-- [ ] إضافة Rate Limiting
-- [ ] تفعيل Security Headers
-- [ ] تحسين JWT token handling
-- [ ] إضافة Input validation
+- [x] إضافة Rate Limiting (مع استثناء OPTIONS لتفادي مشاكل CORS)
+- [x] تفعيل Security Headers (Helmet)
+- [ ] تحسين JWT token handling (refresh/rotation إن لزم)
+- [x] إضافة Input validation (ValidationPipe + class-validator)
 
 ### 3. تحسينات الموبايل
 - [ ] تفعيل PWA
 - [ ] تحسين الـ Mobile responsiveness
 - [ ] إضافة Touch gestures
 - [ ] تحسين الـ Loading speed
+
+### 4. ثبات السيرفر (Stability)
+- [x] حماية السيرفر من الانهيار (uncaughtException / unhandledRejection)
+- [x] Graceful shutdown (SIGINT/SIGTERM)
 
 ## 🚀 المرحلة الثانية (3-6 أشهر) - الميزات المتقدمة
 

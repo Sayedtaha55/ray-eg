@@ -1,16 +1,41 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject, Query } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
 import { OfferService } from './offer.service';
+
+ function parseOptionalInt(value: any) {
+   if (typeof value === 'undefined' || value === null) return undefined;
+   const n = Number(value);
+   return Number.isNaN(n) ? undefined : n;
+ }
 
 @Controller('api/v1/offers')
 export class OfferController {
   constructor(@Inject(OfferService) private readonly offerService: OfferService) {}
 
   @Get()
-  async listActive() {
-    return this.offerService.listActive();
+  async listActive(
+    @Query('take') take: string,
+    @Query('skip') skip: string,
+    @Query('shopId') shopId: string,
+    @Query('productId') productId: string,
+  ) {
+    const shopIdNorm = typeof shopId === 'string' ? String(shopId).trim() : '';
+    const productIdNorm = typeof productId === 'string' ? String(productId).trim() : '';
+    return this.offerService.listActive({
+      take: parseOptionalInt(take),
+      skip: parseOptionalInt(skip),
+      shopId: shopIdNorm || undefined,
+      productId: productIdNorm || undefined,
+    });
+  }
+
+  @Get(':id')
+  async getById(@Param('id') id: string) {
+    const offerId = String(id || '').trim();
+    if (!offerId) throw new BadRequestException('id مطلوب');
+    return this.offerService.getActiveById(offerId);
   }
 
   @Post()

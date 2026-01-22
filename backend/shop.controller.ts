@@ -10,9 +10,20 @@ import { extname } from 'path';
 import * as fs from 'fs';
 import { randomBytes } from 'crypto';
 
+ const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+ const bannerUploadMaxMbRaw = String(process.env.BANNER_UPLOAD_MAX_MB || (isProd ? '30' : '80')).trim();
+ const bannerUploadMaxMb = Math.max(1, Number(bannerUploadMaxMbRaw) || (isProd ? 30 : 80));
+ const bannerUploadMaxBytes = Math.floor(bannerUploadMaxMb * 1024 * 1024);
+
 @Controller('api/v1/shops')
 export class ShopController {
   constructor(@Inject(ShopService) private readonly shopService: ShopService) {}
+
+  private parseOptionalInt(value: any) {
+    if (typeof value === 'undefined' || value === null) return undefined;
+    const n = Number(value);
+    return Number.isNaN(n) ? undefined : n;
+  }
 
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -166,7 +177,7 @@ export class ShopController {
         },
       }),
       limits: {
-        fileSize: 80 * 1024 * 1024,
+        fileSize: bannerUploadMaxBytes,
       },
       fileFilter: (req, file, cb) => {
         const allowedTypes = [
@@ -254,8 +265,20 @@ export class ShopController {
   }
 
   @Get()
-  async findAll() {
-    return this.shopService.getAllShops();
+  async findAll(
+    @Query('take') take: string,
+    @Query('skip') skip: string,
+    @Query('category') category: string,
+    @Query('governorate') governorate: string,
+    @Query('search') search: string,
+  ) {
+    return this.shopService.getAllShops({
+      take: this.parseOptionalInt(take),
+      skip: this.parseOptionalInt(skip),
+      category: typeof category === 'string' ? String(category).trim() : undefined,
+      governorate: typeof governorate === 'string' ? String(governorate).trim() : undefined,
+      search: typeof search === 'string' ? String(search).trim() : undefined,
+    });
   }
 
   @Get(':slug')

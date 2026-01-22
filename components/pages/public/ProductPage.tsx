@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
 import { Skeleton } from '@/components/common/ui';
+import { ApiService } from '@/services/api.service';
 
 const { useParams, useNavigate, Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -30,38 +31,76 @@ const ProductPage: React.FC = () => {
       setLoading(true);
       setError(false);
       try {
-        const p = await RayDB.getProductById(id);
-        if (!p) {
-          const offers = await RayDB.getOffers();
-          const o = offers.find(off => off.id === id);
-          if (o) {
-            const products = await RayDB.getProducts();
-            const originalProduct = products.find(prod => prod.name === o.title);
-            if (originalProduct) setProduct(originalProduct);
-            setOffer(o);
-            const shops = await RayDB.getShops();
-            const targetShop = shops.find(s => s.id === o.shopId) || null;
-            setShop(targetShop);
-            if (targetShop?.id) {
-              await RayDB.incrementVisitors(String(targetShop.id));
+        if (!id) {
+          setError(true);
+          return;
+        }
+
+        let p: any = null;
+        try {
+          p = await ApiService.getProductById(String(id));
+        } catch {
+          p = null;
+        }
+
+        let o: any = null;
+        if (p?.id) {
+          setProduct(p);
+          o = await ApiService.getOfferByProductId(String(p.id));
+          if (o) setOffer(o);
+
+          const shopId = (p as any).shopId || (p as any).shop_id;
+          if (shopId) {
+            try {
+              const s = await ApiService.getShopBySlugOrId(String(shopId));
+              setShop(s);
+              if (s?.id) {
+                await ApiService.incrementVisitors(String(s.id));
+              }
+            } catch {
             }
+          }
+
+          const favs = RayDB.getFavorites();
+          setIsFavorite(favs.includes(String(p.id)));
+          return;
+        }
+
+        // Fallback: treat id as offerId
+        const found = await ApiService.getOfferById(String(id));
+        if (found) {
+          setOffer(found as any);
+
+          const productId = (found as any)?.productId;
+          let prodResolved: any = null;
+          if (productId) {
+            try {
+              prodResolved = await ApiService.getProductById(String(productId));
+            } catch {
+              prodResolved = null;
+            }
+          }
+          if (prodResolved?.id) {
+            setProduct(prodResolved);
+            const favs = RayDB.getFavorites();
+            setIsFavorite(favs.includes(String(prodResolved.id)));
           } else {
             setError(true);
           }
-        } else {
-          setProduct(p);
-          const o = await RayDB.getOfferByProductId(p.id);
-          if (o) setOffer(o);
-          
-          const shops = await RayDB.getShops();
-          const targetShop = shops.find(s => s.id === (p as any).shop_id) || shops[0];
-          setShop(targetShop);
-          if (targetShop?.id) {
-            await RayDB.incrementVisitors(String(targetShop.id));
+
+          const shopId = (found as any)?.shopId;
+          if (shopId) {
+            try {
+              const s = await ApiService.getShopBySlugOrId(String(shopId));
+              setShop(s);
+              if (s?.id) {
+                await ApiService.incrementVisitors(String(s.id));
+              }
+            } catch {
+            }
           }
-          
-          const favs = RayDB.getFavorites();
-          setIsFavorite(favs.includes(p.id));
+        } else {
+          setError(true);
         }
       } catch (err) {
         // Error loading product - handled silently
@@ -168,7 +207,7 @@ const ProductPage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="relative aspect-square rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
         >
-          <img src={product.imageUrl || (product as any).image_url} className="w-full h-full object-cover" alt={product.name} />
+          <img loading="lazy" src={product.imageUrl || (product as any).image_url} className="w-full h-full object-cover" alt={product.name} />
           {hasDiscount && (
             <div className="absolute top-10 left-10 bg-[#BD00FF] text-white px-8 py-3 rounded-2xl font-black text-xl shadow-2xl">
               -{offer?.discount}%

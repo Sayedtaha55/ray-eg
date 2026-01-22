@@ -9,6 +9,19 @@ export class ProductService {
     // @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private getPagination(paging?: { page?: number; limit?: number }) {
+    const page = typeof paging?.page === 'number' ? paging.page : undefined;
+    const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
+    if (page == null && limit == null) return null;
+
+    const safeLimitRaw = limit == null ? 20 : limit;
+    const safeLimit = Math.min(Math.max(Math.floor(safeLimitRaw), 1), 100);
+    const safePage = Math.max(Math.floor(page == null ? 1 : page), 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    return { take: safeLimit, skip };
+  }
+
   async getById(id: string) {
     if (!id) {
       throw new BadRequestException('id مطلوب');
@@ -28,20 +41,24 @@ export class ProductService {
     return product;
   }
 
-  async listByShop(shopId: string) {
+  async listByShop(shopId: string, paging?: { page?: number; limit?: number }) {
     if (!shopId) {
       throw new BadRequestException('shopId مطلوب');
     }
+    const pagination = this.getPagination(paging);
     return this.prisma.product.findMany({
       where: { shopId, isActive: true },
       orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
     });
   }
 
-  async listAllActive() {
+  async listAllActive(paging?: { page?: number; limit?: number }) {
+    const pagination = this.getPagination(paging);
     return this.prisma.product.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
     });
   }
 

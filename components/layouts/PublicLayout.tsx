@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle } from 'lucide-react';
+import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home } from 'lucide-react';
 import { RayAssistant, CartDrawer } from '@/components';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
@@ -17,6 +17,7 @@ const PublicLayout: React.FC = () => {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -47,6 +48,72 @@ const PublicLayout: React.FC = () => {
       window.removeEventListener('auth-change', checkAuth);
     };
   }, []);
+
+  useEffect(() => {
+    const role = String(user?.role || '').toLowerCase();
+    if (!user || role === 'merchant') {
+      setUnreadCount(0);
+      return;
+    }
+
+    let stopped = false;
+    let lastId: string | null = null;
+    let paused = typeof document !== 'undefined' ? document.visibilityState === 'hidden' : false;
+
+    const pollUnread = async () => {
+      if (stopped || paused) return;
+      try {
+        const res = await ApiService.getMyUnreadNotificationsCount();
+        setUnreadCount(typeof res?.count === 'number' ? res.count : Number(res?.count || 0));
+      } catch {
+      }
+    };
+
+    const pollLatest = async () => {
+      if (stopped || paused) return;
+      try {
+        const list = await ApiService.getMyNotifications({ take: 1 });
+        const first = Array.isArray(list) && list.length > 0 ? list[0] : null;
+        const id = first?.id ? String(first.id) : null;
+        if (id && id !== lastId) {
+          lastId = id;
+          try {
+            const url = RayDB.getSelectedNotificationSoundUrl();
+            if (url) {
+              const audio = new Audio(url);
+              audio.play().catch(() => {});
+            }
+          } catch {
+          }
+          pollUnread();
+        }
+      } catch {
+      }
+    };
+
+    pollUnread();
+    pollLatest();
+    const timer = setInterval(() => {
+      pollUnread();
+      pollLatest();
+    }, 20000);
+
+    const onVisibility = () => {
+      paused = document.visibilityState === 'hidden';
+      if (!paused) {
+        pollUnread();
+        pollLatest();
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      stopped = true;
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [user?.id, user?.role]);
 
   const logout = async () => {
     try {
@@ -103,12 +170,25 @@ const PublicLayout: React.FC = () => {
             {!hideCartButton && (
               <button 
                 onClick={() => setCartOpen(true)}
-                className="relative w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 group transition-all"
+                className="relative hidden md:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-50 items-center justify-center hover:bg-slate-100 group transition-all"
               >
                 <ShoppingCart className="w-4 h-4 md:w-5 md:h-5 text-slate-500 group-hover:text-black" />
                 {cartItems.length > 0 && (
                   <span className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-[#BD00FF] text-white text-[8px] md:text-[10px] font-black rounded-full flex items-center justify-center ring-2 md:ring-4 ring-white">
                     {cartItems.length}
+                  </span>
+                )}
+              </button>
+            )}
+            {user && String(user?.role || '').toLowerCase() !== 'merchant' && (
+              <button
+                onClick={() => navigate('/profile?tab=notifications')}
+                className="relative w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 group transition-all"
+              >
+                <Bell className="w-4 h-4 md:w-5 md:h-5 text-slate-500 group-hover:text-black" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-red-500 text-white text-[8px] md:text-[10px] font-black rounded-full flex items-center justify-center ring-2 md:ring-4 ring-white">
+                    {unreadCount}
                   </span>
                 )}
               </button>
@@ -155,14 +235,56 @@ const PublicLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <main className="pt-20 md:pt-32 min-h-screen">
+      <main className="pt-20 md:pt-32 pb-24 md:pb-0 min-h-screen">
         <Outlet />
       </main>
+
+      <div className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 md:hidden">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
+            <div className="flex items-stretch justify-between gap-1" dir="rtl">
+              <Link
+                to="/"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname === '/' || pathname === '' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+              >
+                <Home className="w-5 h-5" />
+                <span className="text-[10px] font-black">الرئيسية</span>
+              </Link>
+
+              {!hideCartButton && (
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(true)}
+                  className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                >
+                  <span className="relative">
+                    <ShoppingCart className="w-5 h-5" />
+                    {cartItems.length > 0 && (
+                      <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#BD00FF] text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
+                        {cartItems.length}
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-[10px] font-black">السلة</span>
+                </button>
+              )}
+
+              <Link
+                to="/profile"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+              >
+                <User className="w-5 h-5" />
+                <span className="text-[10px] font-black">حسابي</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
       <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
 
-      <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
+      <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20 text-right">
           <div className="col-span-1 md:col-span-2">
             <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">

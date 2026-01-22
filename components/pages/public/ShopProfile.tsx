@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
@@ -8,7 +8,7 @@ import {
   Star, ChevronRight, X, Plus, Check, Heart, Users, 
   CalendarCheck, Eye, Layout, Palette, Layers, MousePointer2, 
   Zap, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
-  Info, Clock, MapPin, Phone, MessageCircle, Sliders, Monitor, Send, Camera
+  Info, Clock, MapPin, Phone, Camera, Menu
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
 import { ShopGallery as ShopGalleryComponent, useToast } from '@/components';
@@ -128,6 +128,7 @@ const ProductCard: React.FC<{
         }`}
       >
         <img 
+          loading="lazy"
           src={product.imageUrl || (product as any).image_url} 
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]" 
           alt={product.name} 
@@ -194,111 +195,6 @@ const ProductCard: React.FC<{
   );
 };
 
-const ChatWindow: React.FC<{ shop: Shop, onClose: () => void }> = ({ shop, onClose }) => {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [inputText, setInputText] = useState('');
-  const [user, setUser] = useState<any>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
-
-  useEffect(() => {
-    const savedUser = localStorage.getItem('ray_user');
-    if (savedUser) {
-      const parsed = JSON.parse(savedUser);
-      setUser(parsed);
-      loadMessages(parsed.id);
-      
-      const sub = ApiService.subscribeToMessages(shop.id, (newMsg) => {
-        if (newMsg.sender_id === parsed.id || newMsg.role === 'merchant') {
-          setMessages(prev => [...prev, newMsg]);
-        }
-      });
-      return () => { sub.unsubscribe(); };
-    }
-  }, [shop.id]);
-
-  useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-  }, [messages]);
-
-  const loadMessages = async (userId: string) => {
-    const data = await ApiService.getMessages(shop.id, userId);
-    setMessages(data);
-  };
-
-  const handleSend = async () => {
-    if (!inputText.trim() || !user) return;
-    const msg = {
-      shopId: shop.id,
-      senderId: user.id,
-      senderName: user.name,
-      text: inputText,
-      role: 'customer' as const
-    };
-    setInputText('');
-    await ApiService.sendMessage(msg);
-  };
-
-  if (!user) return (
-    <div className="p-8 text-center bg-white rounded-3xl shadow-2xl w-[calc(100vw-2rem)] md:w-[320px]">
-      <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
-         <MessageCircle size={32} className="text-[#00E5FF]" />
-      </div>
-      <p className="font-black text-sm mb-6 leading-relaxed text-slate-600">سجل دخولك الآن عشان تقدر تدردش مع {shop.name} مباشرة</p>
-      <button onClick={() => window.location.hash = '/login'} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:scale-105 transition-transform">دخول / تسجيل</button>
-    </div>
-  );
-
-  return (
-    <MotionDiv initial={{ opacity: 0, y: 20, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white w-[calc(100vw-2rem)] md:w-[400px] h-[450px] md:h-[500px] rounded-[2rem] md:rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden border border-slate-100">
-      <header className="p-5 md:p-6 bg-slate-900 text-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {shopLogoSrc ? (
-            <img src={shopLogoSrc} className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20 object-cover" alt={shop.name} />
-          ) : (
-            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/20 bg-white/10" />
-          )}
-          <div className="text-right">
-            <p className="font-black text-xs md:text-sm leading-none mb-1">{shop.name}</p>
-            <p className="text-[9px] md:text-[10px] text-green-400 font-bold flex items-center gap-1 justify-end">متصل الآن <div className="w-1 h-1 md:w-1.5 md:h-1.5 bg-green-400 rounded-full" /></p>
-          </div>
-        </div>
-        <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full"><X size={18} /></button>
-      </header>
-      
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-slate-50 no-scrollbar">
-        {messages.length === 0 && (
-          <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-            <MessageCircle size={40} className="mb-2" />
-            <p className="text-[10px] font-bold">ابدأ المحادثة مع {shop.name}</p>
-          </div>
-        )}
-        {messages.map((m, i) => (
-          <div key={i} className={`flex ${m.role === 'customer' ? 'justify-start' : 'justify-end'}`}>
-            <div className={`max-w-[85%] md:max-w-[80%] p-3 md:p-4 rounded-2xl text-[11px] md:text-xs font-bold shadow-sm ${m.role === 'customer' ? 'bg-[#00E5FF] text-slate-900' : 'bg-white text-slate-700'}`}>
-              {m.content}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="p-3 md:p-4 bg-white border-t border-slate-100 flex gap-2">
-        <input 
-          value={inputText}
-          onChange={e => setInputText(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleSend()}
-          placeholder="اكتب رسالتك هنا..."
-          className="flex-1 bg-slate-50 rounded-xl px-4 py-3 outline-none font-bold text-[11px] md:text-xs text-right"
-        />
-        <button onClick={handleSend} className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 text-white rounded-xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
-          <Send size={16} className="rotate-180" />
-        </button>
-      </div>
-    </MotionDiv>
-  );
-};
-
 const ShopProfile: React.FC = () => {
   const { slug } = useParams();
   const [shop, setShop] = useState<Shop | null>(null);
@@ -306,17 +202,23 @@ const ShopProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [spatialMode, setSpatialMode] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [hasFollowed, setHasFollowed] = useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  const [hasMoreProducts, setHasMoreProducts] = useState(true);
+  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+
+  const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
+  const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
 
   useEffect(() => {
     const syncData = async () => {
@@ -339,14 +241,15 @@ const ShopProfile: React.FC = () => {
             bannerUrl: '/placeholder-banner.jpg'
           };
           setCurrentDesign(design);
-          const [prodData, allOffers, galleryData] = await Promise.all([
-            ApiService.getProducts(currentShopData.id),
-            ApiService.getOffers(),
-            ApiService.getShopGallery(currentShopData.id)
-          ]);
-          setProducts(prodData);
-          setOffers(allOffers.filter((o: any) => o.shopId === currentShopData.id));
-          setGalleryImages(galleryData);
+
+          // Reset lazy-load state
+          productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
+          tabLoadStateRef.current = {};
+          setProducts([]);
+          setOffers([]);
+          setGalleryImages([]);
+          setHasMoreProducts(true);
+          setLoadingMoreProducts(false);
         } else {
           setError(true);
         }
@@ -360,6 +263,65 @@ const ShopProfile: React.FC = () => {
     syncData();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
+
+  useEffect(() => {
+    const ensureTabData = async () => {
+      const shopId = String(shop?.id || '').trim();
+      if (!shopId) return;
+
+      const key = `${activeTab}:${shopId}`;
+      const state = tabLoadStateRef.current[key] || { loaded: false, inFlight: false };
+      if (state.loaded || state.inFlight) return;
+      tabLoadStateRef.current[key] = { ...state, inFlight: true };
+
+      try {
+        if (activeTab === 'products') {
+          const page = productsPagingRef.current.page;
+          const limit = productsPagingRef.current.limit;
+          const prodData = await ApiService.getProducts(shopId, { page, limit });
+          const list = Array.isArray(prodData) ? prodData : [];
+          setProducts(list);
+          productsPagingRef.current.hasMore = list.length >= limit;
+          setHasMoreProducts(list.length >= limit);
+
+          const shopOffers = await ApiService.getOffers({ take: 100, skip: 0, shopId });
+          setOffers(Array.isArray(shopOffers) ? shopOffers : []);
+        } else if (activeTab === 'gallery') {
+          const galleryData = await ApiService.getShopGallery(shopId);
+          setGalleryImages(Array.isArray(galleryData) ? galleryData : []);
+        }
+      } catch {
+      } finally {
+        tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
+      }
+    };
+
+    ensureTabData();
+  }, [activeTab, shop?.id]);
+
+  const loadMoreProducts = async () => {
+    const shopId = String(shop?.id || '').trim();
+    if (!shopId) return;
+    if (productsPagingRef.current.loadingMore) return;
+    if (!productsPagingRef.current.hasMore) return;
+
+    productsPagingRef.current.loadingMore = true;
+    setLoadingMoreProducts(true);
+    try {
+      const nextPage = productsPagingRef.current.page + 1;
+      const limit = productsPagingRef.current.limit;
+      const next = await ApiService.getProducts(shopId, { page: nextPage, limit });
+      const list = Array.isArray(next) ? next : [];
+      setProducts((prev) => [...prev, ...list]);
+      productsPagingRef.current.page = nextPage;
+      productsPagingRef.current.hasMore = list.length >= limit;
+      setHasMoreProducts(list.length >= limit);
+    } catch {
+    } finally {
+      productsPagingRef.current.loadingMore = false;
+      setLoadingMoreProducts(false);
+    }
+  };
 
   const handleShare = async () => {
     if (!shop) return;
@@ -463,6 +425,19 @@ const ShopProfile: React.FC = () => {
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
 
+  const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
+  const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
+  const whatsappHref = whatsappDigits
+    ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop.name}`)}`
+    : '';
+
+  const WhatsAppIcon = (
+    <svg viewBox="0 0 32 32" width="18" height="18" fill="currentColor" aria-hidden="true">
+      <path d="M19.11 17.48c-.28-.14-1.64-.81-1.9-.9-.25-.1-.43-.14-.62.14-.18.28-.71.9-.88 1.09-.16.18-.32.2-.6.07-.28-.14-1.17-.43-2.23-1.37-.82-.73-1.38-1.63-1.54-1.9-.16-.28-.02-.43.12-.57.13-.13.28-.32.43-.48.14-.16.18-.28.28-.46.09-.18.05-.35-.02-.48-.07-.14-.62-1.5-.86-2.06-.23-.55-.46-.48-.62-.49h-.53c-.18 0-.48.07-.73.35-.25.28-.96.94-.96 2.29s.98 2.65 1.11 2.83c.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.57.65.2 1.24.17 1.7.1.52-.08 1.64-.67 1.87-1.31.23-.65.23-1.2.16-1.31-.07-.12-.25-.18-.53-.32z" />
+      <path d="M26.72 5.28A14.92 14.92 0 0 0 16.02 0C7.18 0 0 7.18 0 16.02c0 2.82.74 5.57 2.14 7.99L0 32l8.2-2.09a15.9 15.9 0 0 0 7.82 2c8.84 0 16.02-7.18 16.02-15.9 0-4.27-1.66-8.29-4.32-10.73zm-10.7 24.1a13.2 13.2 0 0 1-6.73-1.84l-.48-.28-4.87 1.24 1.3-4.74-.31-.49a13.14 13.14 0 0 1-2.01-7.25c0-7.22 5.88-13.1 13.1-13.1 3.5 0 6.78 1.36 9.23 3.83a12.92 12.92 0 0 1 3.86 9.27c0 7.22-5.88 13.36-13.09 13.36z" />
+    </svg>
+  );
+
   return (
     <div
       id="shop-profile-root"
@@ -542,52 +517,106 @@ const ShopProfile: React.FC = () => {
             )}
             
             <div className="flex items-center gap-2 md:gap-3">
-              {showHeaderChatButton && (
-                <button 
-                  onClick={() => setShowChat(true)}
-                  className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
+              {showHeaderNav && (
+                <button
+                  onClick={() => setIsHeaderMenuOpen((v) => !v)}
+                  className="md:hidden p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
+                  style={{ borderColor: `${headerTextColor}15` }}
+                  aria-label="القائمة"
+                >
+                  {isHeaderMenuOpen ? <X size={16} /> : <Menu size={16} />}
+                </button>
+              )}
+              <button
+                onClick={() => navigate(-1)}
+                className="hidden md:inline-flex p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
+                style={{ borderColor: `${headerTextColor}15` }}
+              >
+                <ChevronRight size={16} className="md:w-4 md:h-4" />
+              </button>
+              {showHeaderChatButton && whatsappHref && (
+                <a
+                  href={whatsappHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="hidden md:inline-flex p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
                   style={{ backgroundColor: currentDesign.primaryColor, color: '#000', borderColor: `${currentDesign.primaryColor}20` }}
                 >
-                  <MessageCircle size={14} className="md:w-4 md:h-4" />
-                </button>
+                  <span className="sr-only">واتساب</span>
+                  {WhatsAppIcon}
+                </a>
               )}
               {showHeaderShareButton && (
                 <button 
                   onClick={handleShare}
-                  className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black"
+                  className="hidden md:inline-flex p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black"
                 >
                   <Share2 size={14} className="md:w-4 md:h-4" />
                 </button>
               )}
             </div>
           </div>
+
+          {showHeaderNav && isHeaderMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-[110] md:hidden"
+                onClick={() => setIsHeaderMenuOpen(false)}
+              />
+              <div className="md:hidden mt-3 relative z-[121]">
+                <div className="rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md shadow-lg overflow-hidden">
+                  <button
+                    onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
+                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'products' ? 'bg-slate-50' : 'bg-transparent'}`}
+                    style={{ color: headerTextColor }}
+                  >
+                    {isRestaurant ? 'المنيو' : 'المعروضات'}
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
+                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'gallery' ? 'bg-slate-50' : 'bg-transparent'}`}
+                    style={{ color: headerTextColor }}
+                  >
+                    معرض الصور
+                  </button>
+                  <button
+                    onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
+                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'info' ? 'bg-slate-50' : 'bg-transparent'}`}
+                    style={{ color: headerTextColor }}
+                  >
+                    معلومات المتجر
+                  </button>
+                  {showHeaderShareButton && (
+                    <button
+                      onClick={() => { handleShare(); setIsHeaderMenuOpen(false); }}
+                      className="w-full text-right px-4 py-3 font-black text-sm transition-colors bg-transparent"
+                      style={{ color: headerTextColor }}
+                    >
+                      مشاركة
+                    </button>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </header>
       
       {/* Dynamic Navigation UI */}
-      {showFloatingChatButton && (
-        <div className="fixed bottom-6 md:bottom-10 right-4 md:right-8 z-[150] flex flex-col gap-4 items-end">
-           <AnimatePresence>
-              {showChat && <ChatWindow shop={shop} onClose={() => setShowChat(false)} />}
-           </AnimatePresence>
-           
-           <button 
-             onClick={() => setShowChat(!showChat)}
-             className={`w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white text-white ${showChat ? 'bg-red-500' : 'bg-slate-900'}`}
-             style={{ backgroundColor: !showChat ? currentDesign.primaryColor : undefined, color: !showChat ? '#000' : undefined }}
+      {showFloatingChatButton && whatsappHref && (
+        <div className="fixed bottom-6 right-4 z-[150] flex flex-col gap-4 items-end md:hidden">
+           <a
+             href={whatsappHref}
+             target="_blank"
+             rel="noreferrer"
+             className="w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white"
+             style={{ backgroundColor: currentDesign.primaryColor, color: '#000' }}
            >
-              {showChat ? <X size={24} className="md:w-7 md:h-7" /> : <MessageCircle size={24} className="md:w-7 md:h-7" />}
-           </button>
+              <span className="sr-only">واتساب</span>
+              <span className="scale-110">{WhatsAppIcon}</span>
+           </a>
         </div>
       )}
-
-      {/* Header Buttons */}
-      <div className="fixed top-0 left-0 right-0 z-[110] p-3 md:p-4 flex justify-between items-center pointer-events-none">
-         <button onClick={() => navigate(-1)} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><ChevronRight size={20} className="md:w-6 md:h-6" /></button>
-         {showHeaderShareButton && (
-           <button onClick={handleShare} className="p-2 md:p-3 bg-white/90 backdrop-blur-md rounded-xl md:rounded-2xl shadow-xl pointer-events-auto active:scale-90 transition-transform"><Share2 size={20} className="md:w-6 md:h-6" /></button>
-         )}
-      </div>
 
       {/* Hero Section */}
       <section className={`relative transition-all duration-1000 overflow-hidden bg-slate-900 ${
@@ -696,6 +725,19 @@ const ShopProfile: React.FC = () => {
                   ))
                 )}
               </div>
+
+              {filteredProducts.length > 0 && hasMoreProducts && (
+                <div className="mt-10 md:mt-14 flex items-center justify-center">
+                  <button
+                    onClick={loadMoreProducts}
+                    disabled={loadingMoreProducts}
+                    className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl disabled:opacity-60"
+                  >
+                    {loadingMoreProducts ? <Loader2 className="animate-spin" size={18} /> : null}
+                    <span>{loadingMoreProducts ? 'تحميل...' : 'تحميل المزيد'}</span>
+                  </button>
+                </div>
+              )}
             </MotionDiv>
           ) : activeTab === 'gallery' ? (
             <MotionDiv key="gallery-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
@@ -727,7 +769,7 @@ const ShopProfile: React.FC = () => {
                     <InfoItem 
                       icon={<Phone className="md:w-5 md:h-5 text-[#BD00FF]" />} 
                       title="رقم الهاتف" 
-                      value={shop.phone || 'يرجى التواصل عبر واتساب'} 
+                      value={whatsappRaw || shop.phone || 'يرجى التواصل عبر واتساب'} 
                     />
                     <InfoItem 
                       icon={<Clock className="md:w-5 md:h-5 text-slate-400" />} 
@@ -738,13 +780,24 @@ const ShopProfile: React.FC = () => {
                </div>
                <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 flex flex-col justify-center items-center text-center space-y-6 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
                   <div className={`w-16 h-16 md:w-24 md:h-24 bg-white rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-xl mb-2 ${isBold ? 'rotate-6' : ''}`}>
-                     <MessageCircle size={isBold ? 32 : 28} className="md:w-10 md:h-10 text-green-500" />
+                     <span className="text-green-500">{WhatsAppIcon}</span>
                   </div>
-                  <h3 className="text-xl md:text-2xl font-black">تحدث مع المتجر</h3>
-                  <p className="text-slate-500 font-bold max-w-xs leading-relaxed text-xs md:text-base">هل لديك استفسار محدد؟ يمكنك التواصل مع إدارة المتجر مباشرة للحصول على رد سريع.</p>
-                  <button onClick={() => setShowChat(true)} className="w-full md:w-auto px-8 py-4 md:px-10 md:py-5 bg-green-500 text-white rounded-2xl md:rounded-[1.5rem] font-black text-sm md:text-base flex items-center justify-center gap-3 shadow-xl hover:scale-105 transition-transform active:scale-95">
-                     <MessageCircle size={18} className="md:w-5 md:h-5" /> فتح محادثة فورية
-                  </button>
+                  <h3 className="text-xl md:text-2xl font-black">تواصل عبر واتساب</h3>
+                  <p className="text-slate-500 font-bold max-w-xs leading-relaxed text-xs md:text-base">تواصل مباشرة مع صاحب النشاط عبر واتساب للحصول على رد سريع.</p>
+                  {whatsappHref ? (
+                    <a
+                      href={whatsappHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="w-full md:w-auto px-8 py-4 md:px-10 md:py-5 bg-green-500 text-white rounded-2xl md:rounded-[1.5rem] font-black text-sm md:text-base flex items-center justify-center gap-3 shadow-xl hover:scale-105 transition-transform active:scale-95"
+                    >
+                      <span className="text-white">{WhatsAppIcon}</span> فتح واتساب
+                    </a>
+                  ) : (
+                    <div className="w-full md:w-auto px-8 py-4 md:px-10 md:py-5 bg-slate-200 text-slate-600 rounded-2xl md:rounded-[1.5rem] font-black text-sm md:text-base">
+                      لا يوجد رقم واتساب بعد
+                    </div>
+                  )}
                </div>
             </MotionDiv>
           )}

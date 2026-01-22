@@ -16,8 +16,8 @@
 ### Required Software
 - **Node.js** 18+ LTS
 - **Docker** & **Docker Compose**
-- **PostgreSQL** client tools
-- **Redis** client tools
+- **PostgreSQL** client tools (optional, if using Postgres)
+- **Redis** client tools (optional)
 - **Git**
 
 ### System Requirements
@@ -48,7 +48,7 @@ cp .env.example .env
 Required variables:
 ```env
 # Database
-DATABASE_URL="postgres://username:password@host:5432/database"
+DATABASE_URL="..." # depends on the Prisma schema you use
 
 # Redis
 REDIS_HOST="localhost"
@@ -61,6 +61,7 @@ JWT_SECRET="your_long_random_secret_key"
 
 # AI Services
 GEMINI_API_KEY="your_gemini_api_key"
+VITE_GEMINI_API_KEY="your_gemini_api_key" # supported as an alternative name
 
 # Monitoring
 LOG_LEVEL="info"
@@ -68,16 +69,17 @@ LOG_LEVEL="info"
 
 ## 🗄️ Database Setup
 
-### Option 1: Prisma Cloud (Recommended)
-1. Create account at [Prisma Cloud](https://cloud.prisma.io/)
-2. Create new PostgreSQL database
-3. Copy connection string to `.env`
-4. Run migrations:
+### Prisma schemas in this repo
+- **SQLite (default dev)**: `prisma/schema.prisma`
+- **Postgres (deployment)**: `prisma/schema.postgres.prisma`
+
+### Option 1: Default dev (SQLite)
 ```bash
-npx prisma db push
+npm run prisma:generate
+npm run prisma:push
 ```
 
-### Option 2: Local PostgreSQL
+### Option 2: PostgreSQL
 ```bash
 # Install PostgreSQL
 sudo apt-get install postgresql postgresql-contrib
@@ -97,7 +99,13 @@ DATABASE_URL="postgres://ray_user:your_password@localhost:5432/ray_marketplace"
 
 ### 3. Generate Prisma Client
 ```bash
-npx prisma generate
+npm run prisma:generate
+```
+
+### Postgres schema commands
+```bash
+npm run prisma:generate:postgres
+npm run prisma:push:postgres
 ```
 
 ## 📦 Redis Setup
@@ -173,12 +181,12 @@ mkdir -p logs
 
 ### 2. Start Application
 ```bash
-# Using PM2 (recommended)
-npm install -g pm2
-pm2 start ecosystem.config.js
+# Backend
+npm run backend:start
 
-# Or using Node.js directly
-NODE_ENV=production npm start
+# Frontend
+npm run build
+npm run preview
 ```
 
 ### 3. PM2 Configuration

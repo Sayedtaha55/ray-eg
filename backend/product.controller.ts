@@ -10,12 +10,18 @@ export class ProductController {
   constructor(@Inject(ProductService) private readonly productService: ProductService) {}
 
   @Get()
-  async list(@Query('shopId') shopId: string) {
+  async list(@Query('shopId') shopId: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     const sid = typeof shopId === 'string' ? String(shopId).trim() : '';
+    const pageNum = typeof page === 'string' && page.trim() ? Number(page) : undefined;
+    const limitNum = typeof limit === 'string' && limit.trim() ? Number(limit) : undefined;
+    const paging = {
+      page: typeof pageNum === 'number' && Number.isFinite(pageNum) ? pageNum : undefined,
+      limit: typeof limitNum === 'number' && Number.isFinite(limitNum) ? limitNum : undefined,
+    };
     if (sid) {
-      return this.productService.listByShop(sid);
+      return this.productService.listByShop(sid, paging);
     }
-    return this.productService.listAllActive();
+    return this.productService.listAllActive(paging);
   }
 
   @Get(':id')

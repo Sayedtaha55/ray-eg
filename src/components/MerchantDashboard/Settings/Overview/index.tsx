@@ -7,27 +7,61 @@ interface OverviewProps {
 }
 
 const Overview: React.FC<OverviewProps> = ({ shop }) => {
+  const formatEGP = (value: unknown) => {
+    const n = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(n)) return 'غير متاح';
+    try {
+      return new Intl.NumberFormat('ar-EG', {
+        style: 'currency',
+        currency: 'EGP',
+        maximumFractionDigits: 0,
+      }).format(n);
+    } catch {
+      return `ج.م ${Math.round(n).toLocaleString('ar-EG')}`;
+    }
+  };
+
+  const status = String(shop?.status || '').toLowerCase();
+  const isApproved = status === 'approved';
+  const isPending = status === 'pending';
+  const isRejected = status === 'rejected';
+  const hasPaymentConfig = Boolean(String(shop?.paymentConfig?.merchantId || '').trim()) && Boolean(String(shop?.paymentConfig?.publicKey || '').trim());
+  const paidUntilRaw = shop?.paidUntil ?? shop?.paid_until ?? shop?.subscriptionPaidUntil ?? shop?.subscription_paid_until;
+  const paidUntilDate = paidUntilRaw ? new Date(paidUntilRaw) : null;
+  const paidUntilText = paidUntilDate && !Number.isNaN(paidUntilDate.getTime())
+    ? paidUntilDate.toLocaleDateString('ar-EG')
+    : '';
+  const nextDueAmount = shop?.nextDueAmount ?? shop?.next_due_amount ?? shop?.billing?.nextDueAmount ?? shop?.billing?.next_due_amount;
+
   const stats = [
     {
       title: 'حالة الحساب',
-      value: shop?.isActive ? 'نشط' : 'غير نشط',
-      icon: shop?.isActive ? CheckCircle : AlertTriangle,
-      color: shop?.isActive ? 'text-green-500' : 'text-yellow-500',
-      description: shop?.isActive ? 'حسابك نشط وجاهز للاستخدام' : 'حسابك غير نشط، يرجى مراجعة الإعدادات',
+      value: isApproved ? 'نشط' : isPending ? 'قيد المراجعة' : isRejected ? 'مرفوض' : 'غير معروف',
+      icon: isApproved ? CheckCircle : isPending ? Clock : isRejected ? AlertTriangle : Info,
+      color: isApproved ? 'text-green-500' : isPending ? 'text-blue-500' : isRejected ? 'text-red-500' : 'text-slate-400',
+      description: isApproved
+        ? 'متجرك معتمد وجاهز لاستقبال الطلبات'
+        : isPending
+          ? 'متجرك قيد المراجعة حالياً'
+          : isRejected
+            ? 'تم رفض المتجر، راجع بيانات المتجر'
+            : 'لم يتم تحديد حالة المتجر',
     },
     {
       title: 'حالة الدفع',
-      value: 'مدفوع',
-      icon: CheckCircle,
-      color: 'text-green-500',
-      description: 'الاشتراك ساري حتى 31/12/2023',
+      value: hasPaymentConfig ? 'مفعّلة' : 'غير مفعّلة',
+      icon: hasPaymentConfig ? CheckCircle : AlertTriangle,
+      color: hasPaymentConfig ? 'text-green-500' : 'text-yellow-500',
+      description: hasPaymentConfig
+        ? (paidUntilText ? `الاشتراك/الدفع ساري حتى ${paidUntilText}` : 'تم ربط بيانات الدفع بنجاح')
+        : 'لم يتم ربط بيانات الدفع بعد',
     },
     {
       title: 'المستحقات القادمة',
-      value: '0.00 ر.س',
+      value: formatEGP(nextDueAmount ?? 0),
       icon: Clock,
       color: 'text-blue-500',
-      description: 'لا توجد مدفوعات معلقة',
+      description: Number(nextDueAmount) > 0 ? 'يوجد مبلغ مستحق قادم' : 'لا توجد مدفوعات معلقة',
     },
   ];
 

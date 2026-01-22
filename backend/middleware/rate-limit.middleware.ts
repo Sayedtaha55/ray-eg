@@ -11,17 +11,23 @@ interface RateLimitOptions {
 @Injectable()
 export class RateLimitMiddleware implements NestMiddleware {
   private requests = new Map<string, { count: number; resetTime: number }>();
+  private lastCleanupAt = 0;
 
   constructor(private options: RateLimitOptions) {
-    // Clean up expired entries every minute
-    setInterval(() => {
-      this.cleanup();
-    }, 60000);
   }
 
   use(req: Request, res: Response, next: NextFunction) {
+    if (String(req?.method || '').toUpperCase() === 'OPTIONS') {
+      return next();
+    }
+
     const clientId = this.getClientId(req);
     const now = Date.now();
+
+    if (now - this.lastCleanupAt > 60000) {
+      this.cleanup(now);
+      this.lastCleanupAt = now;
+    }
     
     let clientData = this.requests.get(clientId);
     
@@ -70,8 +76,7 @@ export class RateLimitMiddleware implements NestMiddleware {
            'unknown';
   }
 
-  private cleanup() {
-    const now = Date.now();
+  private cleanup(now: number) {
     for (const [clientId, data] of this.requests.entries()) {
       if (now > data.resetTime) {
         this.requests.delete(clientId);

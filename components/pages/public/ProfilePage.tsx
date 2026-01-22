@@ -7,7 +7,7 @@ import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 
-const { Link, useNavigate } = ReactRouterDOM as any;
+const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 type ProfileTab = 'reservations' | 'favorites' | 'notifications' | 'settings';
@@ -17,9 +17,17 @@ const ProfilePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ProfileTab>('reservations');
   const [reservations, setReservations] = useState<Reservation[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifLoading, setNotifLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    const tab = new URLSearchParams(String(location?.search || '')).get('tab');
+    if (tab === 'notifications' || tab === 'favorites' || tab === 'reservations' || tab === 'settings') {
+      setActiveTab(tab as any);
+    }
+
     const savedUser = localStorage.getItem('ray_user');
     if (!savedUser) navigate('/login');
     else setUser(JSON.parse(savedUser));
@@ -47,7 +55,25 @@ const ProfilePage: React.FC = () => {
     loadData();
     window.addEventListener('ray-db-update', loadData);
     return () => window.removeEventListener('ray-db-update', loadData);
-  }, [navigate]);
+  }, [navigate, location?.search]);
+
+  const loadNotifications = async () => {
+    setNotifLoading(true);
+    try {
+      const data = await ApiService.getMyNotifications({ take: 100 });
+      setNotifications(Array.isArray(data) ? data : []);
+    } catch {
+      setNotifications([]);
+    } finally {
+      setNotifLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      loadNotifications();
+    }
+  }, [activeTab]);
 
   const logout = async () => {
     try {
@@ -170,17 +196,61 @@ const ProfilePage: React.FC = () => {
 
               {activeTab === 'notifications' && (
                 <div className="space-y-4">
-                  {[
-                    { title: 'أهلاً بك في Ray!', desc: 'استمتع بأفضل العروض الحصرية في مصر.', type: 'promo' }
-                  ].map((notif, i) => (
-                    <div key={i} className="p-8 rounded-[2rem] border-r-8 bg-cyan-50 border-cyan-400 flex items-center gap-6 flex-row-reverse text-right">
-                       <div className="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center"><Zap size={20} /></div>
-                       <div className="flex-1">
-                          <p className="font-black text-lg">{notif.title}</p>
-                          <p className="text-slate-500 font-bold text-sm">{notif.desc}</p>
-                       </div>
-                    </div>
-                  ))}
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => loadNotifications()}
+                      className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all"
+                    >
+                      تحديث
+                    </button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await ApiService.markMyNotificationsRead();
+                        } catch {
+                        }
+                        loadNotifications();
+                      }}
+                      className="px-6 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all"
+                    >
+                      تعليم الكل كمقروء
+                    </button>
+                  </div>
+
+                  {notifLoading ? (
+                    <div className="p-10 text-center text-slate-400 font-bold">تحميل التنبيهات...</div>
+                  ) : notifications.length === 0 ? (
+                    <div className="p-10 text-center text-slate-300 font-bold">لا توجد تنبيهات</div>
+                  ) : (
+                    notifications.map((notif: any) => (
+                      <div key={notif.id} className={`p-8 rounded-[2rem] border-r-8 flex items-center gap-6 flex-row-reverse text-right ${notif.isRead ? 'bg-white border-slate-200' : 'bg-cyan-50 border-cyan-400'}`}>
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${notif.isRead ? 'bg-slate-100 text-slate-500' : 'bg-cyan-100 text-cyan-600'}`}>
+                          <Zap size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-black text-lg">{String(notif.title || '')}</p>
+                          <p className="text-slate-500 font-bold text-sm">{String(notif.content || '')}</p>
+                          <div className="flex items-center justify-between mt-3">
+                            <span className="text-[10px] text-slate-400 font-black">{notif.createdAt ? new Date(notif.createdAt).toLocaleString('ar-EG') : ''}</span>
+                            {!notif.isRead && (
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await ApiService.markMyNotificationRead(String(notif.id));
+                                  } catch {
+                                  }
+                                  loadNotifications();
+                                }}
+                                className="px-4 py-2 bg-slate-900 text-white rounded-xl font-black text-[10px]"
+                              >
+                                كمقروء
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
 

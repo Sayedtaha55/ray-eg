@@ -5,6 +5,12 @@ import { Roles } from './auth/decorators/roles.decorator';
 import { ReservationService } from './reservation.service';
 import { IsOptional, IsString, MinLength } from 'class-validator';
 
+function parseOptionalNumber(value: any) {
+  if (value == null) return undefined;
+  const n = Number(String(value));
+  return Number.isFinite(n) ? n : undefined;
+}
+
 class CreateReservationDto {
   @IsString()
   @MinLength(1)
@@ -55,18 +61,21 @@ export class ReservationController {
 
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async listMine(@Request() req) {
+  async listMine(@Query('page') page?: string, @Query('limit') limit?: string, @Request() req?: any) {
     const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('غير مصرح');
     }
-    return this.reservationService.listByUserId(userId);
+    return this.reservationService.listByUserId(userId, {
+      page: parseOptionalNumber(page),
+      limit: parseOptionalNumber(limit),
+    });
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async listByShop(@Query('shopId') shopId: string, @Request() req) {
+  async listByShop(@Query('shopId') shopId: string, @Query('page') page?: string, @Query('limit') limit?: string, @Request() req?: any) {
     const role = String(req.user?.role || '').toUpperCase();
     const shopIdFromToken = req.user?.shopId;
     const shopIdFromQuery = typeof shopId === 'string' ? shopId : undefined;
@@ -76,7 +85,10 @@ export class ReservationController {
       throw new BadRequestException('shopId مطلوب');
     }
 
-    return this.reservationService.listByShop(targetShopId);
+    return this.reservationService.listByShop(targetShopId, {
+      page: parseOptionalNumber(page),
+      limit: parseOptionalNumber(limit),
+    });
   }
 
   @Patch(':id/status')

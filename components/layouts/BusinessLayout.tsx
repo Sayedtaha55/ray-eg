@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, MessageCircle, Palette } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
@@ -191,7 +191,6 @@ const BusinessLayout: React.FC = () => {
           <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={activeTab === 'products'} />
           <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={activeTab === 'promotions'} />
           <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={activeTab === 'reservations'} />
-          <NavItem to={buildDashboardUrl('chats')} onClick={() => setSidebarOpen(false)} icon={<MessageCircle size={20} />} label="المحادثات" active={activeTab === 'chats'} />
           <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={activeTab === 'sales'} />
           <NavItem to={buildDashboardUrl('settings')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={activeTab === 'settings'} />
         </nav>

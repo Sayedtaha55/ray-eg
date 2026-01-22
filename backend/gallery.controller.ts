@@ -9,6 +9,11 @@ import { extname } from 'path';
 import * as fs from 'fs';
 import { randomBytes } from 'crypto';
 
+ const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
+ const galleryUploadMaxMbRaw = String(process.env.GALLERY_UPLOAD_MAX_MB || (isProd ? '20' : '80')).trim();
+ const galleryUploadMaxMb = Math.max(1, Number(galleryUploadMaxMbRaw) || (isProd ? 20 : 80));
+ const galleryUploadMaxBytes = Math.floor(galleryUploadMaxMb * 1024 * 1024);
+
 @Controller('api/v1/gallery')
 export class GalleryController {
   constructor(
@@ -35,7 +40,7 @@ export class GalleryController {
       }
     }),
     limits: {
-      fileSize: 80 * 1024 * 1024, // 80MB
+      fileSize: galleryUploadMaxBytes,
     },
     fileFilter: (req, file, cb) => {
       const allowedTypes = [

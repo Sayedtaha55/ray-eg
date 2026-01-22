@@ -365,6 +365,74 @@ export class ShopService {
     }
   }
 
+  async getAllShops(input?: {
+    take?: number;
+    skip?: number;
+    category?: string;
+    governorate?: string;
+    search?: string;
+  }) {
+    const startTime = Date.now();
+
+    try {
+      const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
+      const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : undefined;
+      const take = typeof takeRaw === 'number' ? Math.min(100, Math.max(1, Math.floor(takeRaw))) : undefined;
+      const skip = typeof skipRaw === 'number' ? Math.max(0, Math.floor(skipRaw)) : undefined;
+
+      const category = typeof input?.category === 'string' ? input.category.trim() : '';
+      const governorate = typeof input?.governorate === 'string' ? input.governorate.trim() : '';
+      const search = typeof input?.search === 'string' ? input.search.trim() : '';
+
+      const shops = await this.prisma.shop.findMany({
+        where: {
+          status: 'APPROVED',
+          ...(category ? { category: category as any } : {}),
+          ...(governorate ? { governorate } : {}),
+          ...(search
+            ? {
+                name: {
+                  contains: search,
+                },
+              }
+            : {}),
+        },
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          category: true,
+          governorate: true,
+          city: true,
+          rating: true,
+          followers: true,
+          visitors: true,
+          isActive: true,
+          status: true,
+          logoUrl: true,
+          bannerUrl: true,
+          pageDesign: true,
+          layoutConfig: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        ...(typeof take === 'number' ? { take } : {}),
+        ...(typeof skip === 'number' ? { skip } : {}),
+      });
+
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('findMany', 'shops', duration, true);
+      this.monitoring.trackPerformance('getAllShops_database', duration);
+
+      return shops;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      this.monitoring.trackDatabase('findMany', 'shops', duration, false);
+      throw error;
+    }
+  }
+
   async updateShopStatus(shopId: string, status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED') {
     const startTime = Date.now();
 
@@ -384,53 +452,6 @@ export class ShopService {
     } catch (error) {
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, false);
-      throw error;
-    }
-  }
-
-  async getAllShops() {
-    const startTime = Date.now();
-    
-    try {
-      // Try to get from cache first
-      // const cachedShops = await this.redis.getShopsList();
-      // if (cachedShops) {
-      //   const duration = Date.now() - startTime;
-      //   this.monitoring.trackCache('getShopsList', 'shops:list', true, duration);
-      //   this.monitoring.trackPerformance('getAllShops_cached', duration);
-      //   return cachedShops;
-      // }
-
-      // If not in cache, fetch from database
-      const shops = await this.prisma.shop.findMany({
-        where: { status: 'APPROVED' },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          _count: {
-            select: {
-              products: true,
-              offers: true,
-            },
-          },
-        },
-      });
-
-      // await this.redis.cacheShopsList(shops, 1800);
-      
-      const duration = Date.now() - startTime;
-      this.monitoring.trackDatabase('findMany', 'shops', duration, true);
-      this.monitoring.trackPerformance('getAllShops_database', duration);
-      
-      return shops;
-    } catch (error) {
-      const duration = Date.now() - startTime;
-      this.monitoring.trackDatabase('findMany', 'shops', duration, false);
       throw error;
     }
   }

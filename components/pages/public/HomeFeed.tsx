@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ApiService } from '@/services/api.service';
-import { Offer, Shop } from '@/types';
+import { Offer } from '@/types';
 import { Sparkles, TrendingUp, ShoppingCart, CalendarCheck, Loader2, MessageSquarePlus, Send, X, AlertCircle, Eye, Wand2, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -14,10 +14,15 @@ const MotionDiv = motion.div as any;
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
-  const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const navigate = useNavigate();
+
+  const offersLenRef = useRef(0);
+  const loadingMoreRef = useRef(false);
+  const hasMoreOffersRef = useRef(true);
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
@@ -25,24 +30,62 @@ const HomeFeed: React.FC = () => {
   const [feedbackResponse, setFeedbackResponse] = useState('');
 
   useEffect(() => {
+    const PAGE_SIZE = 12;
     const loadData = async () => {
       setLoading(true);
       try {
-        const [offersData, shopsData] = await Promise.all([
-          ApiService.getOffers(),
-          ApiService.getShops('approved')
-        ]);
+        const offersData = await ApiService.getOffers({ take: PAGE_SIZE, skip: 0 });
         setOffers(offersData);
-        setShops(shopsData);
+
+        const nextHasMore = Array.isArray(offersData) && offersData.length >= PAGE_SIZE;
+        offersLenRef.current = Array.isArray(offersData) ? offersData.length : 0;
+        hasMoreOffersRef.current = nextHasMore;
+        setHasMoreOffers(nextHasMore);
       } catch (e) {
         // Failed to fetch data - handled silently
       } finally {
         setLoading(false);
       }
     };
+
+    const loadMoreOffers = async () => {
+      if (loadingMoreRef.current || !hasMoreOffersRef.current) return;
+      loadingMoreRef.current = true;
+      setLoadingMore(true);
+      try {
+        const next = await ApiService.getOffers({ take: PAGE_SIZE, skip: offersLenRef.current });
+        const list = Array.isArray(next) ? next : [];
+        setOffers((prev) => {
+          const merged = [...prev, ...list];
+          offersLenRef.current = merged.length;
+          return merged;
+        });
+        const nextHasMore = list.length >= PAGE_SIZE;
+        hasMoreOffersRef.current = nextHasMore;
+        setHasMoreOffers(nextHasMore);
+      } catch {
+      } finally {
+        setLoadingMore(false);
+        loadingMoreRef.current = false;
+      }
+    };
+
     loadData();
     window.addEventListener('ray-db-update', loadData);
-    return () => window.removeEventListener('ray-db-update', loadData);
+    const onScroll = () => {
+      try {
+        if (typeof window === 'undefined') return;
+        const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 900;
+        if (nearBottom) loadMoreOffers();
+      } catch {
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    return () => {
+      window.removeEventListener('ray-db-update', loadData);
+      window.removeEventListener('scroll', onScroll as any);
+    };
   }, []);
 
   const handleSendFeedback = async () => {
@@ -102,6 +145,24 @@ const HomeFeed: React.FC = () => {
             </div>
           ))}
         </div>
+        {hasMoreOffers && (
+          <div className="mt-10 md:mt-16 flex items-center justify-center">
+            <button
+              onClick={() => {
+                try {
+                  const evt = new Event('scroll');
+                  window.dispatchEvent(evt);
+                } catch {
+                }
+              }}
+              className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+              disabled={loadingMore}
+            >
+              {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
+              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+            </button>
+          </div>
+        )}
       </section>
     </div>
   );
@@ -150,7 +211,7 @@ const HomeFeed: React.FC = () => {
                 onClick={() => navigate(`/product/${(offer as any).productId || offer.id}`)}
                 className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6 bg-slate-50 cursor-pointer"
               >
-                <img src={offer.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
+                <img loading="lazy" src={offer.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
                 <div className="absolute top-5 left-5 bg-[#BD00FF] text-white px-4 py-2 rounded-2xl font-black text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                    <Eye size={32} className="text-white drop-shadow-lg" />
@@ -194,14 +255,14 @@ const HomeFeed: React.FC = () => {
       </section>
 
       {/* Feedback Widget */}
-      <div className="fixed bottom-10 left-10 z-[150]">
+      <div className="fixed bottom-28 left-4 md:bottom-10 md:left-10 z-[150]">
          <AnimatePresence>
             {isFeedbackOpen && (
                <MotionDiv 
                  initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                  animate={{ opacity: 1, scale: 1, y: 0 }} 
                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                 className="absolute bottom-24 left-0 w-80 bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl p-8 text-right"
+                 className="absolute bottom-20 md:bottom-24 left-0 w-80 bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl p-8 text-right"
                  dir="rtl"
                >
                   <div className="flex items-center justify-between mb-6">
@@ -237,7 +298,7 @@ const HomeFeed: React.FC = () => {
          </AnimatePresence>
          <button 
             onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
-            className="w-20 h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
+            className="w-14 h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
          >
             <MessageSquarePlus className="group-hover:rotate-12 transition-transform" />
          </button>

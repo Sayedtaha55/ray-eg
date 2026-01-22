@@ -17,11 +17,12 @@
 - **تحليلات متقدمة:** لوحة تحكم للتجار تعرض المبيعات، الزيارات، وتوقعات النمو.
 
 ### 🛠 التقنيات المستخدمة:
-- **Frontend:** React 19, TypeScript, Tailwind CSS.
+- **Frontend:** React 19, TypeScript, Tailwind CSS, Vite.
 - **Animation:** Framer Motion.
 - **AI Engine:** Google Generative AI (Gemini SDK).
 - **Icons:** Lucide React.
-- **Storage:** LocalStorage (Simulated DB for MVP).
+- **Backend:** NestJS + Prisma.
+- **Database:** Prisma (SQLite في التطوير افتراضياً، مع Schema لـ Postgres).
 
 ---
 
@@ -37,21 +38,49 @@
 - **Advanced Analytics:** A merchant dashboard displaying sales, visits, and growth insights.
 
 ### 🛠 Tech Stack:
-- **Frontend:** React 19, TypeScript, Tailwind CSS.
+- **Frontend:** React 19, TypeScript, Tailwind CSS, Vite.
 - **Animation:** Framer Motion.
 - **AI Engine:** Google Generative AI (Gemini API).
 - **Icons:** Lucide React.
+- **Backend:** NestJS + Prisma.
+- **Database:** Prisma (SQLite by default in dev, with Postgres schema available).
 
 ---
 
 ## 🛠 How to run locally / كيف تشغل المشروع محلياً
 
-1. Clone the repository:
-   ```bash
-   git clone [your-repository-url]
-   ```
-2. Open `index.html` in your browser (using Live Server recommended).
-3. Ensure you have your `API_KEY` set in the environment variables for AI features to work.
+### 1) Install
+```bash
+npm install
+```
+
+### 2) Environment variables
+- Copy `.env.example` to `.env` and adjust values.
+- Important variables:
+  - `JWT_SECRET`
+  - `DATABASE_URL` (depends on the Prisma schema you use)
+  - `GEMINI_API_KEY` / `VITE_GEMINI_API_KEY` (Gemini key; the codebase supports both names)
+  - `API_BASE_URL` (backend base URL)
+
+### 3) Database (Prisma)
+```bash
+npm run prisma:generate
+npm run prisma:push
+```
+
+### 4) Run backend
+```bash
+npm run backend:dev
+```
+
+### 5) Run frontend
+```bash
+npm run dev
+```
+
+### Public pages performance updates
+- Public listings are paginated (take/skip) and images use native lazy loading.
+- Public offers page is available at `/offers`.
 
 ---
 *Created with ❤️ by Ray Engineering Team*

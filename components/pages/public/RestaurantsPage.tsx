@@ -20,35 +20,69 @@ const RestaurantsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
+    const PAGE_SIZE = 12;
     let mounted = true;
-    ApiService.getShops('approved')
-      .then((data: any[]) => {
+    let timer: any;
+
+    const fetchFirstPage = async () => {
+      setLoading(true);
+      setHasMore(true);
+      try {
+        const data = await ApiService.getShops('approved', {
+          take: PAGE_SIZE,
+          skip: 0,
+          category: Category.RESTAURANT,
+          governorate: governorate === 'الكل' ? undefined : governorate,
+          search: search.trim() ? search.trim() : undefined,
+        });
         if (!mounted) return;
-        setShops(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
+        const list = Array.isArray(data) ? data : [];
+        setShops(list);
+        setHasMore(list.length >= PAGE_SIZE);
+      } catch {
         if (!mounted) return;
         setShops([]);
-      })
-      .finally(() => {
+        setHasMore(false);
+      } finally {
         if (!mounted) return;
         setLoading(false);
-      });
+      }
+    };
+
+    timer = setTimeout(fetchFirstPage, 250);
     return () => {
       mounted = false;
+      if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [governorate, search]);
 
-  const restaurants = shops
-    .filter((s) => String(s?.status || '').toLowerCase() === 'approved')
-    .filter(
-      (s) =>
-        s.category === Category.RESTAURANT &&
-        (governorate === 'الكل' || s.governorate === governorate) &&
-        String(s?.name || '').toLowerCase().includes(search.toLowerCase()),
-    );
+  const loadMore = async () => {
+    const PAGE_SIZE = 12;
+    if (loadingMore || loading || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const next = await ApiService.getShops('approved', {
+        take: PAGE_SIZE,
+        skip: shops.length,
+        category: Category.RESTAURANT,
+        governorate: governorate === 'الكل' ? undefined : governorate,
+        search: search.trim() ? search.trim() : undefined,
+      });
+      const list = Array.isArray(next) ? next : [];
+      setShops((prev) => [...prev, ...list]);
+      setHasMore(list.length >= PAGE_SIZE);
+    } catch {
+      setHasMore(false);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const restaurants = shops;
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 text-right" dir="rtl">
@@ -142,6 +176,7 @@ const RestaurantsPage: React.FC = () => {
               }
               return (
                 <img
+                  loading="lazy"
                   src={bannerSrc}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
                   alt={shop.name}
@@ -160,7 +195,7 @@ const RestaurantsPage: React.FC = () => {
             <div className="absolute bottom-10 right-10 left-10 flex items-end justify-between flex-row-reverse">
               <div className="text-right">
                 <div className="flex items-center gap-3 justify-end mb-2">
-                   <img src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" />
+                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" />
                    <h3 className="text-3xl font-black text-white">{shop.name}</h3>
                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
                      {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
@@ -181,6 +216,18 @@ const RestaurantsPage: React.FC = () => {
           ))
         )}
       </div>
+
+      {restaurants.length > 0 && hasMore && (
+        <div className="mt-12 flex items-center justify-center">
+          <button
+            onClick={loadMore}
+            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+            disabled={loadingMore}
+          >
+            <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+          </button>
+        </div>
+      )}
     </div>
   );
 };

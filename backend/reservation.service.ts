@@ -7,6 +7,19 @@ export class ReservationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private getPagination(paging?: { page?: number; limit?: number }) {
+    const page = typeof paging?.page === 'number' ? paging.page : undefined;
+    const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
+    if (page == null && limit == null) return null;
+
+    const safeLimitRaw = limit == null ? 20 : limit;
+    const safeLimit = Math.min(Math.max(Math.floor(safeLimitRaw), 1), 100);
+    const safePage = Math.max(Math.floor(page == null ? 1 : page), 1);
+    const skip = (safePage - 1) * safeLimit;
+
+    return { take: safeLimit, skip };
+  }
+
   private normalizeStatus(status?: string) {
     const s = String(status || '').trim().toUpperCase();
     if (s === 'COMPLETED' || s === 'COMPLETEDRESERVATION') return 'COMPLETED';
@@ -102,17 +115,19 @@ export class ReservationService {
     });
   }
 
-  async listByShop(shopId: string) {
+  async listByShop(shopId: string, paging?: { page?: number; limit?: number }) {
     const id = String(shopId || '').trim();
     if (!id) throw new BadRequestException('shopId مطلوب');
 
+    const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { shopId: id },
       orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
     });
   }
 
-  async listByUserId(userId: string) {
+  async listByUserId(userId: string, paging?: { page?: number; limit?: number }) {
     const id = String(userId || '').trim();
     if (!id) throw new BadRequestException('userId مطلوب');
 
@@ -124,16 +139,18 @@ export class ReservationService {
     const phone = String(user?.phone || '').trim();
     if (!phone) throw new BadRequestException('رقم الهاتف غير متوفر لهذا الحساب');
 
-    return this.listByCustomerPhone(phone);
+    return this.listByCustomerPhone(phone, paging);
   }
 
-  async listByCustomerPhone(customerPhone: string) {
+  async listByCustomerPhone(customerPhone: string, paging?: { page?: number; limit?: number }) {
     const phone = String(customerPhone || '').trim();
     if (!phone) throw new BadRequestException('customerPhone مطلوب');
 
+    const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { customerPhone: phone },
       orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
     });
   }
 

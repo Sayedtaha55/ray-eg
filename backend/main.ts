@@ -7,6 +7,9 @@ import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
 
+ process.on('uncaughtException', (err) => console.log('Error:', err));
+ process.on('unhandledRejection', (err) => console.log('Rejection:', err));
+
 function isPrivateIpv4Host(hostname: string) {
   const parts = hostname.split('.').map((p) => Number(p));
   if (parts.length !== 4 || parts.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return false;
@@ -26,27 +29,31 @@ async function bootstrap() {
 
   const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
 
+  const isAllowedOrigin = (origin: string | undefined) => {
+    if (!origin) return true;
+    try {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+        return true;
+      }
+
+      if (isDev && isPrivateIpv4Host(url.hostname)) {
+        return true;
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return true;
+      }
+    } catch {
+      // ignore
+    }
+    return false;
+  };
+
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
-        try {
-          const url = new URL(origin);
-          if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
-            return callback(null, true);
-          }
-
-          if (isDev && isPrivateIpv4Host(url.hostname)) {
-            return callback(null, true);
-          }
-
-          if (allowedOrigins.includes(origin)) {
-            return callback(null, true);
-          }
-        } catch {
-          // ignore
-        }
-        return callback(null, false);
+        return callback(null, isAllowedOrigin(origin));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
@@ -62,6 +69,25 @@ async function bootstrap() {
       instance.set('trust proxy', 1);
     }
   }
+
+  app.use((req: any, res: any, next: any) => {
+    const origin = typeof req?.headers?.origin === 'string' ? req.headers.origin : undefined;
+    const allowed = isAllowedOrigin(origin);
+
+    if (allowed && origin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-Requested-With');
+    }
+
+    if (String(req?.method || '').toUpperCase() === 'OPTIONS') {
+      return res.sendStatus(allowed ? 204 : 403);
+    }
+
+    return next();
+  });
 
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
@@ -102,10 +128,11 @@ async function bootstrap() {
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 20,
+    max: isDev ? 200 : 20,
     message: 'Too many login attempts, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   });
 
   app.use('/api/v1/auth/login', authLimiter);
@@ -113,20 +140,22 @@ async function bootstrap() {
 
   const galleryUploadLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
-    max: 60,
+    max: isDev ? 600 : 60,
     message: 'Too many uploads, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   });
 
   app.use('/api/v1/gallery/upload', galleryUploadLimiter);
 
   const reservationCreateLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
-    max: 40,
+    max: isDev ? 400 : 40,
     message: 'Too many reservation requests, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   });
 
   app.use('/api/v1/reservations', (req: any, res: any, next: any) => {
@@ -138,10 +167,11 @@ async function bootstrap() {
 
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 100,
+    max: isDev ? 2000 : 100,
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   }));
 
   app.useGlobalPipes(
@@ -156,8 +186,13 @@ async function bootstrap() {
   const server = await app.listen(port, '0.0.0.0');
   
   // Graceful shutdown
-  const gracefulShutdown = (signal: string) => {
+  const gracefulShutdown = async (signal: string) => {
     console.log(`\nReceived ${signal}. Shutting down gracefully...`);
+    try {
+      await app.close();
+    } catch {
+      // ignore
+    }
     server.close(() => {
       console.log('HTTP server closed');
       process.exit(0);
@@ -168,8 +203,8 @@ async function bootstrap() {
     }, 10000);
   };
 
-  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
-  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+  process.on('SIGTERM', () => void gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
   // eslint-disable-next-line no-console
   console.log(`✅ Backend running on http://localhost:${port}`);

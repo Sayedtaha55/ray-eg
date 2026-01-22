@@ -10,6 +10,12 @@ function parseOptionalDate(value: any) {
   return Number.isNaN(d.getTime()) ? undefined : d;
 }
 
+function parseOptionalNumber(value: any) {
+  if (value == null) return undefined;
+  const n = Number(String(value));
+  return Number.isFinite(n) ? n : undefined;
+}
+
 @Controller('api/v1/orders')
 export class OrderController {
   constructor(@Inject(OrderService) private readonly orderService: OrderService) {}
@@ -17,22 +23,43 @@ export class OrderController {
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant')
-  async listMine(@Query('from') from: string, @Query('to') to: string, @Request() req) {
+  async listMine(
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Request() req?: any,
+  ) {
     const shopId = req.user?.shopId;
     if (!shopId) {
       throw new BadRequestException('shopId غير متوفر');
     }
 
-    return this.orderService.listByShop(shopId, { role: req.user?.role, shopId }, {
-      from: parseOptionalDate(from),
-      to: parseOptionalDate(to),
-    });
+    return this.orderService.listByShop(
+      shopId,
+      { role: req.user?.role, shopId },
+      {
+        from: parseOptionalDate(from),
+        to: parseOptionalDate(to),
+      },
+      {
+        page: parseOptionalNumber(page),
+        limit: parseOptionalNumber(limit),
+      },
+    );
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async listByShop(@Query('shopId') shopId: string, @Query('from') from: string, @Query('to') to: string, @Request() req) {
+  async listByShop(
+    @Query('shopId') shopId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Request() req?: any,
+  ) {
     const role = String(req.user?.role || '').toUpperCase();
     const shopIdFromToken = req.user?.shopId;
     const shopIdFromQuery = typeof shopId === 'string' ? shopId : undefined;
@@ -42,10 +69,18 @@ export class OrderController {
       throw new BadRequestException('shopId مطلوب');
     }
 
-    return this.orderService.listByShop(targetShopId, { role: req.user?.role, shopId: req.user?.shopId }, {
-      from: parseOptionalDate(from),
-      to: parseOptionalDate(to),
-    });
+    return this.orderService.listByShop(
+      targetShopId,
+      { role: req.user?.role, shopId: req.user?.shopId },
+      {
+        from: parseOptionalDate(from),
+        to: parseOptionalDate(to),
+      },
+      {
+        page: parseOptionalNumber(page),
+        limit: parseOptionalNumber(limit),
+      },
+    );
   }
 
   @Get('admin')
@@ -53,25 +88,36 @@ export class OrderController {
   @Roles('admin')
   async listAllAdmin(
     @Query('shopId') shopId: string,
-    @Query('from') from: string,
-    @Query('to') to: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
-    return this.orderService.listAllAdmin({
-      shopId: typeof shopId === 'string' ? shopId : undefined,
-      from: parseOptionalDate(from),
-      to: parseOptionalDate(to),
-    });
+    return this.orderService.listAllAdmin(
+      {
+        shopId: typeof shopId === 'string' ? shopId : undefined,
+        from: parseOptionalDate(from),
+        to: parseOptionalDate(to),
+      },
+      {
+        page: parseOptionalNumber(page),
+        limit: parseOptionalNumber(limit),
+      },
+    );
   }
 
   @Get('courier/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('courier')
-  async listMyCourierOrders(@Request() req) {
+  async listMyCourierOrders(@Query('page') page?: string, @Query('limit') limit?: string, @Request() req?: any) {
     const userId = req.user?.id;
     if (!userId) {
       throw new BadRequestException('غير مصرح');
     }
-    return this.orderService.listMyCourierOrders(String(userId));
+    return this.orderService.listMyCourierOrders(String(userId), {
+      page: parseOptionalNumber(page),
+      limit: parseOptionalNumber(limit),
+    });
   }
 
   @Post()

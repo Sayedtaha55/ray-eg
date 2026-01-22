@@ -5,14 +5,25 @@ import { PrismaService } from './prisma/prisma.service';
 export class OfferService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async listActive() {
+  async listActive(input?: { take?: number; skip?: number; shopId?: string; productId?: string }) {
     const now = new Date();
+    const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
+    const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : undefined;
+    const shopId = typeof input?.shopId === 'string' ? input.shopId.trim() : '';
+    const productId = typeof input?.productId === 'string' ? input.productId.trim() : '';
+    const take = typeof takeRaw === 'number' ? Math.min(100, Math.max(1, Math.floor(takeRaw))) : undefined;
+    const skip = typeof skipRaw === 'number' ? Math.max(0, Math.floor(skipRaw)) : undefined;
+
     const offers = await this.prisma.offer.findMany({
       where: {
         isActive: true,
         expiresAt: { gt: now },
+        ...(shopId ? { shopId } : {}),
+        ...(productId ? { productId } : {}),
       },
       orderBy: { createdAt: 'desc' },
+      ...(typeof take === 'number' ? { take } : {}),
+      ...(typeof skip === 'number' ? { skip } : {}),
       include: {
         shop: { select: { id: true, name: true, logoUrl: true, slug: true } },
         product: { select: { id: true, name: true, price: true, imageUrl: true } },
@@ -37,6 +48,46 @@ export class OfferService {
       expiresIn: o.expiresAt.toISOString(),
       created_at: o.createdAt.toISOString(),
     }));
+  }
+
+  async getActiveById(id: string) {
+    const offerId = String(id || '').trim();
+    if (!offerId) throw new BadRequestException('id مطلوب');
+
+    const now = new Date();
+    const offer = await this.prisma.offer.findFirst({
+      where: {
+        id: offerId,
+        isActive: true,
+        expiresAt: { gt: now },
+      },
+      include: {
+        shop: { select: { id: true, name: true, logoUrl: true, slug: true } },
+        product: { select: { id: true, name: true, price: true, imageUrl: true } },
+      },
+    });
+
+    if (!offer) {
+      throw new BadRequestException('العرض غير متاح');
+    }
+
+    return {
+      id: offer.id,
+      shopId: offer.shopId,
+      productId: offer.productId || (offer.product ? offer.product.id : ''),
+      shopName: offer.shop?.name || '',
+      shopLogo: offer.shop?.logoUrl || '',
+      shopSlug: offer.shop?.slug || '',
+      title: offer.title,
+      description: offer.description || '',
+      discount: offer.discount,
+      oldPrice: offer.oldPrice,
+      newPrice: offer.newPrice,
+      imageUrl: offer.imageUrl || offer.product?.imageUrl || '',
+      category: 'RETAIL',
+      expiresIn: offer.expiresAt.toISOString(),
+      created_at: offer.createdAt.toISOString(),
+    };
   }
 
   async create(input: {

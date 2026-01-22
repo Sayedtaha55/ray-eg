@@ -27,6 +27,7 @@ import {
   AdminFeedback,
   AdminOrders,
   CourierOrders,
+  OffersPage,
   NotFoundPage,
   ResetPasswordPage,
 } from './components';
@@ -53,6 +54,7 @@ const App: React.FC = () => {
           <Route index element={<HomeFeed />} />
           <Route path="shops" element={<ShopsPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
+          <Route path="offers" element={<OffersPage />} />
           <Route path="map" element={<MapPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />

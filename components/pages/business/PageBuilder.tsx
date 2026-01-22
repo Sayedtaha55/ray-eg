@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ChevronLeft, Save, Layout, Check, 
   Monitor, Smartphone, X, 
-  Sliders, Loader2 
+  Sliders, Loader2, Menu 
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -106,6 +106,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info'>('home');
+  const [isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen] = useState(false);
   const [openSection, setOpenSection] = useState('colors');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
@@ -171,6 +172,21 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       if (typeof legacyMql.removeListener === 'function') legacyMql.removeListener(apply);
     };
   }, []);
+
+  useEffect(() => {
+    setIsPreviewHeaderMenuOpen(false);
+  }, [previewMode, previewPage]);
+
+  const handlePreviewShare = () => {
+    try {
+      const href = window.location.href;
+      const clipboard = (navigator as any)?.clipboard;
+      if (clipboard?.writeText) clipboard.writeText(href);
+      addToast('تم نسخ الرابط لمشاركته!', 'info');
+    } catch {
+      addToast('تم نسخ الرابط لمشاركته!', 'info');
+    }
+  };
 
   const handleSave = async () => {
     if (!shopId) return;
@@ -278,7 +294,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const setConfigAny = (next: any) => setConfig(next as any);
 
-  const Section = ({ id, title, icon, children }: any) => (
+  const Section = ({ id, title, icon, render }: any) => (
     <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
       <button
         type="button"
@@ -299,7 +315,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             exit={{ height: 0, opacity: 0 }}
             className="px-5 pb-5 overflow-hidden"
           >
-            {children}
+            {typeof render === 'function' ? render() : null}
           </MotionDiv>
         )}
       </AnimatePresence>
@@ -379,26 +395,32 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </div>
                 </div>
                 {BUILDER_SECTIONS.map((s) => (
-                  <Section key={s.id} id={s.id} title={s.title} icon={s.icon}>
-                    {s.render({
-                      config,
-                      setConfig: setConfigAny,
-                      logoDataUrl,
-                      setLogoDataUrl,
-                      bannerFile,
-                      setBannerFile,
-                      bannerPreview,
-                      setBannerPreview,
-                      backgroundFile,
-                      setBackgroundFile,
-                      backgroundPreview,
-                      setBackgroundPreview,
-                      headerBackgroundFile,
-                      setHeaderBackgroundFile,
-                      headerBackgroundPreview,
-                      setHeaderBackgroundPreview,
-                    })}
-                  </Section>
+                  <Section
+                    key={s.id}
+                    id={s.id}
+                    title={s.title}
+                    icon={s.icon}
+                    render={() =>
+                      s.render({
+                        config,
+                        setConfig: setConfigAny,
+                        logoDataUrl,
+                        setLogoDataUrl,
+                        bannerFile,
+                        setBannerFile,
+                        bannerPreview,
+                        setBannerPreview,
+                        backgroundFile,
+                        setBackgroundFile,
+                        backgroundPreview,
+                        setBackgroundPreview,
+                        headerBackgroundFile,
+                        setHeaderBackgroundFile,
+                        headerBackgroundPreview,
+                        setHeaderBackgroundPreview,
+                      })
+                    }
+                  />
                 ))}
               </div>
             </MotionDiv>
@@ -437,8 +459,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               const isBold = config.layout === 'bold';
               const isMinimal = config.layout === 'minimal';
 
-              const headerOverBanner = Boolean(config.headerTransparent) && previewPage === 'home';
-
               const headerTextColor = String(config.headerTextColor || '#0F172A');
               const headerBackgroundColor = String(config.headerBackgroundColor || '#FFFFFF');
               const headerBackgroundImage = Boolean(config.headerTransparent)
@@ -459,11 +479,11 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               return (
                 <>
                   <header
-                    className={`border-b transition-all duration-500 ${
+                    className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
                       Boolean(config.headerTransparent)
                         ? 'border-transparent bg-transparent'
                         : `backdrop-blur-lg ${isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'}`
-                    } ${headerOverBanner ? 'absolute top-0 left-0 right-0 z-20' : ''}`}
+                    }`}
                     style={{
                       backgroundColor: headerBg,
                       color: headerTextColor,
@@ -487,8 +507,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </div>
                         </div>
 
-                        {isVisible('headerNav', true) && (
-                          <nav className="hidden md:flex items-center gap-6 md:gap-8">
+                        {isVisible('headerNav', true) && previewMode !== 'mobile' && (
+                          <nav className="flex items-center gap-6 md:gap-8">
                             {isVisible('headerNavHome', true) && (
                               <button
                                 type="button"
@@ -523,19 +543,98 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         )}
 
                         <div className="flex items-center gap-2 md:gap-3">
-                          <button
-                            type="button"
-                            className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-[0.98]"
-                            style={{ backgroundColor: config.primaryColor, color: '#000', borderColor: `${config.primaryColor}20` }}
-                          />
-                          <button
-                            type="button"
-                            className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"
-                          />
+                          {isVisible('headerNav', true) && previewMode === 'mobile' && (
+                            <button
+                              type="button"
+                              onClick={() => setIsPreviewHeaderMenuOpen((v) => !v)}
+                              className="p-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm border active:scale-90 transition-transform"
+                              style={{ borderColor: `${headerTextColor}15` }}
+                              aria-label="القائمة"
+                            >
+                              {isPreviewHeaderMenuOpen ? <X size={16} /> : <Menu size={16} />}
+                            </button>
+                          )}
+                          {previewMode !== 'mobile' && (
+                            <>
+                              <button
+                                type="button"
+                                className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-[0.98]"
+                                style={{ backgroundColor: config.primaryColor, color: '#000', borderColor: `${config.primaryColor}20` }}
+                              />
+                              <button
+                                type="button"
+                                className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"
+                              />
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
                   </header>
+
+                  {isVisible('floatingChatButton', true) && previewMode === 'mobile' && (
+                    <div className="absolute bottom-6 right-4 z-40">
+                      <button
+                        type="button"
+                        className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all border-4 border-white"
+                        style={{ backgroundColor: config.primaryColor, color: '#000' }}
+                        aria-label="واتساب"
+                      />
+                    </div>
+                  )}
+
+                  {isVisible('headerNav', true) && previewMode === 'mobile' && isPreviewHeaderMenuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-[110]"
+                        onClick={() => setIsPreviewHeaderMenuOpen(false)}
+                      />
+                      <div className="mt-3 relative z-[121] px-4">
+                        <div className="rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md shadow-lg overflow-hidden">
+                          {isVisible('headerNavHome', true) && (
+                            <button
+                              type="button"
+                              onClick={() => { setPreviewPage('home'); setIsPreviewHeaderMenuOpen(false); }}
+                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'home' ? 'bg-slate-50' : 'bg-transparent'}`}
+                              style={{ color: headerTextColor }}
+                            >
+                              المعروضات
+                            </button>
+                          )}
+                          {isVisible('headerNavGallery', true) && (
+                            <button
+                              type="button"
+                              onClick={() => { setPreviewPage('gallery'); setIsPreviewHeaderMenuOpen(false); }}
+                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'gallery' ? 'bg-slate-50' : 'bg-transparent'}`}
+                              style={{ color: headerTextColor }}
+                            >
+                              معرض الصور
+                            </button>
+                          )}
+                          {isVisible('headerNavInfo', true) && (
+                            <button
+                              type="button"
+                              onClick={() => { setPreviewPage('info'); setIsPreviewHeaderMenuOpen(false); }}
+                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'info' ? 'bg-slate-50' : 'bg-transparent'}`}
+                              style={{ color: headerTextColor }}
+                            >
+                              معلومات المتجر
+                            </button>
+                          )}
+                          {isVisible('headerShareButton', true) && (
+                            <button
+                              type="button"
+                              onClick={() => { handlePreviewShare(); setIsPreviewHeaderMenuOpen(false); }}
+                              className="w-full text-right px-4 py-3 font-black text-sm transition-colors bg-transparent"
+                              style={{ color: headerTextColor }}
+                            >
+                              مشاركة
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {previewPage === 'home' ? (
                     <>
