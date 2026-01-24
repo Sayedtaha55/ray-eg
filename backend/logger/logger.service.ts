@@ -15,15 +15,19 @@ export class LoggerService implements OnModuleInit {
 
     if (enableFileLogs) {
       try {
-        fs.mkdirSync('logs', { recursive: true });
+        // Use /tmp for logs in Railway to avoid permission issues
+        const logDir = process.env.RAILWAY_ENVIRONMENT ? '/tmp/logs' : 'logs';
+        fs.mkdirSync(logDir, { recursive: true });
       } catch {
         // ignore
       }
 
+      const logDir = process.env.RAILWAY_ENVIRONMENT ? '/tmp/logs' : 'logs';
+
       transports.push(
         // Error log file
         new winston.transports.File({
-          filename: 'logs/error.log',
+          filename: `${logDir}/error.log`,
           level: 'error',
           maxsize: 5242880, // 5MB
           maxFiles: 5,
@@ -33,7 +37,7 @@ export class LoggerService implements OnModuleInit {
       transports.push(
         // Combined log file
         new winston.transports.File({
-          filename: 'logs/combined.log',
+          filename: `${logDir}/combined.log`,
           maxsize: 5242880, // 5MB
           maxFiles: 5,
         }),
