@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN npx prisma generate --schema prisma/schema.postgres.prisma
+RUN npx prisma generate --schema prisma/schema.prisma
 RUN npm run backend:build
 
 # Production image, copy all the files and run the app
