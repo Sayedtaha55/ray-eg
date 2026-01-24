@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "backend:dev": "tsx watch --tsconfig backend/tsconfig.json backend/main.ts",
-    "backend:start": "tsx --tsconfig backend/tsconfig.json backend/main.ts",
+    "backend:build": "tsc -p backend/tsconfig.json",
+    "backend:start": "node dist/main",
     "backend:render:start": "prisma generate --schema prisma/schema.postgres.prisma && prisma db push --schema prisma/schema.postgres.prisma && tsx --tsconfig backend/tsconfig.json backend/main.ts",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma",
@@ -14,9 +15,10 @@
     "prisma:push:postgres": "prisma db push --schema prisma/schema.postgres.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
     "build": "tsx scripts/compress-public-videos.ts && vite build",
+    "test": "jest --passWithNoTests",
     "preview": "vite preview",
     "start": "npm run dev",
-    "vercel-build": "npm run build"
+    "vercel-build": "npm run backend:build && npm run build"
   },
   "keywords": [
     "react",

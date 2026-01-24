@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production
+RUN npm ci
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,6 +18,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
+RUN npx prisma generate --schema prisma/schema.prisma
+RUN npm run backend:build
 RUN npm run build
 
 # Production image, copy all the files and run the app
@@ -34,6 +36,7 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
 
 # Set permissions
 USER nextjs
