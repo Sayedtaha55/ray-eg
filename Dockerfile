@@ -1,5 +1,5 @@
 # Use Node.js 18 LTS as base image
-FROM node:18-alpine AS base
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -20,7 +20,6 @@ COPY . .
 # Build the application
 RUN npx prisma generate --schema prisma/schema.prisma
 RUN npm run backend:build
-RUN npm run build
 
 # Production image, copy all the files and run the app
 FROM base AS runner
@@ -31,6 +30,9 @@ ENV NODE_ENV production
 # Create a non-root user
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
+
+# Install runtime tools required by HEALTHCHECK
+RUN apk add --no-cache curl
 
 # Copy the built application
 COPY --from=builder /app/dist ./dist
