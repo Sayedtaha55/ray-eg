@@ -1154,6 +1154,14 @@ async function loginViaBackend(email: string, pass: string) {
   };
 }
 
+async function sessionViaBackend() {
+  const data = await backendGet<{ access_token: string; user: any }>('/api/v1/auth/session');
+  return {
+    user: normalizeUserFromBackend(data.user),
+    session: { access_token: data.access_token },
+  };
+}
+
 async function signupViaBackend(payload: any) {
   const data = await backendPost<{ access_token: string; user: any }>(
     '/api/v1/auth/signup',
@@ -1169,6 +1177,9 @@ export const ApiService = {
   // Auth
   login: async (email: string, pass: string) => {
     return await loginViaBackend(email, pass);
+  },
+  session: async () => {
+    return await sessionViaBackend();
   },
   signup: async (data: any) => {
     return await signupViaBackend(data);
@@ -1233,7 +1244,7 @@ export const ApiService = {
 
     const timer = setInterval(() => {
       poll();
-    }, 15000);
+    }, 5000);
 
     poll();
 
@@ -1267,6 +1278,12 @@ export const ApiService = {
     } catch {
       return await mockDb.markNotificationsRead(sid);
     }
+  },
+  markShopNotificationRead: async (shopId: string, id: string) => {
+    const sid = String(shopId || '').trim();
+    const nid = String(id || '').trim();
+    if (!sid || !nid) return { ok: true } as any;
+    return await backendPatch<any>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}/${encodeURIComponent(nid)}/read`, {});
   },
 
   getMyNotifications: async (opts?: { take?: number; skip?: number }) => {

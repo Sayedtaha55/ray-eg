@@ -36,7 +36,7 @@ import OverviewTab from './tabs/OverviewTab';
 import ProductsTab from './tabs/ProductsTab';
 import PromotionsTab from './tabs/PromotionsTab';
 import ReportsTab from './tabs/ReportsTab';
-import ReservationsTab from './tabs/ReservationsTab';
+import { ReservationsTab } from './tabs/ReservationsTab';
 import SalesTab from './tabs/SalesTab';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
@@ -309,16 +309,11 @@ const MerchantDashboardPage: React.FC = () => {
     knownOrderIdsRef.current = ids;
 
     if (!hasNew) return;
-    const url = RayDB.getSelectedNotificationSoundUrl();
-    if (!url) return;
-    const audio = new Audio(url);
-    audio.play().catch(() => {});
   }, [loading, sales]);
 
   useEffect(() => {
     if (!currentShop) return;
-    const isRestaurant = String(currentShop?.category || '').toUpperCase() === 'RESTAURANT';
-    if (isRestaurant && !searchParams.get('tab')) {
+    if (!searchParams.get('tab')) {
       setTab('reservations');
     }
   }, [currentShop, searchParams, setTab]);

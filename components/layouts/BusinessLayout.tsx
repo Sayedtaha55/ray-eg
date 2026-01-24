@@ -1,9 +1,9 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
+import { RayDB } from '@/constants';
 import { useToast } from '@/components';
 import BrandLogo from '@/components/common/BrandLogo';
 
@@ -13,13 +13,15 @@ const MotionDiv = motion.div as any;
 const BusinessLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const isDashboard = location.pathname.includes('/dashboard');
+  const isDashboard = location.pathname.includes('/dashboard') || location.pathname.includes('/profile');
   const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
+  const isProfilePage = location.pathname.includes('/profile');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { addToast } = useToast();
+  const audioUnlockedRef = useRef(false);
 
   const userStr = localStorage.getItem('ray_user');
   const user = userStr ? JSON.parse(userStr) : null;
@@ -29,9 +31,65 @@ const BusinessLayout: React.FC = () => {
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
 
+  const normalizeNotif = (n: any) => {
+    const id = n?.id != null ? String(n.id) : '';
+    return {
+      ...n,
+      id,
+      is_read: Boolean((n as any)?.is_read ?? (n as any)?.isRead),
+    };
+  };
+
+  useEffect(() => {
+    if (!isDashboard) return;
+
+    const unlock = () => {
+      if (audioUnlockedRef.current) return;
+      audioUnlockedRef.current = true;
+      try {
+        const url = RayDB.getSelectedNotificationSoundUrl();
+        if (!url) return;
+        const audio = new Audio(url);
+        audio.muted = true;
+        const p = audio.play();
+        if (p && typeof (p as any).then === 'function') {
+          (p as any)
+            .then(() => {
+              try {
+                audio.pause();
+                audio.currentTime = 0;
+              } catch {
+              }
+              audio.muted = false;
+            })
+            .catch(() => {
+              audioUnlockedRef.current = false;
+            });
+        } else {
+          try {
+            audio.pause();
+            audio.currentTime = 0;
+          } catch {
+          }
+          audio.muted = false;
+        }
+      } catch {
+        audioUnlockedRef.current = false;
+      }
+    };
+
+    window.addEventListener('pointerdown', unlock as any, { once: true } as any);
+    return () => {
+      try {
+        window.removeEventListener('pointerdown', unlock as any);
+      } catch {
+      }
+    };
+  }, [isDashboard]);
+
   const buildDashboardUrl = (tab?: string) => {
     const params = new URLSearchParams(location.search);
-    if (!tab || tab === 'overview') {
+    if (!tab) {
       params.delete('tab');
     } else {
       params.set('tab', tab);
@@ -44,8 +102,17 @@ const BusinessLayout: React.FC = () => {
     if (!effectiveUser?.shopId) return;
     try {
       const data = await ApiService.getNotifications(effectiveUser.shopId);
-      setNotifications(data);
-      setUnreadCount(data.filter((n: any) => !n.is_read).length);
+      const normalized = (data || []).map(normalizeNotif).filter((n: any) => Boolean(n?.id));
+      const uniq: any[] = [];
+      const seen = new Set<string>();
+      for (const n of normalized) {
+        const id = String(n.id || '');
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        uniq.push(n);
+      }
+      setNotifications(uniq);
+      setUnreadCount(uniq.filter((n: any) => !Boolean(n?.is_read)).length);
     } catch (e) {
       // Failed to load notifications - handled silently
     }
@@ -57,16 +124,53 @@ const BusinessLayout: React.FC = () => {
       
       // الاشتراك في قناة الإشعارات الحية
       const subscription = ApiService.subscribeToNotifications(effectiveUser.shopId, (notif) => {
-        // تشغيل صوت تنبيه
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.play().catch(() => {});
-        
+        const normalized = normalizeNotif(notif);
+        const nid = String((normalized as any)?.id || '').trim();
+        if (!nid) return;
+
+        let isNew = false;
+        setNotifications(prev => {
+          const exists = prev.some((x: any) => String((x as any)?.id || '') === nid);
+          if (exists) return prev;
+          isNew = true;
+          return [normalized, ...prev];
+        });
+
+        if (!isNew) return;
+
+        const t = String((normalized as any)?.type || '').trim().toUpperCase();
+        const shouldRing =
+          t === 'ORDER' ||
+          t === 'NEW_ORDER' ||
+          t === 'RESERVATION' ||
+          t === 'NEW_RESERVATION' ||
+          t === 'BOOKING';
+
+        if (shouldRing) {
+          try {
+            const url = RayDB.getSelectedNotificationSoundUrl();
+            if (url) {
+              const audio = new Audio(url);
+              try {
+                (audio as any).preload = 'auto';
+              } catch {
+              }
+              try {
+                audio.currentTime = 0;
+              } catch {
+              }
+              audio.play().catch(() => {});
+            }
+          } catch {
+          }
+        }
+
         // إظهار توست للمستخدم
-        addToast(notif.title, 'info');
-        
-        // تحديث القائمة فوراً
-        setNotifications(prev => [notif, ...prev]);
-        setUnreadCount(prev => prev + 1);
+        addToast(String((normalized as any)?.title || ''), 'info');
+
+        if (!Boolean((normalized as any)?.is_read)) {
+          setUnreadCount(prev => prev + 1);
+        }
       });
 
       return () => {
@@ -134,27 +238,35 @@ const BusinessLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row-reverse text-right font-sans" dir="rtl">
       {/* Mobile Header */}
-      <header className="md:hidden h-20 bg-slate-900 text-white flex items-center justify-between px-6 sticky top-0 z-[60]">
+      <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[60] border-b border-slate-100">
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo variant="business" iconOnly />
           <span className="font-black tracking-tighter uppercase">Ray Biz</span>
         </Link>
         <div className="flex items-center gap-4">
            <button
+             onClick={() => navigate(buildDashboardUrl('pos'))}
+             aria-label="نظام الكاشير"
+             title="نظام الكاشير"
+             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+           >
+             <Store className="w-6 h-6" />
+           </button>
+           <button
              onClick={() => navigate(buildDashboardUrl('builder'))}
              aria-label="هوية المتجر"
              title="هوية المتجر"
-             className="p-2 bg-white/10 rounded-lg"
+             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
            >
              <Palette className="w-6 h-6" />
            </button>
            <div className="relative" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
               <motion.div animate={unreadCount > 0 ? { scale: [1, 1.2, 1] } : {}} transition={{ repeat: Infinity, duration: 1.5 }}>
-                <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-white'}`} />
+                <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-700'}`} />
               </motion.div>
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-slate-900 text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
            </div>
-           <button onClick={() => setSidebarOpen(true)} className="p-2 bg-white/10 rounded-lg">
+           <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all">
              <Menu className="w-6 h-6" />
            </button>
         </div>
@@ -171,34 +283,33 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-l border-slate-100 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
             <BrandLogo variant="business" iconOnly />
             <span className="text-2xl font-black tracking-tighter uppercase">Ray Biz</span>
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-white/10 rounded-full">
+          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-4 overflow-y-auto no-scrollbar min-h-0">
-          <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={activeTab === 'overview'} />
-          <NavItem to={buildDashboardUrl('pos')} onClick={() => setSidebarOpen(false)} icon={<Store size={20} />} label="نظام الكاشير" active={activeTab === 'pos'} />
-          <NavItem to={buildDashboardUrl('gallery')} onClick={() => setSidebarOpen(false)} icon={<Camera size={20} />} label="معرض الصور" active={activeTab === 'gallery'} />
-          <NavItem to={buildDashboardUrl('reports')} onClick={() => setSidebarOpen(false)} icon={<BarChart3 size={20} />} label="التقارير" active={activeTab === 'reports'} />
-          <NavItem to={buildDashboardUrl('customers')} onClick={() => setSidebarOpen(false)} icon={<Users size={20} />} label="العملاء" active={activeTab === 'customers'} />
-          <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={activeTab === 'products'} />
-          <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={activeTab === 'promotions'} />
-          <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={activeTab === 'reservations'} />
-          <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={activeTab === 'sales'} />
-          <NavItem to={buildDashboardUrl('settings')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={activeTab === 'settings'} />
+          <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={!isProfilePage && activeTab === 'overview'} />
+          <NavItem to={buildDashboardUrl('gallery')} onClick={() => setSidebarOpen(false)} icon={<Camera size={20} />} label="معرض الصور" active={!isProfilePage && activeTab === 'gallery'} />
+          <NavItem to={buildDashboardUrl('reports')} onClick={() => setSidebarOpen(false)} icon={<BarChart3 size={20} />} label="التقارير" active={!isProfilePage && activeTab === 'reports'} />
+          <NavItem to={buildDashboardUrl('customers')} onClick={() => setSidebarOpen(false)} icon={<Users size={20} />} label="العملاء" active={!isProfilePage && activeTab === 'customers'} />
+          <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={!isProfilePage && activeTab === 'products'} />
+          <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={!isProfilePage && activeTab === 'promotions'} />
+          <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={!isProfilePage && activeTab === 'reservations'} />
+          <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={!isProfilePage && activeTab === 'sales'} />
+          <NavItem to={buildDashboardUrl('settings')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={!isProfilePage && activeTab === 'settings'} />
         </nav>
 
-        <div className="p-6 mt-auto border-t border-white/5 space-y-2">
+        <div className="p-6 mt-auto border-t border-slate-100 space-y-2">
            <button 
              onClick={handleLogout}
-             className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all font-bold group"
+             className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-bold group"
            >
              <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
              <span>تسجيل الخروج</span>
@@ -253,6 +364,14 @@ const BusinessLayout: React.FC = () => {
           </div>
           <div className="flex items-center gap-8">
             <button
+              onClick={() => navigate(buildDashboardUrl('pos'))}
+              aria-label="نظام الكاشير"
+              title="نظام الكاشير"
+              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
+            >
+              <Store className="w-5 h-5" />
+            </button>
+            <button
               onClick={() => navigate(buildDashboardUrl('builder'))}
               aria-label="هوية المتجر"
               title="هوية المتجر"
@@ -288,9 +407,9 @@ const BusinessLayout: React.FC = () => {
 
 const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }> = ({ to, icon, label, active, onClick }) => (
   <Link to={to} onClick={onClick} className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group ${
-    active ? 'bg-[#00E5FF] text-slate-900 font-black shadow-lg shadow-cyan-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5 font-bold'
+    active ? 'bg-[#00E5FF] text-slate-900 font-black shadow-lg shadow-cyan-500/20' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-bold'
   }`}>
-    <div className={`${active ? 'text-slate-900' : 'group-hover:text-[#00E5FF]'}`}>{icon}</div>
+    <div className={`${active ? 'text-slate-900' : 'text-slate-400 group-hover:text-[#00E5FF]'}`}>{icon}</div>
     <span className="flex-1 text-sm">{label}</span>
     {active && <ChevronRight className="w-4 h-4 rotate-180" />}
   </Link>

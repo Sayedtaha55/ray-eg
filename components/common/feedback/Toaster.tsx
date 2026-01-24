@@ -21,9 +21,10 @@ const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastSeqRef = React.useRef(0);
 
   const addToast = (message: string | any, type: ToastType) => {
-    const id = Date.now();
+    const id = Date.now() * 1000 + ((toastSeqRef.current = (toastSeqRef.current + 1) % 1000) as any);
     // نضمن أننا نخزن الرسالة بشكل آمن
     setToasts(prev => [...prev, { id, message, type }]);
     setTimeout(() => {

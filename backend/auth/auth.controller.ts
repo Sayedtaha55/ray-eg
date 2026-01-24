@@ -1,9 +1,10 @@
-import { Body, Controller, Post, Request, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Request, Res, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 class SignupDto {
   @IsEmail()
@@ -97,6 +98,26 @@ class ChangePasswordDto {
 export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
+  private parseGoogleState(req: any) {
+    const raw = String(req?.query?.state || '').trim();
+    if (!raw) return {} as any;
+    try {
+      const decoded = Buffer.from(raw, 'base64url').toString('utf8');
+      const parsed = JSON.parse(decoded);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {} as any;
+    }
+  }
+
+  private normalizeReturnTo(returnTo: string | undefined) {
+    const rt = String(returnTo || '').trim();
+    if (!rt) return undefined;
+    if (!rt.startsWith('/')) return undefined;
+    if (rt.startsWith('//')) return undefined;
+    return rt;
+  }
+
   private getCookieOptions() {
     const env = String(process.env.NODE_ENV || '').toLowerCase();
     const isProd = env === 'production';
@@ -120,6 +141,34 @@ export class AuthController {
     res.clearCookie('ray_session', this.getCookieOptions());
   }
 
+  @Get('google')
+  @UseGuards(GoogleAuthGuard)
+  async googleAuth() {
+    return;
+  }
+
+  @Get('google/callback')
+  @UseGuards(GoogleAuthGuard)
+  async googleCallback(@Request() req: any, @Res() res: Response) {
+    const result = await this.authService.loginWithGoogleProfile(req.user);
+    if (result?.access_token) {
+      this.setAuthCookie(res, String(result.access_token));
+    }
+
+    const state = this.parseGoogleState(req);
+    const returnTo = this.normalizeReturnTo(state?.returnTo);
+    const followShopId = String(state?.followShopId || '').trim() || undefined;
+
+    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').trim();
+    const base = appUrl.replace(/\/$/, '');
+    const qs = new URLSearchParams();
+    if (returnTo) qs.set('returnTo', returnTo);
+    if (followShopId) qs.set('followShopId', followShopId);
+
+    const redirectUrl = `${base}/auth/google/callback${qs.toString() ? `?${qs.toString()}` : ''}`;
+    return res.redirect(302, redirectUrl);
+  }
+
   @Post('signup')
   async signup(@Body() dto: SignupDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.signup(dto);
@@ -132,6 +181,17 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto.email, dto.password);
+    if (result?.access_token) {
+      this.setAuthCookie(res, String(result.access_token));
+    }
+    return result;
+  }
+
+  @Get('session')
+  @UseGuards(JwtAuthGuard)
+  async session(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+    const userId = String(req?.user?.id || '').trim();
+    const result = await this.authService.session(userId);
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
     }

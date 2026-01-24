@@ -11,6 +11,7 @@ export { default as LoginPage } from './pages/auth/LoginPage';
 export { default as SignupPage } from './pages/auth/SignupPage';
 export { default as AdminLogin } from './pages/auth/AdminLogin';
 export { default as ResetPasswordPage } from './pages/auth/ResetPasswordPage';
+export { default as GoogleCallbackPage } from './pages/auth/GoogleCallbackPage';
 
 // Pages - Public
 export { default as HomeFeed } from './pages/public/HomeFeed';
@@ -20,6 +21,7 @@ export { default as OffersPage } from './pages/public/OffersPage';
 export { default as FilterPage } from './pages/public/FilterPage';
 export { default as MapPage } from './pages/public/MapPage';
 export { default as ProductPage } from './pages/public/ProductPage';
+export { default as ShopProductPage } from './pages/public/ShopProductPage';
 export { default as ShopProfile } from './pages/public/ShopProfile';
 export { default as AboutPage } from './pages/public/AboutPage';
 export { default as ProfilePage } from './pages/public/ProfilePage';
@@ -42,6 +44,7 @@ export { default as MerchantDashboard } from './pages/business/merchant-dashboar
 export { default as POSSystem } from './pages/business/POSSystem';
 export { default as PageBuilder } from './pages/business/PageBuilder';
 export { default as GalleryManager } from './pages/business/GalleryManager';
+export { default as MerchantProfilePage } from './pages/business/MerchantProfilePage';
 export { default as BusinessPendingApproval } from './pages/business/BusinessPendingApproval';
 
 // Pages - Shared

@@ -7,18 +7,26 @@ type Props = {
   onUpdateStatus: (id: string, s: string) => void;
 };
 
-const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
+const normalizeReservationStatus = (status: any): 'pending' | 'completed' | 'expired' => {
+  const s = String(status || '').trim().toUpperCase();
+  if (s === 'COMPLETED') return 'completed';
+  if (s === 'CANCELLED' || s === 'CANCELED' || s === 'EXPIRED') return 'expired';
+  return 'pending';
+};
+
+export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed'>('pending');
 
   const filteredReservations = reservations.filter((res) => {
     if (filter === 'all') return true;
-    if (filter === 'pending') return res.status === 'pending';
-    if (filter === 'completed') return res.status === 'completed';
+    const normalized = normalizeReservationStatus((res as any).status);
+    if (filter === 'pending') return normalized === 'pending';
+    if (filter === 'completed') return normalized === 'completed';
     return false;
   });
 
-  const pendingCount = reservations.filter((r) => r.status === 'pending').length;
-  const completedCount = reservations.filter((r) => r.status === 'completed').length;
+  const pendingCount = reservations.filter((r) => normalizeReservationStatus((r as any).status) === 'pending').length;
+  const completedCount = reservations.filter((r) => normalizeReservationStatus((r as any).status) === 'completed').length;
 
   return (
     <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
@@ -106,7 +114,7 @@ const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">المبلغ المطلوب</p>
                   <p className="text-3xl font-black text-slate-900">ج.م {(res as any).itemPrice}</p>
                 </div>
-                {res.status === 'pending' ? (
+                {normalizeReservationStatus((res as any).status) === 'pending' ? (
                   <div className="flex gap-3 w-full md:w-auto">
                     <button
                       onClick={() => onUpdateStatus(res.id, 'completed')}
@@ -123,7 +131,11 @@ const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
                   </div>
                 ) : (
                   <div className="flex items-center gap-3">
-                    <span className="bg-green-100 text-green-600 px-4 py-2 rounded-xl font-black text-xs">تم الاستلام</span>
+                    {normalizeReservationStatus((res as any).status) === 'completed' ? (
+                      <span className="bg-green-100 text-green-600 px-4 py-2 rounded-xl font-black text-xs">تم الاستلام</span>
+                    ) : (
+                      <span className="bg-red-100 text-red-600 px-4 py-2 rounded-xl font-black text-xs">ملغي</span>
+                    )}
                     <span className="text-slate-400 font-black text-xs">{new Date((res as any).createdAt).toLocaleDateString('ar-EG')}</span>
                   </div>
                 )}

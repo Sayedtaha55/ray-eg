@@ -58,7 +58,7 @@ export class ReservationService {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
 
-    return this.prisma.reservation.create({
+    const created = await this.prisma.reservation.create({
       data: {
         itemId,
         itemName,
@@ -71,6 +71,30 @@ export class ReservationService {
         status: 'PENDING' as any,
       },
     });
+
+    try {
+      await this.prisma.notification.create({
+        data: {
+          shopId,
+          title: 'حجز جديد',
+          content: `تم استلام حجز جديد: ${itemName} - ${customerName}`,
+          type: 'RESERVATION',
+          isRead: false,
+          metadata: {
+            reservationId: created.id,
+            itemId,
+            itemName,
+            customerName,
+            customerPhone,
+            itemPrice,
+          },
+        } as any,
+      });
+    } catch {
+      // ignore
+    }
+
+    return created;
   }
 
   async createForUser(userId: string, input: {

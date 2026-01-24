@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight } from 'lucide-react';
+import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight, Sparkles } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
@@ -36,6 +36,10 @@ const SignupPage: React.FC = () => {
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
+  const backendBaseUrl =
+    ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
+    `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
+
   useEffect(() => {
     if (roleParam === 'merchant') {
       setRole('merchant');
@@ -48,6 +52,14 @@ const SignupPage: React.FC = () => {
     if (followShopId) q.set('followShopId', followShopId);
     const qs = q.toString();
     return `/login${qs ? `?${qs}` : ''}`;
+  };
+
+  const handleGoogleLogin = () => {
+    const q = new URLSearchParams();
+    if (returnTo) q.set('returnTo', returnTo);
+    if (followShopId) q.set('followShopId', followShopId);
+    const qs = q.toString();
+    window.location.href = `${backendBaseUrl}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
   };
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -301,7 +313,19 @@ const SignupPage: React.FC = () => {
              {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={24} className="text-[#00E5FF]" />}
              {loading ? 'جاري إنشاء حسابك الآمن...' : role === 'merchant' ? 'ابدأ كتاجر الآن' : 'تأكيد التسجيل'}
            </button>
-        </form>
+         </form>
+
+        <div className="mt-6">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleGoogleLogin}
+            className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+          >
+            <Sparkles size={20} className="text-[#BD00FF]" />
+            تسجيل الدخول عبر Google
+          </button>
+        </div>
 
         <div className="mt-10 text-center">
            <p className="text-slate-400 font-bold">لديك حساب بالفعل؟ <Link to={buildLoginLink()} className="text-[#00E5FF] hover:underline">سجل دخولك</Link></p>

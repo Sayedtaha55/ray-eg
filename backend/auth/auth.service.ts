@@ -1,6 +1,7 @@
 
 import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -357,6 +358,54 @@ export class AuthService {
       where: { id: user.id },
       data: { lastLogin: new Date() }
     });
+
+    return this.generateToken(user);
+  }
+
+  async loginWithGoogleProfile(profile: any) {
+    const email = String(profile?.emails?.[0]?.value || '').toLowerCase().trim();
+    if (!email) {
+      throw new BadRequestException('تعذر الحصول على البريد الإلكتروني من جوجل');
+    }
+
+    const displayNameRaw = String(profile?.displayName || '').trim();
+    const fallbackName = email.split('@')[0] || 'User';
+    const displayName = displayNameRaw || fallbackName;
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      const salt = await bcrypt.genSalt(12);
+      const hashedPassword = await bcrypt.hash(randomBytes(32).toString('hex'), salt);
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          name: displayName,
+          password: hashedPassword,
+          role: 'CUSTOMER' as any,
+          isActive: true,
+          lastLogin: new Date(),
+        },
+      });
+    } else {
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          lastLogin: new Date(),
+          ...(displayName && user.name !== displayName ? { name: displayName } : {}),
+        },
+      });
+    }
+
+    return this.generateToken(user);
+  }
+
+  async session(userId: string) {
+    const uid = String(userId || '').trim();
+    if (!uid) throw new UnauthorizedException('غير مصرح');
+
+    const user = await this.prisma.user.findUnique({ where: { id: uid } });
+    if (!user) throw new UnauthorizedException('غير مصرح');
 
     return this.generateToken(user);
   }

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Zap, Smartphone, Globe, ArrowLeft, TrendingUp, Users, ShieldCheck, UtensilsCrossed, QrCode } from 'lucide-react';
+import { Store, ArrowLeft, TrendingUp, PackageCheck, BellRing } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import type { ShopGallery } from '@/types';
@@ -107,45 +107,6 @@ const BusinessLanding: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-6 py-20">
 
-        {/* Restaurant Specific Section */}
-        <section className="mb-40 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center bg-slate-800/20 p-12 md:p-24 rounded-[4rem] border border-slate-800/50">
-           <div className="order-2 lg:order-1 relative">
-              <div className="absolute -inset-10 bg-[#BD00FF]/10 blur-[100px] rounded-full" />
-              <div className="relative bg-white p-8 rounded-[3rem] shadow-2xl flex flex-col gap-6 scale-90 md:scale-100">
-                 <div className="flex items-center justify-between flex-row-reverse border-b border-slate-50 pb-6">
-                    <h4 className="font-black text-slate-900 text-2xl">منيو المطعم الرقمي</h4>
-                    <QrCode className="text-[#BD00FF] w-10 h-10" />
-                 </div>
-                 {[1,2,3].map(i => (
-                   <div key={i} className="flex items-center gap-4 flex-row-reverse">
-                      <div className="w-16 h-16 bg-slate-100 rounded-2xl shrink-0" />
-                      <div className="flex-1 space-y-2">
-                         <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
-                         <div className="h-2 w-1/3 bg-slate-50 rounded-full" />
-                      </div>
-                      <div className="w-10 h-10 rounded-full border-2 border-slate-100" />
-                   </div>
-                 ))}
-                 <button className="w-full py-4 bg-[#BD00FF] text-white rounded-2xl font-black text-sm">إرسال للمطبخ</button>
-              </div>
-           </div>
-           <div className="order-1 lg:order-2 text-right">
-              <div className="w-16 h-16 bg-purple-500/10 rounded-2xl flex items-center justify-center text-[#BD00FF] mb-8 shadow-xl">
-                <UtensilsCrossed size={32} />
-              </div>
-              <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">نظام Ray <br/><span className="text-[#BD00FF]">للمطاعم.</span></h2>
-              <p className="text-xl text-slate-400 mb-10 leading-relaxed font-medium">نظام متكامل لإدارة الطلبات، المنيو الرقمي، وحجوزات الطاولات. مصمم لزيادة سرعة الخدمة وتقليل الأخطاء في المطبخ.</p>
-              <ul className="space-y-6 mb-12">
-                 <li className="flex items-center gap-4 flex-row-reverse text-lg font-black"><CheckCircle2 className="text-[#BD00FF]" /> منيو QR تفاعلي للزبائن</li>
-                 <li className="flex items-center gap-4 flex-row-reverse text-lg font-black"><CheckCircle2 className="text-[#BD00FF]" /> نظام إدارة الطاولات والحجوزات</li>
-                 <li className="flex items-center gap-4 flex-row-reverse text-lg font-black"><CheckCircle2 className="text-[#BD00FF]" /> ربط مباشر مع المطبخ والكاشير</li>
-              </ul>
-              <Link to="/business/dashboard" className="inline-flex items-center gap-3 font-black text-2xl text-[#BD00FF] hover:gap-6 transition-all group">
-                حول مطعمك للنظام الرقمي <ArrowLeft className="w-8 h-8 group-hover:scale-110 transition-transform" />
-              </Link>
-           </div>
-        </section>
-
         {/* Features Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-40">
           <FeatureCard 
@@ -154,14 +115,14 @@ const BusinessLanding: React.FC = () => {
             description="اسحب وأفلت لتبني واجهة متجر تعكس هوية علامتك التجارية بلمسات احترافية دون الحاجة لمبرمج."
           />
           <FeatureCard 
-            icon={<Smartphone className="w-10 h-10 text-[#BD00FF]" />}
-            title="نظام POS متكامل"
-            description="حول أي هاتف أو تابلت لنقطة بيع ذكية. تتبع مبيعاتك في المحل وفي المتجر أونلاين في نفس اللحظة."
+            icon={<PackageCheck className="w-10 h-10 text-[#BD00FF]" />}
+            title="إدارة المنتجات والطلبات"
+            description="أضف منتجاتك، حدّث المخزون، وتابع الطلبات من لوحة تحكم واحدة بشكل واضح وسريع."
           />
           <FeatureCard 
-            icon={<Zap className="w-10 h-10 text-white" />}
-            title="عروض الفلاش"
-            description="أرسل إشعارات فورية لآلاف العملاء القريبين من موقعك. ارفع مبيعاتك في الأوقات التي تحتاجها."
+            icon={<BellRing className="w-10 h-10 text-white" />}
+            title="تنبيه فوري للتاجر"
+            description="رنّة إشعار تلقائية عند وصول طلب أو حجز جديد حتى لا يفوتك أي عميل."
           />
         </div>
 
@@ -169,22 +130,22 @@ const BusinessLanding: React.FC = () => {
         <section className="bg-white rounded-[4rem] p-12 md:p-24 text-slate-900">
            <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
               <div>
-                <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">أدوات قوية لنمو <span className="text-[#BD00FF]">حقيقي.</span></h2>
+                <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">كل اللي تحتاجه لإدارة <span className="text-[#BD00FF]">متجرك.</span></h2>
                 <div className="space-y-10">
                    <BenefitItem 
-                    icon={<Users className="w-6 h-6" />}
-                    title="وصول مباشر للعملاء"
-                    description="تواصل مع ملايين المستخدمين النشطين على منصة Ray الذين يبحثون عن أفضل الصفقات يومياً."
+                    icon={<Store className="w-6 h-6" />}
+                    title="لوحة تحكم واضحة للتاجر"
+                    description="تابع متجرك من مكان واحد: المنتجات، الطلبات، والحجوزات — بدون تعقيد."
                    />
                    <BenefitItem 
-                    icon={<TrendingUp className="w-6 h-6" />}
-                    title="تحليلات دقيقة"
-                    description="افهم سلوك عملائك، تتبع المنتجات الأكثر طلباً، واحصل على توصيات ذكية لزيادة أرباحك."
+                    icon={<PackageCheck className="w-6 h-6" />}
+                    title="إدارة الطلبات والحجوزات"
+                    description="استقبل الطلبات والحجوزات، وحدّث حالتها بسهولة من داخل لوحة التحكم."
                    />
                    <BenefitItem 
-                    icon={<ShieldCheck className="w-6 h-6" />}
-                    title="أمان وموثوقية"
-                    description="نظام دفع آمن وبنية تحتية سحابية تضمن استقرار متجرك حتى في أوقات الذروة والطلبات العالية."
+                    icon={<BellRing className="w-6 h-6" />}
+                    title="تنبيه فوري عند طلب/حجز جديد"
+                    description="رنّة إشعار للتاجر عند وصول طلب أو حجز جديد حتى لا يفوتك أي عميل."
                    />
                 </div>
                 <Link to="/business/dashboard" className="mt-16 inline-flex items-center gap-3 font-black text-2xl text-[#BD00FF] hover:gap-6 transition-all group">
@@ -193,11 +154,51 @@ const BusinessLanding: React.FC = () => {
               </div>
               <div className="relative">
                 <div className="absolute -inset-4 bg-[#BD00FF]/10 blur-[100px] rounded-full" />
-                <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&q=80" className="relative rounded-[3rem] shadow-2xl border border-slate-100" alt="dashboard" />
+                <img src="/images/business/dashboard-hero.png" className="relative rounded-[3rem] shadow-2xl border border-slate-100" alt="dashboard" />
               </div>
            </div>
         </section>
       </div>
+
+      {/* Business Footer */}
+      <footer className="bg-slate-900 border-t border-slate-800 text-slate-300">
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {/* Brand */}
+            <div>
+              <h3 className="text-2xl font-black text-white mb-4">Ray</h3>
+              <p className="text-slate-400 leading-relaxed">
+                منصة متكاملة لتجار العصر الجديد. صمم متجرك، أدر منتجاتك، واربح بسهولة.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div>
+              <h4 className="text-lg font-black text-white mb-4">روابط سريعة</h4>
+              <ul className="space-y-2">
+                <li><Link to="/shops" className="hover:text-[#00E5FF] transition-colors">المحلات</Link></li>
+                <li><Link to="/restaurants" className="hover:text-[#00E5FF] transition-colors">المطاعم</Link></li>
+                <li><Link to="/" className="hover:text-[#00E5FF] transition-colors">الرئيسية</Link></li>
+              </ul>
+            </div>
+
+            {/* Support */}
+            <div>
+              <h4 className="text-lg font-black text-white mb-4">الدعم والشروط</h4>
+              <ul className="space-y-2">
+                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">مركز المساعدة</a></li>
+                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">شروط الخدمة</a></li>
+                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">سياسة الخصوصية</a></li>
+                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">تواصل معنا</a></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-12 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
+            <p> {new Date().getFullYear()} Ray. جميع الحقوق محفوظة.</p>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };
@@ -218,13 +219,6 @@ const BenefitItem: React.FC<{ icon: React.ReactNode, title: string, description:
         <p className="text-slate-500 font-medium leading-relaxed">{description}</p>
      </div>
   </div>
-);
-
-const CheckCircle2 = ({ className }: { className?: string }) => (
-  <svg className={className} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-  </svg>
 );
 
 export default BusinessLanding;

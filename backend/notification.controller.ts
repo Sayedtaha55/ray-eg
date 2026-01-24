@@ -72,4 +72,11 @@ export class NotificationController {
   async markAllShopRead(@Request() req, @Param('shopId') shopId: string) {
     return this.notificationService.markAllReadForShop(shopId, { role: req.user?.role, shopId: req.user?.shopId });
   }
+
+  @Patch('shop/:shopId/:id/read')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async markShopNotificationRead(@Request() req, @Param('shopId') shopId: string, @Param('id') id: string) {
+    return this.notificationService.markReadForShop(shopId, { role: req.user?.role, shopId: req.user?.shopId }, id);
+  }
 }

@@ -15,7 +15,7 @@ import { ShopGallery as ShopGalleryComponent, useToast } from '@/components';
 import { ApiService } from '@/services/api.service';
 import { Skeleton } from '@/components/common/ui';
 
-const { useParams, useNavigate } = ReactRouterDOM as any;
+const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
 
@@ -81,6 +81,8 @@ const ProductCard: React.FC<{
 }> = ({ product, design, offer, onAdd, isAdded, onReserve }) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const navigate = useNavigate();
+  const { slug } = useParams();
+  const location = useLocation();
 
   const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (ShopDesign['productDisplay'] | undefined);
   const displayMode = productDisplay || (design.layout === 'minimal' ? 'minimal' : 'cards');
@@ -104,6 +106,62 @@ const ProductCard: React.FC<{
 
   const currentPrice = offer ? offer.newPrice : product.price;
 
+  const goToProduct = () => {
+    const sid = String(slug || '').trim();
+    if (sid) {
+      const prefix = String(location?.pathname || '').startsWith('/shop/') ? '/shop' : '/s';
+      navigate(`${prefix}/${sid}/product/${product.id}`);
+      return;
+    }
+    navigate(`/product/${product.id}`);
+  };
+
+  if (isCardless) {
+    return (
+      <MotionDiv
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
+      >
+        <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
+          <img
+            loading="lazy"
+            src={product.imageUrl || (product as any).image_url}
+            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
+            alt={product.name}
+          />
+
+          {offer && (
+            <div className="absolute top-3 left-3 bg-slate-900/80 text-white px-3 py-1 rounded-full font-black text-[10px] shadow-lg">
+              Sale
+            </div>
+          )}
+
+          <button
+            onClick={toggleFav}
+            className={`absolute top-3 right-3 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
+              isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
+            } rounded-full`}
+          >
+            <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
+          </button>
+
+          <div className="absolute inset-x-0 bottom-0 bg-slate-900/70 backdrop-blur-sm px-4 py-3">
+            <p className="text-white font-black text-[11px] md:text-sm tracking-wide uppercase line-clamp-1 text-center">
+              {product.name}
+            </p>
+            <div className="mt-1 flex items-center justify-center gap-3">
+              {offer ? (
+                <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span>
+              ) : null}
+              <span className="text-white font-black text-sm md:text-base">ج.م {currentPrice}</span>
+            </div>
+          </div>
+        </div>
+      </MotionDiv>
+    );
+  }
+
   return (
     <MotionDiv 
       initial={{ opacity: 0, y: 20 }} 
@@ -120,7 +178,7 @@ const ProductCard: React.FC<{
       style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
     >
       <div 
-        onClick={() => navigate(`/product/${product.id}`)}
+        onClick={goToProduct}
         className={`relative overflow-hidden cursor-pointer ${
           (isList || isCardless)
             ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
@@ -701,7 +759,7 @@ const ShopProfile: React.FC = () => {
                 ))}
               </div>
               
-              <div className={`${productDisplayMode === 'list' || productDisplayMode === 'minimal' ? 'flex flex-col gap-3 md:gap-4' : `grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}`}>
+              <div className={`${productDisplayMode === 'list' ? 'flex flex-col gap-3 md:gap-4' : productDisplayMode === 'minimal' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6' : `grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}`}>
                 {filteredProducts.length === 0 ? (
                   <div className="col-span-full py-16 md:py-24 text-center text-slate-300 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
                     <Info size={40} className="md:w-12 md:h-12 mx-auto mb-4 opacity-20" />
@@ -716,7 +774,7 @@ const ShopProfile: React.FC = () => {
                       offer={offers.find(o => o.productId === p.id)}
                       onAdd={(prod, price) => {
                         setAddedItemId(prod.id);
-                        window.dispatchEvent(new CustomEvent('add-to-cart', { detail: { ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name } }));
+                        RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
                         setTimeout(() => setAddedItemId(null), 1500);
                       }} 
                       isAdded={addedItemId === p.id} 

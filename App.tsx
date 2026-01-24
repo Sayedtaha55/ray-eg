@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import {
@@ -9,6 +8,7 @@ import {
   BusinessLanding,
   BusinessHero,
   MerchantDashboard,
+  MerchantProfilePage,
   BusinessPendingApproval,
   ShopsPage,
   RestaurantsPage,
@@ -18,6 +18,7 @@ import {
   ProfilePage,
   AboutPage,
   ProductPage,
+  ShopProductPage,
   AdminLayout,
   AdminDashboard,
   AdminLogin,
@@ -30,6 +31,7 @@ import {
   OffersPage,
   NotFoundPage,
   ResetPasswordPage,
+  GoogleCallbackPage,
 } from './components';
 
 const { HashRouter, BrowserRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
@@ -58,6 +60,7 @@ const App: React.FC = () => {
           <Route path="map" element={<MapPage />} />
           <Route path="login" element={<LoginPage />} />
           <Route path="signup" element={<SignupPage />} />
+          <Route path="auth/google/callback" element={<GoogleCallbackPage />} />
           <Route path="reset-password" element={<ResetPasswordPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="about" element={<AboutPage />} />
@@ -66,7 +69,11 @@ const App: React.FC = () => {
         
         <Route path="/shop/:slug" element={<ShopProfile />} />
 
+        <Route path="/shop/:slug/product/:id" element={<ShopProductPage />} />
+
         <Route path="/s/:slug" element={<ShopProfile />} />
+
+        <Route path="/s/:slug/product/:id" element={<ShopProductPage />} />
 
         <Route path="/business/:shopId/hero" element={<BusinessHero />} />
 
@@ -77,6 +84,7 @@ const App: React.FC = () => {
         <Route path="/business" element={<BusinessLayout />}>
           <Route index element={<BusinessLanding />} />
           <Route path="dashboard" element={<MerchantDashboard />} />
+          <Route path="profile" element={<MerchantProfilePage />} />
           <Route path="pending" element={<BusinessPendingApproval />} />
         </Route>
 

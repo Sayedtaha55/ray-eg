@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 // Users table - Main user accounts
@@ -33,6 +33,7 @@ model User {
   feedback    Feedback[]
   shopFollows ShopFollower[]
   notifications Notification[]
+  preferences NotificationPreference[]
 
   @@map("users")
 }
@@ -210,22 +211,87 @@ model Message {
 
 // Notifications table
 model Notification {
-  id        String   @id @default(cuid())
-  title     String
-  content   String
-  type      String
-  shopId    String   @map("shop_id")
-  userId    String?  @map("user_id")
-  orderId   String?  @map("order_id")
-  isRead    Boolean  @default(false) @map("is_read")
-  createdAt DateTime @default(now()) @map("created_at")
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  type        String
+  priority    String?  @default("MEDIUM")
+  shopId      String?  @map("shop_id")
+  userId      String?  @map("user_id")
+  orderId     String?  @map("order_id")
+  isRead      Boolean  @default(false) @map("is_read")
+  channels    Json?    @map("channels")
+  metadata    Json?
+  scheduledAt DateTime? @map("scheduled_at")
+  sentAt      DateTime? @map("sent_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  shop      Shop     @relation(fields: [shopId], references: [id])
-  user      User?    @relation(fields: [userId], references: [id])
-  order     Order?   @relation(fields: [orderId], references: [id])
+  shop        Shop?               @relation(fields: [shopId], references: [id])
+  user        User?               @relation(fields: [userId], references: [id])
+  order       Order?              @relation(fields: [orderId], references: [id])
 
+  @@index([userId])
+  @@index([shopId])
+  @@index([type])
+  @@index([isRead])
+  @@index([createdAt])
   @@map("notifications")
+}
+
+// Notification preferences table
+model NotificationPreference {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  emailEnabled  Boolean  @default(true) @map("email_enabled")
+  smsEnabled    Boolean  @default(false) @map("sms_enabled")
+  pushEnabled   Boolean  @default(true) @map("push_enabled")
+  inAppEnabled  Boolean  @default(true) @map("in_app_enabled")
+  typeSettings  Json?    @map("type_settings") // NotificationType -> preferences
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user          User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId])
+  @@map("notification_preferences")
+}
+
+// Notification templates table
+model NotificationTemplate {
+  id          String                @id @default(cuid())
+  type        String                @unique
+  title       String
+  content     String
+  priority    String?               @default("MEDIUM")
+  channels    Json?                 @map("channels")
+  variables   Json?                 // Template variables
+  isActive    Boolean               @default(true)
+  createdAt   DateTime              @default(now()) @map("created_at")
+  updatedAt   DateTime              @updatedAt @map("updated_at")
+
+  @@map("notification_templates")
+}
+
+// Notification rules table
+model NotificationRule {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  triggerEvent    String   @map("trigger_event")
+  triggerConditions Json?  @map("trigger_conditions")
+  actionType      String   @map("action_type")
+  templateId      String   @map("template_id")
+  channels        Json?    @map("channels")
+  delayMinutes    Int?    @map("delay_minutes")
+  targetAudience  Json?   @map("target_audience")
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@map("notification_rules")
 }
 
 // Reservations table

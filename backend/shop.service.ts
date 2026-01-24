@@ -600,6 +600,21 @@ export class ShopService {
           },
         });
 
+        try {
+          const follower = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
+          await tx.notification.create({
+            data: {
+              shopId,
+              title: 'متابع جديد!',
+              content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
+              type: 'NEW_FOLLOWER',
+              isRead: false,
+              metadata: { followerId: userId, followerName: follower?.name },
+            } as any,
+          });
+        } catch {
+        }
+
         const updatedShop = await tx.shop.update({
           where: { id: shopId },
           data: { followers: { increment: 1 } },
@@ -651,6 +666,21 @@ export class ShopService {
             userId,
           },
         });
+
+        try {
+          const follower = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
+          await tx.notification.create({
+            data: {
+              shopId,
+              title: 'متابع جديد!',
+              content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
+              type: 'NEW_FOLLOWER',
+              isRead: false,
+              metadata: { followerId: userId, followerName: follower?.name },
+            } as any,
+          });
+        } catch {
+        }
 
         const updatedShop = await tx.shop.update({
           where: { id: shopId },

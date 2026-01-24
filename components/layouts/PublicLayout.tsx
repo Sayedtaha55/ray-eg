@@ -77,14 +77,6 @@ const PublicLayout: React.FC = () => {
         const id = first?.id ? String(first.id) : null;
         if (id && id !== lastId) {
           lastId = id;
-          try {
-            const url = RayDB.getSelectedNotificationSoundUrl();
-            if (url) {
-              const audio = new Audio(url);
-              audio.play().catch(() => {});
-            }
-          } catch {
-          }
           pollUnread();
         }
       } catch {

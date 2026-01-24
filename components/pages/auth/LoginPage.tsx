@@ -26,6 +26,10 @@ const LoginPage: React.FC = () => {
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
+  const backendBaseUrl =
+    ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
+    `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
+
   const buildSignupLink = (role?: string) => {
     const q = new URLSearchParams();
     if (role) q.set('role', role);
@@ -33,6 +37,14 @@ const LoginPage: React.FC = () => {
     if (followShopId) q.set('followShopId', followShopId);
     const qs = q.toString();
     return `/signup${qs ? `?${qs}` : ''}`;
+  };
+
+  const handleGoogleLogin = () => {
+    const q = new URLSearchParams();
+    if (returnTo) q.set('returnTo', returnTo);
+    if (followShopId) q.set('followShopId', followShopId);
+    const qs = q.toString();
+    window.location.href = `${backendBaseUrl}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -262,6 +274,18 @@ const LoginPage: React.FC = () => {
             {loading ? 'جاري التحقق...' : 'دخول آمن'}
           </button>
         </form>
+
+        <div className="mt-6">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={handleGoogleLogin}
+            className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+          >
+            <Sparkles size={20} className="text-[#BD00FF]" />
+            تسجيل الدخول عبر Google
+          </button>
+        </div>
 
         <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
            <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>

@@ -150,7 +150,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     <div className="relative">
                       <User className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
-                        disabled
+                        disabled={isSubmitting}
                         className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-14 pl-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-bold text-right"
                         placeholder="الاسم بالكامل"
                         value={name}
@@ -164,7 +164,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     <div className="relative">
                       <Phone className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
-                        disabled
+                        disabled={isSubmitting}
                         type="tel"
                         className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-14 pl-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-bold text-right"
                         placeholder="01x xxxx xxxx"

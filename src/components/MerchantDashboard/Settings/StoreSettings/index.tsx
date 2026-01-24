@@ -5,12 +5,11 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
-import { RayDB } from '@/constants';
 import L from 'leaflet';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
 import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
-import { Image as ImageIcon, Loader2 } from 'lucide-react';
+
 
 interface StoreSettingsProps {
   shop: any;
@@ -173,64 +172,6 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       },
       { enableHighAccuracy: true, timeout: 8000 },
     );
-  };
-
-  const receiptLogoInputRef = useRef<HTMLInputElement>(null);
-  const receiptShopId = String(adminShopId || shop?.id || '');
-  const [receiptShopName, setReceiptShopName] = useState('');
-  const [receiptPhone, setReceiptPhone] = useState('');
-  const [receiptAddress, setReceiptAddress] = useState('');
-  const [receiptLogoDataUrl, setReceiptLogoDataUrl] = useState('');
-  const [receiptFooterNote, setReceiptFooterNote] = useState('');
-  const [savingReceiptTheme, setSavingReceiptTheme] = useState(false);
-
-  useEffect(() => {
-    const theme = RayDB.getReceiptTheme(receiptShopId);
-    setReceiptShopName(String((theme as any)?.shopName || shop?.name || ''));
-    setReceiptPhone(String((theme as any)?.phone || shop?.phone || ''));
-    setReceiptAddress(String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
-    setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
-    setReceiptFooterNote(String((theme as any)?.footerNote || ''));
-  }, [receiptShopId, shop?.name, shop?.phone, shop?.addressDetailed, shop?.address_detailed]);
-
-  const handlePickReceiptLogo = () => {
-    receiptLogoInputRef.current?.click();
-  };
-
-  const handleReceiptLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast({ title: 'خطأ', description: 'الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', variant: 'destructive' });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setReceiptLogoDataUrl(reader.result as string);
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleSaveReceiptTheme = async () => {
-    if (!receiptShopId) {
-      toast({ title: 'خطأ', description: 'لا يمكن حفظ ثيم الفاتورة بدون متجر', variant: 'destructive' });
-      return;
-    }
-    setSavingReceiptTheme(true);
-    try {
-      RayDB.setReceiptTheme(receiptShopId, {
-        shopName: receiptShopName,
-        phone: receiptPhone,
-        address: receiptAddress,
-        logoDataUrl: receiptLogoDataUrl,
-        footerNote: receiptFooterNote,
-      });
-      toast({ title: 'تم الحفظ', description: 'تم حفظ ثيم الفاتورة بنجاح' });
-    } catch {
-      toast({ title: 'خطأ', description: 'فشل حفظ ثيم الفاتورة', variant: 'destructive' });
-    } finally {
-      setSavingReceiptTheme(false);
-    }
   };
 
   const onChange = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,69 +339,6 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
         </Card>
       </form>
 
-      <Card className="border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle>ثيم الفاتورة</CardTitle>
-          <CardDescription>خصّص بيانات الفاتورة (محليًا على هذا الجهاز).</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="receiptShopName">اسم المتجر على الفاتورة</Label>
-              <Input id="receiptShopName" value={receiptShopName} onChange={(e) => setReceiptShopName(e.target.value)} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="receiptPhone">هاتف الفاتورة</Label>
-              <Input id="receiptPhone" value={receiptPhone} onChange={(e) => setReceiptPhone(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="receiptAddress">عنوان الفاتورة</Label>
-            <Input id="receiptAddress" value={receiptAddress} onChange={(e) => setReceiptAddress(e.target.value)} />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label>شعار الفاتورة (اختياري)</Label>
-              <div className="flex items-center gap-3">
-                <div
-                  onClick={handlePickReceiptLogo}
-                  className="w-20 h-20 rounded-md overflow-hidden bg-slate-50 border border-slate-200 shrink-0 cursor-pointer flex items-center justify-center"
-                >
-                  {receiptLogoDataUrl ? (
-                    <img src={receiptLogoDataUrl} className="w-full h-full object-cover" alt="receipt-logo" />
-                  ) : (
-                    <ImageIcon className="text-slate-300" />
-                  )}
-                </div>
-                <div className="flex-1 flex flex-col gap-2">
-                  <Button type="button" onClick={handlePickReceiptLogo} variant="outline">اختيار شعار</Button>
-                  <Button type="button" onClick={() => setReceiptLogoDataUrl('')} variant="secondary">حذف الشعار</Button>
-                </div>
-                <input ref={receiptLogoInputRef} type="file" hidden accept="image/*" onChange={handleReceiptLogoChange} />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="receiptFooterNote">ملاحظة أسفل الفاتورة</Label>
-              <Input id="receiptFooterNote" value={receiptFooterNote} onChange={(e) => setReceiptFooterNote(e.target.value)} placeholder="شكراً لزيارتكم" />
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-end border-t px-6 py-4">
-          <Button type="button" onClick={handleSaveReceiptTheme} disabled={savingReceiptTheme}>
-            {savingReceiptTheme ? (
-              <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                جاري الحفظ...
-              </>
-            ) : (
-              'حفظ ثيم الفاتورة'
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
     </div>
   );
 };

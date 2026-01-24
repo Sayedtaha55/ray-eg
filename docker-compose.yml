@@ -33,6 +33,8 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - BACKEND_PORT=4000
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
     volumes:
@@ -78,8 +80,29 @@ services:
     profiles:
       - production
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ray-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ray_marketplace
+      - POSTGRES_USER=ray_user
+      - POSTGRES_PASSWORD=ray_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ray_user -d ray_marketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   redis_data:
+    driver: local
+  postgres_data:
     driver: local
 
 networks:
