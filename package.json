@@ -7,7 +7,7 @@
     "dev": "npx vite --config vite.config.mts",
     "backend:dev": "tsx watch --tsconfig backend/tsconfig.json backend/main.ts",
     "backend:build": "tsc -p backend/tsconfig.json",
-    "backend:start": "node dist/main.js",
+    "backend:start": "prisma generate --schema prisma/schema.postgres.prisma && prisma db push --schema prisma/schema.postgres.prisma && node dist/main.js",
     "backend:render:start": "prisma generate --schema prisma/schema.postgres.prisma && prisma db push --schema prisma/schema.postgres.prisma && tsx --tsconfig backend/tsconfig.json backend/main.ts",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma",

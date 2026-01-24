@@ -62,7 +62,11 @@ async function bootstrap() {
     },
   });
 
-  if (String(process.env.TRUST_PROXY || '').toLowerCase() === 'true') {
+  const shouldTrustProxy =
+    String(process.env.TRUST_PROXY || '').toLowerCase() === 'true' ||
+    !!process.env.RAILWAY_ENVIRONMENT;
+
+  if (shouldTrustProxy) {
     const httpAdapter: any = app.getHttpAdapter?.();
     const instance: any = httpAdapter?.getInstance?.();
     if (instance && typeof instance.set === 'function') {
