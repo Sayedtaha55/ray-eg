@@ -14,9 +14,12 @@ dist/
 # Env / Secrets
 .env
 .env.local
+.env.*
 .env.development.local
 .env.test.local
 .env.production.local
+
+!.env.example
 
 # OS Files
 .DS_Store

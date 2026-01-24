@@ -6,8 +6,20 @@ import { Strategy } from 'passport-google-oauth20';
 @Injectable()
 export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
   constructor(@Inject(ConfigService) private readonly configService: ConfigService) {
-    const clientID = String(configService.get<string>('GOOGLE_CLIENT_ID') || '').trim();
-    const clientSecret = String(configService.get<string>('GOOGLE_CLIENT_SECRET') || '').trim();
+    const rawClientID = String(configService.get<string>('GOOGLE_CLIENT_ID') || '').trim();
+    const rawClientSecret = String(configService.get<string>('GOOGLE_CLIENT_SECRET') || '').trim();
+
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const isProd = env === 'production';
+
+    const googleOauthRequired = String(configService.get<string>('GOOGLE_OAUTH_REQUIRED') || '').toLowerCase() === 'true';
+
+    if (googleOauthRequired && (!rawClientID || !rawClientSecret)) {
+      throw new Error('Google OAuth is required but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are missing');
+    }
+
+    const clientID = rawClientID || (isProd ? 'MISSING_GOOGLE_CLIENT_ID' : 'MISSING_GOOGLE_CLIENT_ID');
+    const clientSecret = rawClientSecret || (isProd ? 'MISSING_GOOGLE_CLIENT_SECRET' : 'MISSING_GOOGLE_CLIENT_SECRET');
     const callbackURL = String(
       configService.get<string>('GOOGLE_CALLBACK_URL') ||
         'http://localhost:4000/api/v1/auth/google/callback',
