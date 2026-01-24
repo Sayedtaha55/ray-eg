@@ -9,7 +9,7 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN npx prisma generate --schema prisma/schema.prisma
+RUN npx prisma generate --schema prisma/schema.postgres.prisma
 RUN npm run backend:build
 
 # Production image, copy all the files and run the app
