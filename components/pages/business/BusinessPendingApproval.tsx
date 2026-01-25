@@ -14,6 +14,24 @@ const BusinessPendingApproval: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const userStr = (() => {
+    try {
+      return localStorage.getItem('ray_user');
+    } catch {
+      return null;
+    }
+  })();
+
+  const user = (() => {
+    try {
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const isLoggedInMerchant = String(user?.role || '').toLowerCase() === 'merchant';
+
   const loadStatus = async () => {
     setLoading(true);
     setError('');
@@ -21,7 +39,8 @@ const BusinessPendingApproval: React.FC = () => {
     try {
       const userStr = localStorage.getItem('ray_user');
       if (!userStr) {
-        navigate('/login');
+        setShop(null);
+        setLoading(false);
         return;
       }
       const user = JSON.parse(userStr);
@@ -94,14 +113,16 @@ const BusinessPendingApproval: React.FC = () => {
           </div>
 
           <div className="flex flex-col md:flex-row gap-4">
-            <button
-              onClick={loadStatus}
-              disabled={loading}
-              className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:bg-slate-300"
-            >
-              {loading ? <Loader2 className="animate-spin" /> : <RefreshCw size={18} />}
-              {loading ? 'جاري التحقق...' : 'تحديث الحالة'}
-            </button>
+            {isLoggedInMerchant && (
+              <button
+                onClick={loadStatus}
+                disabled={loading}
+                className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:bg-slate-300"
+              >
+                {loading ? <Loader2 className="animate-spin" /> : <RefreshCw size={18} />}
+                {loading ? 'جاري التحقق...' : 'تحديث الحالة'}
+              </button>
+            )}
 
             <button
               onClick={() => navigate('/')}

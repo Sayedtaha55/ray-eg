@@ -70,31 +70,31 @@ LOG_LEVEL="info"
 ## 🗄️ Database Setup
 
 ### Prisma schemas in this repo
-- **SQLite (default dev)**: `prisma/schema.prisma`
-- **Postgres (deployment)**: `prisma/schema.postgres.prisma`
+- **PostgreSQL (current default)**: `prisma/schema.prisma`
+- **PostgreSQL (alternate copy)**: `prisma/schema.postgres.prisma`
+- **SQLite (legacy/experimental)**: `backend/prisma/schema.prisma`
 
-### Option 1: Default dev (SQLite)
+### Option 1: PostgreSQL (recommended)
 ```bash
 npm run prisma:generate
 npm run prisma:push
 ```
 
-### Option 2: PostgreSQL
+### Option 2: SQLite (legacy)
+This repo contains a legacy SQLite schema at `backend/prisma/schema.prisma`.
+Note: the current backend code is designed around the PostgreSQL schema in `prisma/schema.prisma`, so the SQLite schema should be considered experimental.
+
 ```bash
-# Install PostgreSQL
-sudo apt-get install postgresql postgresql-contrib
+npx prisma generate --schema backend/prisma/schema.prisma
+npx prisma db push --schema backend/prisma/schema.prisma
+```
 
-# Create database
-sudo -u postgres createdb ray_marketplace
+## 🧭 Frontend Routing (Admin not opening / 404 on refresh)
+If you deploy the frontend as static files (Vite build) and use `BrowserRouter`, your hosting must be configured to rewrite all routes to `index.html`.
 
-# Create user
-sudo -u postgres psql
-CREATE USER ray_user WITH PASSWORD 'your_password';
-GRANT ALL PRIVILEGES ON DATABASE ray_marketplace TO ray_user;
-\q
-
-# Update .env
-DATABASE_URL="postgres://ray_user:your_password@localhost:5432/ray_marketplace"
+If rewrites are not configured, use `HashRouter` by setting:
+```env
+VITE_ROUTER_MODE=hash
 ```
 
 ### 3. Generate Prisma Client

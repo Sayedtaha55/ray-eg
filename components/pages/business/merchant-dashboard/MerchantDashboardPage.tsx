@@ -206,6 +206,19 @@ const MerchantDashboardPage: React.FC = () => {
 
       return effectiveShop;
     } catch (e) {
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      if (status === 404) {
+        try {
+          localStorage.removeItem('ray_user');
+          localStorage.removeItem('ray_token');
+          window.dispatchEvent(new Event('auth-change'));
+        } catch {
+          // ignore
+        }
+        redirected = true;
+        navigate('/login');
+        return;
+      }
       const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
       addToastRef.current(message, 'error');
     } finally {
@@ -443,6 +456,28 @@ const MerchantDashboardPage: React.FC = () => {
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
         <Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" />
         <p className="font-black text-slate-400">تحميل مركز العمليات...</p>
+      </div>
+    );
+  }
+
+  if (!currentShop) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 text-right px-6" dir="rtl">
+        <p className="font-black text-slate-600">لم يتم العثور على متجر مرتبط بهذا الحساب.</p>
+        <button
+          onClick={() => {
+            try {
+              localStorage.removeItem('ray_user');
+              localStorage.removeItem('ray_token');
+              window.dispatchEvent(new Event('auth-change'));
+            } catch {
+            }
+            navigate('/login');
+          }}
+          className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black"
+        >
+          تسجيل الدخول
+        </button>
       </div>
     );
   }

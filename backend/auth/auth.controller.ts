@@ -85,6 +85,22 @@ class ResetPasswordDto {
   newPassword!: string;
 }
 
+class BootstrapAdminDto {
+  @IsString()
+  token!: string;
+
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  password!: string;
+
+  @IsOptional()
+  @IsString()
+  name?: string;
+}
+
 class ChangePasswordDto {
   @IsString()
   currentPassword!: string;
@@ -172,10 +188,21 @@ export class AuthController {
   @Post('signup')
   async signup(@Body() dto: SignupDto, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.signup(dto);
-    if (result?.access_token) {
-      this.setAuthCookie(res, String(result.access_token));
+    const accessToken = (result as any)?.access_token;
+    if (accessToken) {
+      this.setAuthCookie(res, String(accessToken));
     }
     return result;
+  }
+
+  @Post('bootstrap-admin')
+  async bootstrapAdmin(@Body() dto: BootstrapAdminDto) {
+    return this.authService.bootstrapAdmin({
+      token: String(dto?.token || ''),
+      email: String(dto?.email || ''),
+      password: String(dto?.password || ''),
+      name: dto?.name,
+    });
   }
 
   @Post('login')

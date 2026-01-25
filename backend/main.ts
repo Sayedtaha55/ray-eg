@@ -22,7 +22,12 @@ function isPrivateIpv4Host(hostname: string) {
 }
 
 async function bootstrap() {
-  const configuredOriginsRaw = String(process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '').trim();
+  const configuredOriginsRaw = String(
+    process.env.CORS_ORIGIN ||
+      process.env.FRONTEND_URL ||
+      process.env.FRONTEND_APP_URL ||
+      '',
+  ).trim();
   const allowedOrigins = configuredOriginsRaw
     ? configuredOriginsRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [];

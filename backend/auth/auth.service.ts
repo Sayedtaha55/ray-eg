@@ -1,5 +1,5 @@
 
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -22,6 +22,62 @@ export class AuthService {
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(JwtService) private jwtService: JwtService,
   ) {}
+
+  async bootstrapAdmin(input: { token: string; email: string; password: string; name?: string }) {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const expected = String(process.env.ADMIN_BOOTSTRAP_TOKEN || '').trim();
+
+    if (!expected && env === 'production') {
+      throw new ForbiddenException('Admin bootstrap is not configured');
+    }
+
+    const token = String(input?.token || '').trim();
+    if (!expected || token !== expected) {
+      throw new ForbiddenException('Forbidden');
+    }
+
+    const email = String(input?.email || '').toLowerCase().trim();
+    const password = String(input?.password || '');
+    const name = String(input?.name || 'Admin').trim() || 'Admin';
+
+    if (!email) throw new BadRequestException('البريد الإلكتروني مطلوب');
+    if (!password || password.length < 8) throw new BadRequestException('كلمة المرور ضعيفة جداً');
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const existing = await this.prisma.user.findUnique({ where: { email } });
+    if (existing) {
+      const existingRole = String((existing as any)?.role || '').toUpperCase();
+      if (existingRole !== 'ADMIN') {
+        throw new ConflictException('البريد الإلكتروني مستخدم بالفعل');
+      }
+
+      const updated = await this.prisma.user.update({
+        where: { id: existing.id },
+        data: {
+          name,
+          password: hashedPassword,
+          role: 'ADMIN' as any,
+          isActive: true,
+        },
+      });
+      return { ok: true, userId: updated.id };
+    }
+
+    const created = await this.prisma.user.create({
+      data: {
+        email,
+        name,
+        password: hashedPassword,
+        role: 'ADMIN' as any,
+        isActive: true,
+      },
+      select: { id: true },
+    });
+
+    return { ok: true, userId: created.id };
+  }
 
   async requestPasswordReset(email: string) {
     const normalizedEmail = String(email || '').toLowerCase().trim();
@@ -269,6 +325,7 @@ export class AuthService {
           email: (shopEmail || normalizedEmail) as any,
           openingHours: openingHours || null,
           addressDetailed: addressDetailed || null,
+          status: 'PENDING' as any,
           ownerId: createdUser.id,
         },
       });
@@ -280,6 +337,21 @@ export class AuthService {
 
       return { user: updatedUser, shop: createdShop };
     });
+
+    if (String(result?.user?.role || '').toUpperCase() === 'MERCHANT') {
+      return {
+        ok: true,
+        pending: true,
+        user: {
+          id: result.user.id,
+          name: result.user.name,
+          email: result.user.email,
+          role: result.user.role,
+          shopId: result.user.shopId,
+        },
+        shop: result.shop,
+      };
+    }
 
     return this.generateToken(result.user);
   }
@@ -353,6 +425,22 @@ export class AuthService {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
+    const role = String(user?.role || '').toUpperCase();
+    if (role === 'MERCHANT') {
+      const shopId = String((user as any)?.shopId || '').trim();
+      if (!shopId) {
+        throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: { id: true, status: true },
+      });
+      const status = String((shop as any)?.status || '').toUpperCase();
+      if (status !== 'APPROVED') {
+        throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+    }
+
     // تحديث تاريخ آخر ظهور (Last Login)
     await this.prisma.user.update({
       where: { id: user.id },
@@ -406,6 +494,22 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({ where: { id: uid } });
     if (!user) throw new UnauthorizedException('غير مصرح');
+
+    const role = String(user?.role || '').toUpperCase();
+    if (role === 'MERCHANT') {
+      const shopId = String((user as any)?.shopId || '').trim();
+      if (!shopId) {
+        throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: { id: true, status: true },
+      });
+      const status = String((shop as any)?.status || '').toUpperCase();
+      if (status !== 'APPROVED') {
+        throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+    }
 
     return this.generateToken(user);
   }

@@ -69,9 +69,21 @@ const SignupPage: React.FC = () => {
 
     try {
       const response = await ApiService.signup({ ...formData, role });
-      localStorage.setItem('ray_user', JSON.stringify(response.user));
+      const isPending = Boolean((response as any)?.pending);
+      if (isPending) {
+        try {
+          localStorage.removeItem('ray_user');
+          localStorage.removeItem('ray_token');
+        } catch {
+        }
+        window.dispatchEvent(new Event('auth-change'));
+        navigate('/business/pending');
+        return;
+      }
+
+      localStorage.setItem('ray_user', JSON.stringify((response as any).user));
       // Accessing the token correctly from session
-      localStorage.setItem('ray_token', response.session?.access_token || '');
+      localStorage.setItem('ray_token', (response as any).session?.access_token || '');
       window.dispatchEvent(new Event('auth-change'));
 
       if (returnTo) {

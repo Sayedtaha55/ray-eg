@@ -46,8 +46,7 @@ const ScrollToTop = () => {
 
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
-  const isDirectDeepLink = typeof window !== 'undefined' && window.location.hash === '' && window.location.pathname !== '/';
-  const Router = routerMode === 'browser' || isDirectDeepLink ? BrowserRouter : HashRouter;
+  const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
   return (
     <Router>
       <ScrollToTop />

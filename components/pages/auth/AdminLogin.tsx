@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldAlert, Loader2, KeyRound, ArrowRight } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 
-const { useNavigate } = ReactRouterDOM as any;
+const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const AdminLogin: React.FC = () => {
@@ -14,6 +13,7 @@ const AdminLogin: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,7 +27,13 @@ const AdminLogin: React.FC = () => {
       window.dispatchEvent(new Event('auth-change'));
       const role = String(res.user?.role || '').toLowerCase();
       if (role === 'admin') {
-        navigate('/admin/dashboard');
+        const params = new URLSearchParams(location.search);
+        const returnTo = String(params.get('returnTo') || '').trim();
+        if (returnTo && returnTo.startsWith('/admin')) {
+          navigate(returnTo);
+        } else {
+          navigate('/admin/dashboard');
+        }
       } else {
         throw new Error('هذه المنطقة للمشرفين فقط!');
       }

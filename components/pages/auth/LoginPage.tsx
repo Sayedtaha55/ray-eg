@@ -91,6 +91,11 @@ const LoginPage: React.FC = () => {
         navigate('/profile');
       }
     } catch (err: any) {
+      const status = typeof err?.status === 'number' ? err.status : undefined;
+      if (status === 403) {
+        navigate('/business/pending');
+        return;
+      }
       setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
     } finally {
       setLoading(false);

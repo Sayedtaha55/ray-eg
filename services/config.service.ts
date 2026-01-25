@@ -10,12 +10,15 @@
      // ignore
    }
  
-   try {
-     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-     const nodeEnv = (globalThis as any)?.process?.env;
-     if (nodeEnv && nodeEnv[key] !== undefined) return String(nodeEnv[key]);
-   } catch {
-     // ignore
+   const isBrowser = typeof window !== 'undefined' && typeof document !== 'undefined';
+   if (!isBrowser) {
+     try {
+       // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       const nodeEnv = (globalThis as any)?.process?.env;
+       if (nodeEnv && nodeEnv[key] !== undefined) return String(nodeEnv[key]);
+     } catch {
+       // ignore
+     }
    }
  
    return undefined;

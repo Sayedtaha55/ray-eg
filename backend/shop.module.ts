@@ -6,9 +6,10 @@ import { PrismaModule } from './prisma/prisma.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { MediaModule } from './media.module';
 import { NotificationModule } from './notification.module';
+import { EmailModule } from './email.module';
 
 @Module({
-  imports: [PrismaModule, MediaModule, NotificationModule, /* RedisModule, */ MonitoringModule],
+  imports: [PrismaModule, MediaModule, NotificationModule, EmailModule, /* RedisModule, */ MonitoringModule],
   controllers: [ShopController],
   providers: [ShopService],
   exports: [ShopService],

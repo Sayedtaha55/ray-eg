@@ -1163,10 +1163,16 @@ async function sessionViaBackend() {
 }
 
 async function signupViaBackend(payload: any) {
-  const data = await backendPost<{ access_token: string; user: any }>(
-    '/api/v1/auth/signup',
-    payload,
-  );
+  const data = await backendPost<any>('/api/v1/auth/signup', payload);
+  const pending = Boolean(data?.pending);
+  if (pending) {
+    return {
+      pending: true,
+      user: normalizeUserFromBackend(data.user),
+      session: { access_token: '' },
+      shop: data?.shop,
+    };
+  }
   return {
     user: normalizeUserFromBackend(data.user),
     session: { access_token: data.access_token },
@@ -1392,8 +1398,22 @@ export const ApiService = {
     return normalizeShopFromBackend(shop);
   },
   getMyShop: async () => {
-    const shop = await backendGet<any>('/api/v1/shops/me');
-    return normalizeShopFromBackend(shop);
+    try {
+      const shop = await backendGet<any>('/api/v1/shops/me');
+      return normalizeShopFromBackend(shop);
+    } catch (e: any) {
+      const status = typeof e?.status === 'number' ? e.status : undefined;
+      if (status === 404) {
+        try {
+          localStorage.removeItem('ray_user');
+          localStorage.removeItem('ray_token');
+          window.dispatchEvent(new Event('auth-change'));
+        } catch {
+          // ignore
+        }
+      }
+      throw e;
+    }
   },
   updateMyShop: async (payload: any) => {
     const shop = await backendPatch<any>('/api/v1/shops/me', payload);

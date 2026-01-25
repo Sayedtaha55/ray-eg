@@ -3,6 +3,7 @@ import { PrismaService } from './prisma/prisma.service';
 // import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
 import { MediaCompressionService } from './media-compression.service';
+import { EmailService } from './email.service';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
@@ -14,6 +15,7 @@ export class ShopService {
     // @Inject(RedisService) private readonly redis: RedisService,
     @Inject(MonitoringService) private readonly monitoring: MonitoringService,
     @Inject(MediaCompressionService) private readonly media: MediaCompressionService,
+    @Inject(EmailService) private readonly email: EmailService,
   ) {}
 
   private parseBase64DataUrl(dataUrl: string) {
@@ -441,6 +443,30 @@ export class ShopService {
         where: { id: shopId },
         data: { status: status as any },
       });
+
+      if (String(status).toUpperCase() === 'APPROVED') {
+        try {
+          const shop = await this.prisma.shop.findUnique({
+            where: { id: updated.id },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              owner: { select: { email: true, name: true } },
+            },
+          });
+
+          const to = String((shop as any)?.email || (shop as any)?.owner?.email || '').trim();
+          if (to) {
+            await this.email.sendMail({
+              to,
+              subject: 'تمت الموافقة على متجرك في Ray',
+              text: `مرحباً ${(shop as any)?.owner?.name || ''}\n\nتمت الموافقة على متجرك "${(shop as any)?.name || ''}". يمكنك الآن تسجيل الدخول والدخول للوحة التحكم.`,
+            });
+          }
+        } catch {
+        }
+      }
 
       // await this.redis.invalidateShopCache(updated.id, updated.slug);
 

@@ -16,11 +16,18 @@ const AdminLayout: React.FC = () => {
 
   useEffect(() => {
     const userStr = localStorage.getItem('ray_user');
-    const user = userStr ? JSON.parse(userStr) : {};
-    if (user.role !== 'admin') {
-      navigate('/login');
+    let role = '';
+    try {
+      const user = userStr ? JSON.parse(userStr) : {};
+      role = String(user?.role || '');
+    } catch {
+      role = '';
     }
-  }, [navigate]);
+    if (role.toLowerCase() !== 'admin') {
+      const returnTo = `${location.pathname}${location.search || ''}`;
+      navigate(`/admin/gate?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
+    }
+  }, [navigate, location.pathname, location.search]);
 
   const handleLogout = async () => {
     try {

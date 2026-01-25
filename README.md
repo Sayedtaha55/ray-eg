@@ -22,7 +22,7 @@
 - **AI Engine:** Google Generative AI (Gemini SDK).
 - **Icons:** Lucide React.
 - **Backend:** NestJS + Prisma.
-- **Database:** Prisma (SQLite في التطوير افتراضياً، مع Schema لـ Postgres).
+- **Database:** Prisma (PostgreSQL افتراضياً، مع schema SQLite legacy داخل `backend/prisma/schema.prisma`).
 
 ---
 
@@ -43,7 +43,7 @@
 - **AI Engine:** Google Generative AI (Gemini API).
 - **Icons:** Lucide React.
 - **Backend:** NestJS + Prisma.
-- **Database:** Prisma (SQLite by default in dev, with Postgres schema available).
+- **Database:** Prisma (PostgreSQL by default, with a legacy SQLite schema in `backend/prisma/schema.prisma`).
 
 ---
 

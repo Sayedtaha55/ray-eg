@@ -1,11 +1,15 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(@Inject(ConfigService) private readonly configService: ConfigService) {
+  constructor(
+    @Inject(ConfigService) private readonly configService: ConfigService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+  ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -42,6 +46,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
+    const role = String(payload?.role || '').toUpperCase();
+    if (role === 'MERCHANT') {
+      const shopId = String(payload?.shopId || '').trim();
+      if (!shopId) {
+        throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: { id: true, status: true },
+      });
+
+      const status = String((shop as any)?.status || '').toUpperCase();
+      if (!shop || status !== 'APPROVED') {
+        throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+    }
+
     return {
       id: payload.sub,
       email: payload.email,

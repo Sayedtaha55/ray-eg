@@ -34,9 +34,10 @@ const GoogleCallbackPage: React.FC = () => {
           return;
         }
 
-        if (response.user.role === 'admin') {
+        const role = String(response.user?.role || '').toLowerCase();
+        if (role === 'admin') {
           navigate('/admin/dashboard');
-        } else if (response.user.role === 'merchant') {
+        } else if (role === 'merchant') {
           try {
             const myShop = await ApiService.getMyShop();
             const status = String(myShop?.status || '').toLowerCase();
