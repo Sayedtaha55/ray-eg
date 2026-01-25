@@ -42,6 +42,13 @@ async function bootstrap() {
         return true;
       }
 
+      if (!isDev && allowedOrigins.length === 0) {
+        const host = String(url.hostname || '').toLowerCase();
+        if (host === 'vercel.app' || host.endsWith('.vercel.app')) {
+          return true;
+        }
+      }
+
       if (isDev && isPrivateIpv4Host(url.hostname)) {
         return true;
       }
