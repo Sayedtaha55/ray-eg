@@ -48,11 +48,6 @@ export class AuthService {
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
-      const existingRole = String((existing as any)?.role || '').toUpperCase();
-      if (existingRole !== 'ADMIN') {
-        throw new ConflictException('البريد الإلكتروني مستخدم بالفعل');
-      }
-
       const updated = await this.prisma.user.update({
         where: { id: existing.id },
         data: {
