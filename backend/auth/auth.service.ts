@@ -1,5 +1,5 @@
 
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException, ForbiddenException, Inject, OnModuleInit } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
@@ -17,11 +17,68 @@ type IncomingShopCategory =
   | 'OTHER';
 
 @Injectable()
-export class AuthService {
+export class AuthService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(JwtService) private jwtService: JwtService,
   ) {}
+
+  async onModuleInit() {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const seedEmailRaw = String(process.env.ADMIN_SEED_EMAIL || '').trim();
+    const seedPassword = String(process.env.ADMIN_SEED_PASSWORD || '');
+    const seedName = String(process.env.ADMIN_SEED_NAME || 'Admin').trim() || 'Admin';
+
+    if (env !== 'production') return;
+    if (!seedEmailRaw || !seedPassword) return;
+    if (seedPassword.length < 8) return;
+
+    try {
+      const seedEmail = seedEmailRaw.toLowerCase();
+      const existingAdmin = await this.prisma.user.findFirst({
+        where: { role: 'ADMIN' as any },
+        select: { id: true, email: true },
+      });
+
+      if (!existingAdmin) {
+        const salt = await bcrypt.genSalt(12);
+        const hashedPassword = await bcrypt.hash(seedPassword, salt);
+        await this.prisma.user.create({
+          data: {
+            email: seedEmail,
+            name: seedName,
+            password: hashedPassword,
+            role: 'ADMIN' as any,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+        // eslint-disable-next-line no-console
+        console.log('✅ Admin seeded from environment variables');
+        return;
+      }
+
+      const allowReset = String(process.env.ADMIN_SEED_ALLOW_RESET || '').toLowerCase() === 'true';
+      if (allowReset && String(existingAdmin.email || '').toLowerCase() === seedEmail) {
+        const salt = await bcrypt.genSalt(12);
+        const hashedPassword = await bcrypt.hash(seedPassword, salt);
+        await this.prisma.user.update({
+          where: { id: existingAdmin.id },
+          data: {
+            name: seedName,
+            password: hashedPassword,
+            role: 'ADMIN' as any,
+            isActive: true,
+          },
+          select: { id: true },
+        });
+        // eslint-disable-next-line no-console
+        console.log('✅ Admin password reset from environment variables');
+      }
+    } catch {
+      // ignore
+    }
+  }
 
   async bootstrapAdmin(input: { token: string; email: string; password: string; name?: string }) {
     const env = String(process.env.NODE_ENV || '').toLowerCase();
@@ -46,8 +103,27 @@ export class AuthService {
     const salt = await bcrypt.genSalt(12);
     const hashedPassword = await bcrypt.hash(password, salt);
 
+    const existingAdmin = await this.prisma.user.findFirst({
+      where: { role: 'ADMIN' as any },
+      select: { id: true },
+    });
+
+    if (existingAdmin && env === 'production') {
+      const allowReset = String(process.env.ADMIN_BOOTSTRAP_ALLOW_RESET || '').toLowerCase() === 'true';
+      if (!allowReset) {
+        throw new ForbiddenException('Admin already initialized');
+      }
+    }
+
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) {
+      if (
+        env === 'production' &&
+        String(existing?.role || '').toUpperCase() !== 'ADMIN' &&
+        String(process.env.ADMIN_BOOTSTRAP_ALLOW_RESET || '').toLowerCase() !== 'true'
+      ) {
+        throw new ForbiddenException('Forbidden');
+      }
       const updated = await this.prisma.user.update({
         where: { id: existing.id },
         data: {
@@ -58,6 +134,10 @@ export class AuthService {
         },
       });
       return { ok: true, userId: updated.id };
+    }
+
+    if (existingAdmin && env === 'production') {
+      throw new ForbiddenException('Admin already initialized');
     }
 
     const created = await this.prisma.user.create({
@@ -226,18 +306,34 @@ export class AuthService {
       email,
       password,
       name,
+      fullName,
       phone,
       role,
-      shopName,
-      category,
+      shopName: shopNameRaw,
+      category: categoryRaw,
+      storeType,
       governorate,
       city,
-      shopEmail,
-      shopPhone,
-      openingHours,
-      addressDetailed,
-      shopDescription,
+      shopEmail: shopEmailRaw,
+      storeEmail,
+      shopPhone: shopPhoneRaw,
+      storePhone,
+      openingHours: openingHoursRaw,
+      workingHours,
+      addressDetailed: addressDetailedRaw,
+      address,
+      shopDescription: shopDescriptionRaw,
+      description,
     } = dto;
+
+    const resolvedName = String(name || fullName || '').trim() || undefined;
+    const resolvedShopName = String(shopNameRaw || storeType || resolvedName || '').trim() || undefined;
+    const resolvedShopEmail = String(shopEmailRaw || storeEmail || '').trim() || undefined;
+    const resolvedShopPhone = String(shopPhoneRaw || storePhone || '').trim() || undefined;
+    const resolvedOpeningHours = String(openingHoursRaw || workingHours || '').trim() || undefined;
+    const resolvedAddressDetailed = String(addressDetailedRaw || address || '').trim() || undefined;
+    const resolvedShopDescription = String(shopDescriptionRaw || description || '').trim() || undefined;
+    const resolvedCategory = (categoryRaw || storeType) as any;
 
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('البريد الإلكتروني مطلوب');
@@ -259,11 +355,11 @@ export class AuthService {
     }
 
     if (normalizedRole === 'MERCHANT') {
-      if (!shopName || !governorate || !city) {
+      if (!resolvedShopName || !governorate || !city) {
         throw new BadRequestException('بيانات المحل غير مكتملة');
       }
 
-      if (!shopPhone && !phone) {
+      if (!resolvedShopPhone && !phone) {
         throw new BadRequestException('رقم موبايل المحل مطلوب');
       }
     }
@@ -296,7 +392,7 @@ export class AuthService {
       const createdUser = await tx.user.create({
         data: {
           email: normalizedEmail,
-          name,
+          name: resolvedName || null,
           phone,
           password: hashedPassword,
           role: normalizedRole,
@@ -307,19 +403,19 @@ export class AuthService {
         return { user: createdUser };
       }
 
-      const slug = await this.ensureUniqueSlug(shopName || name || `shop-${createdUser.id}`);
+      const slug = await this.ensureUniqueSlug(resolvedShopName || resolvedName || `shop-${createdUser.id}`);
       const createdShop = await tx.shop.create({
         data: {
-          name: shopName,
+          name: resolvedShopName,
           slug,
-          description: shopDescription || null,
-          category: this.normalizeShopCategory(category),
+          description: resolvedShopDescription || null,
+          category: this.normalizeShopCategory(resolvedCategory),
           governorate,
           city,
-          phone: shopPhone || phone,
-          email: (shopEmail || normalizedEmail) as any,
-          openingHours: openingHours || null,
-          addressDetailed: addressDetailed || null,
+          phone: resolvedShopPhone || phone,
+          email: (resolvedShopEmail || normalizedEmail) as any,
+          openingHours: resolvedOpeningHours || null,
+          addressDetailed: resolvedAddressDetailed || null,
           status: 'PENDING' as any,
           ownerId: createdUser.id,
         },

@@ -20,15 +20,43 @@ class SignupDto {
 
   @IsOptional()
   @IsString()
-  phone?: string;
-
-  @IsOptional()
-  @IsIn(['customer', 'merchant', 'CUSTOMER', 'MERCHANT'])
-  role?: string;
+  fullName?: string;
 
   @IsOptional()
   @IsString()
-  shopName?: string;
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  storePhone?: string;
+
+  @IsOptional()
+  @IsString()
+  workingHours?: string;
+
+  @IsOptional()
+  @IsString()
+  openingHours?: string;
+
+  @IsOptional()
+  @IsString()
+  addressDetailed?: string;
+
+  @IsOptional()
+  @IsString()
+  address?: string;
+
+  @IsOptional()
+  @IsString()
+  shopDescription?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  @IsString()
+  storeType?: string;
 
   @IsOptional()
   @IsString()
@@ -48,19 +76,11 @@ class SignupDto {
 
   @IsOptional()
   @IsString()
-  shopPhone?: string;
+  storeEmail?: string;
 
   @IsOptional()
-  @IsString()
-  openingHours?: string;
-
-  @IsOptional()
-  @IsString()
-  addressDetailed?: string;
-
-  @IsOptional()
-  @IsString()
-  shopDescription?: string;
+  @IsIn(['customer', 'merchant', 'CUSTOMER', 'MERCHANT'])
+  role?: string;
 }
 
 class LoginDto {
