@@ -38,6 +38,7 @@ const SignupPage: React.FC = () => {
 
   const backendBaseUrl =
     ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
+    ((import.meta as any)?.env?.VITE_API_URL as string) ||
     `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
 
   useEffect(() => {
