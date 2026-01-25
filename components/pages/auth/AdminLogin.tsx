@@ -8,10 +8,16 @@ const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const AdminLogin: React.FC = () => {
-  const [email, setEmail] = useState('admin');
+  const [email, setEmail] = useState('admin@ray.com');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [bootstrapOpen, setBootstrapOpen] = useState(false);
+  const [bootstrapToken, setBootstrapToken] = useState('');
+  const [bootstrapEmail, setBootstrapEmail] = useState('admin@ray.com');
+  const [bootstrapPassword, setBootstrapPassword] = useState('');
+  const [bootstrapName, setBootstrapName] = useState('Admin');
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,6 +47,28 @@ const AdminLogin: React.FC = () => {
       setError(err.message || 'بيانات الدخول غير صحيحة');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleBootstrap = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBootstrapLoading(true);
+    setError('');
+    try {
+      await ApiService.bootstrapAdmin({
+        token: bootstrapToken,
+        email: bootstrapEmail,
+        password: bootstrapPassword,
+        name: bootstrapName,
+      });
+      setEmail(bootstrapEmail);
+      setPassword(bootstrapPassword);
+      setBootstrapOpen(false);
+      setError('تم تهيئة الأدمن. يمكنك تسجيل الدخول الآن.');
+    } catch (err: any) {
+      setError(err?.message || 'فشل تهيئة الأدمن');
+    } finally {
+      setBootstrapLoading(false);
     }
   };
 
@@ -87,6 +115,61 @@ const AdminLogin: React.FC = () => {
                {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
                دخول للنظام
              </button>
+
+             <button
+               type="button"
+               onClick={() => setBootstrapOpen((v) => !v)}
+               className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all"
+             >
+               تهيئة الأدمن (Bootstrap)
+             </button>
+
+             {bootstrapOpen && (
+               <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
+                 <div className="text-[11px] font-black text-slate-400">استخدم ADMIN_BOOTSTRAP_TOKEN من Railway لعمل/تحديث حساب الأدمن على الإنتاج.</div>
+                 <form onSubmit={handleBootstrap} className="space-y-4">
+                   <input
+                     required
+                     type="password"
+                     value={bootstrapToken}
+                     onChange={(e) => setBootstrapToken(e.target.value)}
+                     placeholder="ADMIN_BOOTSTRAP_TOKEN"
+                     className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                   />
+                   <input
+                     required
+                     type="email"
+                     value={bootstrapEmail}
+                     onChange={(e) => setBootstrapEmail(e.target.value)}
+                     placeholder="admin@ray.com"
+                     className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                   />
+                   <input
+                     required
+                     type="password"
+                     value={bootstrapPassword}
+                     onChange={(e) => setBootstrapPassword(e.target.value)}
+                     placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
+                     className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                   />
+                   <input
+                     type="text"
+                     value={bootstrapName}
+                     onChange={(e) => setBootstrapName(e.target.value)}
+                     placeholder="اسم الأدمن"
+                     className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                   />
+                   <button
+                     disabled={bootstrapLoading}
+                     className="w-full py-4 bg-[#BD00FF] text-white rounded-[2rem] font-black text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                   >
+                     {bootstrapLoading ? <Loader2 className="animate-spin" size={18} /> : <ShieldAlert size={18} />}
+                     تنفيذ التهيئة
+                   </button>
+                 </form>
+               </div>
+             )}
+
              <button type="button" onClick={() => navigate('/login')} className="w-full py-4 text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-white transition-colors">
                <ArrowRight size={16} /> العودة لتسجيل دخول المستخدمين
              </button>

@@ -1187,6 +1187,14 @@ export const ApiService = {
   login: async (email: string, pass: string) => {
     return await loginViaBackend(email, pass);
   },
+  bootstrapAdmin: async (payload: { token: string; email: string; password: string; name?: string }) => {
+    return await backendPost<{ ok: boolean; userId?: string }>('/api/v1/auth/bootstrap-admin', {
+      token: String(payload?.token || '').trim(),
+      email: String(payload?.email || '').trim(),
+      password: String(payload?.password || ''),
+      name: payload?.name,
+    });
+  },
   session: async () => {
     return await sessionViaBackend();
   },
