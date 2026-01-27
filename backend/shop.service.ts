@@ -4,6 +4,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { MonitoringService } from './monitoring/monitoring.service';
 import { MediaCompressionService } from './media-compression.service';
 import { EmailService } from './email.service';
+import { CreateShopDto } from './create-shop.dto';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
@@ -922,5 +923,73 @@ export class ShopService {
       this.monitoring.trackPerformance('warmCache', duration);
       throw error;
     }
+  }
+
+  async createShop(createShopDto: CreateShopDto, ownerId: string) {
+    // Check if user already has a shop
+    const existingShop = await this.prisma.shop.findUnique({
+      where: { ownerId },
+    });
+
+    if (existingShop) {
+      throw new BadRequestException('User already has a shop');
+    }
+
+    // Generate unique slug
+    let slug = createShopDto.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+    // Ensure slug is unique
+    let counter = 1;
+    let uniqueSlug = slug;
+    while (await this.prisma.shop.findUnique({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+
+    const shop = await this.prisma.shop.create({
+      data: {
+        name: createShopDto.name,
+        slug: uniqueSlug,
+        description: createShopDto.description,
+        phone: createShopDto.phone,
+        email: createShopDto.email,
+        address: createShopDto.address,
+        addressDetailed: createShopDto.addressDetailed,
+        governorate: createShopDto.governorate,
+        city: createShopDto.city,
+        openingHours: createShopDto.openingHours,
+        owner: {
+          connect: {
+            id: ownerId,
+          },
+        },
+        status: 'PENDING',
+      },
+      include: {
+        owner: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    // Send notification email to admin
+    try {
+      // TODO: Implement email notification when email service is available
+      // await this.emailService.sendNewShopNotification(shop);
+      console.log('New shop created:', shop.id);
+    } catch (error) {
+      // Log error but don't fail the creation
+      console.error('Failed to send new shop notification:', error);
+    }
+
+    this.monitoring.logBusiness('shop_created', { 
+      shopId: shop.id, 
+      ownerId
+    });
+
+    return shop;
   }
 }

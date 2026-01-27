@@ -9,6 +9,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
 import { randomBytes } from 'crypto';
+import { CreateShopDto } from './create-shop.dto';
 
  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
  const bannerUploadMaxMbRaw = String(process.env.BANNER_UPLOAD_MAX_MB || (isProd ? '30' : '80')).trim();
@@ -23,6 +24,18 @@ export class ShopController {
     if (typeof value === 'undefined' || value === null) return undefined;
     const n = Number(value);
     return Number.isNaN(n) ? undefined : n;
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async createShop(@Request() req, @Body() createShopDto: CreateShopDto) {
+    const userId = req.user?.id;
+    if (!userId) {
+      throw new BadRequestException('User ID not found');
+    }
+
+    return this.shopService.createShop(createShopDto, userId);
   }
 
   @Get('me')
