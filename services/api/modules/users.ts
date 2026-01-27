@@ -1,0 +1,26 @@
+import { backendGet, backendPost } from '../httpClient';
+
+export function getAllUsersViaMock(mockDb: any) {
+  return mockDb.getAllUsers();
+}
+
+export function deleteUserViaMock(mockDb: any, id: string) {
+  return mockDb.deleteUser(id);
+}
+
+export function updateUserRoleViaMock(mockDb: any, userId: string, role: string) {
+  return mockDb.updateUserRole(userId, role);
+}
+
+export async function getCouriersViaBackend() {
+  return await backendGet<any[]>(`/api/v1/users/couriers`);
+}
+
+export async function createCourierViaBackend(payload: {
+  name: string;
+  email: string;
+  password: string;
+  phone?: string | null;
+}) {
+  return await backendPost<any>(`/api/v1/users/couriers`, payload);
+}

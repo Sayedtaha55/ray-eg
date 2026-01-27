@@ -56,7 +56,7 @@ const AdminLayout: React.FC = () => {
       <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center gap-3">
           <BrandLogo variant="admin" iconOnly />
-          <span className="text-2xl font-black tracking-tighter uppercase">Ray <span className="text-[#BD00FF]">ROOT</span></span>
+          <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK <span className="text-[#BD00FF]">ROOT</span></span>
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto no-scrollbar">
@@ -88,7 +88,7 @@ const AdminLayout: React.FC = () => {
                <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-black text-[#00E5FF]">S</div>
             </div>
             <div className="hidden md:block">
-               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">Ray سيستم v1.1 - Root Access</p>
+               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">MNMKNK سيستم v1.1 - Root Access</p>
             </div>
          </header>
 

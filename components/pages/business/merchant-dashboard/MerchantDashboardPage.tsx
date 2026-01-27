@@ -484,41 +484,43 @@ const MerchantDashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-10 text-right pb-32 px-4 md:px-6 font-sans" dir="rtl">
-      <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8">
-        <div className="flex items-center gap-8 flex-row-reverse">
-          <div className="relative group">
-            <img
-              src={
-                currentShop.logoUrl ||
-                currentShop.logo_url ||
-                'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'
-              }
-              className="w-20 h-20 md:w-32 md:h-32 rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
-              alt="logo"
-            />
-            <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
-              <CheckCircle2 size={20} />
+      {effectiveTab !== 'builder' && effectiveTab !== 'settings' && (
+        <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="flex items-center gap-8 flex-row-reverse">
+            <div className="relative group">
+              <img
+                src={
+                  currentShop.logoUrl ||
+                  currentShop.logo_url ||
+                  'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'
+                }
+                className="w-20 h-20 md:w-32 md:h-32 rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
+                alt="logo"
+              />
+              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
+                <CheckCircle2 size={20} />
+              </div>
+            </div>
+            <div className="text-right">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mb-2">{currentShop.name}</h1>
+              <div className="flex items-center gap-3 justify-end">
+                <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
+                <span className="text-slate-400 font-bold text-sm flex items-center justify-end gap-2">
+                  <MapPin size={14} /> {currentShop.city}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="text-right">
-            <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mb-2">{currentShop.name}</h1>
-            <div className="flex items-center gap-3 justify-end">
-              <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
-              <span className="text-slate-400 font-bold text-sm flex items-center justify-end gap-2">
-                <MapPin size={14} /> {currentShop.city}
-              </span>
-            </div>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setTab('pos')}
+              className="flex-1 md:flex-none px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+            >
+              <Smartphone size={20} /> الكاشير الذكي
+            </button>
           </div>
         </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setTab('pos')}
-            className="flex-1 md:flex-none px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
-          >
-            <Smartphone size={20} /> الكاشير الذكي
-          </button>
-        </div>
-      </div>
+      )}
 
       <div className="hidden gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar sticky top-24 z-40 shadow-inner">
         {visibleTabs.map((tab) => (

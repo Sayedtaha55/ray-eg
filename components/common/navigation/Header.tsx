@@ -36,7 +36,7 @@ const Header: React.FC<HeaderProps> = ({
             </button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] rounded-xl" />
-              <span className="text-xl font-black text-white">RAY</span>
+              <span className="text-xl font-black text-white">MNMKNK</span>
             </div>
           </motion.div>
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
@@ -12,22 +11,64 @@ interface PaymentsProps {
 
 const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
   const { toast } = useToast();
-  const [saving, setSaving] = useState(false);
+  const [, setSaving] = useState(false);
   const [merchantId, setMerchantId] = useState(String(shop?.paymentConfig?.merchantId || ''));
   const [publicKey, setPublicKey] = useState(String(shop?.paymentConfig?.publicKey || ''));
 
-  const onSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const baselineRef = React.useRef({ merchantId: String(shop?.paymentConfig?.merchantId || ''), publicKey: String(shop?.paymentConfig?.publicKey || '') });
+  const valuesRef = React.useRef({ merchantId, publicKey });
+  React.useEffect(() => {
+    valuesRef.current = { merchantId, publicKey };
+  }, [merchantId, publicKey]);
+
+  React.useEffect(() => {
+    baselineRef.current = { merchantId: String(shop?.paymentConfig?.merchantId || ''), publicKey: String(shop?.paymentConfig?.publicKey || '') };
+    setMerchantId(String(shop?.paymentConfig?.merchantId || ''));
+    setPublicKey(String(shop?.paymentConfig?.publicKey || ''));
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'payments', count: 0 } }));
+    } catch {
+    }
+  }, [shop?.paymentConfig?.merchantId, shop?.paymentConfig?.publicKey]);
+
+  React.useEffect(() => {
+    const base = baselineRef.current;
+    const count = (String(merchantId) !== String(base.merchantId) ? 1 : 0) + (String(publicKey) !== String(base.publicKey) ? 1 : 0);
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'payments', count } }));
+    } catch {
+    }
+  }, [merchantId, publicKey]);
+
+  const savePayments = async () => {
     setSaving(true);
     try {
       await new Promise((r) => setTimeout(r, 700));
       toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات المدفوعات بنجاح' });
+      baselineRef.current = { ...valuesRef.current };
+      try {
+        window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'payments', count: 0 } }));
+      } catch {
+      }
       onSaved();
+      return true;
     } catch {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ التغييرات', variant: 'destructive' });
+      return false;
     } finally {
       setSaving(false);
     }
+  };
+
+  React.useEffect(() => {
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-register-save-handler', { detail: { sectionId: 'payments', handler: savePayments } }));
+    } catch {
+    }
+  }, []);
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
   };
 
   return (
@@ -53,9 +94,6 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
               <Input id="publicKey" value={publicKey} onChange={(e) => setPublicKey(e.target.value)} />
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}</Button>
-          </CardFooter>
         </Card>
       </form>
     </div>

@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
       ],
     },
     {
-      title: 'عن RAY',
+      title: 'عن MNMKNK',
       links: [
         { name: 'من نحن', href: '/about' },
         { name: 'الشروط والأحكام', href: '/terms' },
@@ -36,10 +36,10 @@ const Footer: React.FC = () => {
   ];
 
   const socialLinks = [
-    { icon: Facebook, href: 'https://facebook.com/ray' },
-    { icon: Twitter, href: 'https://twitter.com/ray' },
-    { icon: Instagram, href: 'https://instagram.com/ray' },
-    { icon: Youtube, href: 'https://youtube.com/ray' },
+    { icon: Facebook, href: 'https://facebook.com/mnmknk' },
+    { icon: Twitter, href: 'https://twitter.com/mnmknk' },
+    { icon: Instagram, href: 'https://instagram.com/mnmknk' },
+    { icon: Youtube, href: 'https://youtube.com/mnmknk' },
   ];
 
   return (
@@ -50,7 +50,7 @@ const Footer: React.FC = () => {
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <div className="w-10 h-10 bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] rounded-xl" />
-              <span className="text-2xl font-black text-white">RAY</span>
+              <span className="text-2xl font-black text-white">MNMKNK</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
               منصتك الأولى للتسوق الإلكتروني في مصر. اكتشف أفضل المتاجر والمنتجات والعروض في مكان واحد.
@@ -101,7 +101,7 @@ const Footer: React.FC = () => {
               </div>
               <div>
                 <p className="text-white font-black text-sm">البريد الإلكتروني</p>
-                <p className="text-slate-400 text-sm">info@ray.com</p>
+                <p className="text-slate-400 text-sm">info@mnmknk.com</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -128,7 +128,7 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-white/10 text-center">
           <p className="text-slate-400 text-sm">
-            © {currentYear} RAY. جميع الحقوق محفوظة.
+            © {currentYear} MNMKNK. جميع الحقوق محفوظة.
           </p>
         </div>
       </div>

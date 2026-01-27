@@ -134,7 +134,7 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 bg-slate-900/50 p-8 rounded-[3rem] border border-white/5">
         <div>
-          <h1 className="text-4xl font-black text-white tracking-tighter">نظام إدارة <span className="text-[#00E5FF]">Ray</span></h1>
+          <h1 className="text-4xl font-black text-white tracking-tighter">نظام إدارة <span className="text-[#00E5FF]">MNMKNK</span></h1>
           <p className="text-slate-400 font-bold mt-2">تحكم كامل في المنصة والتجار والمستخدمين.</p>
         </div>
         <div className="flex gap-4">

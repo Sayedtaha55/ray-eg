@@ -104,7 +104,7 @@ const HomeFeed: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `المستخدم بعت اقتراح أو شكوى عن تطبيق "Ray" في مصر: "${feedbackText}". 
+        contents: `المستخدم بعت اقتراح أو شكوى عن تطبيق "MNMKNK" في مصر: "${feedbackText}". 
         رد عليه بذكاء ومودة بلهجة مصرية روشة وقصيرة جداً.`,
       });
       setFeedbackResponse(response.text || 'شكراً ليك يا بطل، رأيك وصل وهنظبط الدنيا!');
@@ -266,14 +266,14 @@ const HomeFeed: React.FC = () => {
                  dir="rtl"
                >
                   <div className="flex items-center justify-between mb-6">
-                     <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين Ray</h4>
+                     <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين MNMKNK</h4>
                      <button onClick={() => setIsFeedbackOpen(false)}><X size={16} /></button>
                   </div>
                   
                   {feedbackResponse ? (
                     <div className="space-y-4">
                        <p className="text-sm font-bold text-[#BD00FF] bg-purple-50 p-6 rounded-3xl leading-loose">{feedbackResponse}</p>
-                       <button onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">شكراً يا ري!</button>
+                      <button onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">شكراً يا MNMKNK!</button>
                     </div>
                   ) : (
                     <div className="space-y-4">

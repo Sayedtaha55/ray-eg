@@ -40,7 +40,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: "gemini-3-flash-preview",
-        contents: `أنت مساعد ذكي لمنصة "Ray" في مصر.
+        contents: `أنت مساعد ذكي لمنصة "MNMKNK" في مصر.
         السياق الحالي للمنصة:
         المحلات: ${currentContext.shops}.
         العروض المتوفرة لدينا: ${currentContext.offers}.
@@ -91,7 +91,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
           <header className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white flex-row-reverse">
             <div className="flex items-center gap-2 flex-row-reverse">
               <Sparkles className="w-5 h-5 text-[#00E5FF]" />
-              <h2 className="font-black text-sm uppercase tracking-wider">مساعد Ray الذكي</h2>
+              <h2 className="font-black text-sm uppercase tracking-wider">مساعد MNMKNK الذكي</h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
               <X className="w-5 h-5" />
@@ -156,7 +156,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
             <div className="relative">
               <input 
                 type="text" 
-                placeholder="اسأل Ray عن أي حاجة..." 
+                placeholder="اسأل MNMKNK عن أي حاجة..." 
                 className="w-full bg-slate-50 rounded-full py-4 pr-6 pl-14 outline-none border-2 border-transparent focus:border-[#00E5FF] transition-all font-bold text-sm text-right"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

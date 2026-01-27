@@ -18,6 +18,10 @@ const { Link, useLocation } = ReactRouterDOM as any;
 
 type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'payments' | 'notifications' | 'receipt_theme';
 
+type SaveHandler = () => Promise<boolean>;
+
+type SectionChangesHandlerDetail = { sectionId: string; count: number };
+
 const SettingsTabs = [
   { id: 'overview' as const, label: 'نظرة عامة', icon: <Home className="w-5 h-5" /> },
   { id: 'account' as const, label: 'الحساب', icon: <User className="w-5 h-5" /> },
@@ -45,6 +49,14 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
   const [receiptFooterNote, setReceiptFooterNote] = useState('');
   const [savingReceiptTheme, setSavingReceiptTheme] = useState(false);
 
+  const lastSavedRef = useRef({
+    shopName: '',
+    phone: '',
+    address: '',
+    logoDataUrl: '',
+    footerNote: '',
+  });
+
   useEffect(() => {
     const theme = RayDB.getReceiptTheme(receiptShopId);
     setReceiptShopName(String((theme as any)?.shopName || shop?.name || ''));
@@ -52,7 +64,37 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     setReceiptAddress(String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
     setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
     setReceiptFooterNote(String((theme as any)?.footerNote || ''));
+
+    lastSavedRef.current = {
+      shopName: String((theme as any)?.shopName || shop?.name || ''),
+      phone: String((theme as any)?.phone || shop?.phone || ''),
+      address: String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''),
+      logoDataUrl: String((theme as any)?.logoDataUrl || ''),
+      footerNote: String((theme as any)?.footerNote || ''),
+    };
   }, [receiptShopId, shop?.name, shop?.phone, shop?.addressDetailed, shop?.address_detailed]);
+
+  const emitReceiptChanges = (count: number) => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-section-changes', {
+          detail: { sectionId: 'receipt_theme', count } satisfies SectionChangesHandlerDetail,
+        }),
+      );
+    } catch {
+    }
+  };
+
+  useEffect(() => {
+    const baseline = lastSavedRef.current;
+    const count =
+      (String(receiptShopName) !== String(baseline.shopName) ? 1 : 0) +
+      (String(receiptPhone) !== String(baseline.phone) ? 1 : 0) +
+      (String(receiptAddress) !== String(baseline.address) ? 1 : 0) +
+      (String(receiptLogoDataUrl) !== String(baseline.logoDataUrl) ? 1 : 0) +
+      (String(receiptFooterNote) !== String(baseline.footerNote) ? 1 : 0);
+    emitReceiptChanges(count);
+  }, [receiptShopName, receiptPhone, receiptAddress, receiptLogoDataUrl, receiptFooterNote]);
 
   const handlePickReceiptLogo = () => {
     receiptLogoInputRef.current?.click();
@@ -86,13 +128,38 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
         logoDataUrl: receiptLogoDataUrl,
         footerNote: receiptFooterNote,
       });
+
+      lastSavedRef.current = {
+        shopName: String(receiptShopName),
+        phone: String(receiptPhone),
+        address: String(receiptAddress),
+        logoDataUrl: String(receiptLogoDataUrl),
+        footerNote: String(receiptFooterNote),
+      };
+      emitReceiptChanges(0);
       toast({ title: 'تم الحفظ', description: 'تم حفظ ثيم الفاتورة بنجاح' });
+      return true;
     } catch {
       toast({ title: 'خطأ', description: 'فشل حفظ ثيم الفاتورة', variant: 'destructive' });
+      return false;
     } finally {
       setSavingReceiptTheme(false);
     }
   };
+
+  useEffect(() => {
+    const register = () => {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('merchant-settings-register-save-handler', {
+            detail: { sectionId: 'receipt_theme', handler: handleSaveReceiptTheme as unknown as SaveHandler },
+          }),
+        );
+      } catch {
+      }
+    };
+    register();
+  }, [receiptShopId, receiptShopName, receiptPhone, receiptAddress, receiptLogoDataUrl, receiptFooterNote]);
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
@@ -152,33 +219,33 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
             </div>
           </div>
         </CardContent>
-        <CardFooter className="flex justify-end border-t px-6 py-4">
-          <Button type="button" onClick={handleSaveReceiptTheme} disabled={savingReceiptTheme}>
-            {savingReceiptTheme ? (
-              <>
-                <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                جاري الحفظ...
-              </>
-            ) : (
-              'حفظ ثيم الفاتورة'
-            )}
-          </Button>
-        </CardFooter>
       </Card>
     </div>
   );
 };
 
 const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
-  const [openTab, setOpenTab] = useState<SettingsTab | null>('overview');
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
   const [savedSoundId, setSavedSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const [pendingSoundId, setPendingSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const location = useLocation();
 
+  const [sectionChangeCounts, setSectionChangeCounts] = useState<Record<string, number>>({});
+  const sectionChangeCountsRef = useRef<Record<string, number>>({});
+  const saveHandlersRef = useRef<Record<string, SaveHandler>>({});
+
+  const changesCount = Object.values(sectionChangeCounts).reduce((sum, n) => sum + (Number.isFinite(n) ? Number(n) : 0), 0);
+
+  const params = new URLSearchParams(String(location?.search || ''));
+  const requestedSettingsTabRaw = String(params.get('settingsTab') || '').trim().toLowerCase();
+  const allowedTabs = new Set(SettingsTabs.map((t) => String(t.id)));
+  const activeSettingsTab = (allowedTabs.has(requestedSettingsTabRaw) ? requestedSettingsTabRaw : 'overview') as SettingsTab;
+  const sidebarMode = Boolean(requestedSettingsTabRaw);
+
   const buildMerchantProfileUrl = () => {
     const params = new URLSearchParams(String(location?.search || ''));
     params.delete('tab');
+    params.delete('settingsTab');
     const qs = params.toString();
     return `/business/profile${qs ? `?${qs}` : ''}`;
   };
@@ -196,9 +263,133 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   }, []);
 
   useEffect(() => {
-    if (openTab !== 'notifications') return;
+    if (activeSettingsTab !== 'notifications') return;
     RayDB.syncNotificationSoundsFromPublic();
-  }, [openTab]);
+  }, [activeSettingsTab]);
+
+  const emitSettingsStatus = (payload?: { saving?: boolean; ok?: boolean }) => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-status', {
+          detail: {
+            count: changesCount,
+            saving: Boolean(payload?.saving),
+            ok: payload?.ok,
+          },
+        }),
+      );
+    } catch {
+    }
+  };
+
+  useEffect(() => {
+    emitSettingsStatus({ saving: false });
+  }, [changesCount]);
+
+  useEffect(() => {
+    sectionChangeCountsRef.current = sectionChangeCounts;
+  }, [sectionChangeCounts]);
+
+  useEffect(() => {
+    const onChanges = (e: any) => {
+      const sectionId = String(e?.detail?.sectionId || '').trim();
+      if (!sectionId) return;
+      const countRaw = Number(e?.detail?.count ?? 0);
+      const count = Number.isFinite(countRaw) ? Math.max(0, Math.floor(countRaw)) : 0;
+      setSectionChangeCounts((prev) => {
+        if (Number(prev[sectionId] ?? 0) === count) return prev;
+        return { ...prev, [sectionId]: count };
+      });
+    };
+
+    const onRegister = (e: any) => {
+      const sectionId = String(e?.detail?.sectionId || '').trim();
+      const handler = e?.detail?.handler;
+      if (!sectionId || typeof handler !== 'function') return;
+      saveHandlersRef.current[sectionId] = handler as SaveHandler;
+    };
+
+    const onSaveRequest = async () => {
+      const snapshot = sectionChangeCountsRef.current || {};
+      const ids = Object.keys(snapshot).filter((k) => Number(snapshot[k] || 0) > 0);
+      if (ids.length === 0) return;
+      emitSettingsStatus({ saving: true });
+      let okAll = true;
+      for (const id of ids) {
+        const fn = saveHandlersRef.current[id];
+        if (!fn) {
+          okAll = false;
+          continue;
+        }
+        try {
+          const ok = await fn();
+          if (!ok) okAll = false;
+        } catch {
+          okAll = false;
+        }
+      }
+
+      if (okAll) {
+        sectionChangeCountsRef.current = {};
+        setSectionChangeCounts({});
+      }
+      emitSettingsStatus({ saving: false, ok: okAll });
+    };
+
+    window.addEventListener('merchant-settings-section-changes', onChanges as any);
+    window.addEventListener('merchant-settings-register-save-handler', onRegister as any);
+    window.addEventListener('merchant-settings-save-request', onSaveRequest as any);
+    return () => {
+      window.removeEventListener('merchant-settings-section-changes', onChanges as any);
+      window.removeEventListener('merchant-settings-register-save-handler', onRegister as any);
+      window.removeEventListener('merchant-settings-save-request', onSaveRequest as any);
+      try {
+        window.dispatchEvent(new CustomEvent('merchant-settings-status', { detail: { count: 0, saving: false } }));
+      } catch {
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-section-changes', {
+          detail: {
+            sectionId: 'notifications',
+            count: String(pendingSoundId || '') !== String(savedSoundId || '') ? 1 : 0,
+          } satisfies SectionChangesHandlerDetail,
+        }),
+      );
+    } catch {
+    }
+  }, [pendingSoundId, savedSoundId]);
+
+  useEffect(() => {
+    const register = () => {
+      try {
+        window.dispatchEvent(
+          new CustomEvent('merchant-settings-register-save-handler', {
+            detail: {
+              sectionId: 'notifications',
+              handler: (async () => {
+                const idToSave = String(pendingSoundId || '').trim();
+                if (!idToSave) return false;
+                try {
+                  RayDB.setSelectedNotificationSoundId(idToSave);
+                  setSavedSoundId(idToSave);
+                  return true;
+                } catch {
+                  return false;
+                }
+              }) as SaveHandler,
+            },
+          }),
+        );
+      } catch {
+      }
+    };
+    register();
+  }, [pendingSoundId]);
 
   const renderTabContent = (tabId: SettingsTab) => {
     switch (tabId) {
@@ -253,17 +444,6 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                     >
                       تجربة الصوت
                     </button>
-                    <button
-                      onClick={() => {
-                        const idToSave = String(pendingSoundId || '').trim();
-                        if (!idToSave) return;
-                        RayDB.setSelectedNotificationSoundId(idToSave);
-                        setSavedSoundId(idToSave);
-                      }}
-                      className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm"
-                    >
-                      حفظ
-                    </button>
                   </div>
                 </div>
                 <div />
@@ -285,32 +465,59 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         </div>
 
         <div className="space-y-3">
-          {SettingsTabs.map((tab) => {
-            const isOpen = openTab === tab.id;
-            return (
-              <div key={tab.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                <button
-                  onClick={() => setOpenTab((prev) => (prev === tab.id ? null : tab.id))}
-                  className={cn(
-                    'w-full flex items-center justify-between px-4 py-4 text-right transition-colors',
-                    isOpen ? 'bg-primary/5' : 'hover:bg-gray-50'
-                  )}
-                >
-                  <div className="flex items-center space-x-3">
-                    <span className="ml-2">{tab.icon}</span>
-                    <span className="font-medium text-gray-900">{tab.label}</span>
-                  </div>
-                  <ChevronDown className={cn('w-5 h-5 text-gray-400 transition-transform', isOpen ? 'rotate-180' : '')} />
-                </button>
-
-                {isOpen ? (
-                  <div className="p-4 border-t border-gray-200">
-                    {renderTabContent(tab.id)}
-                  </div>
-                ) : null}
+          {sidebarMode ? (
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="p-4">
+                <div className={cn(String(activeSettingsTab) === 'overview' ? 'block' : 'hidden')}>
+                  {renderTabContent('overview')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'account' ? 'block' : 'hidden')}>
+                  {renderTabContent('account')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'security' ? 'block' : 'hidden')}>
+                  {renderTabContent('security')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'store' ? 'block' : 'hidden')}>
+                  {renderTabContent('store')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'receipt_theme' ? 'block' : 'hidden')}>
+                  {renderTabContent('receipt_theme')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'payments' ? 'block' : 'hidden')}>
+                  {renderTabContent('payments')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'notifications' ? 'block' : 'hidden')}>
+                  {renderTabContent('notifications')}
+                </div>
               </div>
-            );
-          })}
+            </div>
+          ) : (
+            SettingsTabs.map((tab) => {
+              return (
+                <div key={tab.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <button
+                    onClick={() => {
+                      const current = String(tab.id);
+                      const next = current === activeSettingsTab ? 'overview' : current;
+                      const nextParams = new URLSearchParams(String(location?.search || ''));
+                      nextParams.set('settingsTab', next);
+                      window.location.hash = `#/business/dashboard?${nextParams.toString()}`;
+                    }}
+                    className={cn(
+                      'w-full flex items-center justify-between px-4 py-4 text-right transition-colors',
+                      String(activeSettingsTab) === String(tab.id) ? 'bg-primary/5' : 'hover:bg-gray-50'
+                    )}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <span className="ml-2">{tab.icon}</span>
+                      <span className="font-medium text-gray-900">{tab.label}</span>
+                    </div>
+                    <ChevronDown className={cn('w-5 h-5 text-gray-400 transition-transform', String(activeSettingsTab) === String(tab.id) ? 'rotate-180' : '')} />
+                  </button>
+                </div>
+              );
+            })
+          )}
 
           <Link
             to={buildMerchantProfileUrl()}

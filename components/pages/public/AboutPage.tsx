@@ -15,11 +15,11 @@ const AboutPage: React.FC = () => {
             className="inline-flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-full font-black text-xs uppercase tracking-widest mb-8"
          >
             <Info className="w-4 h-4 text-[#00E5FF]" />
-            قصة "Ray"
+            قصة "MNMKNK"
          </MotionDiv>
          <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-tight">نحن نبني <br/><span className="text-[#00E5FF]">مستقبل التجارة.</span></h1>
          <p className="text-slate-400 text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed">
-            "Ray" هي منصة مصرية طموحة تهدف لربط المتاجر والمطاعم بعملائها بذكاء فائق وتجربة مستخدم لا تُنسى.
+            "MNMKNK" هي منصة مصرية طموحة تهدف لربط المتاجر والمطاعم بعملائها بذكاء فائق وتجربة مستخدم لا تُنسى.
          </p>
       </div>
 
@@ -54,7 +54,7 @@ const AboutPage: React.FC = () => {
               نحن في مرحلة التجربة <AlertTriangle className="text-amber-500" />
             </h2>
             <p className="text-amber-800 text-lg md:text-xl font-bold leading-loose max-w-3xl mx-auto">
-               منصة "Ray" حالياً في مرحلة الـ <span className="underline">Beta Test</span>. هذا يعني أن بعض الميزات قد لا تعمل بأفضل أداء ممكن، ونحن نعمل ليل نهار لتحسين التجربة. 
+               منصة "MNMKNK" حالياً في مرحلة الـ <span className="underline">Beta Test</span>. هذا يعني أن بعض الميزات قد لا تعمل بأفضل أداء ممكن، ونحن نعمل ليل نهار لتحسين التجربة. 
                رأيك واقتراحاتك هي الوقود الذي يحركنا لنكون النسخة الأفضل دائماً.
             </p>
          </div>

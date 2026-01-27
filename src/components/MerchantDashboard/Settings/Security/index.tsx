@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import React, { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
-import { Loader2, Lock, Shield, Smartphone, CheckCircle2 } from 'lucide-react';
+import { Lock, Shield, CheckCircle2 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 
 interface SecurityProps {
@@ -23,108 +22,156 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
   const [showTwoFactorSetup, setShowTwoFactorSetup] = useState(false);
   const [twoFactorCode, setTwoFactorCode] = useState('');
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const baselineRef = useRef({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    twoFactorEnabled: false,
+    showTwoFactorSetup: false,
+    twoFactorCode: '',
+  });
 
-    if (!currentPassword) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور الحالية مطلوبة",
-        variant: "destructive",
-      });
-      return;
-    }
+  const valuesRef = useRef({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+    twoFactorEnabled: false,
+    showTwoFactorSetup: false,
+    twoFactorCode: '',
+  });
 
-    if (!newPassword || newPassword.length < 8) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      toast({
-        title: "خطأ",
-        description: "كلمة المرور الجديدة وتأكيدها غير متطابقين",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSaving(true);
-    
+  useEffect(() => {
+    valuesRef.current = {
+      currentPassword,
+      newPassword,
+      confirmPassword,
+      twoFactorEnabled,
+      showTwoFactorSetup,
+      twoFactorCode,
+    };
+  }, [currentPassword, newPassword, confirmPassword, twoFactorEnabled, showTwoFactorSetup, twoFactorCode]);
+
+  useEffect(() => {
+    baselineRef.current = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+      twoFactorEnabled: false,
+      showTwoFactorSetup: false,
+      twoFactorCode: '',
+    };
     try {
-      await ApiService.changePassword({ currentPassword, newPassword });
-      
-      toast({
-        title: "تم التحديث",
-        description: "تم تغيير كلمة المرور بنجاح",
-      });
-      
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'security', count: 0 } }));
+    } catch {
+    }
+  }, [shop?.id]);
+
+  useEffect(() => {
+    const base = baselineRef.current;
+    const count =
+      (String(currentPassword) !== String(base.currentPassword) ? 1 : 0) +
+      (String(newPassword) !== String(base.newPassword) ? 1 : 0) +
+      (String(confirmPassword) !== String(base.confirmPassword) ? 1 : 0) +
+      (Boolean(twoFactorEnabled) !== Boolean(base.twoFactorEnabled) ? 1 : 0) +
+      (Boolean(showTwoFactorSetup) !== Boolean(base.showTwoFactorSetup) ? 1 : 0) +
+      (String(twoFactorCode) !== String(base.twoFactorCode) ? 1 : 0);
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'security', count } }));
+    } catch {
+    }
+  }, [currentPassword, newPassword, confirmPassword, twoFactorEnabled, showTwoFactorSetup, twoFactorCode]);
+
+  const saveSecurity = async () => {
+    const v = valuesRef.current;
+    const passwordTouched = Boolean(String(v.currentPassword || '') || String(v.newPassword || '') || String(v.confirmPassword || ''));
+    const twoFactorTouched = Boolean(v.showTwoFactorSetup || String(v.twoFactorCode || '') || v.twoFactorEnabled);
+
+    if (!passwordTouched && !twoFactorTouched) return true;
+
+    if (isSaving) return false;
+    setIsSaving(true);
+
+    try {
+      if (passwordTouched) {
+        if (!v.currentPassword) {
+          toast({
+            title: 'خطأ',
+            description: 'كلمة المرور الحالية مطلوبة',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        if (!v.newPassword || v.newPassword.length < 8) {
+          toast({
+            title: 'خطأ',
+            description: 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل',
+            variant: 'destructive',
+          });
+          return false;
+        }
+        if (v.newPassword !== v.confirmPassword) {
+          toast({
+            title: 'خطأ',
+            description: 'كلمة المرور الجديدة وتأكيدها غير متطابقين',
+            variant: 'destructive',
+          });
+          return false;
+        }
+
+        await ApiService.changePassword({ currentPassword: v.currentPassword, newPassword: v.newPassword });
+        toast({ title: 'تم التحديث', description: 'تم تغيير كلمة المرور بنجاح' });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      }
+
+      if (v.showTwoFactorSetup) {
+        if (!v.twoFactorCode) {
+          toast({ title: 'خطأ', description: 'الرجاء إدخال رمز التحقق', variant: 'destructive' });
+          return false;
+        }
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setTwoFactorEnabled(true);
+        setShowTwoFactorSetup(false);
+        setTwoFactorCode('');
+        toast({ title: 'تم التفعيل', description: 'تم تفعيل المصادقة الثنائية بنجاح' });
+      }
+
+      baselineRef.current = {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+        twoFactorEnabled,
+        showTwoFactorSetup: false,
+        twoFactorCode: '',
+      };
+      try {
+        window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'security', count: 0 } }));
+      } catch {
+      }
+
       onSaved();
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء تغيير كلمة المرور",
-        variant: "destructive",
-      });
+      return true;
+    } catch {
+      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ إعدادات الأمان', variant: 'destructive' });
+      return false;
     } finally {
       setIsSaving(false);
     }
   };
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-register-save-handler', { detail: { sectionId: 'security', handler: saveSecurity } }));
+    } catch {
+    }
+  }, []);
 
   const handleTwoFactorToggle = async (checked: boolean) => {
     if (checked) {
       setShowTwoFactorSetup(true);
     } else {
-      // TODO: Implement actual 2FA disable
       setTwoFactorEnabled(false);
-      toast({
-        title: "تم التحديث",
-        description: "تم تعطيل المصادقة الثنائية بنجاح",
-      });
-    }
-  };
-
-  const handleTwoFactorSetup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!twoFactorCode) {
-      toast({
-        title: "خطأ",
-        description: "الرجاء إدخال رمز التحقق",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    setIsSaving(true);
-    
-    try {
-      // TODO: Implement actual 2FA verification API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      setTwoFactorEnabled(true);
-      setShowTwoFactorSetup(false);
-      setTwoFactorCode('');
-      
-      toast({
-        title: "تم التفعيل",
-        description: "تم تفعيل المصادقة الثنائية بنجاح",
-      });
-    } catch (error) {
-      toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء تفعيل المصادقة الثنائية",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -143,7 +190,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
             قم بتحديث كلمة المرور الحالية بكلمة مرور جديدة وقوية.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handlePasswordChange}>
+        <form onSubmit={(e) => e.preventDefault()}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="current-password">كلمة المرور الحالية</Label>
@@ -200,18 +247,6 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                  جاري الحفظ...
-                </>
-              ) : (
-                "تحديث كلمة المرور"
-              )}
-            </Button>
-          </CardFooter>
         </form>
       </Card>
 
@@ -266,7 +301,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
                     <p className="text-sm text-muted-foreground">
                       2. أدخل رمز التحقق المكون من 6 أرقام من التطبيق.
                     </p>
-                    <form onSubmit={handleTwoFactorSetup} className="pt-2">
+                    <form onSubmit={(e) => e.preventDefault()} className="pt-2">
                       <div className="flex items-center space-x-2">
                         <Input
                           type="text"
@@ -276,14 +311,6 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
                           className="max-w-[180px]"
                           maxLength={6}
                         />
-                        <Button type="submit" disabled={isSaving}>
-                          {isSaving ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <CheckCircle2 className="h-4 w-4 ml-1" />
-                          )}
-                          تأكيد
-                        </Button>
                       </div>
                     </form>
                   </div>

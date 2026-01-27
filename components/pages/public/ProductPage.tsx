@@ -290,7 +290,7 @@ const ProductPage: React.FC = () => {
              <div className="flex items-center gap-4">
                 <ShieldCheck className="text-slate-300" />
                 <div>
-                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">ضمان Ray</p>
+                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">ضمان MNMKNK</p>
                    <p className="font-bold text-sm">منتج أصلي ١٠٠٪</p>
                 </div>
              </div>
@@ -307,7 +307,7 @@ const ProductPage: React.FC = () => {
           image: product.imageUrl || (product as any).image_url,
           price: currentPrice,
           shopId: shop?.id || 's1',
-          shopName: shop?.name || 'Ray'
+          shopName: shop?.name || 'MNMKNK'
         }}
       />
     </div>

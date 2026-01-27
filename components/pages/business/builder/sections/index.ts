@@ -8,6 +8,5 @@ export { default as ProductPageSection } from './ProductPageSection';
 export { default as LayoutSection } from './LayoutSection';
 export { default as TypographySection } from './TypographySection';
 export { default as ButtonsSection } from './ButtonsSection';
-export { default as SpacingSection } from './SpacingSection';
 export { default as VisibilitySection } from './VisibilitySection';
 export { default as CustomCssSection } from './CustomCssSection';

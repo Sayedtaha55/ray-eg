@@ -234,6 +234,15 @@ export class AuthController {
     return result;
   }
 
+  @Post('dev-merchant-login')
+  async devMerchantLogin(@Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.devMerchantLogin();
+    if (result?.access_token) {
+      this.setAuthCookie(res, String(result.access_token));
+    }
+    return result;
+  }
+
   @Get('session')
   @UseGuards(JwtAuthGuard)
   async session(@Request() req: any, @Res({ passthrough: true }) res: Response) {

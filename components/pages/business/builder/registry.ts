@@ -12,7 +12,6 @@ import {
   LayoutSection,
   ProductPageSection,
   ProductsSection,
-  SpacingSection,
   TypographySection,
   VisibilitySection,
 } from './sections';
@@ -28,7 +27,6 @@ export type BuilderSectionId =
   | 'layout'
   | 'typography'
   | 'buttons'
-  | 'spacing'
   | 'visibility'
   | 'customCss';
 
@@ -150,12 +148,6 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     title: 'الأزرار',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({ config, setConfig }) => React.createElement(ButtonsSection as any, { config, setConfig }),
-  },
-  {
-    id: 'spacing',
-    title: 'المسافات',
-    icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
-    render: ({ config, setConfig }) => React.createElement(SpacingSection as any, { config, setConfig }),
   },
   {
     id: 'visibility',

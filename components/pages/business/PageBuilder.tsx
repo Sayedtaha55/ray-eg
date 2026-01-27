@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Save, Layout, Check, 
   Monitor, Smartphone, X, 
@@ -8,9 +9,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
+import * as ReactRouterDOM from 'react-router-dom';
 import { BUILDER_SECTIONS } from './builder/registry';
 
 const MotionDiv = motion.div as any;
+const { useLocation } = ReactRouterDOM as any;
 
 const isVideoUrl = (url: string) => {
   const u = String(url || '').toLowerCase();
@@ -99,6 +102,7 @@ interface ShopDesign {
 
 const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addToast } = useToast();
+  const location = useLocation();
   const [shopId, setShopId] = useState<string>('');
   const [config, setConfig] = useState<ShopDesign>(DEFAULT_PAGE_DESIGN);
   const [logoDataUrl, setLogoDataUrl] = useState<string>('');
@@ -116,6 +120,19 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [headerBackgroundPreview, setHeaderBackgroundPreview] = useState<string>('');
   const [isDesktop, setIsDesktop] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
+
+  const query = new URLSearchParams(String(location?.search || ''));
+  const requestedBuilderTabRaw = String(query.get('builderTab') || '').trim();
+  const allowedBuilderTabs = new Set(BUILDER_SECTIONS.map((s) => String(s.id)));
+  const activeBuilderTab = allowedBuilderTabs.has(requestedBuilderTabRaw) ? requestedBuilderTabRaw : 'colors';
+  const sidebarMode = allowedBuilderTabs.has(requestedBuilderTabRaw);
+  const integratedMode = String(query.get('tab') || '').trim() === 'builder';
+  const desktopIntegratedAccordionMode = integratedMode && isDesktop;
+
+  useEffect(() => {
+    if (!sidebarMode) return;
+    setOpenSection(activeBuilderTab);
+  }, [activeBuilderTab, sidebarMode]);
 
   useEffect(() => {
     const loadCurrentDesign = async () => {
@@ -174,6 +191,12 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }, []);
 
   useEffect(() => {
+    if (!isDesktop) {
+      setPreviewMode('mobile');
+    }
+  }, [isDesktop]);
+
+  useEffect(() => {
     setIsPreviewHeaderMenuOpen(false);
   }, [previewMode, previewPage]);
 
@@ -187,6 +210,16 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       addToast('تم نسخ الرابط لمشاركته!', 'info');
     }
   };
+
+  useEffect(() => {
+    const onSave = () => {
+      handleSave();
+    };
+    window.addEventListener('pagebuilder-save', onSave as any);
+    return () => {
+      window.removeEventListener('pagebuilder-save', onSave as any);
+    };
+  }, [shopId, config, logoDataUrl, bannerFile, bannerPreview, backgroundFile, backgroundPreview, headerBackgroundFile, headerBackgroundPreview]);
 
   const handleSave = async () => {
     if (!shopId) return;
@@ -322,124 +355,201 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     </div>
   );
 
-  return (
-    <div className="fixed inset-0 z-[200] bg-[#F8F9FA] flex flex-col md:flex-row-reverse text-right font-sans overflow-hidden" dir="rtl">
-      
-      {/* Control Sidebar */}
-      <AnimatePresence>
-        {(showSettingsMobile || isDesktop) && (
-          <>
-            <MotionDiv 
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              onClick={() => setShowSettingsMobile(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] md:hidden"
-            />
-            
-            <MotionDiv 
-              initial={!isDesktop ? { y: '100%' } : { x: '100%' }}
-              animate={!isDesktop ? { y: 0 } : { x: 0 }}
-              exit={!isDesktop ? { y: '100%' } : { x: '100%' }}
-              className="fixed bottom-0 left-0 right-0 md:relative md:w-[340px] lg:w-[380px] h-[80vh] md:h-full bg-white md:border-l border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2.5rem] md:rounded-none"
-            >
-              <header className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
-                <div className="flex items-center gap-3">
-                  <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={20} /></button>
-                  <h2 className="font-black text-xl md:text-3xl tracking-tighter">التصميم</h2>
-                </div>
-                <button 
-                  onClick={handleSave}
-                  disabled={saving}
-                  className={`px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-[2rem] font-black text-xs md:text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none ${
-                    saved ? 'bg-green-500 text-white' : 'bg-slate-900 text-white shadow-xl hover:bg-black'
-                  }`}
-                >
-                  {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
-                  <span>{saved ? 'تم الحفظ' : 'حفظ التصميم'}</span>
-                </button>
-              </header>
+  const activeSectionNode = (() => {
+    if (!sidebarMode) return null;
+    const s = BUILDER_SECTIONS.find((x) => String(x.id) === String(activeBuilderTab));
+    if (!s) return null;
+    return s.render({
+      config,
+      setConfig: setConfigAny,
+      logoDataUrl,
+      setLogoDataUrl,
+      bannerFile,
+      setBannerFile,
+      bannerPreview,
+      setBannerPreview,
+      backgroundFile,
+      setBackgroundFile,
+      backgroundPreview,
+      setBackgroundPreview,
+      headerBackgroundFile,
+      setHeaderBackgroundFile,
+      headerBackgroundPreview,
+      setHeaderBackgroundPreview,
+    });
+  })();
 
-              <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4">
-                <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
-                  <div className="px-5 py-4 flex items-center justify-between">
-                    <span className="font-black text-sm text-slate-900">معاينة الصفحة</span>
-                    <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                      <button
-                        type="button"
-                        onClick={() => setPreviewPage('home')}
-                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'home' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        الرئيسية
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewPage('gallery')}
-                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'gallery' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        معرض الصور
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewPage('info')}
-                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'info' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        معلومات
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPreviewPage('product')}
-                        className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'product' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        المنتج
-                      </button>
+  const desktopAccordionSlot = desktopIntegratedAccordionMode && sidebarMode
+    ? document.getElementById(`builder-accordion-${String(activeBuilderTab)}`)
+    : null;
+
+  return (
+    <div className="w-full bg-[#F8F9FA] flex flex-col md:flex-row-reverse text-right font-sans overflow-hidden" dir="rtl">
+
+      {desktopAccordionSlot && activeSectionNode
+        ? createPortal(
+            <div className="w-full" data-component-name="PageBuilder">
+              {activeSectionNode}
+            </div>,
+            desktopAccordionSlot
+          )
+        : null}
+
+      {(!integratedMode || !isDesktop) && (
+        <AnimatePresence>
+          {(showSettingsMobile || isDesktop) && (
+            <>
+              <MotionDiv 
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowSettingsMobile(false)}
+                className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] md:hidden"
+              />
+              
+              <MotionDiv 
+                initial={!isDesktop ? { y: '100%' } : { x: '100%' }}
+                animate={!isDesktop ? { y: 0 } : { x: 0 }}
+                exit={!isDesktop ? { y: '100%' } : { x: '100%' }}
+                className="fixed bottom-0 left-0 right-0 md:relative md:w-[340px] lg:w-[380px] h-[80vh] md:h-full bg-white md:border-l border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2.5rem] md:rounded-none"
+              >
+                <header className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={20} /></button>
+                    <h2 className="font-black text-xl md:text-3xl tracking-tighter">التصميم</h2>
+                  </div>
+                  <button 
+                    onClick={handleSave}
+                    disabled={saving}
+                    className={`px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-[2rem] font-black text-xs md:text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none ${
+                      saved ? 'bg-green-500 text-white' : 'bg-slate-900 text-white shadow-xl hover:bg-black'
+                    }`}
+                  >
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
+                    <span>{saved ? 'تم الحفظ' : 'حفظ التصميم'}</span>
+                  </button>
+                </header>
+
+                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4">
+                  <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
+                    <div className="px-5 py-4 flex items-center justify-between">
+                      <span className="font-black text-sm text-slate-900">معاينة الصفحة</span>
+                      <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPage('home')}
+                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'home' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                          الرئيسية
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPage('gallery')}
+                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'gallery' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                          معرض الصور
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPage('info')}
+                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'info' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                          معلومات
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPreviewPage('product')}
+                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'product' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                        >
+                          المنتج
+                        </button>
+                      </div>
                     </div>
                   </div>
+                  {sidebarMode ? (
+                    (() => {
+                      const s = BUILDER_SECTIONS.find((x) => String(x.id) === String(activeBuilderTab));
+                      if (!s) return null;
+                      return (
+                        <Section
+                          key={s.id}
+                          id={s.id}
+                          title={s.title}
+                          icon={s.icon}
+                          render={() =>
+                            s.render({
+                              config,
+                              setConfig: setConfigAny,
+                              logoDataUrl,
+                              setLogoDataUrl,
+                              bannerFile,
+                              setBannerFile,
+                              bannerPreview,
+                              setBannerPreview,
+                              backgroundFile,
+                              setBackgroundFile,
+                              backgroundPreview,
+                              setBackgroundPreview,
+                              headerBackgroundFile,
+                              setHeaderBackgroundFile,
+                              headerBackgroundPreview,
+                              setHeaderBackgroundPreview,
+                            })
+                          }
+                        />
+                      );
+                    })()
+                  ) : (
+                    BUILDER_SECTIONS.map((s) => (
+                      <Section
+                        key={s.id}
+                        id={s.id}
+                        title={s.title}
+                        icon={s.icon}
+                        render={() =>
+                          s.render({
+                            config,
+                            setConfig: setConfigAny,
+                            logoDataUrl,
+                            setLogoDataUrl,
+                            bannerFile,
+                            setBannerFile,
+                            bannerPreview,
+                            setBannerPreview,
+                            backgroundFile,
+                            setBackgroundFile,
+                            backgroundPreview,
+                            setBackgroundPreview,
+                            headerBackgroundFile,
+                            setHeaderBackgroundFile,
+                            headerBackgroundPreview,
+                            setHeaderBackgroundPreview,
+                          })
+                        }
+                      />
+                    ))
+                  )}
                 </div>
-                {BUILDER_SECTIONS.map((s) => (
-                  <Section
-                    key={s.id}
-                    id={s.id}
-                    title={s.title}
-                    icon={s.icon}
-                    render={() =>
-                      s.render({
-                        config,
-                        setConfig: setConfigAny,
-                        logoDataUrl,
-                        setLogoDataUrl,
-                        bannerFile,
-                        setBannerFile,
-                        bannerPreview,
-                        setBannerPreview,
-                        backgroundFile,
-                        setBackgroundFile,
-                        backgroundPreview,
-                        setBackgroundPreview,
-                        headerBackgroundFile,
-                        setHeaderBackgroundFile,
-                        headerBackgroundPreview,
-                        setHeaderBackgroundPreview,
-                      })
-                    }
-                  />
-                ))}
-              </div>
-            </MotionDiv>
-          </>
-        )}
-      </AnimatePresence>
-      
+              </MotionDiv>
+            </>
+          )}
+        </AnimatePresence>
+      )}
+
       {/* Live Preview */}
       <main className="flex-1 flex flex-col relative bg-[#F1F3F5] overflow-hidden">
         <header className="h-20 md:h-24 bg-white/60 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-6 md:px-12 sticky top-0 z-10">
-           <button onClick={onClose} className="p-3 bg-white rounded-xl shadow-sm text-slate-900 transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"><ChevronLeft className="rotate-180" /></button>
+           {!integratedMode && (
+             <button onClick={onClose} className="p-3 bg-white rounded-xl shadow-sm text-slate-900 transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"><ChevronLeft className="rotate-180" /></button>
+           )}
            
-           <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-inner border border-slate-100">
-              <button onClick={() => setPreviewMode('desktop')} className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewMode === 'desktop' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><Monitor size={18} /></button>
-              <button onClick={() => setPreviewMode('mobile')} className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewMode === 'mobile' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><Smartphone size={18} /></button>
-           </div>
+           {isDesktop && (
+             <div className="flex items-center gap-2 bg-white p-1 rounded-xl shadow-inner border border-slate-100">
+                <button onClick={() => setPreviewMode('desktop')} className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewMode === 'desktop' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><Monitor size={18} /></button>
+                <button onClick={() => setPreviewMode('mobile')} className={`p-2 rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewMode === 'mobile' ? 'bg-slate-900 text-white' : 'text-slate-400 hover:text-slate-600'}`}><Smartphone size={18} /></button>
+             </div>
+           )}
         </header>
 
-        <div className={`flex-1 overflow-y-auto ${config.pagePadding || 'p-6 md:p-12'} flex items-start justify-center`}>
+        <div className={`flex-1 overflow-y-auto ${config.pagePadding || 'p-6 md:p-12'} ${integratedMode ? 'flex flex-col items-center gap-8' : 'flex items-start justify-center'}`}>
           <MotionDiv 
             layout
             className={`shadow-2xl overflow-hidden transition-all duration-700 flex flex-col relative ${
@@ -586,10 +696,10 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   {isVisible('headerNav', true) && previewMode === 'mobile' && isPreviewHeaderMenuOpen && (
                     <>
                       <div
-                        className="fixed inset-0 z-[110]"
+                        className="absolute inset-0 z-[200]"
                         onClick={() => setIsPreviewHeaderMenuOpen(false)}
                       />
-                      <div className="mt-3 relative z-[121] px-4">
+                      <div className="absolute top-20 left-0 right-0 z-[210] px-4">
                         <div className="rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md shadow-lg overflow-hidden">
                           {isVisible('headerNavHome', true) && (
                             <button

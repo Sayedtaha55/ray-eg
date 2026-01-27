@@ -460,7 +460,7 @@ export class ShopService {
           if (to) {
             await this.email.sendMail({
               to,
-              subject: 'تمت الموافقة على متجرك في Ray',
+              subject: 'تمت الموافقة على متجرك في MNMKNK',
               text: `مرحباً ${(shop as any)?.owner?.name || ''}\n\nتمت الموافقة على متجرك "${(shop as any)?.name || ''}". يمكنك الآن تسجيل الدخول والدخول للوحة التحكم.`,
             });
           }

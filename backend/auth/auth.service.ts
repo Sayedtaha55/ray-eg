@@ -349,6 +349,11 @@ export class AuthService implements OnModuleInit {
       normalizedRole = 'CUSTOMER' as any;
     }
 
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const autoApproveMerchantsInDev =
+      env !== 'production' &&
+      String(process.env.AUTO_APPROVE_MERCHANTS_IN_DEV || '').toLowerCase() === 'true';
+
     // 1. التحقق من صحة المدخلات
     if (password.length < 8) {
       throw new BadRequestException('كلمة المرور ضعيفة جداً');
@@ -416,7 +421,7 @@ export class AuthService implements OnModuleInit {
           email: (resolvedShopEmail || normalizedEmail) as any,
           openingHours: resolvedOpeningHours || null,
           addressDetailed: resolvedAddressDetailed || null,
-          status: 'PENDING' as any,
+          status: (autoApproveMerchantsInDev ? 'APPROVED' : 'PENDING') as any,
           ownerId: createdUser.id,
         },
       });
@@ -430,6 +435,10 @@ export class AuthService implements OnModuleInit {
     });
 
     if (String(result?.user?.role || '').toUpperCase() === 'MERCHANT') {
+      const shopStatus = String((result as any)?.shop?.status || '').toUpperCase();
+      if (shopStatus === 'APPROVED') {
+        return this.generateToken(result.user);
+      }
       return {
         ok: true,
         pending: true,
@@ -445,6 +454,102 @@ export class AuthService implements OnModuleInit {
     }
 
     return this.generateToken(result.user);
+  }
+
+  async devMerchantLogin() {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const allowBootstrap =
+      env !== 'production' &&
+      String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP ?? 'false').toLowerCase() === 'true';
+    if (!allowBootstrap) {
+      throw new ForbiddenException('Forbidden');
+    }
+
+    const devEmail =
+      String(process.env.DEV_MERCHANT_EMAIL || '').trim().toLowerCase() || 'dev-merchant@ray.local';
+    const devName = String(process.env.DEV_MERCHANT_NAME || '').trim() || 'Dev Merchant';
+    const devShopName = String(process.env.DEV_MERCHANT_SHOP_NAME || '').trim() || 'Dev Shop';
+    const devShopPhone = String(process.env.DEV_MERCHANT_SHOP_PHONE || '').trim() || '01000000000';
+    const devGovernorate = String(process.env.DEV_MERCHANT_GOVERNORATE || '').trim() || 'Cairo';
+    const devCity = String(process.env.DEV_MERCHANT_CITY || '').trim() || 'Cairo';
+    const devCategory = this.normalizeShopCategory(String(process.env.DEV_MERCHANT_CATEGORY || '').trim() as any);
+
+    const resultUser = await this.prisma.$transaction(async (tx) => {
+      let user = await tx.user.findUnique({ where: { email: devEmail } });
+
+      if (!user) {
+        const salt = await bcrypt.genSalt(12);
+        const hashedPassword = await bcrypt.hash(randomBytes(32).toString('hex'), salt);
+        user = await tx.user.create({
+          data: {
+            email: devEmail,
+            name: devName,
+            password: hashedPassword,
+            role: 'MERCHANT' as any,
+            isActive: true,
+            lastLogin: new Date(),
+          },
+        });
+      } else {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: {
+            role: 'MERCHANT' as any,
+            isActive: true,
+            ...(devName && user.name !== devName ? { name: devName } : {}),
+            lastLogin: new Date(),
+          },
+        });
+      }
+
+      const userShopId = String((user as any)?.shopId || '').trim() || undefined;
+      let shop = userShopId ? await tx.shop.findUnique({ where: { id: userShopId } }) : null;
+
+      if (!shop) {
+        const slug = await this.ensureUniqueSlug(devShopName);
+        shop = await tx.shop.create({
+          data: {
+            name: devShopName,
+            slug,
+            description: null,
+            category: devCategory,
+            governorate: devGovernorate,
+            city: devCity,
+            phone: devShopPhone,
+            email: devEmail as any,
+            openingHours: null,
+            addressDetailed: null,
+            status: 'APPROVED' as any,
+            ownerId: user.id,
+          },
+        });
+
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: { shopId: shop.id },
+        });
+      } else {
+        const status = String((shop as any)?.status || '').toUpperCase();
+        if (status !== 'APPROVED') {
+          shop = await tx.shop.update({
+            where: { id: shop.id },
+            data: { status: 'APPROVED' as any },
+          });
+        }
+      }
+
+      const fixedShopId = String((user as any)?.shopId || '').trim();
+      if (!fixedShopId && shop?.id) {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: { shopId: shop.id },
+        });
+      }
+
+      return user;
+    });
+
+    return this.generateToken(resultUser);
   }
 
   /**
@@ -466,7 +571,10 @@ export class AuthService implements OnModuleInit {
     const allowBootstrap =
       env !== 'production' &&
       String(process.env.ALLOW_DEV_ADMIN_BOOTSTRAP ?? 'true').toLowerCase() === 'true';
-    if (allowBootstrap && (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com')) {
+    if (
+      allowBootstrap &&
+      (normalizedEmail === 'admin' || normalizedEmail === 'admin@ray.com' || normalizedEmail === 'admin@mnmknk.com')
+    ) {
       const allowed = new Set(['1234', 'admin123']);
       if (allowed.has(pass)) {
         const salt = await bcrypt.genSalt(12);

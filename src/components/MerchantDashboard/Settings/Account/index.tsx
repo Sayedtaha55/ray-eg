@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
-import { Loader2, User, Mail, Phone, MapPin, Save } from 'lucide-react';
+import { User, Mail, Phone, MapPin } from 'lucide-react';
 
 interface AccountProps {
   shop: any;
@@ -15,7 +14,7 @@ interface AccountProps {
 
 const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
   const [formData, setFormData] = useState({
     name: shop?.name || '',
     governorate: shop?.governorate || '',
@@ -27,6 +26,50 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     description: shop?.description || '',
   });
 
+  const baselineRef = React.useRef(formData);
+  const formRef = React.useRef(formData);
+  React.useEffect(() => {
+    formRef.current = formData;
+  }, [formData]);
+
+  const emitAccountChanges = (count: number) => {
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'account', count } }));
+    } catch {
+    }
+  };
+
+  React.useEffect(() => {
+    const initial = {
+      name: shop?.name || '',
+      governorate: shop?.governorate || '',
+      city: shop?.city || '',
+      category: shop?.category || 'RETAIL',
+      email: shop?.email || '',
+      phone: shop?.phone || '',
+      address: shop?.addressDetailed || shop?.address_detailed || '',
+      description: shop?.description || '',
+    };
+    baselineRef.current = initial;
+    setFormData(initial);
+    emitAccountChanges(0);
+  }, [shop?.name, shop?.governorate, shop?.city, shop?.category, shop?.email, shop?.phone, shop?.addressDetailed, shop?.address_detailed, shop?.description]);
+
+  React.useEffect(() => {
+    const base = baselineRef.current;
+    const next = formData;
+    const count =
+      (String(next.name) !== String(base.name) ? 1 : 0) +
+      (String(next.governorate) !== String(base.governorate) ? 1 : 0) +
+      (String(next.city) !== String(base.city) ? 1 : 0) +
+      (String(next.category) !== String(base.category) ? 1 : 0) +
+      (String(next.email) !== String(base.email) ? 1 : 0) +
+      (String(next.phone) !== String(base.phone) ? 1 : 0) +
+      (String(next.address) !== String(base.address) ? 1 : 0) +
+      (String(next.description) !== String(base.description) ? 1 : 0);
+    emitAccountChanges(count);
+  }, [formData]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -35,21 +78,21 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveAccount = async () => {
     setIsSaving(true);
     
     try {
+      const current = formRef.current;
       await ApiService.updateMyShop({
         ...(adminShopId ? { shopId: adminShopId } : {}),
-        name: formData.name,
-        governorate: formData.governorate,
-        city: formData.city,
-        category: formData.category,
-        email: formData.email,
-        phone: formData.phone,
-        addressDetailed: formData.address,
-        description: formData.description,
+        name: current.name,
+        governorate: current.governorate,
+        city: current.city,
+        category: current.category,
+        email: current.email,
+        phone: current.phone,
+        addressDetailed: current.address,
+        description: current.description,
       });
       
       toast({
@@ -57,16 +100,35 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
         description: "تم تحديث معلومات الحساب بنجاح",
       });
       
+      baselineRef.current = { ...current };
+      emitAccountChanges(0);
       onSaved();
+      return true;
     } catch (error) {
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء حفظ التغييرات",
         variant: "destructive",
       });
+      return false;
     } finally {
       setIsSaving(false);
     }
+  };
+
+  React.useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-register-save-handler', {
+          detail: { sectionId: 'account', handler: saveAccount },
+        }),
+      );
+    } catch {
+    }
+  }, [adminShopId]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
   };
 
   return (
@@ -195,21 +257,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
               />
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                    جاري الحفظ...
-                </>
-              ) : (
-                <>
-                  <Save className="ml-2 h-4 w-4" />
-                  حفظ التغييرات
-                </>
-              )}
-            </Button>
-          </CardFooter>
         </Card>
       </form>
     </div>

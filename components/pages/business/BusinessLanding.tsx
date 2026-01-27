@@ -87,7 +87,7 @@ const BusinessLanding: React.FC = () => {
                 transition={{ delay: 0.1 }}
                 className="text-6xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.9] text-white"
               >
-                قم ببناء <br/> <span className="text-[#00E5FF]">إمبراطوريتك.</span>
+                قم ببناء <br/> <span className="text-[#00E5FF]">علامتك التجارية.</span>
               </motion.h1>
               <p className="text-xl md:text-2xl text-slate-200/80 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
                 منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
@@ -166,7 +166,7 @@ const BusinessLanding: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             {/* Brand */}
             <div>
-              <h3 className="text-2xl font-black text-white mb-4">Ray</h3>
+              <h3 className="text-2xl font-black text-white mb-4">MNMKNK</h3>
               <p className="text-slate-400 leading-relaxed">
                 منصة متكاملة لتجار العصر الجديد. صمم متجرك، أدر منتجاتك، واربح بسهولة.
               </p>
@@ -195,7 +195,7 @@ const BusinessLanding: React.FC = () => {
           </div>
 
           <div className="mt-12 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
-            <p> {new Date().getFullYear()} Ray. جميع الحقوق محفوظة.</p>
+            <p> {new Date().getFullYear()} MNMKNK. جميع الحقوق محفوظة.</p>
           </div>
         </div>
       </footer>

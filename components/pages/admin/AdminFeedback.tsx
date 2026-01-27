@@ -36,7 +36,7 @@ const AdminFeedback: React.FC = () => {
           </div>
           <div>
             <h2 className="text-3xl font-black text-white">مركز الاقتراحات</h2>
-            <p className="text-slate-500 text-sm font-bold">صوت المستخدمين لمستقبل "Ray".</p>
+            <p className="text-slate-500 text-sm font-bold">صوت المستخدمين لمستقبل "MNMKNK".</p>
           </div>
         </div>
         

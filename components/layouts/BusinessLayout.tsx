@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -27,6 +27,12 @@ const BusinessLayout: React.FC = () => {
   const user = userStr ? JSON.parse(userStr) : null;
   const impersonateShopId = new URLSearchParams(location.search).get('impersonateShopId');
   const activeTab = new URLSearchParams(location.search).get('tab') || 'overview';
+  const settingsTab = new URLSearchParams(location.search).get('settingsTab') || 'overview';
+  const builderTabRaw = new URLSearchParams(location.search).get('builderTab') || '';
+  const isSettingsTab = activeTab === 'settings';
+  const isBuilderTab = activeTab === 'builder';
+  const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
@@ -93,6 +99,42 @@ const BusinessLayout: React.FC = () => {
       params.delete('tab');
     } else {
       params.set('tab', tab);
+    }
+    if (tab !== 'settings') {
+      params.delete('settingsTab');
+    }
+    if (tab !== 'builder') {
+      params.delete('builderTab');
+    }
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  };
+
+  const buildSettingsUrl = (section?: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'settings');
+    params.set('settingsTab', String(section || 'overview'));
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  };
+
+  const buildBuilderUrl = (section?: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'builder');
+    params.set('builderTab', String(section || 'colors'));
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  };
+
+  const buildBuilderToggleUrl = (section: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'builder');
+    const current = String(builderTabRaw || '').trim();
+    const next = String(section || '').trim();
+    if (current && next && current === next) {
+      params.delete('builderTab');
+    } else {
+      params.set('builderTab', next || 'colors');
     }
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
@@ -179,6 +221,17 @@ const BusinessLayout: React.FC = () => {
     }
   }, [isDashboard, effectiveUser?.shopId]);
 
+  useEffect(() => {
+    const onSettingsStatus = (e: any) => {
+      const count = Number(e?.detail?.count ?? 0);
+      const saving = Boolean(e?.detail?.saving);
+      setSettingsDirtyCount(Number.isFinite(count) ? count : 0);
+      setSettingsSaving(saving);
+    };
+    window.addEventListener('merchant-settings-status', onSettingsStatus as any);
+    return () => window.removeEventListener('merchant-settings-status', onSettingsStatus as any);
+  }, []);
+
   const handleMarkRead = async () => {
     if (!effectiveUser?.shopId) return;
     await ApiService.markNotificationsRead(effectiveUser.shopId);
@@ -208,7 +261,7 @@ const BusinessLayout: React.FC = () => {
       <>
         <Link to="/" className="flex items-center gap-2 md:gap-3">
           <BrandLogo variant="business" iconOnly />
-          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">Ray للأعمال</span>
+          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
         </Link>
         <div className="flex items-center gap-4 md:gap-8">
           <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
@@ -236,12 +289,12 @@ const BusinessLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row-reverse text-right font-sans" dir="rtl">
+    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row text-right font-sans" dir="rtl">
       {/* Mobile Header */}
       <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[60] border-b border-slate-100">
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo variant="business" iconOnly />
-          <span className="font-black tracking-tighter uppercase">Ray Biz</span>
+          <span className="font-black tracking-tighter uppercase">MNMKNK Biz</span>
         </Link>
         <div className="flex items-center gap-4">
            <button
@@ -253,7 +306,7 @@ const BusinessLayout: React.FC = () => {
              <Store className="w-6 h-6" />
            </button>
            <button
-             onClick={() => navigate(buildDashboardUrl('builder'))}
+             onClick={() => navigate(buildBuilderUrl('colors'))}
              aria-label="هوية المتجر"
              title="هوية المتجر"
              className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
@@ -283,27 +336,141 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-l border-slate-100 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="p-10 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <BrandLogo variant="business" iconOnly />
-            <span className="text-2xl font-black tracking-tighter uppercase">Ray Biz</span>
-          </Link>
-          <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
-            <X className="w-6 h-6" />
-          </button>
-        </div>
+      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 left-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-r border-slate-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        {!isBuilderTab ? (
+          <div className="p-10 flex items-center justify-between">
+            <Link to="/" className="flex items-center gap-3">
+              <BrandLogo variant="business" iconOnly />
+              <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK Biz</span>
+            </Link>
+            {isSettingsTab ? (
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    window.dispatchEvent(new Event('merchant-settings-save-request'));
+                  } catch {
+                  }
+                }}
+                disabled={settingsSaving || settingsDirtyCount <= 0}
+                className={`relative px-5 py-3 rounded-2xl font-black text-xs transition-all ${settingsSaving || settingsDirtyCount <= 0 ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-black'}`}
+              >
+                حفظ الإعدادات
+                {settingsDirtyCount > 0 && (
+                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white">
+                    {settingsDirtyCount}
+                  </span>
+                )}
+              </button>
+            ) : null}
+            <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+        ) : (
+          <div className="p-10 flex items-center justify-between">
+            <div className="flex flex-col">
+              <div className="text-2xl font-black tracking-tighter">هوية المتجر</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Page Builder</div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  try {
+                    window.dispatchEvent(new Event('pagebuilder-save'));
+                  } catch {
+                  }
+                }}
+                className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all"
+              >
+                حفظ التصميم
+              </button>
+              <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+        )}
 
         <nav className="flex-1 px-6 space-y-2 py-4 overflow-y-auto no-scrollbar min-h-0">
-          <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={!isProfilePage && activeTab === 'overview'} />
-          <NavItem to={buildDashboardUrl('gallery')} onClick={() => setSidebarOpen(false)} icon={<Camera size={20} />} label="معرض الصور" active={!isProfilePage && activeTab === 'gallery'} />
-          <NavItem to={buildDashboardUrl('reports')} onClick={() => setSidebarOpen(false)} icon={<BarChart3 size={20} />} label="التقارير" active={!isProfilePage && activeTab === 'reports'} />
-          <NavItem to={buildDashboardUrl('customers')} onClick={() => setSidebarOpen(false)} icon={<Users size={20} />} label="العملاء" active={!isProfilePage && activeTab === 'customers'} />
-          <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={!isProfilePage && activeTab === 'products'} />
-          <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={!isProfilePage && activeTab === 'promotions'} />
-          <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={!isProfilePage && activeTab === 'reservations'} />
-          <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={!isProfilePage && activeTab === 'sales'} />
-          <NavItem to={buildDashboardUrl('settings')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={!isProfilePage && activeTab === 'settings'} />
+          {!isSettingsTab && !isBuilderTab ? (
+            <>
+              <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={!isProfilePage && activeTab === 'overview'} />
+              <NavItem to={buildDashboardUrl('gallery')} onClick={() => setSidebarOpen(false)} icon={<Camera size={20} />} label="معرض الصور" active={!isProfilePage && activeTab === 'gallery'} />
+              <NavItem to={buildDashboardUrl('reports')} onClick={() => setSidebarOpen(false)} icon={<BarChart3 size={20} />} label="التقارير" active={!isProfilePage && activeTab === 'reports'} />
+              <NavItem to={buildDashboardUrl('customers')} onClick={() => setSidebarOpen(false)} icon={<Users size={20} />} label="العملاء" active={!isProfilePage && activeTab === 'customers'} />
+              <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={!isProfilePage && activeTab === 'products'} />
+              <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={!isProfilePage && activeTab === 'promotions'} />
+              <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={!isProfilePage && activeTab === 'reservations'} />
+              <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={!isProfilePage && activeTab === 'sales'} />
+              <NavItem to={buildBuilderUrl('colors')} onClick={() => setSidebarOpen(false)} icon={<Palette size={20} />} label="هوية المتجر" active={!isProfilePage && activeTab === 'builder'} />
+              <NavItem to={buildSettingsUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={!isProfilePage && activeTab === 'settings'} />
+            </>
+          ) : isSettingsTab ? (
+            <>
+              <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="رجوع للوحة" active={false} />
+              <NavItem to={buildSettingsUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="نظرة عامة" active={String(settingsTab) === 'overview'} />
+              <NavItem to={buildSettingsUrl('account')} onClick={() => setSidebarOpen(false)} icon={<User size={20} />} label="الحساب" active={String(settingsTab) === 'account'} />
+              <NavItem to={buildSettingsUrl('security')} onClick={() => setSidebarOpen(false)} icon={<Shield size={20} />} label="الأمان" active={String(settingsTab) === 'security'} />
+              <NavItem to={buildSettingsUrl('store')} onClick={() => setSidebarOpen(false)} icon={<Store size={20} />} label="إعدادات المتجر" active={String(settingsTab) === 'store'} />
+              <NavItem to={buildSettingsUrl('receipt_theme')} onClick={() => setSidebarOpen(false)} icon={<FileText size={20} />} label="ثيم الفاتورة" active={String(settingsTab) === 'receipt_theme'} />
+              <NavItem to={buildSettingsUrl('payments')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="المدفوعات" active={String(settingsTab) === 'payments'} />
+              <NavItem to={buildSettingsUrl('notifications')} onClick={() => setSidebarOpen(false)} icon={<Bell size={20} />} label="التنبيهات" active={String(settingsTab) === 'notifications'} />
+            </>
+          ) : (
+            <>
+              <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="رجوع للوحة" active={false} />
+              <NavItem to={buildBuilderToggleUrl('colors')} onClick={() => setSidebarOpen(false)} icon={<Palette size={20} />} label="الألوان" active={String(builderTabRaw) === 'colors'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'colors' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-colors" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('background')} onClick={() => setSidebarOpen(false)} icon={<Palette size={20} />} label="الخلفية" active={String(builderTabRaw) === 'background'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'background' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-background" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('banner')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="البانر" active={String(builderTabRaw) === 'banner'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'banner' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-banner" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('header')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="اللوجو" active={String(builderTabRaw) === 'header'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'header' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-header" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('headerFooter')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="الهيدر والفوتر" active={String(builderTabRaw) === 'headerFooter'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'headerFooter' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-headerFooter" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('products')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="عرض المعروضات" active={String(builderTabRaw) === 'products'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'products' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-products" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('productPage')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="صفحة المنتج" active={String(builderTabRaw) === 'productPage'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'productPage' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-productPage" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('layout')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="النمط" active={String(builderTabRaw) === 'layout'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'layout' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-layout" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('typography')} onClick={() => setSidebarOpen(false)} icon={<Type size={20} />} label="الخطوط" active={String(builderTabRaw) === 'typography'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'typography' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-typography" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('buttons')} onClick={() => setSidebarOpen(false)} icon={<Layout size={20} />} label="الأزرار" active={String(builderTabRaw) === 'buttons'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'buttons' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-buttons" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('visibility')} onClick={() => setSidebarOpen(false)} icon={<Sliders size={20} />} label="إظهار / إخفاء" active={String(builderTabRaw) === 'visibility'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'visibility' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-visibility" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+              <NavItem to={buildBuilderToggleUrl('customCss')} onClick={() => setSidebarOpen(false)} icon={<Sliders size={20} />} label="CSS مخصص" active={String(builderTabRaw) === 'customCss'} />
+              <div className={`hidden md:block overflow-hidden transition-all ${String(builderTabRaw) === 'customCss' ? 'max-h-[70vh] pb-4' : 'max-h-0'}`}>
+                <div id="builder-accordion-customCss" className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+              </div>
+            </>
+          )}
         </nav>
 
         <div className="p-6 mt-auto border-t border-slate-100 space-y-2">
@@ -356,13 +523,32 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 md:mr-80 overflow-x-hidden">
-        <header className="hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 sticky top-0 z-40">
-          <div className="flex flex-col text-right">
-             <h2 className="font-black text-slate-900 text-xl leading-none">لوحة التحكم الذكية</h2>
-             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">مركز العمليات - {effectiveUser?.name}</p>
-          </div>
+      <main className="flex-1 md:ml-80 overflow-x-hidden">
+        <header className="hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 md:left-80 md:right-0 z-40">
           <div className="flex items-center gap-8">
+            <div className="flex items-center gap-4 pr-4 border-r border-slate-100">
+               <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
+                 {effectiveUser?.name?.charAt(0)}
+               </div>
+               <div className="text-right">
+                 <p className="font-black text-sm text-slate-900 leading-none">{user?.name}</p>
+                 <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">صاحب العمل</p>
+               </div>
+            </div>
+            <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
+               <motion.div animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
+                 <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />
+               </motion.div>
+               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
+            </div>
+            <button
+              onClick={() => navigate(buildBuilderUrl('colors'))}
+              aria-label="هوية المتجر"
+              title="هوية المتجر"
+              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
+            >
+              <Palette className="w-5 h-5" />
+            </button>
             <button
               onClick={() => navigate(buildDashboardUrl('pos'))}
               aria-label="نظام الكاشير"
@@ -371,33 +557,14 @@ const BusinessLayout: React.FC = () => {
             >
               <Store className="w-5 h-5" />
             </button>
-            <button
-              onClick={() => navigate(buildDashboardUrl('builder'))}
-              aria-label="هوية المتجر"
-              title="هوية المتجر"
-              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
-            >
-              <Palette className="w-5 h-5" />
-            </button>
-            <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
-               <motion.div animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
-                 <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />
-               </motion.div>
-               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
-            </div>
-            <div className="flex items-center gap-4 pl-4 border-l border-slate-100">
-               <div className="text-left">
-                 <p className="font-black text-sm text-slate-900 leading-none">{user?.name}</p>
-                 <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">صاحب العمل</p>
-               </div>
-               <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
-                 {effectiveUser?.name?.charAt(0)}
-               </div>
-            </div>
+          </div>
+          <div className="flex flex-col text-right">
+             <h2 className="font-black text-slate-900 text-xl leading-none">لوحة التحكم الذكية</h2>
+             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">مركز العمليات - {effectiveUser?.name}</p>
           </div>
         </header>
 
-        <div className="p-4 md:p-12 min-h-screen">
+        <div className="p-4 md:p-12 md:pt-36 min-h-screen">
           <Outlet />
         </div>
       </main>
@@ -411,7 +578,7 @@ const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, acti
   }`}>
     <div className={`${active ? 'text-slate-900' : 'text-slate-400 group-hover:text-[#00E5FF]'}`}>{icon}</div>
     <span className="flex-1 text-sm">{label}</span>
-    {active && <ChevronRight className="w-4 h-4 rotate-180" />}
+    {active && <ChevronRight className="w-4 h-4" />}
   </Link>
 );
 

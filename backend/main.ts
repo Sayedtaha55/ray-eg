@@ -165,6 +165,17 @@ async function bootstrap() {
 
   app.use('/api/v1/gallery/upload', galleryUploadLimiter);
 
+  const mediaPresignLimiter = rateLimit({
+    windowMs: 10 * 60 * 1000,
+    max: isDev ? 1200 : 120,
+    message: 'Too many upload requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
+  });
+
+  app.use('/api/v1/media/presign', mediaPresignLimiter);
+
   const reservationCreateLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: isDev ? 400 : 40,

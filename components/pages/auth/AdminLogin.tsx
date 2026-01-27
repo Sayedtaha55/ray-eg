@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Loader2, KeyRound, ArrowRight } from 'lucide-react';
+import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 
@@ -8,14 +8,17 @@ const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const AdminLogin: React.FC = () => {
-  const allowBootstrapUi = !Boolean((import.meta as any)?.env?.PROD);
-  const [email, setEmail] = useState('admin@ray.com');
+  const allowBootstrapUi =
+    !Boolean((import.meta as any)?.env?.PROD) &&
+    String(((import.meta as any)?.env?.VITE_SHOW_ADMIN_BOOTSTRAP_UI as string) || '').toLowerCase() === 'true';
+  const showDevMerchantLogin = !Boolean((import.meta as any)?.env?.PROD);
+  const [email, setEmail] = useState('admin@mnmknk.com');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [bootstrapOpen, setBootstrapOpen] = useState(false);
   const [bootstrapToken, setBootstrapToken] = useState('');
-  const [bootstrapEmail, setBootstrapEmail] = useState('admin@ray.com');
+  const [bootstrapEmail, setBootstrapEmail] = useState('admin@mnmknk.com');
   const [bootstrapPassword, setBootstrapPassword] = useState('');
   const [bootstrapName, setBootstrapName] = useState('Admin');
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
@@ -46,6 +49,22 @@ const AdminLogin: React.FC = () => {
       }
     } catch (err: any) {
       setError(err.message || 'بيانات الدخول غير صحيحة');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDevMerchantLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await ApiService.devMerchantLogin();
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      window.dispatchEvent(new Event('auth-change'));
+      navigate('/business/dashboard');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل دخول المطور');
     } finally {
       setLoading(false);
     }
@@ -117,6 +136,18 @@ const AdminLogin: React.FC = () => {
               دخول للنظام
             </button>
 
+             {showDevMerchantLogin && (
+               <button
+                 type="button"
+                 disabled={loading}
+                 onClick={handleDevMerchantLogin}
+                 className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+               >
+                 <Store size={18} />
+                 دخول المطور (تاجر)
+               </button>
+             )}
+
              {allowBootstrapUi && (
                <>
                  <button
@@ -144,7 +175,7 @@ const AdminLogin: React.FC = () => {
                          type="email"
                          value={bootstrapEmail}
                          onChange={(e) => setBootstrapEmail(e.target.value)}
-                         placeholder="admin@ray.com"
+                         placeholder="admin@mnmknk.com"
                          className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
                        />
                        <input

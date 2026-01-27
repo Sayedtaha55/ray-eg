@@ -14,7 +14,7 @@ type Props = {
 
 const BrandLogo: React.FC<Props> = ({
   variant = 'public',
-  name = 'Ray',
+  name = 'MNMKNK',
   suffix,
   showName = true,
   logoSrc = '/brand/logo.png',
@@ -65,7 +65,7 @@ const BrandLogo: React.FC<Props> = ({
   const icon = !imgError ? (
     <img src={logoSrc} className={styles.image} onError={() => setImgError(true)} alt={name} />
   ) : (
-    <span className={styles.letter}>R</span>
+    <span className={styles.letter}>M</span>
   );
 
   if (variant === 'public') {

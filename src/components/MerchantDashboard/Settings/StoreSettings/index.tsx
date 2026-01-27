@@ -21,6 +21,10 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
 
+  const baselineFormRef = useRef<any>(null);
+  const baselineCoordsRef = useRef<{ lat: number | null; lng: number | null } | null>(null);
+  const baselineMetaRef = useRef<{ locationSource: string; locationAccuracy: number | null; locationUpdatedAt: string } | null>(null);
+
   const [togglingActive, setTogglingActive] = useState(false);
   const [isActive, setIsActive] = useState<boolean>(Boolean(shop?.isActive));
 
@@ -41,6 +45,11 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
 
   const [form, setForm] = useState(initial);
 
+  const formRef = useRef(form);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
+
   const [latitude, setLatitude] = useState<number | null>(
     typeof shop?.latitude === 'number' ? shop.latitude : typeof shop?.lat === 'number' ? shop.lat : null,
   );
@@ -60,6 +69,11 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const [locationUpdatedAt, setLocationUpdatedAt] = useState<string>(
     String(shop?.locationUpdatedAt || shop?.location_updated_at || ''),
   );
+
+  const coordsRef = useRef<{ lat: number | null; lng: number | null }>({ lat: null, lng: null });
+  useEffect(() => {
+    coordsRef.current = { lat: latitude, lng: longitude };
+  }, [latitude, longitude]);
   const [locatingShop, setLocatingShop] = useState(false);
   const [locationError, setLocationError] = useState('');
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -81,6 +95,43 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       }
     };
   }, []);
+
+  useEffect(() => {
+    baselineFormRef.current = initial;
+    baselineCoordsRef.current = { lat: latitude, lng: longitude };
+    baselineMetaRef.current = {
+      locationSource: String(locationSource || '').trim().toLowerCase(),
+      locationAccuracy,
+      locationUpdatedAt: String(locationUpdatedAt || ''),
+    };
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count: 0 } }));
+    } catch {
+    }
+  }, [initial, shop?.id]);
+
+  useEffect(() => {
+    const baseForm = baselineFormRef.current || {};
+    const baseCoords = baselineCoordsRef.current || { lat: null, lng: null };
+    const baseMeta = baselineMetaRef.current || { locationSource: '', locationAccuracy: null, locationUpdatedAt: '' };
+
+    const count =
+      (String(form.whatsapp || '') !== String(baseForm.whatsapp || '') ? 1 : 0) +
+      (String(form.customDomain || '') !== String(baseForm.customDomain || '') ? 1 : 0) +
+      (String(form.openingHours || '') !== String(baseForm.openingHours || '') ? 1 : 0) +
+      (String(form.displayAddress || '') !== String(baseForm.displayAddress || '') ? 1 : 0) +
+      (String(form.mapLabel || '') !== String(baseForm.mapLabel || '') ? 1 : 0) +
+      (Number(latitude ?? -999) !== Number(baseCoords.lat ?? -999) ? 1 : 0) +
+      (Number(longitude ?? -999) !== Number(baseCoords.lng ?? -999) ? 1 : 0) +
+      (String(locationSource || '').trim().toLowerCase() !== String(baseMeta.locationSource || '').trim().toLowerCase() ? 1 : 0) +
+      (Number(locationAccuracy ?? -999) !== Number(baseMeta.locationAccuracy ?? -999) ? 1 : 0) +
+      (String(locationUpdatedAt || '') !== String(baseMeta.locationUpdatedAt || '') ? 1 : 0);
+
+    try {
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count } }));
+    } catch {
+    }
+  }, [form, latitude, longitude, locationSource, locationAccuracy, locationUpdatedAt]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -199,33 +250,62 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+  };
+
+  const saveStoreSettings = async () => {
     setSaving(true);
     try {
-      const computedDisplayAddress = String(form.displayAddress || '').trim() || String(shop?.addressDetailed || shop?.address_detailed || '').trim();
-      const computedMapLabel = String(form.mapLabel || '').trim() || String(shop?.name || '').trim();
+      const current = formRef.current;
+      const coords = coordsRef.current;
+      const computedDisplayAddress = String(current.displayAddress || '').trim() || String(shop?.addressDetailed || shop?.address_detailed || '').trim();
+      const computedMapLabel = String(current.mapLabel || '').trim() || String(shop?.name || '').trim();
 
       await ApiService.updateMyShop({
         ...(adminShopId ? { shopId: adminShopId } : {}),
-        whatsapp: form.whatsapp,
-        customDomain: form.customDomain,
-        openingHours: form.openingHours,
+        whatsapp: current.whatsapp,
+        customDomain: current.customDomain,
+        openingHours: current.openingHours,
         displayAddress: computedDisplayAddress ? computedDisplayAddress : null,
         mapLabel: computedMapLabel ? computedMapLabel : null,
-        latitude,
-        longitude,
+        latitude: coords.lat,
+        longitude: coords.lng,
         locationSource: locationSource ? locationSource : undefined,
         locationAccuracy,
         locationUpdatedAt: locationUpdatedAt ? locationUpdatedAt : undefined,
       });
 
+      baselineFormRef.current = { ...current };
+      baselineCoordsRef.current = { lat: coords.lat, lng: coords.lng };
+      baselineMetaRef.current = {
+        locationSource: String(locationSource || '').trim().toLowerCase(),
+        locationAccuracy,
+        locationUpdatedAt: String(locationUpdatedAt || ''),
+      };
+      try {
+        window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count: 0 } }));
+      } catch {
+      }
       toast({ title: 'تم الحفظ', description: 'تم حفظ إعدادات المتجر بنجاح' });
       onSaved();
+      return true;
     } catch {
       toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ التغييرات', variant: 'destructive' });
+      return false;
     } finally {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-register-save-handler', {
+          detail: { sectionId: 'store', handler: saveStoreSettings },
+        }),
+      );
+    } catch {
+    }
+  }, [adminShopId, shop?.id, locationSource, locationAccuracy, locationUpdatedAt]);
 
   return (
     <div className="space-y-6">
@@ -271,9 +351,6 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
               <Input id="openingHours" value={form.openingHours} onChange={onChange('openingHours')} placeholder="10:00 - 22:00" />
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}</Button>
-          </CardFooter>
         </Card>
 
         <div className="h-4" />
@@ -295,9 +372,6 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}</Button>
-          </CardFooter>
         </Card>
 
         <div className="h-4" />
@@ -333,9 +407,6 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
               </div>
             </div>
           </CardContent>
-          <CardFooter className="flex justify-end border-t px-6 py-4">
-            <Button type="submit" disabled={saving}>{saving ? 'جاري الحفظ...' : 'حفظ التغييرات'}</Button>
-          </CardFooter>
         </Card>
       </form>
 

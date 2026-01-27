@@ -138,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] rounded-xl" />
               <div>
-                <h2 className="text-xl font-black text-white">RAY</h2>
+                <h2 className="text-xl font-black text-white">MNMKNK</h2>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest">
                   {userRole === 'admin' ? 'لوحة الإدارة' : 
                    userRole === 'merchant' ? 'لوحة التاجر' : 
