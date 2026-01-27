@@ -1,4 +1,10 @@
-import { IsString, IsOptional, IsEmail, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsOptional, IsEmail, MinLength, MaxLength, IsEnum } from 'class-validator';
+
+export enum ShopCategory {
+  RETAIL = 'RETAIL',
+  RESTAURANT = 'RESTAURANT',
+  SERVICE = 'SERVICE',
+}
 
 export class CreateShopDto {
   @IsString()
@@ -12,11 +18,13 @@ export class CreateShopDto {
   @IsOptional()
   description?: string;
 
+  @IsEnum(ShopCategory)
+  category: ShopCategory;
+
   @IsString()
   @MinLength(10)
   @MaxLength(20)
-  @IsOptional()
-  phone?: string;
+  phone: string;
 
   @IsEmail()
   @IsOptional()
@@ -37,14 +45,12 @@ export class CreateShopDto {
   @IsString()
   @MinLength(5)
   @MaxLength(100)
-  @IsOptional()
-  governorate?: string;
+  governorate: string;
 
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  @IsOptional()
-  city?: string;
+  city: string;
 
   @IsString()
   @MinLength(10)

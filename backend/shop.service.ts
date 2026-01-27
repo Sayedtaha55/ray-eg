@@ -4,7 +4,7 @@ import { PrismaService } from './prisma/prisma.service';
 import { MonitoringService } from './monitoring/monitoring.service';
 import { MediaCompressionService } from './media-compression.service';
 import { EmailService } from './email.service';
-import { CreateShopDto } from './create-shop.dto';
+import { CreateShopDto, ShopCategory } from './create-shop.dto';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
@@ -954,6 +954,7 @@ export class ShopService {
         name: createShopDto.name,
         slug: uniqueSlug,
         description: createShopDto.description,
+        category: (createShopDto.category || ShopCategory.RETAIL) as any,
         phone: createShopDto.phone,
         email: createShopDto.email,
         address: createShopDto.address,
