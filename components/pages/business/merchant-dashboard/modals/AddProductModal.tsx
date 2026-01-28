@@ -17,7 +17,8 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
-  const [imageFile, setImageFile] = useState<string | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
@@ -29,36 +30,57 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
         addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageFile(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreview);
+        }
+      } catch {
+        // ignore
+      }
+      setImageUploadFile(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!imageFile) {
+    if (!imageUploadFile) {
       addToast('يرجى اختيار صورة للمنتج أولاً', 'info');
       return;
     }
     setLoading(true);
     try {
+      const presign = await ApiService.presignMediaUpload({
+        mimeType: String(imageUploadFile.type || 'application/octet-stream'),
+        size: imageUploadFile.size,
+        fileName: imageUploadFile.name,
+        purpose: 'product_image',
+        shopId,
+      });
+      await ApiService.uploadFileToPresignedUrl(presign.uploadUrl, imageUploadFile);
+
       await ApiService.addProduct({
         shopId,
         name,
         price: Number(price),
         stock: Number(stock),
         category: cat,
-        imageUrl: imageFile,
+        imageUrl: presign.publicUrl,
       });
       addToast('تمت إضافة المنتج بنجاح!', 'success');
       setName('');
       setPrice('');
       setStock('');
       setCat('عام');
-      setImageFile(null);
+      try {
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreview);
+        }
+      } catch {
+        // ignore
+      }
+      setImagePreview(null);
+      setImageUploadFile(null);
       onClose();
     } catch {
       addToast('فشل في إضافة المنتج', 'error');
@@ -90,12 +112,12 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
             <div
               onClick={() => fileInputRef.current?.click()}
               className={`relative aspect-square md:aspect-video rounded-[2.5rem] border-4 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden group ${
-                imageFile ? 'border-transparent' : 'border-slate-100 hover:border-[#00E5FF] hover:bg-cyan-50'
+                imagePreview ? 'border-transparent' : 'border-slate-100 hover:border-[#00E5FF] hover:bg-cyan-50'
               }`}
             >
-              {imageFile ? (
+              {imagePreview ? (
                 <>
-                  <img src={imageFile} className="w-full h-full object-cover" alt="preview" />
+                  <img src={imagePreview} className="w-full h-full object-cover" alt="preview" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="bg-white/90 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2">
                       <Upload size={16} /> تغيير الصورة

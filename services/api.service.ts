@@ -154,6 +154,43 @@ export const ApiService = {
   login: async (email: string, pass: string) => {
     return await loginViaBackend(email, pass);
   },
+  presignMediaUpload: async (payload: {
+    mimeType: string;
+    size?: number;
+    fileName?: string;
+    purpose?: string;
+    shopId?: string;
+  }) => {
+    return await backendPost<{ uploadUrl: string; key: string; publicUrl: string; expiresIn?: number }>(
+      '/api/v1/media/presign',
+      {
+        mimeType: String(payload?.mimeType || '').trim(),
+        ...(typeof payload?.size === 'number' ? { size: payload.size } : {}),
+        ...(typeof payload?.fileName === 'string' ? { fileName: payload.fileName } : {}),
+        ...(typeof payload?.purpose === 'string' ? { purpose: payload.purpose } : {}),
+        ...(typeof payload?.shopId === 'string' ? { shopId: payload.shopId } : {}),
+      },
+    );
+  },
+  uploadFileToPresignedUrl: async (uploadUrl: string, file: File) => {
+    const url = String(uploadUrl || '').trim();
+    if (!url) throw new Error('Missing uploadUrl');
+    if (!file) throw new Error('Missing file');
+
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': String((file as any)?.type || 'application/octet-stream'),
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Upload failed (${res.status})`);
+    }
+
+    return true;
+  },
   devMerchantLogin: async () => {
     return await devMerchantLoginViaBackend();
   },
