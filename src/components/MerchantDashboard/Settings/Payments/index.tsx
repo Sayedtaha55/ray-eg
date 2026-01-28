@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +16,6 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
   const [publicKey, setPublicKey] = useState(String(shop?.paymentConfig?.publicKey || ''));
 
   const baselineRef = React.useRef({ merchantId: String(shop?.paymentConfig?.merchantId || ''), publicKey: String(shop?.paymentConfig?.publicKey || '') });
-  const valuesRef = React.useRef({ merchantId, publicKey });
-  React.useEffect(() => {
-    valuesRef.current = { merchantId, publicKey };
-  }, [merchantId, publicKey]);
 
   React.useEffect(() => {
     baselineRef.current = { merchantId: String(shop?.paymentConfig?.merchantId || ''), publicKey: String(shop?.paymentConfig?.publicKey || '') };
@@ -40,12 +36,13 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
     }
   }, [merchantId, publicKey]);
 
-  const savePayments = async () => {
+  const savePayments = useCallback(async () => {
     setSaving(true);
     try {
+      // NOTE: This is a placeholder save. To make it real, replace this with an API call.
       await new Promise((r) => setTimeout(r, 700));
       toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات المدفوعات بنجاح' });
-      baselineRef.current = { ...valuesRef.current };
+      baselineRef.current = { merchantId, publicKey };
       try {
         window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'payments', count: 0 } }));
       } catch {
@@ -58,14 +55,14 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
     } finally {
       setSaving(false);
     }
-  };
+  }, [merchantId, publicKey, toast, onSaved]);
 
   React.useEffect(() => {
     try {
       window.dispatchEvent(new CustomEvent('merchant-settings-register-save-handler', { detail: { sectionId: 'payments', handler: savePayments } }));
     } catch {
     }
-  }, []);
+  }, [savePayments]);
 
   const onSubmit = (e: React.FormEvent) => {
     e.preventDefault();

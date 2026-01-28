@@ -364,32 +364,31 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
     }
   }, [pendingSoundId, savedSoundId]);
 
-  useEffect(() => {
-    const register = () => {
-      try {
-        window.dispatchEvent(
-          new CustomEvent('merchant-settings-register-save-handler', {
-            detail: {
-              sectionId: 'notifications',
-              handler: (async () => {
-                const idToSave = String(pendingSoundId || '').trim();
-                if (!idToSave) return false;
-                try {
-                  RayDB.setSelectedNotificationSoundId(idToSave);
-                  setSavedSoundId(idToSave);
-                  return true;
-                } catch {
-                  return false;
-                }
-              }) as SaveHandler,
-            },
-          }),
-        );
-      } catch {
-      }
-    };
-    register();
+  const saveNotifications = React.useCallback(async () => {
+    const idToSave = String(pendingSoundId || '').trim();
+    if (!idToSave) return false;
+    try {
+      RayDB.setSelectedNotificationSoundId(idToSave);
+      setSavedSoundId(idToSave);
+      return true;
+    } catch {
+      return false;
+    }
   }, [pendingSoundId]);
+
+  useEffect(() => {
+    try {
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-register-save-handler', {
+          detail: {
+            sectionId: 'notifications',
+            handler: saveNotifications,
+          },
+        }),
+      );
+    } catch {
+    }
+  }, [saveNotifications]);
 
   const renderTabContent = (tabId: SettingsTab) => {
     switch (tabId) {

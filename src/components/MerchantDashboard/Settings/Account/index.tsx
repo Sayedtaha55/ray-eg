@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -78,7 +78,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     }));
   };
 
-  const saveAccount = async () => {
+  const saveAccount = useCallback(async () => {
     setIsSaving(true);
     
     try {
@@ -114,7 +114,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [adminShopId, onSaved, toast]);
 
   React.useEffect(() => {
     try {
@@ -125,7 +125,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       );
     } catch {
     }
-  }, [adminShopId]);
+  }, [saveAccount]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

@@ -31,26 +31,6 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
     twoFactorCode: '',
   });
 
-  const valuesRef = useRef({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    twoFactorEnabled: false,
-    showTwoFactorSetup: false,
-    twoFactorCode: '',
-  });
-
-  useEffect(() => {
-    valuesRef.current = {
-      currentPassword,
-      newPassword,
-      confirmPassword,
-      twoFactorEnabled,
-      showTwoFactorSetup,
-      twoFactorCode,
-    };
-  }, [currentPassword, newPassword, confirmPassword, twoFactorEnabled, showTwoFactorSetup, twoFactorCode]);
-
   useEffect(() => {
     baselineRef.current = {
       currentPassword: '',
@@ -81,10 +61,9 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
     }
   }, [currentPassword, newPassword, confirmPassword, twoFactorEnabled, showTwoFactorSetup, twoFactorCode]);
 
-  const saveSecurity = async () => {
-    const v = valuesRef.current;
-    const passwordTouched = Boolean(String(v.currentPassword || '') || String(v.newPassword || '') || String(v.confirmPassword || ''));
-    const twoFactorTouched = Boolean(v.showTwoFactorSetup || String(v.twoFactorCode || '') || v.twoFactorEnabled);
+  const saveSecurity = React.useCallback(async () => {
+    const passwordTouched = Boolean(String(currentPassword || '') || String(newPassword || '') || String(confirmPassword || ''));
+    const twoFactorTouched = Boolean(showTwoFactorSetup || String(twoFactorCode || '') || twoFactorEnabled);
 
     if (!passwordTouched && !twoFactorTouched) return true;
 
@@ -93,7 +72,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
 
     try {
       if (passwordTouched) {
-        if (!v.currentPassword) {
+        if (!currentPassword) {
           toast({
             title: 'خطأ',
             description: 'كلمة المرور الحالية مطلوبة',
@@ -101,7 +80,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
           });
           return false;
         }
-        if (!v.newPassword || v.newPassword.length < 8) {
+        if (!newPassword || newPassword.length < 8) {
           toast({
             title: 'خطأ',
             description: 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل',
@@ -109,7 +88,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
           });
           return false;
         }
-        if (v.newPassword !== v.confirmPassword) {
+        if (newPassword !== confirmPassword) {
           toast({
             title: 'خطأ',
             description: 'كلمة المرور الجديدة وتأكيدها غير متطابقين',
@@ -118,15 +97,15 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
           return false;
         }
 
-        await ApiService.changePassword({ currentPassword: v.currentPassword, newPassword: v.newPassword });
+        await ApiService.changePassword({ currentPassword, newPassword });
         toast({ title: 'تم التحديث', description: 'تم تغيير كلمة المرور بنجاح' });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       }
 
-      if (v.showTwoFactorSetup) {
-        if (!v.twoFactorCode) {
+      if (showTwoFactorSetup) {
+        if (!twoFactorCode) {
           toast({ title: 'خطأ', description: 'الرجاء إدخال رمز التحقق', variant: 'destructive' });
           return false;
         }
@@ -158,14 +137,14 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [isSaving, toast, onSaved, currentPassword, newPassword, confirmPassword, twoFactorEnabled, showTwoFactorSetup, twoFactorCode]);
 
   useEffect(() => {
     try {
       window.dispatchEvent(new CustomEvent('merchant-settings-register-save-handler', { detail: { sectionId: 'security', handler: saveSecurity } }));
     } catch {
     }
-  }, []);
+  }, [saveSecurity]);
 
   const handleTwoFactorToggle = async (checked: boolean) => {
     if (checked) {
