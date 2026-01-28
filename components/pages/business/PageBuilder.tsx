@@ -225,10 +225,27 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!shopId) return;
     setSaving(true);
     try {
+      const uploadToR2 = async (file: File, purpose: string) => {
+        const presign = await ApiService.presignMediaUpload({
+          mimeType: String(file?.type || 'application/octet-stream'),
+          size: file.size,
+          fileName: file.name,
+          purpose,
+          shopId,
+        });
+        await ApiService.uploadFileToPresignedUrl(presign.uploadUrl, file);
+        return String(presign.publicUrl || '').trim();
+      };
+
       let uploadedBanner: any = null;
       if (bannerFile) {
         try {
-          uploadedBanner = await ApiService.uploadMyShopBanner({ file: bannerFile });
+          const bannerUrl = await uploadToR2(bannerFile, 'shop_banner');
+          const isVideo = String(bannerFile?.type || '').toLowerCase().startsWith('video/');
+          uploadedBanner = {
+            bannerUrl,
+            ...(isVideo ? {} : { bannerPosterUrl: bannerUrl }),
+          };
           try {
             if (bannerPreview && bannerPreview.startsWith('blob:')) {
               URL.revokeObjectURL(bannerPreview);
@@ -239,6 +256,40 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setBannerFile(null);
         } catch {
           addToast('فشل رفع بانر المتجر', 'error');
+        }
+      }
+
+      let uploadedBackgroundUrl = '';
+      if (backgroundFile) {
+        try {
+          uploadedBackgroundUrl = await uploadToR2(backgroundFile, 'shop_background');
+          try {
+            if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
+              URL.revokeObjectURL(backgroundPreview);
+            }
+          } catch {
+          }
+          setBackgroundPreview('');
+          setBackgroundFile(null);
+        } catch {
+          addToast('فشل رفع خلفية الصفحة', 'error');
+        }
+      }
+
+      let uploadedHeaderBackgroundUrl = '';
+      if (headerBackgroundFile) {
+        try {
+          uploadedHeaderBackgroundUrl = await uploadToR2(headerBackgroundFile, 'shop_header_background');
+          try {
+            if (headerBackgroundPreview && headerBackgroundPreview.startsWith('blob:')) {
+              URL.revokeObjectURL(headerBackgroundPreview);
+            }
+          } catch {
+          }
+          setHeaderBackgroundPreview('');
+          setHeaderBackgroundFile(null);
+        } catch {
+          addToast('فشل رفع خلفية الهيدر', 'error');
         }
       }
 
@@ -254,6 +305,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         ...config,
         ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
         ...(uploadedBanner?.bannerPosterUrl ? { bannerPosterUrl: uploadedBanner.bannerPosterUrl } : {}),
+        ...(uploadedBackgroundUrl ? { backgroundImageUrl: uploadedBackgroundUrl } : {}),
+        ...(uploadedHeaderBackgroundUrl ? { headerBackgroundImageUrl: uploadedHeaderBackgroundUrl } : {}),
         headerTransparent: Boolean(config.headerTransparent),
         footerTransparent: Boolean(config.footerTransparent),
         headerOpacity: coerceNumber(config.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
@@ -275,6 +328,20 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         }));
       }
 
+      if (uploadedBackgroundUrl) {
+        setConfig((prev: any) => ({
+          ...prev,
+          backgroundImageUrl: uploadedBackgroundUrl,
+        }));
+      }
+
+      if (uploadedHeaderBackgroundUrl) {
+        setConfig((prev: any) => ({
+          ...prev,
+          headerBackgroundImageUrl: uploadedHeaderBackgroundUrl,
+        }));
+      }
+
       try {
         await ApiService.updateMyShop({ logoUrl: logoDataUrl || '' });
       } catch {
@@ -286,21 +353,21 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         URL.revokeObjectURL(bannerPreview);
         setBannerPreview('');
         // Keep the server URL in config
-        setConfig({ ...config, bannerUrl: config.bannerUrl || '' });
+        setConfig({ ...config, bannerUrl: uploadedBanner?.bannerUrl || config.bannerUrl || '' });
       }
 
       if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
         URL.revokeObjectURL(backgroundPreview);
         setBackgroundPreview('');
         setBackgroundFile(null);
-        setConfig({ ...config, backgroundImageUrl: (config as any)?.backgroundImageUrl || '' });
+        setConfig({ ...config, backgroundImageUrl: uploadedBackgroundUrl || (config as any)?.backgroundImageUrl || '' });
       }
 
       if (headerBackgroundPreview && headerBackgroundPreview.startsWith('blob:')) {
         URL.revokeObjectURL(headerBackgroundPreview);
         setHeaderBackgroundPreview('');
         setHeaderBackgroundFile(null);
-        setConfig({ ...config, headerBackgroundImageUrl: (config as any)?.headerBackgroundImageUrl || '' });
+        setConfig({ ...config, headerBackgroundImageUrl: uploadedHeaderBackgroundUrl || (config as any)?.headerBackgroundImageUrl || '' });
       }
       
       setSaving(false);

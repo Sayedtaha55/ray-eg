@@ -12,4 +12,10 @@
   <url>
     <loc>https://mnmknk.com/about</loc>
   </url>
+  <url>
+  <loc>https://mnmknk.com/</loc>
+  <lastmod>2026-01-28</lastmod>
+  <changefreq>daily</changefreq>
+  <priority>1.0</priority>
+</url>
 </urlset>

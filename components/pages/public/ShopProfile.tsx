@@ -230,22 +230,22 @@ const ProductCard: React.FC<{
           </div>
           
           <div className="flex gap-1.5 md:gap-2">
-             <button 
-               onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
-               className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
-                 isAdded ? 'bg-green-500' : 'bg-slate-900'
-               } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
-             >
-               {isAdded ? <Check size={12} /> : <Plus size={12} />}
-               <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
-             </button>
-             <button 
-               onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
-               className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
-               style={{ backgroundColor: design.primaryColor }}
-             >
-               <CalendarCheck size={12} /> حجز
-             </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
+              className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
+                isAdded ? 'bg-green-500' : 'bg-slate-900'
+              } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
+            >
+              {isAdded ? <Check size={12} /> : <Plus size={12} />}
+              <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
+            </button>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
+              className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
+              style={{ backgroundColor: design.primaryColor }}
+            >
+              <CalendarCheck size={12} /> حجز
+            </button>
           </div>
         </div>
       </div>
@@ -255,6 +255,7 @@ const ProductCard: React.FC<{
 
 const ShopProfile: React.FC = () => {
   const { slug } = useParams();
+  const location = useLocation();
   const [shop, setShop] = useState<Shop | null>(null);
   const [currentDesign, setCurrentDesign] = useState<ShopDesign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -277,6 +278,35 @@ const ShopProfile: React.FC = () => {
 
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
+
+  const pageUrl = `https://mnmknk.com${location.pathname}`;
+  const title = `${shop?.name} | ${shop?.category === 'RESTAURANT' ? 'مطعم' : 'متجر'} في ${shop?.city}`;
+  const shopDescription = String((shop as any)?.description || '').trim();
+  const description = shopDescription ? shopDescription.substring(0, 160) : `استكشف ${shop?.name}، أفضل ${shop?.category === 'RESTAURANT' ? 'مطعم' : 'متجر'} في ${shop?.city} يقدم مجموعة واسعة من المنتجات والخدمات.`;
+  const imageUrl = shop?.logoUrl || currentDesign?.bannerUrl || 'https://mnmknk.com/images/default-banner.jpg';
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type': shop?.category === 'RESTAURANT' ? 'Restaurant' : 'LocalBusiness',
+    name: shop?.name,
+    description: shopDescription,
+    image: imageUrl,
+    url: pageUrl,
+    telephone: shop?.phone,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: shop?.addressDetailed,
+      addressLocality: shop?.city,
+      addressRegion: shop?.governorate,
+      addressCountry: 'EG',
+    },
+    geo: {
+      '@type': 'GeoCoordinates',
+      latitude: shop?.latitude,
+      longitude: shop?.longitude,
+    },
+    openingHours: shop?.openingHours,
+  };
 
   useEffect(() => {
     const syncData = async () => {
@@ -429,6 +459,7 @@ const ShopProfile: React.FC = () => {
 
   if (error || !shop) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+      <title>المتجر غير متاح</title>
       <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />
       <h2 className="text-2xl md:text-3xl font-black mb-4">المحل غير متاح حالياً</h2>
       <button onClick={() => navigate('/')} className="px-8 py-4 md:px-10 md:py-5 bg-slate-900 text-white rounded-full font-black flex items-center gap-3 shadow-xl"><Home size={20} /> العودة للرئيسية</button>
@@ -476,7 +507,7 @@ const ShopProfile: React.FC = () => {
 
   const customCssRaw = typeof (currentDesign as any)?.customCss === 'string' ? String((currentDesign as any).customCss) : '';
   const scopedCustomCss = customCssRaw ? scopeCss(customCssRaw, '#shop-profile-root') : '';
-  
+
   const categories = ['الكل', ...new Set(products.map(p => (p as any).category || 'عام'))];
   const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
 
@@ -497,56 +528,64 @@ const ShopProfile: React.FC = () => {
   );
 
   return (
-    <div
-      id="shop-profile-root"
-      className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`}
-      dir="rtl"
-      style={
-        (pageBgColor || pageBgImage)
-          ? ({
+    <>
+      <title>{title}</title>
+      <meta name="description" content={description} />
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:image" content={imageUrl} />
+      <meta property="og:url" content={pageUrl} />
+      <meta property="og:type" content="website" />
+      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      <div
+        id="shop-profile-root"
+        className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`}
+        dir="rtl"
+        style={
+          (pageBgColor || pageBgImage)
+            ? ({
               backgroundColor: pageBgColor,
               backgroundImage: pageBgImage ? `url("${pageBgImage}")` : undefined,
               backgroundSize: pageBgImage ? 'cover' : undefined,
               backgroundPosition: pageBgImage ? 'center' : undefined,
               backgroundRepeat: pageBgImage ? 'no-repeat' : undefined,
             } as any)
-          : undefined
-      }
-    >
-      {scopedCustomCss ? <style>{scopedCustomCss}</style> : null}
-      
-      {/* Site-like Header */}
-      <header className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
-        isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'
-      }`} style={{
-        backgroundColor: headerBg,
-        color: headerTextColor,
-        backgroundImage: (!headerTransparent && headerBackgroundImageUrl) ? `url("${headerBackgroundImageUrl}")` : undefined,
-        backgroundSize: (!headerTransparent && headerBackgroundImageUrl) ? 'cover' : undefined,
-        backgroundPosition: (!headerTransparent && headerBackgroundImageUrl) ? 'center' : undefined,
-        backgroundRepeat: (!headerTransparent && headerBackgroundImageUrl) ? 'no-repeat' : undefined,
-      }}>
-        <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-3 md:py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 md:gap-4">
-              {shopLogoSrc ? (
-                <img 
-                  src={shopLogoSrc} 
-                  className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md object-cover" 
-                  alt={shop.name}
-                />
-              ) : (
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md bg-slate-100" />
-              )}
-              <div>
-                <h3 className={`font-black ${isBold ? 'text-lg md:text-2xl' : 'text-sm md:text-lg'}`} style={{ color: currentDesign.primaryColor }}>
-                  {shop.name}
-                </h3>
-                <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">
-                  {shop.category} • {shop.city}
-                </p>
+            : undefined
+        }
+      >
+        {scopedCustomCss ? <style>{scopedCustomCss}</style> : null}
+
+        <header className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
+          isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'
+        }`} style={{
+          backgroundColor: headerBg,
+          color: headerTextColor,
+          backgroundImage: (!headerTransparent && headerBackgroundImageUrl) ? `url("${headerBackgroundImageUrl}")` : undefined,
+          backgroundSize: (!headerTransparent && headerBackgroundImageUrl) ? 'cover' : undefined,
+          backgroundPosition: (!headerTransparent && headerBackgroundImageUrl) ? 'center' : undefined,
+          backgroundRepeat: (!headerTransparent && headerBackgroundImageUrl) ? 'no-repeat' : undefined,
+        }}>
+          <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-3 md:py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 md:gap-4">
+                {shopLogoSrc ? (
+                  <img
+                    src={shopLogoSrc}
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md object-cover"
+                    alt={shop.name}
+                  />
+                ) : (
+                  <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md bg-slate-100" />
+                )}
+                <div>
+                  <h3 className={`font-black ${isBold ? 'text-lg md:text-2xl' : 'text-sm md:text-lg'}`} style={{ color: currentDesign.primaryColor }}>
+                    {shop.name}
+                  </h3>
+                  <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">
+                    {shop.category} • {shop.city}
+                  </p>
+                </div>
               </div>
-            </div>
             
             {showHeaderNav && (
               <nav className="hidden md:flex items-center gap-6 md:gap-8">
@@ -987,6 +1026,7 @@ const ShopProfile: React.FC = () => {
         </footer>
       )}
     </div>
+  </>
   );
 };
 

@@ -20,6 +20,12 @@ import { CreateShopDto } from './create-shop.dto';
 export class ShopController {
   constructor(@Inject(ShopService) private readonly shopService: ShopService) {}
 
+  @Get('/sitemap')
+  async getSitemap() {
+    const sitemap = await this.shopService.generateSitemap();
+    return sitemap;
+  }
+
   private parseOptionalInt(value: any) {
     if (typeof value === 'undefined' || value === null) return undefined;
     const n = Number(value);
