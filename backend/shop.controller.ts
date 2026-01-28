@@ -339,11 +339,11 @@ export class ShopController {
   }
 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('merchant')
+  @Roles('merchant', 'admin')
   @Patch(':id/design')
   async updateDesign(@Param('id') id: string, @Body() designConfig: any, @Request() req) {
-    // التحقق من أن التاجر يملك هذا المتجر فعلاً
-    if (req.user.shopId !== id) {
+    const role = String(req.user?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && req.user.shopId !== id) {
       throw new ForbiddenException('ليس لديك صلاحية لتعديل هذا المتجر');
     }
     return this.shopService.updateShopDesign(id, designConfig);

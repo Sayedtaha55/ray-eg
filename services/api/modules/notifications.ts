@@ -10,6 +10,17 @@ export function subscribeToNotificationsViaBackend(
 ): NotificationSubscription {
   let stopped = false;
   let lastId: string | null = null;
+  let timer: any;
+  const isProd = Boolean((import.meta as any)?.env?.PROD);
+  const baseIntervalMs = isProd ? 15000 : 5000;
+
+  const schedule = (ms: number) => {
+    if (stopped) return;
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => {
+      poll();
+    }, ms);
+  };
 
   const poll = async () => {
     if (stopped) return;
@@ -28,21 +39,23 @@ export function subscribeToNotificationsViaBackend(
           message: first?.content || first?.message,
         });
       }
-    } catch {
-      // ignore
+      schedule(baseIntervalMs);
+    } catch (e: any) {
+      const status = typeof e?.status === 'number' ? e.status : undefined;
+      if (status === 429) {
+        schedule(Math.max(baseIntervalMs, 60_000));
+        return;
+      }
+      schedule(baseIntervalMs);
     }
   };
-
-  const timer = setInterval(() => {
-    poll();
-  }, 5000);
 
   poll();
 
   return {
     unsubscribe: () => {
       stopped = true;
-      clearInterval(timer);
+      if (timer) clearTimeout(timer);
     },
   };
 }
