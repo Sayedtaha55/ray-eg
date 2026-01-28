@@ -106,6 +106,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [shopId, setShopId] = useState<string>('');
   const [config, setConfig] = useState<ShopDesign>(DEFAULT_PAGE_DESIGN);
   const [logoDataUrl, setLogoDataUrl] = useState<string>('');
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -144,6 +145,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           const myShop = await ApiService.getMyShop();
           const shopLogoSrc = String(myShop?.logoUrl || myShop?.logo_url || '').trim();
           setLogoDataUrl(shopLogoSrc);
+          setLogoFile(null);
           if (myShop && myShop.pageDesign) {
             const merged = { ...DEFAULT_PAGE_DESIGN, ...myShop.pageDesign } as any;
             const elementsVisibilityRaw = merged?.elementsVisibility;
@@ -219,7 +221,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return () => {
       window.removeEventListener('pagebuilder-save', onSave as any);
     };
-  }, [shopId, config, logoDataUrl, bannerFile, bannerPreview, backgroundFile, backgroundPreview, headerBackgroundFile, headerBackgroundPreview]);
+  }, [shopId, config, logoDataUrl, logoFile, bannerFile, bannerPreview, backgroundFile, backgroundPreview, headerBackgroundFile, headerBackgroundPreview]);
 
   const handleSave = async () => {
     if (!shopId) return;
@@ -343,7 +345,20 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
 
       try {
-        await ApiService.updateMyShop({ logoUrl: logoDataUrl || '' });
+        if (logoFile) {
+          const nextLogoUrl = await uploadToR2(logoFile, 'shop_logo');
+          await ApiService.updateMyShop({ logoUrl: nextLogoUrl });
+          try {
+            if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(logoDataUrl);
+            }
+          } catch {
+          }
+          setLogoDataUrl(nextLogoUrl);
+          setLogoFile(null);
+        } else if (!logoDataUrl) {
+          await ApiService.updateMyShop({ logoUrl: '' });
+        }
       } catch {
         addToast('فشل تحديث لوجو المتجر', 'error');
       }
@@ -431,6 +446,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setConfig: setConfigAny,
       logoDataUrl,
       setLogoDataUrl,
+      logoFile,
+      setLogoFile,
       bannerFile,
       setBannerFile,
       bannerPreview,
@@ -547,6 +564,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                               setConfig: setConfigAny,
                               logoDataUrl,
                               setLogoDataUrl,
+                              logoFile,
+                              setLogoFile,
                               bannerFile,
                               setBannerFile,
                               bannerPreview,
@@ -577,6 +596,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             setConfig: setConfigAny,
                             logoDataUrl,
                             setLogoDataUrl,
+                            logoFile,
+                            setLogoFile,
                             bannerFile,
                             setBannerFile,
                             bannerPreview,

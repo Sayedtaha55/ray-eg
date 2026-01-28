@@ -5,6 +5,7 @@ type Props = {
   setConfig: React.Dispatch<React.SetStateAction<any>>;
   logoDataUrl: string;
   setLogoDataUrl: React.Dispatch<React.SetStateAction<string>>;
+  setLogoFile: React.Dispatch<React.SetStateAction<File | null>>;
 };
 
 const HEADER_TYPES = [
@@ -12,7 +13,7 @@ const HEADER_TYPES = [
   { id: 'side', label: 'يمين الصفحة' },
 ];
 
-const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, setLogoDataUrl }) => (
+const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, setLogoDataUrl, setLogoFile }) => (
   <div className="space-y-3">
     <div className="space-y-3">
       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">لوجو المتجر</label>
@@ -28,11 +29,14 @@ const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, se
               const file = e.target.files?.[0];
               if (!file) return;
               if (file.size > 2 * 1024 * 1024) return;
-              const reader = new FileReader();
-              reader.onloadend = () => {
-                setLogoDataUrl(String(reader.result || ''));
-              };
-              reader.readAsDataURL(file);
+              try {
+                if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
+                  URL.revokeObjectURL(logoDataUrl);
+                }
+              } catch {
+              }
+              setLogoFile(file);
+              setLogoDataUrl(URL.createObjectURL(file));
             }}
           />
           {logoDataUrl ? (
@@ -52,17 +56,29 @@ const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, se
                 const file = e.target.files?.[0];
                 if (!file) return;
                 if (file.size > 2 * 1024 * 1024) return;
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                  setLogoDataUrl(String(reader.result || ''));
-                };
-                reader.readAsDataURL(file);
+                try {
+                  if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
+                    URL.revokeObjectURL(logoDataUrl);
+                  }
+                } catch {
+                }
+                setLogoFile(file);
+                setLogoDataUrl(URL.createObjectURL(file));
               }}
             />
           </label>
           <button
             type="button"
-            onClick={() => setLogoDataUrl('')}
+            onClick={() => {
+              try {
+                if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
+                  URL.revokeObjectURL(logoDataUrl);
+                }
+              } catch {
+              }
+              setLogoFile(null);
+              setLogoDataUrl('');
+            }}
             className="w-full py-4 bg-slate-50 text-slate-500 rounded-[1.5rem] font-black text-sm hover:bg-slate-100 transition-all"
           >
             حذف الصورة

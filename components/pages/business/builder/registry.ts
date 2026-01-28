@@ -35,6 +35,8 @@ export type BuilderRenderCtx = {
   setConfig: React.Dispatch<React.SetStateAction<any>>;
   logoDataUrl: string;
   setLogoDataUrl: React.Dispatch<React.SetStateAction<string>>;
+  logoFile: File | null;
+  setLogoFile: React.Dispatch<React.SetStateAction<File | null>>;
   bannerFile: File | null;
   setBannerFile: React.Dispatch<React.SetStateAction<File | null>>;
   bannerPreview: string;
@@ -95,8 +97,8 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     id: 'header',
     title: 'اللوجو',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
-    render: ({ config, setConfig, logoDataUrl, setLogoDataUrl }) =>
-      React.createElement(HeaderTypeSection as any, { config, setConfig, logoDataUrl, setLogoDataUrl }),
+    render: ({ config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile }) =>
+      React.createElement(HeaderTypeSection as any, { config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile }),
   },
   {
     id: 'headerFooter',
