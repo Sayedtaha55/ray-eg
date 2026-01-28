@@ -40,7 +40,16 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       displayAddress: String(shop?.displayAddress || shop?.display_address || ''),
       mapLabel: String(shop?.mapLabel || shop?.map_label || ''),
     }),
-    [shop],
+    [
+      shop?.layoutConfig?.whatsapp,
+      shop?.layoutConfig?.customDomain,
+      shop?.openingHours,
+      (shop as any)?.opening_hours,
+      shop?.displayAddress,
+      (shop as any)?.display_address,
+      shop?.mapLabel,
+      (shop as any)?.map_label,
+    ],
   );
 
   const [form, setForm] = useState(initial);
@@ -102,18 +111,39 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   }, []);
 
   useEffect(() => {
+    const latFromShop =
+      typeof shop?.latitude === 'number' ? shop.latitude : typeof shop?.lat === 'number' ? shop.lat : null;
+    const lngFromShop =
+      typeof shop?.longitude === 'number' ? shop.longitude : typeof shop?.lng === 'number' ? shop.lng : null;
+    const locationSourceFromShop = String(shop?.locationSource || shop?.location_source || '').trim().toLowerCase();
+    const locationAccuracyFromShop =
+      typeof shop?.locationAccuracy === 'number'
+        ? shop.locationAccuracy
+        : typeof shop?.location_accuracy === 'number'
+          ? shop.location_accuracy
+          : null;
+    const locationUpdatedAtFromShop = String(shop?.locationUpdatedAt || shop?.location_updated_at || '');
+
     baselineFormRef.current = initial;
-    baselineCoordsRef.current = { lat: latitude, lng: longitude };
+    baselineCoordsRef.current = { lat: latFromShop, lng: lngFromShop };
     baselineMetaRef.current = {
-      locationSource: String(locationSource || '').trim().toLowerCase(),
-      locationAccuracy,
-      locationUpdatedAt: String(locationUpdatedAt || ''),
+      locationSource: locationSourceFromShop,
+      locationAccuracy: locationAccuracyFromShop,
+      locationUpdatedAt: locationUpdatedAtFromShop,
     };
+
+    setForm(initial);
+    setLatitude(latFromShop);
+    setLongitude(lngFromShop);
+    setLocationSource(locationSourceFromShop);
+    setLocationAccuracy(locationAccuracyFromShop);
+    setLocationUpdatedAt(locationUpdatedAtFromShop);
+
     try {
       window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count: 0 } }));
     } catch {
     }
-  }, [initial, shop?.id]);
+  }, [shop?.id, initial]);
 
   useEffect(() => {
     const baseForm = baselineFormRef.current || {};
