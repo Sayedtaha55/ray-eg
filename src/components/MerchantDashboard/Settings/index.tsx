@@ -225,6 +225,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 };
 
 const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
+  const { toast } = useToast();
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
   const [savedSoundId, setSavedSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const [pendingSoundId, setPendingSoundId] = useState(RayDB.getSelectedNotificationSoundId());
@@ -312,7 +313,13 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
     const onSaveRequest = async () => {
       const snapshot = sectionChangeCountsRef.current || {};
       const ids = Object.keys(snapshot).filter((k) => Number(snapshot[k] || 0) > 0);
-      if (ids.length === 0) return;
+      if (ids.length === 0) {
+        try {
+          toast({ title: 'لا توجد تغييرات', description: 'قم بتعديل أي إعداد ثم اضغط حفظ.' });
+        } catch {
+        }
+        return;
+      }
       emitSettingsStatus({ saving: true });
       let okAll = true;
       for (const id of ids) {
@@ -334,6 +341,15 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         setSectionChangeCounts({});
       }
       emitSettingsStatus({ saving: false, ok: okAll });
+
+      try {
+        toast(
+          okAll
+            ? { title: 'تم الحفظ', description: 'تم حفظ الإعدادات بنجاح' }
+            : { title: 'فشل الحفظ', description: 'تعذر حفظ بعض الإعدادات. راجع الحقول وحاول مرة أخرى.', variant: 'destructive' },
+        );
+      } catch {
+      }
     };
 
     window.addEventListener('merchant-settings-section-changes', onChanges as any);
