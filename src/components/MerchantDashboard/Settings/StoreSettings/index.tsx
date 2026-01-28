@@ -74,6 +74,11 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   useEffect(() => {
     coordsRef.current = { lat: latitude, lng: longitude };
   }, [latitude, longitude]);
+
+  const locationMetaRef = useRef({ locationSource, locationAccuracy, locationUpdatedAt });
+  useEffect(() => {
+    locationMetaRef.current = { locationSource, locationAccuracy, locationUpdatedAt };
+  }, [locationSource, locationAccuracy, locationUpdatedAt]);
   const [locatingShop, setLocatingShop] = useState(false);
   const [locationError, setLocationError] = useState('');
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -255,31 +260,32 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const saveStoreSettings = async () => {
     setSaving(true);
     try {
-      const current = formRef.current;
-      const coords = coordsRef.current;
-      const computedDisplayAddress = String(current.displayAddress || '').trim() || String(shop?.addressDetailed || shop?.address_detailed || '').trim();
-      const computedMapLabel = String(current.mapLabel || '').trim() || String(shop?.name || '').trim();
+      const currentForm = formRef.current;
+      const currentCoords = coordsRef.current;
+      const currentLocationMeta = locationMetaRef.current;
+      const computedDisplayAddress = String(currentForm.displayAddress || '').trim() || String(shop?.addressDetailed || shop?.address_detailed || '').trim();
+      const computedMapLabel = String(currentForm.mapLabel || '').trim() || String(shop?.name || '').trim();
 
       await ApiService.updateMyShop({
         ...(adminShopId ? { shopId: adminShopId } : {}),
-        whatsapp: current.whatsapp,
-        customDomain: current.customDomain,
-        openingHours: current.openingHours,
+        whatsapp: currentForm.whatsapp,
+        customDomain: currentForm.customDomain,
+        openingHours: currentForm.openingHours,
         displayAddress: computedDisplayAddress ? computedDisplayAddress : null,
         mapLabel: computedMapLabel ? computedMapLabel : null,
-        latitude: coords.lat,
-        longitude: coords.lng,
-        locationSource: locationSource ? locationSource : undefined,
-        locationAccuracy,
-        locationUpdatedAt: locationUpdatedAt ? locationUpdatedAt : undefined,
+        latitude: currentCoords.lat,
+        longitude: currentCoords.lng,
+        locationSource: currentLocationMeta.locationSource ? currentLocationMeta.locationSource : undefined,
+        locationAccuracy: currentLocationMeta.locationAccuracy,
+        locationUpdatedAt: currentLocationMeta.locationUpdatedAt ? currentLocationMeta.locationUpdatedAt : undefined,
       });
 
-      baselineFormRef.current = { ...current };
-      baselineCoordsRef.current = { lat: coords.lat, lng: coords.lng };
+      baselineFormRef.current = { ...currentForm };
+      baselineCoordsRef.current = { lat: currentCoords.lat, lng: currentCoords.lng };
       baselineMetaRef.current = {
-        locationSource: String(locationSource || '').trim().toLowerCase(),
-        locationAccuracy,
-        locationUpdatedAt: String(locationUpdatedAt || ''),
+        locationSource: String(currentLocationMeta.locationSource || '').trim().toLowerCase(),
+        locationAccuracy: currentLocationMeta.locationAccuracy,
+        locationUpdatedAt: String(currentLocationMeta.locationUpdatedAt || ''),
       };
       try {
         window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count: 0 } }));
@@ -305,7 +311,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       );
     } catch {
     }
-  }, [adminShopId, shop?.id, locationSource, locationAccuracy, locationUpdatedAt]);
+  }, [adminShopId, shop?.id]);
 
   return (
     <div className="space-y-6">
