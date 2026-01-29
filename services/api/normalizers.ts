@@ -11,6 +11,10 @@ export function normalizeShopFromBackend(shop: any) {
   if (!shop) return shop;
   const logoUrl = shop.logoUrl ?? shop.logo_url;
   const bannerUrl = shop.bannerUrl ?? shop.banner_url;
+  const paymentConfig =
+    shop.paymentConfig ??
+    shop.payment_config ??
+    (shop.layoutConfig && typeof shop.layoutConfig === 'object' ? (shop.layoutConfig as any).paymentConfig : undefined);
   const displayAddress = shop.displayAddress ?? shop.display_address;
   const mapLabel = shop.mapLabel ?? shop.map_label;
   const locationSource = shop.locationSource ?? shop.location_source;
@@ -33,6 +37,7 @@ export function normalizeShopFromBackend(shop: any) {
     status,
     logoUrl,
     bannerUrl,
+    paymentConfig,
     displayAddress,
     mapLabel,
     locationSource,

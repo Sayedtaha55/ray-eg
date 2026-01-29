@@ -322,17 +322,23 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       }
       emitSettingsStatus({ saving: true });
       let okAll = true;
+      const failedIds: string[] = [];
       for (const id of ids) {
         const fn = saveHandlersRef.current[id];
         if (!fn) {
           okAll = false;
+          failedIds.push(id);
           continue;
         }
         try {
           const ok = await fn();
-          if (!ok) okAll = false;
+          if (!ok) {
+            okAll = false;
+            failedIds.push(id);
+          }
         } catch {
           okAll = false;
+          failedIds.push(id);
         }
       }
 
@@ -343,10 +349,23 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       emitSettingsStatus({ saving: false, ok: okAll });
 
       try {
+        const resolveLabel = (sectionId: string) => {
+          const idNorm = String(sectionId || '').trim();
+          const known = SettingsTabs.find((t) => String(t.id) === idNorm);
+          return String((known as any)?.label || idNorm || 'قسم');
+        };
+
         toast(
           okAll
             ? { title: 'تم الحفظ', description: 'تم حفظ الإعدادات بنجاح' }
-            : { title: 'فشل الحفظ', description: 'تعذر حفظ بعض الإعدادات. راجع الحقول وحاول مرة أخرى.', variant: 'destructive' },
+            : {
+                title: 'فشل الحفظ',
+                description:
+                  failedIds.length > 0
+                    ? `تعذر حفظ: ${failedIds.map(resolveLabel).join('، ')}. راجع الحقول وحاول مرة أخرى.`
+                    : 'تعذر حفظ بعض الإعدادات. راجع الحقول وحاول مرة أخرى.',
+                variant: 'destructive',
+              },
         );
       } catch {
       }
@@ -419,7 +438,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       case 'receipt_theme':
         return <ReceiptThemeSettings shop={shop} adminShopId={adminShopId} />;
       case 'payments':
-        return <Payments shop={shop} onSaved={onSaved} />;
+        return <Payments shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       case 'notifications':
         return (
           <div className="space-y-6 text-right" dir="rtl">

@@ -127,6 +127,23 @@ export class ShopController {
       return v ? v : null;
     })();
 
+    const paymentConfig = (() => {
+      if (typeof body?.paymentConfig === 'undefined') return undefined;
+      if (body.paymentConfig === null) return null;
+      if (!body.paymentConfig || typeof body.paymentConfig !== 'object') return undefined;
+
+      const merchantIdRaw = (body.paymentConfig as any)?.merchantId;
+      const publicKeyRaw = (body.paymentConfig as any)?.publicKey;
+
+      const merchantId = typeof merchantIdRaw === 'string' ? merchantIdRaw : merchantIdRaw == null ? '' : String(merchantIdRaw);
+      const publicKey = typeof publicKeyRaw === 'string' ? publicKeyRaw : publicKeyRaw == null ? '' : String(publicKeyRaw);
+
+      return {
+        merchantId: merchantId.trim(),
+        publicKey: publicKey.trim(),
+      };
+    })();
+
     const shouldTouchLocationMeta =
       typeof body?.latitude !== 'undefined' ||
       typeof body?.longitude !== 'undefined' ||
@@ -164,6 +181,7 @@ export class ShopController {
       bannerUrl: typeof body?.bannerUrl === 'string' ? body.bannerUrl : undefined,
       whatsapp: typeof body?.whatsapp === 'string' ? body.whatsapp : undefined,
       customDomain: typeof body?.customDomain === 'string' ? body.customDomain : undefined,
+      paymentConfig,
       isActive,
       deliveryFee:
         userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')

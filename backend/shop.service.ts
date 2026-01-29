@@ -255,6 +255,7 @@ export class ShopService {
       openingHours?: string | null;
       logoUrl?: string | null;
       bannerUrl?: string | null;
+      paymentConfig?: { merchantId?: string; publicKey?: string } | null;
       whatsapp?: string | null;
       customDomain?: string | null;
       deliveryFee?: number | null;
@@ -285,6 +286,16 @@ export class ShopService {
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
         ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),
+        ...(typeof input.paymentConfig === 'undefined'
+          ? {}
+          : {
+              paymentConfig: input.paymentConfig
+                ? {
+                    merchantId: String((input.paymentConfig as any)?.merchantId || '').trim(),
+                    publicKey: String((input.paymentConfig as any)?.publicKey || '').trim(),
+                  }
+                : null,
+            }),
         ...(persistedLogo?.thumbUrl ? { logoThumbUrl: persistedLogo.thumbUrl } : {}),
         ...(persistedBanner?.thumbUrl ? { bannerThumbUrl: persistedBanner.thumbUrl } : {}),
         ...(persistedBanner?.mdUrl ? { bannerMediumUrl: persistedBanner.mdUrl } : {}),

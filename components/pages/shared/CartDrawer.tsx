@@ -224,6 +224,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const handleCheckout = async () => {
     if (localItems.length === 0) return;
 
+    const token = (() => {
+      try {
+        return localStorage.getItem('ray_token') || '';
+      } catch {
+        return '';
+      }
+    })();
+
     if (step === 'cart') {
       setStep('cod_location');
       setError('');
@@ -247,6 +255,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     setError('');
     
     try {
+      if (!token) {
+        setIsProcessing(false);
+        setError('يجب تسجيل الدخول لإتمام الشراء');
+        try {
+          const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+          window.location.href = `/login?returnTo=${returnTo}`;
+        } catch {
+          window.location.href = '/login';
+        }
+        return;
+      }
+
       for (const [shopId, shop] of Object.entries(groupedItems)) {
         const items = (shop as any)?.items || [];
         const shopTotal = items.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
@@ -269,7 +289,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       }, 2500);
     } catch (err: any) {
       setIsProcessing(false);
-      setError(err?.message || 'يجب تسجيل الدخول لإتمام الشراء');
+      const status = (err as any)?.status;
+      if (status === 401) {
+        setError('يجب تسجيل الدخول لإتمام الشراء');
+        try {
+          const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
+          window.location.href = `/login?returnTo=${returnTo}`;
+        } catch {
+          window.location.href = '/login';
+        }
+        return;
+      }
+      setError(err?.message || 'حدث خطأ أثناء إتمام الشراء');
     }
   };
 

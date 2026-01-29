@@ -3,13 +3,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
+import { ApiService } from '@/services/api.service';
 
 interface PaymentsProps {
   shop: any;
   onSaved: () => void;
+  adminShopId?: string;
 }
 
-const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
+const Payments: React.FC<PaymentsProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
   const [, setSaving] = useState(false);
   const [merchantId, setMerchantId] = useState(String(shop?.paymentConfig?.merchantId || ''));
@@ -39,8 +41,13 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
   const savePayments = useCallback(async () => {
     setSaving(true);
     try {
-      // NOTE: This is a placeholder save. To make it real, replace this with an API call.
-      await new Promise((r) => setTimeout(r, 700));
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        paymentConfig: {
+          merchantId: String(merchantId || ''),
+          publicKey: String(publicKey || ''),
+        },
+      });
       toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات المدفوعات بنجاح' });
       baselineRef.current = { merchantId, publicKey };
       try {
@@ -55,7 +62,7 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved }) => {
     } finally {
       setSaving(false);
     }
-  }, [merchantId, publicKey, toast, onSaved]);
+  }, [adminShopId, merchantId, publicKey, toast, onSaved]);
 
   React.useEffect(() => {
     try {
