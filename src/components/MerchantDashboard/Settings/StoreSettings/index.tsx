@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -287,7 +287,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
     e.preventDefault();
   };
 
-  const saveStoreSettings = async () => {
+  const saveStoreSettings = useCallback(async () => {
     setSaving(true);
     try {
       const currentForm = formRef.current;
@@ -324,13 +324,20 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       toast({ title: 'تم الحفظ', description: 'تم حفظ إعدادات المتجر بنجاح' });
       onSaved();
       return true;
-    } catch {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ التغييرات', variant: 'destructive' });
-      return false;
+    } catch (e: any) {
+      const status = typeof e?.status === 'number' ? e.status : undefined;
+      const msg = e?.message ? String(e.message) : '';
+      const details = msg ? (status ? `${msg} (${status})` : msg) : status ? `(${status})` : '';
+      toast({
+        title: 'خطأ',
+        description: details ? `فشل حفظ إعدادات المتجر: ${details}` : 'فشل حفظ إعدادات المتجر',
+        variant: 'destructive',
+      });
+      throw e;
     } finally {
       setSaving(false);
     }
-  };
+  }, [adminShopId, onSaved, shop?.addressDetailed, shop?.address_detailed, shop?.name, toast]);
 
   useEffect(() => {
     try {
@@ -341,7 +348,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       );
     } catch {
     }
-  }, [adminShopId, shop?.id]);
+  }, [saveStoreSettings]);
 
   return (
     <div className="space-y-6">

@@ -264,7 +264,7 @@ const SignupPage: React.FC = () => {
                   <input
                     type="email"
                     className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                    placeholder="shop@domain.com"
+                    placeholder="name@gmail.com"
                     value={formData.shopEmail}
                     onChange={(e) => setFormData({ ...formData, shopEmail: e.target.value })}
                   />
@@ -300,7 +300,7 @@ const SignupPage: React.FC = () => {
                 required 
                 type="email" 
                 className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
-                placeholder="name@domain.com"
+                placeholder="name@gmail.com"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />

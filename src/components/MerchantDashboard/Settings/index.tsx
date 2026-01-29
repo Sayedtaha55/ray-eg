@@ -323,11 +323,13 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       emitSettingsStatus({ saving: true });
       let okAll = true;
       const failedIds: string[] = [];
+      const failedReasons: Record<string, string> = {};
       for (const id of ids) {
         const fn = saveHandlersRef.current[id];
         if (!fn) {
           okAll = false;
           failedIds.push(id);
+          failedReasons[id] = 'لم يتم تحميل هذا القسم بعد';
           continue;
         }
         try {
@@ -335,10 +337,15 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
           if (!ok) {
             okAll = false;
             failedIds.push(id);
+            if (!failedReasons[id]) failedReasons[id] = 'تعذر حفظ التغييرات';
           }
-        } catch {
+        } catch (e: any) {
           okAll = false;
           failedIds.push(id);
+          const status = typeof e?.status === 'number' ? e.status : undefined;
+          const msg = e?.message ? String(e.message) : '';
+          const details = msg ? (status ? `${msg} (${status})` : msg) : status ? `(${status})` : '';
+          failedReasons[id] = details || failedReasons[id] || 'تعذر حفظ التغييرات';
         }
       }
 
@@ -355,6 +362,13 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
           return String((known as any)?.label || idNorm || 'قسم');
         };
 
+        const resolveFailure = (sectionId: string) => {
+          const idNorm = String(sectionId || '').trim();
+          const label = resolveLabel(idNorm);
+          const reason = String(failedReasons[idNorm] || '').trim();
+          return reason ? `${label}: ${reason}` : label;
+        };
+
         toast(
           okAll
             ? { title: 'تم الحفظ', description: 'تم حفظ الإعدادات بنجاح' }
@@ -362,7 +376,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                 title: 'فشل الحفظ',
                 description:
                   failedIds.length > 0
-                    ? `تعذر حفظ: ${failedIds.map(resolveLabel).join('، ')}. راجع الحقول وحاول مرة أخرى.`
+                    ? `تعذر حفظ: ${failedIds.map(resolveFailure).join(' | ')}.`
                     : 'تعذر حفظ بعض الإعدادات. راجع الحقول وحاول مرة أخرى.',
                 variant: 'destructive',
               },
