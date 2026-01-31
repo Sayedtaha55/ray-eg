@@ -227,22 +227,15 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!shopId) return;
     setSaving(true);
     try {
-      const uploadToR2 = async (file: File, purpose: string) => {
-        const presign = await ApiService.presignMediaUpload({
-          mimeType: String(file?.type || 'application/octet-stream'),
-          size: file.size,
-          fileName: file.name,
-          purpose,
-          shopId,
-        });
-        await ApiService.uploadFileToPresignedUrl(presign.uploadUrl, file);
-        return String(presign.publicUrl || '').trim();
+      const uploadMedia = async (file: File, purpose: string) => {
+        const uploaded = await ApiService.uploadMedia({ file, purpose, shopId });
+        return String(uploaded?.url || '').trim();
       };
 
       let uploadedBanner: any = null;
       if (bannerFile) {
         try {
-          const bannerUrl = await uploadToR2(bannerFile, 'shop_banner');
+          const bannerUrl = await uploadMedia(bannerFile, 'shop_banner');
           const isVideo = String(bannerFile?.type || '').toLowerCase().startsWith('video/');
           uploadedBanner = {
             bannerUrl,
@@ -264,7 +257,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       let uploadedBackgroundUrl = '';
       if (backgroundFile) {
         try {
-          uploadedBackgroundUrl = await uploadToR2(backgroundFile, 'shop_background');
+          uploadedBackgroundUrl = await uploadMedia(backgroundFile, 'shop_background');
           try {
             if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
               URL.revokeObjectURL(backgroundPreview);
@@ -281,7 +274,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       let uploadedHeaderBackgroundUrl = '';
       if (headerBackgroundFile) {
         try {
-          uploadedHeaderBackgroundUrl = await uploadToR2(headerBackgroundFile, 'shop_header_background');
+          uploadedHeaderBackgroundUrl = await uploadMedia(headerBackgroundFile, 'shop_header_background');
           try {
             if (headerBackgroundPreview && headerBackgroundPreview.startsWith('blob:')) {
               URL.revokeObjectURL(headerBackgroundPreview);
@@ -346,7 +339,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       try {
         if (logoFile) {
-          const nextLogoUrl = await uploadToR2(logoFile, 'shop_logo');
+          const nextLogoUrl = await uploadMedia(logoFile, 'shop_logo');
           await ApiService.updateMyShop({ logoUrl: nextLogoUrl });
           try {
             if (logoDataUrl && logoDataUrl.startsWith('blob:')) {

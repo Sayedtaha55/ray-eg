@@ -1,7 +1,38 @@
-const BACKEND_BASE_URL =
-  ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
-  ((import.meta as any)?.env?.VITE_API_URL as string) ||
-  `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
+function normalizeBaseUrl(input: string) {
+  return String(input || '').trim().replace(/\/+$/, '');
+}
+
+function isLocalHostname(hostname: string) {
+  const h = String(hostname || '').toLowerCase().trim();
+  return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0';
+}
+
+function resolveBackendBaseUrl() {
+  const envBackend = ((import.meta as any)?.env?.VITE_BACKEND_URL as string) || '';
+  const envApi = ((import.meta as any)?.env?.VITE_API_URL as string) || '';
+  const configured = normalizeBaseUrl(envBackend || envApi);
+  if (configured) return configured;
+
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+  const fallbackHost = hostname === 'localhost' ? '127.0.0.1' : hostname;
+  const fallback = `http://${fallbackHost}:4000`;
+
+  // Prevent silent misconfiguration in production builds.
+  // If this triggers on prod, you MUST set VITE_BACKEND_URL in your hosting environment.
+  const isProdBuild = Boolean((import.meta as any)?.env?.PROD);
+  if (isProdBuild && !isLocalHostname(hostname)) {
+    // eslint-disable-next-line no-console
+    console.error(
+      '[Config] Missing VITE_BACKEND_URL (or VITE_API_URL). Frontend is falling back to:',
+      fallback,
+      '— this will likely break production. Set VITE_BACKEND_URL=https://api.mnmknk.com',
+    );
+  }
+
+  return normalizeBaseUrl(fallback);
+}
+
+const BACKEND_BASE_URL = resolveBackendBaseUrl();
 
 export class BackendRequestError extends Error {
   status?: number;
@@ -13,6 +44,27 @@ export class BackendRequestError extends Error {
     this.status = opts?.status;
     this.path = opts?.path;
   }
+}
+
+function stringifySafe(value: any) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function extractErrorMessage(data: any, fallback: string) {
+  const msg = (data as any)?.message;
+  if (typeof msg === 'string' && msg.trim()) return msg;
+  if (Array.isArray(msg) && msg.length) {
+    const parts = msg.map((x) => String(x)).filter(Boolean);
+    if (parts.length) return parts.join(' | ');
+  }
+  const err = (data as any)?.error;
+  if (typeof err === 'string' && err.trim()) return err;
+  if (data && typeof data === 'object') return stringifySafe(data);
+  return fallback;
 }
 
 const backendAvailability = {
@@ -137,11 +189,18 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
 
   if (!res.ok) {
     let message = 'Request failed';
+    let data: any = undefined;
     try {
-      const data = await res.json();
-      message = data?.message || data?.error || message;
+      data = await res.json();
+      message = extractErrorMessage(data, message);
     } catch {
       // ignore
+    }
+
+    try {
+      // eslint-disable-next-line no-console
+      console.error('Backend error', { path, status: res.status, data, message });
+    } catch {
     }
 
     if (res.status === 401) {

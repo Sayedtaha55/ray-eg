@@ -14,7 +14,7 @@ import Security from './Security';
 import StoreSettings from './StoreSettings';
 import Payments from './Payments';
 
-const { Link, useLocation } = ReactRouterDOM as any;
+const { Link, useLocation, useNavigate } = ReactRouterDOM as any;
 
 type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'payments' | 'notifications' | 'receipt_theme';
 
@@ -230,6 +230,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const [savedSoundId, setSavedSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const [pendingSoundId, setPendingSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const location = useLocation();
+  const navigate = useNavigate();
 
   const [sectionChangeCounts, setSectionChangeCounts] = useState<Record<string, number>>({});
   const sectionChangeCountsRef = useRef<Record<string, number>>({});
@@ -549,7 +550,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                       const next = current === activeSettingsTab ? 'overview' : current;
                       const nextParams = new URLSearchParams(String(location?.search || ''));
                       nextParams.set('settingsTab', next);
-                      window.location.hash = `#/business/dashboard?${nextParams.toString()}`;
+                      navigate(`/business/dashboard?${nextParams.toString()}`);
                     }}
                     className={cn(
                       'w-full flex items-center justify-between px-4 py-4 text-right transition-colors',

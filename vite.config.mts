@@ -14,10 +14,6 @@ export default defineConfig(({ mode }) => {
         host: env.VITE_HOST || '0.0.0.0',
       },
       plugins: [react()],
-      define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-      },
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
@@ -30,8 +26,7 @@ export default defineConfig(({ mode }) => {
               vendor: ['react', 'react-dom'],
               router: ['react-router-dom'],
               ui: ['framer-motion', 'lucide-react'],
-              charts: ['recharts'],
-              api: ['@google/genai']
+              charts: ['recharts']
             }
           }
         },
