@@ -3,7 +3,8 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
 import { ReservationService } from './reservation.service';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
 function parseOptionalNumber(value: any) {
   if (value == null) return undefined;
@@ -24,6 +25,9 @@ class CreateReservationDto {
   @IsString()
   itemImage?: string;
 
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
   itemPrice!: number;
 
   @IsString()
