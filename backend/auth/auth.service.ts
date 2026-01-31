@@ -252,7 +252,7 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
-  private slugify(value: string) {
+  public slugify(value: string) {
     return String(value)
       .trim()
       .toLowerCase()
@@ -262,7 +262,7 @@ export class AuthService implements OnModuleInit {
       .replace(/^-|-$/g, '');
   }
 
-  private async ensureUniqueSlug(base: string) {
+  public async ensureUniqueSlug(base: string) {
     const baseSlug = this.slugify(base) || `shop-${Date.now()}`;
     let slug = baseSlug;
     let i = 1;
@@ -611,9 +611,13 @@ export class AuthService implements OnModuleInit {
             },
           });
         }
+
+        // After bootstrap, user object is guaranteed to be the correct admin.
+        // Generate token directly instead of falling through to password check.
+        return this.generateToken(user);
       }
     }
-    
+
     if (!user) {
       // رسالة مبهمة لمنع الـ Account Enumeration
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');

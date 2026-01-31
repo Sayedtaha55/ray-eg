@@ -1045,10 +1045,8 @@ ${urlset}
     try {
       // TODO: Implement email notification when email service is available
       // await this.emailService.sendNewShopNotification(shop);
-      console.log('New shop created:', shop.id);
     } catch (error) {
       // Log error but don't fail the creation
-      console.error('Failed to send new shop notification:', error);
     }
 
     this.monitoring.logBusiness('shop_created', { 

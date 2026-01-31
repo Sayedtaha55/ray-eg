@@ -3,6 +3,7 @@ import { RedisService } from '../backend/redis/redis.service';
 import { PrismaService } from '../backend/prisma/prisma.service';
 import { ShopService } from '../backend/shop.service';
 import { MonitoringService } from '../backend/monitoring/monitoring.service';
+import { MediaCompressionService } from '../backend/media-compression.service';
 
 // Mock Redis
 const mockRedis = {
@@ -37,6 +38,16 @@ const mockMonitoring = {
   logBusiness: jest.fn(),
 };
 
+// Mock MediaCompressionService
+const mockMediaCompression = {
+  getVideoDuration: jest.fn(),
+  optimizeVideoMp4: jest.fn(),
+  optimizeVideoWebm: jest.fn(),
+  generateVideoThumbnailWebp: jest.fn(),
+  ensureDir: jest.fn(),
+  writeWebpVariants: jest.fn(),
+};
+
 describe('ShopService Performance Tests', () => {
   let service: ShopService;
   let redisService: RedisService;
@@ -58,6 +69,10 @@ describe('ShopService Performance Tests', () => {
         {
           provide: MonitoringService,
           useValue: mockMonitoring,
+        },
+        {
+          provide: MediaCompressionService,
+          useValue: mockMediaCompression,
         },
       ],
     }).compile();
