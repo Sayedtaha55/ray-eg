@@ -39,3 +39,8 @@ uploads/
 .idea/
 *.swp
 *.swo
+
+# Cursor MCP (local)
+.cursor/
+
+dy
