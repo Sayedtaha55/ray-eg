@@ -9,25 +9,16 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     const rawClientID = String(configService.get<string>('GOOGLE_CLIENT_ID') || '').trim();
     const rawClientSecret = String(configService.get<string>('GOOGLE_CLIENT_SECRET') || '').trim();
 
-    const env = String(process.env.NODE_ENV || '').toLowerCase();
-    const isProd = env === 'production';
-
-    const googleOauthRequired = String(configService.get<string>('GOOGLE_OAUTH_REQUIRED') || '').toLowerCase() === 'true';
-
-    if (googleOauthRequired && (!rawClientID || !rawClientSecret)) {
-      throw new Error('Google OAuth is required but GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are missing');
+    if (!rawClientID || !rawClientSecret) {
+      throw new Error('GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET must be set to enable Google OAuth');
     }
 
-    const clientID = rawClientID || (isProd ? 'MISSING_GOOGLE_CLIENT_ID' : 'MISSING_GOOGLE_CLIENT_ID');
-    const clientSecret = rawClientSecret || (isProd ? 'MISSING_GOOGLE_CLIENT_SECRET' : 'MISSING_GOOGLE_CLIENT_SECRET');
+    const clientID = rawClientID;
+    const clientSecret = rawClientSecret;
     const callbackURL = String(
       configService.get<string>('GOOGLE_CALLBACK_URL') ||
         'http://localhost:4000/api/v1/auth/google/callback',
     ).trim();
-
-    console.log(
-      `[GoogleStrategy] clientID_len=${clientID.length} secret_set=${clientSecret.length > 0} callbackURL=${callbackURL}`,
-    );
 
     super({
       clientID,

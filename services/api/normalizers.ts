@@ -9,8 +9,10 @@ export function normalizeUserFromBackend(user: any) {
 
 export function normalizeShopFromBackend(shop: any) {
   if (!shop) return shop;
-  const logoUrl = shop.logoUrl ?? shop.logo_url;
-  const bannerUrl = shop.bannerUrl ?? shop.banner_url;
+  const logoUrlRaw = shop.logoUrl ?? shop.logo_url;
+  const bannerUrlRaw = shop.bannerUrl ?? shop.banner_url;
+  const logoUrl = typeof logoUrlRaw === 'string' ? toBackendUrl(logoUrlRaw) : logoUrlRaw;
+  const bannerUrl = typeof bannerUrlRaw === 'string' ? toBackendUrl(bannerUrlRaw) : bannerUrlRaw;
   const paymentConfig =
     shop.paymentConfig ??
     shop.payment_config ??
@@ -57,7 +59,8 @@ export function normalizeShopFromBackend(shop: any) {
 
 export function normalizeProductFromBackend(product: any) {
   if (!product) return product;
-  const imageUrl = product.imageUrl ?? product.image_url ?? product.image ?? '';
+  const imageUrlRaw = product.imageUrl ?? product.image_url ?? product.image ?? '';
+  const imageUrl = typeof imageUrlRaw === 'string' ? toBackendUrl(imageUrlRaw) : imageUrlRaw;
   const shopId = product.shopId ?? product.shop_id;
   return {
     ...product,

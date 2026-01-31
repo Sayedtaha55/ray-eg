@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { GoogleGenAI } from "@google/genai";
 import { Sparkles, X, Send, ExternalLink, Loader2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -37,38 +36,11 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
         offers: offers.map((o: any) => `${o.title} بخصم ${o.discount}%`).join(', ')
       };
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: `أنت مساعد ذكي لمنصة "MNMKNK" في مصر.
-        السياق الحالي للمنصة:
-        المحلات: ${currentContext.shops}.
-        العروض المتوفرة لدينا: ${currentContext.offers}.
-        طلب المستخدم: ${userMsg}.
-        رد بلهجة مصرية "مودرن" وودودة. ابحث في جوجل عن محلات حقيقية في مصر إذا كان طلب المستخدم غير متوفر لدينا.`,
-        config: {
-          tools: [{ googleSearch: {} }],
-        },
-      });
+      const safeText = `حالياً المساعد الذكي متوقف.\n\nطلبك: ${userMsg}\n\nعندنا دلوقت: محلات (${currentContext.shops || 'غير متاح'})، وعروض (${currentContext.offers || 'غير متاح'}).`;
 
-      const text = response.text || "للأسف مقدرتش ألاقي تفاصيل دلوقت، جرب تسألني عن محل محدد.";
-      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-      
-      const linksMap = new Map();
-      chunks.forEach((chunk: any) => {
-        if (chunk.web && chunk.web.uri) {
-          linksMap.set(chunk.web.uri, {
-            uri: chunk.web.uri,
-            title: chunk.web.title || 'مصدر خارجي'
-          });
-        }
-      });
-      const links = Array.from(linksMap.values());
-
-      setMessages(prev => [...prev, { 
-        role: 'ai', 
-        content: text,
-        links: links.length > 0 ? links : undefined
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        content: safeText,
       }]);
     } catch (error) {
       // Network error - handled gracefully

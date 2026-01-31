@@ -6,7 +6,7 @@ import { Sparkles, TrendingUp, ShoppingCart, CalendarCheck, Loader2, MessageSqua
 import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import ReservationModal from '../shared/ReservationModal';
-import { GoogleGenAI } from "@google/genai";
+ 
 import { Skeleton } from '@/components/common/ui';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
@@ -101,13 +101,7 @@ const HomeFeed: React.FC = () => {
         userEmail: user?.email
       });
 
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: `المستخدم بعت اقتراح أو شكوى عن تطبيق "MNMKNK" في مصر: "${feedbackText}". 
-        رد عليه بذكاء ومودة بلهجة مصرية روشة وقصيرة جداً.`,
-      });
-      setFeedbackResponse(response.text || 'شكراً ليك يا بطل، رأيك وصل وهنظبط الدنيا!');
+      setFeedbackResponse('شكراً ليك يا بطل، اقتراحك وصل وهنراجعه قريب!');
     } catch (e) {
       setFeedbackResponse('حصل مشكلة بسيطة بس اقتراحك وصل لمهندسينا!');
     } finally {

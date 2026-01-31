@@ -4,8 +4,6 @@ import { PrismaService } from './prisma/prisma.service';
 // import { RedisService } from './redis/redis.service';
 import * as fs from 'fs';
 import * as path from 'path';
-import sharp from 'sharp';
-import ffmpegPath from 'ffmpeg-static';
 import { spawn } from 'child_process';
 
 @Injectable()
@@ -15,6 +13,26 @@ export class GalleryService {
     // @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private async getFfmpegExe() {
+    try {
+      const mod: any = await import('ffmpeg-static');
+      const candidate = (mod && (mod.default ?? mod)) as any;
+      const ffmpegExe = typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
+      return ffmpegExe;
+    } catch {
+      return null;
+    }
+  }
+
+  private async getSharp() {
+    try {
+      const mod: any = await import('sharp');
+      return (mod && (mod.default ?? mod)) as any;
+    } catch {
+      return null;
+    }
+  }
+
   private getFfmpegTimeoutMs() {
     const raw = String(process.env.FFMPEG_TIMEOUT_MS || '120000').trim();
     const n = Number(raw);
@@ -22,8 +40,8 @@ export class GalleryService {
     return Math.floor(n);
   }
 
-  private runFfmpeg(args: string[]) {
-    const ffmpegExe = (typeof ffmpegPath === 'string' && ffmpegPath.trim()) ? ffmpegPath : null;
+  private async runFfmpeg(args: string[]) {
+    const ffmpegExe = await this.getFfmpegExe();
     if (!ffmpegExe) {
       throw new BadRequestException('Video processing is not available (ffmpeg not found)');
     }
@@ -84,7 +102,7 @@ export class GalleryService {
   }
 
   private async getVideoDuration(inputPath: string): Promise<number | null> {
-    const ffmpegExe = (typeof ffmpegPath === 'string' && ffmpegPath.trim()) ? ffmpegPath : null;
+    const ffmpegExe = await this.getFfmpegExe();
     if (!ffmpegExe) {
       return null;
     }
@@ -135,7 +153,11 @@ export class GalleryService {
     return Math.floor(n);
   }
 
-  private createSharp(input: string) {
+  private async createSharp(input: string) {
+    const sharp = await this.getSharp();
+    if (!sharp) {
+      throw new BadRequestException('Image processing is not available (sharp not found)');
+    }
     return sharp(input, { limitInputPixels: this.getSharpMaxPixels() });
   }
 
@@ -273,7 +295,7 @@ export class GalleryService {
     const mediumPath = path.join(uploadsDir, mediumFilename);
 
     try {
-      const base = this.createSharp(file.path).rotate();
+      const base = (await this.createSharp(file.path)).rotate();
 
       await base
         .clone()

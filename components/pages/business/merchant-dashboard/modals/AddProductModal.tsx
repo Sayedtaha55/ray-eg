@@ -26,6 +26,16 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      const mime = String(file.type || '').toLowerCase().trim();
+      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+      if (!mime || !allowed.has(mime)) {
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        try {
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch {
+        }
+        return;
+      }
       if (file.size > 2 * 1024 * 1024) {
         addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
         return;
@@ -50,14 +60,17 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
     }
     setLoading(true);
     try {
-      const presign = await ApiService.presignMediaUpload({
-        mimeType: String(imageUploadFile.type || 'application/octet-stream'),
-        size: imageUploadFile.size,
-        fileName: imageUploadFile.name,
+      const mime = String(imageUploadFile.type || '').toLowerCase().trim();
+      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+      if (!mime || !allowed.has(mime)) {
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        return;
+      }
+      const upload = await ApiService.uploadMedia({
+        file: imageUploadFile,
         purpose: 'product_image',
         shopId,
       });
-      await ApiService.uploadFileToPresignedUrl(presign.uploadUrl, imageUploadFile);
 
       await ApiService.addProduct({
         shopId,
@@ -65,7 +78,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
         price: Number(price),
         stock: Number(stock),
         category: cat,
-        imageUrl: presign.publicUrl,
+        imageUrl: upload.url,
       });
       addToast('تمت إضافة المنتج بنجاح!', 'success');
       setName('');
@@ -82,8 +95,9 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
       setImagePreview(null);
       setImageUploadFile(null);
       onClose();
-    } catch {
-      addToast('فشل في إضافة المنتج', 'error');
+    } catch (err: any) {
+      const msg = err?.message ? String(err.message) : 'فشل في إضافة المنتج';
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -133,7 +147,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
                   <p className="text-xs text-slate-400 font-bold">JPG, PNG (بحد أقصى 2 ميجا)</p>
                 </div>
               )}
-              <input type="file" hidden accept="image/*" ref={fileInputRef} onChange={handleImageChange} />
+              <input type="file" hidden accept="image/jpeg,image/png,image/webp,image/avif" ref={fileInputRef} onChange={handleImageChange} />
             </div>
           </div>
 

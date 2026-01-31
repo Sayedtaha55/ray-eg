@@ -1,14 +1,32 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import * as path from 'path';
-import sharp from 'sharp';
-import ffmpegPath from 'ffmpeg-static';
 import { spawn } from 'child_process';
 
 @Injectable()
 export class MediaCompressionService {
-  private runFfmpeg(args: string[]) {
-    const ffmpegExe = typeof ffmpegPath === 'string' && ffmpegPath.trim() ? ffmpegPath : null;
+  private async getFfmpegExe() {
+    try {
+      const mod: any = await import('ffmpeg-static');
+      const candidate = (mod && (mod.default ?? mod)) as any;
+      const ffmpegExe = typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
+      return ffmpegExe;
+    } catch {
+      return null;
+    }
+  }
+
+  private async getSharp() {
+    try {
+      const mod: any = await import('sharp');
+      return (mod && (mod.default ?? mod)) as any;
+    } catch {
+      return null;
+    }
+  }
+
+  private async runFfmpeg(args: string[]) {
+    const ffmpegExe = await this.getFfmpegExe();
     if (!ffmpegExe) {
       throw new BadRequestException('Video processing is not available (ffmpeg not found)');
     }
@@ -34,7 +52,11 @@ export class MediaCompressionService {
     return Math.floor(n);
   }
 
-  private createSharp(buffer: Buffer) {
+  private async createSharp(buffer: Buffer) {
+    const sharp = await this.getSharp();
+    if (!sharp) {
+      throw new BadRequestException('Image processing is not available (sharp not found)');
+    }
     return sharp(buffer, { limitInputPixels: this.getSharpMaxPixels() });
   }
 
@@ -101,7 +123,7 @@ export class MediaCompressionService {
   }
 
   async getVideoDuration(inputPath: string): Promise<number | null> {
-    const ffmpegExe = typeof ffmpegPath === 'string' && ffmpegPath.trim() ? ffmpegPath : null;
+    const ffmpegExe = await this.getFfmpegExe();
     if (!ffmpegExe) {
       return null;
     }
@@ -176,7 +198,8 @@ export class MediaCompressionService {
     for (const v of params.variants) {
       const filename = `${params.baseName}-${v.key}.webp`;
       const filePath = path.join(params.outDir, filename);
-      await this.createSharp(params.input)
+      const sharpInstance = await this.createSharp(params.input);
+      await sharpInstance
         .rotate()
         .resize({
           width: v.width,

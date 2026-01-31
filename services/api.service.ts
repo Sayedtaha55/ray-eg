@@ -154,6 +154,17 @@ export const ApiService = {
   login: async (email: string, pass: string) => {
     return await loginViaBackend(email, pass);
   },
+  uploadMedia: async (payload: { file: File; purpose?: string; shopId?: string }) => {
+    const file = payload?.file;
+    if (!file) throw new Error('Missing file');
+
+    const form = new FormData();
+    form.append('file', file);
+    if (typeof payload?.purpose === 'string') form.append('purpose', payload.purpose);
+    if (typeof payload?.shopId === 'string') form.append('shopId', payload.shopId);
+
+    return await backendPost<{ url: string; key: string }>('/api/v1/media/upload', form);
+  },
   presignMediaUpload: async (payload: {
     mimeType: string;
     size?: number;
@@ -173,14 +184,28 @@ export const ApiService = {
     );
   },
   uploadFileToPresignedUrl: async (uploadUrl: string, file: File) => {
-    const url = String(uploadUrl || '').trim();
-    if (!url) throw new Error('Missing uploadUrl');
+    const rawUrl = String(uploadUrl || '').trim();
+    if (!rawUrl) throw new Error('Missing uploadUrl');
     if (!file) throw new Error('Missing file');
+
+    const url = rawUrl.startsWith('/') ? toBackendUrl(rawUrl) : rawUrl;
+    const backendBase = toBackendUrl('/').replace(/\/+$/, '');
+    const isBackendUpload = url.startsWith(backendBase);
+
+    let token = '';
+    if (isBackendUpload) {
+      try {
+        token = localStorage.getItem('ray_token') || '';
+      } catch {
+        token = '';
+      }
+    }
 
     const res = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': String((file as any)?.type || 'application/octet-stream'),
+        ...(isBackendUpload && token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: file,
     });
