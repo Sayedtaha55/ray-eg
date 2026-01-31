@@ -1,9 +1,21 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
 export class GoogleAuthGuard extends AuthGuard('google') {
+  canActivate(context: ExecutionContext) {
+    const hasGoogleOAuthConfig =
+      Boolean(String(process.env.GOOGLE_CLIENT_ID || '').trim()) &&
+      Boolean(String(process.env.GOOGLE_CLIENT_SECRET || '').trim());
+
+    if (!hasGoogleOAuthConfig) {
+      throw new NotFoundException('Google OAuth is disabled');
+    }
+
+    return super.canActivate(context) as any;
+  }
+
   getAuthenticateOptions(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest();
 

@@ -20,6 +20,14 @@ import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
 
  const nodeEnv = process.env.NODE_ENV || 'development';
+ const minimalBoot = String(process.env.MINIMAL_BOOT || '').toLowerCase() === 'true';
+ const bootModulesRaw = String(process.env.BOOT_MODULES || '').trim().toLowerCase();
+ const bootModules = new Set(
+   bootModulesRaw
+     ? bootModulesRaw.split(',').map((s) => s.trim()).filter(Boolean)
+     : [],
+ );
+ const includeAllModules = !minimalBoot && bootModules.size === 0;
 
 @Module({
   imports: [
@@ -29,20 +37,26 @@ import { DatabaseTestController } from './db-test.controller';
     }),
     PrismaModule,
     // RedisModule, // Temporarily disabled
-    AuthModule,
-    ShopModule,
-    ProductModule,
-    GalleryModule,
-    ReservationModule,
-    OrderModule,
-    OfferModule,
-    MonitoringModule,
-    UsersModule,
-    AnalyticsModule,
-    CustomersModule,
-    NotificationModule,
-    MediaModule,
+    ...(minimalBoot
+      ? []
+      : [
+          ...(includeAllModules || bootModules.has('auth') ? [AuthModule] : []),
+          ...(includeAllModules || bootModules.has('shop') ? [ShopModule] : []),
+          ...(includeAllModules || bootModules.has('product') ? [ProductModule] : []),
+          ...(includeAllModules || bootModules.has('gallery') ? [GalleryModule] : []),
+          ...(includeAllModules || bootModules.has('reservation') ? [ReservationModule] : []),
+          ...(includeAllModules || bootModules.has('order') ? [OrderModule] : []),
+          ...(includeAllModules || bootModules.has('offer') ? [OfferModule] : []),
+          ...(includeAllModules || bootModules.has('monitoring') ? [MonitoringModule] : []),
+          ...(includeAllModules || bootModules.has('users') ? [UsersModule] : []),
+          ...(includeAllModules || bootModules.has('analytics') ? [AnalyticsModule] : []),
+          ...(includeAllModules || bootModules.has('customers') ? [CustomersModule] : []),
+          ...(includeAllModules || bootModules.has('notification') ? [NotificationModule] : []),
+          ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
+        ]),
   ],
-  controllers: [TestController, HealthController, DatabaseTestController],
+  controllers: minimalBoot
+    ? [HealthController, DatabaseTestController]
+    : [TestController, HealthController, DatabaseTestController],
 })
 export class AppModule {}

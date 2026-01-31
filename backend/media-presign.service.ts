@@ -1,27 +1,67 @@
 import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomBytes } from 'crypto';
 import { MediaPresignDto } from './media-presign.dto';
 
 @Injectable()
 export class MediaPresignService {
-  private s3: S3Client | null = null;
+  private s3: any | null = null;
+  private aws: {
+    S3Client: any;
+    PutObjectCommand: any;
+    getSignedUrl: any;
+  } | null = null;
 
   constructor(private readonly config: ConfigService) {
   }
 
-  private getClient() {
+  private async getAws() {
+    if (this.aws) return this.aws;
+    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+    this.aws = { S3Client, PutObjectCommand, getSignedUrl };
+    return this.aws;
+  }
+
+  private cleanEnv(value: any) {
+    let v = String(value ?? '').trim();
+    if (!v) return '';
+    const lowered = v.toLowerCase();
+    if (lowered === 'undefined' || lowered === 'null') return '';
+
+    if (
+      (v.startsWith('"') && v.endsWith('"') && v.length >= 2) ||
+      (v.startsWith("'") && v.endsWith("'") && v.length >= 2)
+    ) {
+      v = v.slice(1, -1).trim();
+    }
+
+    return v;
+  }
+
+  private hasR2Config() {
+    const accountId = this.cleanEnv(this.config.get<string>('R2_ACCOUNT_ID'));
+    const accessKeyId = this.cleanEnv(this.config.get<string>('R2_ACCESS_KEY_ID'));
+    const secretAccessKey = this.cleanEnv(this.config.get<string>('R2_SECRET_ACCESS_KEY'));
+    const bucket = this.cleanEnv(this.config.get<string>('R2_BUCKET'));
+    const publicBase = this.cleanEnv(this.config.get<string>('R2_PUBLIC_BASE_URL'));
+    return Boolean(accountId && accessKeyId && secretAccessKey && bucket && publicBase);
+  }
+
+  private async getClient() {
     if (this.s3) return this.s3;
 
-    const accountId = String(this.config.get<string>('R2_ACCOUNT_ID') || '').trim();
-    const accessKeyId = String(this.config.get<string>('R2_ACCESS_KEY_ID') || '').trim();
-    const secretAccessKey = String(this.config.get<string>('R2_SECRET_ACCESS_KEY') || '').trim();
+    const accountId = this.cleanEnv(this.config.get<string>('R2_ACCOUNT_ID'));
+    const accessKeyId = this.cleanEnv(this.config.get<string>('R2_ACCESS_KEY_ID'));
+    const secretAccessKey = this.cleanEnv(this.config.get<string>('R2_SECRET_ACCESS_KEY'));
 
     if (!accountId || !accessKeyId || !secretAccessKey) {
-      throw new BadRequestException('R2 credentials not configured. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY in Railway Environment Variables.');
+      throw new BadRequestException(
+        'R2 credentials not configured. Please set R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY in Railway Environment Variables.',
+      );
     }
+
+    const { S3Client } = await this.getAws();
 
     this.s3 = new S3Client({
       region: 'auto',
@@ -100,7 +140,33 @@ export class MediaPresignService {
     const purpose = this.sanitizeSegment(dto?.purpose || (isVideo ? 'videos' : 'images')) || (isVideo ? 'videos' : 'images');
     const ext = this.guessExt(mimeType, dto?.fileName);
 
-    const bucket = String(this.config.get<string>('R2_BUCKET') || '').trim();
+    const storageModeRaw = String(this.config.get<string>('MEDIA_STORAGE_MODE') || '').trim().toLowerCase();
+    const mode = storageModeRaw === 'r2' ? 'r2' : storageModeRaw === 'local' ? 'local' : 'auto';
+
+    const hasR2 = this.hasR2Config();
+    const shouldUseR2 = mode === 'r2' ? true : mode === 'local' ? false : isProd ? hasR2 : false;
+
+    if ((isProd || mode === 'r2') && shouldUseR2 && !hasR2) {
+      throw new BadRequestException('R2 is not configured for production uploads');
+    }
+    if (isProd && mode === 'auto' && !hasR2) {
+      throw new BadRequestException('R2 is not configured for production uploads');
+    }
+
+    const autoUseLocal = !shouldUseR2;
+
+    if (autoUseLocal) {
+      const rand = randomBytes(16).toString('hex');
+      const key = `shops/${encodeURIComponent(shopId)}/${purpose}/${Date.now()}-${rand}.${ext}`;
+      return {
+        uploadUrl: `/api/v1/media/upload?key=${encodeURIComponent(key)}`,
+        key,
+        publicUrl: `/uploads/${key}`,
+        expiresIn: 600,
+      };
+    }
+
+    const bucket = this.cleanEnv(this.config.get<string>('R2_BUCKET'));
     if (!bucket) throw new BadRequestException('R2_BUCKET not configured. Please set R2_BUCKET in Railway Environment Variables.');
 
     const rand = randomBytes(16).toString('hex');
@@ -113,6 +179,8 @@ export class MediaPresignService {
       ? 'public, max-age=604800'
       : 'public, max-age=31536000, immutable';
 
+    const { PutObjectCommand, getSignedUrl } = await this.getAws();
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
@@ -120,16 +188,29 @@ export class MediaPresignService {
       CacheControl: cacheControl,
     });
 
-    const uploadUrl = await getSignedUrl(this.getClient(), command, { expiresIn });
+    try {
+      const uploadUrl = await getSignedUrl(await this.getClient(), command, { expiresIn });
 
-    const base = String(this.config.get<string>('R2_PUBLIC_BASE_URL') || '').trim().replace(/\/+$/, '');
-    const publicUrl = base ? `${base}/${key}` : '';
+      const base = this.cleanEnv(this.config.get<string>('R2_PUBLIC_BASE_URL')).replace(/\/+$/, '');
+      const publicUrl = base ? `${base}/${key}` : '';
 
-    return {
-      uploadUrl,
-      key,
-      publicUrl,
-      expiresIn,
-    };
+      return {
+        uploadUrl,
+        key,
+        publicUrl,
+        expiresIn,
+      };
+    } catch (e: any) {
+      const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+      const name = e?.name ? String(e.name) : '';
+      const status = typeof e?.$metadata?.httpStatusCode === 'number' ? e.$metadata.httpStatusCode : undefined;
+      const code = e?.Code ? String(e.Code) : e?.code ? String(e.code) : '';
+      const msg = e?.message ? String(e.message) : 'R2 presign failed';
+      const meta = [name, code, status ? String(status) : ''].filter(Boolean).join(' ');
+      if (isDev) {
+        throw new BadRequestException(meta ? `${meta}: ${msg}` : msg);
+      }
+      throw new BadRequestException('R2 presign failed');
+    }
   }
 }

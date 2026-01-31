@@ -7,9 +7,7 @@ export class LoggerService implements OnModuleInit {
   private logger: winston.Logger;
 
   onModuleInit() {
-    const enableFileLogs =
-      process.env.NODE_ENV === 'production' ||
-      String(process.env.ENABLE_FILE_LOGS || '').toLowerCase() === 'true';
+    const enableFileLogs = process.env.NODE_ENV === 'production';
 
     const transports: any[] = [];
 

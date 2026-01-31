@@ -8,6 +8,10 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
 
+ const hasGoogleOAuthConfig =
+   Boolean(String(process.env.GOOGLE_CLIENT_ID || '').trim()) &&
+   Boolean(String(process.env.GOOGLE_CLIENT_SECRET || '').trim());
+
 @Module({
   imports: [
     ConfigModule,
@@ -37,7 +41,7 @@ import { GoogleStrategy } from './google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, GoogleStrategy, ConfigService],
+  providers: [AuthService, JwtStrategy, ...(hasGoogleOAuthConfig ? [GoogleStrategy] : []), ConfigService],
   exports: [AuthService],
 })
 export class AuthModule {}

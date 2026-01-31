@@ -11,12 +11,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   constructor() {
     const existing = globalThis.__prismaService;
     if (existing) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[PrismaService] constructor: reusing existing instance');
+      }
       return existing;
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[PrismaService] constructor: creating PrismaClient...');
+    }
     super({
       log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['warn', 'error'],
     });
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[PrismaService] constructor: PrismaClient created');
+    }
 
     if (process.env.NODE_ENV !== 'production') {
       globalThis.__prismaService = this;
@@ -40,7 +50,26 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     }
 
-    await this.$connect();
+    try {
+      if (env !== 'production') {
+        console.log('[PrismaService] Attempting to connect to the database...');
+      }
+      if (env !== 'production') {
+        const timeoutMs = 15_000;
+        await Promise.race([
+          this.$connect(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error(`Prisma connect timeout after ${timeoutMs}ms`)), timeoutMs)),
+        ]);
+      } else {
+        await this.$connect();
+      }
+      if (env !== 'production') {
+        console.log('[PrismaService] Database connection successful.');
+      }
+    } catch (error) {
+      console.error('[PrismaService] !!! DATABASE CONNECTION FAILED !!!', error);
+      throw error;
+    }
   }
 
   async onModuleDestroy() {

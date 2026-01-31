@@ -1,14 +1,31 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter, HttpException, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
 
- process.on('uncaughtException', (err) => console.log('Error:', err));
- process.on('unhandledRejection', (err) => console.log('Rejection:', err));
+console.log('[main.ts] File loaded');
+
+process.on('uncaughtException', (err) => {
+  try {
+    // eslint-disable-next-line no-console
+    console.error('[main.ts] uncaughtException:', err);
+  } catch {
+    // ignore
+  }
+});
+
+process.on('unhandledRejection', (reason) => {
+  try {
+    // eslint-disable-next-line no-console
+    console.error('[main.ts] unhandledRejection:', reason);
+  } catch {
+    // ignore
+  }
+});
 
 function isPrivateIpv4Host(hostname: string) {
   const parts = hostname.split('.').map((p) => Number(p));
@@ -21,7 +38,49 @@ function isPrivateIpv4Host(hostname: string) {
   return false;
 }
 
+@Catch()
+class AnyExceptionFilter implements ExceptionFilter {
+  catch(exception: any, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const req: any = ctx.getRequest();
+    const res: any = ctx.getResponse();
+
+    try {
+      // eslint-disable-next-line no-console
+      console.error('Unhandled exception:', exception);
+    } catch {
+    }
+
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+      const body = exception.getResponse();
+      return res.status(status).json(body);
+    }
+
+    const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+    const isDev = nodeEnv !== 'production';
+
+    if (isDev) {
+      const name = exception?.name ? String(exception.name) : '';
+      const statusCode = typeof exception?.$metadata?.httpStatusCode === 'number' ? exception.$metadata.httpStatusCode : undefined;
+      const code = exception?.Code ? String(exception.Code) : exception?.code ? String(exception.code) : '';
+      const msg = exception?.message ? String(exception.message) : 'Internal error';
+      const meta = [name, code, statusCode ? String(statusCode) : ''].filter(Boolean).join(' ');
+      const detail = meta ? `${meta}: ${msg}` : msg;
+      return res.status(400).json({
+        statusCode: 400,
+        error: 'Bad Request',
+        message: detail,
+        stack: exception?.stack ? String(exception.stack) : undefined,
+      });
+    }
+
+    return res.status(500).json({ statusCode: 500, message: 'Internal server error' });
+  }
+}
+
 async function bootstrap() {
+  console.log('[main.ts] Bootstrap function started');
   const configuredOriginsRaw = String(
     process.env.CORS_ORIGIN ||
       process.env.FRONTEND_URL ||
@@ -62,6 +121,39 @@ async function bootstrap() {
     return false;
   };
 
+  console.log('[main.ts] NestFactory.create() starting...');
+
+  const createStartedAt = Date.now();
+  const createWatchdog = setTimeout(() => {
+    try {
+      const elapsed = Date.now() - createStartedAt;
+      // eslint-disable-next-line no-console
+      console.warn(`[main.ts] NestFactory.create() still pending after ${elapsed}ms`);
+
+      const getActiveHandles = (process as any)?._getActiveHandles;
+      const handles: any[] = typeof getActiveHandles === 'function' ? getActiveHandles.call(process) : [];
+      const summary = handles.map((h) => {
+        const name = h?.constructor?.name || typeof h;
+        const info = {
+          name,
+          localAddress: (h as any)?.localAddress,
+          localPort: (h as any)?.localPort,
+          remoteAddress: (h as any)?.remoteAddress,
+          remotePort: (h as any)?.remotePort,
+        };
+        return info;
+      });
+      // eslint-disable-next-line no-console
+      console.warn('[main.ts] Active handles:', summary);
+    } catch (e) {
+      try {
+        // eslint-disable-next-line no-console
+        console.warn('[main.ts] create watchdog failed:', e);
+      } catch {
+      }
+    }
+  }, 8000);
+
   const app = await NestFactory.create(AppModule, {
     cors: {
       origin: (origin, callback) => {
@@ -73,6 +165,35 @@ async function bootstrap() {
       optionsSuccessStatus: 204,
     },
   });
+  clearTimeout(createWatchdog);
+  console.log('[main.ts] NestFactory.create() done');
+
+  console.log('[main.ts] app.init() starting...');
+  await app.init();
+  console.log('[main.ts] app.init() done');
+
+  if (isDev) {
+    try {
+      const httpAdapter: any = app.getHttpAdapter?.();
+      const instance: any = httpAdapter?.getInstance?.();
+      const stack: any[] = instance?._router?.stack || [];
+      const routes = stack
+        .filter((layer: any) => layer?.route?.path)
+        .flatMap((layer: any) => {
+          const methods = layer?.route?.methods ? Object.keys(layer.route.methods) : [];
+          return methods.map((m: string) => `${m.toUpperCase()} ${layer.route.path}`);
+        });
+
+      const interesting = routes.filter(
+        (r) => r.includes('/api/v1/shops') || r.includes('/api/v1/analytics') || r.includes('/api/v1/media'),
+      );
+      // eslint-disable-next-line no-console
+      console.log('[Routes] total=', routes.length);
+      // eslint-disable-next-line no-console
+      console.log('[Routes] interesting=', interesting);
+    } catch {
+    }
+  }
 
   const shouldTrustProxy =
     String(process.env.TRUST_PROXY || '').toLowerCase() === 'true' ||
@@ -209,6 +330,9 @@ async function bootstrap() {
     }),
   );
 
+  app.useGlobalFilters(new AnyExceptionFilter());
+
+  console.log('[main.ts] About to listen...');
   const port = parseInt(process.env.PORT || process.env.BACKEND_PORT || '4000', 10);
   const server = await app.listen(port, '0.0.0.0');
   
@@ -234,7 +358,14 @@ async function bootstrap() {
   process.on('SIGINT', () => void gracefulShutdown('SIGINT'));
 
   // eslint-disable-next-line no-console
-  console.log(`✅ Backend running on http://localhost:${port}`);
+  console.log(`✅ Backend running on http://127.0.0.1:${port}`);
 }
 
-bootstrap();
+bootstrap().catch((err) => {
+  try {
+    // eslint-disable-next-line no-console
+    console.error('[main.ts] Fatal bootstrap error:', err);
+  } catch {
+  }
+  process.exit(1);
+});
