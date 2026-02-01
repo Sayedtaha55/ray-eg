@@ -1,9 +1,25 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class OfferService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+  ) {}
+
+  private getListCacheKey(prefix: string, input: Record<string, any>) {
+    const sorted = Object.keys(input)
+      .sort()
+      .reduce((acc: any, k) => {
+        const v = (input as any)[k];
+        if (typeof v === 'undefined' || v === null || v === '') return acc;
+        acc[k] = v;
+        return acc;
+      }, {});
+    return `${prefix}:${JSON.stringify(sorted)}`;
+  }
 
   private resolveExpiresAt(raw: any) {
     if (!raw) {
@@ -57,6 +73,18 @@ export class OfferService {
     const take = typeof takeRaw === 'number' ? Math.min(100, Math.max(1, Math.floor(takeRaw))) : undefined;
     const skip = typeof skipRaw === 'number' ? Math.max(0, Math.floor(skipRaw)) : undefined;
 
+    const cacheKey = this.getListCacheKey('offers:active', {
+      take,
+      skip,
+      shopId: shopId || undefined,
+      productId: productId || undefined,
+    });
+    try {
+      const cached = await this.redis.get<any[]>(cacheKey);
+      if (cached) return cached;
+    } catch {
+    }
+
     const offers = await this.prisma.offer.findMany({
       where: {
         isActive: true,
@@ -74,7 +102,7 @@ export class OfferService {
     });
 
     // Shape for existing UI (types.ts Offer)
-    return offers.map((o) => ({
+    const shaped = offers.map((o) => ({
       id: o.id,
       shopId: o.shopId,
       productId: o.productId || (o.product ? o.product.id : ''),
@@ -91,11 +119,25 @@ export class OfferService {
       expiresIn: o.expiresAt.toISOString(),
       created_at: o.createdAt.toISOString(),
     }));
+
+    try {
+      await this.redis.set(cacheKey, shaped, 60);
+    } catch {
+    }
+
+    return shaped;
   }
 
   async getActiveById(id: string) {
     const offerId = String(id || '').trim();
     if (!offerId) throw new BadRequestException('id مطلوب');
+
+    const cacheKey = `offer:${offerId}`;
+    try {
+      const cached = await this.redis.get<any>(cacheKey);
+      if (cached) return cached;
+    } catch {
+    }
 
     const now = new Date();
     const offer = await this.prisma.offer.findFirst({
@@ -114,7 +156,7 @@ export class OfferService {
       throw new BadRequestException('العرض غير متاح');
     }
 
-    return {
+    const shaped = {
       id: offer.id,
       shopId: offer.shopId,
       productId: offer.productId || (offer.product ? offer.product.id : ''),
@@ -131,6 +173,13 @@ export class OfferService {
       expiresIn: offer.expiresAt.toISOString(),
       created_at: offer.createdAt.toISOString(),
     };
+
+    try {
+      await this.redis.set(cacheKey, shaped, 300);
+    } catch {
+    }
+
+    return shaped;
   }
 
   async create(input: {
@@ -186,7 +235,7 @@ export class OfferService {
       if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
       if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) throw new BadRequestException('newPrice غير صحيح');
 
-      return this.prisma.offer.create({
+      const created = await this.prisma.offer.create({
         data: {
           shopId,
           productId: null,
@@ -200,6 +249,14 @@ export class OfferService {
           isActive: true,
         },
       });
+
+      try {
+        await this.redis.invalidatePattern('offers:active*');
+        await this.redis.invalidatePattern('offer:*');
+      } catch {
+      }
+
+      return created;
     }
 
     const products = await this.prisma.product.findMany({
@@ -211,7 +268,7 @@ export class OfferService {
       throw new BadRequestException('المنتج غير صالح لهذا المتجر');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const created: any[] = [];
 
       for (const p of products) {
@@ -255,6 +312,14 @@ export class OfferService {
 
       return created;
     });
+
+    try {
+      await this.redis.invalidatePattern('offers:active*');
+      await this.redis.invalidatePattern('offer:*');
+    } catch {
+    }
+
+    return created;
   }
 
   async deactivate(offerId: string, actor: { role: string; shopId?: string }) {
@@ -273,9 +338,17 @@ export class OfferService {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    return this.prisma.offer.update({
+    const updated = await this.prisma.offer.update({
       where: { id },
       data: { isActive: false },
     });
+
+    try {
+      await this.redis.del(`offer:${id}`);
+      await this.redis.invalidatePattern('offers:active*');
+    } catch {
+    }
+
+    return updated;
   }
 }

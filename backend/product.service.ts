@@ -1,13 +1,25 @@
 import { Injectable, Inject, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
-// import { RedisService } from './redis/redis.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    // @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
+
+  private getListCacheKey(prefix: string, input: Record<string, any>) {
+    const sorted = Object.keys(input)
+      .sort()
+      .reduce((acc: any, k) => {
+        const v = (input as any)[k];
+        if (typeof v === 'undefined' || v === null || v === '') return acc;
+        acc[k] = v;
+        return acc;
+      }, {});
+    return `${prefix}:${JSON.stringify(sorted)}`;
+  }
 
   private getPagination(paging?: { page?: number; limit?: number }) {
     const page = typeof paging?.page === 'number' ? paging.page : undefined;
@@ -26,8 +38,11 @@ export class ProductService {
     if (!id) {
       throw new BadRequestException('id مطلوب');
     }
-    // const cached = await this.redis.getProduct(id);
-    // if (cached) return cached;
+    try {
+      const cached = await this.redis.getProduct(id);
+      if (cached) return cached;
+    } catch {
+    }
 
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -37,7 +52,10 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    // await this.redis.cacheProduct(id, product, 3600);
+    try {
+      await this.redis.cacheProduct(id, product, 300);
+    } catch {
+    }
     return product;
   }
 
@@ -46,11 +64,29 @@ export class ProductService {
       throw new BadRequestException('shopId مطلوب');
     }
     const pagination = this.getPagination(paging);
-    return this.prisma.product.findMany({
+    const cacheKey = this.getListCacheKey('products:shop', {
+      shopId,
+      page: paging?.page,
+      limit: paging?.limit,
+    });
+    try {
+      const cached = await this.redis.get<any[]>(cacheKey);
+      if (cached) return cached;
+    } catch {
+    }
+
+    const products = await this.prisma.product.findMany({
       where: { shopId, isActive: true },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
+
+    try {
+      await this.redis.set(cacheKey, products, 120);
+    } catch {
+    }
+
+    return products;
   }
 
   async listByShopForManage(
@@ -77,11 +113,28 @@ export class ProductService {
 
   async listAllActive(paging?: { page?: number; limit?: number }) {
     const pagination = this.getPagination(paging);
-    return this.prisma.product.findMany({
+    const cacheKey = this.getListCacheKey('products:all', {
+      page: paging?.page,
+      limit: paging?.limit,
+    });
+    try {
+      const cached = await this.redis.get<any[]>(cacheKey);
+      if (cached) return cached;
+    } catch {
+    }
+
+    const products = await this.prisma.product.findMany({
       where: { isActive: true },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
+
+    try {
+      await this.redis.set(cacheKey, products, 60);
+    } catch {
+    }
+
+    return products;
   }
 
   async create(input: {
@@ -125,9 +178,16 @@ export class ProductService {
       } as any,
     });
 
-    // await this.redis.invalidateProductCache(created.id);
+    try {
+      await this.redis.invalidateProductCache(created.id);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
     if (shop) {
-      // await this.redis.invalidateShopCache(shop.id, shop.slug);
+      try {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+      } catch {
+      }
     }
 
     return created;
@@ -157,9 +217,16 @@ export class ProductService {
     });
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });
-    // await this.redis.invalidateProductCache(productId);
+    try {
+      await this.redis.invalidateProductCache(productId);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
     if (shop) {
-      // await this.redis.invalidateShopCache(shop.id, shop.slug);
+      try {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+      } catch {
+      }
     }
 
     return updated;
@@ -213,8 +280,17 @@ export class ProductService {
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });
     // await this.redis.invalidateProductCache(productId);
+    try {
+      await this.redis.invalidateProductCache(productId);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
     if (shop) {
       // await this.redis.invalidateShopCache(shop.id, shop.slug);
+      try {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+      } catch {
+      }
     }
 
     return updated;
@@ -242,8 +318,17 @@ export class ProductService {
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });
     // await this.redis.invalidateProductCache(productId);
+    try {
+      await this.redis.invalidateProductCache(productId);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
     if (shop) {
       // await this.redis.invalidateShopCache(shop.id, shop.slug);
+      try {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+      } catch {
+      }
     }
 
     return deleted;
