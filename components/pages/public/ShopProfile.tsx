@@ -495,13 +495,14 @@ const ShopProfile: React.FC = () => {
           setProductsTabLoading(true);
           const page = productsPagingRef.current.page;
           const limit = productsPagingRef.current.limit;
-          const prodData = await ApiService.getProducts(shopId, { page, limit });
+          const [prodData, shopOffers] = await Promise.all([
+            ApiService.getProducts(shopId, { page, limit }),
+            ApiService.getOffers({ take: 100, skip: 0, shopId }),
+          ]);
           const list = Array.isArray(prodData) ? prodData : [];
           setProducts(list);
           productsPagingRef.current.hasMore = list.length >= limit;
           setHasMoreProducts(list.length >= limit);
-
-          const shopOffers = await ApiService.getOffers({ take: 100, skip: 0, shopId });
           setOffers(Array.isArray(shopOffers) ? shopOffers : []);
         } else if (tab === 'gallery') {
           setGalleryTabError(null);
@@ -542,13 +543,14 @@ const ShopProfile: React.FC = () => {
       const page = 1;
       const limit = productsPagingRef.current.limit;
       productsPagingRef.current.page = 1;
-      const prodData = await ApiService.getProducts(shopId, { page, limit });
+      const [prodData, shopOffers] = await Promise.all([
+        ApiService.getProducts(shopId, { page, limit }),
+        ApiService.getOffers({ take: 100, skip: 0, shopId }),
+      ]);
       const list = Array.isArray(prodData) ? prodData : [];
       setProducts(list);
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
-
-      const shopOffers = await ApiService.getOffers({ take: 100, skip: 0, shopId });
       setOffers(Array.isArray(shopOffers) ? shopOffers : []);
       tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
     } catch (err: any) {

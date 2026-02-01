@@ -46,18 +46,25 @@ const ProductPage: React.FC = () => {
         let o: any = null;
         if (p?.id) {
           setProduct(p);
-          o = await ApiService.getOfferByProductId(String(p.id));
-          if (o) setOffer(o);
 
           const shopId = (p as any).shopId || (p as any).shop_id;
-          if (shopId) {
-            try {
-              const s = await ApiService.getShopBySlugOrId(String(shopId));
+          const [offerRes, shopRes] = await Promise.allSettled([
+            ApiService.getOfferByProductId(String(p.id)),
+            shopId ? ApiService.getShopBySlugOrId(String(shopId)) : Promise.resolve(null),
+          ]);
+
+          if (offerRes.status === 'fulfilled') {
+            o = offerRes.value;
+            if (o) setOffer(o);
+          }
+
+          if (shopRes.status === 'fulfilled') {
+            const s = shopRes.value as any;
+            if (s) {
               setShop(s);
-              if (s?.id) {
-                await ApiService.incrementVisitors(String(s.id));
+              if ((s as any)?.id) {
+                ApiService.incrementVisitors(String((s as any).id)).catch(() => {});
               }
-            } catch {
             }
           }
 

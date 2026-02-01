@@ -68,11 +68,20 @@ const ShopProductPage: React.FC = () => {
           return;
         }
 
-        const s = await ApiService.getShopBySlug(String(slug));
-        if (!s) {
+        const [shopRes, productRes, offerRes] = await Promise.allSettled([
+          ApiService.getShopBySlug(String(slug)),
+          ApiService.getProductById(String(id)),
+          ApiService.getOfferByProductId(String(id)),
+        ]);
+
+        const s = shopRes.status === 'fulfilled' ? shopRes.value : null;
+        const p = productRes.status === 'fulfilled' ? productRes.value : null;
+
+        if (!s || !p) {
           setError(true);
           return;
         }
+
         setShop(JSON.parse(JSON.stringify(s)));
 
         const d = (s as any).pageDesign || {
@@ -107,12 +116,6 @@ const ShopProductPage: React.FC = () => {
           setDesign(d);
         }
 
-        const p = await ApiService.getProductById(String(id));
-        if (!p) {
-          setError(true);
-          return;
-        }
-
         const shopIdFromProduct = String((p as any)?.shopId || (p as any)?.shop_id || '');
         if (shopIdFromProduct && String((s as any)?.id || '') && shopIdFromProduct !== String((s as any)?.id || '')) {
           setError(true);
@@ -120,10 +123,9 @@ const ShopProductPage: React.FC = () => {
         }
 
         setProduct(p);
-        try {
-          const o = await ApiService.getOfferByProductId(String((p as any)?.id || id));
-          if (o) setOffer(o as any);
-        } catch {
+
+        if (offerRes.status === 'fulfilled' && offerRes.value) {
+          setOffer(offerRes.value as any);
         }
 
         // Removed: favorites check was moved to state initializer
