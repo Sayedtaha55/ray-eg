@@ -10,6 +10,7 @@ export function subscribeToNotificationsViaBackend(
 ): NotificationSubscription {
   let stopped = false;
   let lastId: string | null = null;
+  let initialized = false;
   let timer: any;
   const isProd = Boolean((import.meta as any)?.env?.PROD);
   const baseIntervalMs = isProd ? 15000 : 5000;
@@ -30,6 +31,14 @@ export function subscribeToNotificationsViaBackend(
       const data = await backendGet<any[]>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}?take=1`);
       const first = Array.isArray(data) && data.length > 0 ? data[0] : null;
       const id = first?.id ? String(first.id) : null;
+
+      if (!initialized) {
+        initialized = true;
+        lastId = id;
+        schedule(baseIntervalMs);
+        return;
+      }
+
       if (id && id !== lastId) {
         lastId = id;
         callback({

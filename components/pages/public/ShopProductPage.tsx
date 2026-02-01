@@ -1,6 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, CalendarCheck, Heart, Home, Loader2, Share2, ShoppingCart, Truck, ShieldCheck, Package } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -45,7 +45,14 @@ const ShopProductPage: React.FC = () => {
   const [design, setDesign] = useState<ShopDesign | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [offer, setOffer] = useState<Offer | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(() => {
+    try {
+      const favs = RayDB.getFavorites();
+      return favs.includes(String(id || ''));
+    } catch {
+      return false;
+    }
+  });
   const [isResModalOpen, setIsResModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -74,7 +81,31 @@ const ShopProductPage: React.FC = () => {
           secondaryColor: '#BD00FF',
           bannerUrl: '/placeholder-banner.jpg',
         };
-        setDesign(d);
+        const canApplyPreview = (() => {
+          try {
+            const rawUser = localStorage.getItem('ray_user');
+            if (!rawUser) return false;
+            const user = JSON.parse(rawUser);
+            const userShopId = String(user?.shopId || user?.shop_id || '').trim();
+            return userShopId && userShopId === String((s as any)?.id || '').trim();
+          } catch {
+            return false;
+          }
+        })();
+
+        if (canApplyPreview) {
+          try {
+            const rawPreview = localStorage.getItem('ray_builder_preview_design');
+            const parsed = rawPreview ? JSON.parse(rawPreview) : null;
+            const previewDesign = parsed && typeof parsed === 'object' ? parsed : null;
+            if (previewDesign) setDesign({ ...d, ...previewDesign } as any);
+            else setDesign(d);
+          } catch {
+            setDesign(d);
+          }
+        } else {
+          setDesign(d);
+        }
 
         const p = await ApiService.getProductById(String(id));
         if (!p) {
@@ -95,8 +126,7 @@ const ShopProductPage: React.FC = () => {
         } catch {
         }
 
-        const favs = RayDB.getFavorites();
-        setIsFavorite(favs.includes(String((p as any)?.id || id)));
+        // Removed: favorites check was moved to state initializer
       } catch {
         setError(true);
       } finally {
@@ -108,17 +138,42 @@ const ShopProductPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [slug, id]);
 
+  useEffect(() => {
+    const applyPreview = () => {
+      const sid = String((shop as any)?.id || '').trim();
+      if (!sid) return;
+      try {
+        const rawUser = localStorage.getItem('ray_user');
+        if (!rawUser) return;
+        const user = JSON.parse(rawUser);
+        const userShopId = String(user?.shopId || user?.shop_id || '').trim();
+        if (!userShopId || userShopId !== sid) return;
+
+        const rawPreview = localStorage.getItem('ray_builder_preview_design');
+        const parsed = rawPreview ? JSON.parse(rawPreview) : null;
+        const previewDesign = parsed && typeof parsed === 'object' ? parsed : null;
+        if (!previewDesign) return;
+        setDesign((prev) => (prev ? ({ ...prev, ...previewDesign } as any) : (previewDesign as any)));
+      } catch {
+      }
+    };
+
+    applyPreview();
+    window.addEventListener('ray-builder-preview-update', applyPreview);
+    return () => window.removeEventListener('ray-builder-preview-update', applyPreview);
+  }, [shop?.id]);
+
   const currentPrice = useMemo(() => {
     if (!product) return 0;
     return offer ? (offer as any).newPrice : (product as any).price;
   }, [offer, product]);
 
   const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
-  const isVisible = (key: string, fallback: boolean = true) => {
+  const isVisible = useCallback((key: string, fallback: boolean = true) => {
     if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
     if (!(key in elementsVisibility)) return fallback;
     return coerceBoolean(elementsVisibility[key], fallback);
-  };
+  }, [elementsVisibility]);
 
   const primaryColor = String((design as any)?.primaryColor || '#00E5FF');
   const layout = String((design as any)?.layout || 'modern');
@@ -145,7 +200,10 @@ const ShopProductPage: React.FC = () => {
   const footerTransparent = coerceBoolean((design as any)?.footerTransparent, false);
   const footerBg = footerTransparent ? 'transparent' : footerBackgroundColor;
 
-  const showHeaderNav = isVisible('headerNav', true);
+  const showHeaderNavHome = isVisible('headerNavHome', true);
+  const showHeaderNavGallery = isVisible('headerNavGallery', true);
+  const showHeaderNavInfo = isVisible('headerNavInfo', true);
+  const showHeaderNav = showHeaderNavHome || showHeaderNavGallery || showHeaderNavInfo;
   const showHeaderShareButton = isVisible('headerShareButton', true);
   const showFooter = isVisible('footer', true);
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
@@ -154,6 +212,11 @@ const ShopProductPage: React.FC = () => {
   const showProductTabs = isVisible('productTabs', true);
   const showProductShareButton = isVisible('productShareButton', true);
   const showProductQuickSpecs = isVisible('productQuickSpecs', true);
+
+  const showPrice = isVisible('productCardPrice', true);
+  const showStock = isVisible('productCardStock', true);
+  const showAddToCart = isVisible('productCardAddToCart', true);
+  const showReserve = isVisible('productCardReserve', true);
 
   const handleToggleFavorite = () => {
     if (!product) return;
@@ -189,6 +252,62 @@ const ShopProductPage: React.FC = () => {
     }
   };
 
+  const shopLogoSrc = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
+  const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
+  const productDescription = String((product as any)?.description || (product as any)?.details || '').trim();
+
+  const shopPrefix = String(location?.pathname || '').startsWith('/shop/') ? '/shop' : '/s';
+
+  const quickSpecs = useMemo(
+    () => [
+      { label: 'القسم', value: String((product as any)?.category || 'عام') },
+      { label: 'المخزون', value: typeof (product as any)?.stock === 'number' ? String((product as any).stock) : '—' },
+    ],
+    [(product as any)?.category, (product as any)?.stock],
+  );
+
+  const prefersReducedMotion = useReducedMotion();
+
+  const TabContent = useMemo(() => {
+    if (activeTab === 'details') {
+      return (
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <h3 className="font-black text-sm mb-2">التفاصيل</h3>
+          <p className="text-sm font-bold text-slate-600 leading-relaxed">
+            {productDescription || 'لا يوجد تفاصيل إضافية بعد.'}
+          </p>
+        </div>
+      );
+    }
+    if (activeTab === 'specs') {
+      return (
+        <div className="bg-white border border-slate-100 rounded-2xl p-5">
+          <h3 className="font-black text-sm mb-2">المواصفات</h3>
+          <p className="text-sm font-bold text-slate-600 leading-relaxed">سيتم إضافة المواصفات قريباً.</p>
+        </div>
+      );
+    }
+    return (
+      <div className="bg-white border border-slate-100 rounded-2xl p-5">
+        <h3 className="font-black text-sm mb-2">الشحن</h3>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <Truck className="text-slate-300" />
+            <span className="text-sm font-bold text-slate-600">شحن سريع (قد يختلف حسب المنطقة)</span>
+          </div>
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <ShieldCheck className="text-slate-300" />
+            <span className="text-sm font-bold text-slate-600">ضمان وجودة</span>
+          </div>
+          <div className="flex items-center gap-3 flex-row-reverse">
+            <Package className="text-slate-300" />
+            <span className="text-sm font-bold text-slate-600">تغليف آمن</span>
+          </div>
+        </div>
+      </div>
+    );
+  }, [activeTab, productDescription]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center" dir="rtl">
@@ -211,17 +330,6 @@ const ShopProductPage: React.FC = () => {
       </div>
     );
   }
-
-  const shopLogoSrc = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
-  const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
-  const productDescription = String((product as any)?.description || (product as any)?.details || '').trim();
-
-  const shopPrefix = String(location?.pathname || '').startsWith('/shop/') ? '/shop' : '/s';
-
-  const quickSpecs = [
-    { label: 'القسم', value: String((product as any)?.category || 'عام') },
-    { label: 'المخزون', value: (typeof (product as any)?.stock === 'number' ? String((product as any).stock) : '—') },
-  ];
 
   return (
     <div
@@ -260,27 +368,33 @@ const ShopProductPage: React.FC = () => {
 
             {showHeaderNav && (
               <nav className="hidden md:flex items-center gap-6 md:gap-8">
-                <Link
-                  to={`${shopPrefix}/${String(slug)}?tab=products`}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  style={{ color: headerTextColor, opacity: 0.75 }}
-                >
-                  المعروضات
-                </Link>
-                <Link
-                  to={`${shopPrefix}/${String(slug)}?tab=gallery`}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  style={{ color: headerTextColor, opacity: 0.75 }}
-                >
-                  معرض الصور
-                </Link>
-                <Link
-                  to={`${shopPrefix}/${String(slug)}?tab=info`}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  style={{ color: headerTextColor, opacity: 0.75 }}
-                >
-                  معلومات المتجر
-                </Link>
+                {showHeaderNavHome && (
+                  <Link
+                    to={`${shopPrefix}/${String(slug)}?tab=products`}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                    style={{ color: headerTextColor, opacity: 0.75 }}
+                  >
+                    المعروضات
+                  </Link>
+                )}
+                {showHeaderNavGallery && (
+                  <Link
+                    to={`${shopPrefix}/${String(slug)}?tab=gallery`}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                    style={{ color: headerTextColor, opacity: 0.75 }}
+                  >
+                    معرض الصور
+                  </Link>
+                )}
+                {showHeaderNavInfo && (
+                  <Link
+                    to={`${shopPrefix}/${String(slug)}?tab=info`}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                    style={{ color: headerTextColor, opacity: 0.75 }}
+                  >
+                    معلومات المتجر
+                  </Link>
+                )}
               </nav>
             )}
 
@@ -335,7 +449,7 @@ const ShopProductPage: React.FC = () => {
                 <img src={productImageSrc} className="w-full h-full object-cover" alt={String((product as any)?.name || 'product')} />
               ) : null}
             </div>
-            {shopLogoSrc && (
+            {shopLogoSrc && showStock && (
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: primaryColor }} />
@@ -358,48 +472,58 @@ const ShopProductPage: React.FC = () => {
               )}
             </div>
 
-            <div className="flex items-center justify-between flex-row-reverse">
-              <span className="text-xl md:text-2xl font-black text-slate-900">ج.م {currentPrice}</span>
-              {offer && (
-                <span className="text-xs font-black text-slate-400 line-through">ج.م {String((product as any)?.price || '')}</span>
-              )}
-            </div>
+            {showPrice && (
+              <div className="flex items-center justify-between flex-row-reverse">
+                <span className="text-xl md:text-2xl font-black text-slate-900">ج.م {currentPrice}</span>
+                {offer && (
+                  <span className="text-xs font-black text-slate-400 line-through">ج.م {String((product as any)?.price || '')}</span>
+                )}
+              </div>
+            )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                className="px-6 py-3 rounded-2xl text-white font-black text-sm shadow-xl transition-all hover:opacity-90"
-                style={{ backgroundColor: primaryColor }}
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <ShoppingCart size={16} /> إضافة للسلة
-                </span>
-              </button>
+            {(showAddToCart || showProductShareButton) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {showAddToCart && (
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="px-6 py-3 rounded-2xl text-white font-black text-sm shadow-xl transition-all hover:opacity-90"
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <ShoppingCart size={16} /> إضافة للسلة
+                    </span>
+                  </button>
+                )}
 
-              {showProductShareButton && (
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  className="px-6 py-3 rounded-2xl font-black text-sm border border-slate-200 bg-white text-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md"
-                >
-                  <span className="inline-flex items-center justify-center gap-2">
-                    <Share2 size={16} /> مشاركة
-                  </span>
-                </button>
-              )}
-            </div>
+                {showProductShareButton && (
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="px-6 py-3 rounded-2xl font-black text-sm border border-slate-200 bg-white text-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md"
+                  >
+                    <span className="inline-flex items-center justify-center gap-2">
+                      <Share2 size={16} /> مشاركة
+                    </span>
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setIsResModalOpen(true)}
-                className="px-6 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-sm transition-all hover:bg-black"
-              >
-                <span className="inline-flex items-center justify-center gap-2">
-                  <CalendarCheck size={16} /> حجز
-                </span>
-              </button>
+              {showReserve ? (
+                <button
+                  type="button"
+                  onClick={() => setIsResModalOpen(true)}
+                  className="px-6 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-sm transition-all hover:bg-black"
+                >
+                  <span className="inline-flex items-center justify-center gap-2">
+                    <CalendarCheck size={16} /> حجز
+                  </span>
+                </button>
+              ) : (
+                <div />
+              )}
               <button
                 type="button"
                 onClick={handleToggleFavorite}
@@ -426,35 +550,47 @@ const ShopProductPage: React.FC = () => {
             )}
 
             <AnimatePresence mode="wait">
-              {activeTab === 'details' ? (
-                <MotionDiv key="details" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white border border-slate-100 rounded-2xl p-5">
-                  <h3 className="font-black text-sm mb-2">التفاصيل</h3>
-                  <p className="text-sm font-bold text-slate-600 leading-relaxed">
-                    {productDescription || 'لا يوجد تفاصيل إضافية بعد.'}
-                  </p>
-                </MotionDiv>
-              ) : activeTab === 'specs' ? (
-                <MotionDiv key="specs" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white border border-slate-100 rounded-2xl p-5">
-                  <h3 className="font-black text-sm mb-2">المواصفات</h3>
-                  <p className="text-sm font-bold text-slate-600 leading-relaxed">سيتم إضافة المواصفات قريباً.</p>
-                </MotionDiv>
+              {prefersReducedMotion ? (
+                TabContent
               ) : (
-                <MotionDiv key="shipping" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="bg-white border border-slate-100 rounded-2xl p-5">
-                  <h3 className="font-black text-sm mb-2">الشحن</h3>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 flex-row-reverse">
-                      <Truck className="text-slate-300" />
-                      <span className="text-sm font-bold text-slate-600">شحن سريع (قد يختلف حسب المنطقة)</span>
-                    </div>
-                    <div className="flex items-center gap-3 flex-row-reverse">
-                      <ShieldCheck className="text-slate-300" />
-                      <span className="text-sm font-bold text-slate-600">ضمان وجودة</span>
-                    </div>
-                    <div className="flex items-center gap-3 flex-row-reverse">
-                      <Package className="text-slate-300" />
-                      <span className="text-sm font-bold text-slate-600">تغليف آمن</span>
-                    </div>
-                  </div>
+                <MotionDiv
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="bg-white border border-slate-100 rounded-2xl p-5"
+                >
+                  {activeTab === 'details' ? (
+                    <>
+                      <h3 className="font-black text-sm mb-2">التفاصيل</h3>
+                      <p className="text-sm font-bold text-slate-600 leading-relaxed">
+                        {productDescription || 'لا يوجد تفاصيل إضافية بعد.'}
+                      </p>
+                    </>
+                  ) : activeTab === 'specs' ? (
+                    <>
+                      <h3 className="font-black text-sm mb-2">المواصفات</h3>
+                      <p className="text-sm font-bold text-slate-600 leading-relaxed">سيتم إضافة المواصفات قريباً.</p>
+                    </>
+                  ) : (
+                    <>
+                      <h3 className="font-black text-sm mb-2">الشحن</h3>
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3 flex-row-reverse">
+                          <Truck className="text-slate-300" />
+                          <span className="text-sm font-bold text-slate-600">شحن سريع (قد يختلف حسب المنطقة)</span>
+                        </div>
+                        <div className="flex items-center gap-3 flex-row-reverse">
+                          <ShieldCheck className="text-slate-300" />
+                          <span className="text-sm font-bold text-slate-600">ضمان وجودة</span>
+                        </div>
+                        <div className="flex items-center gap-3 flex-row-reverse">
+                          <Package className="text-slate-300" />
+                          <span className="text-sm font-bold text-slate-600">تغليف آمن</span>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </MotionDiv>
               )}
             </AnimatePresence>

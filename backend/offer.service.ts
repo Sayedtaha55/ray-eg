@@ -5,6 +5,49 @@ import { PrismaService } from './prisma/prisma.service';
 export class OfferService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  private resolveExpiresAt(raw: any) {
+    if (!raw) {
+      const d = new Date();
+      d.setDate(d.getDate() + 7);
+      return d;
+    }
+    const d = new Date(raw as any);
+    if (Number.isNaN(d.getTime())) {
+      const fallback = new Date();
+      fallback.setDate(fallback.getDate() + 7);
+      return fallback;
+    }
+    return d;
+  }
+
+  private computeNewPrice(input: { mode: string; value: number; oldPrice: number }) {
+    const mode = String(input?.mode || '').toUpperCase();
+    const oldPrice = Number(input?.oldPrice);
+    const value = Number(input?.value);
+    if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
+    if (Number.isNaN(value) || value < 0) throw new BadRequestException('pricingValue غير صحيح');
+
+    if (mode === 'AMOUNT') {
+      const next = oldPrice - value;
+      if (next < 0) throw new BadRequestException('pricingValue غير صحيح');
+      return next;
+    }
+    if (mode === 'NEW_PRICE') {
+      if (value > oldPrice) throw new BadRequestException('newPrice غير صحيح');
+      return value;
+    }
+    // PERCENT default
+    if (value > 100) throw new BadRequestException('discount غير صحيح');
+    return oldPrice * (1 - value / 100);
+  }
+
+  private computeDiscountPercent(oldPrice: number, newPrice: number) {
+    if (!oldPrice || oldPrice <= 0) return 0;
+    const pct = (1 - newPrice / oldPrice) * 100;
+    const rounded = Math.round(pct * 100) / 100;
+    return Math.min(100, Math.max(0, rounded));
+  }
+
   async listActive(input?: { take?: number; skip?: number; shopId?: string; productId?: string }) {
     const now = new Date();
     const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
@@ -93,11 +136,14 @@ export class OfferService {
   async create(input: {
     shopId: string;
     productId?: string | null;
+    productIds?: string[] | null;
     title: string;
     description?: string | null;
-    discount: number;
-    oldPrice: number;
-    newPrice: number;
+    discount?: number;
+    oldPrice?: number;
+    newPrice?: number;
+    pricingMode?: string;
+    pricingValue?: number;
     imageUrl?: string | null;
     expiresAt?: string | Date;
   }, actor: { role: string; shopId?: string }) {
@@ -112,56 +158,102 @@ export class OfferService {
     const title = String(input?.title || '').trim();
     if (!title) throw new BadRequestException('title مطلوب');
 
-    const discount = Number(input?.discount);
-    if (Number.isNaN(discount) || discount < 0 || discount > 100) {
-      throw new BadRequestException('discount غير صحيح');
-    }
+    const expiresAt = this.resolveExpiresAt(input?.expiresAt);
 
-    const oldPrice = Number(input?.oldPrice);
-    const newPrice = Number(input?.newPrice);
-    if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
-    if (Number.isNaN(newPrice) || newPrice < 0) throw new BadRequestException('newPrice غير صحيح');
+    const productId = input?.productId ? String(input.productId).trim() : '';
+    const productIdsRaw = Array.isArray(input?.productIds) ? input.productIds : [];
+    const productIds = Array.from(
+      new Set(
+        [productId, ...productIdsRaw]
+          .map((p) => (typeof p === 'string' ? p.trim() : ''))
+          .filter(Boolean),
+      ),
+    );
 
-    const expiresAt = (() => {
-      if (!input?.expiresAt) {
-        const d = new Date();
-        d.setDate(d.getDate() + 7);
-        return d;
+    const pricingMode = String(input?.pricingMode || 'PERCENT').toUpperCase();
+    const pricingValue = typeof input?.pricingValue === 'number' ? input.pricingValue : Number(input?.pricingValue);
+    const hasPricingMode = Boolean(input?.pricingMode) || typeof input?.pricingValue !== 'undefined';
+
+    if (productIds.length === 0) {
+      // fallback legacy path (admin could create shop-level offers)
+      const discount = Number(input?.discount);
+      if (Number.isNaN(discount) || discount < 0 || discount > 100) {
+        throw new BadRequestException('discount غير صحيح');
       }
-      const d = new Date(input.expiresAt as any);
-      if (Number.isNaN(d.getTime())) {
-        const fallback = new Date();
-        fallback.setDate(fallback.getDate() + 7);
-        return fallback;
-      }
-      return d;
-    })();
 
-    const productId = input?.productId ? String(input.productId).trim() : null;
+      const oldPrice = Number(input?.oldPrice);
+      const newPrice = Number(input?.newPrice);
+      if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
+      if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) throw new BadRequestException('newPrice غير صحيح');
 
-    if (productId) {
-      const product = await this.prisma.product.findUnique({
-        where: { id: productId },
-        select: { id: true, shopId: true, isActive: true },
+      return this.prisma.offer.create({
+        data: {
+          shopId,
+          productId: null,
+          title,
+          description: input?.description ? String(input.description) : null,
+          discount,
+          oldPrice,
+          newPrice,
+          imageUrl: input?.imageUrl ? String(input.imageUrl) : null,
+          expiresAt,
+          isActive: true,
+        },
       });
-      if (!product || !product.isActive || product.shopId !== shopId) {
-        throw new BadRequestException('المنتج غير صالح لهذا المتجر');
-      }
     }
 
-    return this.prisma.offer.create({
-      data: {
-        shopId,
-        productId,
-        title,
-        description: input?.description ? String(input.description) : null,
-        discount,
-        oldPrice,
-        newPrice,
-        imageUrl: input?.imageUrl ? String(input.imageUrl) : null,
-        expiresAt,
-        isActive: true,
-      },
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds }, shopId, isActive: true },
+      select: { id: true, name: true, price: true, imageUrl: true },
+    });
+
+    if (products.length !== productIds.length) {
+      throw new BadRequestException('المنتج غير صالح لهذا المتجر');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const created: any[] = [];
+
+      for (const p of products) {
+        const effectiveTitle = products.length > 1 ? `${title} - ${String(p.name || '').trim()}` : title;
+        const oldPrice = Number(p.price);
+        if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
+
+        const computedNewPrice = hasPricingMode
+          ? this.computeNewPrice({ mode: pricingMode, value: pricingValue, oldPrice })
+          : Number(input?.newPrice);
+
+        const newPrice = Math.round(Number(computedNewPrice) * 100) / 100;
+        if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) {
+          throw new BadRequestException('newPrice غير صحيح');
+        }
+
+        const discount = this.computeDiscountPercent(oldPrice, newPrice);
+
+        await tx.offer.updateMany({
+          where: { shopId, productId: p.id, isActive: true },
+          data: { isActive: false },
+        });
+
+        const row = await tx.offer.create({
+          data: {
+            shopId,
+            productId: p.id,
+            title: effectiveTitle,
+            description: input?.description ? String(input.description) : null,
+            discount,
+            oldPrice,
+            newPrice,
+            imageUrl: input?.imageUrl ? String(input.imageUrl) : (p.imageUrl ? String(p.imageUrl) : null),
+            expiresAt,
+            isActive: true,
+          },
+        });
+
+        created.push(row);
+      }
+
+      return created;
     });
   }
 

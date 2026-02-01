@@ -58,8 +58,10 @@ import {
   addProductViaBackend,
   deleteProductViaBackend,
   getProductByIdViaBackend,
+  getProductsForManageViaBackend,
   getProductsViaBackend,
   updateProductStockViaBackend,
+  updateProductViaBackend,
 } from './api/modules/products';
 import {
   assignCourierToOrderViaBackend,
@@ -216,8 +218,8 @@ export const ApiService = {
 
     return true;
   },
-  devMerchantLogin: async () => {
-    return await devMerchantLoginViaBackend();
+  devMerchantLogin: async (opts?: { shopCategory?: string }) => {
+    return await devMerchantLoginViaBackend(opts);
   },
   bootstrapAdmin: async (payload: { token: string; email: string; password: string; name?: string }) => {
     return await backendPost<{ ok: boolean; userId?: string }>('/api/v1/auth/bootstrap-admin', {
@@ -425,11 +427,17 @@ export const ApiService = {
   getProducts: async (shopId?: string, opts?: { page?: number; limit?: number }) => {
     return await getProductsViaBackend(shopId, opts);
   },
+  getProductsForManage: async (shopId: string, opts?: { page?: number; limit?: number }) => {
+    return await getProductsForManageViaBackend(shopId, opts);
+  },
   getProductById: async (id: string) => {
     return await getProductByIdViaBackend(id);
   },
   addProduct: async (product: any) => {
     return await addProductViaBackend(product);
+  },
+  updateProduct: async (id: string, data: any) => {
+    return await updateProductViaBackend(id, data);
   },
   updateProductStock: async (id: string, stock: number) => {
     return await updateProductStockViaBackend(id, stock);

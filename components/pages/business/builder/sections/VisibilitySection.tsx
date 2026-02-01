@@ -6,25 +6,35 @@ type Props = {
 };
 
 type VisibilityKey =
-  | 'headerNav'
   | 'headerNavHome'
   | 'headerNavGallery'
   | 'headerNavInfo'
   | 'headerChatButton'
   | 'headerShareButton'
   | 'floatingChatButton'
+  | 'shopFollowersCount'
+  | 'shopFollowButton'
+  | 'productCardPrice'
+  | 'productCardStock'
+  | 'productCardAddToCart'
+  | 'productCardReserve'
   | 'footer'
   | 'footerQuickLinks'
   | 'footerContact';
 
 const VISIBILITY_ITEMS: { key: VisibilityKey; label: string }[] = [
-  { key: 'headerNav', label: 'إظهار تبويبات الهيدر (المعروضات / معرض الصور / معلومات)' },
   { key: 'headerNavHome', label: 'إظهار زر (المعروضات)' },
   { key: 'headerNavGallery', label: 'إظهار زر (معرض الصور)' },
   { key: 'headerNavInfo', label: 'إظهار زر (معلومات المتجر)' },
   { key: 'headerChatButton', label: 'إظهار زر المحادثة في الهيدر' },
   { key: 'headerShareButton', label: 'إظهار زر المشاركة في الهيدر' },
   { key: 'floatingChatButton', label: 'إظهار زر المحادثة العائم' },
+  { key: 'shopFollowersCount', label: 'إظهار عدد المتابعين' },
+  { key: 'shopFollowButton', label: 'إظهار زر متابعة المتجر' },
+  { key: 'productCardPrice', label: 'إظهار السعر في كارت المنتج' },
+  { key: 'productCardStock', label: 'إظهار المخزون في كارت المنتج' },
+  { key: 'productCardAddToCart', label: 'إظهار زر (إضافة للسلة)' },
+  { key: 'productCardReserve', label: 'إظهار زر (حجز)' },
   { key: 'footer', label: 'إظهار الفوتر بالكامل' },
   { key: 'footerQuickLinks', label: 'إظهار روابط سريعة في الفوتر' },
   { key: 'footerContact', label: 'إظهار بيانات التواصل في الفوتر' },

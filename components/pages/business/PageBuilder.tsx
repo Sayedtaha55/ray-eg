@@ -400,7 +400,27 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return Boolean(current[key]);
   };
 
-  const setConfigAny = (next: any) => setConfig(next as any);
+  const setConfigAny = (next: any) => {
+    if (typeof next === 'function') {
+      setConfig((prev: any) => {
+        const computed = next(prev);
+        try {
+          localStorage.setItem('ray_builder_preview_design', JSON.stringify(computed));
+          window.dispatchEvent(new Event('ray-builder-preview-update'));
+        } catch {
+        }
+        return computed;
+      });
+      return;
+    }
+
+    setConfig(next as any);
+    try {
+      localStorage.setItem('ray_builder_preview_design', JSON.stringify(next));
+      window.dispatchEvent(new Event('ray-builder-preview-update'));
+    } catch {
+    }
+  };
 
   const Section = ({ id, title, icon, render }: any) => (
     <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
@@ -698,7 +718,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                           </div>
                         </div>
 
-                        {isVisible('headerNav', true) && previewMode !== 'mobile' && (
+                        {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true)) && previewMode !== 'mobile' && (
                           <nav className="flex items-center gap-6 md:gap-8">
                             {isVisible('headerNavHome', true) && (
                               <button
@@ -734,7 +754,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         )}
 
                         <div className="flex items-center gap-2 md:gap-3">
-                          {isVisible('headerNav', true) && previewMode === 'mobile' && (
+                          {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true) || isVisible('headerShareButton', true)) && previewMode === 'mobile' && (
                             <button
                               type="button"
                               onClick={() => setIsPreviewHeaderMenuOpen((v) => !v)}
@@ -774,7 +794,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
                   )}
 
-                  {isVisible('headerNav', true) && previewMode === 'mobile' && isPreviewHeaderMenuOpen && (
+                  {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true) || isVisible('headerShareButton', true)) && previewMode === 'mobile' && isPreviewHeaderMenuOpen && (
                     <>
                       <div
                         className="absolute inset-0 z-[200]"

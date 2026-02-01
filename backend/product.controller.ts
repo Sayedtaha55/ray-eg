@@ -24,6 +24,25 @@ export class ProductController {
     return this.productService.listAllActive(paging);
   }
 
+  @Get('manage/by-shop/:shopId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async listForManage(
+    @Param('shopId') shopId: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Request() req?: any,
+  ) {
+    const sid = typeof shopId === 'string' ? String(shopId).trim() : '';
+    const pageNum = typeof page === 'string' && page.trim() ? Number(page) : undefined;
+    const limitNum = typeof limit === 'string' && limit.trim() ? Number(limit) : undefined;
+    const paging = {
+      page: typeof pageNum === 'number' && Number.isFinite(pageNum) ? pageNum : undefined,
+      limit: typeof limitNum === 'number' && Number.isFinite(limitNum) ? limitNum : undefined,
+    };
+    return this.productService.listByShopForManage(sid, paging, { role: req.user?.role, shopId: req.user?.shopId });
+  }
+
   @Get(':id')
   async getById(@Param('id') id: string) {
     return this.productService.getById(id);
@@ -53,6 +72,11 @@ export class ProductController {
     const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : null;
     const description = typeof body?.description === 'string' ? body.description : null;
 
+    const trackStock = typeof body?.trackStock === 'boolean' ? body.trackStock : undefined;
+    const images = typeof body?.images === 'undefined' ? undefined : body.images;
+    const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
+    const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
+
     if (!name) throw new BadRequestException('name مطلوب');
     if (Number.isNaN(price) || price < 0) throw new BadRequestException('price غير صحيح');
 
@@ -64,6 +88,10 @@ export class ProductController {
       category,
       imageUrl,
       description,
+      trackStock,
+      images,
+      colors,
+      sizes,
     });
   }
 
@@ -73,6 +101,47 @@ export class ProductController {
   async updateStock(@Param('id') id: string, @Body() body: any, @Request() req) {
     const stock = Number(body?.stock);
     return this.productService.updateStock(id, stock, { role: req.user?.role, shopId: req.user?.shopId });
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async update(@Param('id') id: string, @Body() body: any, @Request() req) {
+    const role = String(req.user?.role || '').toUpperCase();
+    const shopIdFromToken = req.user?.shopId;
+
+    // Validate basic fields
+    const name = typeof body?.name === 'string' ? body.name.trim() : undefined;
+    const price = typeof body?.price === 'number' ? body.price : (typeof body?.price === 'string' ? Number(body.price) : undefined);
+    const stock = typeof body?.stock === 'number' ? body.stock : (typeof body?.stock === 'string' ? Number(body.stock) : undefined);
+    const category = typeof body?.category === 'string' ? body.category : undefined;
+    const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : undefined;
+    const description = typeof body?.description === 'string' ? body.description : undefined;
+
+    const trackStock = typeof body?.trackStock === 'boolean' ? body.trackStock : undefined;
+    const images = typeof body?.images === 'undefined' ? undefined : body.images;
+    const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
+    const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
+
+    const isActive = typeof body?.isActive === 'boolean' ? body.isActive : undefined;
+
+    if (name !== undefined && !name) throw new BadRequestException('name لا يمكن أن يكون فارغاً');
+    if (price !== undefined && (Number.isNaN(price) || price < 0)) throw new BadRequestException('price غير صحيح');
+    if (stock !== undefined && (Number.isNaN(stock) || stock < 0)) throw new BadRequestException('stock غير صحيح');
+
+    return this.productService.update(id, {
+      name,
+      price,
+      stock,
+      category,
+      imageUrl,
+      description,
+      trackStock,
+      images,
+      colors,
+      sizes,
+      isActive,
+    }, { role, shopId: shopIdFromToken });
   }
 
   @Delete(':id')

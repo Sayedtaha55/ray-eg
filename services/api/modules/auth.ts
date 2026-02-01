@@ -12,10 +12,10 @@ export async function loginViaBackend(email: string, pass: string) {
   };
 }
 
-export async function devMerchantLoginViaBackend() {
+export async function devMerchantLoginViaBackend(payload?: { shopCategory?: string }) {
   const data = await backendPost<{ access_token: string; user: any }>(
     '/api/v1/auth/dev-merchant-login',
-    {},
+    payload || {},
   );
   return {
     user: normalizeUserFromBackend(data.user),

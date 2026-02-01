@@ -107,7 +107,8 @@ const MerchantDashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   const [showProductModal, setShowProductModal] = useState(false);
-  const [showOfferModal, setShowOfferModal] = useState<Product | null>(null);
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [offerSeedProduct, setOfferSeedProduct] = useState<Product | null>(null);
 
   const hasInitializedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -244,7 +245,10 @@ const MerchantDashboardPage: React.FC = () => {
       const { now, salesFrom, analyticsFrom } = getDateRanges();
 
       if (tab === 'products') {
-        const list = await ApiService.getProducts(shopId);
+        const isRestaurant = String(shop?.category || '').toUpperCase() === 'RESTAURANT';
+        const list = isRestaurant
+          ? await (ApiService as any).getProductsForManage(shopId)
+          : await ApiService.getProducts(shopId);
         setProducts(list);
       } else if (tab === 'reservations') {
         const list = await ApiService.getReservations(shopId);
@@ -260,12 +264,14 @@ const MerchantDashboardPage: React.FC = () => {
         setNotifications((notif || []).slice(0, 5));
         setAnalytics(analytics);
       } else if (tab === 'reports') {
-        const [orders, analytics] = await Promise.all([
+        const [orders, analytics, reservations] = await Promise.all([
           ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() }),
           ApiService.getShopAnalytics(shopId, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
+          ApiService.getReservations(shopId),
         ]);
         setSales((orders || []).filter((s: any) => s.shop_id === shopId || s.shopId === shopId));
         setAnalytics(analytics);
+        setReservations(reservations || []);
       } else if (tab === 'promotions') {
         const offers = await ApiService.getOffers();
         setActiveOffers((offers || []).filter((o: any) => o.shopId === shopId));
@@ -378,6 +384,23 @@ const MerchantDashboardPage: React.FC = () => {
     }
   };
 
+  const handleUpdateProduct = async (updatedProduct: any) => {
+    try {
+      addToast('تم تحديث المنتج بنجاح', 'success');
+      // Refresh products list
+      if (currentShop?.id) {
+        const isRestaurant = String(currentShop?.category || '').toUpperCase() === 'RESTAURANT';
+        const list = isRestaurant
+          ? await (ApiService as any).getProductsForManage(currentShop.id)
+          : await ApiService.getProducts(currentShop.id);
+        setProducts(list);
+      }
+    } catch (err: any) {
+      const msg = err?.message ? String(err.message) : 'فشل في تحديث المنتج';
+      addToast(msg, 'error');
+    }
+  };
+
   const handleUpdateResStatus = async (id: string, status: string) => {
     try {
       await ApiService.updateReservationStatus(id, status);
@@ -415,8 +438,14 @@ const MerchantDashboardPage: React.FC = () => {
           <ProductsTab
             products={products}
             onAdd={() => setShowProductModal(true)}
-            onMakeOffer={(p) => setShowOfferModal(p)}
+            onMakeOffer={(p) => {
+              setOfferSeedProduct(p);
+              setOfferModalOpen(true);
+            }}
             onDelete={handleDeleteProduct}
+            onUpdate={handleUpdateProduct}
+            shopId={currentShop.id}
+            shopCategory={currentShop?.category}
           />
         );
       case 'gallery':
@@ -433,7 +462,10 @@ const MerchantDashboardPage: React.FC = () => {
           <PromotionsTab
             offers={activeOffers}
             onDelete={(id) => ApiService.deleteOffer(id).then(() => currentShop ? ensureTabData('promotions', currentShop, true) : undefined)}
-            onCreate={() => setTab('products')}
+            onCreate={() => {
+              setOfferSeedProduct(null);
+              setOfferModalOpen(true);
+            }}
           />
         );
       case 'reservations':
@@ -441,7 +473,7 @@ const MerchantDashboardPage: React.FC = () => {
       case 'sales':
         return <SalesTab sales={sales} />;
       case 'reports':
-        return <ReportsTab analytics={analytics} sales={sales} />;
+        return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
       case 'customers':
         return <CustomersTab shopId={currentShop.id} />;
       case 'settings':
@@ -536,7 +568,7 @@ const MerchantDashboardPage: React.FC = () => {
           exit={{ opacity: 0, y: -20 }}
         >
           {effectiveTab === 'pos' ? (
-            <POSSystem shopId={currentShop.id} onClose={() => setTab('overview')} />
+            <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
           ) : effectiveTab === 'builder' ? (
             <PageBuilder onClose={() => setTab('overview')} />
           ) : (
@@ -550,15 +582,16 @@ const MerchantDashboardPage: React.FC = () => {
         if (currentShop) {
           ensureTabData('products', currentShop, true);
         }
-      }} shopId={currentShop.id} />
+      }} shopId={currentShop.id} shopCategory={currentShop?.category} />
 
-      <CreateOfferModal product={showOfferModal} onClose={() => {
-        setShowOfferModal(null);
+      <CreateOfferModal isOpen={offerModalOpen} product={offerSeedProduct} onClose={() => {
+        setOfferModalOpen(false);
+        setOfferSeedProduct(null);
         if (currentShop) {
           ensureTabData('promotions', currentShop, true);
           ensureTabData('products', currentShop, true);
         }
-      }} shopId={currentShop.id} />
+      }} shopId={currentShop.id} products={products} />
     </div>
   );
 };

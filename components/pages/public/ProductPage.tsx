@@ -189,6 +189,9 @@ const ProductPage: React.FC = () => {
 
   const currentPrice = offer ? offer.newPrice : product.price;
   const hasDiscount = !!offer;
+  const trackStock = typeof (product as any)?.trackStock === 'boolean'
+    ? (product as any).trackStock
+    : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
@@ -250,7 +253,9 @@ const ProductPage: React.FC = () => {
                 </div>
                 <div>
                    <p className="font-black text-slate-900">حالة المخزون</p>
-                   <p className="text-sm text-slate-400 font-bold">{product.stock > 0 ? `متوفر (${product.stock} قطعة)` : 'نفذت الكمية'}</p>
+                   <p className="text-sm text-slate-400 font-bold">
+                     {!trackStock ? 'متوفر' : (product.stock > 0 ? `متوفر (${product.stock} قطعة)` : 'نفذت الكمية')}
+                   </p>
                 </div>
              </div>
              

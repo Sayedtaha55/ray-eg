@@ -67,6 +67,49 @@ function extractErrorMessage(data: any, fallback: string) {
   return fallback;
 }
 
+function resolveApiTimeoutMs() {
+  const raw = (import.meta as any)?.env?.VITE_API_TIMEOUT_MS;
+  const parsed = Number(raw);
+  const base = Number.isFinite(parsed) && parsed > 0 ? parsed : 15000;
+  return Math.max(3000, Math.min(60000, Math.floor(base)));
+}
+
+function isAbortError(err: any) {
+  const name = String(err?.name || '');
+  if (name === 'AbortError') return true;
+  const msg = String(err?.message || '').toLowerCase();
+  return msg.includes('abort');
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit & { signal?: AbortSignal }, timeoutMs?: number) {
+  const ms = typeof timeoutMs === 'number' ? timeoutMs : resolveApiTimeoutMs();
+  const hasAbort = typeof AbortController !== 'undefined';
+  if (!hasAbort || ms <= 0) return fetch(url, init);
+
+  const controller = new AbortController();
+  const parentSignal = init?.signal;
+  if (parentSignal) {
+    if (parentSignal.aborted) {
+      controller.abort();
+    } else {
+      parentSignal.addEventListener('abort', () => controller.abort(), { once: true } as any);
+    }
+  }
+
+  const timer = setTimeout(() => {
+    try {
+      controller.abort();
+    } catch {
+    }
+  }, ms);
+
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 const backendAvailability = {
   downUntil: 0,
   failures: 0,
@@ -173,7 +216,7 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
   try {
-    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -182,7 +225,10 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
       },
       body: isFormData ? body : JSON.stringify(body),
     });
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+    }
     markBackendFailure(path);
     throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
   }
@@ -227,7 +273,7 @@ export async function backendDelete<T>(path: string): Promise<T> {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
   try {
-    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'DELETE',
       credentials: 'include',
       headers: {
@@ -235,7 +281,10 @@ export async function backendDelete<T>(path: string): Promise<T> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+    }
     markBackendFailure(path);
     throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
   }
@@ -273,7 +322,7 @@ export async function backendGet<T>(path: string): Promise<T> {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
   try {
-    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'GET',
       credentials: 'include',
       headers: {
@@ -281,7 +330,10 @@ export async function backendGet<T>(path: string): Promise<T> {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
     });
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+    }
     markBackendFailure(path);
     throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
   }
@@ -319,7 +371,7 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
   try {
-    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'PATCH',
       credentials: 'include',
       headers: {
@@ -328,7 +380,10 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
       },
       body: JSON.stringify(body),
     });
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+    }
     markBackendFailure(path);
     throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
   }
@@ -366,7 +421,7 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
   try {
-    res = await fetch(`${BACKEND_BASE_URL}${path}`, {
+    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'PUT',
       credentials: 'include',
       headers: {
@@ -375,7 +430,10 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
       },
       body: JSON.stringify(body),
     });
-  } catch {
+  } catch (err) {
+    if (isAbortError(err)) {
+      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+    }
     markBackendFailure(path);
     throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
   }

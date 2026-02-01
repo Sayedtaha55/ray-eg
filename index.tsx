@@ -2,7 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './src/index.css';
-import { BackendStatusBanner, ErrorBoundary, ToastProvider } from './components';
+import BackendStatusBanner from './components/common/feedback/BackendStatusBanner';
+import ErrorBoundary from './components/common/feedback/ErrorBoundary';
+import { ToastProvider } from './components/common/feedback/Toaster';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {

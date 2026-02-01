@@ -57,13 +57,14 @@ const Modal: React.FC<ModalProps> = ({
             className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
             onClick={closeOnBackdropClick ? onClose : undefined}
           />
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className={`w-full ${sizeClasses[size]} bg-slate-900 rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden`}
-            >
+          <div className="fixed inset-0 z-50 p-4 overflow-y-auto">
+            <div className="min-h-full flex items-center justify-center">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className={`w-full ${sizeClasses[size]} max-h-[90vh] bg-slate-900 rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden flex flex-col`}
+              >
               {(title || showCloseButton) && (
                 <div className="flex items-center justify-between p-6 border-b border-white/10">
                   {title && (
@@ -79,10 +80,11 @@ const Modal: React.FC<ModalProps> = ({
                   )}
                 </div>
               )}
-              <div className="p-6">
+              <div className="p-6 overflow-y-auto">
                 {children}
               </div>
-            </motion.div>
+              </motion.div>
+            </div>
           </div>
         </>
       )}

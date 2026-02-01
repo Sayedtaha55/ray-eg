@@ -6,12 +6,19 @@ export class AnalyticsService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async getSystemAnalytics() {
-    const [totalUsers, totalShops, ordersAgg, shopsAgg] = await Promise.all([
+    const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
+    const [totalUsers, totalShops, ordersAgg, reservationsAgg, shopsAgg] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.shop.count(),
       this.prisma.order.aggregate({
+        where: { status: { in: successfulOrderStatuses as any } },
         _count: { _all: true },
         _sum: { total: true },
+      }),
+      this.prisma.reservation.aggregate({
+        where: { status: 'COMPLETED' as any },
+        _count: { _all: true },
+        _sum: { itemPrice: true },
       }),
       this.prisma.shop.aggregate({
         where: {
@@ -22,8 +29,8 @@ export class AnalyticsService {
       }),
     ]);
 
-    const totalOrders = Number(ordersAgg?._count?._all || 0);
-    const totalRevenue = Number(ordersAgg?._sum?.total || 0);
+    const totalOrders = Number(ordersAgg?._count?._all || 0) + Number((reservationsAgg as any)?._count?._all || 0);
+    const totalRevenue = Number(ordersAgg?._sum?.total || 0) + Number((reservationsAgg as any)?._sum?.itemPrice || 0);
     const totalVisits = Number(shopsAgg?._sum?.visitors || 0);
 
     return {
@@ -56,13 +63,26 @@ export class AnalyticsService {
       buckets[key] = { date: key, revenue: 0, orders: 0 };
     }
 
+    const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
     const orders = await this.prisma.order.findMany({
       where: {
+        status: { in: successfulOrderStatuses as any },
         createdAt: {
           gte: start,
         },
       },
       select: { total: true, createdAt: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const reservations = await this.prisma.reservation.findMany({
+      where: {
+        status: 'COMPLETED' as any,
+        createdAt: {
+          gte: start,
+        },
+      },
+      select: { itemPrice: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -72,6 +92,14 @@ export class AnalyticsService {
       if (!bucket) continue;
       bucket.orders += 1;
       bucket.revenue += Number(o.total) || 0;
+    }
+
+    for (const r of reservations) {
+      const key = new Date((r as any).createdAt).toISOString().slice(0, 10);
+      const bucket = buckets[key];
+      if (!bucket) continue;
+      bucket.orders += 1;
+      bucket.revenue += Number((r as any).itemPrice) || 0;
     }
 
     return Object.keys(buckets)

@@ -1,20 +1,22 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
-import { Category } from '@/types';
+import { Category, Product } from '@/types';
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   shopId: string;
   shopCategory?: Category | string;
+  product: Product | null;
+  onUpdate: (product: Product) => void;
 };
 
 const MotionDiv = motion.div as any;
 
-const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory, product, onUpdate }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
@@ -22,6 +24,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const [description, setDescription] = useState('');
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
+  const [imageChanged, setImageChanged] = useState(false);
   const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
   const [extraImageUploadFiles, setExtraImageUploadFiles] = useState<File[]>([]);
   const [selectedColors, setSelectedColors] = useState<Array<{ name: string; value: string }>>([]);
@@ -52,6 +55,36 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
   const presetSizes: string[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
+  // Load product data when modal opens
+  useEffect(() => {
+    if (isOpen && product) {
+      setName(product.name || '');
+      setPrice(String(product.price || ''));
+      setStock(String(product.stock || ''));
+      setCat(product.category || 'عام');
+      setDescription(product.description || '');
+      setImagePreview((product as any).imageUrl || (product as any).image_url || null);
+      
+      // Load extra images if available
+      const images = (product as any).images || [];
+      if (Array.isArray(images)) {
+        setExtraImagePreviews(images.filter((img: any) => typeof img === 'string'));
+      }
+      
+      // Load colors if available
+      const colors = (product as any).colors || [];
+      if (Array.isArray(colors)) {
+        setSelectedColors(colors.filter((c: any) => c && typeof c === 'object' && c.name && c.value));
+      }
+      
+      // Load sizes if available
+      const sizes = (product as any).sizes || [];
+      if (Array.isArray(sizes)) {
+        setSelectedSizes(sizes.filter((s: any) => typeof s === 'string'));
+      }
+    }
+  }, [isOpen, product]);
+
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -78,6 +111,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       }
       setImageUploadFile(file);
       setImagePreview(URL.createObjectURL(file));
+      setImageChanged(true);
     }
   };
 
@@ -117,24 +151,29 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!imageUploadFile) {
-      addToast('يرجى اختيار صورة للمنتج أولاً', 'info');
-      return;
-    }
+    if (!product) return;
+    
     setLoading(true);
     try {
-      const mime = String(imageUploadFile.type || '').toLowerCase().trim();
-      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-      if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-        return;
+      let imageUrl = (product as any).imageUrl || (product as any).image_url || '';
+      
+      // Upload new main image if changed
+      if (imageChanged && imageUploadFile) {
+        const mime = String(imageUploadFile.type || '').toLowerCase().trim();
+        const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+        if (!mime || !allowed.has(mime)) {
+          addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+          return;
+        }
+        const upload = await ApiService.uploadMedia({
+          file: imageUploadFile,
+          purpose: 'product_image',
+          shopId,
+        });
+        imageUrl = upload.url;
       }
-      const upload = await ApiService.uploadMedia({
-        file: imageUploadFile,
-        purpose: 'product_image',
-        shopId,
-      });
 
+      // Upload extra images if new ones added
       let extraUrls: string[] = [];
       if (!isRestaurant && extraImageUploadFiles.length > 0) {
         const uploads = await Promise.all(
@@ -156,60 +195,43 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         ? (selectedSizes || []).map((s) => String(s || '').trim()).filter(Boolean)
         : [];
 
-      await ApiService.addProduct({
-        shopId,
+      // Prepare update payload
+      const updatePayload: any = {
         name,
         price: Number(price),
-        stock: isRestaurant ? 0 : Number(stock),
         category: isRestaurant ? 'عام' : cat,
-        imageUrl: upload.url,
         description: description ? description : null,
+        imageUrl,
         trackStock: isRestaurant ? false : true,
         ...(isRestaurant
           ? {}
           : {
-              images: [upload.url, ...extraUrls],
+              images: extraUrls.length > 0 ? [imageUrl, ...extraUrls] : (product as any).images || [imageUrl],
               colors,
               sizes,
             }),
-      });
-      addToast('تمت إضافة المنتج بنجاح!', 'success');
-      setName('');
-      setPrice('');
-      setStock('');
-      setCat('عام');
-      setDescription('');
-      setSelectedColors([]);
-      setSelectedSizes([]);
-      setCustomSize('');
-      try {
-        if (imagePreview && imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(imagePreview);
-        }
-      } catch {
-        // ignore
+      };
+
+      // Only include stock if not restaurant
+      if (!isRestaurant) {
+        updatePayload.stock = Number(stock);
       }
 
-      try {
-        for (const p of extraImagePreviews) {
-          if (p && p.startsWith('blob:')) URL.revokeObjectURL(p);
-        }
-      } catch {
-      }
-      setImagePreview(null);
-      setImageUploadFile(null);
-      setExtraImagePreviews([]);
-      setExtraImageUploadFiles([]);
+      // Update product via API
+      const updated = await ApiService.updateProduct(product.id, updatePayload);
+      
+      addToast('تم تحديث المنتج بنجاح!', 'success');
+      onUpdate(updated);
       onClose();
     } catch (err: any) {
-      const msg = err?.message ? String(err.message) : 'فشل في إضافة المنتج';
+      const msg = err?.message ? String(err.message) : 'فشل في تحديث المنتج';
       addToast(msg, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !product) return null;
 
   return (
     <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
@@ -220,7 +242,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         className="relative bg-white w-full max-w-2xl rounded-[3rem] p-8 md:p-12 text-right shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar"
       >
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-black">إضافة صنف جديد</h2>
+          <h2 className="text-3xl font-black">تعديل الصنف</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
             <X size={24} />
           </button>
@@ -246,7 +268,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
                 </>
               ) : (
                 <div className="text-center p-8">
-                  <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 group-hover:text-[#00E5FF] transition-colors">
+                  <div className="w-16 h-16 bg-slate-50 rounded-2rem flex items-center justify-center mx-auto mb-4 text-slate-300 group-hover:text-[#00E5FF] transition-colors">
                     <Upload size={32} />
                   </div>
                   <p className="font-black text-slate-900 mb-1">اضغط لرفع صورة</p>
@@ -498,7 +520,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4 mt-4 disabled:bg-slate-200"
           >
             {loading ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle2 size={24} className="text-[#00E5FF]" />}
-            {loading ? 'جاري الحفظ...' : 'تأكيد وحفظ الصنف'}
+            {loading ? 'جاري التحديث...' : 'تأكيد تحديث الصنف'}
           </button>
         </form>
       </MotionDiv>
@@ -506,4 +528,4 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   );
 };
 
-export default AddProductModal;
+export default EditProductModal;

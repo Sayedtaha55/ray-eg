@@ -84,13 +84,26 @@ export class OrderService {
     return 'PENDING' as any;
   }
 
-  async updateOrder(orderId: string, input: { status?: string; notes?: string }) {
+  async updateOrder(
+    orderId: string,
+    input: { status?: string; notes?: string },
+    actor?: { role?: string; shopId?: string },
+  ) {
     const id = String(orderId || '').trim();
     if (!id) throw new BadRequestException('id مطلوب');
 
+    const role = String(actor?.role || '').toUpperCase();
+    const actorShopId = actor?.shopId ? String(actor.shopId) : undefined;
+
     const data: any = {};
-    if (typeof input?.status === 'string' && String(input.status).trim()) {
-      data.status = this.normalizeStatus(input.status);
+    const nextStatus = typeof input?.status === 'string' && String(input.status).trim()
+      ? this.normalizeStatus(input.status)
+      : undefined;
+    if (nextStatus) {
+      data.status = nextStatus;
+      if (String(nextStatus).toUpperCase() === 'DELIVERED') {
+        data.deliveredAt = new Date();
+      }
     }
     if (typeof input?.notes === 'string') {
       data.notes = String(input.notes);
@@ -104,20 +117,100 @@ export class OrderService {
       where: { id },
       select: { id: true, status: true, userId: true, shopId: true },
     });
+    if (!before) {
+      throw new BadRequestException('الطلب غير موجود');
+    }
 
-    const updated = await this.prisma.order.update({
-      where: { id },
-      data,
-      include: {
-        items: {
+    if (role === 'MERCHANT') {
+      if (!actorShopId || actorShopId !== String(before.shopId)) {
+        throw new ForbiddenException('صلاحيات غير كافية');
+      }
+
+      if (String(before.status || '').toUpperCase() === 'CANCELLED') {
+        throw new ForbiddenException('لا يمكن تعديل طلب ملغي');
+      }
+
+      const beforeStatus = String(before.status || '').toUpperCase();
+      if (String(nextStatus || '').toUpperCase() === 'CANCELLED') {
+        if (beforeStatus === 'READY' || beforeStatus === 'DELIVERED') {
+          throw new ForbiddenException('لا يمكن رفض طلب بعد أن يصبح جاهز أو تم توصيله');
+        }
+      }
+
+      if (nextStatus) {
+        const allowed = new Set(['CONFIRMED', 'PREPARING', 'CANCELLED']);
+        if (!allowed.has(String(nextStatus).toUpperCase())) {
+          throw new ForbiddenException('لا يمكن تحديث هذه الحالة');
+        }
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const isCancelling = String(nextStatus || '').toUpperCase() === 'CANCELLED';
+
+      if (isCancelling) {
+        const res = await tx.order.updateMany({
+          where: { id, status: { not: 'CANCELLED' as any } },
+          data,
+        });
+
+        if (res.count === 1) {
+          const items = await tx.orderItem.findMany({
+            where: { orderId: id },
+            select: { productId: true, quantity: true },
+          });
+
+          const productIds = Array.from(new Set((items || []).map((i) => String(i.productId || '').trim()).filter(Boolean)));
+          const products = productIds.length
+            ? await tx.product.findMany({ where: { id: { in: productIds } }, select: { id: true, trackStock: true } as any })
+            : [];
+          const tracked = new Set(
+            (products || [])
+              .filter((p: any) => (typeof p?.trackStock === 'boolean' ? p.trackStock : true))
+              .map((p: any) => String(p.id)),
+          );
+
+          for (const item of items || []) {
+            const pid = String(item.productId || '').trim();
+            if (!pid || !tracked.has(pid)) continue;
+            await tx.product.update({
+              where: { id: item.productId },
+              data: { stock: { increment: Number(item.quantity || 0) } },
+            });
+          }
+        }
+
+        const found = await tx.order.findUnique({
+          where: { id },
           include: {
-            product: true,
+            items: {
+              include: {
+                product: true,
+              },
+            },
+            shop: true,
+            user: true,
+            courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
           },
+        });
+        if (!found) throw new BadRequestException('الطلب غير موجود');
+        return found;
+      }
+
+      return tx.order.update({
+        where: { id },
+        data,
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+          shop: true,
+          user: true,
+          courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
         },
-        shop: true,
-        user: true,
-        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
-      },
+      });
     });
 
     try {
@@ -168,6 +261,7 @@ export class OrderService {
             product: true,
           },
         },
+        user: { select: { id: true, name: true, email: true, phone: true } },
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
       ...(pagination ? pagination : {}),
@@ -267,6 +361,8 @@ export class OrderService {
       // Validate stock
       for (const item of normalizedItems) {
         const product = byId[item.productId];
+        const trackStock = typeof product?.trackStock === 'boolean' ? product.trackStock : true;
+        if (!trackStock) continue;
         const currentStock = typeof product?.stock === 'number' ? product.stock : Number(product?.stock || 0);
         if (currentStock < item.quantity) {
           throw new BadRequestException('المخزون غير كاف');
@@ -276,6 +372,8 @@ export class OrderService {
       // Update stock
       for (const item of normalizedItems) {
         const product = byId[item.productId];
+        const trackStock = typeof product?.trackStock === 'boolean' ? product.trackStock : true;
+        if (!trackStock) continue;
         const currentStock = typeof product?.stock === 'number' ? product.stock : Number(product?.stock || 0);
         const nextStock = Math.max(0, currentStock - item.quantity);
         await tx.product.update({

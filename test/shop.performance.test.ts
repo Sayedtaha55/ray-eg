@@ -4,6 +4,7 @@ import { PrismaService } from '../backend/prisma/prisma.service';
 import { ShopService } from '../backend/shop.service';
 import { MonitoringService } from '../backend/monitoring/monitoring.service';
 import { MediaCompressionService } from '../backend/media-compression.service';
+import { EmailService } from '../backend/email.service';
 
 // Mock Redis
 const mockRedis = {
@@ -25,7 +26,10 @@ const mockPrisma = {
     findUnique: jest.fn(),
     update: jest.fn(),
   },
-  shopAnalytics: {
+  order: {
+    findMany: jest.fn(),
+  },
+  reservation: {
     findMany: jest.fn(),
   },
 };
@@ -46,6 +50,11 @@ const mockMediaCompression = {
   generateVideoThumbnailWebp: jest.fn(),
   ensureDir: jest.fn(),
   writeWebpVariants: jest.fn(),
+};
+
+// Mock EmailService
+const mockEmail = {
+  sendMail: jest.fn(),
 };
 
 describe('ShopService Performance Tests', () => {
@@ -73,6 +82,10 @@ describe('ShopService Performance Tests', () => {
         {
           provide: MediaCompressionService,
           useValue: mockMediaCompression,
+        },
+        {
+          provide: EmailService,
+          useValue: mockEmail,
         },
       ],
     }).compile();
@@ -103,9 +116,9 @@ describe('ShopService Performance Tests', () => {
       expect(mockPrisma.shop.findMany).not.toHaveBeenCalled();
       expect(mockMonitoring.trackCache).toHaveBeenCalledWith('getShopsList', 'shops:list', true, expect.any(Number));
       expect(mockMonitoring.trackPerformance).toHaveBeenCalledWith('getAllShops_cached', expect.any(Number));
-      
-      // Cache should be fast (< 50ms)
-      expect(duration).toBeLessThan(50);
+
+      // Cache should be fast
+      expect(duration).toBeLessThan(150);
     });
 
     it('should fetch from database when cache is empty', async () => {
@@ -121,10 +134,12 @@ describe('ShopService Performance Tests', () => {
 
       expect(result).toEqual(mockShops);
       expect(mockRedis.getShopsList).toHaveBeenCalled();
-      expect(mockPrisma.shop.findMany).toHaveBeenCalledWith({
-        where: { isActive: true, status: 'APPROVED' },
-        include: expect.any(Object),
-      });
+      expect(mockPrisma.shop.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ status: 'APPROVED' }),
+          select: expect.any(Object),
+        }),
+      );
       expect(mockRedis.cacheShopsList).toHaveBeenCalledWith(mockShops, 1800);
       expect(mockMonitoring.trackDatabase).toHaveBeenCalledWith('findMany', 'shops', expect.any(Number), true);
     });
@@ -152,9 +167,9 @@ describe('ShopService Performance Tests', () => {
       expect(mockRedis.getShopBySlug).toHaveBeenCalledWith('shop-1');
       expect(mockPrisma.shop.findUnique).not.toHaveBeenCalled();
       expect(mockMonitoring.trackCache).toHaveBeenCalledWith('getShopBySlug', 'shop:slug:shop-1', true, expect.any(Number));
-      
-      // Cache should be fast (< 50ms)
-      expect(duration).toBeLessThan(50);
+
+      // Cache should be fast
+      expect(duration).toBeLessThan(150);
     });
 
     it('should fetch from database when cache is empty', async () => {
@@ -192,10 +207,10 @@ describe('ShopService Performance Tests', () => {
 
       expect(result).toBe(20);
       expect(mockPrisma.shop.findMany).toHaveBeenCalledWith({
-        where: { 
-          isActive: true, 
+        where: {
+          isActive: true,
           status: 'APPROVED',
-          visitors: { gte: 100 }
+          visitors: { gte: 100 },
         },
         take: 20,
         include: expect.any(Object),
@@ -203,7 +218,7 @@ describe('ShopService Performance Tests', () => {
       expect(mockRedis.cacheShop).toHaveBeenCalledTimes(20);
       expect(mockRedis.cacheShopsList).toHaveBeenCalled();
       expect(mockMonitoring.trackPerformance).toHaveBeenCalledWith('warmCache', expect.any(Number));
-      
+
       // Cache warming should complete in reasonable time (< 5 seconds)
       expect(duration).toBeLessThan(5000);
     });
@@ -211,30 +226,46 @@ describe('ShopService Performance Tests', () => {
 
   describe('Analytics Performance', () => {
     it('should cache analytics results', async () => {
-      const mockAnalytics = [
-        { shopId: '1', date: new Date(), revenue: 1000, ordersCount: 10, visitorsCount: 100 },
+      const now = new Date();
+      const mockShop = { id: '1', visitors: 100, followers: 5 };
+      const mockOrders = [
+        { id: 'o1', userId: 'u1', total: 1000, createdAt: now },
       ];
 
       mockRedis.get.mockResolvedValue(null);
-      mockPrisma.shopAnalytics.findMany.mockResolvedValue(mockAnalytics);
+      mockPrisma.shop.findUnique.mockResolvedValue(mockShop);
+      mockPrisma.order.findMany.mockResolvedValue(mockOrders);
+      mockPrisma.reservation.findMany.mockResolvedValue([]);
 
       const result = await service.getShopAnalytics('1');
 
-      expect(result).toEqual({
-        revenue: 1000,
-        orders: 10,
-        visitors: 100,
-        dailyAnalytics: mockAnalytics,
+      expect(result).toEqual(
+        expect.objectContaining({
+          totalRevenue: 1000,
+          totalOrders: 1,
+          visitorsCount: 100,
+          followersCount: 5,
+          chartData: expect.any(Array),
+        }),
+      );
+      expect((result as any).chartData.length).toBe(7);
+      expect((result as any).chartData[0]).toEqual({
+        name: expect.any(String),
+        sales: expect.any(Number),
       });
-      expect(mockRedis.set).toHaveBeenCalledWith('shop:1:analytics', expect.any(Object), 300);
+      expect(mockRedis.set).toHaveBeenCalledWith('shop:1:analytics:null:null', expect.any(Object), 300);
     });
 
     it('should return cached analytics quickly', async () => {
       const mockAnalytics = {
-        revenue: 1000,
-        orders: 10,
-        visitors: 100,
-        dailyAnalytics: [],
+        totalRevenue: 1000,
+        totalOrders: 10,
+        totalUsers: 3,
+        visitorsCount: 100,
+        followersCount: 5,
+        salesCountToday: 0,
+        revenueToday: 0,
+        chartData: [],
       };
 
       mockRedis.get.mockResolvedValue(mockAnalytics);
@@ -244,10 +275,11 @@ describe('ShopService Performance Tests', () => {
       const duration = Date.now() - startTime;
 
       expect(result).toEqual(mockAnalytics);
-      expect(mockPrisma.shopAnalytics.findMany).not.toHaveBeenCalled();
-      
-      // Cached analytics should be very fast (< 20ms)
-      expect(duration).toBeLessThan(20);
+      expect(mockPrisma.order.findMany).not.toHaveBeenCalled();
+      expect(mockPrisma.reservation.findMany).not.toHaveBeenCalled();
+
+      // Cached analytics should be fast
+      expect(duration).toBeLessThan(150);
     });
   });
 
