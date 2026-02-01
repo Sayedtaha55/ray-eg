@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Analytics } from '@vercel/analytics/react';
 
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
 
@@ -119,7 +118,6 @@ const App: React.FC = () => {
 
         <Route path="*" element={suspense(<NotFoundPage />)} />
       </Routes>
-      <Analytics />
     </Router>
   );
 };
