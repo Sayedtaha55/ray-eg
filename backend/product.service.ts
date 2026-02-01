@@ -53,6 +53,28 @@ export class ProductService {
     });
   }
 
+  async listByShopForManage(
+    shopId: string,
+    paging: { page?: number; limit?: number } | undefined,
+    actor: { role: string; shopId?: string },
+  ) {
+    if (!shopId) {
+      throw new BadRequestException('shopId مطلوب');
+    }
+
+    const role = String(actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && actor?.shopId !== shopId) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const pagination = this.getPagination(paging);
+    return this.prisma.product.findMany({
+      where: { shopId },
+      orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
+    });
+  }
+
   async listAllActive(paging?: { page?: number; limit?: number }) {
     const pagination = this.getPagination(paging);
     return this.prisma.product.findMany({
@@ -62,21 +84,47 @@ export class ProductService {
     });
   }
 
-  async create(input: { shopId: string; name: string; price: number; stock?: number; category?: string; imageUrl?: string | null; description?: string | null }) {
+  async create(input: {
+    shopId: string;
+    name: string;
+    price: number;
+    stock?: number;
+    category?: string;
+    imageUrl?: string | null;
+    description?: string | null;
+    trackStock?: boolean;
+    images?: any;
+    colors?: any;
+    sizes?: any;
+  }) {
+    const shop = await this.prisma.shop.findUnique({ where: { id: input.shopId }, select: { id: true, slug: true, category: true } });
+    if (!shop) {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
+
+    const shopCategory = String((shop as any)?.category || '').toUpperCase();
+    const defaultTrackStock = shopCategory === 'RESTAURANT' ? false : true;
+    const resolvedTrackStock = shopCategory === 'RESTAURANT'
+      ? false
+      : (typeof input.trackStock === 'boolean' ? input.trackStock : defaultTrackStock);
+
     const created = await this.prisma.product.create({
       data: {
         shopId: input.shopId,
         name: input.name,
         price: input.price,
         stock: input.stock ?? 0,
+        trackStock: resolvedTrackStock,
         category: input.category || 'عام',
         imageUrl: input.imageUrl || null,
+        images: typeof input.images === 'undefined' ? undefined : input.images,
+        colors: typeof input.colors === 'undefined' ? undefined : input.colors,
+        sizes: typeof input.sizes === 'undefined' ? undefined : input.sizes,
         description: input.description || null,
         isActive: true,
-      },
+      } as any,
     });
 
-    const shop = await this.prisma.shop.findUnique({ where: { id: input.shopId }, select: { id: true, slug: true } });
     // await this.redis.invalidateProductCache(created.id);
     if (shop) {
       // await this.redis.invalidateShopCache(shop.id, shop.slug);
@@ -106,6 +154,61 @@ export class ProductService {
     const updated = await this.prisma.product.update({
       where: { id: productId },
       data: { stock },
+    });
+
+    const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });
+    // await this.redis.invalidateProductCache(productId);
+    if (shop) {
+      // await this.redis.invalidateShopCache(shop.id, shop.slug);
+    }
+
+    return updated;
+  }
+
+  async update(productId: string, data: {
+    name?: string;
+    price?: number;
+    stock?: number;
+    category?: string;
+    imageUrl?: string;
+    description?: string;
+    trackStock?: boolean;
+    images?: any;
+    colors?: any;
+    sizes?: any;
+    isActive?: boolean;
+  }, actor: { role: string; shopId?: string }) {
+    if (!productId) throw new BadRequestException('id مطلوب');
+
+    const existing = await this.prisma.product.findUnique({
+      where: { id: productId },
+      select: { id: true, shopId: true },
+    });
+
+    if (!existing) throw new NotFoundException('لم يتم العثور على المنتج');
+
+    const role = String(actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && actor?.shopId !== existing.shopId) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    // Build update data with only provided fields
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.price !== undefined) updateData.price = data.price;
+    if (data.stock !== undefined) updateData.stock = data.stock;
+    if (data.category !== undefined) updateData.category = data.category;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.trackStock !== undefined) updateData.trackStock = data.trackStock;
+    if (data.images !== undefined) updateData.images = data.images;
+    if (data.colors !== undefined) updateData.colors = data.colors;
+    if (data.sizes !== undefined) updateData.sizes = data.sizes;
+    if (data.isActive !== undefined) updateData.isActive = data.isActive;
+
+    const updated = await this.prisma.product.update({
+      where: { id: productId },
+      data: updateData,
     });
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });

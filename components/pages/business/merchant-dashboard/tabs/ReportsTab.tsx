@@ -1,13 +1,22 @@
 import React, { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
-type Props = { analytics: any; sales: any[] };
+type Props = { analytics: any; sales: any[]; reservations?: any[] };
 
-const ReportsTab: React.FC<Props> = ({ analytics, sales }) => {
+const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   const [range, setRange] = useState<'30d' | '6m' | '12m'>('6m');
 
   const safeSales = Array.isArray(sales) ? sales : [];
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
   const safeAnalytics = analytics || {};
+
+  const successfulStatuses = new Set(['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED']);
+  const isSuccessful = (s: any) => successfulStatuses.has(String(s?.status || '').toUpperCase());
+
+  const isReservationCompleted = (r: any) => {
+    const st = String(r?.status || '').trim().toUpperCase();
+    return st === 'COMPLETED' || st === 'COMPLETEDRESERVATION';
+  };
 
   const now = new Date();
   const start = new Date(now);
@@ -21,7 +30,12 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales }) => {
 
   const salesInRange = safeSales.filter((s: any) => {
     const ts = new Date(s.created_at || s.createdAt || 0).getTime();
-    return ts >= start.getTime() && ts <= now.getTime();
+    return ts >= start.getTime() && ts <= now.getTime() && isSuccessful(s);
+  });
+
+  const reservationsInRange = safeReservations.filter((r: any) => {
+    const ts = new Date(r.created_at || r.createdAt || 0).getTime();
+    return ts >= start.getTime() && ts <= now.getTime() && isReservationCompleted(r);
   });
 
   const rangeMonths = range === '12m' ? 12 : 6;
@@ -48,6 +62,14 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales }) => {
         monthlyBuckets[key] += Number(s.total || 0);
       }
     }
+
+    for (const r of reservationsInRange) {
+      const dt = new Date(r.created_at || r.createdAt || 0);
+      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`;
+      if (typeof monthlyBuckets[key] === 'number') {
+        monthlyBuckets[key] += Number(r.itemPrice || r.item_price || 0);
+      }
+    }
   }
 
   const monthlyData = range === '30d'
@@ -61,8 +83,10 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales }) => {
         };
       });
 
-  const totalRevenue = salesInRange.reduce((sum: number, s: any) => sum + Number(s.total || 0), 0);
-  const totalOrders = salesInRange.length;
+  const totalRevenue =
+    salesInRange.reduce((sum: number, s: any) => sum + Number(s.total || 0), 0) +
+    reservationsInRange.reduce((sum: number, r: any) => sum + Number(r.itemPrice || r.item_price || 0), 0);
+  const totalOrders = salesInRange.length + reservationsInRange.length;
   const avgBasket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
   const visitors = Number((safeAnalytics as any).visitorsCount ?? (safeAnalytics as any).visitors ?? 0);
@@ -76,11 +100,18 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales }) => {
 
   const prevSales = safeSales.filter((s: any) => {
     const ts = new Date(s.created_at || s.createdAt || 0).getTime();
-    return ts >= prevStart.getTime() && ts < prevEnd.getTime();
+    return ts >= prevStart.getTime() && ts < prevEnd.getTime() && isSuccessful(s);
   });
 
-  const prevRevenue = prevSales.reduce((sum: number, s: any) => sum + Number(s.total || 0), 0);
-  const prevOrders = prevSales.length;
+  const prevReservations = safeReservations.filter((r: any) => {
+    const ts = new Date(r.created_at || r.createdAt || 0).getTime();
+    return ts >= prevStart.getTime() && ts < prevEnd.getTime() && isReservationCompleted(r);
+  });
+
+  const prevRevenue =
+    prevSales.reduce((sum: number, s: any) => sum + Number(s.total || 0), 0) +
+    prevReservations.reduce((sum: number, r: any) => sum + Number(r.itemPrice || r.item_price || 0), 0);
+  const prevOrders = prevSales.length + prevReservations.length;
   const prevAvgBasket = prevOrders > 0 ? prevRevenue / prevOrders : 0;
   const prevConversion = visitors > 0 ? (prevOrders / visitors) * 100 : 0;
 

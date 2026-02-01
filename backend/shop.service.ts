@@ -1,6 +1,6 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
-// import { RedisService } from './redis/redis.service';
+import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
 import { MediaCompressionService } from './media-compression.service';
 import { EmailService } from './email.service';
@@ -13,7 +13,7 @@ import * as fs from 'fs';
 export class ShopService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    // @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(MonitoringService) private readonly monitoring: MonitoringService,
     @Inject(MediaCompressionService) private readonly media: MediaCompressionService,
     @Inject(EmailService) private readonly email: EmailService,
@@ -231,7 +231,6 @@ export class ShopService {
       this.monitoring.trackDatabase('findUnique', 'shops', duration, false);
       throw error;
     }
-
   }
 
   async updateShopSettings(
@@ -331,7 +330,7 @@ export class ShopService {
         },
       });
 
-      // await this.redis.invalidateShopCache(updated.id, updated.slug);
+      await this.redis.invalidateShopCache(updated.id, updated.slug);
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
@@ -398,6 +397,22 @@ export class ShopService {
       const governorate = typeof input?.governorate === 'string' ? input.governorate.trim() : '';
       const search = typeof input?.search === 'string' ? input.search.trim() : '';
 
+      const cacheKey = 'shops:list';
+      const useListCache = !category && !governorate && !search && typeof take !== 'number' && typeof skip !== 'number';
+      if (useListCache) {
+        try {
+          const cached = await this.redis.getShopsList();
+          if (cached) {
+            const duration = Date.now() - startTime;
+            this.monitoring.trackCache('getShopsList', cacheKey, true, duration);
+            this.monitoring.trackPerformance('getAllShops_cached', duration);
+            return cached;
+          }
+          this.monitoring.trackCache('getShopsList', cacheKey, false, Date.now() - startTime);
+        } catch {
+        }
+      }
+
       const shops = await this.prisma.shop.findMany({
         where: {
           status: 'APPROVED',
@@ -434,6 +449,13 @@ export class ShopService {
         ...(typeof take === 'number' ? { take } : {}),
         ...(typeof skip === 'number' ? { skip } : {}),
       });
+
+      if (useListCache) {
+        try {
+          await this.redis.cacheShopsList(shops, 1800);
+        } catch {
+        }
+      }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findMany', 'shops', duration, true);
@@ -480,7 +502,7 @@ export class ShopService {
         }
       }
 
-      // await this.redis.invalidateShopCache(updated.id, updated.slug);
+      await this.redis.invalidateShopCache(updated.id, updated.slug);
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
@@ -496,19 +518,23 @@ export class ShopService {
 
   async getShopBySlug(slug: string) {
     const startTime = Date.now();
-    
+
     try {
       // Try to get from cache first
-      // const cachedShop = await this.redis.getShopBySlug(slug);
-      // if (cachedShop) {
-      //   const duration = Date.now() - startTime;
-      //   this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
-      //   this.monitoring.trackPerformance('getShopBySlug_cached', duration);
-        
-        // Increment visitors counter asynchronously
-        // this.incrementVisitors(cachedShop.id).catch(console.error);
-        // return cachedShop;
-      // }
+      try {
+        const cachedShop = await this.redis.getShopBySlug(slug);
+        if (cachedShop) {
+          const duration = Date.now() - startTime;
+          this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
+          this.monitoring.trackPerformance('getShopBySlug_cached', duration);
+
+          // Increment visitors counter asynchronously
+          this.incrementVisitors(String((cachedShop as any).id)).catch(() => undefined);
+          return cachedShop;
+        }
+        this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, false, Date.now() - startTime);
+      } catch {
+      }
 
       // If not in cache, fetch from database
       const include = {
@@ -543,16 +569,19 @@ export class ShopService {
 
       if (shop) {
         // Cache the shop data for 1 hour
-        // await this.redis.cacheShop(shop.id, shop, 3600);
-        
+        try {
+          await this.redis.cacheShop(shop.id, shop, 3600);
+        } catch {
+        }
+
         // Increment visitors
-        // await this.incrementVisitors(shop.id);
+        await this.incrementVisitors(shop.id);
       }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findUnique', 'shops', duration, true);
       this.monitoring.trackPerformance('getShopBySlug_database', duration);
-      
+
       return shop;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -563,7 +592,7 @@ export class ShopService {
 
   async incrementVisitors(shopId: string) {
     const startTime = Date.now();
-    
+
     try {
       // Update database
       await this.prisma.shop.update({
@@ -576,12 +605,15 @@ export class ShopService {
       });
 
       // Update cache counter
-      // await this.redis.incrementCounter(`shop:${shopId}:visitors`);
-      
+      try {
+        await this.redis.incrementCounter(`shop:${shopId}:visitors`);
+      } catch {
+      }
+
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
       this.monitoring.trackPerformance('incrementVisitors', duration);
-      
+
       return true;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -662,7 +694,7 @@ export class ShopService {
         return { followed: true, shop: updatedShop };
       });
 
-      // await this.redis.invalidateShopCache(result.shop.id, result.shop.slug);
+      await this.redis.invalidateShopCache(result.shop.id, result.shop.slug);
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('transaction', 'shop_followers', duration, true);
@@ -743,7 +775,7 @@ export class ShopService {
 
   async updateShopDesign(shopId: string, designConfig: any) {
     const startTime = Date.now();
-    
+
     try {
       // Update database
       const updatedShop = await this.prisma.shop.update({
@@ -754,12 +786,12 @@ export class ShopService {
       });
 
       // Invalidate cache for this shop
-      // await this.redis.invalidateShopCache(shopId, updatedShop.slug);
-      
+      await this.redis.invalidateShopCache(shopId, (updatedShop as any).slug);
+
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
       this.monitoring.trackPerformance('updateShopDesign', duration);
-      
+
       return updatedShop;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -773,16 +805,20 @@ export class ShopService {
     const from = range?.from;
     const to = range?.to;
     const cacheKey = `shop:${shopId}:analytics:${from ? from.toISOString() : 'null'}:${to ? to.toISOString() : 'null'}`;
-    
+
     try {
       // Try to get from cache first (cache for 5 minutes)
-      // const cachedAnalytics = await this.redis.get(cacheKey);
-      // if (cachedAnalytics) {
-      //   const duration = Date.now() - startTime;
-      //   this.monitoring.trackCache('getShopAnalytics', cacheKey, true, duration);
-      //   this.monitoring.trackPerformance('getShopAnalytics_cached', duration);
-      //   return cachedAnalytics;
-      // }
+      try {
+        const cachedAnalytics = await this.redis.get(cacheKey);
+        if (cachedAnalytics) {
+          const duration = Date.now() - startTime;
+          this.monitoring.trackCache('getShopAnalytics', cacheKey, true, duration);
+          this.monitoring.trackPerformance('getShopAnalytics_cached', duration);
+          return cachedAnalytics;
+        }
+        this.monitoring.trackCache('getShopAnalytics', cacheKey, false, Date.now() - startTime);
+      } catch {
+      }
 
       const now = new Date();
       const effectiveTo = to && !Number.isNaN(to.getTime()) ? to : now;
@@ -793,9 +829,11 @@ export class ShopService {
         select: { id: true, visitors: true, followers: true },
       });
 
+      const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
       const ordersInRange = await this.prisma.order.findMany({
         where: {
           shopId,
+          status: { in: successfulOrderStatuses as any },
           createdAt: {
             gte: effectiveFrom,
             lte: effectiveTo,
@@ -805,9 +843,27 @@ export class ShopService {
         orderBy: { createdAt: 'asc' },
       });
 
-      const totalRevenue = ordersInRange.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-      const totalOrders = ordersInRange.length;
-      const userIds = new Set(ordersInRange.map((o) => String(o.userId)));
+      const reservationsInRange = await this.prisma.reservation.findMany({
+        where: {
+          shopId,
+          status: 'COMPLETED' as any,
+          createdAt: {
+            gte: effectiveFrom,
+            lte: effectiveTo,
+          },
+        },
+        select: { id: true, customerPhone: true, itemPrice: true, createdAt: true },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      const totalRevenue =
+        ordersInRange.reduce((sum, o) => sum + (Number(o.total) || 0), 0) +
+        reservationsInRange.reduce((sum, r) => sum + (Number((r as any).itemPrice) || 0), 0);
+      const totalOrders = ordersInRange.length + reservationsInRange.length;
+      const userIds = new Set<string>();
+      for (const o of ordersInRange) userIds.add(String(o.userId));
+      for (const r of reservationsInRange) userIds.add(String((r as any).customerPhone || ''));
+      userIds.delete('');
       const totalUsers = userIds.size;
 
       const todayStart = new Date();
@@ -819,8 +875,15 @@ export class ShopService {
         return t >= todayStart.getTime() && t < todayEnd.getTime();
       });
 
-      const salesCountToday = todayOrders.length;
-      const revenueToday = todayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const todayReservations = reservationsInRange.filter((r) => {
+        const t = new Date((r as any).createdAt).getTime();
+        return t >= todayStart.getTime() && t < todayEnd.getTime();
+      });
+
+      const salesCountToday = todayOrders.length + todayReservations.length;
+      const revenueToday =
+        todayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0) +
+        todayReservations.reduce((sum, r) => sum + (Number((r as any).itemPrice) || 0), 0);
 
       // Last 7 days chart (within available range)
       const chartFrom = new Date(effectiveTo);
@@ -840,6 +903,14 @@ export class ShopService {
         const key = dt.toISOString().slice(0, 10);
         if (typeof chartBuckets[key] === 'number') {
           chartBuckets[key] += Number(o.total) || 0;
+        }
+      }
+
+      for (const r of reservationsInRange) {
+        const dt = new Date((r as any).createdAt);
+        const key = dt.toISOString().slice(0, 10);
+        if (typeof chartBuckets[key] === 'number') {
+          chartBuckets[key] += Number((r as any).itemPrice) || 0;
         }
       }
 
@@ -865,12 +936,15 @@ export class ShopService {
       };
 
       // Cache analytics for 5 minutes
-      // await this.redis.set(cacheKey, result, 300);
-      
+      try {
+        await this.redis.set(cacheKey, result, 300);
+      } catch {
+      }
+
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findMany', 'orders', duration, true);
       this.monitoring.trackPerformance('getShopAnalytics_database', duration);
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -882,12 +956,12 @@ export class ShopService {
   // Cache management methods
   async clearShopCache(shopId: string, slug?: string) {
     const startTime = Date.now();
-    
+
     try {
-      // await this.redis.invalidateShopCache(shopId, slug);
-      
+      await this.redis.invalidateShopCache(shopId, slug);
+
       const duration = Date.now() - startTime;
-      this.monitoring.trackCache('invalidateShopCache', `shop:${shopId}`, false, duration);
+      this.monitoring.trackCache('invalidateShopCache', `shop:${shopId}`, true, duration);
       this.monitoring.trackPerformance('clearShopCache', duration);
     } catch (error) {
       const duration = Date.now() - startTime;
@@ -898,12 +972,12 @@ export class ShopService {
 
   async warmCache() {
     const startTime = Date.now();
-    
+
     try {
       // Pre-populate cache with popular shops
       const popularShops = await this.prisma.shop.findMany({
-        where: { 
-          isActive: true, 
+        where: {
+          isActive: true,
           status: 'APPROVED',
           visitors: { gte: 100 } // Popular shops
         },
@@ -918,16 +992,22 @@ export class ShopService {
 
       // Cache popular shops
       for (const shop of popularShops) {
-        // await this.redis.cacheShop(shop.id, shop, 3600);
+        try {
+          await this.redis.cacheShop(shop.id, shop, 3600);
+        } catch {
+        }
       }
 
       // Cache shops list
-      // await this.redis.cacheShopsList(popularShops, 1800);
-      
+      try {
+        await this.redis.cacheShopsList(popularShops, 1800);
+      } catch {
+      }
+
       const duration = Date.now() - startTime;
       this.monitoring.trackPerformance('warmCache', duration);
       this.monitoring.logBusiness('cache_warmed', { shopsCount: popularShops.length });
-      
+
       return popularShops.length;
     } catch (error) {
       const duration = Date.now() - startTime;

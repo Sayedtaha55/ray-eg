@@ -79,6 +79,13 @@ export interface Product {
   price: number;
   stock: number;
   imageUrl: string;
+  isActive?: boolean;
+  description?: string | null;
+  category?: string;
+  trackStock?: boolean;
+  images?: any;
+  colors?: any;
+  sizes?: any;
 }
 
 export interface Reservation {

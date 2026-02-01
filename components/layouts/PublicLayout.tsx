@@ -1,8 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home } from 'lucide-react';
-import { RayAssistant, CartDrawer } from '@/components';
+import RayAssistant from '@/components/pages/shared/RayAssistant';
+import CartDrawer from '@/components/pages/shared/CartDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';

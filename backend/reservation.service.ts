@@ -7,6 +7,8 @@ export class ReservationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private readonly RESERVATION_EXPIRY_MS = 24 * 60 * 60 * 1000;
+
   private getPagination(paging?: { page?: number; limit?: number }) {
     const page = typeof paging?.page === 'number' ? paging.page : undefined;
     const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
@@ -26,6 +28,23 @@ export class ReservationService {
     if (s === 'CANCELLED' || s === 'CANCELED' || s === 'EXPIRED') return 'CANCELLED';
     if (s === 'CONFIRMED') return 'CONFIRMED';
     return 'PENDING';
+  }
+
+  private async expireStaleReservations(extraWhere: any) {
+    const cutoff = new Date(Date.now() - this.RESERVATION_EXPIRY_MS);
+
+    try {
+      await this.prisma.reservation.updateMany({
+        where: {
+          ...(extraWhere || {}),
+          status: { in: ['PENDING', 'CONFIRMED'] as any },
+          createdAt: { lt: cutoff },
+        },
+        data: { status: 'CANCELLED' as any },
+      });
+    } catch {
+      // ignore
+    }
   }
 
   async create(input: {
@@ -143,6 +162,8 @@ export class ReservationService {
     const id = String(shopId || '').trim();
     if (!id) throw new BadRequestException('shopId مطلوب');
 
+    await this.expireStaleReservations({ shopId: id });
+
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { shopId: id },
@@ -170,6 +191,8 @@ export class ReservationService {
     const phone = String(customerPhone || '').trim();
     if (!phone) throw new BadRequestException('customerPhone مطلوب');
 
+    await this.expireStaleReservations({ customerPhone: phone });
+
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { customerPhone: phone },
@@ -184,7 +207,7 @@ export class ReservationService {
 
     const existing = await this.prisma.reservation.findUnique({
       where: { id: reservationId },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, status: true, createdAt: true },
     });
 
     if (!existing) throw new NotFoundException('الحجز غير موجود');
@@ -196,9 +219,34 @@ export class ReservationService {
 
     const normalized = this.normalizeStatus(status);
 
-    return this.prisma.reservation.update({
-      where: { id: reservationId },
-      data: { status: normalized as any },
-    });
+    const current = this.normalizeStatus(String((existing as any)?.status || ''));
+    const cutoff = new Date(Date.now() - this.RESERVATION_EXPIRY_MS);
+    const isStale =
+      (current === 'PENDING' || current === 'CONFIRMED') &&
+      new Date((existing as any).createdAt || 0).getTime() < cutoff.getTime();
+
+    if (isStale) {
+      await this.prisma.reservation.update({
+        where: { id: reservationId },
+        data: { status: 'CANCELLED' as any },
+      });
+      if (normalized === 'COMPLETED') {
+        throw new BadRequestException('انتهت صلاحية الحجز');
+      }
+      return this.prisma.reservation.findUnique({ where: { id: reservationId } });
+    }
+
+    if (current === 'COMPLETED' || current === 'CANCELLED') {
+      throw new BadRequestException('لا يمكن تعديل حالة هذا الحجز');
+    }
+
+    if (normalized === 'COMPLETED' || normalized === 'CANCELLED' || normalized === 'CONFIRMED') {
+      return this.prisma.reservation.update({
+        where: { id: reservationId },
+        data: { status: normalized as any },
+      });
+    }
+
+    throw new BadRequestException('حالة غير مدعومة');
   }
 }

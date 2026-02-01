@@ -456,7 +456,7 @@ export class AuthService implements OnModuleInit {
     return this.generateToken(result.user);
   }
 
-  async devMerchantLogin() {
+  async devMerchantLogin(opts?: { shopCategory?: IncomingShopCategory }) {
     const env = String(process.env.NODE_ENV || '').toLowerCase();
     const allowBootstrap =
       env !== 'production' &&
@@ -465,14 +465,30 @@ export class AuthService implements OnModuleInit {
       throw new ForbiddenException('Forbidden');
     }
 
-    const devEmail =
-      String(process.env.DEV_MERCHANT_EMAIL || '').trim().toLowerCase() || 'dev-merchant@ray.local';
-    const devName = String(process.env.DEV_MERCHANT_NAME || '').trim() || 'Dev Merchant';
-    const devShopName = String(process.env.DEV_MERCHANT_SHOP_NAME || '').trim() || 'Dev Shop';
+    const requestedCategory = opts?.shopCategory ? this.normalizeShopCategory(opts.shopCategory) : undefined;
+    const restaurantMode = String(requestedCategory || '').toUpperCase() === 'RESTAURANT';
+
+    const devEmail = (
+      restaurantMode
+        ? (String(process.env.DEV_RESTAURANT_MERCHANT_EMAIL || '').trim().toLowerCase() || '')
+        : (String(process.env.DEV_MERCHANT_EMAIL || '').trim().toLowerCase() || '')
+    ) || (restaurantMode ? 'dev-restaurant@ray.local' : 'dev-merchant@ray.local');
+
+    const devName = (
+      restaurantMode
+        ? (String(process.env.DEV_RESTAURANT_MERCHANT_NAME || '').trim() || '')
+        : (String(process.env.DEV_MERCHANT_NAME || '').trim() || '')
+    ) || (restaurantMode ? 'Dev Restaurant' : 'Dev Merchant');
+
+    const devShopName = (
+      restaurantMode
+        ? (String(process.env.DEV_RESTAURANT_SHOP_NAME || '').trim() || '')
+        : (String(process.env.DEV_MERCHANT_SHOP_NAME || '').trim() || '')
+    ) || (restaurantMode ? 'Dev Restaurant Shop' : 'Dev Shop');
     const devShopPhone = String(process.env.DEV_MERCHANT_SHOP_PHONE || '').trim() || '01000000000';
     const devGovernorate = String(process.env.DEV_MERCHANT_GOVERNORATE || '').trim() || 'Cairo';
     const devCity = String(process.env.DEV_MERCHANT_CITY || '').trim() || 'Cairo';
-    const devCategory = this.normalizeShopCategory(String(process.env.DEV_MERCHANT_CATEGORY || '').trim() as any);
+    const devCategory = requestedCategory || this.normalizeShopCategory(String(process.env.DEV_MERCHANT_CATEGORY || '').trim() as any);
 
     const resultUser = await this.prisma.$transaction(async (tx) => {
       let user = await tx.user.findUnique({ where: { email: devEmail } });
@@ -530,10 +546,17 @@ export class AuthService implements OnModuleInit {
         });
       } else {
         const status = String((shop as any)?.status || '').toUpperCase();
-        if (status !== 'APPROVED') {
+        const needsStatus = status !== 'APPROVED';
+        const existingCategory = String((shop as any)?.category || '').toUpperCase();
+        const desiredCategory = String(devCategory || '').toUpperCase();
+        const needsCategory = desiredCategory && existingCategory !== desiredCategory;
+        if (needsStatus || needsCategory) {
           shop = await tx.shop.update({
             where: { id: shop.id },
-            data: { status: 'APPROVED' as any },
+            data: {
+              ...(needsStatus ? { status: 'APPROVED' as any } : {}),
+              ...(needsCategory ? { category: devCategory } : {}),
+            } as any,
           });
         }
       }

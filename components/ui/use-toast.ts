@@ -1,4 +1,4 @@
-import { useToast as useBaseToast } from '@/components';
+import { useToast as useBaseToast } from '@/components/common/feedback/Toaster';
 
 type ToastVariant = 'default' | 'destructive';
 

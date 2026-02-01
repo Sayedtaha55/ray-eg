@@ -62,6 +62,16 @@ export function normalizeProductFromBackend(product: any) {
   const imageUrlRaw = product.imageUrl ?? product.image_url ?? product.image ?? '';
   const imageUrl = typeof imageUrlRaw === 'string' ? toBackendUrl(imageUrlRaw) : imageUrlRaw;
   const shopId = product.shopId ?? product.shop_id;
+  const isActiveRaw = product.isActive ?? product.is_active;
+  const isActive = typeof isActiveRaw === 'boolean' ? isActiveRaw : true;
+  const trackStock = typeof product?.trackStock === 'boolean'
+    ? product.trackStock
+    : (typeof product?.track_stock === 'boolean' ? product.track_stock : undefined);
+
+  const imagesRaw = product.images;
+  const images = Array.isArray(imagesRaw)
+    ? imagesRaw.map((u: any) => (typeof u === 'string' ? toBackendUrl(u) : u)).filter(Boolean)
+    : imagesRaw;
   return {
     ...product,
     imageUrl,
@@ -70,6 +80,11 @@ export function normalizeProductFromBackend(product: any) {
     shop_id: product.shop_id ?? shopId,
     stock: typeof product.stock === 'number' ? product.stock : Number(product.stock || 0),
     price: typeof product.price === 'number' ? product.price : Number(product.price || 0),
+    isActive,
+    is_active: product.is_active ?? isActive,
+    trackStock,
+    track_stock: product.track_stock ?? trackStock,
+    images,
   };
 }
 

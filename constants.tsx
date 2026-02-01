@@ -4,9 +4,11 @@ import { ApiService } from './services/api.service';
 export type ReceiptTheme = {
   shopName?: string;
   phone?: string;
+  city?: string;
   address?: string;
   logoDataUrl?: string;
   footerNote?: string;
+  vatRatePercent?: number;
 };
 
 export type NotificationSound = {
@@ -204,13 +206,21 @@ export const RayDB = {
     const sid = String(shopId || '').trim();
     if (!sid) return;
     const safe: ReceiptTheme = theme && typeof theme === 'object' ? theme : {};
+    const vatRatePercent = (() => {
+      const raw = (safe as any)?.vatRatePercent;
+      const n = typeof raw === 'number' ? raw : Number(raw);
+      if (!Number.isFinite(n)) return 14;
+      return Math.min(100, Math.max(0, n));
+    })();
     localStorage.setItem(`ray_receipt_theme:${sid}`,
       JSON.stringify({
         shopName: safe.shopName || '',
         phone: safe.phone || '',
+        city: safe.city || '',
         address: safe.address || '',
         logoDataUrl: safe.logoDataUrl || '',
         footerNote: safe.footerNote || '',
+        vatRatePercent,
       })
     );
     window.dispatchEvent(new Event('receipt-theme-update'));

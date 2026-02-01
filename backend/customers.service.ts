@@ -14,20 +14,26 @@ export class CustomersService {
     const sid = String(shopId || '').trim();
     if (!sid) return [];
 
+    const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
+
     const [orders, reservations] = await Promise.all([
       this.prisma.order.findMany({
-        where: { shopId: sid },
+        where: {
+          shopId: sid,
+          status: { in: successfulOrderStatuses as any },
+        },
         select: {
           userId: true,
           total: true,
         },
       }),
       this.prisma.reservation.findMany({
-        where: { shopId: sid },
+        where: { shopId: sid, status: 'COMPLETED' as any },
         select: {
           customerName: true,
           customerPhone: true,
           createdAt: true,
+          itemPrice: true,
         },
         orderBy: { createdAt: 'desc' },
       }),
@@ -133,6 +139,9 @@ export class CustomersService {
 
       if (!base.name && (r as any)?.customerName) base.name = (r as any).customerName;
 
+      base.orders = Number(base.orders || 0) + 1;
+      base.totalSpent = Number(base.totalSpent || 0) + Number((r as any)?.itemPrice || 0);
+
       customersById.set(customerId, base);
     }
 
@@ -140,6 +149,16 @@ export class CustomersService {
       if (String(c?.shopId || '').trim() !== sid) continue;
       const id = String(c?.id || '').trim();
       if (!id) continue;
+
+      const existing = customersById.get(id);
+      if (existing) {
+        customersById.set(id, {
+          ...existing,
+          status: this.statusOverrides.get(id) || existing?.status || c?.status || 'active',
+        });
+        continue;
+      }
+
       customersById.set(id, {
         id,
         name: c?.name || 'عميل',

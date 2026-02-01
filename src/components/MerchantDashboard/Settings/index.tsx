@@ -44,35 +44,49 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
   const receiptShopId = String(adminShopId || shop?.id || '');
   const [receiptShopName, setReceiptShopName] = useState('');
   const [receiptPhone, setReceiptPhone] = useState('');
+  const [receiptCity, setReceiptCity] = useState('');
   const [receiptAddress, setReceiptAddress] = useState('');
   const [receiptLogoDataUrl, setReceiptLogoDataUrl] = useState('');
   const [receiptFooterNote, setReceiptFooterNote] = useState('');
+  const [receiptVatRatePercent, setReceiptVatRatePercent] = useState('14');
   const [savingReceiptTheme, setSavingReceiptTheme] = useState(false);
+
+  const resolvedVatRatePercent = (() => {
+    const n = Number(receiptVatRatePercent);
+    if (!Number.isFinite(n)) return 14;
+    return Math.min(100, Math.max(0, n));
+  })();
 
   const lastSavedRef = useRef({
     shopName: '',
     phone: '',
+    city: '',
     address: '',
     logoDataUrl: '',
     footerNote: '',
+    vatRatePercent: '14',
   });
 
   useEffect(() => {
     const theme = RayDB.getReceiptTheme(receiptShopId);
     setReceiptShopName(String((theme as any)?.shopName || shop?.name || ''));
     setReceiptPhone(String((theme as any)?.phone || shop?.phone || ''));
+    setReceiptCity(String((theme as any)?.city || shop?.city || ''));
     setReceiptAddress(String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
     setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
     setReceiptFooterNote(String((theme as any)?.footerNote || ''));
+    setReceiptVatRatePercent(String((theme as any)?.vatRatePercent ?? 14));
 
     lastSavedRef.current = {
       shopName: String((theme as any)?.shopName || shop?.name || ''),
       phone: String((theme as any)?.phone || shop?.phone || ''),
+      city: String((theme as any)?.city || shop?.city || ''),
       address: String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''),
       logoDataUrl: String((theme as any)?.logoDataUrl || ''),
       footerNote: String((theme as any)?.footerNote || ''),
+      vatRatePercent: String((theme as any)?.vatRatePercent ?? 14),
     };
-  }, [receiptShopId, shop?.name, shop?.phone, shop?.addressDetailed, shop?.address_detailed]);
+  }, [receiptShopId, shop?.name, shop?.phone, shop?.city, shop?.addressDetailed, shop?.address_detailed]);
 
   const emitReceiptChanges = (count: number) => {
     try {
@@ -90,11 +104,40 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     const count =
       (String(receiptShopName) !== String(baseline.shopName) ? 1 : 0) +
       (String(receiptPhone) !== String(baseline.phone) ? 1 : 0) +
+      (String(receiptCity) !== String(baseline.city) ? 1 : 0) +
       (String(receiptAddress) !== String(baseline.address) ? 1 : 0) +
       (String(receiptLogoDataUrl) !== String(baseline.logoDataUrl) ? 1 : 0) +
-      (String(receiptFooterNote) !== String(baseline.footerNote) ? 1 : 0);
+      (String(receiptFooterNote) !== String(baseline.footerNote) ? 1 : 0) +
+      (String(receiptVatRatePercent) !== String(baseline.vatRatePercent) ? 1 : 0);
     emitReceiptChanges(count);
-  }, [receiptShopName, receiptPhone, receiptAddress, receiptLogoDataUrl, receiptFooterNote]);
+  }, [receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent]);
+
+  useEffect(() => {
+    if (!receiptShopId) return;
+    if (savingReceiptTheme) return;
+
+    const t = window.setTimeout(() => {
+      try {
+        RayDB.setReceiptTheme(receiptShopId, {
+          shopName: receiptShopName,
+          phone: receiptPhone,
+          city: receiptCity,
+          address: receiptAddress,
+          logoDataUrl: receiptLogoDataUrl,
+          footerNote: receiptFooterNote,
+          vatRatePercent: resolvedVatRatePercent,
+        });
+      } catch {
+      }
+    }, 250);
+
+    return () => {
+      try {
+        window.clearTimeout(t);
+      } catch {
+      }
+    };
+  }, [receiptShopId, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent, resolvedVatRatePercent, savingReceiptTheme]);
 
   const handlePickReceiptLogo = () => {
     receiptLogoInputRef.current?.click();
@@ -124,17 +167,21 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
       RayDB.setReceiptTheme(receiptShopId, {
         shopName: receiptShopName,
         phone: receiptPhone,
+        city: receiptCity,
         address: receiptAddress,
         logoDataUrl: receiptLogoDataUrl,
         footerNote: receiptFooterNote,
+        vatRatePercent: resolvedVatRatePercent,
       });
 
       lastSavedRef.current = {
         shopName: String(receiptShopName),
         phone: String(receiptPhone),
+        city: String(receiptCity),
         address: String(receiptAddress),
         logoDataUrl: String(receiptLogoDataUrl),
         footerNote: String(receiptFooterNote),
+        vatRatePercent: String(receiptVatRatePercent),
       };
       emitReceiptChanges(0);
       toast({ title: 'تم الحفظ', description: 'تم حفظ ثيم الفاتورة بنجاح' });
@@ -159,7 +206,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
       }
     };
     register();
-  }, [receiptShopId, receiptShopName, receiptPhone, receiptAddress, receiptLogoDataUrl, receiptFooterNote]);
+  }, [receiptShopId, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent]);
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
@@ -179,6 +226,24 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
               <Label htmlFor="receiptPhone">هاتف الفاتورة</Label>
               <Input id="receiptPhone" value={receiptPhone} onChange={(e) => setReceiptPhone(e.target.value)} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="receiptCity">مدينة الفاتورة</Label>
+            <Input id="receiptCity" value={receiptCity} onChange={(e) => setReceiptCity(e.target.value)} placeholder="مثال: القاهرة" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="receiptVatRatePercent">نسبة الضريبة (%)</Label>
+            <Input
+              id="receiptVatRatePercent"
+              type="number"
+              min={0}
+              max={100}
+              value={receiptVatRatePercent}
+              onChange={(e) => setReceiptVatRatePercent(e.target.value)}
+              placeholder="14"
+            />
           </div>
 
           <div className="space-y-2">

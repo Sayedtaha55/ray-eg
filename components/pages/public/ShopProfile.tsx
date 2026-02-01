@@ -1,9 +1,9 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
   Star, ChevronRight, X, Plus, Check, Heart, Users, 
   CalendarCheck, Eye, Layout, Palette, Layers, MousePointer2, 
@@ -11,7 +11,8 @@ import {
   Info, Clock, MapPin, Phone, Camera, Menu
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
-import { ShopGallery as ShopGalleryComponent, useToast } from '@/components';
+import ShopGalleryComponent from '@/components/features/shop/ShopGallery';
+import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
 import { Skeleton } from '@/components/common/ui';
 
@@ -71,18 +72,46 @@ const scopeCss = (css: string, scopeSelector: string) => {
   });
 };
 
-const ProductCard: React.FC<{ 
-  product: Product, 
-  design: ShopDesign, 
-  offer?: Offer,
-  onAdd: (p: Product, price: number) => void,
-  isAdded: boolean,
-  onReserve: (p: any) => void
-}> = ({ product, design, offer, onAdd, isAdded, onReserve }) => {
-  const [isFavorite, setIsFavorite] = useState(false);
+const ProductCard = React.memo(function ProductCard({
+  product,
+  design,
+  offer,
+  onAdd,
+  isAdded,
+  onReserve,
+  disableMotion,
+}: {
+  product: Product;
+  design: ShopDesign;
+  offer?: Offer;
+  onAdd: (p: Product, price: number) => void;
+  isAdded: boolean;
+  onReserve: (p: any) => void;
+  disableMotion?: boolean;
+}) {
+  const [isFavorite, setIsFavorite] = useState(() => {
+    try {
+      const favs = RayDB.getFavorites();
+      return Array.isArray(favs) ? favs.includes(product.id) : false;
+    } catch {
+      return false;
+    }
+  });
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
+
+  const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
+  const isVisible = (key: string, fallback: boolean = true) => {
+    if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
+    if (!(key in elementsVisibility)) return fallback;
+    return coerceBoolean(elementsVisibility[key], fallback);
+  };
+
+  const showPrice = isVisible('productCardPrice', true);
+  const showStock = isVisible('productCardStock', true);
+  const showAddToCart = isVisible('productCardAddToCart', true);
+  const showReserve = isVisible('productCardReserve', true);
 
   const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (ShopDesign['productDisplay'] | undefined);
   const displayMode = productDisplay || (design.layout === 'minimal' ? 'minimal' : 'cards');
@@ -93,11 +122,6 @@ const ProductCard: React.FC<{
   const isModern = design.layout === 'modern';
   const isBold = design.layout === 'bold';
 
-  useEffect(() => {
-    const favs = RayDB.getFavorites();
-    setIsFavorite(favs.includes(product.id));
-  }, [product.id]);
-
   const toggleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     const state = RayDB.toggleFavorite(product.id);
@@ -105,6 +129,19 @@ const ProductCard: React.FC<{
   };
 
   const currentPrice = offer ? offer.newPrice : product.price;
+
+  const trackStock = typeof (product as any)?.trackStock === 'boolean'
+    ? (product as any).trackStock
+    : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
+  const rawStock = typeof (product as any)?.stock === 'number' ? (product as any).stock : undefined;
+  const stockLabel = !trackStock ? 'متاح' : (rawStock ?? 0) <= 0 ? 'نفد' : String(rawStock);
+  const stockCls = !trackStock
+    ? 'bg-emerald-50 text-emerald-700'
+    : (rawStock ?? 0) <= 0
+      ? 'bg-slate-900 text-white'
+      : (rawStock ?? 0) < 5
+        ? 'bg-red-500 text-white'
+        : 'bg-white/90 text-slate-900';
 
   const goToProduct = () => {
     const sid = String(slug || '').trim();
@@ -116,16 +153,19 @@ const ProductCard: React.FC<{
     navigate(`/product/${product.id}`);
   };
 
+  const Wrapper: any = disableMotion ? 'div' : MotionDiv;
+  const motionProps = disableMotion ? {} : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
+
   if (isCardless) {
     return (
-      <MotionDiv
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <Wrapper
+        {...motionProps}
         className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
       >
         <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
           <img
             loading="lazy"
+            decoding="async"
             src={product.imageUrl || (product as any).image_url}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
             alt={product.name}
@@ -146,26 +186,33 @@ const ProductCard: React.FC<{
             <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
 
+          {showStock && (
+            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full font-black text-[10px] shadow-lg ${stockCls}`}>
+              {stockLabel}
+            </div>
+          )}
+
           <div className="absolute inset-x-0 bottom-0 bg-slate-900/70 backdrop-blur-sm px-4 py-3">
             <p className="text-white font-black text-[11px] md:text-sm tracking-wide uppercase line-clamp-1 text-center">
               {product.name}
             </p>
-            <div className="mt-1 flex items-center justify-center gap-3">
-              {offer ? (
-                <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span>
-              ) : null}
-              <span className="text-white font-black text-sm md:text-base">ج.م {currentPrice}</span>
-            </div>
+            {showPrice && (
+              <div className="mt-1 flex items-center justify-center gap-3">
+                {offer ? (
+                  <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span>
+                ) : null}
+                <span className="text-white font-black text-sm md:text-base">ج.م {currentPrice}</span>
+              </div>
+            )}
           </div>
         </div>
-      </MotionDiv>
+      </Wrapper>
     );
   }
 
   return (
-    <MotionDiv 
-      initial={{ opacity: 0, y: 20 }} 
-      animate={{ opacity: 1, y: 0 }} 
+    <Wrapper 
+      {...motionProps}
       className={`group relative transition-all duration-500 overflow-hidden ${
         isList ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 p-3 md:p-4 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2rem]' :
         isCardless ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 py-3 md:py-4 border-b border-slate-100 bg-transparent rounded-none' :
@@ -187,6 +234,7 @@ const ProductCard: React.FC<{
       >
         <img 
           loading="lazy"
+          decoding="async"
           src={product.imageUrl || (product as any).image_url} 
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]" 
           alt={product.name} 
@@ -212,6 +260,12 @@ const ProductCard: React.FC<{
         >
            <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? "currentColor" : "none"} />
         </button>
+
+        {showStock && (
+          <div className={`absolute top-2 right-2 px-2 py-1 rounded-full font-black text-[9px] md:text-[10px] shadow-lg ${stockCls}`}>
+            {stockLabel}
+          </div>
+        )}
       </div>
 
       <div className={`${isList || isCardless ? 'flex-1 flex flex-col text-right' : `p-2 md:p-4 flex flex-col flex-1 text-right ${isMinimal ? 'items-end' : ''}`}`}>
@@ -220,38 +274,46 @@ const ProductCard: React.FC<{
         </h4>
         
         <div className="mt-auto w-full">
-          <div className={`flex items-center justify-between flex-row-reverse mb-2 md:mb-3 ${isMinimal ? 'flex-col items-end gap-1' : ''}`}>
-             <div className="text-right">
+          {showPrice && (
+            <div className={`flex items-center justify-between flex-row-reverse mb-2 md:mb-3 ${isMinimal ? 'flex-col items-end gap-1' : ''}`}>
+              <div className="text-right">
                 {offer && <p className="text-slate-300 line-through text-[8px] md:text-[10px] font-bold">ج.م {product.price}</p>}
                 <span className={`font-black tracking-tighter ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`} style={{ color: offer ? '#BD00FF' : design.primaryColor }}>
                   ج.م {currentPrice}
                 </span>
-             </div>
-          </div>
-          
-          <div className="flex gap-1.5 md:gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
-              className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
-                isAdded ? 'bg-green-500' : 'bg-slate-900'
-              } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
-            >
-              {isAdded ? <Check size={12} /> : <Plus size={12} />}
-              <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
-              className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
-              style={{ backgroundColor: design.primaryColor }}
-            >
-              <CalendarCheck size={12} /> حجز
-            </button>
-          </div>
+              </div>
+            </div>
+          )}
+
+          {(showAddToCart || showReserve) && (
+            <div className="flex gap-1.5 md:gap-2">
+              {showAddToCart && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
+                  className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
+                    isAdded ? 'bg-green-500' : 'bg-slate-900'
+                  } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
+                >
+                  {isAdded ? <Check size={12} /> : <Plus size={12} />}
+                  <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
+                </button>
+              )}
+              {showReserve && (
+                <button 
+                  onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
+                  className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
+                  style={{ backgroundColor: design.primaryColor }}
+                >
+                  <CalendarCheck size={12} /> حجز
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
-    </MotionDiv>
+    </Wrapper>
   );
-};
+});
 
 const ShopProfile: React.FC = () => {
   const { slug } = useParams();
@@ -269,12 +331,19 @@ const ShopProfile: React.FC = () => {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [hasFollowed, setHasFollowed] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
 
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
+  const [productsTabLoading, setProductsTabLoading] = useState(false);
+  const [productsTabError, setProductsTabError] = useState<string | null>(null);
+  const [galleryTabLoading, setGalleryTabLoading] = useState(false);
+  const [galleryTabError, setGalleryTabError] = useState<string | null>(null);
+
+  const prefersReducedMotion = useReducedMotion();
 
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
@@ -328,7 +397,34 @@ const ShopProfile: React.FC = () => {
             secondaryColor: '#BD00FF',
             bannerUrl: '/placeholder-banner.jpg'
           };
-          setCurrentDesign(design);
+          const canApplyPreview = (() => {
+            try {
+              const rawUser = localStorage.getItem('ray_user');
+              if (!rawUser) return false;
+              const user = JSON.parse(rawUser);
+              const userShopId = String(user?.shopId || user?.shop_id || '').trim();
+              return userShopId && userShopId === String(currentShopData?.id || '').trim();
+            } catch {
+              return false;
+            }
+          })();
+
+          if (canApplyPreview) {
+            try {
+              const rawPreview = localStorage.getItem('ray_builder_preview_design');
+              const parsed = rawPreview ? JSON.parse(rawPreview) : null;
+              const previewDesign = parsed && typeof parsed === 'object' ? parsed : null;
+              if (previewDesign) {
+                setCurrentDesign({ ...design, ...previewDesign });
+              } else {
+                setCurrentDesign(design);
+              }
+            } catch {
+              setCurrentDesign(design);
+            }
+          } else {
+            setCurrentDesign(design);
+          }
 
           // Reset lazy-load state
           productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
@@ -338,6 +434,10 @@ const ShopProfile: React.FC = () => {
           setGalleryImages([]);
           setHasMoreProducts(true);
           setLoadingMoreProducts(false);
+          setProductsTabLoading(false);
+          setProductsTabError(null);
+          setGalleryTabLoading(false);
+          setGalleryTabError(null);
         } else {
           setError(true);
         }
@@ -353,17 +453,46 @@ const ShopProfile: React.FC = () => {
   }, [slug]);
 
   useEffect(() => {
+    const applyPreview = () => {
+      const sid = String(shop?.id || '').trim();
+      if (!sid) return;
+      try {
+        const rawUser = localStorage.getItem('ray_user');
+        if (!rawUser) return;
+        const user = JSON.parse(rawUser);
+        const userShopId = String(user?.shopId || user?.shop_id || '').trim();
+        if (!userShopId || userShopId !== sid) return;
+
+        const rawPreview = localStorage.getItem('ray_builder_preview_design');
+        const parsed = rawPreview ? JSON.parse(rawPreview) : null;
+        const previewDesign = parsed && typeof parsed === 'object' ? parsed : null;
+        if (!previewDesign) return;
+        setCurrentDesign((prev) => (prev ? ({ ...prev, ...previewDesign } as any) : (previewDesign as any)));
+      } catch {
+      }
+    };
+
+    applyPreview();
+    window.addEventListener('ray-builder-preview-update', applyPreview);
+    return () => window.removeEventListener('ray-builder-preview-update', applyPreview);
+  }, [shop?.id]);
+
+  useEffect(() => {
     const ensureTabData = async () => {
       const shopId = String(shop?.id || '').trim();
       if (!shopId) return;
 
-      const key = `${activeTab}:${shopId}`;
+      const tab = activeTab;
+
+      const key = `${tab}:${shopId}`;
       const state = tabLoadStateRef.current[key] || { loaded: false, inFlight: false };
       if (state.loaded || state.inFlight) return;
       tabLoadStateRef.current[key] = { ...state, inFlight: true };
 
       try {
-        if (activeTab === 'products') {
+        if (tab === 'products') {
+          setProductsTabError(null);
+          setProductsTabLoading(true);
           const page = productsPagingRef.current.page;
           const limit = productsPagingRef.current.limit;
           const prodData = await ApiService.getProducts(shopId, { page, limit });
@@ -374,18 +503,81 @@ const ShopProfile: React.FC = () => {
 
           const shopOffers = await ApiService.getOffers({ take: 100, skip: 0, shopId });
           setOffers(Array.isArray(shopOffers) ? shopOffers : []);
-        } else if (activeTab === 'gallery') {
+        } else if (tab === 'gallery') {
+          setGalleryTabError(null);
+          setGalleryTabLoading(true);
           const galleryData = await ApiService.getShopGallery(shopId);
           setGalleryImages(Array.isArray(galleryData) ? galleryData : []);
         }
-      } catch {
-      } finally {
         tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
+      } catch (err: any) {
+        if (tab === 'products') {
+          setProductsTabError(String(err?.message || 'فشل تحميل المنتجات'));
+        } else if (tab === 'gallery') {
+          setGalleryTabError(String(err?.message || 'فشل تحميل معرض الصور'));
+        }
+        tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+      } finally {
+        if (tab === 'products') {
+          setProductsTabLoading(false);
+        } else if (tab === 'gallery') {
+          setGalleryTabLoading(false);
+        }
       }
     };
 
     ensureTabData();
   }, [activeTab, shop?.id]);
+
+  const retryProductsTab = async () => {
+    const shopId = String(shop?.id || '').trim();
+    if (!shopId) return;
+    const key = `products:${shopId}`;
+    tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+    setProductsTabError(null);
+    setActiveCategory('الكل');
+    setActiveTab('products');
+    try {
+      setProductsTabLoading(true);
+      const page = 1;
+      const limit = productsPagingRef.current.limit;
+      productsPagingRef.current.page = 1;
+      const prodData = await ApiService.getProducts(shopId, { page, limit });
+      const list = Array.isArray(prodData) ? prodData : [];
+      setProducts(list);
+      productsPagingRef.current.hasMore = list.length >= limit;
+      setHasMoreProducts(list.length >= limit);
+
+      const shopOffers = await ApiService.getOffers({ take: 100, skip: 0, shopId });
+      setOffers(Array.isArray(shopOffers) ? shopOffers : []);
+      tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
+    } catch (err: any) {
+      setProductsTabError(String(err?.message || 'فشل تحميل المنتجات'));
+      tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+    } finally {
+      setProductsTabLoading(false);
+    }
+  };
+
+  const retryGalleryTab = async () => {
+    const shopId = String(shop?.id || '').trim();
+    if (!shopId) return;
+    const key = `gallery:${shopId}`;
+    tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+    setGalleryTabError(null);
+    setActiveTab('gallery');
+    try {
+      setGalleryTabLoading(true);
+      const galleryData = await ApiService.getShopGallery(shopId);
+      setGalleryImages(Array.isArray(galleryData) ? galleryData : []);
+      tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
+    } catch (err: any) {
+      setGalleryTabError(String(err?.message || 'فشل تحميل معرض الصور'));
+      tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+    } finally {
+      setGalleryTabLoading(false);
+    }
+  };
 
   const loadMoreProducts = async () => {
     const shopId = String(shop?.id || '').trim();
@@ -404,7 +596,8 @@ const ShopProfile: React.FC = () => {
       productsPagingRef.current.page = nextPage;
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
-    } catch {
+    } catch (err: any) {
+      addToast(String(err?.message || 'فشل تحميل المزيد من المنتجات'), 'error');
     } finally {
       productsPagingRef.current.loadingMore = false;
       setLoadingMoreProducts(false);
@@ -426,6 +619,106 @@ const ShopProfile: React.FC = () => {
       }
     } catch (e) {}
   };
+
+  const customCssRaw = typeof (currentDesign as any)?.customCss === 'string' ? String((currentDesign as any).customCss) : '';
+  const scopedCustomCss = useMemo(() => {
+    return customCssRaw ? scopeCss(customCssRaw, '#shop-profile-root') : '';
+  }, [customCssRaw]);
+
+  const categories = useMemo(() => {
+    const cats = new Set<string>();
+    for (const p of products) {
+      cats.add(String((p as any)?.category || 'عام'));
+    }
+    return ['الكل', ...Array.from(cats)];
+  }, [products]);
+
+  const filteredProducts = useMemo(() => {
+    if (activeCategory === 'الكل') return products;
+    return products.filter((p) => String((p as any)?.category || 'عام') === String(activeCategory));
+  }, [activeCategory, products]);
+
+  const offersByProductId = useMemo(() => {
+    const map = new Map<string, Offer>();
+    for (const o of offers) {
+      const pid = String((o as any)?.productId || '').trim();
+      if (pid) map.set(pid, o);
+    }
+    return map;
+  }, [offers]);
+
+  const handleAddToCart = useCallback((prod: Product, price: number) => {
+    if (!shop) return;
+    setAddedItemId((prod as any)?.id);
+    RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
+    setTimeout(() => setAddedItemId(null), 1500);
+  }, [shop]);
+
+  const handleReserve = useCallback((data: any) => {
+    if (!shop) return;
+    setSelectedProductForRes({ ...data, shopId: shop.id, shopName: shop.name });
+  }, [shop]);
+
+  const handleFollow = useCallback(async () => {
+    if (!shop || followLoading || hasFollowed) return;
+
+    const token = (() => {
+      try {
+        return localStorage.getItem('ray_token') || '';
+      } catch {
+        return '';
+      }
+    })();
+    if (!token) {
+      const q = new URLSearchParams();
+      q.set('returnTo', `${location.pathname}${location.search || ''}`);
+      q.set('followShopId', String(shop.id));
+      addToast('سجّل الدخول لمتابعة المتجر', 'info');
+      navigate(`/login?${q.toString()}`);
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      await ApiService.followShop(shop.id);
+      setHasFollowed(true);
+    } catch (err: any) {
+      const status = typeof err?.status === 'number' ? err.status : undefined;
+      const msg = String(err?.message || '').toLowerCase();
+      if (status === 401 || msg.includes('unauthorized')) {
+        const q = new URLSearchParams();
+        q.set('returnTo', `${location.pathname}${location.search || ''}`);
+        q.set('followShopId', String(shop.id));
+        addToast('سجّل الدخول لمتابعة المتجر', 'info');
+        navigate(`/login?${q.toString()}`);
+        return;
+      }
+      addToast('تعذر متابعة المتجر', 'error');
+    } finally {
+      setFollowLoading(false);
+    }
+  }, [addToast, followLoading, hasFollowed, location.pathname, location.search, navigate, shop]);
+
+  const schemaJson = useMemo(() => {
+    try {
+      return JSON.stringify(schema);
+    } catch {
+      return '';
+    }
+  }, [
+    pageUrl,
+    shop?.name,
+    shopDescription,
+    imageUrl,
+    shop?.phone,
+    shop?.addressDetailed,
+    shop?.city,
+    shop?.governorate,
+    shop?.latitude,
+    shop?.longitude,
+    shop?.openingHours,
+    shop?.category,
+  ]);
 
   if (loading) return (
     <div className="min-h-screen bg-white" dir="rtl">
@@ -497,19 +790,20 @@ const ShopProfile: React.FC = () => {
     return coerceBoolean(elementsVisibility[key], fallback);
   };
 
-  const showHeaderNav = isVisible('headerNav', true);
+  const showHeaderNavHome = isVisible('headerNavHome', true);
+  const showHeaderNavGallery = isVisible('headerNavGallery', true);
+  const showHeaderNavInfo = isVisible('headerNavInfo', true);
+  const showHeaderNav = showHeaderNavHome || showHeaderNavGallery || showHeaderNavInfo;
   const showHeaderChatButton = isVisible('headerChatButton', true);
   const showHeaderShareButton = isVisible('headerShareButton', true);
   const showFloatingChatButton = isVisible('floatingChatButton', true);
+  const showShopFollowersCount = isVisible('shopFollowersCount', true);
+  const showShopFollowButton = isVisible('shopFollowButton', true);
   const showFooter = isVisible('footer', true);
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
   const showFooterContact = isVisible('footerContact', true);
 
-  const customCssRaw = typeof (currentDesign as any)?.customCss === 'string' ? String((currentDesign as any).customCss) : '';
-  const scopedCustomCss = customCssRaw ? scopeCss(customCssRaw, '#shop-profile-root') : '';
-
-  const categories = ['الكل', ...new Set(products.map(p => (p as any).category || 'عام'))];
-  const filteredProducts = activeCategory === 'الكل' ? products : products.filter(p => (p as any).category === activeCategory);
+  const disableCardMotion = Boolean(prefersReducedMotion) || filteredProducts.length > 30;
 
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
@@ -536,7 +830,7 @@ const ShopProfile: React.FC = () => {
       <meta property="og:image" content={imageUrl} />
       <meta property="og:url" content={pageUrl} />
       <meta property="og:type" content="website" />
-      <script type="application/ld+json">{JSON.stringify(schema)}</script>
+      <script type="application/ld+json">{schemaJson}</script>
       <div
         id="shop-profile-root"
         className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`}
@@ -589,32 +883,38 @@ const ShopProfile: React.FC = () => {
             
             {showHeaderNav && (
               <nav className="hidden md:flex items-center gap-6 md:gap-8">
-                <button
-                  onClick={() => setActiveTab('products')}
-                  style={activeTab === 'products' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                >
-                  {isRestaurant ? "المنيو" : "المعروضات"}
-                </button>
-                <button
-                  onClick={() => setActiveTab('gallery')}
-                  style={activeTab === 'gallery' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                >
-                  معرض الصور
-                </button>
-                <button
-                  onClick={() => setActiveTab('info')}
-                  style={activeTab === 'info' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                  className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                >
-                  معلومات المتجر
-                </button>
+                {showHeaderNavHome && (
+                  <button
+                    onClick={() => setActiveTab('products')}
+                    style={activeTab === 'products' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                  >
+                    {isRestaurant ? "المنيو" : "المعروضات"}
+                  </button>
+                )}
+                {showHeaderNavGallery && (
+                  <button
+                    onClick={() => setActiveTab('gallery')}
+                    style={activeTab === 'gallery' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                  >
+                    معرض الصور
+                  </button>
+                )}
+                {showHeaderNavInfo && (
+                  <button
+                    onClick={() => setActiveTab('info')}
+                    style={activeTab === 'info' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
+                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
+                  >
+                    معلومات المتجر
+                  </button>
+                )}
               </nav>
             )}
             
             <div className="flex items-center gap-2 md:gap-3">
-              {showHeaderNav && (
+              {(showHeaderNav || showHeaderShareButton) && (
                 <button
                   onClick={() => setIsHeaderMenuOpen((v) => !v)}
                   className="md:hidden p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
@@ -624,6 +924,15 @@ const ShopProfile: React.FC = () => {
                   {isHeaderMenuOpen ? <X size={16} /> : <Menu size={16} />}
                 </button>
               )}
+              <button
+                onClick={() => navigate('/')}
+                className="p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
+                style={{ borderColor: `${headerTextColor}15` }}
+                aria-label="العودة للرئيسية"
+                title="العودة للرئيسية"
+              >
+                <Home size={16} className="md:w-4 md:h-4" />
+              </button>
               <button
                 onClick={() => navigate(-1)}
                 className="hidden md:inline-flex p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
@@ -654,7 +963,7 @@ const ShopProfile: React.FC = () => {
             </div>
           </div>
 
-          {showHeaderNav && isHeaderMenuOpen && (
+          {(showHeaderNav || showHeaderShareButton) && isHeaderMenuOpen && (
             <>
               <div
                 className="fixed inset-0 z-[110] md:hidden"
@@ -662,27 +971,33 @@ const ShopProfile: React.FC = () => {
               />
               <div className="md:hidden mt-3 relative z-[121]">
                 <div className="rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md shadow-lg overflow-hidden">
-                  <button
-                    onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'products' ? 'bg-slate-50' : 'bg-transparent'}`}
-                    style={{ color: headerTextColor }}
-                  >
-                    {isRestaurant ? 'المنيو' : 'المعروضات'}
-                  </button>
-                  <button
-                    onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'gallery' ? 'bg-slate-50' : 'bg-transparent'}`}
-                    style={{ color: headerTextColor }}
-                  >
-                    معرض الصور
-                  </button>
-                  <button
-                    onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'info' ? 'bg-slate-50' : 'bg-transparent'}`}
-                    style={{ color: headerTextColor }}
-                  >
-                    معلومات المتجر
-                  </button>
+                  {showHeaderNavHome && (
+                    <button
+                      onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'products' ? 'bg-slate-50' : 'bg-transparent'}`}
+                      style={{ color: headerTextColor }}
+                    >
+                      {isRestaurant ? 'المنيو' : 'المعروضات'}
+                    </button>
+                  )}
+                  {showHeaderNavGallery && (
+                    <button
+                      onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'gallery' ? 'bg-slate-50' : 'bg-transparent'}`}
+                      style={{ color: headerTextColor }}
+                    >
+                      معرض الصور
+                    </button>
+                  )}
+                  {showHeaderNavInfo && (
+                    <button
+                      onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${activeTab === 'info' ? 'bg-slate-50' : 'bg-transparent'}`}
+                      style={{ color: headerTextColor }}
+                    >
+                      معلومات المتجر
+                    </button>
+                  )}
                   {showHeaderShareButton && (
                     <button
                       onClick={() => { handleShare(); setIsHeaderMenuOpen(false); }}
@@ -735,11 +1050,13 @@ const ShopProfile: React.FC = () => {
           <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {false && (
         <div className="absolute bottom-6 md:bottom-10 left-0 right-0 flex justify-center px-6">
            <button onClick={() => setSpatialMode(true)} className="bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-full font-black text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-2xl active:scale-95 transition-all border border-slate-100 hover:gap-5">
-             <Eye size={16} className="md:w-5 md:h-5 text-[#00E5FF] animate-pulse" /> استكشاف المتجر 3D
+             <Eye size={16} className="md:w-5 md:h-5 text-[#00E5FF] animate-pulse" />
            </button>
         </div>
+        )}
       </section>
 
       {/* Brand Header */}
@@ -769,16 +1086,21 @@ const ShopProfile: React.FC = () => {
                  <Star size={12} className="md:w-[14px] md:h-[14px] text-amber-400 fill-current" />
                  <span className="font-black text-xs md:text-sm">{shop.rating}</span>
               </div>
-              <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 md:px-5 md:py-2 rounded-full border border-slate-100 flex items-center gap-1.5 md:gap-2 shadow-sm">
-                 <Users size={12} className="md:w-[14px] md:h-[14px] text-slate-400" />
-                 <span className="font-black text-xs md:text-sm">{shop.followers?.toLocaleString() || 0}</span>
-              </div>
-              <button 
-                onClick={() => { ApiService.followShop(shop.id); setHasFollowed(true); }}
-                className={`px-6 py-1.5 md:px-8 md:py-2.5 rounded-full font-black text-[11px] md:text-sm transition-all shadow-xl active:scale-95 ${hasFollowed ? 'bg-green-500 text-white' : 'bg-slate-900 text-white hover:bg-black'}`}
-              >
-                {hasFollowed ? 'متابع' : 'متابعة المتجر'}
-              </button>
+              {showShopFollowersCount && (
+                <div className="bg-white/80 backdrop-blur-md px-3 py-1.5 md:px-5 md:py-2 rounded-full border border-slate-100 flex items-center gap-1.5 md:gap-2 shadow-sm">
+                   <Users size={12} className="md:w-[14px] md:h-[14px] text-slate-400" />
+                   <span className="font-black text-xs md:text-sm">{shop.followers?.toLocaleString() || 0}</span>
+                </div>
+              )}
+              {showShopFollowButton && (
+                <button 
+                  onClick={handleFollow}
+                  disabled={followLoading || hasFollowed}
+                  className={`px-6 py-1.5 md:px-8 md:py-2.5 rounded-full font-black text-[11px] md:text-sm transition-all shadow-xl active:scale-95 disabled:opacity-60 ${hasFollowed ? 'bg-green-500 text-white' : 'bg-slate-900 text-white hover:bg-black'}`}
+                >
+                  {hasFollowed ? 'متابع' : followLoading ? '...' : 'متابعة المتجر'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -799,7 +1121,28 @@ const ShopProfile: React.FC = () => {
               </div>
               
               <div className={`${productDisplayMode === 'list' ? 'flex flex-col gap-3 md:gap-4' : productDisplayMode === 'minimal' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6' : `grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}`}>
-                {filteredProducts.length === 0 ? (
+                {productsTabLoading && products.length === 0 ? (
+                  Array.from({ length: 8 }).map((_, idx) => (
+                    <div key={`prod-skel-${idx}`} className="bg-white border border-slate-100 rounded-[1.5rem] p-4">
+                      <Skeleton className="aspect-[4/3] rounded-2xl mb-4" />
+                      <Skeleton className="h-5 w-40 mb-2" />
+                      <Skeleton className="h-4 w-28 mb-4" />
+                      <Skeleton className="h-11 w-full rounded-2xl" />
+                    </div>
+                  ))
+                ) : productsTabError ? (
+                  <div className="col-span-full py-16 md:py-24 text-center text-slate-500 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
+                    <AlertCircle size={40} className="md:w-12 md:h-12 mx-auto mb-4 text-slate-300" />
+                    <div className="text-sm md:text-base mb-6">{productsTabError}</div>
+                    <button
+                      type="button"
+                      onClick={retryProductsTab}
+                      className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all"
+                    >
+                      إعادة المحاولة
+                    </button>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
                   <div className="col-span-full py-16 md:py-24 text-center text-slate-300 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
                     <Info size={40} className="md:w-12 md:h-12 mx-auto mb-4 opacity-20" />
                     لا توجد أصناف في هذا القسم حالياً.
@@ -810,14 +1153,11 @@ const ShopProfile: React.FC = () => {
                       key={p.id} 
                       product={p} 
                       design={currentDesign!} 
-                      offer={offers.find(o => o.productId === p.id)}
-                      onAdd={(prod, price) => {
-                        setAddedItemId(prod.id);
-                        RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
-                        setTimeout(() => setAddedItemId(null), 1500);
-                      }} 
+                      offer={offersByProductId.get(String(p.id))}
+                      onAdd={handleAddToCart}
                       isAdded={addedItemId === p.id} 
-                      onReserve={(data) => setSelectedProductForRes({...data, shopId: shop.id, shopName: shop.name})}
+                      onReserve={handleReserve}
+                      disableMotion={disableCardMotion}
                     />
                   ))
                 )}
@@ -846,12 +1186,32 @@ const ShopProfile: React.FC = () => {
                   استكشف صور ومعارض من {shop.name}
                 </p>
               </div>
-              <ShopGalleryComponent 
-                images={galleryImages}
-                shopName={shop.name}
-                primaryColor={currentDesign.primaryColor}
-                layout={currentDesign.layout}
-              />
+              {galleryTabLoading ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 md:gap-6">
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <Skeleton key={`gallery-skel-${idx}`} className="aspect-square rounded-xl md:rounded-2xl" />
+                  ))}
+                </div>
+              ) : galleryTabError ? (
+                <div className="py-16 md:py-24 text-center text-slate-500 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
+                  <AlertCircle size={40} className="md:w-12 md:h-12 mx-auto mb-4 text-slate-300" />
+                  <div className="text-sm md:text-base mb-6">{galleryTabError}</div>
+                  <button
+                    type="button"
+                    onClick={retryGalleryTab}
+                    className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all"
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              ) : (
+                <ShopGalleryComponent 
+                  images={galleryImages}
+                  shopName={shop.name}
+                  primaryColor={currentDesign.primaryColor}
+                  layout={currentDesign.layout}
+                />
+              )}
             </MotionDiv>
           ) : (
             <MotionDiv key="info-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">

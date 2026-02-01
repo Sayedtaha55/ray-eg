@@ -147,11 +147,11 @@ export class OrderController {
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  async update(@Param('id') id: string, @Body() body: any) {
+  @Roles('admin', 'merchant')
+  async update(@Param('id') id: string, @Body() body: any, @Request() req?: any) {
     const status = typeof body?.status === 'string' ? body.status : undefined;
     const notes = typeof body?.notes === 'string' ? body.notes : undefined;
-    return this.orderService.updateOrder(id, { status, notes });
+    return this.orderService.updateOrder(id, { status, notes }, { role: req?.user?.role, shopId: req?.user?.shopId });
   }
 
   @Patch(':id/assign-courier')

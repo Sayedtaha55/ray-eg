@@ -70,6 +70,22 @@ const AdminLogin: React.FC = () => {
     }
   };
 
+  const handleDevRestaurantLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await ApiService.devMerchantLogin({ shopCategory: 'RESTAURANT' });
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      window.dispatchEvent(new Event('auth-change'));
+      navigate('/business/dashboard');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل دخول المطور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleBootstrap = async (e: React.FormEvent) => {
     e.preventDefault();
     setBootstrapLoading(true);
@@ -137,15 +153,26 @@ const AdminLogin: React.FC = () => {
             </button>
 
              {showDevMerchantLogin && (
-               <button
-                 type="button"
-                 disabled={loading}
-                 onClick={handleDevMerchantLogin}
-                 className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-               >
-                 <Store size={18} />
-                 دخول المطور (تاجر)
-               </button>
+               <>
+                 <button
+                   type="button"
+                   disabled={loading}
+                   onClick={handleDevMerchantLogin}
+                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                 >
+                   <Store size={18} />
+                   دخول المطور (تاجر)
+                 </button>
+                 <button
+                   type="button"
+                   disabled={loading}
+                   onClick={handleDevRestaurantLogin}
+                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                 >
+                   <Store size={18} />
+                   دخول المطور (مطعم)
+                 </button>
+               </>
              )}
 
              {allowBootstrapUi && (
