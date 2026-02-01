@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import {
   PublicLayout,
   HomeFeed,
@@ -102,6 +103,7 @@ const App: React.FC = () => {
 
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
+      <Analytics />
     </Router>
   );
 };
