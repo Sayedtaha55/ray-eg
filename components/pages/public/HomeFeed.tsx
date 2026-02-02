@@ -172,9 +172,9 @@ const HomeFeed: React.FC = () => {
             <Sparkles className="w-3 h-3 text-[#00E5FF] fill-current" />
             عروض حصرية
          </MotionDiv>
-         <h1 className="text-4xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.85]">أفضل العروض<br/><span className="text-[#00E5FF]">في مكان واحد.</span></h1>
+         <h1 className="text-4xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.85]">من مكانك<br/><span className="text-[#00E5FF]">دليل المحلات والمطاعم.</span></h1>
          <p className="text-slate-600 text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-12">
-            خصومات مميزة من أفضل المحلات والمطاعم في مصر.
+            منصة من مكانك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات.
          </p>
 
          <Link
@@ -199,11 +199,11 @@ const HomeFeed: React.FC = () => {
           ) : offers.map((offer, idx) => (
             <MotionDiv 
               key={offer.id}
-              className="group bg-white p-5 rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
+              className="group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
             >
               <div 
                 onClick={() => navigate(`/product/${(offer as any).productId || offer.id}`)}
-                className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6 bg-slate-50 cursor-pointer"
+                className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50 cursor-pointer"
               >
                 <img
                   loading={idx === 0 ? 'eager' : 'lazy'}
@@ -213,26 +213,26 @@ const HomeFeed: React.FC = () => {
                   alt={offer.title}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
                 />
-                <div className="absolute top-5 left-5 bg-[#BD00FF] text-white px-4 py-2 rounded-2xl font-black text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
+                <div className="absolute top-3 left-3 md:top-5 md:left-5 bg-[#BD00FF] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                    <Eye size={32} className="text-white drop-shadow-lg" />
                 </div>
               </div>
-              <div className="px-3 text-right">
-                <h3 className="text-xl md:text-2xl font-black mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
-                <div className="flex items-center justify-between flex-row-reverse">
+              <div className="px-1 md:px-3 text-right">
+                <h3 className="text-sm md:text-2xl font-black mb-3 md:mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-row-reverse">
                    <div className="text-right">
-                      <p className="text-slate-500 line-through text-xs font-bold">ج.م {offer.oldPrice}</p>
-                      <p className="text-xl md:text-3xl font-black">ج.م {offer.newPrice}</p>
+                      <p className="text-slate-300 line-through text-[10px] md:text-xs font-bold">ج.م {offer.oldPrice}</p>
+                      <p className="text-lg md:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
                    </div>
-                   <div className="flex gap-2">
+                   <div className="flex items-center justify-between gap-2 sm:justify-start">
                       <button
                         type="button"
                         aria-label="حجز"
                         onClick={() => setSelectedItem(offer)}
-                        className="w-12 h-12 bg-[#00E5FF] rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                        className="w-10 h-10 md:w-12 md:h-12 bg-[#00E5FF] rounded-xl md:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
                       >
-                        <CalendarCheck size={20} />
+                        <CalendarCheck size={18} className="md:w-5 md:h-5" />
                       </button>
                       <button 
                         type="button"
@@ -252,9 +252,9 @@ const HomeFeed: React.FC = () => {
                           });
                           window.dispatchEvent(event);
                         }}
-                        className="w-12 h-12 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                        className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 text-white rounded-xl md:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
                       >
-                        <ShoppingCart size={20} />
+                        <ShoppingCart size={18} className="md:w-5 md:h-5" />
                       </button>
                    </div>
                 </div>

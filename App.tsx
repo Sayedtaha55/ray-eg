@@ -15,7 +15,7 @@ const ResetPasswordPage = React.lazy(() => import('./components/pages/auth/Reset
 const ProfilePage = React.lazy(() => import('./components/pages/public/ProfilePage'));
 const AboutPage = React.lazy(() => import('./components/pages/public/AboutPage'));
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
-const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile'));
+const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile.tsx'));
 const ShopProductPage = React.lazy(() => import('./components/pages/public/ShopProductPage'));
 
 const BusinessLayout = React.lazy(() => import('./components/layouts/BusinessLayout'));
@@ -37,7 +37,7 @@ const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSet
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
 const NotFoundPage = React.lazy(() => import('./components/pages/shared/NotFoundPage'));
 
-const { HashRouter, BrowserRouter, Routes, Route, useLocation } = ReactRouterDOM as any;
+const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams } = ReactRouterDOM as any;
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -55,6 +55,16 @@ const AppLoadingFallback: React.FC = () => (
     </div>
   </div>
 );
+
+const RedirectSShop: React.FC = () => {
+  const { slug } = useParams();
+  return <ReactRouterDOM.Navigate to={`/shop/${slug}`} replace />;
+};
+
+const RedirectSShopProduct: React.FC = () => {
+  const { slug, id } = useParams();
+  return <ReactRouterDOM.Navigate to={`/shop/${slug}/product/${id}`} replace />;
+};
 
 const suspense = (element: React.ReactElement) => (
   <React.Suspense fallback={<AppLoadingFallback />}>{element}</React.Suspense>
@@ -82,13 +92,12 @@ const App: React.FC = () => {
           <Route path="product/:id" element={suspense(<ProductPage />)} />
         </Route>
         
+        <Route path="/s/:slug" element={<RedirectSShop />} />
+        <Route path="/s/:slug/product/:id" element={<RedirectSShopProduct />} />
+
         <Route path="/shop/:slug" element={suspense(<ShopProfile />)} />
 
         <Route path="/shop/:slug/product/:id" element={suspense(<ShopProductPage />)} />
-
-        <Route path="/s/:slug" element={suspense(<ShopProfile />)} />
-
-        <Route path="/s/:slug/product/:id" element={suspense(<ShopProductPage />)} />
 
         <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />
 

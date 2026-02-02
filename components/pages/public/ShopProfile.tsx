@@ -1,319 +1,68 @@
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
-  Star, ChevronRight, X, Plus, Check, Heart, Users, 
-  CalendarCheck, Eye, Layout, Palette, Layers, MousePointer2, 
-  Zap, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
-  Info, Clock, MapPin, Phone, Camera, Menu
+  Star, ChevronRight, X, Users, 
+  Eye, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
+  Info, Clock, MapPin, Phone, Menu
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
 import ShopGalleryComponent from '@/components/features/shop/ShopGallery';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
 import { Skeleton } from '@/components/common/ui';
+import ProductCard from './ShopProfile/ProductCard';
+import InfoItem from './ShopProfile/InfoItem';
+import NavTab from './ShopProfile/NavTab';
+import { isVideoUrl, hexToRgba, coerceBoolean, coerceNumber, scopeCss } from './ShopProfile/utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
 
-const isVideoUrl = (url: string) => {
-  const u = String(url || '').toLowerCase();
-  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
-};
-
-const hexToRgba = (hex: string, alpha: number) => {
-  const raw = String(hex || '').replace('#', '').trim();
-  const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
-  if (normalized.length !== 6) return `rgba(0,0,0,${alpha})`;
-  const r = parseInt(normalized.slice(0, 2), 16);
-  const g = parseInt(normalized.slice(2, 4), 16);
-  const b = parseInt(normalized.slice(4, 6), 16);
-  return `rgba(${r},${g},${b},${alpha})`;
-};
-
-const coerceBoolean = (value: any, fallback: boolean) => {
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const v = value.trim().toLowerCase();
-    if (v === 'true') return true;
-    if (v === 'false') return false;
-  }
-  if (typeof value === 'number') return value !== 0;
-  return fallback;
-};
-
-const coerceNumber = (value: any, fallback: number) => {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : fallback;
-};
-
-const scopeCss = (css: string, scopeSelector: string) => {
-  const raw = String(css || '');
-  const safe = raw.replace(/<\s*\/\s*style/gi, '');
-  return safe.replace(/([^{}]+)\{/g, (match, selectorGroup) => {
-    const group = String(selectorGroup || '');
-    const trimmed = group.trim();
-    if (!trimmed) return match;
-    if (trimmed.startsWith('@')) return match;
-    if (trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed)) return match;
-
-    const prefixed = group
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .map((s) => (s.includes(scopeSelector) ? s : `${scopeSelector} ${s}`))
-      .join(', ');
-
-    return `${prefixed}{`;
-  });
-};
-
-const ProductCard = React.memo(function ProductCard({
-  product,
-  design,
-  offer,
-  onAdd,
-  isAdded,
-  onReserve,
-  disableMotion,
-}: {
-  product: Product;
-  design: ShopDesign;
-  offer?: Offer;
-  onAdd: (p: Product, price: number) => void;
-  isAdded: boolean;
-  onReserve: (p: any) => void;
-  disableMotion?: boolean;
-}) {
-  const [isFavorite, setIsFavorite] = useState(() => {
-    try {
-      const favs = RayDB.getFavorites();
-      return Array.isArray(favs) ? favs.includes(product.id) : false;
-    } catch {
-      return false;
+// Helper to update meta tags for sharing
+const updateShopMetaTags = (shop: any) => {
+  if (typeof document === 'undefined') return;
+  
+  const title = `${shop.name} | MNMKNK`;
+  const description = (shop as any)?.description || `تسوق من ${shop.name}. اكتشف أفضل المنتجات والعروض.`;
+  const image = shop.logoUrl || (shop as any)?.bannerUrl || '/brand/logo.png';
+  
+  document.title = title;
+  
+  // Update or create meta tags
+  const setMeta = (property: string, content: string) => {
+    let meta = document.querySelector(`meta[property="${property}"]`) as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('property', property);
+      document.head.appendChild(meta);
     }
-  });
-  const navigate = useNavigate();
-  const { slug } = useParams();
-  const location = useLocation();
-
-  const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
-  const isVisible = (key: string, fallback: boolean = true) => {
-    if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
-    if (!(key in elementsVisibility)) return fallback;
-    return coerceBoolean(elementsVisibility[key], fallback);
+    meta.content = content;
   };
-
-  const showPrice = isVisible('productCardPrice', true);
-  const showStock = isVisible('productCardStock', true);
-  const showAddToCart = isVisible('productCardAddToCart', true);
-  const showReserve = isVisible('productCardReserve', true);
-
-  const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (ShopDesign['productDisplay'] | undefined);
-  const displayMode = productDisplay || (design.layout === 'minimal' ? 'minimal' : 'cards');
-  const isList = displayMode === 'list';
-  const isCardless = displayMode === 'minimal';
-
-  const isMinimal = design.layout === 'minimal' || isCardless;
-  const isModern = design.layout === 'modern';
-  const isBold = design.layout === 'bold';
-
-  const toggleFav = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const state = RayDB.toggleFavorite(product.id);
-    setIsFavorite(state);
-  };
-
-  const currentPrice = offer ? offer.newPrice : product.price;
-
-  const trackStock = typeof (product as any)?.trackStock === 'boolean'
-    ? (product as any).trackStock
-    : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
-  const rawStock = typeof (product as any)?.stock === 'number' ? (product as any).stock : undefined;
-  const stockLabel = !trackStock ? 'متاح' : (rawStock ?? 0) <= 0 ? 'نفد' : String(rawStock);
-  const stockCls = !trackStock
-    ? 'bg-emerald-50 text-emerald-700'
-    : (rawStock ?? 0) <= 0
-      ? 'bg-slate-900 text-white'
-      : (rawStock ?? 0) < 5
-        ? 'bg-red-500 text-white'
-        : 'bg-white/90 text-slate-900';
-
-  const goToProduct = () => {
-    const sid = String(slug || '').trim();
-    if (sid) {
-      const prefix = String(location?.pathname || '').startsWith('/shop/') ? '/shop' : '/s';
-      navigate(`${prefix}/${sid}/product/${product.id}`);
-      return;
+  
+  const setNameMeta = (name: string, content: string) => {
+    let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement;
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', name);
+      document.head.appendChild(meta);
     }
-    navigate(`/product/${product.id}`);
+    meta.content = content;
   };
-
-  const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion ? {} : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 } };
-
-  if (isCardless) {
-    return (
-      <Wrapper
-        {...motionProps}
-        className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
-      >
-        <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
-          <img
-            loading="lazy"
-            decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
-            alt={product.name}
-          />
-
-          {offer && (
-            <div className="absolute top-3 left-3 bg-slate-900/80 text-white px-3 py-1 rounded-full font-black text-[10px] shadow-lg">
-              Sale
-            </div>
-          )}
-
-          <button
-            onClick={toggleFav}
-            className={`absolute top-3 right-3 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
-              isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
-            } rounded-full`}
-          >
-            <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
-          </button>
-
-          {showStock && (
-            <div className={`absolute top-3 left-3 px-3 py-1 rounded-full font-black text-[10px] shadow-lg ${stockCls}`}>
-              {stockLabel}
-            </div>
-          )}
-
-          <div className="absolute inset-x-0 bottom-0 bg-slate-900/70 backdrop-blur-sm px-4 py-3">
-            <p className="text-white font-black text-[11px] md:text-sm tracking-wide uppercase line-clamp-1 text-center">
-              {product.name}
-            </p>
-            {showPrice && (
-              <div className="mt-1 flex items-center justify-center gap-3">
-                {offer ? (
-                  <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span>
-                ) : null}
-                <span className="text-white font-black text-sm md:text-base">ج.م {currentPrice}</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </Wrapper>
-    );
-  }
-
-  return (
-    <Wrapper 
-      {...motionProps}
-      className={`group relative transition-all duration-500 overflow-hidden ${
-        isList ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 p-3 md:p-4 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2rem]' :
-        isCardless ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 py-3 md:py-4 border-b border-slate-100 bg-transparent rounded-none' :
-        `bg-white flex flex-col h-full ${
-          isBold ? 'rounded-[1.8rem] md:rounded-[2.5rem] border-2 shadow-2xl p-2 md:p-2.5' : 
-          isModern ? 'rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-100 shadow-lg p-1.5' :
-          'rounded-none border-b border-slate-100 p-0 shadow-none'
-        }`
-      }`}
-      style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
-    >
-      <div 
-        onClick={goToProduct}
-        className={`relative overflow-hidden cursor-pointer ${
-          (isList || isCardless)
-            ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
-            : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
-        }`}
-      >
-        <img 
-          loading="lazy"
-          decoding="async"
-          src={product.imageUrl || (product as any).image_url} 
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]" 
-          alt={product.name} 
-        />
-        
-        {offer && (
-          <div className="absolute top-2 right-2 bg-[#BD00FF] text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-black text-[8px] md:text-[10px] shadow-lg flex items-center gap-1 z-10">
-            <Zap size={8} fill="currentColor" className="md:w-[10px] md:h-[10px]" /> {offer.discount}%
-          </div>
-        )}
-
-        <div className="absolute inset-0 bg-black/5 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
-           <div className="w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-xl">
-              <Eye size={14} className="md:w-4 md:h-4" />
-           </div>
-        </div>
-
-        <button 
-          onClick={toggleFav} 
-          className={`absolute top-2 left-2 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
-            isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
-          } rounded-full`}
-        >
-           <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? "currentColor" : "none"} />
-        </button>
-
-        {showStock && (
-          <div className={`absolute top-2 right-2 px-2 py-1 rounded-full font-black text-[9px] md:text-[10px] shadow-lg ${stockCls}`}>
-            {stockLabel}
-          </div>
-        )}
-      </div>
-
-      <div className={`${isList || isCardless ? 'flex-1 flex flex-col text-right' : `p-2 md:p-4 flex flex-col flex-1 text-right ${isMinimal ? 'items-end' : ''}`}`}>
-        <h4 className={`font-black mb-2 line-clamp-2 leading-tight text-slate-800 ${isBold ? 'text-base md:text-xl' : 'text-xs md:text-base'}`}>
-          {product.name}
-        </h4>
-        
-        <div className="mt-auto w-full">
-          {showPrice && (
-            <div className={`flex items-center justify-between flex-row-reverse mb-2 md:mb-3 ${isMinimal ? 'flex-col items-end gap-1' : ''}`}>
-              <div className="text-right">
-                {offer && <p className="text-slate-300 line-through text-[8px] md:text-[10px] font-bold">ج.م {product.price}</p>}
-                <span className={`font-black tracking-tighter ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`} style={{ color: offer ? '#BD00FF' : design.primaryColor }}>
-                  ج.م {currentPrice}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {(showAddToCart || showReserve) && (
-            <div className="flex gap-1.5 md:gap-2">
-              {showAddToCart && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onAdd(product, currentPrice); }}
-                  className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
-                    isAdded ? 'bg-green-500' : 'bg-slate-900'
-                  } text-white ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'} shadow-md`}
-                >
-                  {isAdded ? <Check size={12} /> : <Plus size={12} />}
-                  <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
-                </button>
-              )}
-              {showReserve && (
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onReserve({...product, price: currentPrice}); }}
-                  className={`flex-1 py-2 md:py-3 text-black flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'}`}
-                  style={{ backgroundColor: design.primaryColor }}
-                >
-                  <CalendarCheck size={12} /> حجز
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </Wrapper>
-  );
-});
+  
+  setNameMeta('description', description);
+  setMeta('og:title', title);
+  setMeta('og:description', description);
+  setMeta('og:image', image);
+  setMeta('og:type', 'business.business');
+  setMeta('twitter:card', 'summary_large_image');
+  setMeta('twitter:title', title);
+  setMeta('twitter:description', description);
+  setMeta('twitter:image', image);
+ };
 
 const ShopProfile: React.FC = () => {
   const { slug } = useParams();
@@ -627,18 +376,43 @@ const ShopProfile: React.FC = () => {
     return customCssRaw ? scopeCss(customCssRaw, '#shop-profile-root') : '';
   }, [customCssRaw]);
 
-  const categories = useMemo(() => {
+  const uncategorizedLabel = 'عام';
+  const getProductCategory = (p: Product) => {
+    const c = String((p as any)?.category || uncategorizedLabel).trim();
+    return c || uncategorizedLabel;
+  };
+
+  const sectionCategories = useMemo(() => {
     const cats = new Set<string>();
     for (const p of products) {
-      cats.add(String((p as any)?.category || 'عام'));
+      const c = getProductCategory(p);
+      if (c !== uncategorizedLabel) cats.add(c);
     }
-    return ['الكل', ...Array.from(cats)];
+    return Array.from(cats);
   }, [products]);
 
+  const hasSections = sectionCategories.length > 0;
+
+  const uncategorizedProducts = useMemo(() => {
+    return products.filter((p) => getProductCategory(p) === uncategorizedLabel);
+  }, [products]);
+
+  useEffect(() => {
+    if (!hasSections) return;
+    if (activeCategory === 'الكل') return;
+    if (sectionCategories.includes(String(activeCategory))) return;
+    setActiveCategory('الكل');
+  }, [activeCategory, hasSections, sectionCategories]);
+
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'الكل') return products;
-    return products.filter((p) => String((p as any)?.category || 'عام') === String(activeCategory));
-  }, [activeCategory, products]);
+    if (!hasSections) {
+      if (activeCategory === 'الكل') return products;
+      return products.filter((p) => getProductCategory(p) === String(activeCategory));
+    }
+
+    if (activeCategory === 'الكل') return uncategorizedProducts;
+    return products.filter((p) => getProductCategory(p) === String(activeCategory));
+  }, [activeCategory, hasSections, products, uncategorizedProducts]);
 
   const offersByProductId = useMemo(() => {
     const map = new Map<string, Offer>();
@@ -886,31 +660,31 @@ const ShopProfile: React.FC = () => {
             {showHeaderNav && (
               <nav className="hidden md:flex items-center gap-6 md:gap-8">
                 {showHeaderNavHome && (
-                  <button
-                    onClick={() => setActiveTab('products')}
-                    style={activeTab === 'products' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  >
-                    {isRestaurant ? "المنيو" : "المعروضات"}
-                  </button>
+                  <NavTab 
+                    active={activeTab === 'products'} 
+                    onClick={() => setActiveTab('products')} 
+                    label={isRestaurant ? "المنيو" : "المعروضات"} 
+                    primaryColor={currentDesign.primaryColor} 
+                    layout={currentDesign.layout} 
+                  />
                 )}
                 {showHeaderNavGallery && (
-                  <button
-                    onClick={() => setActiveTab('gallery')}
-                    style={activeTab === 'gallery' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  >
-                    معرض الصور
-                  </button>
+                  <NavTab 
+                    active={activeTab === 'gallery'} 
+                    onClick={() => setActiveTab('gallery')} 
+                    label="معرض الصور" 
+                    primaryColor={currentDesign.primaryColor} 
+                    layout={currentDesign.layout} 
+                  />
                 )}
                 {showHeaderNavInfo && (
-                  <button
-                    onClick={() => setActiveTab('info')}
-                    style={activeTab === 'info' ? { color: headerTextColor } : { color: headerTextColor, opacity: 0.6 }}
-                    className="text-xs md:text-sm font-black transition-opacity hover:opacity-80"
-                  >
-                    معلومات المتجر
-                  </button>
+                  <NavTab 
+                    active={activeTab === 'info'} 
+                    onClick={() => setActiveTab('info')} 
+                    label="معلومات المتجر" 
+                    primaryColor={currentDesign.primaryColor} 
+                    layout={currentDesign.layout} 
+                  />
                 )}
               </nav>
             )}
@@ -947,7 +721,7 @@ const ShopProfile: React.FC = () => {
                   href={whatsappHref}
                   target="_blank"
                   rel="noreferrer"
-                  className="hidden md:inline-flex p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border"
+                  className="hidden md:inline-flex p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border-4 border-white"
                   style={{ backgroundColor: currentDesign.primaryColor, color: '#000', borderColor: `${currentDesign.primaryColor}20` }}
                 >
                   <span className="sr-only">واتساب</span>
@@ -1110,17 +884,56 @@ const ShopProfile: React.FC = () => {
         <AnimatePresence mode="wait">
           {activeTab === 'products' ? (
             <MotionDiv key="products-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}>
-              <div className="flex overflow-x-auto no-scrollbar gap-2 mb-8 md:mb-10 pb-2">
-                {categories.map(cat => (
-                  <button 
-                    key={cat} 
-                    onClick={() => setActiveCategory(cat)}
-                    className={`px-5 py-2 md:px-6 md:py-2.5 rounded-full font-black text-[10px] md:text-xs whitespace-nowrap transition-all border ${activeCategory === cat ? 'bg-slate-900 text-white border-slate-900 shadow-lg' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'}`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+              {hasSections ? (
+                <div className="mb-8 md:mb-10">
+                  {activeCategory === 'الكل' ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                      {sectionCategories.map((cat) => {
+                        const cover = products.find((p) => getProductCategory(p) === cat);
+                        const coverSrc =
+                          (cover as any)?.imageUrl ||
+                          (cover as any)?.image_url ||
+                          (currentDesign as any)?.bannerUrl ||
+                          (shop as any)?.logoUrl ||
+                          (shop as any)?.logo_url;
+                        return (
+                          <button
+                            type="button"
+                            key={cat}
+                            onClick={() => setActiveCategory(cat)}
+                            className="text-right group"
+                          >
+                            <div className="relative aspect-[4/3] rounded-[1.5rem] md:rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100">
+                              {coverSrc ? (
+                                <img loading="lazy" src={coverSrc} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" alt={cat} />
+                              ) : (
+                                <div className="w-full h-full bg-slate-100" />
+                              )}
+                              <div className="absolute inset-0 bg-black/25 group-hover:bg-black/15 transition-colors" />
+                              <div className="absolute bottom-3 md:bottom-4 right-3 md:right-4 left-3 md:left-4">
+                                <div className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-base text-slate-900">
+                                  {cat}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between mb-6 md:mb-10">
+                      <button
+                        type="button"
+                        onClick={() => setActiveCategory('الكل')}
+                        className="px-6 py-3 bg-white border border-slate-100 rounded-2xl font-black text-xs md:text-sm text-slate-700 hover:bg-slate-50 transition-all"
+                      >
+                        رجوع للأقسام
+                      </button>
+                      <div className="font-black text-lg md:text-2xl text-slate-900">{activeCategory}</div>
+                    </div>
+                  )}
+                </div>
+              ) : null}
               
               <div className={`${productDisplayMode === 'list' ? 'flex flex-col gap-3 md:gap-4' : productDisplayMode === 'minimal' ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6' : `grid gap-3 md:gap-8 ${isMinimal ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}`}>
                 {productsTabLoading && products.length === 0 ? (
@@ -1147,7 +960,7 @@ const ShopProfile: React.FC = () => {
                 ) : filteredProducts.length === 0 ? (
                   <div className="col-span-full py-16 md:py-24 text-center text-slate-300 font-bold border-2 border-dashed border-slate-100 rounded-[2rem] md:rounded-[3rem]">
                     <Info size={40} className="md:w-12 md:h-12 mx-auto mb-4 opacity-20" />
-                    لا توجد أصناف في هذا القسم حالياً.
+                    {hasSections && activeCategory === 'الكل' ? 'لا توجد منتجات بدون قسم حالياً.' : 'لا توجد أصناف في هذا القسم حالياً.'}
                   </div>
                 ) : (
                   filteredProducts.map((p) => (
@@ -1242,7 +1055,9 @@ const ShopProfile: React.FC = () => {
                      <span className="text-green-500">{WhatsAppIcon}</span>
                   </div>
                   <h3 className="text-xl md:text-2xl font-black">تواصل عبر واتساب</h3>
-                  <p className="text-slate-500 font-bold max-w-xs leading-relaxed text-xs md:text-base">تواصل مباشرة مع صاحب النشاط عبر واتساب للحصول على رد سريع.</p>
+                  <p className="text-slate-500 font-bold text-sm md:text-xl max-w-xs mx-auto mb-10 md:mb-16 leading-relaxed px-4">
+                    تواصل مباشرة مع صاحب النشاط عبر واتساب للحصول على رد سريع.
+                  </p>
                   {whatsappHref ? (
                     <a
                       href={whatsappHref}
@@ -1387,41 +1202,9 @@ const ShopProfile: React.FC = () => {
           </div>
         </footer>
       )}
-    </div>
+    </div> 
   </>
   );
 };
-
-const NavTab = ({ active, onClick, label, primaryColor, layout }: any) => {
-  const isBold = layout === 'bold';
-  return (
-    <button 
-      onClick={onClick} 
-      className={`pb-4 px-2 md:pb-5 md:px-4 transition-all relative whitespace-nowrap font-black flex flex-col items-center ${
-        active ? 'opacity-100' : 'text-slate-300 hover:text-slate-400 opacity-70 hover:opacity-100'
-      } ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`}
-      style={{ color: active ? primaryColor : undefined }}
-    >
-      {label}
-      {active && (
-        <motion.div 
-          layoutId="tab-underline" 
-          className={`absolute bottom-0 left-0 right-0 rounded-t-full ${isBold ? 'h-1.5' : 'h-1'}`}
-          style={{ backgroundColor: primaryColor }}
-        />
-      )}
-    </button>
-  );
-};
-
-const InfoItem = ({ icon, title, value }: any) => (
-  <div className="flex items-center gap-4 flex-row-reverse w-full">
-     <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-white flex items-center justify-center shadow-sm shrink-0">{icon}</div>
-     <div className="text-right flex-1 min-w-0">
-        <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-        <p className="text-xs md:text-lg font-black text-slate-800 break-words leading-tight">{value}</p>
-     </div>
-  </div>
-);
 
 export default ShopProfile;

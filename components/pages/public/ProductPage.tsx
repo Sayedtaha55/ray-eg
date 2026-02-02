@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Product, Offer, Shop } from '@/types';
+import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, CalendarCheck, ArrowRight, Heart, 
@@ -196,6 +197,7 @@ const ProductPage: React.FC = () => {
 
   const currentPrice = offer ? offer.newPrice : product.price;
   const hasDiscount = !!offer;
+  const isRestaurant = shop?.category === Category.RESTAURANT;
   const trackStock = typeof (product as any)?.trackStock === 'boolean'
     ? (product as any).trackStock
     : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
@@ -239,7 +241,7 @@ const ProductPage: React.FC = () => {
         >
           <div className="space-y-4">
              {shop && (
-               <Link to={`/s/${shop.slug}`} className="inline-flex items-center gap-3 bg-slate-50 px-6 py-2 rounded-full border border-slate-100 group">
+               <Link to={`/shop/${shop.slug}`} className="inline-flex items-center gap-3 bg-slate-50 px-6 py-2 rounded-full border border-slate-100 group">
                   <img src={shop.logoUrl || (shop as any).logo_url} className="w-6 h-6 rounded-full object-cover" />
                   <span className="text-sm font-black text-slate-900 group-hover:text-[#00E5FF] transition-colors">{shop.name}</span>
                </Link>
@@ -283,10 +285,10 @@ const ProductPage: React.FC = () => {
 
              {shop && (
                <button
-                 onClick={() => navigate(`/s/${shop.slug}?chat=1`)}
+                 onClick={() => navigate(`/shop/${shop.slug}`)}
                  className="w-full py-5 bg-slate-50 text-slate-900 rounded-[2.5rem] font-black text-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-3 border border-slate-100"
                >
-                 <Store size={22} /> محادثة المتجر
+                 <Store size={22} /> {isRestaurant ? 'زيارة المطعم' : 'زيارة المحل'}
                </button>
              )}
           </div>
