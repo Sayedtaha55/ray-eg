@@ -105,7 +105,7 @@ export class ProductService {
 
     const pagination = this.getPagination(paging);
     return this.prisma.product.findMany({
-      where: { shopId },
+      where: { shopId, isActive: true },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
