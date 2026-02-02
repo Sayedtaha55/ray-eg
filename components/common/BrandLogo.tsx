@@ -63,7 +63,16 @@ const BrandLogo: React.FC<Props> = ({
   ) : null;
 
   const icon = !imgError ? (
-    <img src={logoSrc} className={styles.image} onError={() => setImgError(true)} alt={name} />
+    <img
+      src={logoSrc}
+      className={styles.image}
+      onError={() => setImgError(true)}
+      alt={name}
+      decoding="async"
+      fetchPriority="low"
+      width={64}
+      height={64}
+    />
   ) : (
     <span className={styles.letter}>M</span>
   );

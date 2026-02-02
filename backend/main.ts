@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
+import { createSlowDown } from './middleware/slow-down.middleware';
 
 console.log('[main.ts] File loaded');
 
@@ -51,14 +52,19 @@ class AnyExceptionFilter implements ExceptionFilter {
     } catch {
     }
 
+    const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+    const isDev = nodeEnv !== 'production';
+
     if (exception instanceof HttpException) {
       const status = exception.getStatus();
       const body = exception.getResponse();
+
+      if (!isDev && status >= 500) {
+        return res.status(status).json({ message: 'حدث خطأ، حاول لاحقًا' });
+      }
+
       return res.status(status).json(body);
     }
-
-    const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
-    const isDev = nodeEnv !== 'production';
 
     if (isDev) {
       const name = exception?.name ? String(exception.name) : '';
@@ -75,7 +81,7 @@ class AnyExceptionFilter implements ExceptionFilter {
       });
     }
 
-    return res.status(500).json({ statusCode: 500, message: 'Internal server error' });
+    return res.status(500).json({ message: 'حدث خطأ، حاول لاحقًا' });
   }
 }
 
@@ -229,6 +235,25 @@ async function bootstrap() {
   app.use(bodyParser.json({ limit: '10mb' }));
   app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
+  try {
+    const httpAdapter: any = app.getHttpAdapter?.();
+    const instance: any = httpAdapter?.getInstance?.();
+    if (instance && typeof instance.get === 'function') {
+      instance.get('/robots.txt', (req: any, res: any) => {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+        return res.status(200).send('User-agent: *\nDisallow: /\n');
+      });
+    }
+  } catch {
+    // ignore
+  }
+
+  app.use('/api', (req: any, res: any, next: any) => {
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    return next();
+  });
+
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
@@ -247,8 +272,9 @@ async function bootstrap() {
     fallthrough: false,
     dotfiles: 'ignore',
     immutable: true,
-    maxAge: '30d',
+    maxAge: '365d',
     setHeaders: (res, pathName) => {
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
       if (
         pathName.endsWith('.webp') ||
         pathName.endsWith('.png') ||
@@ -258,10 +284,27 @@ async function bootstrap() {
         pathName.endsWith('.mp4') ||
         pathName.endsWith('.webm')
       ) {
-        res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+        if (pathName.endsWith('.mp4') || pathName.endsWith('.webm')) {
+          res.setHeader('Cache-Control', 'public, max-age=604800');
+        } else {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
       }
     },
   }));
+
+  const apiSlowDown = createSlowDown({
+    windowMs: 15 * 60 * 1000,
+    delayAfter: isDev ? 1000 : 100,
+    delayMs: isDev ? 0 : 500,
+    maxDelayMs: 4000,
+    skip: (req) => {
+      const url = String((req as any)?.originalUrl || (req as any)?.url || '');
+      return url.startsWith('/api/v1/health') || url.startsWith('/api/v1/db-test');
+    },
+  });
+
+  app.use('/api', apiSlowDown);
 
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
