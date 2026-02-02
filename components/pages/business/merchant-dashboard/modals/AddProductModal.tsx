@@ -20,6 +20,17 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [description, setDescription] = useState('');
+  const [addonItems, setAddonItems] = useState<
+    Array<{
+      id: string;
+      name: string;
+      imagePreview: string | null;
+      imageUploadFile: File | null;
+      priceSmall: string;
+      priceMedium: string;
+      priceLarge: string;
+    }>
+  >([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
   const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
@@ -156,15 +167,64 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         ? (selectedSizes || []).map((s) => String(s || '').trim()).filter(Boolean)
         : [];
 
+      let addons: any = undefined;
+      if (isRestaurant) {
+        const uploadedAddonOptions = await Promise.all(
+          (addonItems || []).map(async (a) => {
+            const optId = String(a?.id || '').trim() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            const optName = String(a?.name || '').trim();
+            if (!optName) return null;
+
+            let imageUrl: string | null = null;
+            const file = a?.imageUploadFile;
+            if (file) {
+              const upload = await ApiService.uploadMedia({
+                file,
+                purpose: 'product_image',
+                shopId,
+              });
+              imageUrl = String(upload?.url || '').trim() || null;
+            }
+
+            const pSmall = Number(a?.priceSmall);
+            const pMed = Number(a?.priceMedium);
+            const pLarge = Number(a?.priceLarge);
+
+            return {
+              id: optId,
+              name: optName,
+              imageUrl,
+              variants: [
+                { id: 'small', label: 'صغير', price: Number.isFinite(pSmall) ? pSmall : 0 },
+                { id: 'medium', label: 'وسط', price: Number.isFinite(pMed) ? pMed : 0 },
+                { id: 'large', label: 'كبير', price: Number.isFinite(pLarge) ? pLarge : 0 },
+              ],
+            };
+          }),
+        );
+
+        const options = uploadedAddonOptions.filter(Boolean);
+        addons = options.length > 0
+          ? [
+              {
+                id: 'addons',
+                title: 'منتجات إضافية',
+                options,
+              },
+            ]
+          : [];
+      }
+
       await ApiService.addProduct({
         shopId,
         name,
         price: Number(price),
         stock: isRestaurant ? 0 : Number(stock),
-        category: isRestaurant ? 'عام' : cat,
+        category: String(cat || '').trim() || 'عام',
         imageUrl: upload.url,
         description: description ? description : null,
         trackStock: isRestaurant ? false : true,
+        ...(isRestaurant ? { addons } : {}),
         ...(isRestaurant
           ? {}
           : {
@@ -179,6 +239,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       setStock('');
       setCat('عام');
       setDescription('');
+      setAddonItems([]);
       setSelectedColors([]);
       setSelectedSizes([]);
       setCustomSize('');
@@ -296,17 +357,15 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
               )}
             </div>
 
-            {!isRestaurant && (
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">القسم</label>
-                <input
-                  placeholder="مثلاً: ملابس صيفية"
-                  value={cat}
-                  onChange={(e) => setCat(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
-                />
-              </div>
-            )}
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">القسم</label>
+              <input
+                placeholder={isRestaurant ? 'مثلاً: وجبات - مشروبات - إضافات' : 'مثلاً: ملابس صيفية'}
+                value={cat}
+                onChange={(e) => setCat(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+              />
+            </div>
 
             <div className="space-y-3">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الوصف</label>
@@ -317,6 +376,140 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
                 className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-bold text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all min-h-[140px]"
               />
             </div>
+
+            {isRestaurant && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">منتجات إضافية (اختياري)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddonItems((prev) => [
+                        ...prev,
+                        {
+                          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                          name: '',
+                          imagePreview: null,
+                          imageUploadFile: null,
+                          priceSmall: '',
+                          priceMedium: '',
+                          priceLarge: '',
+                        },
+                      ]);
+                    }}
+                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                  >
+                    + إضافة
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  {addonItems.map((a, idx) => (
+                    <div key={a.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-black">إضافة #{idx + 1}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              if (a.imagePreview && a.imagePreview.startsWith('blob:')) URL.revokeObjectURL(a.imagePreview);
+                            } catch {
+                            }
+                            setAddonItems((prev) => prev.filter((x) => x.id !== a.id));
+                          }}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="md:col-span-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">اسم الإضافة</label>
+                          <input
+                            value={a.name}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
+                            }}
+                            placeholder="مثلاً: بطاطس"
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
+                              {a.imagePreview ? <img src={a.imagePreview} className="w-full h-full object-cover" /> : null}
+                            </div>
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/avif"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const mime = String(file.type || '').toLowerCase().trim();
+                                const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+                                if (!mime || !allowed.has(mime)) {
+                                  addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+                                  return;
+                                }
+                                if (file.size > 2 * 1024 * 1024) {
+                                  addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
+                                  return;
+                                }
+                                setAddonItems((prev) =>
+                                  prev.map((x) => {
+                                    if (x.id !== a.id) return x;
+                                    try {
+                                      if (x.imagePreview && x.imagePreview.startsWith('blob:')) URL.revokeObjectURL(x.imagePreview);
+                                    } catch {
+                                    }
+                                    return { ...x, imageUploadFile: file, imagePreview: URL.createObjectURL(file) };
+                                  }),
+                                );
+                              }}
+                              className="block w-full text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
+                          <input
+                            type="number"
+                            value={a.priceSmall}
+                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
+                          <input
+                            type="number"
+                            value={a.priceMedium}
+                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
+                          <input
+                            type="number"
+                            value={a.priceLarge}
+                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {!isRestaurant && (
               <>

@@ -17,6 +17,7 @@ interface CartItem {
   quantity: number;
   shopId: string;
   shopName: string;
+  addons?: any;
 }
 
 interface CartDrawerProps {
@@ -401,6 +402,15 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                           <div className="text-right">
                             <p className="font-black text-sm">{String(item.name)}</p>
                             <p className="text-[#00E5FF] font-black text-xs">ج.م {Number(item.price)}</p>
+                            {Array.isArray((item as any)?.addons) && (item as any).addons.length > 0 && (
+                              <div className="mt-2 space-y-1">
+                                {(item as any).addons.map((a: any, idx: number) => (
+                                  <p key={idx} className="text-[10px] font-bold text-slate-500">
+                                    + {String(a?.optionName || a?.optionId || 'إضافة')} ({String(a?.variantLabel || a?.variantId || '')})
+                                  </p>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <button onClick={() => onRemove(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`))} className="text-slate-300 hover:text-red-500 transition-colors">
                             <Trash2 size={18} />

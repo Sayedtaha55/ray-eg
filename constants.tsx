@@ -130,7 +130,19 @@ export const RayDB = {
     const productId = String(input?.productId || input?.id || '').trim();
     const shopId = String(input?.shopId || '').trim();
     if (!productId) return RayDB.getCart();
-    const lineId = String(input?.lineId || `${shopId || 'unknown'}:${productId}`);
+    const addonsSig = (() => {
+      const list = Array.isArray((input as any)?.addons) ? (input as any).addons : [];
+      const normalized = list
+        .map((a: any) => ({
+          optionId: String(a?.optionId || a?.id || '').trim(),
+          variantId: String(a?.variantId || '').trim(),
+        }))
+        .filter((a: any) => a.optionId && a.variantId)
+        .sort((a: any, b: any) => `${a.optionId}:${a.variantId}`.localeCompare(`${b.optionId}:${b.variantId}`));
+      if (normalized.length === 0) return '';
+      return normalized.map((a: any) => `${a.optionId}-${a.variantId}`).join('|');
+    })();
+    const lineId = String(input?.lineId || `${shopId || 'unknown'}:${productId}${addonsSig ? `:${addonsSig}` : ''}`);
 
     const nextItem = {
       ...input,
@@ -141,6 +153,7 @@ export const RayDB = {
       price: Number(input?.price) || 0,
       name: String(input?.name || ''),
       shopName: String(input?.shopName || input?.shop_name || ''),
+      addons: Array.isArray((input as any)?.addons) ? (input as any).addons : [],
     };
 
     const prev = RayDB.getCart();

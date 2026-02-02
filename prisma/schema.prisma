@@ -118,6 +118,7 @@ model Product {
   images      Json?
   colors      Json?
   sizes       Json?
+  addons      Json?
   isActive    Boolean  @default(true)
   shopId      String
   createdAt   DateTime @default(now())
@@ -187,6 +188,7 @@ model OrderItem {
   productId String @map("product_id")
   quantity  Int
   price     Float
+  addons    Json?
 
   // Relations
   order     Order   @relation(fields: [orderId], references: [id])
@@ -305,6 +307,7 @@ model Reservation {
   itemName      String           @map("item_name")
   itemImage     String?          @map("item_image")
   itemPrice     Float            @map("item_price")
+  extras        Json?
   shopId        String           @map("shop_id")
   shopName      String           @map("shop_name")
   customerName  String           @map("customer_name")

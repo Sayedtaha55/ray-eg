@@ -14,6 +14,7 @@ export async function addReservationViaBackend(reservation: any) {
     itemImage: reservation.itemImage,
     itemPrice: reservation.itemPrice,
     shopId: reservation.shopId,
+    addons: (reservation as any)?.addons,
   });
 }
 

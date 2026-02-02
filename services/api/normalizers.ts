@@ -72,6 +72,24 @@ export function normalizeProductFromBackend(product: any) {
   const images = Array.isArray(imagesRaw)
     ? imagesRaw.map((u: any) => (typeof u === 'string' ? toBackendUrl(u) : u)).filter(Boolean)
     : imagesRaw;
+
+  const addonsRaw = product.addons;
+  const addons = Array.isArray(addonsRaw)
+    ? addonsRaw.map((g: any) => {
+        const options = Array.isArray(g?.options)
+          ? g.options.map((o: any) => {
+              const img = o?.imageUrl ?? o?.image_url;
+              const imageUrl2 = typeof img === 'string' ? toBackendUrl(img) : img;
+              return {
+                ...o,
+                imageUrl: imageUrl2,
+                image_url: o?.image_url ?? imageUrl2,
+              };
+            })
+          : g?.options;
+        return { ...g, options };
+      })
+    : addonsRaw;
   return {
     ...product,
     imageUrl,
@@ -85,6 +103,7 @@ export function normalizeProductFromBackend(product: any) {
     trackStock,
     track_stock: product.track_stock ?? trackStock,
     images,
+    addons,
   };
 }
 

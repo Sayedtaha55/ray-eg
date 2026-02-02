@@ -76,6 +76,7 @@ export class ProductController {
     const images = typeof body?.images === 'undefined' ? undefined : body.images;
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
+    const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
 
     if (!name) throw new BadRequestException('name مطلوب');
     if (Number.isNaN(price) || price < 0) throw new BadRequestException('price غير صحيح');
@@ -92,6 +93,7 @@ export class ProductController {
       images,
       colors,
       sizes,
+      addons,
     });
   }
 
@@ -122,6 +124,7 @@ export class ProductController {
     const images = typeof body?.images === 'undefined' ? undefined : body.images;
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
+    const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
 
     const isActive = typeof body?.isActive === 'boolean' ? body.isActive : undefined;
 
@@ -140,6 +143,7 @@ export class ProductController {
       images,
       colors,
       sizes,
+      addons,
       isActive,
     }, { role, shopId: shopIdFromToken });
   }

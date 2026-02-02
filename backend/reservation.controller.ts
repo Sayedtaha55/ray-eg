@@ -33,6 +33,9 @@ class CreateReservationDto {
   @IsString()
   @MinLength(1)
   shopId!: string;
+
+  @IsOptional()
+  addons?: any;
 }
 
 class UpdateReservationStatusDto {
@@ -60,6 +63,7 @@ export class ReservationController {
       itemImage: body?.itemImage,
       itemPrice: body?.itemPrice,
       shopId: body?.shopId,
+      addons: (body as any)?.addons,
     });
   }
 

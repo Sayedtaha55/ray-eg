@@ -17,6 +17,7 @@ interface ReservationModalProps {
     price: number;
     shopId: string;
     shopName: string;
+    addons?: any;
   } | null;
 }
 
@@ -70,6 +71,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
         itemImage: String(item.image),
         itemPrice: Number(item.price),
         shopId: String(item.shopId),
+        addons: (item as any)?.addons,
       };
 
       await ApiService.addReservation(reservation);

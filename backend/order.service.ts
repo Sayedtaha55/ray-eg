@@ -7,6 +7,76 @@ export class OrderService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private normalizeItemAddons(raw: any): Array<{ optionId: string; variantId: string }> {
+    const list = Array.isArray(raw) ? raw : [];
+    const normalized = list
+      .map((a: any) => ({
+        optionId: String(a?.optionId || a?.id || '').trim(),
+        variantId: String(a?.variantId || '').trim(),
+      }))
+      .filter((a: any) => a.optionId && a.variantId);
+
+    normalized.sort((a, b) => {
+      const ak = `${a.optionId}:${a.variantId}`;
+      const bk = `${b.optionId}:${b.variantId}`;
+      return ak.localeCompare(bk);
+    });
+
+    return normalized;
+  }
+
+  private computeAddonsForProduct(product: any, selected: Array<{ optionId: string; variantId: string }>) {
+    const addonsDef = Array.isArray((product as any)?.addons) ? ((product as any).addons as any[]) : [];
+    const optionIndex = new Map<string, { name: string; imageUrl?: string; variants: Map<string, { label: string; price: number }> }>();
+
+    for (const group of addonsDef) {
+      const options = Array.isArray((group as any)?.options) ? (group as any).options : [];
+      for (const opt of options) {
+        const optionId = String(opt?.id || opt?.optionId || '').trim();
+        if (!optionId) continue;
+        const variantsArr = Array.isArray(opt?.variants) ? opt.variants : [];
+        const variantsMap = new Map<string, { label: string; price: number }>();
+        for (const v of variantsArr) {
+          const variantId = String(v?.id || v?.variantId || '').trim();
+          if (!variantId) continue;
+          const label = String(v?.label || v?.name || '').trim() || variantId;
+          const price = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          variantsMap.set(variantId, { label, price: Number.isFinite(price) ? price : 0 });
+        }
+
+        optionIndex.set(optionId, {
+          name: String(opt?.name || opt?.title || '').trim() || optionId,
+          imageUrl: typeof opt?.imageUrl === 'string' ? opt.imageUrl : (typeof opt?.image_url === 'string' ? opt.image_url : undefined),
+          variants: variantsMap,
+        });
+      }
+    }
+
+    const normalized: any[] = [];
+    let total = 0;
+    for (const sel of selected || []) {
+      const entry = optionIndex.get(sel.optionId);
+      if (!entry) {
+        throw new BadRequestException('إضافة غير متاحة');
+      }
+      const variant = entry.variants.get(sel.variantId);
+      if (!variant) {
+        throw new BadRequestException('حجم/اختيار الإضافة غير متاح');
+      }
+      normalized.push({
+        optionId: sel.optionId,
+        optionName: entry.name,
+        optionImage: entry.imageUrl || null,
+        variantId: sel.variantId,
+        variantLabel: variant.label,
+        price: variant.price,
+      });
+      total += Number(variant.price) || 0;
+    }
+
+    return { normalized, total };
+  }
+
   private getPagination(paging?: { page?: number; limit?: number }) {
     const page = typeof paging?.page === 'number' ? paging.page : undefined;
     const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
@@ -300,7 +370,7 @@ export class OrderService {
   async createOrder(input: {
     shopId: string;
     userId: string;
-    items: Array<{ productId?: string; id?: string; quantity: number }>;
+    items: Array<{ productId?: string; id?: string; quantity: number; addons?: any }>;
     total?: number;
     paymentMethod?: string;
     notes?: string;
@@ -325,6 +395,7 @@ export class OrderService {
     const normalizedItems = items.map((i) => ({
       productId: String(i.productId || i.id || '').trim(),
       quantity: Number(i.quantity),
+      addons: this.normalizeItemAddons((i as any)?.addons),
     }));
 
     if (normalizedItems.some((i) => !i.productId)) {
@@ -351,12 +422,31 @@ export class OrderService {
         where: { id: { in: productIds }, shopId, isActive: true },
       });
 
+      const offers = await tx.offer.findMany({
+        where: {
+          shopId,
+          isActive: true,
+          productId: { in: productIds } as any,
+          expiresAt: { gt: new Date() } as any,
+        } as any,
+        select: { productId: true, newPrice: true } as any,
+      });
+
       if (products.length !== productIds.length) {
         throw new BadRequestException('بعض المنتجات غير متاحة');
       }
 
       const byId: Record<string, any> = {};
       for (const p of products) byId[p.id] = p;
+
+      const offerPriceByProductId: Record<string, number> = {};
+      for (const o of offers || []) {
+        const pid = String((o as any)?.productId || '').trim();
+        const n = typeof (o as any)?.newPrice === 'number' ? (o as any).newPrice : Number((o as any)?.newPrice || 0);
+        if (!pid) continue;
+        if (!Number.isFinite(n) || n < 0) continue;
+        offerPriceByProductId[pid] = n;
+      }
 
       // Validate stock
       for (const item of normalizedItems) {
@@ -384,13 +474,16 @@ export class OrderService {
 
       const computedTotal = normalizedItems.reduce((sum, item) => {
         const product = byId[item.productId];
-        const price = typeof product?.price === 'number' ? product.price : Number(product?.price || 0);
-        return sum + price * item.quantity;
+        const basePriceRaw = offerPriceByProductId[item.productId];
+        const basePrice = typeof basePriceRaw === 'number'
+          ? basePriceRaw
+          : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
+        const { total: addonsTotal } = this.computeAddonsForProduct(product, (item as any).addons || []);
+        const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
+        return sum + unit * item.quantity;
       }, 0);
 
-      const total = typeof input.total === 'number' && !Number.isNaN(input.total) && input.total >= 0
-        ? input.total
-        : computedTotal;
+      const total = computedTotal;
 
       const created = await tx.order.create({
         data: {
@@ -401,11 +494,20 @@ export class OrderService {
           paymentMethod: input?.paymentMethod ? String(input.paymentMethod) : null,
           notes: safeNotes,
           items: {
-            create: normalizedItems.map((item) => ({
-              productId: item.productId,
-              quantity: item.quantity,
-              price: typeof byId[item.productId]?.price === 'number' ? byId[item.productId].price : Number(byId[item.productId]?.price || 0),
-            })),
+            create: normalizedItems.map((item) => {
+              const product = byId[item.productId];
+              const basePriceRaw = offerPriceByProductId[item.productId];
+              const basePrice = typeof basePriceRaw === 'number'
+                ? basePriceRaw
+                : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
+              const addons = this.computeAddonsForProduct(product, (item as any).addons || []);
+              return {
+                productId: item.productId,
+                quantity: item.quantity,
+                price: (Number(basePrice) || 0) + (Number(addons.total) || 0),
+                addons: addons.normalized,
+              };
+            }),
           },
         },
         include: {

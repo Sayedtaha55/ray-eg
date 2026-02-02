@@ -149,6 +149,7 @@ export class ProductService {
     images?: any;
     colors?: any;
     sizes?: any;
+    addons?: any;
   }) {
     const shop = await this.prisma.shop.findUnique({ where: { id: input.shopId }, select: { id: true, slug: true, category: true } });
     if (!shop) {
@@ -173,6 +174,7 @@ export class ProductService {
         images: typeof input.images === 'undefined' ? undefined : input.images,
         colors: typeof input.colors === 'undefined' ? undefined : input.colors,
         sizes: typeof input.sizes === 'undefined' ? undefined : input.sizes,
+        addons: typeof input.addons === 'undefined' ? undefined : input.addons,
         description: input.description || null,
         isActive: true,
       } as any,
@@ -243,6 +245,7 @@ export class ProductService {
     images?: any;
     colors?: any;
     sizes?: any;
+    addons?: any;
     isActive?: boolean;
   }, actor: { role: string; shopId?: string }) {
     if (!productId) throw new BadRequestException('id مطلوب');
@@ -271,6 +274,7 @@ export class ProductService {
     if (data.images !== undefined) updateData.images = data.images;
     if (data.colors !== undefined) updateData.colors = data.colors;
     if (data.sizes !== undefined) updateData.sizes = data.sizes;
+    if (data.addons !== undefined) updateData.addons = data.addons;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
     const updated = await this.prisma.product.update({

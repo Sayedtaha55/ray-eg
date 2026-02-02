@@ -7,6 +7,77 @@ export class ReservationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private normalizeItemAddons(raw: any): Array<{ optionId: string; variantId: string }> {
+    const list = Array.isArray(raw) ? raw : [];
+    const normalized = list
+      .map((a: any) => ({
+        optionId: String(a?.optionId || a?.id || '').trim(),
+        variantId: String(a?.variantId || '').trim(),
+      }))
+      .filter((a: any) => a.optionId && a.variantId);
+
+    normalized.sort((a, b) => {
+      const ak = `${a.optionId}:${a.variantId}`;
+      const bk = `${b.optionId}:${b.variantId}`;
+      return ak.localeCompare(bk);
+    });
+
+    return normalized;
+  }
+
+  private computeAddonsForProduct(product: any, selected: Array<{ optionId: string; variantId: string }>) {
+    const addonsDef = Array.isArray((product as any)?.addons) ? ((product as any).addons as any[]) : [];
+    const optionIndex = new Map<string, { name: string; imageUrl?: string; variants: Map<string, { label: string; price: number }> }>();
+
+    for (const group of addonsDef) {
+      const options = Array.isArray((group as any)?.options) ? (group as any).options : [];
+      for (const opt of options) {
+        const optionId = String(opt?.id || opt?.optionId || '').trim();
+        if (!optionId) continue;
+
+        const variantsArr = Array.isArray(opt?.variants) ? opt.variants : [];
+        const variantsMap = new Map<string, { label: string; price: number }>();
+        for (const v of variantsArr) {
+          const variantId = String(v?.id || v?.variantId || '').trim();
+          if (!variantId) continue;
+          const label = String(v?.label || v?.name || '').trim() || variantId;
+          const price = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          variantsMap.set(variantId, { label, price: Number.isFinite(price) ? price : 0 });
+        }
+
+        optionIndex.set(optionId, {
+          name: String(opt?.name || opt?.title || '').trim() || optionId,
+          imageUrl: typeof opt?.imageUrl === 'string' ? opt.imageUrl : (typeof opt?.image_url === 'string' ? opt.image_url : undefined),
+          variants: variantsMap,
+        });
+      }
+    }
+
+    const normalized: any[] = [];
+    let total = 0;
+    for (const sel of selected || []) {
+      const entry = optionIndex.get(sel.optionId);
+      if (!entry) {
+        throw new BadRequestException('إضافة غير متاحة');
+      }
+      const variant = entry.variants.get(sel.variantId);
+      if (!variant) {
+        throw new BadRequestException('حجم/اختيار الإضافة غير متاح');
+      }
+      normalized.push({
+        optionId: sel.optionId,
+        optionName: entry.name,
+        optionImage: entry.imageUrl || null,
+        variantId: sel.variantId,
+        variantLabel: variant.label,
+        price: variant.price,
+      });
+      total += Number(variant.price) || 0;
+    }
+
+    return { normalized, total };
+  }
+
   private readonly RESERVATION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
   private getPagination(paging?: { page?: number; limit?: number }) {
@@ -52,6 +123,7 @@ export class ReservationService {
     itemName: string;
     itemImage?: string | null;
     itemPrice: number;
+    addons?: any;
     shopId: string;
     shopName: string;
     customerName: string;
@@ -65,6 +137,7 @@ export class ReservationService {
     const customerPhone = String(input?.customerPhone || '').trim();
     const itemImage = input?.itemImage ? String(input.itemImage) : null;
     const itemPrice = Number(input?.itemPrice);
+    const selectedAddons = this.normalizeItemAddons((input as any)?.addons);
 
     if (!itemId) throw new BadRequestException('itemId مطلوب');
     if (!itemName) throw new BadRequestException('itemName مطلوب');
@@ -77,18 +150,45 @@ export class ReservationService {
     const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
 
+    const product = await this.prisma.product.findFirst({
+      where: { id: itemId, shopId, isActive: true },
+    });
+    if (!product) throw new NotFoundException('المنتج غير موجود');
+
+    let basePrice = typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0);
+    try {
+      const offer = await this.prisma.offer.findFirst({
+        where: {
+          shopId,
+          isActive: true,
+          productId: itemId as any,
+          expiresAt: { gt: new Date() } as any,
+        } as any,
+        select: { newPrice: true } as any,
+      });
+      const oPrice = typeof (offer as any)?.newPrice === 'number' ? (offer as any).newPrice : Number((offer as any)?.newPrice || NaN);
+      if (Number.isFinite(oPrice) && oPrice >= 0) {
+        basePrice = oPrice;
+      }
+    } catch {
+    }
+
+    const addonsComputed = this.computeAddonsForProduct(product, selectedAddons);
+    const finalPrice = (Number(basePrice) || 0) + (Number(addonsComputed.total) || 0);
+
     const created = await this.prisma.reservation.create({
       data: {
         itemId,
         itemName,
         itemImage,
-        itemPrice,
+        itemPrice: finalPrice,
+        extras: addonsComputed.normalized,
         shopId,
         shopName,
         customerName,
         customerPhone,
         status: 'PENDING' as any,
-      },
+      } as any,
     });
 
     try {
@@ -105,7 +205,8 @@ export class ReservationService {
             itemName,
             customerName,
             customerPhone,
-            itemPrice,
+            itemPrice: finalPrice,
+            extras: addonsComputed.normalized,
           },
         } as any,
       });
@@ -122,6 +223,7 @@ export class ReservationService {
     itemImage?: string | null;
     itemPrice: number;
     shopId: string;
+    addons?: any;
   }) {
     const uid = String(userId || '').trim();
     if (!uid) throw new BadRequestException('غير مصرح');
@@ -155,6 +257,7 @@ export class ReservationService {
       shopName: shop.name,
       customerName: user.name,
       customerPhone,
+      addons: (input as any)?.addons,
     });
   }
 

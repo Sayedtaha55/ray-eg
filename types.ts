@@ -86,6 +86,7 @@ export interface Product {
   images?: any;
   colors?: any;
   sizes?: any;
+  addons?: any;
 }
 
 export interface Reservation {

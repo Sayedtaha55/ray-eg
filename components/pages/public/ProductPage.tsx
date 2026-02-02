@@ -26,6 +26,7 @@ const ProductPage: React.FC = () => {
   const [isResModalOpen, setIsResModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -36,6 +37,8 @@ const ProductPage: React.FC = () => {
           setError(true);
           return;
         }
+
+        setSelectedAddons([]);
 
         let p: any = null;
         try {
@@ -141,13 +144,83 @@ const ProductPage: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
+
+    const addonsTotal = (() => {
+      const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+      const priceByKey = new Map<string, number>();
+      const labelByKey = new Map<string, string>();
+      const optionNameById = new Map<string, string>();
+      const optionImageById = new Map<string, string>();
+      for (const g of addonsDef || []) {
+        const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+        for (const opt of options) {
+          const optId = String(opt?.id || '').trim();
+          if (!optId) continue;
+          optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
+          if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
+            optionImageById.set(optId, String(opt.imageUrl).trim());
+          }
+          const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+          for (const v of vars) {
+            const vid = String(v?.id || '').trim();
+            if (!vid) continue;
+            const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+            priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+            labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
+          }
+        }
+      }
+      return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
+    })();
+
+    const normalizedAddons = (() => {
+      const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+      const priceByKey = new Map<string, number>();
+      const labelByKey = new Map<string, string>();
+      const optionNameById = new Map<string, string>();
+      const optionImageById = new Map<string, string>();
+      for (const g of addonsDef || []) {
+        const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+        for (const opt of options) {
+          const optId = String(opt?.id || '').trim();
+          if (!optId) continue;
+          optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
+          if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
+            optionImageById.set(optId, String(opt.imageUrl).trim());
+          }
+          const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+          for (const v of vars) {
+            const vid = String(v?.id || '').trim();
+            if (!vid) continue;
+            const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+            priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+            labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
+          }
+        }
+      }
+
+      return (selectedAddons || []).map((a) => {
+        const key = `${a.optionId}:${a.variantId}`;
+        return {
+          optionId: a.optionId,
+          optionName: optionNameById.get(a.optionId) || a.optionId,
+          optionImage: optionImageById.get(a.optionId) || null,
+          variantId: a.variantId,
+          variantLabel: labelByKey.get(key) || a.variantId,
+          price: priceByKey.get(key) || 0,
+        };
+      });
+    })();
+
+    const unitPrice = (Number(offer ? offer.newPrice : product.price) || 0) + (Number(addonsTotal) || 0);
     const event = new CustomEvent('add-to-cart', { 
       detail: { 
         ...product, 
-        price: offer ? offer.newPrice : product.price,
+        price: unitPrice,
         quantity: 1, 
         shopId: shop?.id, 
-        shopName: shop?.name 
+        shopName: shop?.name,
+        addons: normalizedAddons,
       } 
     });
     window.dispatchEvent(event);
@@ -196,6 +269,26 @@ const ProductPage: React.FC = () => {
   }
 
   const currentPrice = offer ? offer.newPrice : product.price;
+  const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+  const addonsTotal = (() => {
+    const priceByKey = new Map<string, number>();
+    for (const g of addonsDef || []) {
+      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+      for (const opt of options) {
+        const optId = String(opt?.id || '').trim();
+        if (!optId) continue;
+        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+        for (const v of vars) {
+          const vid = String(v?.id || '').trim();
+          if (!vid) continue;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+        }
+      }
+    }
+    return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
+  })();
+  const unitPrice = (Number(currentPrice) || 0) + (Number(addonsTotal) || 0);
   const hasDiscount = !!offer;
   const isRestaurant = shop?.category === Category.RESTAURANT;
   const trackStock = typeof (product as any)?.trackStock === 'boolean'
@@ -248,7 +341,7 @@ const ProductPage: React.FC = () => {
              )}
              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight">{product.name}</h1>
              <div className="flex items-center gap-6">
-                <span className="text-4xl md:text-6xl font-black text-[#00E5FF] tracking-tighter">ج.م {currentPrice}</span>
+                <span className="text-4xl md:text-6xl font-black text-[#00E5FF] tracking-tighter">ج.م {unitPrice}</span>
                 {hasDiscount && (
                   <span className="text-2xl md:text-3xl text-slate-300 line-through font-bold">ج.م {product.price}</span>
                 )}
@@ -256,6 +349,71 @@ const ProductPage: React.FC = () => {
           </div>
 
           <div className="space-y-6">
+             {isRestaurant && Array.isArray(addonsDef) && addonsDef.length > 0 && (
+               <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-6">
+                 <div className="flex items-center justify-between">
+                   <h3 className="text-lg font-black">منتجات إضافية</h3>
+                   <span className="text-xs font-black text-slate-400">اختياري</span>
+                 </div>
+
+                 <div className="space-y-6">
+                   {(addonsDef as any[]).map((group, gi) => (
+                     <div key={String(group?.id || gi)} className="space-y-4">
+                       {group?.title ? <p className="text-xs font-black text-slate-500">{String(group.title)}</p> : null}
+                       <div className="space-y-3">
+                         {(Array.isArray(group?.options) ? group.options : []).map((opt: any) => {
+                           const optId = String(opt?.id || '').trim();
+                           if (!optId) return null;
+                           const currentVariantId = selectedAddons.find((a) => a.optionId === optId)?.variantId || '';
+                           const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                           return (
+                             <div key={optId} className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                               {opt?.imageUrl && (
+                                 <img src={String(opt.imageUrl)} className="w-12 h-12 rounded-xl object-cover" alt={String(opt?.name || '')} />
+                               )}
+                               <div className="flex-1">
+                                 <p className="font-black text-sm text-slate-900">{String(opt?.name || 'إضافة')}</p>
+                                 <p className="text-[10px] text-slate-400 font-bold">اختر الحجم</p>
+                               </div>
+                               <select
+                                 value={currentVariantId}
+                                 onChange={(e) => {
+                                   const v = String(e.target.value || '');
+                                   setSelectedAddons((prev) => {
+                                     const next = Array.isArray(prev) ? [...prev] : [];
+                                     const idx = next.findIndex((x) => x.optionId === optId);
+                                     if (!v) {
+                                       if (idx >= 0) next.splice(idx, 1);
+                                       return next;
+                                     }
+                                     if (idx >= 0) next[idx] = { optionId: optId, variantId: v };
+                                     else next.push({ optionId: optId, variantId: v });
+                                     return next;
+                                   });
+                                 }}
+                                 className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-black"
+                               >
+                                 <option value="">بدون</option>
+                                 {variants.map((v: any, idx: number) => {
+                                   const vid = String(v?.id || idx).trim();
+                                   const label = String(v?.label || v?.name || '').trim() || 'اختيار';
+                                   const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                                   return (
+                                     <option key={vid} value={vid}>
+                                       {label} (+{Number.isFinite(p) ? p : 0} ج.م)
+                                     </option>
+                                   );
+                                 })}
+                               </select>
+                             </div>
+                           );
+                         })}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
              <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
                 <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#BD00FF] shadow-sm">
                    <Package size={24} />
@@ -319,9 +477,46 @@ const ProductPage: React.FC = () => {
           id: product.id,
           name: product.name,
           image: product.imageUrl || (product as any).image_url,
-          price: currentPrice,
+          price: unitPrice,
           shopId: shop?.id || 's1',
-          shopName: shop?.name || 'MNMKNK'
+          shopName: shop?.name || 'MNMKNK',
+          addons: (() => {
+            const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+            const priceByKey = new Map<string, number>();
+            const labelByKey = new Map<string, string>();
+            const optionNameById = new Map<string, string>();
+            const optionImageById = new Map<string, string>();
+            for (const g of addonsDef || []) {
+              const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+              for (const opt of options) {
+                const optId = String(opt?.id || '').trim();
+                if (!optId) continue;
+                optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
+                if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
+                  optionImageById.set(optId, String(opt.imageUrl).trim());
+                }
+                const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+                for (const v of vars) {
+                  const vid = String(v?.id || '').trim();
+                  if (!vid) continue;
+                  const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                  priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+                  labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
+                }
+              }
+            }
+            return (selectedAddons || []).map((a) => {
+              const key = `${a.optionId}:${a.variantId}`;
+              return {
+                optionId: a.optionId,
+                optionName: optionNameById.get(a.optionId) || a.optionId,
+                optionImage: optionImageById.get(a.optionId) || null,
+                variantId: a.variantId,
+                variantLabel: labelByKey.get(key) || a.variantId,
+                price: priceByKey.get(key) || 0,
+              };
+            });
+          })(),
         }}
       />
     </div>
