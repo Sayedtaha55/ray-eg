@@ -102,7 +102,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
           >
             {step === 'form' ? (
               <div className="p-8 md:p-12">
-                <button onClick={onClose} className="absolute top-8 left-8 p-2 hover:bg-slate-100 rounded-full transition-all">
+                <button type="button" aria-label="إغلاق" onClick={onClose} className="absolute top-8 left-8 p-2 hover:bg-slate-100 rounded-full transition-all">
                   <X size={24} className="text-slate-400" />
                 </button>
 
@@ -114,7 +114,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                 </div>
 
                 <div className="bg-slate-50 p-6 rounded-3xl mb-8 flex items-center gap-4 flex-row-reverse">
-                   <img src={String(item?.image || '')} className="w-20 h-20 rounded-2xl object-cover shadow-sm" />
+                   <img src={String(item?.image || '')} className="w-20 h-20 rounded-2xl object-cover shadow-sm" alt={String(item?.name || 'صنف')} />
                    <div className="flex-1">
                       <p className="font-black text-lg">{String(item?.name || 'صنف')}</p>
                       <p className="text-[#00E5FF] font-black">ج.م {Number(item?.price || 0)}</p>

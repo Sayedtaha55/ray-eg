@@ -126,7 +126,7 @@ const HomeFeed: React.FC = () => {
           <Skeleton className="h-10 w-72" />
           <Skeleton className="h-6 w-28" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-12">
           {Array.from({ length: 6 }).map((_, idx) => (
             <div key={`offer-skel-${idx}`} className="bg-white p-5 rounded-[3rem] border border-slate-50">
               <Skeleton className="relative aspect-[4/5] rounded-[2.5rem] mb-6" />
@@ -173,7 +173,7 @@ const HomeFeed: React.FC = () => {
             عروض حصرية
          </MotionDiv>
          <h1 className="text-4xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.85]">أفضل العروض<br/><span className="text-[#00E5FF]">في مكان واحد.</span></h1>
-         <p className="text-slate-400 text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-12">
+         <p className="text-slate-600 text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-12">
             خصومات مميزة من أفضل المحلات والمطاعم في مصر.
          </p>
 
@@ -189,14 +189,14 @@ const HomeFeed: React.FC = () => {
       <section className="mb-24">
         <div className="flex items-center justify-between mb-12 md:mb-20 flex-row-reverse px-2">
            <h2 className="text-3xl md:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
-           <Link to="/shops" className="flex items-center gap-2 text-slate-400 font-black text-xs md:text-sm hover:text-black transition-all group">
+           <Link to="/shops" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
              مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
            </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-12">
           {offers.length === 0 ? (
             <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
-          ) : offers.map((offer) => (
+          ) : offers.map((offer, idx) => (
             <MotionDiv 
               key={offer.id}
               className="group bg-white p-5 rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
@@ -205,7 +205,14 @@ const HomeFeed: React.FC = () => {
                 onClick={() => navigate(`/product/${(offer as any).productId || offer.id}`)}
                 className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6 bg-slate-50 cursor-pointer"
               >
-                <img loading="lazy" src={offer.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]" />
+                <img
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={idx === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                  src={offer.imageUrl}
+                  alt={offer.title}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
+                />
                 <div className="absolute top-5 left-5 bg-[#BD00FF] text-white px-4 py-2 rounded-2xl font-black text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                    <Eye size={32} className="text-white drop-shadow-lg" />
@@ -215,12 +222,21 @@ const HomeFeed: React.FC = () => {
                 <h3 className="text-xl md:text-2xl font-black mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
                 <div className="flex items-center justify-between flex-row-reverse">
                    <div className="text-right">
-                      <p className="text-slate-300 line-through text-xs font-bold">ج.م {offer.oldPrice}</p>
+                      <p className="text-slate-500 line-through text-xs font-bold">ج.م {offer.oldPrice}</p>
                       <p className="text-xl md:text-3xl font-black">ج.م {offer.newPrice}</p>
                    </div>
                    <div className="flex gap-2">
-                      <button onClick={() => setSelectedItem(offer)} className="w-12 h-12 bg-[#00E5FF] rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"><CalendarCheck size={20} /></button>
+                      <button
+                        type="button"
+                        aria-label="حجز"
+                        onClick={() => setSelectedItem(offer)}
+                        className="w-12 h-12 bg-[#00E5FF] rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                      >
+                        <CalendarCheck size={20} />
+                      </button>
                       <button 
+                        type="button"
+                        aria-label="إضافة للسلة"
                         onClick={() => {
                           const event = new CustomEvent('add-to-cart', {
                             detail: {
@@ -261,17 +277,17 @@ const HomeFeed: React.FC = () => {
                >
                   <div className="flex items-center justify-between mb-6">
                      <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين MNMKNK</h4>
-                     <button onClick={() => setIsFeedbackOpen(false)}><X size={16} /></button>
+                     <button type="button" aria-label="إغلاق" onClick={() => setIsFeedbackOpen(false)}><X size={16} /></button>
                   </div>
                   
                   {feedbackResponse ? (
                     <div className="space-y-4">
                        <p className="text-sm font-bold text-[#BD00FF] bg-purple-50 p-6 rounded-3xl leading-loose">{feedbackResponse}</p>
-                      <button onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">شكراً يا MNMKNK!</button>
+                      <button type="button" onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">شكراً يا MNMKNK!</button>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                       <p className="text-xs text-slate-400 font-bold mb-4">عندك فكرة أو شايف حاجة مش عجباك؟ احنا لسه بنجرب ومحتاجين رأيك.</p>
+                       <p className="text-xs text-slate-600 font-bold mb-4">عندك فكرة أو شايف حاجة مش عجباك؟ احنا لسه بنجرب ومحتاجين رأيك.</p>
                        <textarea 
                           className="w-full bg-slate-50 rounded-2xl p-4 text-xs font-bold border-none focus:ring-2 focus:ring-[#00E5FF] h-28 outline-none"
                           placeholder="اكتب اقتراحك هنا يا بطل..."
@@ -291,6 +307,8 @@ const HomeFeed: React.FC = () => {
             )}
          </AnimatePresence>
          <button 
+            type="button"
+            aria-label="فتح المساعد"
             onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
             className="w-14 h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
          >

@@ -2,6 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
 import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';

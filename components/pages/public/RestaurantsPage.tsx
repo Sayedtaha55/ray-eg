@@ -195,7 +195,7 @@ const RestaurantsPage: React.FC = () => {
             <div className="absolute bottom-10 right-10 left-10 flex items-end justify-between flex-row-reverse">
               <div className="text-right">
                 <div className="flex items-center gap-3 justify-end mb-2">
-                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" />
+                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" alt={shop.name} />
                    <h3 className="text-3xl font-black text-white">{shop.name}</h3>
                    <span className={`px-4 py-1.5 rounded-full text-[11px] font-black ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
                      {shop?.isActive === false ? 'مقفول' : 'مفتوح'}

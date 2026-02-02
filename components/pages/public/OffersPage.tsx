@@ -91,7 +91,7 @@ const OffersPage: React.FC = () => {
         ) : offers.length === 0 ? (
           <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
         ) : (
-          offers.map((offer: any) => (
+          offers.map((offer: any, idx: number) => (
             <MotionDiv
               key={offer.id}
               initial={{ opacity: 0, y: 20 }}
@@ -103,7 +103,9 @@ const OffersPage: React.FC = () => {
                 className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6 bg-slate-50 cursor-pointer"
               >
                 <img
-                  loading="lazy"
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={idx === 0 ? 'high' : 'auto'}
+                  decoding="async"
                   src={offer.imageUrl}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
                   alt={offer.title}

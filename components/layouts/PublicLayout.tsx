@@ -145,7 +145,7 @@ const PublicLayout: React.FC = () => {
           }`}
         >
           <Link to="/" className="flex items-center gap-2 md:gap-4">
-            <BrandLogo variant="public" iconOnly />
+            <BrandLogo variant="public" iconOnly name="" />
             <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">MNMKNK</span>
           </Link>
 
@@ -202,6 +202,8 @@ const PublicLayout: React.FC = () => {
             <button 
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 text-slate-900"
+              type="button"
+              aria-label="فتح القائمة"
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -216,7 +218,7 @@ const PublicLayout: React.FC = () => {
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white z-[120] p-8 flex flex-col shadow-2xl" dir="rtl" >
               <div className="flex justify-between items-center mb-12">
                 <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">MNMKNK</span>
-                <button onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
+                <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
               <nav className="flex flex-col gap-6 flex-1">
                 <MobileNavItem to="/shops" onClick={() => setMobileMenuOpen(false)} icon={<ShoppingCart className="text-[#00E5FF]" />} label="المحلات" />

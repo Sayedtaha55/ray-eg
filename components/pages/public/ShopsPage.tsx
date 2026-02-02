@@ -194,7 +194,7 @@ const ShopsPage: React.FC = () => {
                      loading="lazy"
                      src={bannerSrc}
                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                     alt="banner"
+                     alt={`${shop.name} banner`}
                    />
                  );
                })()}
