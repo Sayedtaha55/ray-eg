@@ -90,6 +90,33 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     return Boolean(trackStock);
   };
 
+  const getProductMenuVariantMinPrice = (product: any) => {
+    const menuVariants = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+    if (!Array.isArray(menuVariants)) return undefined;
+    let min: number | undefined;
+    for (const t of menuVariants) {
+      const sizes = Array.isArray(t?.sizes) ? t.sizes : [];
+      for (const s of sizes) {
+        const p = typeof s?.price === 'number' ? s.price : Number(s?.price);
+        if (!Number.isFinite(p) || p <= 0) continue;
+        min = typeof min === 'number' ? Math.min(min, p) : p;
+      }
+    }
+    return min;
+  };
+
+  const getProductEffectivePrice = (product: any) => {
+    const minVariantPrice = getProductMenuVariantMinPrice(product);
+    if (typeof minVariantPrice === 'number' && Number.isFinite(minVariantPrice)) return minVariantPrice;
+    const base = typeof product?.price === 'number' ? product.price : Number(product?.price);
+    return Number.isFinite(base) ? base : 0;
+  };
+
+  const isProductHasMenuVariants = (product: any) => {
+    const menuVariants = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+    return Array.isArray(menuVariants) && menuVariants.length > 0;
+  };
+
   const addToCart = (product: any, qty: number = 1) => {
     if (!product) return;
     const stock = getProductStock(product);
@@ -103,7 +130,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         return prev.map(item => item.id === product.id ? { ...item, quantity: nextQty } : item);
       }
       const initialQty = Number.isFinite(stock) ? Math.min(stock, qty) : qty;
-      return [...prev, { id: product.id, name: product.name, price: product.price, quantity: initialQty }];
+      return [...prev, { id: product.id, name: product.name, price: getProductEffectivePrice(product), quantity: initialQty }];
     });
   };
 
@@ -381,8 +408,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
               onClick={() => addToCart(product, 1)}
               className="relative active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed aspect-square"
             >
-              <div className="w-full h-full rounded-lg md:rounded-[1.8rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative flex flex-col">
-                <div className="flex-1 relative">
+              <div className="w-full h-full rounded-lg md:rounded-[1.8rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative">
+                <div className="absolute inset-0">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                   ) : (
@@ -390,6 +417,14 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                       <ShoppingCart className="w-6 h-6 md:w-12 md:h-12 text-slate-300" />
                     </div>
                   )}
+                  <div className="absolute inset-x-0 bottom-0 p-1 md:p-3 bg-white/95 backdrop-blur border-t border-slate-100">
+                    <p className="font-black text-[10px] md:text-sm text-slate-900 text-center line-clamp-1">
+                      {String(product?.name || '')}
+                    </p>
+                    <p className="text-[#BD00FF] font-black text-[10px] md:text-lg text-center leading-tight">
+                      {isProductHasMenuVariants(product) ? 'يبدأ من ' : ''}ج.م {getProductEffectivePrice(product)}
+                    </p>
+                  </div>
                   {(() => {
                     const trackStock = isProductTrackStockEnabled(product);
                     if (!trackStock) {
@@ -409,7 +444,6 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                     );
                   })()}
                 </div>
-                <p className="text-[#BD00FF] font-black text-[10px] md:text-lg text-center py-1 bg-white">ج.م {product.price}</p>
               </div>
             </MotionDiv>
           ))}
