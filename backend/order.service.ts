@@ -7,6 +7,53 @@ export class OrderService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private normalizeVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj: any = raw as any;
+    const typeId = String(obj?.typeId || obj?.variantId || obj?.type || obj?.variant || '').trim();
+    const sizeId = String(obj?.sizeId || obj?.size || '').trim();
+    if (!typeId || !sizeId) return null;
+    return { typeId, sizeId };
+  }
+
+  private computeMenuVariantForProduct(menuVariantsRaw: any, selectionRaw: any) {
+    const selection = this.normalizeVariantSelection(selectionRaw);
+    const defs = Array.isArray(menuVariantsRaw) ? (menuVariantsRaw as any[]) : [];
+    if (defs.length === 0) {
+      if (selection) {
+        throw new BadRequestException('اختيار النوع/الحجم غير متاح');
+      }
+      return { normalized: null as any, price: null as any };
+    }
+    if (!selection) {
+      throw new BadRequestException('يرجى اختيار النوع والحجم');
+    }
+
+    const type = defs.find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === selection.typeId);
+    if (!type) {
+      throw new BadRequestException('النوع المختار غير متاح');
+    }
+    const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+    const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === selection.sizeId);
+    if (!size) {
+      throw new BadRequestException('الحجم المختار غير متاح');
+    }
+
+    const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || 0);
+    const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+
+    return {
+      normalized: {
+        typeId: selection.typeId,
+        typeName: String((type as any)?.name || (type as any)?.label || '').trim() || selection.typeId,
+        sizeId: selection.sizeId,
+        sizeLabel: String((size as any)?.label || (size as any)?.name || '').trim() || selection.sizeId,
+        price,
+      },
+      price,
+    };
+  }
+
   private normalizeItemAddons(raw: any): Array<{ optionId: string; variantId: string }> {
     const list = Array.isArray(raw) ? raw : [];
     const normalized = list
@@ -25,8 +72,8 @@ export class OrderService {
     return normalized;
   }
 
-  private computeAddonsForProduct(product: any, selected: Array<{ optionId: string; variantId: string }>) {
-    const addonsDef = Array.isArray((product as any)?.addons) ? ((product as any).addons as any[]) : [];
+  private computeAddonsForDefinition(addonsDefRaw: any, selected: Array<{ optionId: string; variantId: string }>) {
+    const addonsDef = Array.isArray(addonsDefRaw) ? (addonsDefRaw as any[]) : [];
     const optionIndex = new Map<string, { name: string; imageUrl?: string; variants: Map<string, { label: string; price: number }> }>();
 
     for (const group of addonsDef) {
@@ -370,7 +417,7 @@ export class OrderService {
   async createOrder(input: {
     shopId: string;
     userId: string;
-    items: Array<{ productId?: string; id?: string; quantity: number; addons?: any }>;
+    items: Array<{ productId?: string; id?: string; quantity: number; addons?: any; variantSelection?: any; variant_selection?: any }>;
     total?: number;
     paymentMethod?: string;
     notes?: string;
@@ -396,6 +443,7 @@ export class OrderService {
       productId: String(i.productId || i.id || '').trim(),
       quantity: Number(i.quantity),
       addons: this.normalizeItemAddons((i as any)?.addons),
+      variantSelection: this.normalizeVariantSelection((i as any)?.variantSelection ?? (i as any)?.variant_selection),
     }));
 
     if (normalizedItems.some((i) => !i.productId)) {
@@ -413,8 +461,9 @@ export class OrderService {
     return this.prisma.$transaction(async (tx) => {
       const shop = await tx.shop.findUnique({
         where: { id: shopId },
-        select: { id: true, layoutConfig: true },
+        select: { id: true, layoutConfig: true, category: true, addons: true } as any,
       });
+      const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
       const deliveryFee = this.getDeliveryFeeFromShop(shop);
       const safeNotes = this.withDeliveryFee(input?.notes, deliveryFee);
 
@@ -474,11 +523,17 @@ export class OrderService {
 
       const computedTotal = normalizedItems.reduce((sum, item) => {
         const product = byId[item.productId];
+        const menuVariant = isRestaurant
+          ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
+          : { normalized: null as any, price: null as any };
         const basePriceRaw = offerPriceByProductId[item.productId];
-        const basePrice = typeof basePriceRaw === 'number'
-          ? basePriceRaw
-          : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
-        const { total: addonsTotal } = this.computeAddonsForProduct(product, (item as any).addons || []);
+        const basePrice = typeof menuVariant?.price === 'number'
+          ? menuVariant.price
+          : (typeof basePriceRaw === 'number'
+            ? basePriceRaw
+            : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+        const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
+        const { total: addonsTotal } = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
         const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
         return sum + unit * item.quantity;
       }, 0);
@@ -496,17 +551,25 @@ export class OrderService {
           items: {
             create: normalizedItems.map((item) => {
               const product = byId[item.productId];
+              const menuVariant = isRestaurant
+                ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
+                : { normalized: null as any, price: null as any };
               const basePriceRaw = offerPriceByProductId[item.productId];
-              const basePrice = typeof basePriceRaw === 'number'
-                ? basePriceRaw
-                : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
-              const addons = this.computeAddonsForProduct(product, (item as any).addons || []);
-              return {
+              const basePrice = typeof menuVariant?.price === 'number'
+                ? menuVariant.price
+                : (typeof basePriceRaw === 'number'
+                  ? basePriceRaw
+                  : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+              const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
+              const addons = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
+              const row: any = {
                 productId: item.productId,
                 quantity: item.quantity,
                 price: (Number(basePrice) || 0) + (Number(addons.total) || 0),
                 addons: addons.normalized,
+                variantSelection: menuVariant?.normalized || null,
               };
+              return row;
             }),
           },
         },

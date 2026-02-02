@@ -9,6 +9,26 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(@Inject(ProductService) private readonly productService: ProductService) {}
 
+  private toLatinDigits(input: string) {
+    const map: Record<string, string> = {
+      '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+      '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    };
+    return String(input || '').replace(/[٠-٩۰-۹]/g, (d) => map[d] || d);
+  }
+
+  private parseNumberInput(value: any) {
+    if (typeof value === 'number') return value;
+    const raw = typeof value === 'string' ? value : String(value ?? '');
+    const cleaned = this.toLatinDigits(raw)
+      .trim()
+      .replace(/[٬،]/g, '')
+      .replace(/[٫]/g, '.')
+      .replace(/\s+/g, '');
+    if (!cleaned) return NaN;
+    return Number(cleaned);
+  }
+
   @Get()
   async list(@Query('shopId') shopId: string, @Query('page') page?: string, @Query('limit') limit?: string) {
     const sid = typeof shopId === 'string' ? String(shopId).trim() : '';
@@ -66,8 +86,8 @@ export class ProductController {
     }
 
     const name = String(body?.name || '').trim();
-    const price = Number(body?.price);
-    const stock = typeof body?.stock === 'number' ? body.stock : Number(body?.stock);
+    const price = this.parseNumberInput(body?.price);
+    const stock = this.parseNumberInput(body?.stock);
     const category = typeof body?.category === 'string' ? body.category : 'عام';
     const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : null;
     const description = typeof body?.description === 'string' ? body.description : null;
@@ -77,6 +97,9 @@ export class ProductController {
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
     const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
+    const menuVariants = typeof body?.menuVariants === 'undefined'
+      ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
+      : body.menuVariants;
 
     if (!name) throw new BadRequestException('name مطلوب');
     if (Number.isNaN(price) || price < 0) throw new BadRequestException('price غير صحيح');
@@ -94,6 +117,7 @@ export class ProductController {
       colors,
       sizes,
       addons,
+      menuVariants,
     });
   }
 
@@ -114,8 +138,8 @@ export class ProductController {
 
     // Validate basic fields
     const name = typeof body?.name === 'string' ? body.name.trim() : undefined;
-    const price = typeof body?.price === 'number' ? body.price : (typeof body?.price === 'string' ? Number(body.price) : undefined);
-    const stock = typeof body?.stock === 'number' ? body.stock : (typeof body?.stock === 'string' ? Number(body.stock) : undefined);
+    const price = typeof body?.price === 'undefined' ? undefined : this.parseNumberInput(body?.price);
+    const stock = typeof body?.stock === 'undefined' ? undefined : this.parseNumberInput(body?.stock);
     const category = typeof body?.category === 'string' ? body.category : undefined;
     const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : undefined;
     const description = typeof body?.description === 'string' ? body.description : undefined;
@@ -125,6 +149,9 @@ export class ProductController {
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
     const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
+    const menuVariants = typeof body?.menuVariants === 'undefined'
+      ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
+      : body.menuVariants;
 
     const isActive = typeof body?.isActive === 'boolean' ? body.isActive : undefined;
 
@@ -144,6 +171,7 @@ export class ProductController {
       colors,
       sizes,
       addons,
+      menuVariants,
       isActive,
     }, { role, shopId: shopIdFromToken });
   }

@@ -7,6 +7,53 @@ export class ReservationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
+  private normalizeVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj: any = raw as any;
+    const typeId = String(obj?.typeId || obj?.variantId || obj?.type || obj?.variant || '').trim();
+    const sizeId = String(obj?.sizeId || obj?.size || '').trim();
+    if (!typeId || !sizeId) return null;
+    return { typeId, sizeId };
+  }
+
+  private computeMenuVariantForProduct(menuVariantsRaw: any, selectionRaw: any) {
+    const selection = this.normalizeVariantSelection(selectionRaw);
+    const defs = Array.isArray(menuVariantsRaw) ? (menuVariantsRaw as any[]) : [];
+    if (defs.length === 0) {
+      if (selection) {
+        throw new BadRequestException('اختيار النوع/الحجم غير متاح');
+      }
+      return { normalized: null as any, price: null as any };
+    }
+    if (!selection) {
+      throw new BadRequestException('يرجى اختيار النوع والحجم');
+    }
+
+    const type = defs.find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === selection.typeId);
+    if (!type) {
+      throw new BadRequestException('النوع المختار غير متاح');
+    }
+    const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+    const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === selection.sizeId);
+    if (!size) {
+      throw new BadRequestException('الحجم المختار غير متاح');
+    }
+
+    const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || 0);
+    const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+
+    return {
+      normalized: {
+        typeId: selection.typeId,
+        typeName: String((type as any)?.name || (type as any)?.label || '').trim() || selection.typeId,
+        sizeId: selection.sizeId,
+        sizeLabel: String((size as any)?.label || (size as any)?.name || '').trim() || selection.sizeId,
+        price,
+      },
+      price,
+    };
+  }
+
   private normalizeItemAddons(raw: any): Array<{ optionId: string; variantId: string }> {
     const list = Array.isArray(raw) ? raw : [];
     const normalized = list
@@ -25,8 +72,8 @@ export class ReservationService {
     return normalized;
   }
 
-  private computeAddonsForProduct(product: any, selected: Array<{ optionId: string; variantId: string }>) {
-    const addonsDef = Array.isArray((product as any)?.addons) ? ((product as any).addons as any[]) : [];
+  private computeAddonsForDefinition(addonsDefRaw: any, selected: Array<{ optionId: string; variantId: string }>) {
+    const addonsDef = Array.isArray(addonsDefRaw) ? (addonsDefRaw as any[]) : [];
     const optionIndex = new Map<string, { name: string; imageUrl?: string; variants: Map<string, { label: string; price: number }> }>();
 
     for (const group of addonsDef) {
@@ -124,6 +171,7 @@ export class ReservationService {
     itemImage?: string | null;
     itemPrice: number;
     addons?: any;
+    variantSelection?: any;
     shopId: string;
     shopName: string;
     customerName: string;
@@ -147,15 +195,26 @@ export class ReservationService {
     if (!customerPhone) throw new BadRequestException('customerPhone مطلوب');
     if (Number.isNaN(itemPrice) || itemPrice < 0) throw new BadRequestException('itemPrice غير صحيح');
 
-    const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true } });
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, category: true, addons: true } as any,
+    });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
+
+    const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
 
     const product = await this.prisma.product.findFirst({
       where: { id: itemId, shopId, isActive: true },
     });
     if (!product) throw new NotFoundException('المنتج غير موجود');
 
-    let basePrice = typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0);
+    const menuVariant = isRestaurant
+      ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (input as any)?.variantSelection)
+      : { normalized: null as any, price: null as any };
+
+    let basePrice = typeof menuVariant?.price === 'number'
+      ? menuVariant.price
+      : (typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0));
     try {
       const offer = await this.prisma.offer.findFirst({
         where: {
@@ -167,13 +226,14 @@ export class ReservationService {
         select: { newPrice: true } as any,
       });
       const oPrice = typeof (offer as any)?.newPrice === 'number' ? (offer as any).newPrice : Number((offer as any)?.newPrice || NaN);
-      if (Number.isFinite(oPrice) && oPrice >= 0) {
+      if (typeof menuVariant?.price !== 'number' && Number.isFinite(oPrice) && oPrice >= 0) {
         basePrice = oPrice;
       }
     } catch {
     }
 
-    const addonsComputed = this.computeAddonsForProduct(product, selectedAddons);
+    const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
+    const addonsComputed = this.computeAddonsForDefinition(addonsSource, selectedAddons);
     const finalPrice = (Number(basePrice) || 0) + (Number(addonsComputed.total) || 0);
 
     const created = await this.prisma.reservation.create({
@@ -183,6 +243,7 @@ export class ReservationService {
         itemImage,
         itemPrice: finalPrice,
         extras: addonsComputed.normalized,
+        variantSelection: menuVariant?.normalized || null,
         shopId,
         shopName,
         customerName,
@@ -207,6 +268,7 @@ export class ReservationService {
             customerPhone,
             itemPrice: finalPrice,
             extras: addonsComputed.normalized,
+            variantSelection: menuVariant?.normalized || null,
           },
         } as any,
       });
@@ -224,6 +286,7 @@ export class ReservationService {
     itemPrice: number;
     shopId: string;
     addons?: any;
+    variantSelection?: any;
   }) {
     const uid = String(userId || '').trim();
     if (!uid) throw new BadRequestException('غير مصرح');
@@ -258,6 +321,7 @@ export class ReservationService {
       customerName: user.name,
       customerPhone,
       addons: (input as any)?.addons,
+      variantSelection: (input as any)?.variantSelection ?? (input as any)?.variant_selection,
     });
   }
 

@@ -88,6 +88,7 @@ model Shop {
   openingHours     String?
   website          String?
   status           ShopStatus @default(PENDING)
+  addons           Json?
   ownerId          String   @unique
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -116,6 +117,7 @@ model Product {
   image       String?
   inStock     Boolean  @default(true)
   stock       Int?
+  menuVariants Json?   @map("menu_variants")
   shopId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -174,6 +176,7 @@ model OrderItem {
   price     Float
   orderId   String
   productId String
+  variantSelection Json? @map("variant_selection")
 
   // Relations
   order     Order   @relation(fields: [orderId], references: [id])
@@ -225,6 +228,7 @@ model Reservation {
   status      String   @default("pending")
   shopId      String
   userId      String
+  variantSelection Json? @map("variant_selection")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

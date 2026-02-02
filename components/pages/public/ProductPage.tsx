@@ -27,6 +27,8 @@ const ProductPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
+  const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
+  const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,6 +41,8 @@ const ProductPage: React.FC = () => {
         }
 
         setSelectedAddons([]);
+        setSelectedMenuTypeId('');
+        setSelectedMenuSizeId('');
 
         let p: any = null;
         try {
@@ -124,6 +128,52 @@ const ProductPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id, navigate]);
 
+  useEffect(() => {
+    const isRestaurant = shop?.category === Category.RESTAURANT;
+    if (!isRestaurant) {
+      setSelectedMenuTypeId('');
+      setSelectedMenuSizeId('');
+      return;
+    }
+
+    const defs = Array.isArray((product as any)?.menuVariants)
+      ? (product as any).menuVariants
+      : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []);
+    if (!Array.isArray(defs) || defs.length === 0) {
+      setSelectedMenuTypeId('');
+      setSelectedMenuSizeId('');
+      return;
+    }
+
+    setSelectedMenuTypeId((prev) => {
+      const exists = defs.some((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(prev || '').trim());
+      if (exists) return prev;
+      return String(defs[0]?.id || defs[0]?.typeId || defs[0]?.variantId || '').trim();
+    });
+  }, [shop?.category, (product as any)?.id]);
+
+  useEffect(() => {
+    const isRestaurant = shop?.category === Category.RESTAURANT;
+    if (!isRestaurant) return;
+    const defs = Array.isArray((product as any)?.menuVariants)
+      ? (product as any).menuVariants
+      : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []);
+    if (!Array.isArray(defs) || defs.length === 0) return;
+
+    const type = defs.find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim());
+    const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+    if (sizes.length === 0) {
+      setSelectedMenuSizeId('');
+      return;
+    }
+
+    setSelectedMenuSizeId((prev) => {
+      const exists = sizes.some((s: any) => String(s?.id || s?.sizeId || '').trim() === String(prev || '').trim());
+      if (exists) return prev;
+      return String(sizes[0]?.id || sizes[0]?.sizeId || '').trim();
+    });
+  }, [shop?.category, (product as any)?.id, selectedMenuTypeId]);
+
   const toggleFavorite = () => {
     if (product) {
       const state = RayDB.toggleFavorite(product.id);
@@ -145,8 +195,29 @@ const ProductPage: React.FC = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
+    const menuVariantsDef = isRestaurant
+      ? (Array.isArray((product as any)?.menuVariants)
+        ? (product as any).menuVariants
+        : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []))
+      : [];
+    const hasMenuVariants = Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0;
+    if (hasMenuVariants && (!selectedMenuTypeId || !selectedMenuSizeId)) {
+      try {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+        toast.textContent = 'يرجى اختيار النوع والحجم';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+      } catch {
+      }
+      return;
+    }
+
     const addonsTotal = (() => {
-      const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+      const isRestaurant = shop?.category === Category.RESTAURANT;
+      const addonsDef = isRestaurant
+        ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+        : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
       const priceByKey = new Map<string, number>();
       const labelByKey = new Map<string, string>();
       const optionNameById = new Map<string, string>();
@@ -174,7 +245,10 @@ const ProductPage: React.FC = () => {
     })();
 
     const normalizedAddons = (() => {
-      const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+      const isRestaurant = shop?.category === Category.RESTAURANT;
+      const addonsDef = isRestaurant
+        ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+        : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
       const priceByKey = new Map<string, number>();
       const labelByKey = new Map<string, string>();
       const optionNameById = new Map<string, string>();
@@ -212,7 +286,29 @@ const ProductPage: React.FC = () => {
       });
     })();
 
-    const unitPrice = (Number(offer ? offer.newPrice : product.price) || 0) + (Number(addonsTotal) || 0);
+    const selectedMenuVariant = (() => {
+      if (!hasMenuVariants) return null;
+      const type = (menuVariantsDef as any[]).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim());
+      if (!type) return null;
+      const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+      const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === String(selectedMenuSizeId || '').trim());
+      if (!size) return null;
+      const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || 0);
+      const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+      return {
+        typeId: String((type as any)?.id || (type as any)?.typeId || (type as any)?.variantId || '').trim(),
+        typeName: String((type as any)?.name || (type as any)?.label || '').trim() || String(selectedMenuTypeId || ''),
+        sizeId: String((size as any)?.id || (size as any)?.sizeId || '').trim(),
+        sizeLabel: String((size as any)?.label || (size as any)?.name || '').trim() || String(selectedMenuSizeId || ''),
+        price,
+      };
+    })();
+
+    const basePrice = hasMenuVariants
+      ? Number((selectedMenuVariant as any)?.price || 0)
+      : Number(offer ? offer.newPrice : product.price) || 0;
+
+    const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
     const event = new CustomEvent('add-to-cart', { 
       detail: { 
         ...product, 
@@ -221,6 +317,7 @@ const ProductPage: React.FC = () => {
         shopId: shop?.id, 
         shopName: shop?.name,
         addons: normalizedAddons,
+        variantSelection: selectedMenuVariant,
       } 
     });
     window.dispatchEvent(event);
@@ -269,7 +366,33 @@ const ProductPage: React.FC = () => {
   }
 
   const currentPrice = offer ? offer.newPrice : product.price;
-  const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+  const isRestaurant = shop?.category === Category.RESTAURANT;
+  const menuVariantsDef = isRestaurant
+    ? (Array.isArray((product as any)?.menuVariants)
+      ? (product as any).menuVariants
+      : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []))
+    : [];
+  const hasMenuVariants = Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0;
+  const selectedMenuVariant = (() => {
+    if (!hasMenuVariants) return null;
+    const type = (menuVariantsDef as any[]).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim());
+    if (!type) return null;
+    const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+    const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === String(selectedMenuSizeId || '').trim());
+    if (!size) return null;
+    const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || 0);
+    const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+    return {
+      typeId: String((type as any)?.id || (type as any)?.typeId || (type as any)?.variantId || '').trim(),
+      typeName: String((type as any)?.name || (type as any)?.label || '').trim() || String(selectedMenuTypeId || ''),
+      sizeId: String((size as any)?.id || (size as any)?.sizeId || '').trim(),
+      sizeLabel: String((size as any)?.label || (size as any)?.name || '').trim() || String(selectedMenuSizeId || ''),
+      price,
+    };
+  })();
+  const addonsDef = isRestaurant
+    ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+    : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
   const addonsTotal = (() => {
     const priceByKey = new Map<string, number>();
     for (const g of addonsDef || []) {
@@ -288,9 +411,11 @@ const ProductPage: React.FC = () => {
     }
     return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
   })();
-  const unitPrice = (Number(currentPrice) || 0) + (Number(addonsTotal) || 0);
+  const basePrice = hasMenuVariants
+    ? Number((selectedMenuVariant as any)?.price || 0)
+    : (Number(currentPrice) || 0);
+  const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
   const hasDiscount = !!offer;
-  const isRestaurant = shop?.category === Category.RESTAURANT;
   const trackStock = typeof (product as any)?.trackStock === 'boolean'
     ? (product as any).trackStock
     : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
@@ -342,13 +467,68 @@ const ProductPage: React.FC = () => {
              <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight">{product.name}</h1>
              <div className="flex items-center gap-6">
                 <span className="text-4xl md:text-6xl font-black text-[#00E5FF] tracking-tighter">ج.م {unitPrice}</span>
-                {hasDiscount && (
+                {hasDiscount && !hasMenuVariants && (
                   <span className="text-2xl md:text-3xl text-slate-300 line-through font-bold">ج.م {product.price}</span>
                 )}
              </div>
           </div>
 
           <div className="space-y-6">
+             {isRestaurant && hasMenuVariants && (
+               <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                 <div className="flex items-center justify-between">
+                   <h3 className="text-lg font-black">اختيار النوع والحجم</h3>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div className="space-y-2">
+                     <p className="text-xs font-black text-slate-500">النوع</p>
+                     <select
+                       value={selectedMenuTypeId}
+                       onChange={(e) => setSelectedMenuTypeId(String(e.target.value || ''))}
+                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
+                     >
+                       {(menuVariantsDef as any[]).map((t: any, idx: number) => {
+                         const tid = String(t?.id || t?.typeId || t?.variantId || idx).trim();
+                         const label = String(t?.name || t?.label || '').trim() || tid;
+                         return (
+                           <option key={tid} value={tid}>
+                             {label}
+                           </option>
+                         );
+                       })}
+                     </select>
+                   </div>
+
+                   <div className="space-y-2">
+                     <p className="text-xs font-black text-slate-500">الحجم</p>
+                     <select
+                       value={selectedMenuSizeId}
+                       onChange={(e) => setSelectedMenuSizeId(String(e.target.value || ''))}
+                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
+                     >
+                       {(() => {
+                         const type = (menuVariantsDef as any[]).find(
+                           (t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim(),
+                         );
+                         const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+                         return sizes.map((s: any, idx: number) => {
+                           const sid = String(s?.id || s?.sizeId || idx).trim();
+                           const label = String(s?.label || s?.name || '').trim() || sid;
+                           const priceRaw = typeof s?.price === 'number' ? s.price : Number(s?.price || 0);
+                           const p = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+                           return (
+                             <option key={sid} value={sid}>
+                               {label} (ج.م {p})
+                             </option>
+                           );
+                         });
+                       })()}
+                     </select>
+                   </div>
+                 </div>
+               </div>
+             )}
              {isRestaurant && Array.isArray(addonsDef) && addonsDef.length > 0 && (
                <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-6">
                  <div className="flex items-center justify-between">
@@ -434,7 +614,20 @@ const ProductPage: React.FC = () => {
                   <ShoppingCart size={28} /> أضف للسلة
                 </button>
                 <button 
-                  onClick={() => setIsResModalOpen(true)}
+                  onClick={() => {
+                    if (hasMenuVariants && (!selectedMenuTypeId || !selectedMenuSizeId)) {
+                      try {
+                        const toast = document.createElement('div');
+                        toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+                        toast.textContent = 'يرجى اختيار النوع والحجم';
+                        document.body.appendChild(toast);
+                        setTimeout(() => toast.remove(), 2500);
+                      } catch {
+                      }
+                      return;
+                    }
+                    setIsResModalOpen(true);
+                  }}
                   className="flex-1 py-6 bg-[#00E5FF] text-black rounded-[2.5rem] font-black text-2xl hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-4"
                 >
                   <CalendarCheck size={28} /> حجز العرض
@@ -481,7 +674,10 @@ const ProductPage: React.FC = () => {
           shopId: shop?.id || 's1',
           shopName: shop?.name || 'MNMKNK',
           addons: (() => {
-            const addonsDef = Array.isArray((product as any)?.addons) ? (product as any).addons : [];
+            const isRestaurant = shop?.category === Category.RESTAURANT;
+            const addonsDef = isRestaurant
+              ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+              : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
             const priceByKey = new Map<string, number>();
             const labelByKey = new Map<string, string>();
             const optionNameById = new Map<string, string>();
@@ -517,6 +713,7 @@ const ProductPage: React.FC = () => {
               };
             });
           })(),
+          variantSelection: selectedMenuVariant,
         }}
       />
     </div>

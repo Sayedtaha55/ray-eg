@@ -88,6 +88,7 @@ model Shop {
   openingHours     String?
   website          String?
   status           ShopStatus @default(PENDING)
+  addons           Json?
   ownerId          String   @unique
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -112,10 +113,16 @@ model Product {
   name        String
   description String?
   price       Float
-  category    String
-  image       String?
-  inStock     Boolean  @default(true)
-  stock       Int?
+  stock       Int      @default(0)
+  trackStock  Boolean  @default(true) @map("track_stock")
+  category    String   @default("عام")
+  imageUrl    String?  @map("image_url")
+  images      Json?
+  colors      Json?
+  sizes       Json?
+  addons      Json?
+  menuVariants Json?   @map("menu_variants")
+  isActive    Boolean  @default(true)
   shopId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -170,10 +177,12 @@ model Order {
 
 model OrderItem {
   id        String @id @default(cuid())
+  orderId   String @map("order_id")
+  productId String @map("product_id")
   quantity  Int
   price     Float
-  orderId   String
-  productId String
+  addons    Json?
+  variantSelection Json? @map("variant_selection")
 
   // Relations
   order     Order   @relation(fields: [orderId], references: [id])
@@ -214,19 +223,20 @@ model Notification {
 }
 
 model Reservation {
-  id          String   @id @default(cuid())
-  name        String
-  email       String
-  phone       String
-  date        DateTime
-  time        String
-  guests      Int
-  specialRequests String?
-  status      String   @default("pending")
-  shopId      String
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id            String            @id @default(cuid())
+  itemId        String            @map("item_id")
+  itemName      String            @map("item_name")
+  itemImage     String?           @map("item_image")
+  itemPrice     Float             @map("item_price")
+  extras        Json?
+  variantSelection Json?           @map("variant_selection")
+  shopId        String            @map("shop_id")
+  shopName      String            @map("shop_name")
+  customerName  String            @map("customer_name")
+  customerPhone String            @map("customer_phone")
+  status        String            @default("pending")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt
 
   // Relations
   shop        Shop     @relation(fields: [shopId], references: [id])

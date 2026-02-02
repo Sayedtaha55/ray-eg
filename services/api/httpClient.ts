@@ -210,7 +210,7 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   let res: Response;
   if (isBackendTemporarilyDown()) {
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
@@ -230,7 +230,7 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
     }
     markBackendFailure(path);
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
 
   if (!res.ok) {
@@ -267,7 +267,7 @@ export async function backendDelete<T>(path: string): Promise<T> {
   const token = getAuthToken();
   let res: Response;
   if (isBackendTemporarilyDown()) {
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
@@ -286,7 +286,7 @@ export async function backendDelete<T>(path: string): Promise<T> {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
     }
     markBackendFailure(path);
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
 
   if (!res.ok) {
@@ -316,7 +316,7 @@ export async function backendGet<T>(path: string): Promise<T> {
   const token = getAuthToken();
   let res: Response;
   if (isBackendTemporarilyDown()) {
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
@@ -335,7 +335,7 @@ export async function backendGet<T>(path: string): Promise<T> {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
     }
     markBackendFailure(path);
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
 
   if (!res.ok) {
@@ -365,7 +365,7 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
   const token = getAuthToken();
   let res: Response;
   if (isBackendTemporarilyDown()) {
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
@@ -385,7 +385,7 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
     }
     markBackendFailure(path);
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
 
   if (!res.ok) {
@@ -415,7 +415,7 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
   const token = getAuthToken();
   let res: Response;
   if (isBackendTemporarilyDown()) {
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
@@ -435,7 +435,7 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
     }
     markBackendFailure(path);
-    throw new BackendRequestError(`تعذر الاتصال بالسيرفر. تأكد أن الباك إند شغال على ${BACKEND_BASE_URL}`, { path });
+    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
 
   if (!res.ok) {

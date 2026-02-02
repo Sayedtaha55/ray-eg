@@ -36,6 +36,9 @@ class CreateReservationDto {
 
   @IsOptional()
   addons?: any;
+
+  @IsOptional()
+  variantSelection?: any;
 }
 
 class UpdateReservationStatusDto {
@@ -64,6 +67,7 @@ export class ReservationController {
       itemPrice: body?.itemPrice,
       shopId: body?.shopId,
       addons: (body as any)?.addons,
+      variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
     });
   }
 

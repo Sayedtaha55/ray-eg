@@ -130,6 +130,14 @@ export const RayDB = {
     const productId = String(input?.productId || input?.id || '').trim();
     const shopId = String(input?.shopId || '').trim();
     if (!productId) return RayDB.getCart();
+    const variantSig = (() => {
+      const raw = (input as any)?.variantSelection ?? (input as any)?.variant_selection;
+      if (!raw || typeof raw !== 'object') return '';
+      const typeId = String((raw as any)?.typeId || (raw as any)?.variantId || (raw as any)?.type || (raw as any)?.variant || '').trim();
+      const sizeId = String((raw as any)?.sizeId || (raw as any)?.size || '').trim();
+      if (!typeId || !sizeId) return '';
+      return `${typeId}-${sizeId}`;
+    })();
     const addonsSig = (() => {
       const list = Array.isArray((input as any)?.addons) ? (input as any).addons : [];
       const normalized = list
@@ -142,7 +150,9 @@ export const RayDB = {
       if (normalized.length === 0) return '';
       return normalized.map((a: any) => `${a.optionId}-${a.variantId}`).join('|');
     })();
-    const lineId = String(input?.lineId || `${shopId || 'unknown'}:${productId}${addonsSig ? `:${addonsSig}` : ''}`);
+    const lineId = String(
+      input?.lineId || `${shopId || 'unknown'}:${productId}${variantSig ? `:v:${variantSig}` : ''}${addonsSig ? `:a:${addonsSig}` : ''}`,
+    );
 
     const nextItem = {
       ...input,
@@ -154,6 +164,7 @@ export const RayDB = {
       name: String(input?.name || ''),
       shopName: String(input?.shopName || input?.shop_name || ''),
       addons: Array.isArray((input as any)?.addons) ? (input as any).addons : [],
+      variantSelection: (input as any)?.variantSelection ?? (input as any)?.variant_selection ?? null,
     };
 
     const prev = RayDB.getCart();

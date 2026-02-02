@@ -15,6 +15,7 @@ export async function addReservationViaBackend(reservation: any) {
     itemPrice: reservation.itemPrice,
     shopId: reservation.shopId,
     addons: (reservation as any)?.addons,
+    variantSelection: (reservation as any)?.variantSelection ?? (reservation as any)?.variant_selection,
   });
 }
 

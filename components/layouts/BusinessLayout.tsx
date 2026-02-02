@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -33,6 +33,7 @@ const BusinessLayout: React.FC = () => {
   const isBuilderTab = activeTab === 'builder';
   const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
@@ -302,7 +303,7 @@ const BusinessLayout: React.FC = () => {
       <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[60] border-b border-slate-100">
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo variant="business" iconOnly />
-          <span className="font-black tracking-tighter uppercase">MNMKNK Biz</span>
+          <span className="font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
         </Link>
         <div className="flex items-center gap-4">
            <button
@@ -349,7 +350,7 @@ const BusinessLayout: React.FC = () => {
           <div className="p-10 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
               <BrandLogo variant="business" iconOnly />
-              <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK Biz</span>
+              <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
             </Link>
             {isSettingsTab ? (
               <button
@@ -543,14 +544,65 @@ const BusinessLayout: React.FC = () => {
       <main className="flex-1 md:ml-80 overflow-x-hidden">
         <header className="hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 md:left-80 md:right-0 z-40">
           <div className="flex items-center gap-8">
-            <div className="flex items-center gap-4 pr-4 border-r border-slate-100">
-               <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
-                 {effectiveUser?.name?.charAt(0)}
+            <div className="flex items-center gap-4 pr-4 border-r border-slate-100 relative">
+               <div 
+                 className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"
+                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+               >
+                 <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
+                   {effectiveUser?.name?.charAt(0)}
+                 </div>
+                 <div className="text-right">
+                   <p className="font-black text-sm text-slate-900 leading-none">{effectiveUser?.name || 'حساب التاجر'}</p>
+                   <p className="text-[10px] text-slate-400 font-bold mt-1">التاجر</p>
+                 </div>
+                 <ChevronDown size={16} className="text-slate-400" />
                </div>
-               <div className="text-right">
-                 <p className="font-black text-sm text-slate-900 leading-none">{user?.name}</p>
-                 <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-tighter">صاحب العمل</p>
-               </div>
+               
+               {/* User Dropdown Menu */}
+               {isUserMenuOpen && (
+                 <>
+                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                   <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                     <div className="p-4 border-b border-slate-100">
+                       <p className="font-black text-slate-900">{effectiveUser?.name}</p>
+                       <p className="text-xs text-slate-400">{effectiveUser?.email}</p>
+                     </div>
+                     <div className="p-2">
+                       <button
+                         onClick={() => { navigate(buildSettingsUrl('account')); setIsUserMenuOpen(false); }}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                       >
+                         <User size={18} className="text-slate-400" />
+                         <span className="text-sm font-bold text-slate-700">الملف الشخصي</span>
+                       </button>
+                       <button
+                         onClick={() => { navigate(buildSettingsUrl('store')); setIsUserMenuOpen(false); }}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                       >
+                         <Store size={18} className="text-slate-400" />
+                         <span className="text-sm font-bold text-slate-700">إعدادات المتجر</span>
+                       </button>
+                       <button
+                         onClick={() => { navigate(buildSettingsUrl('notifications')); setIsUserMenuOpen(false); }}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                       >
+                         <Bell size={18} className="text-slate-400" />
+                         <span className="text-sm font-bold text-slate-700">الإشعارات</span>
+                       </button>
+                     </div>
+                     <div className="p-2 border-t border-slate-100">
+                       <button
+                         onClick={() => { handleLogout(); setIsUserMenuOpen(false); }}
+                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-right transition-all group"
+                       >
+                         <LogOut size={18} className="text-red-500" />
+                         <span className="text-sm font-bold text-red-500 group-hover:text-red-600">تسجيل الخروج</span>
+                       </button>
+                     </div>
+                   </div>
+                 </>
+               )}
             </div>
             <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
                <motion.div animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
@@ -576,8 +628,8 @@ const BusinessLayout: React.FC = () => {
             </button>
           </div>
           <div className="flex flex-col text-right">
-             <h2 className="font-black text-slate-900 text-xl leading-none">لوحة التحكم الذكية</h2>
-             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">مركز العمليات - {effectiveUser?.name}</p>
+             <h2 className="font-black text-slate-900 text-xl leading-none">لوحة التاجر</h2>
+             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">مركز العمليات</p>
           </div>
         </header>
 

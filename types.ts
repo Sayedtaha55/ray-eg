@@ -55,6 +55,7 @@ export interface Shop {
   locationSource?: string;
   locationAccuracy?: number | null;
   locationUpdatedAt?: string;
+  addons?: any;
 }
 
 export interface Offer {
@@ -87,6 +88,7 @@ export interface Product {
   colors?: any;
   sizes?: any;
   addons?: any;
+  menuVariants?: any;
 }
 
 export interface Reservation {

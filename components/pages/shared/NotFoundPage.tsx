@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ShieldAlert, Home, LogIn } from 'lucide-react';
@@ -9,6 +9,19 @@ const MotionDiv = motion.div as any;
 
 const NotFoundPage: React.FC = () => {
   const location = useLocation();
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    document.title = '404 - الصفحة غير موجودة';
+    const key = 'robots';
+    let tag = document.querySelector(`meta[name="${key}"]`) as HTMLMetaElement | null;
+    if (!tag) {
+      tag = document.createElement('meta');
+      tag.setAttribute('name', key);
+      document.head.appendChild(tag);
+    }
+    tag.setAttribute('content', 'noindex, nofollow');
+  }, []);
 
   const user = (() => {
     try {

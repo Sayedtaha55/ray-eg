@@ -446,6 +446,7 @@ const MerchantDashboardPage: React.FC = () => {
             onUpdate={handleUpdateProduct}
             shopId={currentShop.id}
             shopCategory={currentShop?.category}
+            shop={currentShop}
           />
         );
       case 'gallery':

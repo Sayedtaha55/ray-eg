@@ -20,6 +20,15 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [description, setDescription] = useState('');
+  const [menuVariantItems, setMenuVariantItems] = useState<
+    Array<{
+      id: string;
+      name: string;
+      priceSmall: string;
+      priceMedium: string;
+      priceLarge: string;
+    }>
+  >([]);
   const [addonItems, setAddonItems] = useState<
     Array<{
       id: string;
@@ -62,6 +71,26 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   ];
 
   const presetSizes: string[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+  const toLatinDigits = (input: string) => {
+    const map: Record<string, string> = {
+      '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
+      '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
+    };
+    return String(input || '').replace(/[٠-٩۰-۹]/g, (d) => map[d] || d);
+  };
+
+  const parseNumberInput = (value: any) => {
+    if (typeof value === 'number') return value;
+    const raw = String(value ?? '').trim();
+    if (!raw) return NaN;
+    const cleaned = toLatinDigits(raw)
+      .replace(/[٬،]/g, '')
+      .replace(/[٫]/g, '.')
+      .replace(/\s+/g, '');
+    const n = Number(cleaned);
+    return n;
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -132,6 +161,55 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       addToast('يرجى اختيار صورة للمنتج أولاً', 'info');
       return;
     }
+
+    const menuVariants = (() => {
+      if (!isRestaurant) return undefined;
+      const list = Array.isArray(menuVariantItems) ? menuVariantItems : [];
+      if (list.length === 0) return undefined;
+      const mapped = list
+        .map((t) => {
+          const tid = String(t?.id || '').trim();
+          const tname = String(t?.name || '').trim();
+          if (!tid || !tname) return null;
+          const ps = parseNumberInput(t.priceSmall);
+          const pm = parseNumberInput(t.priceMedium);
+          const pl = parseNumberInput(t.priceLarge);
+          if (![ps, pm, pl].every((n) => Number.isFinite(n) && n >= 0)) return null;
+          return {
+            id: tid,
+            name: tname,
+            sizes: [
+              { id: 'small', label: 'صغير', price: ps },
+              { id: 'medium', label: 'وسط', price: pm },
+              { id: 'large', label: 'كبير', price: pl },
+            ],
+          };
+        })
+        .filter(Boolean);
+
+      if (mapped.length !== list.length) {
+        return '__INVALID__';
+      }
+      return mapped;
+    })();
+
+    if (menuVariants === '__INVALID__') {
+      addToast('يرجى إدخال النوع والسعر لكل المقاسات (صغير/وسط/كبير)', 'error');
+      return;
+    }
+
+    const parsedPrice = parseNumberInput(price);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      addToast('السعر غير صحيح', 'error');
+      return;
+    }
+
+    const parsedStock = isRestaurant ? 0 : parseNumberInput(stock);
+    if (!isRestaurant && (!Number.isFinite(parsedStock) || parsedStock < 0)) {
+      addToast('الكمية غير صحيحة', 'error');
+      return;
+    }
+
     setLoading(true);
     try {
       const mime = String(imageUploadFile.type || '').toLowerCase().trim();
@@ -167,64 +245,16 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         ? (selectedSizes || []).map((s) => String(s || '').trim()).filter(Boolean)
         : [];
 
-      let addons: any = undefined;
-      if (isRestaurant) {
-        const uploadedAddonOptions = await Promise.all(
-          (addonItems || []).map(async (a) => {
-            const optId = String(a?.id || '').trim() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-            const optName = String(a?.name || '').trim();
-            if (!optName) return null;
-
-            let imageUrl: string | null = null;
-            const file = a?.imageUploadFile;
-            if (file) {
-              const upload = await ApiService.uploadMedia({
-                file,
-                purpose: 'product_image',
-                shopId,
-              });
-              imageUrl = String(upload?.url || '').trim() || null;
-            }
-
-            const pSmall = Number(a?.priceSmall);
-            const pMed = Number(a?.priceMedium);
-            const pLarge = Number(a?.priceLarge);
-
-            return {
-              id: optId,
-              name: optName,
-              imageUrl,
-              variants: [
-                { id: 'small', label: 'صغير', price: Number.isFinite(pSmall) ? pSmall : 0 },
-                { id: 'medium', label: 'وسط', price: Number.isFinite(pMed) ? pMed : 0 },
-                { id: 'large', label: 'كبير', price: Number.isFinite(pLarge) ? pLarge : 0 },
-              ],
-            };
-          }),
-        );
-
-        const options = uploadedAddonOptions.filter(Boolean);
-        addons = options.length > 0
-          ? [
-              {
-                id: 'addons',
-                title: 'منتجات إضافية',
-                options,
-              },
-            ]
-          : [];
-      }
-
       await ApiService.addProduct({
         shopId,
         name,
-        price: Number(price),
-        stock: isRestaurant ? 0 : Number(stock),
+        price: parsedPrice,
+        stock: isRestaurant ? 0 : parsedStock,
         category: String(cat || '').trim() || 'عام',
         imageUrl: upload.url,
         description: description ? description : null,
         trackStock: isRestaurant ? false : true,
-        ...(isRestaurant ? { addons } : {}),
+        ...(isRestaurant ? { menuVariants } : {}),
         ...(isRestaurant
           ? {}
           : {
@@ -239,6 +269,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       setStock('');
       setCat('عام');
       setDescription('');
+      setMenuVariantItems([]);
       setAddonItems([]);
       setSelectedColors([]);
       setSelectedSizes([]);
@@ -378,6 +409,106 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             </div>
 
             {isRestaurant && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الأنواع والمقاسات (اختياري)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuVariantItems((prev) => [
+                        ...prev,
+                        {
+                          id: `type_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                          name: '',
+                          priceSmall: '',
+                          priceMedium: '',
+                          priceLarge: '',
+                        },
+                      ]);
+                    }}
+                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                  >
+                    + إضافة نوع
+                  </button>
+                </div>
+
+                {menuVariantItems.length > 0 && (
+                  <div className="space-y-4">
+                    {menuVariantItems.map((t, idx) => (
+                      <div key={t.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-black">نوع #{idx + 1}</p>
+                          <button
+                            type="button"
+                            onClick={() => setMenuVariantItems((prev) => prev.filter((x) => x.id !== t.id))}
+                            className="text-slate-400 hover:text-red-500"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم النوع</label>
+                          <input
+                            value={t.name}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, name: v } : x)));
+                            }}
+                            placeholder="مثلاً: مشكل فراخ"
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                            <input
+                              type="number"
+                              value={t.priceSmall}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceSmall: v } : x)));
+                              }}
+                              placeholder="0"
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                            <input
+                              type="number"
+                              value={t.priceMedium}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceMedium: v } : x)));
+                              }}
+                              placeholder="0"
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                            <input
+                              type="number"
+                              value={t.priceLarge}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceLarge: v } : x)));
+                              }}
+                              placeholder="0"
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {isRestaurant && false && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">منتجات إضافية (اختياري)</label>

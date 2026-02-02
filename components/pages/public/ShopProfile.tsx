@@ -425,6 +425,20 @@ const ShopProfile: React.FC = () => {
 
   const handleAddToCart = useCallback((prod: Product, price: number) => {
     if (!shop) return;
+    const isRestaurant = shop?.category === Category.RESTAURANT;
+    const menuVariants = isRestaurant
+      ? (Array.isArray((prod as any)?.menuVariants)
+        ? (prod as any).menuVariants
+        : (Array.isArray((prod as any)?.menu_variants) ? (prod as any).menu_variants : []))
+      : [];
+    const hasMenuVariants = Array.isArray(menuVariants) && menuVariants.length > 0;
+    if (hasMenuVariants) {
+      try {
+        navigate(`/shop/${String((shop as any)?.slug || '')}/product/${String((prod as any)?.id || '')}`);
+      } catch {
+      }
+      return;
+    }
     setAddedItemId((prod as any)?.id);
     RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
     setTimeout(() => setAddedItemId(null), 1500);
@@ -432,6 +446,21 @@ const ShopProfile: React.FC = () => {
 
   const handleReserve = useCallback((data: any) => {
     if (!shop) return;
+    const isRestaurant = shop?.category === Category.RESTAURANT;
+    const prod = (data as any) || {};
+    const menuVariants = isRestaurant
+      ? (Array.isArray((prod as any)?.menuVariants)
+        ? (prod as any).menuVariants
+        : (Array.isArray((prod as any)?.menu_variants) ? (prod as any).menu_variants : []))
+      : [];
+    const hasMenuVariants = Array.isArray(menuVariants) && menuVariants.length > 0;
+    if (hasMenuVariants) {
+      try {
+        navigate(`/shop/${String((shop as any)?.slug || '')}/product/${String((prod as any)?.id || '')}`);
+      } catch {
+      }
+      return;
+    }
     setSelectedProductForRes({ ...data, shopId: shop.id, shopName: shop.name });
   }, [shop]);
 

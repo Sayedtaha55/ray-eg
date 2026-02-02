@@ -144,6 +144,13 @@ export class ShopController {
       };
     })();
 
+    const addons = (() => {
+      if (typeof body?.addons === 'undefined') return undefined;
+      if (body.addons === null) return null;
+      if (!Array.isArray(body.addons)) return undefined;
+      return body.addons;
+    })();
+
     const shouldTouchLocationMeta =
       typeof body?.latitude !== 'undefined' ||
       typeof body?.longitude !== 'undefined' ||
@@ -182,6 +189,7 @@ export class ShopController {
       whatsapp: typeof body?.whatsapp === 'string' ? body.whatsapp : undefined,
       customDomain: typeof body?.customDomain === 'string' ? body.customDomain : undefined,
       paymentConfig,
+      addons,
       isActive,
       deliveryFee:
         userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')

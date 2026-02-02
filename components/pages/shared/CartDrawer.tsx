@@ -18,6 +18,7 @@ interface CartItem {
   shopId: string;
   shopName: string;
   addons?: any;
+  variantSelection?: any;
 }
 
 interface CartDrawerProps {
@@ -397,11 +398,22 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                        </span>
                     </div>
                     {shop.items.map((item: CartItem) => (
-                      <div key={item.id} className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                      <div
+                        key={String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`)}
+                        className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100"
+                      >
                         <div className="flex items-center justify-between flex-row-reverse">
                           <div className="text-right">
                             <p className="font-black text-sm">{String(item.name)}</p>
                             <p className="text-[#00E5FF] font-black text-xs">ج.م {Number(item.price)}</p>
+                            {(item as any)?.variantSelection && (
+                              <p className="mt-1 text-[10px] font-bold text-slate-500">
+                                {String((item as any)?.variantSelection?.typeName || (item as any)?.variantSelection?.typeId || '')}
+                                {String((item as any)?.variantSelection?.sizeLabel || (item as any)?.variantSelection?.sizeId || '')
+                                  ? ` - ${String((item as any)?.variantSelection?.sizeLabel || (item as any)?.variantSelection?.sizeId || '')}`
+                                  : ''}
+                              </p>
+                            )}
                             {Array.isArray((item as any)?.addons) && (item as any).addons.length > 0 && (
                               <div className="mt-2 space-y-1">
                                 {(item as any).addons.map((a: any, idx: number) => (

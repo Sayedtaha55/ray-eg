@@ -67,6 +67,7 @@ model Shop {
   customColors  Json?      @map("custom_colors") // Custom color scheme
   customFonts   Json?      @map("custom_fonts")  // Custom font settings
   layoutConfig  Json?      @map("layout_config") // Layout preferences
+  addons        Json?
   followers     Int        @default(0)
   visitors      Int        @default(0)
   rating        Float      @default(0)
@@ -115,6 +116,7 @@ model Product {
   category    String   @default("عام")
   imageUrl    String?  @map("image_url")
   addons      Json?
+  menuVariants Json?   @map("menu_variants")
   isActive    Boolean  @default(true)
   shopId      String
   createdAt   DateTime @default(now())
@@ -183,6 +185,7 @@ model OrderItem {
   quantity  Int
   price     Float
   addons    Json?
+  variantSelection Json? @map("variant_selection")
 
   // Relations
   order     Order   @relation(fields: [orderId], references: [id])
@@ -254,6 +257,7 @@ model Reservation {
   itemImage     String?          @map("item_image")
   itemPrice     Float            @map("item_price")
   extras        Json?
+  variantSelection Json?          @map("variant_selection")
   shopId        String           @map("shop_id")
   shopName      String           @map("shop_name")
   customerName  String           @map("customer_name")

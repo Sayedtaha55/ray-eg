@@ -34,11 +34,30 @@ export function normalizeShopFromBackend(shop: any) {
     return d;
   })();
 
+  const addonsRaw = shop.addons;
+  const addons = Array.isArray(addonsRaw)
+    ? addonsRaw.map((g: any) => {
+        const options = Array.isArray(g?.options)
+          ? g.options.map((o: any) => {
+              const img = o?.imageUrl ?? o?.image_url;
+              const imageUrl2 = typeof img === 'string' ? toBackendUrl(img) : img;
+              return {
+                ...o,
+                imageUrl: imageUrl2,
+                image_url: o?.image_url ?? imageUrl2,
+              };
+            })
+          : g?.options;
+        return { ...g, options };
+      })
+    : addonsRaw;
+
   return {
     ...shop,
     status,
     logoUrl,
     bannerUrl,
+    addons,
     paymentConfig,
     displayAddress,
     mapLabel,
@@ -90,6 +109,8 @@ export function normalizeProductFromBackend(product: any) {
         return { ...g, options };
       })
     : addonsRaw;
+
+  const menuVariants = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
   return {
     ...product,
     imageUrl,
@@ -104,6 +125,8 @@ export function normalizeProductFromBackend(product: any) {
     track_stock: product.track_stock ?? trackStock,
     images,
     addons,
+    menuVariants,
+    menu_variants: (product as any)?.menu_variants ?? menuVariants,
   };
 }
 
