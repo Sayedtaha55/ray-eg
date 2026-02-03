@@ -95,26 +95,26 @@ const CourierOrders: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white" dir="rtl">
-      <div className="max-w-6xl mx-auto px-6 py-10 space-y-10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-10 space-y-6 md:space-y-10">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black">لوحة المندوب</h1>
-            <p className="text-slate-400 text-sm font-bold">طلباتك المعيّنة وتحديث حالتها وتحصيل الكاش.</p>
+            <h1 className="text-2xl md:text-3xl md:text-4xl font-black">لوحة المندوب</h1>
+            <p className="text-slate-400 text-xs md:text-sm font-bold">طلباتك المعيّنة وتحديث حالتها وتحصيل الكاش.</p>
           </div>
-          <div className="flex items-center gap-4">
-            <div className="bg-slate-900 border border-white/5 rounded-2xl px-5 py-3">
+          <div className="flex items-center gap-2 md:gap-4">
+            <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-2 md:py-3">
               <p className="text-xs text-slate-500 font-black uppercase">إجمالي الطلبات</p>
-              <p className="text-2xl font-black text-[#00E5FF]">{summary.totalOrders}</p>
+              <p className="text-lg md:text-2xl font-black text-[#00E5FF]">{summary.totalOrders}</p>
             </div>
-            <div className="bg-slate-900 border border-white/5 rounded-2xl px-5 py-3">
+            <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-2 md:py-3">
               <p className="text-xs text-slate-500 font-black uppercase">تم التوصيل</p>
-              <p className="text-2xl font-black text-emerald-400">{summary.delivered}</p>
+              <p className="text-lg md:text-2xl font-black text-emerald-400">{summary.delivered}</p>
             </div>
             <button
               onClick={() => loadOrders(true)}
-              className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-sm font-black"
+              className="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-xs md:text-sm font-black"
             >
-              <RefreshCw size={16} className={isRefreshing ? 'animate-spin' : ''} />
+              <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
               تحديث
             </button>
           </div>
@@ -127,7 +127,7 @@ const CourierOrders: React.FC = () => {
             لا توجد طلبات مخصصة لك حالياً.
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3 md:space-y-6">
             {orders.map((order) => {
               const fee = getDeliveryFeeFromNotes(order.notes) || 0;
               const grandTotal = Number(order.total || 0) + fee;
@@ -136,42 +136,42 @@ const CourierOrders: React.FC = () => {
               const location = parseCodLocation(order.notes);
 
               return (
-                <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-6 md:p-8">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-                    <div className="space-y-2">
+                <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 lg:p-8">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
+                    <div className="space-y-1 md:space-y-2">
                       <p className="text-xs text-slate-500 font-black uppercase">طلب #{order.id.slice(0, 8)}</p>
-                      <h3 className="text-xl font-black">{order?.shop?.name || 'متجر غير معروف'}</h3>
-                      <p className="text-sm text-slate-400 font-bold">
+                      <h3 className="text-lg md:text-xl font-black">{order?.shop?.name || 'متجر غير معروف'}</h3>
+                      <p className="text-xs md:text-sm text-slate-400 font-bold">
                         العميل: {order?.user?.name || 'غير معروف'} {order?.user?.phone ? `• ${order.user.phone}` : ''}
                       </p>
                       <p className="text-xs text-slate-500">{new Date(order.created_at || order.createdAt).toLocaleString('ar-EG')}</p>
                     </div>
-                    <div className="flex flex-wrap gap-3">
+                    <div className="flex flex-wrap gap-2 md:gap-3">
                       {location && (
                         <a
                           href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
                         >
-                          <MapPin size={14} /> فتح الخريطة
+                          <MapPin size={12} /> فتح الخريطة
                         </a>
                       )}
-                      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
                         الإجمالي: ج.م {grandTotal.toLocaleString()}
                       </span>
                       {fee > 0 && (
-                        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-amber-500/10 text-amber-300 font-black text-xs">
+                        <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-amber-500/10 text-amber-300 font-black text-xs">
                           رسوم التوصيل: ج.م {fee}
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="mt-6 grid md:grid-cols-2 gap-6">
-                    <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4">
-                      <p className="text-xs text-slate-500 font-black mb-3">الأصناف</p>
-                      <ul className="space-y-2 text-sm text-slate-300">
+                  <div className="mt-4 md:mt-6 grid md:grid-cols-2 gap-4 md:gap-6">
+                    <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
+                      <p className="text-xs text-slate-500 font-black mb-2 md:mb-3">الأصناف</p>
+                      <ul className="space-y-1 md:space-y-2 text-xs md:text-sm text-slate-300">
                         {(order.items || []).map((item: OrderItem) => (
                           <li key={item.id} className="flex items-center justify-between">
                             <span>{item.product?.name || 'منتج'}</span>
@@ -180,25 +180,25 @@ const CourierOrders: React.FC = () => {
                         ))}
                       </ul>
                     </div>
-                    <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
+                    <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
                       <div>
                         <p className="text-xs text-slate-500 font-black">الحالة الحالية</p>
-                        <p className="text-sm font-black text-white">{String(order.status || 'PENDING')}</p>
+                        <p className="text-xs md:text-sm font-black text-white">{String(order.status || 'PENDING')}</p>
                       </div>
-                      <div className="flex flex-wrap gap-3">
+                      <div className="flex flex-wrap gap-2 md:gap-3">
                         <button
                           disabled={delivered}
                           onClick={() => updateOrder(String(order.id), { status: 'DELIVERED' })}
-                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black ${delivered ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'}`}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${delivered ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'}`}
                         >
-                          <CheckCircle size={14} /> تم التوصيل
+                          <CheckCircle size={12} /> تم التوصيل
                         </button>
                         <button
                           disabled={codCollected}
                           onClick={() => updateOrder(String(order.id), { codCollected: true })}
-                          className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl text-xs font-black ${codCollected ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}
+                          className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${codCollected ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}
                         >
-                          <Banknote size={14} /> {codCollected ? 'تم تحصيل الكاش' : 'تحصيل الكاش'}
+                          <Banknote size={12} /> {codCollected ? 'تم تحصيل الكاش' : 'تحصيل الكاش'}
                         </button>
                       </div>
                       {(location?.address || location?.note) && (

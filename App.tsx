@@ -73,6 +73,19 @@ const suspense = (element: React.ReactElement) => (
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
+  
+  // Auto-redirect based on user role
+  useEffect(() => {
+    const userStr = localStorage.getItem('ray_user');
+    const user = userStr ? JSON.parse(userStr) : {};
+    const role = String(user?.role || '').toLowerCase();
+    
+    // Redirect courier to dashboard
+    if (role === 'courier' && window.location.pathname === '/') {
+      window.location.hash = '#/courier/orders';
+    }
+  }, []);
+
   return (
     <Router>
       <ScrollToTop />
