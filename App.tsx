@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
@@ -37,13 +37,48 @@ const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSet
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
 const NotFoundPage = React.lazy(() => import('./components/pages/shared/NotFoundPage'));
 
-const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams } = ReactRouterDOM as any;
+const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams, useNavigate } = ReactRouterDOM as any;
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [pathname]);
+  return null;
+};
+
+const RoleRedirector: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [authTick, setAuthTick] = useState(0);
+
+  useEffect(() => {
+    const onAuthChange = () => setAuthTick((t) => t + 1);
+    try {
+      window.addEventListener('auth-change', onAuthChange as any);
+    } catch {
+    }
+    return () => {
+      try {
+        window.removeEventListener('auth-change', onAuthChange as any);
+      } catch {
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      const userStr = localStorage.getItem('ray_user');
+      const user = userStr ? JSON.parse(userStr) : {};
+      const role = String(user?.role || '').toLowerCase();
+
+      if (role === 'courier' && !String(location?.pathname || '').startsWith('/courier')) {
+        navigate('/courier/orders', { replace: true });
+      }
+    } catch {
+    }
+  }, [location?.pathname, authTick, navigate]);
+
   return null;
 };
 
@@ -73,22 +108,11 @@ const suspense = (element: React.ReactElement) => (
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
-  
-  // Auto-redirect based on user role
-  useEffect(() => {
-    const userStr = localStorage.getItem('ray_user');
-    const user = userStr ? JSON.parse(userStr) : {};
-    const role = String(user?.role || '').toLowerCase();
-    
-    // Redirect courier to dashboard
-    if (role === 'courier' && window.location.pathname === '/') {
-      window.location.hash = '#/courier/orders';
-    }
-  }, []);
 
   return (
     <Router>
       <ScrollToTop />
+      <RoleRedirector />
       <Routes>
         <Route path="/" element={suspense(<PublicLayout />)}>
           <Route index element={suspense(<HomeFeed />)} />

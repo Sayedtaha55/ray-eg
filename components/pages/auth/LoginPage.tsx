@@ -60,6 +60,8 @@ const LoginPage: React.FC = () => {
       
       addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
 
+      const role = String((response as any)?.user?.role || '').toLowerCase();
+
       if (returnTo) {
         try {
           if (followShopId) {
@@ -73,9 +75,9 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      if (response.user.role === 'admin') {
+      if (role === 'admin') {
         navigate('/admin/dashboard');
-      } else if (response.user.role === 'merchant') {
+      } else if (role === 'merchant') {
         try {
           const myShop = await ApiService.getMyShop();
           const status = String(myShop?.status || '').toLowerCase();
@@ -87,6 +89,8 @@ const LoginPage: React.FC = () => {
         } catch {
           navigate('/business/pending');
         }
+      } else if (role === 'courier') {
+        navigate('/courier/orders');
       } else {
         navigate('/profile');
       }
