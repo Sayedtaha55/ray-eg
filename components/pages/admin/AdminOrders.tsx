@@ -206,83 +206,150 @@ const AdminOrders: React.FC = () => {
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
         ) : (
-          <table className="w-full text-right border-collapse">
-            <thead>
-              <tr className="border-b border-white/5 bg-white/5">
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رقم العملية</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التاريخ</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المبلغ</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رسوم التوصيل</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدفع</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المندوب</th>
-                <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {orders.map((order) => (
-                <tr key={order.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
-                  <td className="p-6 font-black text-white">#{order.id.slice(0, 8)}</td>
-                  <td className="p-6 text-slate-500 text-sm">{new Date(order.created_at).toLocaleString('ar-EG')}</td>
-                  <td className="p-6">
-                    <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
-                  </td>
-                  <td className="p-6">
-                    {(() => {
-                      const fee = getDeliveryFeeFromNotes(order.notes);
-                      return (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-right border-collapse">
+                <thead>
+                  <tr className="border-b border-white/5 bg-white/5">
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رقم العملية</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التاريخ</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المبلغ</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رسوم التوصيل</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدفع</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المندوب</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((order) => (
+                    <tr key={order.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                      <td className="p-6 font-black text-white">#{order.id.slice(0, 8)}</td>
+                      <td className="p-6 text-slate-500 text-sm">{new Date(order.created_at).toLocaleString('ar-EG')}</td>
+                      <td className="p-6">
+                        <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
+                      </td>
+                      <td className="p-6">
+                        {(() => {
+                          const fee = getDeliveryFeeFromNotes(order.notes);
+                          return (
+                            <button
+                              onClick={() => editDeliveryFee(order)}
+                              className="text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
+                            >
+                              {fee == null ? 'تحديد' : `ج.م ${fee}`} 
+                            </button>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-6">
+                        <span className="text-slate-200 font-black text-xs">{String(order.paymentMethod || order.payment_method || 'غير محدد')}</span>
+                      </td>
+                      <td className="p-6">
+                        {(() => {
+                          const loc = parseCodLocation(order.notes);
+                          if (!loc) return <span className="text-slate-500 text-xs font-bold">-</span>;
+                          const href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
+                          return (
+                            <a
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[#00E5FF] font-black text-xs hover:underline"
+                            >
+                              فتح الخريطة
+                            </a>
+                          );
+                        })()}
+                      </td>
+                      <td className="p-6">
+                        <button
+                          onClick={() => assignCourier(order)}
+                          className="inline-flex items-center gap-2 text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
+                        >
+                          <UserPlus size={14} />
+                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || 'تعيين'}
+                        </button>
+                      </td>
+                      <td className="p-6">
+                        {(() => {
+                          const meta = formatStatus(order.status);
+                          return (
+                            <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${meta.cls}`}>
+                              {meta.label}
+                            </span>
+                          );
+                        })()}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="lg:hidden space-y-3 p-3">
+              {orders.map((order) => {
+                const fee = getDeliveryFeeFromNotes(order.notes);
+                const loc = parseCodLocation(order.notes);
+                const meta = formatStatus(order.status);
+                return (
+                  <div key={order.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-white font-black text-sm">#{order.id.slice(0, 8)}</span>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${meta.cls}`}>
+                        {meta.label}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-400">{new Date(order.created_at).toLocaleString('ar-EG')}</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">المبلغ:</span>
+                        <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">رسوم:</span>
                         <button
                           onClick={() => editDeliveryFee(order)}
-                          className="text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
+                          className="text-slate-200 font-black hover:text-[#00E5FF] transition-colors"
                         >
-                          {fee == null ? 'تحديد' : `ج.م ${fee}`} 
+                          {fee == null ? 'تحديد' : `ج.م ${fee}`}
                         </button>
-                      );
-                    })()}
-                  </td>
-                  <td className="p-6">
-                    <span className="text-slate-200 font-black text-xs">{String(order.paymentMethod || order.payment_method || 'غير محدد')}</span>
-                  </td>
-                  <td className="p-6">
-                    {(() => {
-                      const loc = parseCodLocation(order.notes);
-                      if (!loc) return <span className="text-slate-500 text-xs font-bold">-</span>;
-                      const href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
-                      return (
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">الدفع:</span>
+                        <span className="text-slate-200 font-black">{String(order.paymentMethod || order.payment_method || 'غير محدد')}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">المندوب:</span>
+                        <button
+                          onClick={() => assignCourier(order)}
+                          className="inline-flex items-center gap-1 text-slate-200 font-black hover:text-[#00E5FF] transition-colors"
+                        >
+                          <UserPlus size={10} />
+                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || 'تعيين'}
+                        </button>
+                      </div>
+                    </div>
+                    {loc && (
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="text-slate-400 text-xs">الموقع:</span>
                         <a
-                          href={href}
+                          href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
                           target="_blank"
                           rel="noreferrer"
-                          className="text-[#00E5FF] font-black text-xs hover:underline"
+                          className="text-[#00E5FF] font-black hover:underline text-xs"
                         >
                           فتح الخريطة
                         </a>
-                      );
-                    })()}
-                  </td>
-                  <td className="p-6">
-                    <button
-                      onClick={() => assignCourier(order)}
-                      className="inline-flex items-center gap-2 text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
-                    >
-                      <UserPlus size={14} />
-                      {order?.courier?.name || order?.courier?.email || order?.courier?.phone || 'تعيين'}
-                    </button>
-                  </td>
-                  <td className="p-6">
-                    {(() => {
-                      const meta = formatStatus(order.status);
-                      return (
-                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${meta.cls}`}>
-                          {meta.label}
-                        </span>
-                      );
-                    })()}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
