@@ -44,6 +44,15 @@ const ShopProductPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const fromOffers = useMemo(() => {
+    try {
+      const q = new URLSearchParams(String(location?.search || ''));
+      return String(q.get('from') || '').toLowerCase() === 'offers';
+    } catch {
+      return false;
+    }
+  }, [location?.search]);
+
   const [user, setUser] = useState<any>(null);
   const [isCartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
@@ -375,10 +384,10 @@ const ShopProductPage: React.FC = () => {
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
   const showFooterContact = isVisible('footerContact', true);
 
-  const showMobileBottomNav = isVisible('mobileBottomNav', true);
-  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
-  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
-  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
+  const showMobileBottomNav = fromOffers ? true : isVisible('mobileBottomNav', true);
+  const showMobileBottomNavHome = fromOffers ? true : isVisible('mobileBottomNavHome', true);
+  const showMobileBottomNavCart = fromOffers ? true : isVisible('mobileBottomNavCart', true);
+  const showMobileBottomNavAccount = fromOffers ? true : isVisible('mobileBottomNavAccount', true);
 
   const showProductTabs = isVisible('productTabs', true);
   const showProductShareButton = isVisible('productShareButton', true);

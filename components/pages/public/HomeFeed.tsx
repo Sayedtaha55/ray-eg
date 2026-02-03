@@ -8,6 +8,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import ReservationModal from '../shared/ReservationModal';
  
 import { Skeleton } from '@/components/common/ui';
+import { useCartSound } from '@/hooks/useCartSound';
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -19,6 +20,7 @@ const HomeFeed: React.FC = () => {
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const navigate = useNavigate();
+  const { playSound } = useCartSound();
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -202,7 +204,15 @@ const HomeFeed: React.FC = () => {
               className="group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
             >
               <div 
-                onClick={() => navigate(`/product/${(offer as any).productId || offer.id}`)}
+                onClick={() => {
+                  const productId = String((offer as any).productId || offer.id || '').trim();
+                  const shopSlug = String((offer as any).shopSlug || '').trim();
+                  if (productId && shopSlug) {
+                    navigate(`/shop/${shopSlug}/product/${productId}?from=offers`);
+                    return;
+                  }
+                  navigate(`/product/${productId || offer.id}`);
+                }}
                 className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50 cursor-pointer"
               >
                 <img
@@ -238,6 +248,7 @@ const HomeFeed: React.FC = () => {
                         type="button"
                         aria-label="إضافة للسلة"
                         onClick={() => {
+                          playSound();
                           const event = new CustomEvent('add-to-cart', {
                             detail: {
                               ...offer,
@@ -247,7 +258,8 @@ const HomeFeed: React.FC = () => {
                               shopName: (offer as any).shopName,
                               name: offer.title,
                               price: offer.newPrice,
-                              quantity: 1
+                              quantity: 1,
+                              __skipSound: true,
                             }
                           });
                           window.dispatchEvent(event);

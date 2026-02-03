@@ -99,7 +99,15 @@ const OffersPage: React.FC = () => {
               className="group bg-white p-5 rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
             >
               <div
-                onClick={() => navigate(`/product/${(offer as any).productId || offer.id}`)}
+                onClick={() => {
+                  const productId = String((offer as any).productId || offer.id || '').trim();
+                  const shopSlug = String((offer as any).shopSlug || '').trim();
+                  if (productId && shopSlug) {
+                    navigate(`/shop/${shopSlug}/product/${productId}?from=offers`);
+                    return;
+                  }
+                  navigate(`/product/${productId || offer.id}`);
+                }}
                 className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden mb-6 bg-slate-50 cursor-pointer"
               >
                 <img

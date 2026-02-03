@@ -12,6 +12,7 @@ import {
 import ReservationModal from '../shared/ReservationModal';
 import { Skeleton } from '@/components/common/ui';
 import { ApiService } from '@/services/api.service';
+import { useCartSound } from '@/hooks/useCartSound';
 
 const { useParams, useNavigate, Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -19,6 +20,7 @@ const MotionDiv = motion.div as any;
 const ProductPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { playSound } = useCartSound();
   const [product, setProduct] = useState<Product | null>(null);
   const [offer, setOffer] = useState<Offer | null>(null);
   const [shop, setShop] = useState<Shop | null>(null);
@@ -213,6 +215,9 @@ const ProductPage: React.FC = () => {
       return;
     }
 
+    // Play directly on click for mobile browsers (iOS) to allow audio
+    playSound();
+
     const addonsTotal = (() => {
       const isRestaurant = shop?.category === Category.RESTAURANT;
       const addonsDef = isRestaurant
@@ -318,6 +323,7 @@ const ProductPage: React.FC = () => {
         shopName: shop?.name,
         addons: normalizedAddons,
         variantSelection: selectedMenuVariant,
+        __skipSound: true,
       } 
     });
     window.dispatchEvent(event);

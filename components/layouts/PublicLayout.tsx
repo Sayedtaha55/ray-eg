@@ -35,7 +35,8 @@ const PublicLayout: React.FC = () => {
     checkAuth();
     const handleAddToCart = (e: any) => {
       RayDB.addToCart(e.detail);
-      playSound();
+      const skipSound = Boolean(e?.detail && (e.detail.__skipSound || e.detail.__soundPlayed));
+      if (!skipSound) playSound();
       setCartOpen(true);
     };
     const syncCart = () => {

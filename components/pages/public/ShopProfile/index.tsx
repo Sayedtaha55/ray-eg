@@ -29,6 +29,7 @@ import { Skeleton } from '@/components/common/ui';
 import ProductCard from './ProductCard';
 import InfoItem from './InfoItem';
 import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl, scopeCss } from './utils';
+import { useCartSound } from '@/hooks/useCartSound';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
@@ -94,6 +95,7 @@ const ShopProfile: React.FC = () => {
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { playSound } = useCartSound();
 
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
@@ -426,9 +428,10 @@ const ShopProfile: React.FC = () => {
       }
       setAddedItemId((prod as any)?.id);
       RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
+      playSound();
       setTimeout(() => setAddedItemId(null), 1500);
     },
-    [shop]
+    [shop, playSound]
   );
 
   const handleReserve = useCallback(
