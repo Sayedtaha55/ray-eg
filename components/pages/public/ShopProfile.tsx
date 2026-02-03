@@ -18,6 +18,8 @@ import ProductCard from './ShopProfile/ProductCard';
 import InfoItem from './ShopProfile/InfoItem';
 import NavTab from './ShopProfile/NavTab';
 import { isVideoUrl, hexToRgba, coerceBoolean, coerceNumber, scopeCss } from './ShopProfile/utils';
+import { useCartSound } from '@/hooks/useCartSound';
+import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
@@ -88,6 +90,7 @@ const ShopProfile: React.FC = () => {
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
+  const { playSound } = useCartSound();
 
   useEffect(() => {
     const checkAuth = () => {
@@ -472,8 +475,9 @@ const ShopProfile: React.FC = () => {
     }
     setAddedItemId((prod as any)?.id);
     RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
+    playSound();
     setTimeout(() => setAddedItemId(null), 1500);
-  }, [shop]);
+  }, [shop, playSound]);
 
   const handleReserve = useCallback((data: any) => {
     if (!shop) return;
@@ -1204,21 +1208,13 @@ const ShopProfile: React.FC = () => {
                 )}
 
                 {showMobileBottomNavCart && (
-                  <button
-                    type="button"
-                    onClick={() => setCartOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
-                  >
-                    <span className="relative">
-                      <ShoppingCart className="w-5 h-5" />
-                      {cartItems.length > 0 && (
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#BD00FF] text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
-                          {cartItems.length}
-                        </span>
-                      )}
-                    </span>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black">
+                    <CartIconWithAnimation 
+                      count={cartItems.length}
+                      onClick={() => setCartOpen(true)}
+                    />
                     <span className="text-[10px] font-black">السلة</span>
-                  </button>
+                  </div>
                 )}
 
                 {showMobileBottomNavAccount && (

@@ -7,6 +7,8 @@ import { RayDB } from '@/constants';
 import { Offer, Product, Shop, ShopDesign } from '@/types';
 import ReservationModal from '../shared/ReservationModal';
 import CartDrawer from '../shared/CartDrawer';
+import { useCartSound } from '@/hooks/useCartSound';
+import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 
 const { useParams, useNavigate, Link, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -45,6 +47,7 @@ const ShopProductPage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [isCartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const { playSound } = useCartSound();
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [design, setDesign] = useState<ShopDesign | null>(null);
@@ -414,6 +417,7 @@ const ShopProductPage: React.FC = () => {
       addons: normalizedAddons,
       variantSelection: selectedMenuVariant,
     });
+    playSound();
   };
 
   const handleShare = async () => {
@@ -1029,21 +1033,13 @@ const ShopProductPage: React.FC = () => {
                 )}
 
                 {showMobileBottomNavCart && (
-                  <button
-                    type="button"
-                    onClick={() => setCartOpen(true)}
-                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
-                  >
-                    <span className="relative">
-                      <ShoppingCart className="w-5 h-5" />
-                      {cartItems.length > 0 && (
-                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#BD00FF] text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
-                          {cartItems.length}
-                        </span>
-                      )}
-                    </span>
+                  <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black">
+                    <CartIconWithAnimation 
+                      count={cartItems.length}
+                      onClick={() => setCartOpen(true)}
+                    />
                     <span className="text-[10px] font-black">السلة</span>
-                  </button>
+                  </div>
                 )}
 
                 {showMobileBottomNavAccount && (
