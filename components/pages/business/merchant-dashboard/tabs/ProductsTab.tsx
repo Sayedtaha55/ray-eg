@@ -30,6 +30,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
       imagePreview: string | null;
       imageUrl: string | null;
       imageUploadFile: File | null;
+      hasSmall: boolean;
+      hasMedium: boolean;
+      hasLarge: boolean;
       priceSmall: string;
       priceMedium: string;
       priceLarge: string;
@@ -55,6 +58,12 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
           const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
           return Number.isFinite(p) ? String(p) : '';
         };
+        const hasSize = (vid: string) => {
+          const v = vars.find((x: any) => String(x?.id || '').trim() === vid);
+          if (!v) return false;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          return Number.isFinite(p) && p > 0;
+        };
         const img = typeof o?.imageUrl === 'string' ? String(o.imageUrl) : (typeof o?.image_url === 'string' ? String(o.image_url) : '');
         return {
           id: optId,
@@ -62,6 +71,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
           imagePreview: img || null,
           imageUrl: img || null,
           imageUploadFile: null,
+          hasSmall: hasSize('small'),
+          hasMedium: hasSize('medium'),
+          hasLarge: hasSize('large'),
           priceSmall: getPrice('small'),
           priceMedium: getPrice('medium'),
           priceLarge: getPrice('large'),
@@ -116,15 +128,35 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
           const pMed = parseNumberInput(a?.priceMedium);
           const pLarge = parseNumberInput(a?.priceLarge);
 
+          const variants: Array<{ id: string; label: string; price: number }> = [];
+          if ((a as any)?.hasSmall) {
+            if (!Number.isFinite(pSmall) || pSmall <= 0) {
+              throw new Error(`سعر غير صحيح للإضافة: ${optName} (صغير)`);
+            }
+            variants.push({ id: 'small', label: 'صغير', price: pSmall });
+          }
+          if ((a as any)?.hasMedium) {
+            if (!Number.isFinite(pMed) || pMed <= 0) {
+              throw new Error(`سعر غير صحيح للإضافة: ${optName} (وسط)`);
+            }
+            variants.push({ id: 'medium', label: 'وسط', price: pMed });
+          }
+          if ((a as any)?.hasLarge) {
+            if (!Number.isFinite(pLarge) || pLarge <= 0) {
+              throw new Error(`سعر غير صحيح للإضافة: ${optName} (كبير)`);
+            }
+            variants.push({ id: 'large', label: 'كبير', price: pLarge });
+          }
+
+          if (variants.length === 0) {
+            throw new Error(`اختر مقاس واحد على الأقل للإضافة: ${optName}`);
+          }
+
           return {
             id: optId,
             name: optName,
             imageUrl,
-            variants: [
-              { id: 'small', label: 'صغير', price: Number.isFinite(pSmall) ? pSmall : 0 },
-              { id: 'medium', label: 'وسط', price: Number.isFinite(pMed) ? pMed : 0 },
-              { id: 'large', label: 'كبير', price: Number.isFinite(pLarge) ? pLarge : 0 },
-            ],
+            variants,
           };
         }),
       );
@@ -211,6 +243,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
                         imagePreview: null,
                         imageUrl: null,
                         imageUploadFile: null,
+                        hasSmall: true,
+                        hasMedium: true,
+                        hasLarge: true,
                         priceSmall: '',
                         priceMedium: '',
                         priceLarge: '',
@@ -307,30 +342,87 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddonItems((prev) =>
+                              prev.map((x) =>
+                                x.id === a.id
+                                  ? { ...x, hasSmall: !x.hasSmall, priceSmall: !x.hasSmall ? x.priceSmall : '' }
+                                  : x,
+                              ),
+                            );
+                          }}
+                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                        >
+                          {a.hasSmall ? 'لا يوجد' : 'موجود'}
+                        </button>
+                      </div>
                       <input
                         type="number"
-                        value={a.priceSmall}
+                        disabled={!a.hasSmall}
+                        value={a.hasSmall ? a.priceSmall : ''}
                         onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                        placeholder={a.hasSmall ? '' : 'لا يوجد'}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddonItems((prev) =>
+                              prev.map((x) =>
+                                x.id === a.id
+                                  ? { ...x, hasMedium: !x.hasMedium, priceMedium: !x.hasMedium ? x.priceMedium : '' }
+                                  : x,
+                              ),
+                            );
+                          }}
+                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                        >
+                          {a.hasMedium ? 'لا يوجد' : 'موجود'}
+                        </button>
+                      </div>
                       <input
                         type="number"
-                        value={a.priceMedium}
+                        disabled={!a.hasMedium}
+                        value={a.hasMedium ? a.priceMedium : ''}
                         onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                        placeholder={a.hasMedium ? '' : 'لا يوجد'}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAddonItems((prev) =>
+                              prev.map((x) =>
+                                x.id === a.id
+                                  ? { ...x, hasLarge: !x.hasLarge, priceLarge: !x.hasLarge ? x.priceLarge : '' }
+                                  : x,
+                              ),
+                            );
+                          }}
+                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                        >
+                          {a.hasLarge ? 'لا يوجد' : 'موجود'}
+                        </button>
+                      </div>
                       <input
                         type="number"
-                        value={a.priceLarge}
+                        disabled={!a.hasLarge}
+                        value={a.hasLarge ? a.priceLarge : ''}
                         onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                        placeholder={a.hasLarge ? '' : 'لا يوجد'}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                       />
                     </div>
                   </div>

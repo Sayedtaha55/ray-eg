@@ -57,6 +57,7 @@ const ShopProductPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'shipping'>('details');
+  const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
 
@@ -125,6 +126,7 @@ const ShopProductPage: React.FC = () => {
         }
 
         setProduct(p);
+        setSelectedAddons([]);
 
         if (offerRes.status === 'fulfilled' && offerRes.value) {
           setOffer(offerRes.value as any);
@@ -233,7 +235,70 @@ const ShopProductPage: React.FC = () => {
     };
   }, [hasMenuVariants, menuVariantsDef, selectedMenuTypeId, selectedMenuSizeId]);
 
-  const displayedPrice = typeof (selectedMenuVariant as any)?.price === 'number' ? (selectedMenuVariant as any).price : currentPrice;
+  const addonsDef = isRestaurant
+    ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+    : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
+  const addonsTotal = (() => {
+    const priceByKey = new Map<string, number>();
+    for (const g of addonsDef || []) {
+      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+      for (const opt of options) {
+        const optId = String(opt?.id || '').trim();
+        if (!optId) continue;
+        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+        for (const v of vars) {
+          const vid = String(v?.id || '').trim();
+          if (!vid) continue;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+        }
+      }
+    }
+    return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
+  })();
+
+  const normalizedAddons = (() => {
+    const priceByKey = new Map<string, number>();
+    const labelByKey = new Map<string, string>();
+    const optionNameById = new Map<string, string>();
+    const optionImageById = new Map<string, string>();
+    for (const g of addonsDef || []) {
+      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+      for (const opt of options) {
+        const optId = String(opt?.id || '').trim();
+        if (!optId) continue;
+        optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
+        if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
+          optionImageById.set(optId, String(opt.imageUrl).trim());
+        }
+        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+        for (const v of vars) {
+          const vid = String(v?.id || '').trim();
+          if (!vid) continue;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+          labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
+        }
+      }
+    }
+
+    return (selectedAddons || []).map((a) => {
+      const key = `${a.optionId}:${a.variantId}`;
+      return {
+        optionId: a.optionId,
+        optionName: optionNameById.get(a.optionId) || a.optionId,
+        optionImage: optionImageById.get(a.optionId) || null,
+        variantId: a.variantId,
+        variantLabel: labelByKey.get(key) || a.variantId,
+        price: priceByKey.get(key) || 0,
+      };
+    });
+  })();
+
+  const basePrice = hasMenuVariants
+    ? Number((selectedMenuVariant as any)?.price || 0)
+    : (Number(currentPrice) || 0);
+  const displayedPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
 
   const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
   const isVisible = useCallback((key: string, fallback: boolean = true) => {
@@ -310,6 +375,7 @@ const ShopProductPage: React.FC = () => {
       quantity: 1,
       shopId: (shop as any)?.id,
       shopName: (shop as any)?.name,
+      addons: normalizedAddons,
       variantSelection: selectedMenuVariant,
     });
   };
@@ -613,6 +679,72 @@ const ShopProductPage: React.FC = () => {
               </div>
             )}
 
+            {isRestaurant && Array.isArray(addonsDef) && addonsDef.length > 0 && (
+              <div className="border border-slate-100 rounded-[1.5rem] bg-white p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-black text-sm text-slate-900">منتجات إضافية</h3>
+                  <span className="text-[10px] font-black text-slate-400">اختياري</span>
+                </div>
+
+                <div className="space-y-4">
+                  {(addonsDef as any[]).map((group, gi) => (
+                    <div key={String(group?.id || gi)} className="space-y-3">
+                      {group?.title ? <p className="text-[10px] font-black text-slate-500">{String(group.title)}</p> : null}
+                      <div className="space-y-3">
+                        {(Array.isArray(group?.options) ? group.options : []).map((opt: any) => {
+                          const optId = String(opt?.id || '').trim();
+                          if (!optId) return null;
+                          const currentVariantId = selectedAddons.find((a) => a.optionId === optId)?.variantId || '';
+                          const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                          return (
+                            <div key={optId} className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                              {opt?.imageUrl && (
+                                <img src={String(opt.imageUrl)} className="w-10 h-10 rounded-xl object-cover" alt={String(opt?.name || '')} />
+                              )}
+                              <div className="flex-1">
+                                <p className="font-black text-sm text-slate-900">{String(opt?.name || 'إضافة')}</p>
+                                <p className="text-[10px] text-slate-400 font-bold">اختر الحجم</p>
+                              </div>
+                              <select
+                                value={currentVariantId}
+                                onChange={(e) => {
+                                  const v = String(e.target.value || '');
+                                  setSelectedAddons((prev) => {
+                                    const next = Array.isArray(prev) ? [...prev] : [];
+                                    const idx = next.findIndex((x) => x.optionId === optId);
+                                    if (!v) {
+                                      if (idx >= 0) next.splice(idx, 1);
+                                      return next;
+                                    }
+                                    if (idx >= 0) next[idx] = { optionId: optId, variantId: v };
+                                    else next.push({ optionId: optId, variantId: v });
+                                    return next;
+                                  });
+                                }}
+                                className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-black"
+                              >
+                                <option value="">بدون</option>
+                                {variants.map((v: any, idx: number) => {
+                                  const vid = String(v?.id || idx).trim();
+                                  const label = String(v?.label || v?.name || '').trim() || 'اختيار';
+                                  const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                                  return (
+                                    <option key={vid} value={vid}>
+                                      {label} (+{Number.isFinite(p) ? p : 0} ج.م)
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {(showAddToCart || showProductShareButton) && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {showAddToCart && (
@@ -840,6 +972,7 @@ const ShopProductPage: React.FC = () => {
           price: displayedPrice,
           shopId: String((shop as any)?.id || ''),
           shopName: String((shop as any)?.name || ''),
+          addons: normalizedAddons,
           variantSelection: selectedMenuVariant,
         }}
       />
