@@ -1,0 +1,51 @@
+{
+  "name": "من مكانك - MNMKNK",
+  "short_name": "من مكانك",
+  "description": "منصة لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00E5FF",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["shopping", "food", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "المحلات",
+      "short_name": "المحلات",
+      "description": "استكشف المحلات القريبة",
+      "url": "/shops",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "المطاعم",
+      "short_name": "المطاعم",
+      "description": "اطلب من أفضل المطاعم",
+      "url": "/restaurants",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "الخريطة",
+      "short_name": "الخريطة",
+      "description": "عرض المحلات على الخريطة",
+      "url": "/map",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

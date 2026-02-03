@@ -3,23 +3,56 @@
 <html lang="ar" dir="rtl" style="scroll-behavior: smooth;">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>من مكانك | دليل المحلات والمطاعم في مصر</title>
     <meta
       name="description"
       content="منصة منمكان ك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات"
     />
-    <link rel="icon" type="image/png" href="/brand/logo.png" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#00E5FF" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="من مكانك" />
+    <meta name="application-name" content="من مكانك" />
+    <meta name="msapplication-TileColor" content="#00E5FF" />
+    <meta name="msapplication-config" content="/browserconfig.xml" />
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="icon" type="image/png" href="/favicon-32x32.png" />
+    
+    <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="preconnect" href="https://cdn.mnmknk.com" crossorigin />
     <link rel="preconnect" href="https://api.mnmknk.com" crossorigin />
+    
+    <!-- Font loading -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" media="print" onload="this.media='all'" />
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" /></noscript>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Service Worker Registration -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+              console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+              console.log('SW registration failed: ', registrationError);
+            });
+        });
+      }
+    </script>
     <!-- ربط ملف المدخل الرئيسي -->
     <script type="module" src="index.tsx"></script>
   </body>
