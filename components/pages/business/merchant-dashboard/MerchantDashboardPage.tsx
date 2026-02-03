@@ -29,6 +29,11 @@ import PageBuilder from '../builder/PageBuilder';
 import AddProductModal from './modals/AddProductModal';
 import CreateOfferModal from './modals/CreateOfferModal';
 import TabButton from './components/TabButton';
+import {
+  MerchantDashboardTabId,
+  getVisibleMerchantDashboardTabs,
+  resolveMerchantDashboardTab,
+} from './dashboardTabs';
 
 import CustomersTab from './tabs/CustomersTab';
 import GalleryTab from './tabs/GalleryTab';
@@ -42,58 +47,26 @@ import SalesTab from './tabs/SalesTab';
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
-type TabType =
-  | 'overview'
-  | 'pos'
-  | 'builder'
-  | 'products'
-  | 'reservations'
-  | 'sales'
-  | 'promotions'
-  | 'settings'
-  | 'reports'
-  | 'customers'
-  | 'gallery';
+type TabType = MerchantDashboardTabId;
 
-type DashboardTabConfig = {
-  id: TabType;
-  label: string;
-  icon: React.ReactNode;
-  visibleFor?: Category[];
-};
-
-const DASHBOARD_TABS: DashboardTabConfig[] = [
-  { id: 'overview', label: 'نظرة عامة', icon: <TrendingUp size={18} /> },
-  { id: 'gallery', label: 'معرض الصور', icon: <Camera size={18} /> },
-  { id: 'reports', label: 'التقارير', icon: <BarChart3 size={18} /> },
-  { id: 'customers', label: 'العملاء', icon: <Users size={18} /> },
-  { id: 'products', label: 'المخزون', icon: <Package size={18} /> },
-  { id: 'promotions', label: 'العروض', icon: <Megaphone size={18} /> },
-  { id: 'reservations', label: 'الحجوزات', icon: <CalendarCheck size={18} /> },
-  { id: 'sales', label: 'المبيعات', icon: <CreditCard size={18} /> },
-  { id: 'builder', label: 'التصميم', icon: <Palette size={18} /> },
-  { id: 'settings', label: 'الإعدادات', icon: <Settings size={18} /> },
-];
-
-const isTabVisibleForCategory = (tab: DashboardTabConfig, category?: unknown) => {
-  if (!tab.visibleFor || tab.visibleFor.length === 0) return true;
-  const cat = String(category || '').toUpperCase();
-  if (!cat) return false;
-  return tab.visibleFor.some((c) => String(c).toUpperCase() === cat);
-};
-
-const resolveDashboardTab = (requested: any, category?: unknown): TabType => {
-  const req = String(requested || '').trim() as TabType;
-  if (req === 'pos' || req === 'builder') return req;
-  const known = DASHBOARD_TABS.find((t) => t.id === req);
-  if (!known) return 'overview';
-  return isTabVisibleForCategory(known, category) ? known.id : 'overview';
+const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
+  overview: <TrendingUp size={18} />,
+  gallery: <Camera size={18} />,
+  reports: <BarChart3 size={18} />,
+  customers: <Users size={18} />,
+  products: <Package size={18} />,
+  promotions: <Megaphone size={18} />,
+  reservations: <CalendarCheck size={18} />,
+  sales: <CreditCard size={18} />,
+  builder: <Palette size={18} />,
+  settings: <Settings size={18} />,
+  pos: <Smartphone size={18} />,
 };
 
 const MerchantDashboardPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab = (tabParam as TabType) || 'overview';
+  const activeTab = (tabParam as MerchantDashboardTabId) || 'overview';
   const impersonateShopId = searchParams.get('impersonateShopId');
 
   const [currentShop, setCurrentShop] = useState<any>(null);
@@ -134,8 +107,11 @@ const MerchantDashboardPage: React.FC = () => {
   };
 
   const shopCategory = currentShop?.category;
-  const visibleTabs = DASHBOARD_TABS.filter((t) => isTabVisibleForCategory(t, shopCategory));
-  const effectiveTab = resolveDashboardTab(activeTab, shopCategory);
+  const visibleTabs = getVisibleMerchantDashboardTabs(shopCategory).map((t) => ({
+    ...t,
+    icon: ICON_BY_TAB_ID[t.id],
+  }));
+  const effectiveTab = resolveMerchantDashboardTab(activeTab, shopCategory);
 
   const setTab = useCallback((tab: TabType) => {
     const next = new URLSearchParams(searchParams);
@@ -290,7 +266,7 @@ const MerchantDashboardPage: React.FC = () => {
   const refreshShopAndActiveTab = useCallback(async (forceTab = true) => {
     const shop = (await loadShop()) || currentShop;
     if (!shop) return;
-    await ensureTabData(resolveDashboardTab(searchParams.get('tab'), shop?.category), shop, forceTab);
+    await ensureTabData(resolveMerchantDashboardTab(searchParams.get('tab'), shop?.category), shop, forceTab);
   }, [currentShop, ensureTabData, loadShop, searchParams]);
 
   useEffect(() => {
@@ -299,7 +275,7 @@ const MerchantDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!currentShop) return;
-    ensureTabData(resolveDashboardTab(tabParam, currentShop?.category), currentShop);
+    ensureTabData(resolveMerchantDashboardTab(tabParam, currentShop?.category), currentShop);
   }, [currentShop, ensureTabData, tabParam]);
 
   useEffect(() => {

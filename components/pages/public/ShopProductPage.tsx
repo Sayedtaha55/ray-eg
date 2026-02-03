@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ArrowRight, CalendarCheck, Heart, Home, Loader2, Share2, ShoppingCart, Truck, ShieldCheck, Package } from 'lucide-react';
+import { ArrowRight, CalendarCheck, Heart, Home, Loader2, Share2, ShoppingCart, Truck, ShieldCheck, Package, User } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { Offer, Product, Shop, ShopDesign } from '@/types';
 import ReservationModal from '../shared/ReservationModal';
+import CartDrawer from '../shared/CartDrawer';
 
 const { useParams, useNavigate, Link, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -40,6 +41,10 @@ const ShopProductPage: React.FC = () => {
   const { slug, id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [user, setUser] = useState<any>(null);
+  const [isCartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
 
   const [shop, setShop] = useState<Shop | null>(null);
   const [design, setDesign] = useState<ShopDesign | null>(null);
@@ -139,10 +144,36 @@ const ShopProductPage: React.FC = () => {
         setLoading(false);
       }
     };
-
     load();
-    window.scrollTo(0, 0);
   }, [slug, id]);
+
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('ray_user');
+        if (savedUser) setUser(JSON.parse(savedUser));
+        else setUser(null);
+      } catch {
+        setUser(null);
+      }
+    };
+    const syncCart = () => {
+      try {
+        setCartItems(RayDB.getCart());
+      } catch {
+        setCartItems([]);
+      }
+    };
+
+    checkAuth();
+    syncCart();
+    window.addEventListener('auth-change', checkAuth);
+    window.addEventListener('cart-updated', syncCart);
+    return () => {
+      window.removeEventListener('auth-change', checkAuth);
+      window.removeEventListener('cart-updated', syncCart);
+    };
+  }, []);
 
   useEffect(() => {
     const applyPreview = () => {
@@ -341,6 +372,11 @@ const ShopProductPage: React.FC = () => {
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
   const showFooterContact = isVisible('footerContact', true);
 
+  const showMobileBottomNav = isVisible('mobileBottomNav', true);
+  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
+  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
+  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
+
   const showProductTabs = isVisible('productTabs', true);
   const showProductShareButton = isVisible('productShareButton', true);
   const showProductQuickSpecs = isVisible('productQuickSpecs', true);
@@ -413,6 +449,20 @@ const ShopProductPage: React.FC = () => {
 
   const prefersReducedMotion = useReducedMotion();
 
+  const removeFromCart = (lineId: string) => {
+    try {
+      RayDB.removeFromCart(lineId);
+    } catch {
+    }
+  };
+
+  const updateCartItemQuantity = (lineId: string, delta: number) => {
+    try {
+      RayDB.updateCartItemQuantity(lineId, delta);
+    } catch {
+    }
+  };
+
   const TabContent = useMemo(() => {
     if (activeTab === 'details') {
       return (
@@ -478,7 +528,7 @@ const ShopProductPage: React.FC = () => {
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen pb-24 lg:pb-0"
       dir="rtl"
       style={{
         backgroundColor: pageBgColor,
@@ -961,6 +1011,73 @@ const ShopProductPage: React.FC = () => {
           </div>
         </footer>
       )}
+
+      {showMobileBottomNav && (
+        <div className="fixed bottom-0 left-0 right-0 z-[160] px-4 pb-4 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="max-w-md mx-auto">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
+              <div className="flex items-stretch justify-between gap-1" dir="rtl">
+                {showMobileBottomNavHome && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <Home className="w-5 h-5" />
+                    <span className="text-[10px] font-black">الرئيسية</span>
+                  </button>
+                )}
+
+                {showMobileBottomNavCart && (
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(true)}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <span className="relative">
+                      <ShoppingCart className="w-5 h-5" />
+                      {cartItems.length > 0 && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#BD00FF] text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
+                          {cartItems.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[10px] font-black">السلة</span>
+                  </button>
+                )}
+
+                {showMobileBottomNavAccount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user) {
+                        const role = String(user?.role || '').toLowerCase();
+                        navigate(role === 'merchant' ? '/business/dashboard' : '/profile');
+                        return;
+                      }
+                      const q = new URLSearchParams();
+                      q.set('returnTo', `${location.pathname}${location.search || ''}`);
+                      navigate(`/login?${q.toString()}`);
+                    }}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="text-[10px] font-black">حسابي</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cartItems}
+        onRemove={removeFromCart}
+        onUpdateQuantity={updateCartItemQuantity}
+      />
 
       <ReservationModal
         isOpen={isResModalOpen}

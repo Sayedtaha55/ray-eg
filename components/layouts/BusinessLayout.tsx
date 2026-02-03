@@ -6,6 +6,11 @@ import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { useToast } from '@/components/common/feedback/Toaster';
 import BrandLogo from '@/components/common/BrandLogo';
+import { Category } from '@/types';
+import {
+  MerchantDashboardTabId,
+  getVisibleMerchantDashboardTabs,
+} from '@/components/pages/business/merchant-dashboard/dashboardTabs';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -34,9 +39,39 @@ const BusinessLayout: React.FC = () => {
   const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [shopCategory, setShopCategory] = useState<Category | undefined>(undefined);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
+
+  const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
+    overview: <LayoutDashboard size={20} />,
+    sales: <CreditCard size={20} />,
+    reservations: <Calendar size={20} />,
+    products: <ShoppingBag size={20} />,
+    customers: <Users size={20} />,
+    promotions: <Megaphone size={20} />,
+    gallery: <Camera size={20} />,
+    reports: <BarChart3 size={20} />,
+    builder: <Palette size={20} />,
+    settings: <Settings size={20} />,
+    pos: <Store size={20} />,
+  };
+
+  const buildUrlForTab = (id: MerchantDashboardTabId) => {
+    if (id === 'builder') return buildBuilderIndexUrl();
+    if (id === 'settings') return buildSettingsUrl('overview');
+    return buildDashboardUrl(id);
+  };
+
+  const isTabActive = (id: MerchantDashboardTabId) => {
+    if (isProfilePage) return false;
+    return String(activeTab) === String(id);
+  };
+
+  const visibleMainTabs = getVisibleMerchantDashboardTabs(shopCategory)
+    .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] }))
+    .filter((t) => t.id !== 'pos');
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -231,6 +266,29 @@ const BusinessLayout: React.FC = () => {
   }, [isDashboard, effectiveUser?.shopId]);
 
   useEffect(() => {
+    if (!isDashboard) return;
+    if (!effectiveUser?.shopId) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const shop = impersonateShopId
+          ? await ApiService.getShopAdminById(String(impersonateShopId))
+          : await ApiService.getMyShop();
+        if (cancelled) return;
+        setShopCategory((shop as any)?.category);
+      } catch {
+        if (cancelled) return;
+        setShopCategory(undefined);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isDashboard, effectiveUser?.shopId, impersonateShopId]);
+
+  useEffect(() => {
     const onSettingsStatus = (e: any) => {
       const count = Number(e?.detail?.count ?? 0);
       const saving = Boolean(e?.detail?.saving);
@@ -405,16 +463,16 @@ const BusinessLayout: React.FC = () => {
         <nav className="flex-1 px-6 space-y-2 py-4 overflow-y-auto no-scrollbar min-h-0">
           {!isSettingsTab && !isBuilderTab ? (
             <>
-              <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={!isProfilePage && activeTab === 'overview'} />
-              <NavItem to={buildDashboardUrl('sales')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="سجل المبيعات" active={!isProfilePage && activeTab === 'sales'} />
-              <NavItem to={buildDashboardUrl('reservations')} onClick={() => setSidebarOpen(false)} icon={<Calendar size={20} />} label="الحجوزات" active={!isProfilePage && activeTab === 'reservations'} />
-              <NavItem to={buildDashboardUrl('products')} onClick={() => setSidebarOpen(false)} icon={<ShoppingBag size={20} />} label="المخزون" active={!isProfilePage && activeTab === 'products'} />
-              <NavItem to={buildDashboardUrl('customers')} onClick={() => setSidebarOpen(false)} icon={<Users size={20} />} label="العملاء" active={!isProfilePage && activeTab === 'customers'} />
-              <NavItem to={buildDashboardUrl('promotions')} onClick={() => setSidebarOpen(false)} icon={<Megaphone size={20} />} label="العروض" active={!isProfilePage && activeTab === 'promotions'} />
-              <NavItem to={buildDashboardUrl('gallery')} onClick={() => setSidebarOpen(false)} icon={<Camera size={20} />} label="معرض الصور" active={!isProfilePage && activeTab === 'gallery'} />
-              <NavItem to={buildDashboardUrl('reports')} onClick={() => setSidebarOpen(false)} icon={<BarChart3 size={20} />} label="التقارير" active={!isProfilePage && activeTab === 'reports'} />
-              <NavItem to={buildBuilderIndexUrl()} onClick={() => setSidebarOpen(false)} icon={<Palette size={20} />} label="هوية المتجر" active={!isProfilePage && activeTab === 'builder'} />
-              <NavItem to={buildSettingsUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<Settings size={20} />} label="الإعدادات" active={!isProfilePage && activeTab === 'settings'} />
+              {visibleMainTabs.map((t) => (
+                <NavItem
+                  key={t.id}
+                  to={buildUrlForTab(t.id)}
+                  onClick={() => setSidebarOpen(false)}
+                  icon={t.icon}
+                  label={t.label}
+                  active={isTabActive(t.id)}
+                />
+              ))}
             </>
           ) : isSettingsTab ? (
             <>

@@ -687,7 +687,7 @@ const ShopProfile: React.FC = () => {
       <script type="application/ld+json">{schemaJson}</script>
       <div
         id="shop-profile-root"
-        className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'} pb-24 md:pb-0`}
+        className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'} pb-24 lg:pb-0`}
         dir="rtl"
         style={
           (pageBgColor || pageBgImage)
@@ -1188,7 +1188,7 @@ const ShopProfile: React.FC = () => {
       />
 
       {showMobileBottomNav && (
-        <div className="fixed bottom-0 left-0 right-0 z-[160] px-4 pb-4 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="fixed bottom-0 left-0 right-0 z-[160] px-4 pb-4 lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
           <div className="max-w-md mx-auto">
             <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
               <div className="flex items-stretch justify-between gap-1" dir="rtl">

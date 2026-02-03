@@ -10,8 +10,15 @@ const AdminOrders: React.FC = () => {
   const parseCodLocation = (notes: any): { lat: number; lng: number; note?: string; address?: string } | null => {
     try {
       const raw = typeof notes === 'string' ? notes : '';
-      if (!raw.startsWith('COD_LOCATION:')) return null;
-      const json = raw.slice('COD_LOCATION:'.length);
+      const prefix = 'COD_LOCATION:';
+      const start = raw.indexOf(prefix);
+      if (start < 0) return null;
+
+      const after = raw.slice(start + prefix.length);
+      const nl = after.search(/\r?\n/);
+      const json = (nl === -1 ? after : after.slice(0, nl)).trim();
+      if (!json) return null;
+
       const parsed = JSON.parse(json);
       const lat = Number(parsed?.coords?.lat);
       const lng = Number(parsed?.coords?.lng);

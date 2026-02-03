@@ -2,7 +2,12 @@
 export enum Category {
   RETAIL = 'RETAIL',
   RESTAURANT = 'RESTAURANT',
-  SERVICE = 'SERVICE'
+  SERVICE = 'SERVICE',
+  ELECTRONICS = 'ELECTRONICS',
+  FASHION = 'FASHION',
+  FOOD = 'FOOD',
+  HEALTH = 'HEALTH',
+  OTHER = 'OTHER',
 }
 
 export interface ShopDesign {

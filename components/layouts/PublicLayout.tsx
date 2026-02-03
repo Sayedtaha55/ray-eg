@@ -229,11 +229,11 @@ const PublicLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <main className="pt-20 md:pt-32 pb-24 md:pb-0 min-h-screen">
+      <main className="pt-20 md:pt-32 pb-24 lg:pb-0 min-h-screen">
         <Outlet />
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 lg:hidden">
         <div className="max-w-md mx-auto">
           <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
             <div className="flex items-stretch justify-between gap-1" dir="rtl">
