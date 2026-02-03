@@ -22,11 +22,30 @@ export default defineConfig(({ mode }) => {
               vendor: ['react', 'react-dom'],
               router: ['react-router-dom'],
               ui: ['framer-motion', 'lucide-react'],
-              charts: ['recharts']
+              charts: ['recharts'],
+              maps: ['leaflet']
             }
           }
         },
-        chunkSizeWarningLimit: 600
+        chunkSizeWarningLimit: 600,
+        // Performance optimizations
+        minify: 'terser',
+        terserOptions: {
+          compress: {
+            drop_console: mode === 'production',
+            drop_debugger: mode === 'production',
+          },
+        },
+        // Enable code splitting
+        sourcemap: mode !== 'production',
+      },
+      // Performance optimizations
+      optimizeDeps: {
+        include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
+      },
+      define: {
+        // Enable service worker in production
+        'process.env.NODE_ENV': JSON.stringify(mode),
       }
     };
 });

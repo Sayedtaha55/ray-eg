@@ -149,7 +149,7 @@ const HomeFeed: React.FC = () => {
                 } catch {
                 }
               }}
-              className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+              className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
@@ -162,38 +162,38 @@ const HomeFeed: React.FC = () => {
   );
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative">
-      <div className="flex flex-col items-center text-center mb-10 md:mb-20">
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
+      <div className="flex flex-col items-center text-center mb-8 md:mb-20">
          <MotionDiv 
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-6 py-2.5 bg-black text-white rounded-full font-black text-[10px] md:text-xs uppercase tracking-[0.2em] mb-10 shadow-2xl"
+            className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-black text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
          >
             <Sparkles className="w-3 h-3 text-[#00E5FF] fill-current" />
             عروض حصرية
          </MotionDiv>
-         <h1 className="text-4xl md:text-8xl font-black tracking-tighter mb-8 leading-[0.85]">من مكانك<br/><span className="text-[#00E5FF]">دليل المحلات والمطاعم.</span></h1>
-         <p className="text-slate-600 text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-12">
+         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">من مكانك<br/><span className="text-[#00E5FF]">دليل المحلات والمطاعم.</span></h1>
+         <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
             منصة من مكانك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات.
          </p>
 
          <Link
            to="/map"
-           className="inline-flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all shadow-xl"
+           className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all shadow-xl"
          >
            الخريطة <MapPin className="w-4 h-4" />
          </Link>
       </div>
 
       {/* Offers Grid */}
-      <section className="mb-24">
-        <div className="flex items-center justify-between mb-12 md:mb-20 flex-row-reverse px-2">
-           <h2 className="text-3xl md:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
+      <section className="mb-16 md:mb-24">
+        <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
+           <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
            <Link to="/shops" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
              مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
            </Link>
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
           {offers.length === 0 ? (
             <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
           ) : offers.map((offer, idx) => (
@@ -219,20 +219,20 @@ const HomeFeed: React.FC = () => {
                 </div>
               </div>
               <div className="px-1 md:px-3 text-right">
-                <h3 className="text-sm md:text-2xl font-black mb-3 md:mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
+                <h3 className="text-sm md:text-xl lg:text-2xl font-black mb-3 md:mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-row-reverse">
                    <div className="text-right">
-                      <p className="text-slate-300 line-through text-[10px] md:text-xs font-bold">ج.م {offer.oldPrice}</p>
-                      <p className="text-lg md:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
+                      <p className="text-slate-300 line-through text-[9px] md:text-xs font-bold">ج.م {offer.oldPrice}</p>
+                      <p className="text-base md:text-2xl lg:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
                    </div>
                    <div className="flex items-center justify-between gap-2 sm:justify-start">
                       <button
                         type="button"
                         aria-label="حجز"
                         onClick={() => setSelectedItem(offer)}
-                        className="w-10 h-10 md:w-12 md:h-12 bg-[#00E5FF] rounded-xl md:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                        className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-[#00E5FF] rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
                       >
-                        <CalendarCheck size={18} className="md:w-5 md:h-5" />
+                        <CalendarCheck size={16} className="md:w-5 md:h-5" />
                       </button>
                       <button 
                         type="button"
@@ -252,7 +252,7 @@ const HomeFeed: React.FC = () => {
                           });
                           window.dispatchEvent(event);
                         }}
-                        className="w-10 h-10 md:w-12 md:h-12 bg-slate-900 text-white rounded-xl md:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
+                        className="w-8 h-8 md:w-10 md:h-12 bg-slate-900 text-white rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
                       >
                         <ShoppingCart size={18} className="md:w-5 md:h-5" />
                       </button>

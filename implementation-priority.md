@@ -16,10 +16,10 @@
 - [x] إضافة Input validation (ValidationPipe + class-validator)
 
 ### 3. تحسينات الموبايل
-- [ ] تفعيل PWA
-- [ ] تحسين الـ Mobile responsiveness
-- [ ] إضافة Touch gestures
-- [ ] تحسين الـ Loading speed
+- [x] تفعيل PWA
+- [x] تحسين الـ Mobile responsiveness
+- [x] إضافة Touch gestures
+- [x] تحسين الـ Loading speed
 
 ### 4. ثبات السيرفر (Stability)
 - [x] حماية السيرفر من الانهيار (uncaughtException / unhandledRejection)

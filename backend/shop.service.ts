@@ -559,6 +559,7 @@ export class ShopService {
           where: { isActive: true },
           take: 6,
         },
+        addons: true,
       };
 
       const shop = (await this.prisma.shop.findUnique({

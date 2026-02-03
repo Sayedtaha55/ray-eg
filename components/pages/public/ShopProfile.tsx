@@ -6,9 +6,10 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { 
   Star, ChevronRight, X, Users, 
   Eye, Loader2, AlertCircle, Home, Share2, Utensils, ShoppingBag, 
-  Info, Clock, MapPin, Phone, Menu
+  Info, Clock, MapPin, Phone, Menu, ShoppingCart, User
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
+import CartDrawer from '../shared/CartDrawer';
 import ShopGalleryComponent from '@/components/features/shop/ShopGallery';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
@@ -71,6 +72,9 @@ const ShopProfile: React.FC = () => {
   const [currentDesign, setCurrentDesign] = useState<ShopDesign | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [isCartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
   const [spatialMode, setSpatialMode] = useState(false);
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -84,6 +88,33 @@ const ShopProfile: React.FC = () => {
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
+
+  useEffect(() => {
+    const checkAuth = () => {
+      try {
+        const savedUser = localStorage.getItem('ray_user');
+        if (savedUser) setUser(JSON.parse(savedUser));
+        else setUser(null);
+      } catch {
+        setUser(null);
+      }
+    };
+    const syncCart = () => {
+      try {
+        setCartItems(RayDB.getCart());
+      } catch {
+        setCartItems([]);
+      }
+    };
+    checkAuth();
+    syncCart();
+    window.addEventListener('auth-change', checkAuth);
+    window.addEventListener('cart-updated', syncCart);
+    return () => {
+      window.removeEventListener('auth-change', checkAuth);
+      window.removeEventListener('cart-updated', syncCart);
+    };
+  }, []);
 
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
@@ -607,11 +638,29 @@ const ShopProfile: React.FC = () => {
   const showFooter = isVisible('footer', true);
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
   const showFooterContact = isVisible('footerContact', true);
+  const showMobileBottomNav = isVisible('mobileBottomNav', true);
+  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
+  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
+  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
 
   const disableCardMotion = Boolean(prefersReducedMotion) || filteredProducts.length > 30;
 
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
+
+  const removeFromCart = (lineId: string) => {
+    try {
+      RayDB.removeFromCart(lineId);
+    } catch {
+    }
+  };
+
+  const updateCartItemQuantity = (lineId: string, delta: number) => {
+    try {
+      RayDB.updateCartItemQuantity(lineId, delta);
+    } catch {
+    }
+  };
 
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
@@ -638,7 +687,7 @@ const ShopProfile: React.FC = () => {
       <script type="application/ld+json">{schemaJson}</script>
       <div
         id="shop-profile-root"
-        className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'}`}
+        className={`min-h-screen text-right font-sans overflow-x-hidden ${isMinimal ? 'bg-slate-50' : 'bg-white'} pb-24 md:pb-0`}
         dir="rtl"
         style={
           (pageBgColor || pageBgImage)
@@ -729,15 +778,6 @@ const ShopProfile: React.FC = () => {
                   {isHeaderMenuOpen ? <X size={16} /> : <Menu size={16} />}
                 </button>
               )}
-              <button
-                onClick={() => navigate('/')}
-                className="p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
-                style={{ borderColor: `${headerTextColor}15` }}
-                aria-label="العودة للرئيسية"
-                title="العودة للرئيسية"
-              >
-                <Home size={16} className="md:w-4 md:h-4" />
-              </button>
               <button
                 onClick={() => navigate(-1)}
                 className="hidden md:inline-flex p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
@@ -1059,7 +1099,7 @@ const ShopProfile: React.FC = () => {
             </MotionDiv>
           ) : (
             <MotionDiv key="info-view" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12">
-               <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 space-y-6 md:space-y-8 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
+              <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 space-y-6 md:space-y-8 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
                   <h3 className="text-xl md:text-2xl font-black mb-4">تفاصيل التواصل</h3>
                   <div className="grid grid-cols-1 gap-5 md:gap-6">
                     <InfoItem 
@@ -1078,7 +1118,33 @@ const ShopProfile: React.FC = () => {
                       value={shop.openingHours || 'من ١٠ صباحاً - ١٢ مساءً'} 
                     />
                   </div>
-               </div>
+
+                  {/* Embedded Map */}
+                  {typeof shop.latitude === 'number' && typeof shop.longitude === 'number' && (
+                    <div className="mt-6">
+                      <h4 className="font-black text-sm md:text-base mb-3" style={{ color: currentDesign.primaryColor }}>الموقع على الخريطة</h4>
+                      <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-lg">
+                        <iframe
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${shop.longitude - 0.005},${shop.latitude - 0.005},${shop.longitude + 0.005},${shop.latitude + 0.005}&layer=mapnik&marker=${shop.latitude},${shop.longitude}`}
+                          width="100%"
+                          height="250"
+                          style={{ border: 0 }}
+                          title={`موقع ${shop.name} على الخريطة`}
+                          loading="lazy"
+                        />
+                      </div>
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${shop.latitude}&mlon=${shop.longitude}#map=16/${shop.latitude}/${shop.longitude}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-2 mt-3 text-xs md:text-sm font-black text-[#00E5FF] hover:underline"
+                      >
+                        <MapPin size={14} />
+                        فتح في خرائط OpenStreetMap
+                      </a>
+                    </div>
+                  )}
+                </div>
                <div className={`p-6 md:p-10 rounded-[2rem] md:rounded-[2.5rem] border border-slate-100 flex flex-col justify-center items-center text-center space-y-6 ${isMinimal ? 'bg-white' : 'bg-slate-50'}`}>
                   <div className={`w-16 h-16 md:w-24 md:h-24 bg-white rounded-2xl md:rounded-[2rem] flex items-center justify-center shadow-xl mb-2 ${isBold ? 'rotate-6' : ''}`}>
                      <span className="text-green-500">{WhatsAppIcon}</span>
@@ -1119,6 +1185,73 @@ const ShopProfile: React.FC = () => {
           shopId: selectedProductForRes.shopId,
           shopName: selectedProductForRes.shopName
         } : null}
+      />
+
+      {showMobileBottomNav && (
+        <div className="fixed bottom-0 left-0 right-0 z-[160] px-4 pb-4 md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+          <div className="max-w-md mx-auto">
+            <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
+              <div className="flex items-stretch justify-between gap-1" dir="rtl">
+                {showMobileBottomNavHome && (
+                  <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <Home className="w-5 h-5" />
+                    <span className="text-[10px] font-black">الرئيسية</span>
+                  </button>
+                )}
+
+                {showMobileBottomNavCart && (
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(true)}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <span className="relative">
+                      <ShoppingCart className="w-5 h-5" />
+                      {cartItems.length > 0 && (
+                        <span className="absolute -top-2 -right-2 w-5 h-5 bg-[#BD00FF] text-white text-[10px] font-black rounded-full flex items-center justify-center ring-2 ring-white">
+                          {cartItems.length}
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-[10px] font-black">السلة</span>
+                  </button>
+                )}
+
+                {showMobileBottomNavAccount && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (user) {
+                        const role = String(user?.role || '').toLowerCase();
+                        navigate(role === 'merchant' ? '/business/dashboard' : '/profile');
+                        return;
+                      }
+                      const q = new URLSearchParams();
+                      q.set('returnTo', `${location.pathname}${location.search || ''}`);
+                      navigate(`/login?${q.toString()}`);
+                    }}
+                    className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black"
+                  >
+                    <User className="w-5 h-5" />
+                    <span className="text-[10px] font-black">حسابي</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cartItems}
+        onRemove={removeFromCart}
+        onUpdateQuantity={updateCartItemQuantity}
       />
 
       {/* Spatial Discovery Overlay */}

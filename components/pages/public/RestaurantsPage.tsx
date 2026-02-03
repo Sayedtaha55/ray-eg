@@ -85,37 +85,41 @@ const RestaurantsPage: React.FC = () => {
   const restaurants = shops;
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-12 text-right" dir="rtl">
-      <div className="flex flex-col md:flex-row items-end justify-between gap-8 mb-16">
-        <div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter mb-4">عالم <span className="text-[#BD00FF]">المطاعم.</span></h1>
-          <p className="text-slate-400 text-xl font-medium">أفضل تجارب الطعام والعروض الشهية بانتظارك.</p>
+    <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-12 text-right" dir="rtl">
+      <div className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-16">
+        <div className="text-center md:text-right">
+          <h1 className="text-2xl md:text-4xl lg:text-7xl font-black tracking-tighter mb-3 md:mb-4">عالم <span className="text-[#BD00FF]">المطاعم.</span></h1>
+          <p className="text-slate-400 text-sm md:text-lg md:text-xl font-medium">أفضل تجارب الطعام والعروض الشهية بانتظارك.</p>
         </div>
         <div className="w-full md:w-96 relative">
-           <Search className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+           <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
            <input 
              type="text" 
              placeholder="ابحث عن مطعم أو وجبة..." 
-             className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-14 pl-6 outline-none focus:ring-2 focus:ring-[#BD00FF] transition-all font-bold"
+             className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-14 pl-6 outline-none focus:ring-2 focus:ring-[#BD00FF] transition-all font-bold text-sm md:text-base"
              value={search}
              onChange={(e) => setSearch(e.target.value)}
            />
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-16">
+      <div className="flex flex-wrap gap-2 md:gap-3 mb-8 md:mb-16">
          {['الكل', 'القاهرة', 'الجيزة', 'الإسكندرية'].map(g => (
            <button 
              key={g}
              onClick={() => setGovernorate(g)}
-             className={`px-8 py-3 rounded-xl font-black text-sm transition-all ${governorate === g ? 'bg-[#BD00FF] text-white' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+             className={`px-4 py-2 md:px-6 md:py-3 rounded-full font-black text-sm md:text-base whitespace-nowrap transition-all ${
+               governorate === g 
+                 ? 'bg-slate-900 text-white shadow-xl' 
+                 : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+             }`}
            >
              {g}
            </button>
          ))}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
         {loading ? (
           Array.from({ length: 4 }).map((_, idx) => (
             <div
@@ -192,22 +196,22 @@ const RestaurantsPage: React.FC = () => {
                </div>
             </div>
 
-            <div className="absolute bottom-10 right-10 left-10 flex items-end justify-between flex-row-reverse">
-              <div className="text-right">
-                <div className="flex items-center gap-3 justify-end mb-2">
-                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-10 h-10 rounded-xl border border-white/20" alt={shop.name} />
-                   <h3 className="text-3xl font-black text-white">{shop.name}</h3>
-                   <span className={`px-4 py-1.5 rounded-full text-[11px] font-black ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
+            <div className="absolute bottom-6 md:bottom-10 right-6 md:right-10 left-6 md:left-10 flex items-end justify-between flex-row-reverse">
+              <div className="text-right flex-1 min-w-0">
+                <div className="flex items-center gap-2 md:gap-3 justify-end mb-2">
+                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl border border-white/20" alt={shop.name} />
+                   <h3 className="text-xl md:text-3xl font-black text-white truncate">{shop.name}</h3>
+                   <span className={`px-2 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[11px] font-black shrink-0 ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
                      {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
                    </span>
                 </div>
-                <p className="text-white/60 font-bold text-lg flex items-center gap-2 justify-end">
-                   <MapPin className="w-4 h-4" /> {shop.city}, {shop.governorate}
+                <p className="text-white/60 font-bold text-sm md:text-lg flex items-center gap-2 justify-end truncate">
+                   <MapPin className="w-3 h-3 md:w-4 md:h-4" /> {shop.city}, {shop.governorate}
                 </p>
               </div>
               <Link 
                 to={`/s/${shop.slug}`}
-                className="bg-white text-black px-8 py-4 rounded-2xl font-black text-lg hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl"
+                className="bg-white text-black px-6 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl"
               >
                 اطلب الآن
               </Link>
@@ -218,10 +222,10 @@ const RestaurantsPage: React.FC = () => {
       </div>
 
       {restaurants.length > 0 && hasMore && (
-        <div className="mt-12 flex items-center justify-center">
+        <div className="mt-8 md:mt-12 flex items-center justify-center">
           <button
             onClick={loadMore}
-            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+            className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl disabled:opacity-60"
             disabled={loadingMore}
           >
             <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
