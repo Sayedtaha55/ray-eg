@@ -10,9 +10,11 @@ import {
   Share2, ShieldCheck, Truck, Package, Store, Loader2, AlertCircle, Home
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
+import CartDrawer from '../shared/CartDrawer';
 import { Skeleton } from '@/components/common/ui';
 import { ApiService } from '@/services/api.service';
 import { useCartSound } from '@/hooks/useCartSound';
+import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 
 const { useParams, useNavigate, Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -31,6 +33,18 @@ const ProductPage: React.FC = () => {
   const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const syncCart = () => setCartItems(RayDB.getCart());
+    syncCart();
+    window.addEventListener('cart-updated', syncCart);
+    return () => window.removeEventListener('cart-updated', syncCart);
+  }, []);
+
+  const removeFromCart = (lineId: string) => RayDB.removeFromCart(lineId);
+  const updateCartItemQuantity = (lineId: string, delta: number) => RayDB.updateCartItemQuantity(lineId, delta);
 
   useEffect(() => {
     const loadData = async () => {
@@ -428,6 +442,14 @@ const ProductPage: React.FC = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
+      {/* Cart Icon in Header for Mobile */}
+      <div className="fixed top-24 right-4 z-[90] lg:hidden">
+        <CartIconWithAnimation 
+          count={cartItems.length}
+          onClick={() => setIsCartOpen(true)}
+        />
+      </div>
+
       {/* Back Button */}
       <button 
         onClick={() => navigate(-1)}
@@ -721,6 +743,13 @@ const ProductPage: React.FC = () => {
           })(),
           variantSelection: selectedMenuVariant,
         }}
+      />
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        items={cartItems}
+        onRemove={removeFromCart}
+        onUpdateQuantity={updateCartItemQuantity}
       />
     </div>
   );
