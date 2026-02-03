@@ -26,6 +26,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     Array<{
       id: string;
       name: string;
+      hasSmall: boolean;
+      hasMedium: boolean;
+      hasLarge: boolean;
       priceSmall: string;
       priceMedium: string;
       priceLarge: string;
@@ -114,6 +117,10 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           const p = typeof found?.price === 'number' ? found.price : Number(found?.price || NaN);
           return Number.isFinite(p) ? String(p) : '';
         };
+        const hasSize = (type: any, sizeId: string) => {
+          const sizes = Array.isArray(type?.sizes) ? type.sizes : [];
+          return Boolean(sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === sizeId));
+        };
         return list
           .map((t: any) => {
             const id = String(t?.id || t?.typeId || t?.variantId || '').trim();
@@ -122,6 +129,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             return {
               id,
               name,
+              hasSmall: hasSize(t, 'small'),
+              hasMedium: hasSize(t, 'medium'),
+              hasLarge: hasSize(t, 'large'),
               priceSmall: getSizePrice(t, 'small'),
               priceMedium: getSizePrice(t, 'medium'),
               priceLarge: getSizePrice(t, 'large'),
@@ -257,18 +267,29 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           const tid = String(t?.id || '').trim();
           const tname = String(t?.name || '').trim();
           if (!tid || !tname) return null;
-          const ps = parseNumberInput(t.priceSmall);
-          const pm = parseNumberInput(t.priceMedium);
-          const pl = parseNumberInput(t.priceLarge);
-          if (![ps, pm, pl].every((n) => Number.isFinite(n) && n >= 0)) return null;
+          const sizes: Array<{ id: string; label: string; price: number }> = [];
+
+          if (t?.hasSmall) {
+            const ps = parseNumberInput(t.priceSmall);
+            if (!Number.isFinite(ps) || ps <= 0) return null;
+            sizes.push({ id: 'small', label: 'صغير', price: ps });
+          }
+          if (t?.hasMedium) {
+            const pm = parseNumberInput(t.priceMedium);
+            if (!Number.isFinite(pm) || pm <= 0) return null;
+            sizes.push({ id: 'medium', label: 'وسط', price: pm });
+          }
+          if (t?.hasLarge) {
+            const pl = parseNumberInput(t.priceLarge);
+            if (!Number.isFinite(pl) || pl <= 0) return null;
+            sizes.push({ id: 'large', label: 'كبير', price: pl });
+          }
+
+          if (sizes.length === 0) return null;
           return {
             id: tid,
             name: tname,
-            sizes: [
-              { id: 'small', label: 'صغير', price: ps },
-              { id: 'medium', label: 'وسط', price: pm },
-              { id: 'large', label: 'كبير', price: pl },
-            ],
+            sizes,
           };
         })
         .filter(Boolean);
@@ -280,7 +301,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     })();
 
     if (menuVariants === '__INVALID__') {
-      addToast('يرجى إدخال النوع والسعر لكل المقاسات (صغير/وسط/كبير)', 'error');
+      addToast('يرجى إدخال النوع والسعر للمقاسات المتاحة (واختر "لا يوجد" للمقاسات غير المتوفرة)', 'error');
       return;
     }
 
@@ -494,6 +515,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                         {
                           id: `type_${Date.now()}_${Math.random().toString(16).slice(2)}`,
                           name: '',
+                          hasSmall: true,
+                          hasMedium: true,
+                          hasLarge: true,
                           priceSmall: '',
                           priceMedium: '',
                           priceLarge: '',
@@ -536,42 +560,96 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuVariantItems((prev) =>
+                                    prev.map((x) =>
+                                      x.id === t.id
+                                        ? { ...x, hasSmall: !x.hasSmall, priceSmall: !x.hasSmall ? x.priceSmall : '' }
+                                        : x,
+                                    ),
+                                  );
+                                }}
+                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                              >
+                                {t.hasSmall ? 'لا يوجد' : 'موجود'}
+                              </button>
+                            </div>
                             <input
                               type="number"
-                              value={t.priceSmall}
+                              disabled={!t.hasSmall}
+                              value={t.hasSmall ? t.priceSmall : ''}
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceSmall: v } : x)));
                               }}
-                              placeholder="0"
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                              placeholder={t.hasSmall ? '0' : 'لا يوجد'}
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuVariantItems((prev) =>
+                                    prev.map((x) =>
+                                      x.id === t.id
+                                        ? { ...x, hasMedium: !x.hasMedium, priceMedium: !x.hasMedium ? x.priceMedium : '' }
+                                        : x,
+                                    ),
+                                  );
+                                }}
+                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                              >
+                                {t.hasMedium ? 'لا يوجد' : 'موجود'}
+                              </button>
+                            </div>
                             <input
                               type="number"
-                              value={t.priceMedium}
+                              disabled={!t.hasMedium}
+                              value={t.hasMedium ? t.priceMedium : ''}
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceMedium: v } : x)));
                               }}
-                              placeholder="0"
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                              placeholder={t.hasMedium ? '0' : 'لا يوجد'}
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                             />
                           </div>
                           <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setMenuVariantItems((prev) =>
+                                    prev.map((x) =>
+                                      x.id === t.id
+                                        ? { ...x, hasLarge: !x.hasLarge, priceLarge: !x.hasLarge ? x.priceLarge : '' }
+                                        : x,
+                                    ),
+                                  );
+                                }}
+                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                              >
+                                {t.hasLarge ? 'لا يوجد' : 'موجود'}
+                              </button>
+                            </div>
                             <input
                               type="number"
-                              value={t.priceLarge}
+                              disabled={!t.hasLarge}
+                              value={t.hasLarge ? t.priceLarge : ''}
                               onChange={(e) => {
                                 const v = e.target.value;
                                 setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceLarge: v } : x)));
                               }}
-                              placeholder="0"
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                              placeholder={t.hasLarge ? '0' : 'لا يوجد'}
+                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                             />
                           </div>
                         </div>
