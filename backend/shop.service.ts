@@ -522,6 +522,11 @@ export class ShopService {
     const startTime = Date.now();
 
     try {
+      const raw = String(slug || '').trim();
+      const isProbablyUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(raw);
+      const isProbablyCuid = /^c[a-z0-9]{20,}$/i.test(raw);
+      const shouldTryIdLookup = isProbablyUuid || isProbablyCuid;
+
       // Try to get from cache first
       try {
         const cachedShop = await this.redis.getShopBySlug(slug);
@@ -559,16 +564,21 @@ export class ShopService {
           where: { isActive: true },
           take: 6,
         },
-        addons: true,
       };
 
-      const shop = (await this.prisma.shop.findUnique({
-        where: { slug },
+      const shopBySlug = await this.prisma.shop.findUnique({
+        where: { slug: raw },
         include,
-      })) || (await this.prisma.shop.findUnique({
-        where: { id: slug },
-        include,
-      }));
+      });
+
+      const shop = shopBySlug
+        ? shopBySlug
+        : shouldTryIdLookup
+          ? await this.prisma.shop.findUnique({
+              where: { id: raw },
+              include,
+            })
+          : null;
 
       if (shop) {
         // Cache the shop data for 1 hour
