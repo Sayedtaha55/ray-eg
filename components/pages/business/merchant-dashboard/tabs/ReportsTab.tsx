@@ -141,35 +141,35 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   };
 
   return (
-    <div className="space-y-10">
-      <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-12 flex-row-reverse">
-          <h3 className="text-3xl font-black">أداء الإيرادات الشهرية</h3>
+    <div className="space-y-6 md:space-y-10">
+      <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-12">
+          <h3 className="text-2xl md:text-3xl font-black">أداء الإيرادات الشهرية</h3>
           <div className="flex gap-2">
-            <button onClick={() => setRange('30d')} className={`px-4 py-2 rounded-xl text-xs font-bold ${range === '30d' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٣٠ يوم</button>
-            <button onClick={() => setRange('6m')} className={`px-4 py-2 rounded-xl text-xs font-bold ${range === '6m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٦ شهور</button>
-            <button onClick={() => setRange('12m')} className={`px-4 py-2 rounded-xl text-xs font-bold ${range === '12m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>١٢ شهر</button>
+            <button onClick={() => setRange('30d')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '30d' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٣٠ يوم</button>
+            <button onClick={() => setRange('6m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '6m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٦ شهور</button>
+            <button onClick={() => setRange('12m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '12m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>١٢ شهر</button>
           </div>
         </div>
 
         {range === '30d' ? (
-          <div className="py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
+          <div className="py-16 md:py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
         ) : (
-          <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
+          <div className="h-[300px] md:h-[450px] w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">
+            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
               <BarChart data={monthlyData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 'bold', fill: '#94a3b8' }} />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="revenue" fill="#00E5FF" radius={[10, 10, 0, 0]} barSize={40} />
+                <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={window.innerWidth < 768 ? 24 : 40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
         <SummaryCard label="متوسط قيمة السلة" value={`ج.م ${Math.round(avgBasket).toLocaleString('ar-EG')}`} growth={avgBasketGrowth} />
         <SummaryCard label="نسبة التحويل" value={`${conversion.toFixed(1)}٪`} growth={conversionGrowth} />
         <SummaryCard label="إيراد الفترة" value={`ج.م ${Math.round(totalRevenue).toLocaleString('ar-EG')}`} growth={revenueGrowth} />
