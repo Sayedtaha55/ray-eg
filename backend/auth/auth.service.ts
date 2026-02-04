@@ -262,13 +262,14 @@ export class AuthService implements OnModuleInit {
       .replace(/^-|-$/g, '');
   }
 
-  public async ensureUniqueSlug(base: string) {
+  public async ensureUniqueSlug(base: string, client?: any) {
+    const db = client || this.prisma;
     const baseSlug = this.slugify(base) || `shop-${Date.now()}`;
     let slug = baseSlug;
     let i = 1;
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const exists = await this.prisma.shop.findUnique({ where: { slug } });
+      const exists = await db.shop.findUnique({ where: { slug } });
       if (!exists) return slug;
       i += 1;
       slug = `${baseSlug}-${i}`;
@@ -408,7 +409,7 @@ export class AuthService implements OnModuleInit {
         return { user: createdUser };
       }
 
-      const slug = await this.ensureUniqueSlug(resolvedShopName || resolvedName || `shop-${createdUser.id}`);
+      const slug = await this.ensureUniqueSlug(resolvedShopName || resolvedName || `shop-${createdUser.id}`, tx);
       const createdShop = await tx.shop.create({
         data: {
           name: resolvedShopName,
@@ -454,6 +455,79 @@ export class AuthService implements OnModuleInit {
     }
 
     return this.generateToken(result.user);
+  }
+
+  async courierSignup(dto: any) {
+    const {
+      email,
+      password,
+      name,
+      fullName,
+      phone,
+    } = dto || {};
+
+    const normalizedEmail = String(email || '').toLowerCase().trim();
+    const resolvedName = String(name || fullName || '').trim();
+    const normalizedPhone = phone ? String(phone).trim() : null;
+    const pass = String(password || '');
+
+    if (!normalizedEmail) {
+      throw new BadRequestException('البريد الإلكتروني مطلوب');
+    }
+    if (!pass) {
+      throw new BadRequestException('كلمة المرور مطلوبة');
+    }
+    if (pass.length < 8) {
+      throw new BadRequestException('كلمة المرور ضعيفة جداً');
+    }
+    if (!resolvedName) {
+      throw new BadRequestException('الاسم مطلوب');
+    }
+
+    const existingUser = await this.prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (existingUser) {
+      throw new ConflictException('البريد الإلكتروني مستخدم بالفعل في نظامنا');
+    }
+
+    if (normalizedPhone) {
+      const existingPhone = await this.prisma.user.findUnique({ where: { phone: normalizedPhone } });
+      if (existingPhone) {
+        throw new ConflictException('رقم الهاتف مستخدم بالفعل في نظامنا');
+      }
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(pass, salt);
+
+    const createdUser = await this.prisma.user.create({
+      data: {
+        email: normalizedEmail,
+        name: resolvedName,
+        phone: normalizedPhone,
+        password: hashedPassword,
+        role: 'COURIER' as any,
+        isActive: false,
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    return {
+      ok: true,
+      pending: true,
+      user: {
+        id: createdUser.id,
+        name: createdUser.name,
+        email: createdUser.email,
+        role: createdUser.role,
+      },
+    };
   }
 
   async devMerchantLogin(opts?: { shopCategory?: IncomingShopCategory }) {
@@ -522,7 +596,7 @@ export class AuthService implements OnModuleInit {
       let shop = userShopId ? await tx.shop.findUnique({ where: { id: userShopId } }) : null;
 
       if (!shop) {
-        const slug = await this.ensureUniqueSlug(devShopName);
+        const slug = await this.ensureUniqueSlug(devShopName, tx);
         shop = await tx.shop.create({
           data: {
             name: devShopName,
@@ -566,6 +640,60 @@ export class AuthService implements OnModuleInit {
         user = await tx.user.update({
           where: { id: user.id },
           data: { shopId: shop.id },
+        });
+      }
+
+      return user;
+    });
+
+    return this.generateToken(resultUser);
+  }
+
+  async devCourierLogin() {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    const allowBootstrap =
+      env !== 'production' &&
+      (
+        String(process.env.ALLOW_DEV_COURIER_BOOTSTRAP ?? '').toLowerCase() === 'true' ||
+        String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP ?? 'false').toLowerCase() === 'true'
+      );
+    if (!allowBootstrap) {
+      throw new ForbiddenException('Forbidden');
+    }
+
+    const devEmail = (String(process.env.DEV_COURIER_EMAIL || '').trim().toLowerCase() || '') || 'dev-courier@ray.local';
+    const devName = String(process.env.DEV_COURIER_NAME || '').trim() || 'Dev Courier';
+    const devPhone = String(process.env.DEV_COURIER_PHONE || '').trim() || null;
+
+    const resultUser = await this.prisma.$transaction(async (tx) => {
+      let user = await tx.user.findUnique({ where: { email: devEmail } });
+
+      if (!user) {
+        const salt = await bcrypt.genSalt(12);
+        const hashedPassword = await bcrypt.hash(randomBytes(32).toString('hex'), salt);
+        user = await tx.user.create({
+          data: {
+            email: devEmail,
+            name: devName,
+            phone: devPhone,
+            password: hashedPassword,
+            role: 'COURIER' as any,
+            isActive: true,
+            lastLogin: new Date(),
+          },
+        });
+      } else {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: {
+            role: 'COURIER' as any,
+            isActive: true,
+            ...(devName && user.name !== devName ? { name: devName } : {}),
+            ...(devPhone != null && String((user as any)?.phone || '').trim() !== String(devPhone || '').trim()
+              ? { phone: devPhone }
+              : {}),
+            lastLogin: new Date(),
+          } as any,
         });
       }
 
@@ -652,6 +780,9 @@ export class AuthService implements OnModuleInit {
     }
 
     const role = String(user?.role || '').toUpperCase();
+    if (role === 'COURIER' && user?.isActive === false) {
+      throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
+    }
     if (role === 'MERCHANT') {
       const shopId = String((user as any)?.shopId || '').trim();
       if (!shopId) {

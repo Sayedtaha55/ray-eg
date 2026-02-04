@@ -1,6 +1,7 @@
 export * from './analytics';
 export * from './auth';
 export * from './chat';
+export * from './courier';
 export * from './customers';
 export * from './feedback';
 export * from './notifications';

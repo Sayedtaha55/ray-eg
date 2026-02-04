@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, Inject } from '@nestjs/common';
+import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
@@ -25,5 +25,26 @@ export class UsersController {
       name: String(body?.name || ''),
       phone: body?.phone != null ? String(body.phone) : null,
     });
+  }
+
+  @Get('couriers/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async listPendingCouriers() {
+    return this.usersService.listPendingCouriers();
+  }
+
+  @Patch('couriers/:id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async approveCourier(@Param('id') id: string) {
+    return this.usersService.approveCourier(id);
+  }
+
+  @Patch('couriers/:id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async rejectCourier(@Param('id') id: string) {
+    return this.usersService.rejectCourier(id);
   }
 }

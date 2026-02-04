@@ -1,10 +1,12 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { CourierDispatchService } from './courier-dispatch.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
   ) {}
 
   private normalizeVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
@@ -458,7 +460,7 @@ export class OrderService {
 
     const productIds = Array.from(new Set(normalizedItems.map((i) => i.productId)));
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const shop = await tx.shop.findUnique({
         where: { id: shopId },
         select: { id: true, layoutConfig: true, category: true, addons: true } as any,
@@ -478,7 +480,7 @@ export class OrderService {
           productId: { in: productIds } as any,
           expiresAt: { gt: new Date() } as any,
         } as any,
-        select: { productId: true, newPrice: true } as any,
+        select: { productId: true, newPrice: true, variantPricing: true } as any,
       });
 
       if (products.length !== productIds.length) {
@@ -488,14 +490,30 @@ export class OrderService {
       const byId: Record<string, any> = {};
       for (const p of products) byId[p.id] = p;
 
-      const offerPriceByProductId: Record<string, number> = {};
+      const offersByProductId: Record<string, { newPrice: number; variantPricing?: any }> = {};
       for (const o of offers || []) {
         const pid = String((o as any)?.productId || '').trim();
         const n = typeof (o as any)?.newPrice === 'number' ? (o as any).newPrice : Number((o as any)?.newPrice || 0);
         if (!pid) continue;
         if (!Number.isFinite(n) || n < 0) continue;
-        offerPriceByProductId[pid] = n;
+        offersByProductId[pid] = {
+          newPrice: n,
+          variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
+        };
       }
+
+      const resolveVariantOfferPrice = (offerRaw: any, selection: any) => {
+        const rows = Array.isArray(offerRaw?.variantPricing) ? offerRaw.variantPricing : [];
+        if (rows.length === 0) return null;
+        const typeId = String(selection?.typeId || selection?.variantId || selection?.type || selection?.variant || '').trim();
+        const sizeId = String(selection?.sizeId || selection?.size || '').trim();
+        if (!typeId || !sizeId) return null;
+        const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
+          && String(r?.sizeId || r?.size || '').trim() === sizeId);
+        const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+        if (!Number.isFinite(priceRaw) || priceRaw < 0) return null;
+        return priceRaw;
+      };
 
       // Validate stock
       for (const item of normalizedItems) {
@@ -526,12 +544,17 @@ export class OrderService {
         const menuVariant = isRestaurant
           ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
           : { normalized: null as any, price: null as any };
-        const basePriceRaw = offerPriceByProductId[item.productId];
-        const basePrice = typeof menuVariant?.price === 'number'
-          ? menuVariant.price
-          : (typeof basePriceRaw === 'number'
-            ? basePriceRaw
-            : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+        const offerForProduct = offersByProductId[item.productId];
+        const variantOfferPrice = typeof menuVariant?.price === 'number'
+          ? resolveVariantOfferPrice(offerForProduct, (item as any)?.variantSelection)
+          : null;
+        const basePrice = typeof variantOfferPrice === 'number'
+          ? variantOfferPrice
+          : (typeof menuVariant?.price === 'number'
+            ? menuVariant.price
+            : (typeof offerForProduct?.newPrice === 'number'
+              ? offerForProduct.newPrice
+              : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0))));
         const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
         const { total: addonsTotal } = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
         const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
@@ -554,12 +577,17 @@ export class OrderService {
               const menuVariant = isRestaurant
                 ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
                 : { normalized: null as any, price: null as any };
-              const basePriceRaw = offerPriceByProductId[item.productId];
-              const basePrice = typeof menuVariant?.price === 'number'
-                ? menuVariant.price
-                : (typeof basePriceRaw === 'number'
-                  ? basePriceRaw
-                  : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+              const offerForProduct = offersByProductId[item.productId];
+              const variantOfferPrice = typeof menuVariant?.price === 'number'
+                ? resolveVariantOfferPrice(offerForProduct, (item as any)?.variantSelection)
+                : null;
+              const basePrice = typeof variantOfferPrice === 'number'
+                ? variantOfferPrice
+                : (typeof menuVariant?.price === 'number'
+                  ? menuVariant.price
+                  : (typeof offerForProduct?.newPrice === 'number'
+                    ? offerForProduct.newPrice
+                    : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0))));
               const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
               const addons = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
               const row: any = {
@@ -614,6 +642,10 @@ export class OrderService {
 
       return created;
     });
+
+    this.courierDispatch.dispatchForOrder(String(created?.id || '')).catch(() => {});
+
+    return created;
   }
 
   async assignCourierToOrder(orderId: string, courierId: string) {
@@ -633,7 +665,7 @@ export class OrderService {
       throw new BadRequestException('حساب المندوب غير مفعل');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { courierId: courier.id },
       include: {
@@ -643,6 +675,16 @@ export class OrderService {
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
+
+    try {
+      await (this.prisma as any).orderCourierOffer.updateMany({
+        where: { orderId: id, status: 'PENDING' as any } as any,
+        data: { status: 'EXPIRED' as any, respondedAt: new Date() },
+      });
+    } catch {
+    }
+
+    return updated;
   }
 
   async listMyCourierOrders(courierId: string, paging?: { page?: number; limit?: number }) {

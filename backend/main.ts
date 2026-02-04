@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
+import * as path from 'path';
 import { createSlowDown } from './middleware/slow-down.middleware';
 
 console.log('[main.ts] File loaded');
@@ -268,7 +269,8 @@ async function bootstrap() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  app.use('/uploads', express.static('uploads', {
+  const uploadsDir = path.resolve(process.cwd(), 'uploads');
+  app.use('/uploads', express.static(uploadsDir, {
     fallthrough: false,
     dotfiles: 'ignore',
     immutable: true,

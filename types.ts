@@ -74,6 +74,7 @@ export interface Offer {
   discount: number;
   oldPrice: number;
   newPrice: number;
+  variantPricing?: any;
   imageUrl: string;
   category: Category;
   expiresIn: string;

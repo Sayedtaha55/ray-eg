@@ -83,6 +83,22 @@ class SignupDto {
   role?: string;
 }
 
+class CourierSignupDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @MinLength(8)
+  password!: string;
+
+  @IsString()
+  fullName!: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+}
+
 class LoginDto {
   @IsString()
   email!: string;
@@ -215,6 +231,11 @@ export class AuthController {
     return result;
   }
 
+  @Post('courier-signup')
+  async courierSignup(@Body() dto: CourierSignupDto) {
+    return this.authService.courierSignup(dto);
+  }
+
   @Post('bootstrap-admin')
   async bootstrapAdmin(@Body() dto: BootstrapAdminDto) {
     return this.authService.bootstrapAdmin({
@@ -239,6 +260,15 @@ export class AuthController {
     const result = await this.authService.devMerchantLogin({
       shopCategory: body?.shopCategory,
     });
+    if (result?.access_token) {
+      this.setAuthCookie(res, String(result.access_token));
+    }
+    return result;
+  }
+
+  @Post('dev-courier-login')
+  async devCourierLogin(@Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.devCourierLogin();
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
     }

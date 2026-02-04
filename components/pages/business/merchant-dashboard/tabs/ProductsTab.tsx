@@ -432,15 +432,15 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8">
           {products.map((p) => (
             <div
               key={p.id}
-              className={`group relative bg-slate-50/50 p-5 rounded-[2.5rem] border border-transparent hover:border-[#00E5FF] hover:bg-white transition-all hover:shadow-2xl ${
+              className={`group relative bg-slate-50/50 p-4 md:p-5 rounded-[2rem] md:rounded-[2.5rem] border border-transparent hover:border-[#00E5FF] hover:bg-white transition-all hover:shadow-2xl ${
                 isRestaurant && (p as any)?.isActive === false ? 'opacity-70' : ''
               }`}
             >
-              <div className="aspect-square rounded-[2rem] overflow-hidden mb-6 bg-white shadow-sm">
+              <div className="aspect-square rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-4 md:mb-6 bg-white shadow-sm">
                 <img
                   src={(p as any).imageUrl || (p as any).image_url}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
@@ -451,42 +451,42 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
                   مقفول
                 </div>
               )}
-              <h4 className="font-black text-base mb-2 truncate text-right text-slate-800">{p.name}</h4>
+              <h4 className="font-black text-sm md:text-base mb-2 text-right text-slate-800 line-clamp-2">{p.name}</h4>
               <div className="flex items-center justify-between flex-row-reverse">
-                <span className="text-[#00E5FF] font-black text-xl">ج.م {p.price}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] font-black text-slate-400">م: {(p as any).stock}</span>
+                <span className="text-[#00E5FF] font-black text-lg md:text-xl">ج.م {p.price}</span>
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black text-slate-400">م: {(p as any).stock}</span>
               </div>
-              <div className="absolute top-4 left-4 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+              <div className="absolute top-3 left-3 md:top-4 md:left-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-[-10px] md:group-hover:translate-x-0">
                 <button
                   onClick={() => handleEdit(p)}
-                  className="p-3 bg-white rounded-xl shadow-xl text-blue-500 hover:scale-110 transition-transform"
+                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-blue-500 hover:scale-110 transition-transform"
                 >
-                  <Edit size={20} />
+                  <Edit size={18} className="md:w-5 md:h-5" />
                 </button>
                 {isRestaurant && (
                   <button
                     onClick={() => handleToggleActive(p)}
-                    className={`p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
+                    className={`p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
                       (p as any)?.isActive === false ? 'text-slate-900' : 'text-slate-500'
                     }`}
                     disabled={String(togglingId) === String(p.id)}
                   >
                     {String(togglingId) === String(p.id)
-                      ? <Loader2 size={20} className="animate-spin" />
-                      : ((p as any)?.isActive === false ? <Eye size={20} /> : <EyeOff size={20} />)}
+                      ? <Loader2 size={18} className="animate-spin md:w-5 md:h-5" />
+                      : ((p as any)?.isActive === false ? <Eye size={18} className="md:w-5 md:h-5" /> : <EyeOff size={18} className="md:w-5 md:h-5" />)}
                   </button>
                 )}
                 <button
                   onClick={() => onMakeOffer(p)}
-                  className="p-3 bg-white rounded-xl shadow-xl text-[#BD00FF] hover:scale-110 transition-transform"
+                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-[#BD00FF] hover:scale-110 transition-transform"
                 >
-                  <Tag size={20} />
+                  <Tag size={18} className="md:w-5 md:h-5" />
                 </button>
                 <button
                   onClick={() => onDelete(p.id)}
-                  className="p-3 bg-white rounded-xl shadow-xl text-red-500 hover:scale-110 transition-transform"
+                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-500 hover:scale-110 transition-transform"
                 >
-                  <Trash2 size={20} />
+                  <Trash2 size={18} className="md:w-5 md:h-5" />
                 </button>
               </div>
             </div>

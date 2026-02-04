@@ -77,6 +77,7 @@ npm run backend:dev
 ```bash
 npm run dev
 ```
+The frontend will be available at http://localhost:5174
 
 ### Public pages performance updates
 - Public listings are paginated (take/skip) and images use native lazy loading.

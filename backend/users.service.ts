@@ -66,4 +66,60 @@ export class UsersService {
 
     return created;
   }
+
+  async listPendingCouriers() {
+    return this.prisma.user.findMany({
+      where: {
+        role: 'COURIER' as any,
+        isActive: false,
+      },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async approveCourier(idRaw: string) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  }
+
+  async rejectCourier(idRaw: string) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, isActive: true },
+    });
+    if (!existing) throw new BadRequestException('المندوب غير موجود');
+
+    const role = String((existing as any)?.role || '').toUpperCase();
+    if (role !== 'COURIER') throw new BadRequestException('هذا الحساب ليس مندوباً');
+    if (existing.isActive) throw new BadRequestException('لا يمكن رفض مندوب مُفعّل');
+
+    await this.prisma.user.delete({ where: { id } });
+    return { ok: true };
+  }
 }

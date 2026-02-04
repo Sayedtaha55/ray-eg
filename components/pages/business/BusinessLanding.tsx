@@ -186,6 +186,7 @@ const BusinessLanding: React.FC = () => {
             <div>
               <h4 className="text-lg font-black text-white mb-4">الدعم والشروط</h4>
               <ul className="space-y-2">
+                <li><Link to="/business/courier-signup" className="hover:text-[#00E5FF] transition-colors">تسجيل مندوب توصيل</Link></li>
                 <li><a href="#" className="hover:text-[#00E5FF] transition-colors">مركز المساعدة</a></li>
                 <li><a href="#" className="hover:text-[#00E5FF] transition-colors">شروط الخدمة</a></li>
                 <li><a href="#" className="hover:text-[#00E5FF] transition-colors">سياسة الخصوصية</a></li>

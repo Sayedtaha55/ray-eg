@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Search, ShoppingCart, Plus, Minus, Trash2, ChevronRight, ChevronUp, CheckCircle2, Loader2, Printer, MessageCircle, X } from 'lucide-react';
+import { Search, ShoppingCart, Plus, Minus, Trash2, ChevronRight, ChevronUp, CheckCircle2, Loader2, Printer, MessageCircle, X, Ruler } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -617,6 +617,20 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             >
               <div className="w-full h-full rounded-lg md:rounded-[1.8rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative">
                 <div className="absolute inset-0">
+                  {isProductHasMenuVariants(product) ? (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openConfigurator(product);
+                      }}
+                      className="absolute top-1 right-1 z-10 px-2 py-1 rounded-lg bg-white/90 backdrop-blur border border-slate-200 shadow-sm flex items-center gap-1"
+                    >
+                      <Ruler className="w-3 h-3 md:w-4 md:h-4 text-[#BD00FF]" />
+                      <span className="text-[8px] md:text-[10px] font-black text-slate-900 leading-none">أحجام</span>
+                    </button>
+                  ) : null}
                   {product.imageUrl ? (
                     <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                   ) : (
