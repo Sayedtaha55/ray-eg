@@ -8,14 +8,19 @@ const MotionDiv = motion.div as any;
 
 const AdminApprovals: React.FC = () => {
   const [shops, setShops] = useState<any[]>([]);
+  const [couriers, setCouriers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
 
   const loadShops = async () => {
     setLoading(true);
     try {
-      const data = await ApiService.getPendingShops();
+      const [data, courierData] = await Promise.all([
+        ApiService.getPendingShops(),
+        ApiService.getPendingCouriers(),
+      ]);
       setShops(data);
+      setCouriers(Array.isArray(courierData) ? courierData : []);
     } catch (e) {
       addToast('فشل تحميل الطلبات', 'error');
     } finally {
@@ -37,6 +42,21 @@ const AdminApprovals: React.FC = () => {
     }
   };
 
+  const handleCourierAction = async (id: string, action: 'approved' | 'rejected') => {
+    try {
+      if (action === 'approved') {
+        await ApiService.approveCourier(id);
+        addToast('تم قبول المندوب وتفعيله', 'success');
+      } else {
+        await ApiService.rejectCourier(id);
+        addToast('تم رفض طلب المندوب', 'success');
+      }
+      loadShops();
+    } catch (e) {
+      addToast('حدث خطأ في العملية', 'error');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4 mb-8">
@@ -51,46 +71,99 @@ const AdminApprovals: React.FC = () => {
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
-      ) : shops.length === 0 ? (
-        <div className="bg-slate-900/50 border border-white/5 rounded-[3rem] p-20 text-center">
-          <p className="text-slate-500 font-bold">لا توجد طلبات معلقة حالياً.</p>
-        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {shops.map((shop) => (
-            <MotionDiv 
-              key={shop.id}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
-            >
-              <div className="flex items-center gap-6 flex-row-reverse">
-                <img src={shop.logo_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-800" />
-                <div className="text-right">
-                  <h4 className="text-xl font-black text-white">{shop.name}</h4>
-                  <div className="flex items-center gap-4 text-slate-500 text-xs font-bold mt-1">
-                    <span className="flex items-center gap-1"><MapPin size={12} /> {shop.governorate}</span>
-                    <span className="flex items-center gap-1"><Store size={12} /> {shop.category}</span>
-                  </div>
-                </div>
+        <div className="space-y-10">
+          <div className="space-y-4">
+            <h3 className="text-white font-black text-lg">طلبات انضمام التجار</h3>
+            {shops.length === 0 ? (
+              <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
+                <p className="text-slate-500 font-bold">لا توجد طلبات تجار معلقة حالياً.</p>
               </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {shops.map((shop) => (
+                  <MotionDiv
+                    key={shop.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
+                  >
+                    <div className="flex items-center gap-6 flex-row-reverse">
+                      <img src={shop.logo_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-800" />
+                      <div className="text-right">
+                        <h4 className="text-xl font-black text-white">{shop.name}</h4>
+                        <div className="flex items-center gap-4 text-slate-500 text-xs font-bold mt-1">
+                          <span className="flex items-center gap-1"><MapPin size={12} /> {shop.governorate}</span>
+                          <span className="flex items-center gap-1"><Store size={12} /> {shop.category}</span>
+                        </div>
+                      </div>
+                    </div>
 
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => handleAction(shop.id, 'approved')}
-                  className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
-                >
-                  <Check size={18} /> قبول التاجر
-                </button>
-                <button 
-                  onClick={() => handleAction(shop.id, 'rejected')}
-                  className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
-                >
-                  <X size={18} /> رفض الطلب
-                </button>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleAction(shop.id, 'approved')}
+                        className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
+                      >
+                        <Check size={18} /> قبول التاجر
+                      </button>
+                      <button
+                        onClick={() => handleAction(shop.id, 'rejected')}
+                        className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
+                      >
+                        <X size={18} /> رفض الطلب
+                      </button>
+                    </div>
+                  </MotionDiv>
+                ))}
               </div>
-            </MotionDiv>
-          ))}
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-white font-black text-lg">طلبات تسجيل المندوبين</h3>
+            {couriers.length === 0 ? (
+              <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
+                <p className="text-slate-500 font-bold">لا توجد طلبات مندوبين معلقة حالياً.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {couriers.map((c: any) => (
+                  <MotionDiv
+                    key={c.id}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
+                  >
+                    <div className="flex items-center gap-6 flex-row-reverse">
+                      <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-[#00E5FF] text-2xl">
+                        {String(c?.name || 'C').charAt(0)}
+                      </div>
+                      <div className="text-right">
+                        <h4 className="text-xl font-black text-white">{c?.name || 'مندوب'}</h4>
+                        <div className="text-slate-400 text-xs font-bold mt-1">{c?.email}</div>
+                        {c?.phone ? <div className="text-slate-500 text-xs font-bold mt-1">{c.phone}</div> : null}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => handleCourierAction(String(c.id), 'approved')}
+                        className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
+                      >
+                        <Check size={18} /> قبول المندوب
+                      </button>
+                      <button
+                        onClick={() => handleCourierAction(String(c.id), 'rejected')}
+                        className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
+                      >
+                        <X size={18} /> رفض الطلب
+                      </button>
+                    </div>
+                  </MotionDiv>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store } from 'lucide-react';
+import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 
@@ -81,6 +81,22 @@ const AdminLogin: React.FC = () => {
       navigate('/business/dashboard');
     } catch (err: any) {
       setError(err?.message || 'تعذر تسجيل دخول المطور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDevCourierLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await ApiService.devCourierLogin();
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      window.dispatchEvent(new Event('auth-change'));
+      navigate('/courier/orders');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');
     } finally {
       setLoading(false);
     }
@@ -171,6 +187,15 @@ const AdminLogin: React.FC = () => {
                  >
                    <Store size={18} />
                    دخول المطور (مطعم)
+                 </button>
+                 <button
+                   type="button"
+                   disabled={loading}
+                   onClick={handleDevCourierLogin}
+                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                 >
+                   <MapPin size={18} />
+                   دخول المندوب (تطوير)
                  </button>
                </>
              )}

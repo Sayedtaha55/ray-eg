@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, Sparkles, UserPlus, Store } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, Sparkles, UserPlus, Store, MapPin } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
@@ -25,6 +25,8 @@ const LoginPage: React.FC = () => {
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
+  const showDevCourierLogin = !Boolean((import.meta as any)?.env?.PROD);
+
   const backendBaseUrl =
     ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
     ((import.meta as any)?.env?.VITE_API_URL as string) ||
@@ -37,6 +39,22 @@ const LoginPage: React.FC = () => {
     if (followShopId) q.set('followShopId', followShopId);
     const qs = q.toString();
     return `/signup${qs ? `?${qs}` : ''}`;
+  };
+
+  const handleDevCourierLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await ApiService.devCourierLogin();
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      window.dispatchEvent(new Event('auth-change'));
+      navigate('/courier/orders');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر دخول المندوب (تطوير)');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleGoogleLogin = () => {
@@ -97,6 +115,11 @@ const LoginPage: React.FC = () => {
     } catch (err: any) {
       const status = typeof err?.status === 'number' ? err.status : undefined;
       if (status === 403) {
+        const msg = String(err?.message || '').trim();
+        if (msg.includes('المندوب')) {
+          navigate('/business/courier-signup?pending=1');
+          return;
+        }
         navigate('/business/pending');
         return;
       }
@@ -308,6 +331,18 @@ const LoginPage: React.FC = () => {
                  <span className="font-black text-[10px]">تسجيل نشاط</span>
               </Link>
            </div>
+
+           {showDevCourierLogin && (
+             <button
+               type="button"
+               disabled={loading}
+               onClick={handleDevCourierLogin}
+               className="w-full py-4 bg-slate-900/5 text-slate-700 rounded-[2rem] font-black text-sm hover:bg-slate-900/10 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+             >
+               <MapPin size={18} className="text-slate-900" />
+               دخول مندوب (تطوير)
+             </button>
+           )}
         </div>
       </MotionDiv>
     </div>

@@ -24,6 +24,7 @@ const BusinessHero = React.lazy(() => import('./components/pages/business/Busine
 const MerchantDashboard = React.lazy(() => import('./components/pages/business/merchant-dashboard'));
 const MerchantProfilePage = React.lazy(() => import('./components/pages/business/MerchantProfilePage'));
 const BusinessPendingApproval = React.lazy(() => import('./components/pages/business/BusinessPendingApproval'));
+const CourierSignupPage = React.lazy(() => import('./components/pages/business/CourierSignupPage.tsx'));
 
 const AdminLayout = React.lazy(() => import('./components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('./components/pages/admin/AdminDashboard'));
@@ -37,7 +38,7 @@ const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSet
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
 const NotFoundPage = React.lazy(() => import('./components/pages/shared/NotFoundPage'));
 
-const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams, useNavigate } = ReactRouterDOM as any;
+const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams, useNavigate, Navigate } = ReactRouterDOM as any;
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -127,6 +128,7 @@ const App: React.FC = () => {
           <Route path="profile" element={suspense(<ProfilePage />)} />
           <Route path="about" element={suspense(<AboutPage />)} />
           <Route path="product/:id" element={suspense(<ProductPage />)} />
+          <Route path="delivery" element={<Navigate to="/business/courier-signup" replace />} />
         </Route>
         
         <Route path="/s/:slug" element={<RedirectSShop />} />
@@ -147,6 +149,7 @@ const App: React.FC = () => {
           <Route path="dashboard" element={suspense(<MerchantDashboard />)} />
           <Route path="profile" element={suspense(<MerchantProfilePage />)} />
           <Route path="pending" element={suspense(<BusinessPendingApproval />)} />
+          <Route path="courier-signup" element={suspense(<CourierSignupPage />)} />
         </Route>
 
         <Route path="/admin/gate" element={suspense(<AdminLogin />)} />

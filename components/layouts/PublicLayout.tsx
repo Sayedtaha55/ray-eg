@@ -238,7 +238,10 @@ const PublicLayout: React.FC = () => {
         <Outlet />
       </main>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 lg:hidden">
+      <div
+        className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 lg:hidden"
+        style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
+      >
         <div className="max-w-md mx-auto">
           <div className="bg-white/90 backdrop-blur-xl border border-slate-200 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.12)] px-2">
             <div className="flex items-stretch justify-between gap-1" dir="rtl">
@@ -297,6 +300,10 @@ const PublicLayout: React.FC = () => {
               <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
               <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                 <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
+                <Link to="/business/courier-signup" className="hover:text-white transition-colors">تسجيل مندوب توصيل</Link>
+                {String(user?.role || '').toLowerCase() === 'courier' ? (
+                  <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
+                ) : null}
               </nav>
             </div>
           </div>

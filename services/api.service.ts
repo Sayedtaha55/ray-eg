@@ -16,6 +16,8 @@ import {
 } from './api/normalizers';
 import {
   devMerchantLoginViaBackend,
+  devCourierLoginViaBackend,
+  courierSignupViaBackend,
   loginViaBackend,
   sessionViaBackend,
   signupViaBackend,
@@ -72,6 +74,13 @@ import {
   updateOrderViaBackend,
 } from './api/modules/orders';
 import {
+  acceptCourierOfferViaBackend,
+  getCourierOffersViaBackend,
+  getCourierStateViaBackend,
+  rejectCourierOfferViaBackend,
+  updateCourierStateViaBackend,
+} from './api/modules/courier';
+import {
   addReservationViaBackend,
   getReservationsViaBackend,
   updateReservationStatusViaBackend,
@@ -81,6 +90,9 @@ import {
   deleteUserViaMock,
   getAllUsersViaMock,
   getCouriersViaBackend,
+  getPendingCouriersViaBackend,
+  approveCourierViaBackend,
+  rejectCourierViaBackend,
   updateUserRoleViaMock,
 } from './api/modules/users';
 import {
@@ -221,6 +233,9 @@ export const ApiService = {
   devMerchantLogin: async (opts?: { shopCategory?: string }) => {
     return await devMerchantLoginViaBackend(opts);
   },
+  devCourierLogin: async () => {
+    return await devCourierLoginViaBackend();
+  },
   bootstrapAdmin: async (payload: { token: string; email: string; password: string; name?: string }) => {
     return await backendPost<{ ok: boolean; userId?: string }>('/api/v1/auth/bootstrap-admin', {
       token: String(payload?.token || '').trim(),
@@ -232,8 +247,11 @@ export const ApiService = {
   session: async () => {
     return await sessionViaBackend();
   },
-  signup: async (data: any) => {
-    return await signupViaBackend(data);
+  signup: async (payload: any) => {
+    return await signupViaBackend(payload);
+  },
+  courierSignup: async (payload: { email: string; password: string; fullName: string; phone?: string }) => {
+    return await courierSignupViaBackend(payload);
   },
   logout: async () => {
     try {
@@ -480,6 +498,26 @@ export const ApiService = {
     return await getCourierOrdersViaBackend();
   },
 
+  getCourierState: async () => {
+    return await getCourierStateViaBackend();
+  },
+
+  updateCourierState: async (payload: { isAvailable?: boolean; lat?: number; lng?: number; accuracy?: number }) => {
+    return await updateCourierStateViaBackend(payload);
+  },
+
+  getCourierOffers: async () => {
+    return await getCourierOffersViaBackend();
+  },
+
+  acceptCourierOffer: async (id: string) => {
+    return await acceptCourierOfferViaBackend(id);
+  },
+
+  rejectCourierOffer: async (id: string) => {
+    return await rejectCourierOfferViaBackend(id);
+  },
+
   updateCourierOrder: async (id: string, payload: { status?: string; codCollected?: boolean }) => {
     return await updateCourierOrderViaBackend(id, payload);
   },
@@ -519,6 +557,15 @@ export const ApiService = {
   },
   createCourier: async (payload: { name: string; email: string; password: string; phone?: string | null }) => {
     return await createCourierViaBackend(payload);
+  },
+  getPendingCouriers: async () => {
+    return await getPendingCouriersViaBackend();
+  },
+  approveCourier: async (id: string) => {
+    return await approveCourierViaBackend(id);
+  },
+  rejectCourier: async (id: string) => {
+    return await rejectCourierViaBackend(id);
   },
 
   // Analytics

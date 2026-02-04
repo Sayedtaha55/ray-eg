@@ -188,7 +188,11 @@ function getAuthToken() {
 
 function isAuthPublicEndpoint(path: string) {
   const p = String(path || '');
-  return p.startsWith('/api/v1/auth/login') || p.startsWith('/api/v1/auth/signup');
+  return (
+    p.startsWith('/api/v1/auth/login') ||
+    p.startsWith('/api/v1/auth/signup') ||
+    p.startsWith('/api/v1/auth/courier-signup')
+  );
 }
 
 function handleUnauthorized(path: string, token: string) {
