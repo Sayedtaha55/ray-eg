@@ -217,12 +217,12 @@ const ShopProductPage: React.FC = () => {
     return offer ? (offer as any).newPrice : (product as any).price;
   }, [offer, product]);
 
-  const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
-  const menuVariantsDef = isRestaurant
-    ? (Array.isArray((product as any)?.menuVariants)
-      ? (product as any).menuVariants
-      : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []))
-    : [];
+  const rawMenuVariantsDef = (Array.isArray((product as any)?.menuVariants)
+    ? (product as any).menuVariants
+    : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : [])) as any[];
+  const hasAnyMenuVariants = Array.isArray(rawMenuVariantsDef) && rawMenuVariantsDef.length > 0;
+  const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT' || hasAnyMenuVariants;
+  const menuVariantsDef = isRestaurant ? rawMenuVariantsDef : [];
   const hasMenuVariants = Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0;
 
   useEffect(() => {
@@ -339,7 +339,17 @@ const ShopProductPage: React.FC = () => {
   })();
 
   const basePrice = hasMenuVariants
-    ? Number((selectedMenuVariant as any)?.price || 0)
+    ? (() => {
+      const sel = selectedMenuVariant as any;
+      const typeId = String(sel?.typeId || '').trim();
+      const sizeId = String(sel?.sizeId || '').trim();
+      const rows = Array.isArray((offer as any)?.variantPricing) ? (offer as any).variantPricing : [];
+      const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
+        && String(r?.sizeId || r?.size || '').trim() === sizeId);
+      const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+      if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
+      return Number(sel?.price || 0);
+    })()
     : (Number(currentPrice) || 0);
   const displayedPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
 

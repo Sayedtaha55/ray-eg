@@ -432,7 +432,17 @@ const ProductPage: React.FC = () => {
     return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
   })();
   const basePrice = hasMenuVariants
-    ? Number((selectedMenuVariant as any)?.price || 0)
+    ? (() => {
+      const sel = selectedMenuVariant as any;
+      const typeId = String(sel?.typeId || '').trim();
+      const sizeId = String(sel?.sizeId || '').trim();
+      const rows = Array.isArray((offer as any)?.variantPricing) ? (offer as any).variantPricing : [];
+      const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
+        && String(r?.sizeId || r?.size || '').trim() === sizeId);
+      const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+      if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
+      return Number(sel?.price || 0);
+    })()
     : (Number(currentPrice) || 0);
   const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
   const hasDiscount = !!offer;

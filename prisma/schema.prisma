@@ -144,6 +144,7 @@ model Offer {
   discount    Float    @default(0)
   oldPrice    Float    @map("old_price")
   newPrice    Float    @map("new_price")
+  variantPricing Json? @map("variant_pricing")
   imageUrl    String?  @map("image_url")
   expiresAt   DateTime @map("expires_at")
   isActive    Boolean  @default(true)

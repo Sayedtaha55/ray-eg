@@ -480,7 +480,7 @@ export class OrderService {
           productId: { in: productIds } as any,
           expiresAt: { gt: new Date() } as any,
         } as any,
-        select: { productId: true, newPrice: true } as any,
+        select: { productId: true, newPrice: true, variantPricing: true } as any,
       });
 
       if (products.length !== productIds.length) {
@@ -490,14 +490,30 @@ export class OrderService {
       const byId: Record<string, any> = {};
       for (const p of products) byId[p.id] = p;
 
-      const offerPriceByProductId: Record<string, number> = {};
+      const offersByProductId: Record<string, { newPrice: number; variantPricing?: any }> = {};
       for (const o of offers || []) {
         const pid = String((o as any)?.productId || '').trim();
         const n = typeof (o as any)?.newPrice === 'number' ? (o as any).newPrice : Number((o as any)?.newPrice || 0);
         if (!pid) continue;
         if (!Number.isFinite(n) || n < 0) continue;
-        offerPriceByProductId[pid] = n;
+        offersByProductId[pid] = {
+          newPrice: n,
+          variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
+        };
       }
+
+      const resolveVariantOfferPrice = (offerRaw: any, selection: any) => {
+        const rows = Array.isArray(offerRaw?.variantPricing) ? offerRaw.variantPricing : [];
+        if (rows.length === 0) return null;
+        const typeId = String(selection?.typeId || selection?.variantId || selection?.type || selection?.variant || '').trim();
+        const sizeId = String(selection?.sizeId || selection?.size || '').trim();
+        if (!typeId || !sizeId) return null;
+        const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
+          && String(r?.sizeId || r?.size || '').trim() === sizeId);
+        const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+        if (!Number.isFinite(priceRaw) || priceRaw < 0) return null;
+        return priceRaw;
+      };
 
       // Validate stock
       for (const item of normalizedItems) {
@@ -528,12 +544,17 @@ export class OrderService {
         const menuVariant = isRestaurant
           ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
           : { normalized: null as any, price: null as any };
-        const basePriceRaw = offerPriceByProductId[item.productId];
-        const basePrice = typeof menuVariant?.price === 'number'
-          ? menuVariant.price
-          : (typeof basePriceRaw === 'number'
-            ? basePriceRaw
-            : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+        const offerForProduct = offersByProductId[item.productId];
+        const variantOfferPrice = typeof menuVariant?.price === 'number'
+          ? resolveVariantOfferPrice(offerForProduct, (item as any)?.variantSelection)
+          : null;
+        const basePrice = typeof variantOfferPrice === 'number'
+          ? variantOfferPrice
+          : (typeof menuVariant?.price === 'number'
+            ? menuVariant.price
+            : (typeof offerForProduct?.newPrice === 'number'
+              ? offerForProduct.newPrice
+              : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0))));
         const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
         const { total: addonsTotal } = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
         const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
@@ -556,12 +577,17 @@ export class OrderService {
               const menuVariant = isRestaurant
                 ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (item as any)?.variantSelection)
                 : { normalized: null as any, price: null as any };
-              const basePriceRaw = offerPriceByProductId[item.productId];
-              const basePrice = typeof menuVariant?.price === 'number'
-                ? menuVariant.price
-                : (typeof basePriceRaw === 'number'
-                  ? basePriceRaw
-                  : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0)));
+              const offerForProduct = offersByProductId[item.productId];
+              const variantOfferPrice = typeof menuVariant?.price === 'number'
+                ? resolveVariantOfferPrice(offerForProduct, (item as any)?.variantSelection)
+                : null;
+              const basePrice = typeof variantOfferPrice === 'number'
+                ? variantOfferPrice
+                : (typeof menuVariant?.price === 'number'
+                  ? menuVariant.price
+                  : (typeof offerForProduct?.newPrice === 'number'
+                    ? offerForProduct.newPrice
+                    : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0))));
               const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
               const addons = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
               const row: any = {

@@ -57,6 +57,7 @@ export class OfferController {
       shopId: targetShopId,
       productId: body?.productId,
       productIds: body?.productIds,
+      variantPricing: body?.variantPricing,
       title: body?.title,
       description: body?.description,
       discount: body?.discount,

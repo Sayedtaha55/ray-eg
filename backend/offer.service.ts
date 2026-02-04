@@ -64,6 +64,62 @@ export class OfferService {
     return Math.min(100, Math.max(0, rounded));
   }
 
+  private normalizeMenuVariantPricing(menuVariantsRaw: any, raw: any) {
+    const defs = Array.isArray(menuVariantsRaw) ? (menuVariantsRaw as any[]) : [];
+    const index = new Map<string, { oldPrice: number }>();
+    for (const t of defs) {
+      const typeId = String(t?.id || t?.typeId || t?.variantId || '').trim();
+      if (!typeId) continue;
+      const sizes = Array.isArray((t as any)?.sizes) ? (t as any).sizes : [];
+      for (const s of sizes) {
+        const sizeId = String(s?.id || s?.sizeId || '').trim();
+        if (!sizeId) continue;
+        const oldPriceRaw = typeof (s as any)?.price === 'number' ? (s as any).price : Number((s as any)?.price || NaN);
+        if (!Number.isFinite(oldPriceRaw) || oldPriceRaw < 0) continue;
+        index.set(`${typeId}:${sizeId}`, { oldPrice: oldPriceRaw });
+      }
+    }
+
+    const list = Array.isArray(raw) ? raw : [];
+    const rows: Array<{ typeId: string; sizeId: string; newPrice: number }> = [];
+    const seen = new Set<string>();
+    let minOld = Number.POSITIVE_INFINITY;
+    let minNew = Number.POSITIVE_INFINITY;
+
+    for (const r of list) {
+      const typeId = String((r as any)?.typeId || (r as any)?.variantId || (r as any)?.type || (r as any)?.variant || '').trim();
+      const sizeId = String((r as any)?.sizeId || (r as any)?.size || '').trim();
+      if (!typeId || !sizeId) continue;
+      const key = `${typeId}:${sizeId}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const entry = index.get(key);
+      if (!entry) {
+        throw new BadRequestException('الحجم المختار غير متاح');
+      }
+
+      const newPriceRaw = typeof (r as any)?.newPrice === 'number' ? (r as any).newPrice : Number((r as any)?.newPrice || NaN);
+      const newPrice = Math.round(newPriceRaw * 100) / 100;
+      if (!Number.isFinite(newPrice) || newPrice < 0 || newPrice > entry.oldPrice) {
+        throw new BadRequestException('سعر العرض للحجم غير صحيح');
+      }
+
+      rows.push({ typeId, sizeId, newPrice });
+      minOld = Math.min(minOld, entry.oldPrice);
+      minNew = Math.min(minNew, newPrice);
+    }
+
+    if (rows.length === 0) return null;
+    if (!Number.isFinite(minOld) || !Number.isFinite(minNew)) return null;
+
+    return {
+      rows,
+      minOld,
+      minNew,
+    };
+  }
+
   async listActive(input?: { take?: number; skip?: number; shopId?: string; productId?: string }) {
     const now = new Date();
     const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
@@ -114,6 +170,7 @@ export class OfferService {
       discount: o.discount,
       oldPrice: o.oldPrice,
       newPrice: o.newPrice,
+      variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
       imageUrl: o.imageUrl || o.product?.imageUrl || '',
       category: 'RETAIL',
       expiresIn: o.expiresAt.toISOString(),
@@ -168,6 +225,7 @@ export class OfferService {
       discount: offer.discount,
       oldPrice: offer.oldPrice,
       newPrice: offer.newPrice,
+      variantPricing: (offer as any)?.variantPricing ?? (offer as any)?.variant_pricing,
       imageUrl: offer.imageUrl || offer.product?.imageUrl || '',
       category: 'RETAIL',
       expiresIn: offer.expiresAt.toISOString(),
@@ -186,6 +244,7 @@ export class OfferService {
     shopId: string;
     productId?: string | null;
     productIds?: string[] | null;
+    variantPricing?: any;
     title: string;
     description?: string | null;
     discount?: number;
@@ -218,6 +277,11 @@ export class OfferService {
           .filter(Boolean),
       ),
     );
+
+    const hasVariantPricing = typeof input?.variantPricing !== 'undefined' && input?.variantPricing !== null;
+    if (hasVariantPricing && productIds.length !== 1) {
+      throw new BadRequestException('variantPricing يتطلب اختيار منتج واحد');
+    }
 
     const pricingMode = String(input?.pricingMode || 'PERCENT').toUpperCase();
     const pricingValue = typeof input?.pricingValue === 'number' ? input.pricingValue : Number(input?.pricingValue);
@@ -261,7 +325,7 @@ export class OfferService {
 
     const products = await this.prisma.product.findMany({
       where: { id: { in: productIds }, shopId, isActive: true },
-      select: { id: true, name: true, price: true, imageUrl: true },
+      select: { id: true, name: true, price: true, imageUrl: true, menuVariants: true },
     });
 
     if (products.length !== productIds.length) {
@@ -273,19 +337,26 @@ export class OfferService {
 
       for (const p of products) {
         const effectiveTitle = products.length > 1 ? `${title} - ${String(p.name || '').trim()}` : title;
-        const oldPrice = Number(p.price);
-        if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
 
-        const computedNewPrice = hasPricingMode
-          ? this.computeNewPrice({ mode: pricingMode, value: pricingValue, oldPrice })
-          : Number(input?.newPrice);
+        const variantPricing = hasVariantPricing
+          ? this.normalizeMenuVariantPricing((p as any)?.menuVariants, (input as any)?.variantPricing)
+          : null;
+
+        const baseOldPrice = variantPricing ? Number(variantPricing.minOld) : Number(p.price);
+        if (Number.isNaN(baseOldPrice) || baseOldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
+
+        const computedNewPrice = variantPricing
+          ? Number(variantPricing.minNew)
+          : (hasPricingMode
+            ? this.computeNewPrice({ mode: pricingMode, value: pricingValue, oldPrice: baseOldPrice })
+            : Number(input?.newPrice));
 
         const newPrice = Math.round(Number(computedNewPrice) * 100) / 100;
-        if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) {
+        if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > baseOldPrice) {
           throw new BadRequestException('newPrice غير صحيح');
         }
 
-        const discount = this.computeDiscountPercent(oldPrice, newPrice);
+        const discount = this.computeDiscountPercent(baseOldPrice, newPrice);
 
         await tx.offer.updateMany({
           where: { shopId, productId: p.id, isActive: true },
@@ -299,8 +370,9 @@ export class OfferService {
             title: effectiveTitle,
             description: input?.description ? String(input.description) : null,
             discount,
-            oldPrice,
+            oldPrice: baseOldPrice,
             newPrice,
+            variantPricing: variantPricing ? (variantPricing.rows as any) : undefined,
             imageUrl: input?.imageUrl ? String(input.imageUrl) : (p.imageUrl ? String(p.imageUrl) : null),
             expiresAt,
             isActive: true,
