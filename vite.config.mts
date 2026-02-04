@@ -12,6 +12,11 @@ export default defineConfig(({ mode }) => {
       server: {
         port: Number(env.VITE_PORT || 5173),
         host: env.VITE_HOST || '0.0.0.0',
+        hmr: {
+          protocol: 'ws',
+          host: env.VITE_HMR_HOST || 'localhost',
+          port: Number(env.VITE_PORT || 5173),
+        },
       },
       plugins: [react()],
       resolve: {
