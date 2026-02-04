@@ -1,10 +1,12 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { CourierDispatchService } from './courier-dispatch.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
   ) {}
 
   private normalizeVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
@@ -458,7 +460,7 @@ export class OrderService {
 
     const productIds = Array.from(new Set(normalizedItems.map((i) => i.productId)));
 
-    return this.prisma.$transaction(async (tx) => {
+    const created = await this.prisma.$transaction(async (tx) => {
       const shop = await tx.shop.findUnique({
         where: { id: shopId },
         select: { id: true, layoutConfig: true, category: true, addons: true } as any,
@@ -614,6 +616,10 @@ export class OrderService {
 
       return created;
     });
+
+    this.courierDispatch.dispatchForOrder(String(created?.id || '')).catch(() => {});
+
+    return created;
   }
 
   async assignCourierToOrder(orderId: string, courierId: string) {
@@ -633,7 +639,7 @@ export class OrderService {
       throw new BadRequestException('حساب المندوب غير مفعل');
     }
 
-    return this.prisma.order.update({
+    const updated = await this.prisma.order.update({
       where: { id },
       data: { courierId: courier.id },
       include: {
@@ -643,6 +649,16 @@ export class OrderService {
         courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
+
+    try {
+      await (this.prisma as any).orderCourierOffer.updateMany({
+        where: { orderId: id, status: 'PENDING' as any } as any,
+        data: { status: 'EXPIRED' as any, respondedAt: new Date() },
+      });
+    } catch {
+    }
+
+    return updated;
   }
 
   async listMyCourierOrders(courierId: string, paging?: { page?: number; limit?: number }) {

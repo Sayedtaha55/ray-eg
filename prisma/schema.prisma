@@ -28,6 +28,8 @@ model User {
   shop        Shop?    @relation("ShopOwner")
   orders      Order[]
   courierOrders Order[] @relation("CourierOrders")
+  courierState CourierState?
+  courierOrderOffers OrderCourierOffer[] @relation("CourierOrderOffers")
   messages    Message[]
   reservations Reservation[]
   feedback    Feedback[]
@@ -177,10 +179,48 @@ model Order {
   user          User        @relation(fields: [userId], references: [id])
   shop          Shop        @relation(fields: [shopId], references: [id])
   courier       User?       @relation("CourierOrders", fields: [courierId], references: [id])
+  courierOffers OrderCourierOffer[]
   items         OrderItem[]
   notifications Notification[]
 
   @@map("orders")
+}
+
+model CourierState {
+  id          String   @id @default(cuid())
+  userId      String   @unique @map("user_id")
+  isAvailable Boolean  @default(false) @map("is_available")
+  lastLat     Float?   @map("last_lat")
+  lastLng     Float?   @map("last_lng")
+  accuracy    Float?   @map("accuracy")
+  lastSeenAt  DateTime? @map("last_seen_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("courier_states")
+}
+
+model OrderCourierOffer {
+  id          String   @id @default(cuid())
+  orderId     String   @map("order_id")
+  courierId   String   @map("courier_id")
+  rank        Int      @default(0)
+  status      OrderCourierOfferStatus @default(PENDING)
+  expiresAt   DateTime @map("expires_at")
+  respondedAt DateTime? @map("responded_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  order       Order    @relation(fields: [orderId], references: [id])
+  courier     User     @relation("CourierOrderOffers", fields: [courierId], references: [id])
+
+  @@unique([orderId, courierId])
+  @@index([courierId, status])
+  @@index([orderId, status])
+  @@map("order_courier_offers")
 }
 
 // Order items table
@@ -457,6 +497,13 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+}
+
+enum OrderCourierOfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
 }
 
 enum MessageRole {
