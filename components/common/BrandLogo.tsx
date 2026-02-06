@@ -67,7 +67,7 @@ const BrandLogo: React.FC<Props> = ({
       src={logoSrc}
       className={styles.image}
       onError={() => setImgError(true)}
-      alt={name}
+      alt=""
       decoding="async"
       fetchPriority="high"
       width={64}

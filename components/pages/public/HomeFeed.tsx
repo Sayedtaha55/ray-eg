@@ -144,6 +144,8 @@ const HomeFeed: React.FC = () => {
         {hasMoreOffers && (
           <div className="mt-10 md:mt-16 flex items-center justify-center">
             <button
+              type="button"
+              aria-label="تحميل المزيد من العروض"
               onClick={() => {
                 try {
                   const evt = new Event('scroll');
