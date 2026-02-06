@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
-import { Offer, Product, ShopDesign } from '@/types';
+import { Category, Offer, Product, ShopDesign } from '@/types';
 import { coerceBoolean } from './utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
@@ -17,6 +17,7 @@ const ProductCard = React.memo(function ProductCard({
   isAdded,
   onReserve,
   disableMotion,
+  shopCategory,
 }: {
   product: Product;
   design: ShopDesign;
@@ -25,6 +26,7 @@ const ProductCard = React.memo(function ProductCard({
   isAdded: boolean;
   onReserve: (p: any) => void;
   disableMotion?: boolean;
+  shopCategory?: Category;
 }) {
   const [isFavorite, setIsFavorite] = useState(() => {
     try {
@@ -69,6 +71,58 @@ const ProductCard = React.memo(function ProductCard({
   };
 
   const currentPrice = offer ? offer.newPrice : product.price;
+  const isFashion = shopCategory === Category.FASHION;
+
+  const fashionSizePriceRows = useMemo(() => {
+    if (!isFashion) return [] as Array<{ label: string; price: number }>;
+    const raw = (product as any)?.sizes;
+    if (!Array.isArray(raw)) return [];
+    const rows = raw
+      .map((s: any) => {
+        if (!s || typeof s !== 'object') return null;
+        const label = String(s?.label || s?.name || s?.size || s?.id || '').trim();
+        if (!label) return null;
+        const pRaw = typeof s?.price === 'number' ? s.price : Number(s?.price);
+        const price = Number.isFinite(pRaw) && pRaw >= 0 ? pRaw : NaN;
+        if (!Number.isFinite(price)) return null;
+        return { label, price };
+      })
+      .filter(Boolean) as Array<{ label: string; price: number }>;
+    return rows;
+  }, [isFashion, (product as any)?.sizes]);
+
+  const fashionHasDifferentSizePrices = useMemo(() => {
+    if (!isFashion) return false;
+    if (!Array.isArray(fashionSizePriceRows) || fashionSizePriceRows.length < 2) return false;
+    const rounded = fashionSizePriceRows.map((r) => Math.round(Number(r.price) * 100) / 100);
+    return new Set(rounded).size > 1;
+  }, [isFashion, fashionSizePriceRows]);
+
+  const offerDiscountPct = useMemo(() => {
+    const d = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+    return Number.isFinite(d) ? d : 0;
+  }, [offer]);
+
+  const applyDiscountPercent = (price: number) => {
+    const disc = offerDiscountPct;
+    if (!Number.isFinite(disc) || disc <= 0) return price;
+    const next = price * (1 - disc / 100);
+    return Math.round(next * 100) / 100;
+  };
+
+  const fashionSizePriceRowsAfterDiscount = useMemo(() => {
+    if (!isFashion) return [] as Array<{ label: string; price: number }>;
+    return fashionSizePriceRows.map((r) => ({ label: r.label, price: applyDiscountPercent(r.price) }));
+  }, [isFashion, fashionSizePriceRows, offerDiscountPct]);
+
+  const fashionMinPrice = useMemo(() => {
+    if (!isFashion) return null;
+    const rows = fashionSizePriceRowsAfterDiscount;
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const values = rows.map((r) => Number(r.price)).filter((n) => Number.isFinite(n) && n >= 0);
+    if (values.length === 0) return null;
+    return Math.min(...values);
+  }, [isFashion, fashionSizePriceRowsAfterDiscount]);
 
   const reserveTextClass = (() => {
     const hex = String((design as any)?.primaryColor || '').trim();
@@ -155,7 +209,24 @@ const ProductCard = React.memo(function ProductCard({
             {showPrice && (
               <div className="mt-1 flex items-center justify-center gap-3">
                 {offer ? <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span> : null}
-                <span className="text-white font-black text-sm md:text-base">ج.م {currentPrice}</span>
+                <span className="text-white font-black text-sm md:text-base">
+                  {isFashion && typeof fashionMinPrice === 'number' ? `يبدأ من ج.م ${fashionMinPrice}` : `ج.م ${currentPrice}`}
+                </span>
+              </div>
+            )}
+
+            {showPrice && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
+              <div className="mt-1 flex flex-wrap justify-center gap-2 text-white/90 text-[9px] font-black">
+                {fashionSizePriceRowsAfterDiscount.slice(0, 4).map((r) => (
+                  <span key={r.label} className="px-2 py-0.5 rounded-full bg-white/10 border border-white/10">
+                    {r.label}: {r.price}
+                  </span>
+                ))}
+                {fashionSizePriceRowsAfterDiscount.length > 4 ? (
+                  <span className="px-2 py-0.5 rounded-full bg-white/10 border border-white/10">
+                    +{fashionSizePriceRowsAfterDiscount.length - 4}
+                  </span>
+                ) : null}
               </div>
             )}
           </div>
@@ -252,8 +323,28 @@ const ProductCard = React.memo(function ProductCard({
                   className={`font-black tracking-tighter ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`}
                   style={{ color: offer ? '#BD00FF' : design.primaryColor }}
                 >
-                  ج.م {currentPrice}
+                  {isFashion && typeof fashionMinPrice === 'number' ? `يبدأ من ج.م ${fashionMinPrice}` : `ج.م ${currentPrice}`}
                 </span>
+              </div>
+            </div>
+          )}
+
+          {showPrice && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
+            <div className="w-full mb-2 md:mb-3">
+              <div className="flex flex-wrap justify-end gap-2">
+                {fashionSizePriceRowsAfterDiscount.slice(0, 6).map((r) => (
+                  <div
+                    key={r.label}
+                    className="px-2 py-1 rounded-full bg-slate-50 border border-slate-100 text-[9px] md:text-[10px] font-black text-slate-700"
+                  >
+                    {r.label} • {r.price}
+                  </div>
+                ))}
+                {fashionSizePriceRowsAfterDiscount.length > 6 ? (
+                  <div className="px-2 py-1 rounded-full bg-slate-50 border border-slate-100 text-[9px] md:text-[10px] font-black text-slate-700">
+                    +{fashionSizePriceRowsAfterDiscount.length - 6}
+                  </div>
+                ) : null}
               </div>
             </div>
           )}
