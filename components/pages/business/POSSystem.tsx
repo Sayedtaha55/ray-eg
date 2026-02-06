@@ -31,10 +31,13 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
   const [configProduct, setConfigProduct] = useState<any | null>(null);
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
+  const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
+  const [selectedFashionSize, setSelectedFashionSize] = useState('');
   const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
   const [usingOfflineData, setUsingOfflineData] = useState(false);
 
   const isRestaurant = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const isFashion = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'FASHION';
   const shopAddonsDef = useMemo(() => {
     const raw = (shop as any)?.addons;
     return Array.isArray(raw) ? raw : [];
@@ -157,6 +160,95 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     return Array.isArray(menuVariants) && menuVariants.length > 0;
   };
 
+  const isProductHasFashionDifferentSizePrices = (product: any) => {
+    const sizesRaw = (product as any)?.sizes;
+    if (!Array.isArray(sizesRaw)) return false;
+    const prices: number[] = [];
+    for (const s of sizesRaw) {
+      if (!s || typeof s !== 'object') continue;
+      const pRaw = (s as any)?.price;
+      const p = typeof pRaw === 'number' ? pRaw : Number(pRaw);
+      if (Number.isFinite(p)) prices.push(p);
+    }
+    if (prices.length < 2) return false;
+    const rounded = prices.map((p) => Math.round(p * 100) / 100);
+    return new Set(rounded).size > 1;
+  };
+
+  const getProductFashionColorsDef = (product: any) => {
+    const raw = (product as any)?.colors;
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((c: any) => {
+        if (!c || typeof c !== 'object') return null;
+        const value = String(c?.value || c?.colorValue || c?.hex || '').trim();
+        const name = String(c?.name || c?.label || c?.title || '').trim() || value;
+        if (!value) return null;
+        return { value, name };
+      })
+      .filter(Boolean);
+  };
+
+  const getProductFashionSizesDef = (product: any) => {
+    const raw = (product as any)?.sizes;
+    const list = Array.isArray(raw) ? raw : [];
+    return list
+      .map((s: any) => {
+        if (typeof s === 'string') {
+          const label = String(s || '').trim();
+          if (!label) return null;
+          return { label, price: undefined as number | undefined };
+        }
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          if (!label) return null;
+          const pRaw = (s as any)?.price;
+          const p = typeof pRaw === 'number' ? pRaw : Number(pRaw);
+          return { label, price: Number.isFinite(p) ? p : undefined };
+        }
+        return null;
+      })
+      .filter(Boolean);
+  };
+
+  const resolveFashionSizePrice = (product: any, sizeLabel: string) => {
+    const selectedSize = String(sizeLabel || '').trim();
+    if (!selectedSize) return getProductEffectivePrice(product);
+    const raw = (product as any)?.sizes;
+    const list = Array.isArray(raw) ? raw : [];
+    const found = list.find((s: any) => {
+      if (typeof s === 'string') return String(s || '').trim() === selectedSize;
+      if (s && typeof s === 'object') {
+        const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+        return label === selectedSize;
+      }
+      return false;
+    });
+    if (found && typeof found === 'object') {
+      const pRaw = typeof (found as any)?.price === 'number' ? (found as any).price : Number((found as any)?.price);
+      const p = Number.isFinite(pRaw) && pRaw >= 0 ? pRaw : NaN;
+      if (Number.isFinite(p)) return p;
+    }
+    return getProductEffectivePrice(product);
+  };
+
+  const getSelectedFashionSelectionForProduct = (product: any) => {
+    const colors = getProductFashionColorsDef(product);
+    const sizes = getProductFashionSizesDef(product);
+    const colorValue = String(selectedFashionColorValue || '').trim();
+    const size = String(selectedFashionSize || '').trim();
+    const color = colors.find((c: any) => String(c?.value || '').trim() === colorValue);
+    if (colors.length > 0 && !colorValue) return null;
+    if (sizes.length > 0 && !size) return null;
+    if (!colorValue || !size) return null;
+    return {
+      kind: 'fashion',
+      colorName: String(color?.name || '').trim() || colorValue,
+      colorValue,
+      size,
+    };
+  };
+
   const getProductMenuVariantsDef = (product: any) => {
     const menuVariants = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
     return Array.isArray(menuVariants) ? menuVariants : [];
@@ -213,6 +305,18 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
   const openConfigurator = (product: any) => {
     setConfigProduct(product);
     setSelectedAddons([]);
+    setSelectedFashionColorValue('');
+    setSelectedFashionSize('');
+
+    if (isFashion) {
+      const colors = getProductFashionColorsDef(product);
+      const sizes = getProductFashionSizesDef(product);
+      const firstColor = colors?.[0];
+      const firstSize = sizes?.[0];
+      if (firstColor?.value) setSelectedFashionColorValue(String(firstColor.value));
+      if (firstSize?.label) setSelectedFashionSize(String(firstSize.label));
+    }
+
     const menuVariantsDef = getProductMenuVariantsDef(product);
     if (Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0) {
       const firstType = menuVariantsDef[0];
@@ -249,17 +353,23 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
   };
 
   const addConfiguredToCart = (product: any, qty: number = 1) => {
-    if (!product) return;
+    if (!product) return false;
     const stock = getProductStock(product);
-    if (stock <= 0) return;
+    if (stock <= 0) return false;
 
     const hasMenuVariants = isProductHasMenuVariants(product);
     const selectedVariant = hasMenuVariants ? getSelectedMenuVariantForProduct(product) : null;
-    if (hasMenuVariants && (!selectedVariant || !selectedVariant?.typeId || !selectedVariant?.sizeId)) return;
+    if (hasMenuVariants && (!selectedVariant || !selectedVariant?.typeId || !selectedVariant?.sizeId)) return false;
+
+    const hasFashionOptions = isFashion && (getProductFashionColorsDef(product).length > 0 || getProductFashionSizesDef(product).length > 0);
+    const fashionSelection = hasFashionOptions ? getSelectedFashionSelectionForProduct(product) : null;
+    if (hasFashionOptions && !fashionSelection) return false;
 
     const basePrice = hasMenuVariants
       ? Number((selectedVariant as any)?.price || 0)
-      : Number(getProductEffectivePrice(product) || 0);
+      : (hasFashionOptions && fashionSelection
+        ? Number(resolveFashionSizePrice(product, String((fashionSelection as any)?.size || '')) || 0)
+        : Number(getProductEffectivePrice(product) || 0));
     const addonCalc = computeAddonsTotalAndNormalized(selectedAddons);
     const unitPrice = (Number(basePrice) || 0) + (Number(addonCalc.total) || 0);
 
@@ -268,12 +378,20 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       .sort((a, b) => `${a.optionId}:${a.variantId}`.localeCompare(`${b.optionId}:${b.variantId}`))
       .map((x) => `${x.optionId}:${x.variantId}`)
       .join('|');
-    const lineId = `${String(product?.id || '')}__${String((selectedVariant as any)?.typeId || '')}__${String((selectedVariant as any)?.sizeId || '')}__${addonsKey}`;
+    const lineId = hasMenuVariants
+      ? `${String(product?.id || '')}__${String((selectedVariant as any)?.typeId || '')}__${String((selectedVariant as any)?.sizeId || '')}__${addonsKey}`
+      : (hasFashionOptions && fashionSelection
+        ? `${String(product?.id || '')}__fashion__${String((fashionSelection as any)?.colorValue || '')}__${String((fashionSelection as any)?.size || '')}__${addonsKey}`
+        : `${String(product?.id || '')}__${addonsKey}`);
 
     const addonsSummary = Array.isArray(addonCalc.normalized) && addonCalc.normalized.length > 0
       ? ` + ${addonCalc.normalized.map((x: any) => `${x?.optionName || ''} ${x?.variantLabel || ''}`).filter(Boolean).join('، ')}`
       : '';
-    const variantSummary = selectedVariant ? ` (${String(selectedVariant?.typeName || '')} - ${String(selectedVariant?.sizeLabel || '')})` : '';
+    const variantSummary = selectedVariant
+      ? ` (${String(selectedVariant?.typeName || '')} - ${String(selectedVariant?.sizeLabel || '')})`
+      : (fashionSelection
+        ? ` (${String((fashionSelection as any)?.colorName || '')} - ${String((fashionSelection as any)?.size || '')})`
+        : '');
     const displayName = `${String(product?.name || '')}${variantSummary}${addonsSummary}`;
 
     setCart((prev) => {
@@ -294,10 +412,12 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
           price: unitPrice,
           quantity: initialQty,
           addons: addonCalc.normalized,
-          variantSelection: selectedVariant,
+          variantSelection: selectedVariant || fashionSelection,
         },
       ];
     });
+
+    return true;
   };
 
   const addToCart = (product: any, qty: number = 1) => {
@@ -307,7 +427,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
     const hasMenuVariants = isProductHasMenuVariants(product);
     const hasShopAddons = isRestaurant && Array.isArray(shopAddonsDef) && shopAddonsDef.length > 0;
-    if (hasMenuVariants || hasShopAddons) {
+    const hasFashionOptions = isFashion && (getProductFashionColorsDef(product).length > 0 || getProductFashionSizesDef(product).length > 0);
+    if (hasMenuVariants || hasShopAddons || hasFashionOptions) {
       openConfigurator(product);
       return;
     }
@@ -366,7 +487,12 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         try {
           await ApiService.placeOrder({
             shopId,
-            items: cart.map((i) => ({ id: i.productId, quantity: i.quantity })),
+            items: cart.map((i) => ({
+              id: i.productId,
+              quantity: i.quantity,
+              addons: i.addons,
+              variantSelection: i.variantSelection,
+            })),
             total: totalWithVat,
             paymentMethod: orderType,
           });
@@ -617,19 +743,32 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             >
               <div className="w-full h-full rounded-lg md:rounded-[1.8rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative">
                 <div className="absolute inset-0">
-                  {isProductHasMenuVariants(product) ? (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openConfigurator(product);
-                      }}
-                      className="absolute top-1 right-1 z-10 px-2 py-1 rounded-lg bg-white/90 backdrop-blur border border-slate-200 shadow-sm flex items-center gap-1"
-                    >
-                      <Ruler className="w-3 h-3 md:w-4 md:h-4 text-[#BD00FF]" />
-                      <span className="text-[8px] md:text-[10px] font-black text-slate-900 leading-none">أحجام</span>
-                    </button>
+                  {(isProductHasMenuVariants(product) || isProductHasFashionDifferentSizePrices(product)) ? (
+                    <div className="absolute top-1 right-1 z-10 flex items-center gap-1">
+                      {isProductHasMenuVariants(product) ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openConfigurator(product);
+                          }}
+                          className="px-2 py-1 rounded-lg bg-white/90 backdrop-blur border border-slate-200 shadow-sm flex items-center gap-1"
+                        >
+                          <Ruler className="w-3 h-3 md:w-4 md:h-4 text-[#BD00FF]" />
+                          <span className="text-[8px] md:text-[10px] font-black text-slate-900 leading-none">أحجام</span>
+                        </button>
+                      ) : null}
+
+                      {isProductHasFashionDifferentSizePrices(product) ? (
+                        <div
+                          className="px-2 py-1 rounded-lg bg-white/90 backdrop-blur border border-slate-200 shadow-sm flex items-center"
+                          title="أسعار حسب المقاس"
+                        >
+                          <Ruler className="w-3 h-3 md:w-4 md:h-4 text-slate-900" />
+                        </div>
+                      ) : null}
+                    </div>
                   ) : null}
                   {product.imageUrl ? (
                     <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
@@ -997,6 +1136,43 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 </div>
               )}
 
+              {isFashion && (getProductFashionColorsDef(configProduct).length > 0 || getProductFashionSizesDef(configProduct).length > 0) && (
+                <div className="border border-slate-100 rounded-2xl bg-white p-4 space-y-3 mb-4">
+                  <h4 className="font-black text-sm text-slate-900">اختيار اللون والمقاس</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black text-slate-500">اللون</p>
+                      <select
+                        value={selectedFashionColorValue}
+                        onChange={(e) => setSelectedFashionColorValue(String(e.target.value || ''))}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
+                      >
+                        {getProductFashionColorsDef(configProduct).map((c: any) => (
+                          <option key={String(c?.value || '')} value={String(c?.value || '')}>
+                            {String(c?.name || c?.value || '')}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <p className="text-[11px] font-black text-slate-500">المقاس</p>
+                      <select
+                        value={selectedFashionSize}
+                        onChange={(e) => setSelectedFashionSize(String(e.target.value || ''))}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
+                      >
+                        {getProductFashionSizesDef(configProduct).map((s: any) => (
+                          <option key={String(s?.label || '')} value={String(s?.label || '')}>
+                            {String(s?.label || '')}{typeof s?.price === 'number' ? ` (ج.م ${s.price})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {isRestaurant && Array.isArray(shopAddonsDef) && shopAddonsDef.length > 0 && (
                 <div className="border border-slate-100 rounded-2xl bg-white p-4 space-y-3 mb-4">
                   <div className="flex items-center justify-between">
@@ -1056,7 +1232,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 <button
                   type="button"
                   onClick={() => {
-                    addConfiguredToCart(configProduct, 1);
+                    const ok = addConfiguredToCart(configProduct, 1);
+                    if (!ok) return;
                     setIsConfigOpen(false);
                     setConfigProduct(null);
                   }}
@@ -1068,7 +1245,13 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                   ج.م {(() => {
                     const hasMenuVariants = isProductHasMenuVariants(configProduct);
                     const selectedVariant = hasMenuVariants ? getSelectedMenuVariantForProduct(configProduct) : null;
-                    const base = hasMenuVariants ? Number((selectedVariant as any)?.price || 0) : Number(getProductEffectivePrice(configProduct) || 0);
+                    const hasFashionOptions = isFashion && (getProductFashionColorsDef(configProduct).length > 0 || getProductFashionSizesDef(configProduct).length > 0);
+                    const fashionSelection = hasFashionOptions ? getSelectedFashionSelectionForProduct(configProduct) : null;
+                    const base = hasMenuVariants
+                      ? Number((selectedVariant as any)?.price || 0)
+                      : (hasFashionOptions && fashionSelection
+                        ? Number(resolveFashionSizePrice(configProduct, String((fashionSelection as any)?.size || '')) || 0)
+                        : Number(getProductEffectivePrice(configProduct) || 0));
                     const addonCalc = computeAddonsTotalAndNormalized(selectedAddons);
                     return ((Number(base) || 0) + (Number(addonCalc.total) || 0)).toFixed(0);
                   })()}

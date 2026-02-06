@@ -849,16 +849,16 @@ const ShopProfile: React.FC = () => {
         </header>
 
         {showFloatingChatButton && whatsappHref && (
-          <div className="fixed bottom-6 right-4 z-[150] flex flex-col gap-4 items-end md:hidden">
+          <div className="fixed bottom-24 right-4 z-[150] flex flex-col gap-4 items-end md:hidden">
             <a
               href={whatsappHref}
               target="_blank"
               rel="noreferrer"
-              className="w-14 h-14 md:w-16 md:h-16 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white"
+              className="w-12 h-12 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-2 border-white"
               style={{ backgroundColor: currentDesign!.primaryColor, color: '#000' }}
             >
               <span className="sr-only">واتساب</span>
-              <span className="scale-110">{WhatsAppIcon}</span>
+              <span className="scale-100">{WhatsAppIcon}</span>
             </a>
           </div>
         )}

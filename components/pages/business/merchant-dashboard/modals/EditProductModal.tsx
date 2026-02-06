@@ -22,6 +22,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [description, setDescription] = useState('');
+  const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
   const [menuVariantItems, setMenuVariantItems] = useState<
     Array<{
       id: string;
@@ -53,7 +54,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [extraImageUploadFiles, setExtraImageUploadFiles] = useState<File[]>([]);
   const [selectedColors, setSelectedColors] = useState<Array<{ name: string; value: string }>>([]);
   const [customColor, setCustomColor] = useState('#000000');
-  const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [customSize, setCustomSize] = useState('');
   const [loading, setLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -61,6 +61,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const { addToast } = useToast();
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -185,7 +186,24 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       // Load sizes if available
       const sizes = (product as any).sizes || [];
       if (Array.isArray(sizes)) {
-        setSelectedSizes(sizes.filter((s: any) => typeof s === 'string'));
+        const mapped = sizes
+          .map((s: any) => {
+            if (typeof s === 'string') {
+              const label = String(s || '').trim();
+              if (!label) return null;
+              return { label, price: '' };
+            }
+            if (s && typeof s === 'object') {
+              const label = String(s?.label || s?.name || s?.size || s?.id || '').trim();
+              if (!label) return null;
+              const p = typeof s?.price === 'number' ? s.price : Number(s?.price);
+              const price = Number.isFinite(p) ? String(Math.round(p * 100) / 100) : '';
+              return { label, price };
+            }
+            return null;
+          })
+          .filter(Boolean) as any;
+        setFashionSizeItems(mapped);
       }
     }
   }, [isOpen, product]);
@@ -258,6 +276,28 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     e.preventDefault();
     if (!product) return;
 
+    const sizes = (() => {
+      if (!isFashion) return undefined;
+      const list = Array.isArray(fashionSizeItems) ? fashionSizeItems : [];
+      if (list.length === 0) return [];
+      const mapped = list
+        .map((s) => {
+          const label = String(s?.label || '').trim();
+          const p = parseNumberInput((s as any)?.price);
+          if (!label) return null;
+          if (!Number.isFinite(p) || p < 0) return null;
+          return { label, price: Math.round(p * 100) / 100 };
+        })
+        .filter(Boolean) as any[];
+      if (mapped.length !== list.length) return '__INVALID__';
+      return mapped;
+    })();
+
+    if (sizes === '__INVALID__') {
+      addToast('يرجى إدخال المقاسات والأسعار بشكل صحيح', 'error');
+      return;
+    }
+
     const menuVariants = (() => {
       if (!isRestaurant) return undefined;
       const list = Array.isArray(menuVariantItems) ? menuVariantItems : [];
@@ -306,7 +346,15 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     }
 
     const parsedPrice = parseNumberInput(price);
-    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+    const resolvedBasePrice = (() => {
+      if (isFashion && Array.isArray(sizes) && sizes.length > 0) {
+        const min = Math.min(...sizes.map((t: any) => Number(t?.price || 0)).filter((n: any) => Number.isFinite(n) && n >= 0));
+        return Number.isFinite(min) ? min : parsedPrice;
+      }
+      return parsedPrice;
+    })();
+
+    if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
       addToast('السعر غير صحيح', 'error');
       return;
     }
@@ -352,17 +400,34 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         extraUrls = uploads.map((u) => String(u?.url || '')).filter(Boolean);
       }
 
-      const colors = !isRestaurant
-        ? (selectedColors || []).map((c) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() })).filter((c) => c.name && c.value)
+      const colors = isFashion
+        ? (selectedColors || [])
+            .map((c) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
+            .filter((c) => c.name && c.value)
         : [];
-      const sizes = !isRestaurant
-        ? (selectedSizes || []).map((s) => String(s || '').trim()).filter(Boolean)
-        : [];
+
+      if (isFashion && colors.length === 0) {
+        addToast('يرجى اختيار لون واحد على الأقل', 'error');
+        return;
+      }
+      if (isFashion && Array.isArray(sizes) && sizes.length === 0) {
+        addToast('يرجى إضافة مقاس واحد على الأقل مع السعر', 'error');
+        return;
+      }
+
+      const existingExtraUrls = (extraImagePreviews || [])
+        .map((u) => (typeof u === 'string' ? u : ''))
+        .filter(Boolean)
+        .filter((u) => !u.startsWith('blob:'))
+        .filter((u) => u !== imageUrl)
+        .slice(0, 5);
+      const nextExtraUrls = [...existingExtraUrls, ...extraUrls].filter(Boolean).slice(0, 5);
+      const nextImages = [imageUrl, ...nextExtraUrls].filter(Boolean);
 
       // Prepare update payload
       const updatePayload: any = {
         name,
-        price: parsedPrice,
+        price: resolvedBasePrice,
         category: String(cat || '').trim() || 'عام',
         description: description ? description : null,
         imageUrl,
@@ -371,9 +436,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         ...(isRestaurant
           ? {}
           : {
-              images: extraUrls.length > 0 ? [imageUrl, ...extraUrls] : (product as any).images || [imageUrl],
-              colors,
-              sizes,
+              images: nextImages,
+              ...(isFashion ? { colors, sizes } : {}),
             }),
       };
 
@@ -460,7 +524,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
               <div className="space-y-3">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">السعر (ج.م)</label>
                 <input
-                  required
+                  required={!isFashion || fashionSizeItems.length === 0}
                   type="number"
                   placeholder="0.00"
                   value={price}
@@ -821,6 +885,34 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                         {extraImagePreviews.map((p, idx) => (
                           <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100">
                             <img src={p} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const preview = extraImagePreviews[idx];
+                                const isBlob = typeof preview === 'string' && preview.startsWith('blob:');
+                                if (isBlob) {
+                                  try {
+                                    URL.revokeObjectURL(preview);
+                                  } catch {
+                                  }
+                                }
+
+                                setExtraImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+
+                                if (isBlob) {
+                                  const blobIndex = extraImagePreviews
+                                    .slice(0, idx + 1)
+                                    .filter((x) => typeof x === 'string' && x.startsWith('blob:')).length - 1;
+                                  if (blobIndex >= 0) {
+                                    setExtraImageUploadFiles((prev) => prev.filter((_, i) => i !== blobIndex));
+                                  }
+                                }
+                              }}
+                              className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 border border-slate-100 flex items-center justify-center shadow-sm hover:bg-white"
+                              aria-label="remove"
+                            >
+                              <X size={16} className="text-slate-700" />
+                            </button>
                           </div>
                         ))}
                       </div>
@@ -828,6 +920,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                   </div>
                 </div>
 
+                {isFashion && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-3">
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الألوان (اختياري)</label>
@@ -910,12 +1003,23 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                     <div className="bg-slate-50 rounded-[1.5rem] p-4 border-2 border-transparent">
                       <div className="flex flex-wrap gap-2 justify-end">
                         {presetSizes.map((s) => {
-                          const isActive = selectedSizes.includes(s);
+                          const isActive = (fashionSizeItems || []).some((x) => String(x?.label || '').trim() === String(s || '').trim());
                           return (
                             <button
                               key={s}
                               type="button"
-                              onClick={() => setSelectedSizes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]))}
+                              onClick={() =>
+                                setFashionSizeItems((prev) => {
+                                  const list = Array.isArray(prev) ? [...prev] : [];
+                                  const label = String(s || '').trim();
+                                  const idx = list.findIndex((x) => String(x?.label || '').trim() === label);
+                                  if (idx >= 0) {
+                                    list.splice(idx, 1);
+                                    return list;
+                                  }
+                                  return [...list, { label, price: '' }];
+                                })
+                              }
                               className={`px-4 py-2 rounded-full border font-black text-xs transition-all ${isActive ? 'bg-white border-[#00E5FF]/30' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
                             >
                               {s}
@@ -930,7 +1034,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                           onClick={() => {
                             const v = String(customSize || '').trim();
                             if (!v) return;
-                            setSelectedSizes((prev) => (prev.includes(v) ? prev : [...prev, v]));
+                            setFashionSizeItems((prev) => {
+                              const list = Array.isArray(prev) ? [...prev] : [];
+                              const exists = list.some((x) => String(x?.label || '').trim() === v);
+                              if (exists) return list;
+                              return [...list, { label: v, price: '' }];
+                            });
                             setCustomSize('');
                           }}
                           className="w-full md:w-auto px-4 py-3 md:py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
@@ -945,14 +1054,28 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                         />
                       </div>
 
-                      {selectedSizes.length > 0 && (
+                      {fashionSizeItems.length > 0 && (
                         <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                          {selectedSizes.map((s) => (
-                            <span key={s} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
-                              {s}
+                          {fashionSizeItems.map((row) => (
+                            <span key={String(row.label)} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
+                              <span>{String(row.label)}</span>
+                              <input
+                                type="number"
+                                value={String(row.price ?? '')}
+                                onChange={(e) => {
+                                  const v = String(e.target.value || '');
+                                  setFashionSizeItems((prev) =>
+                                    (Array.isArray(prev) ? prev : []).map((x) =>
+                                      String(x?.label || '').trim() === String(row.label || '').trim() ? { ...x, price: v } : x,
+                                    ),
+                                  );
+                                }}
+                                placeholder="السعر"
+                                className="w-20 bg-slate-50 border border-slate-200 rounded-lg py-1 px-2 font-bold text-right outline-none"
+                              />
                               <button
                                 type="button"
-                                onClick={() => setSelectedSizes((prev) => prev.filter((x) => x !== s))}
+                                onClick={() => setFashionSizeItems((prev) => (Array.isArray(prev) ? prev : []).filter((x) => String(x?.label || '').trim() !== String(row.label || '').trim()))}
                                 className="p-1 rounded-full hover:bg-slate-50"
                               >
                                 <X size={14} />
@@ -964,6 +1087,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                     </div>
                   </div>
                 </div>
+                )}
               </>
             )}
 

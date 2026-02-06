@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Product, Offer, Shop } from '@/types';
@@ -35,6 +35,8 @@ const ProductPage: React.FC = () => {
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
+  const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
+  const [selectedFashionSize, setSelectedFashionSize] = useState('');
 
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
@@ -42,6 +44,11 @@ const ProductPage: React.FC = () => {
     window.addEventListener('cart-updated', syncCart);
     return () => window.removeEventListener('cart-updated', syncCart);
   }, []);
+
+  useEffect(() => {
+    setSelectedFashionColorValue('');
+    setSelectedFashionSize('');
+  }, [(product as any)?.id]);
 
   const removeFromCart = (lineId: string) => RayDB.removeFromCart(lineId);
   const updateCartItemQuantity = (lineId: string, delta: number) => RayDB.updateCartItemQuantity(lineId, delta);
@@ -229,6 +236,31 @@ const ProductPage: React.FC = () => {
       return;
     }
 
+    if (shop?.category === Category.FASHION) {
+      if (fashionColors.length === 0 || fashionSizes.length === 0) {
+        try {
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2500);
+        } catch {
+        }
+        return;
+      }
+      if (!selectedFashionColorValue || !selectedFashionSize) {
+        try {
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+          toast.textContent = 'يرجى اختيار اللون والمقاس';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2500);
+        } catch {
+        }
+        return;
+      }
+    }
+
     // Play directly on click for mobile browsers (iOS) to allow audio
     playSound();
 
@@ -325,7 +357,25 @@ const ProductPage: React.FC = () => {
 
     const basePrice = hasMenuVariants
       ? Number((selectedMenuVariant as any)?.price || 0)
-      : Number(offer ? offer.newPrice : product.price) || 0;
+      : (() => {
+        if (shop?.category === Category.FASHION) {
+          const sizeLabel = String(selectedFashionSize || '').trim();
+          const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
+          const prices = (fashionSizes as any[])
+            .map((s: any) => Number(s?.price))
+            .filter((n: any) => Number.isFinite(n) && n >= 0);
+          const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
+          const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
+            ? Number((selected as any)?.price)
+            : (Number.isFinite(minSize) ? minSize : Number(offer ? offer.newPrice : product.price) || 0);
+          const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+          if (Number.isFinite(disc) && disc > 0) {
+            return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
+          }
+          return rawPrice;
+        }
+        return Number(offer ? offer.newPrice : product.price) || 0;
+      })();
 
     const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
     const event = new CustomEvent('add-to-cart', { 
@@ -336,7 +386,14 @@ const ProductPage: React.FC = () => {
         shopId: shop?.id, 
         shopName: shop?.name,
         addons: normalizedAddons,
-        variantSelection: selectedMenuVariant,
+        variantSelection: shop?.category === Category.FASHION
+          ? {
+              kind: 'fashion',
+              colorName: String((fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim()) as any)?.name || '').trim(),
+              colorValue: String(selectedFashionColorValue || '').trim(),
+              size: String(selectedFashionSize || '').trim(),
+            }
+          : selectedMenuVariant,
         __skipSound: true,
       } 
     });
@@ -387,6 +444,56 @@ const ProductPage: React.FC = () => {
 
   const currentPrice = offer ? offer.newPrice : product.price;
   const isRestaurant = shop?.category === Category.RESTAURANT;
+  const isFashion = shop?.category === Category.FASHION;
+  const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
+  const galleryImages = useMemo(() => {
+    const extras = Array.isArray((product as any)?.images) ? (product as any).images : [];
+    const merged = [productImageSrc, ...extras]
+      .map((u) => String(u || '').trim())
+      .filter(Boolean);
+    const uniq: string[] = [];
+    for (const u of merged) {
+      if (!uniq.includes(u)) uniq.push(u);
+    }
+    return uniq;
+  }, [productImageSrc, (product as any)?.images]);
+  const [activeImageSrc, setActiveImageSrc] = useState('');
+  useEffect(() => {
+    setActiveImageSrc((prev) => {
+      const next = String(prev || '').trim();
+      if (next && galleryImages.includes(next)) return next;
+      return galleryImages[0] || '';
+    });
+  }, [galleryImages]);
+
+  const fashionColors = useMemo(() => {
+    const raw = (product as any)?.colors;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((c: any) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
+      .filter((c: any) => c.name && c.value);
+  }, [(product as any)?.colors]);
+  const fashionSizes = useMemo(() => {
+    const raw = (product as any)?.sizes;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((s: any) => {
+        if (typeof s === 'string') {
+          const label = String(s || '').trim();
+          if (!label) return null;
+          return { label, price: NaN };
+        }
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          if (!label) return null;
+          const priceRaw = typeof (s as any)?.price === 'number' ? (s as any).price : Number((s as any)?.price);
+          const price = Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : NaN;
+          return { label, price };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ label: string; price: number }>;
+  }, [(product as any)?.sizes]);
   const menuVariantsDef = isRestaurant
     ? (Array.isArray((product as any)?.menuVariants)
       ? (product as any).menuVariants
@@ -443,7 +550,25 @@ const ProductPage: React.FC = () => {
       if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
       return Number(sel?.price || 0);
     })()
-    : (Number(currentPrice) || 0);
+    : (() => {
+      if (isFashion) {
+        const sizeLabel = String(selectedFashionSize || '').trim();
+        const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
+        const prices = (fashionSizes as any[])
+          .map((s: any) => Number(s?.price))
+          .filter((n: any) => Number.isFinite(n) && n >= 0);
+        const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
+        const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
+          ? Number((selected as any)?.price)
+          : (Number.isFinite(minSize) ? minSize : Number(currentPrice) || 0);
+        const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+        if (Number.isFinite(disc) && disc > 0) {
+          return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
+        }
+        return rawPrice;
+      }
+      return Number(currentPrice) || 0;
+    })();
   const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
   const hasDiscount = !!offer;
   const trackStock = typeof (product as any)?.trackStock === 'boolean'
@@ -475,7 +600,7 @@ const ProductPage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="relative aspect-square rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
         >
-          <img loading="lazy" src={product.imageUrl || (product as any).image_url} className="w-full h-full object-cover" alt={product.name} />
+          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-cover" alt={product.name} />
           {hasDiscount && (
             <div className="absolute top-10 left-10 bg-[#BD00FF] text-white px-8 py-3 rounded-2xl font-black text-xl shadow-2xl">
               -{offer?.discount}%
@@ -488,6 +613,23 @@ const ProductPage: React.FC = () => {
             <Heart size={28} fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
         </MotionDiv>
+        {galleryImages.length > 1 && (
+          <div className="mt-4 grid grid-cols-6 gap-2">
+            {galleryImages.slice(0, 6).map((src) => {
+              const active = src === activeImageSrc;
+              return (
+                <button
+                  key={src}
+                  type="button"
+                  onClick={() => setActiveImageSrc(src)}
+                  className={`aspect-square rounded-2xl overflow-hidden border transition-all ${active ? 'border-slate-900' : 'border-slate-200 hover:border-slate-400'}`}
+                >
+                  <img src={src} className="w-full h-full object-cover" alt="thumb" />
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* Right: Info */}
         <MotionDiv 
@@ -510,6 +652,54 @@ const ProductPage: React.FC = () => {
                 )}
              </div>
           </div>
+
+          {isFashion && (fashionColors.length > 0 || fashionSizes.length > 0) && (
+            <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
+              {fashionColors.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-500">الألوان</p>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {fashionColors.map((c: any) => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setSelectedFashionColorValue(String(c.value || '').trim())}
+                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border font-black text-xs transition-all ${
+                          String(selectedFashionColorValue || '').trim() === String(c.value || '').trim()
+                            ? 'bg-white border-slate-900'
+                            : 'bg-slate-50 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {fashionSizes.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-black text-slate-500">المقاسات</p>
+                  <div className="flex flex-wrap gap-2 justify-end">
+                    {fashionSizes.map((s: any) => (
+                      <button
+                        key={String(s?.label || '')}
+                        type="button"
+                        onClick={() => setSelectedFashionSize(String(s?.label || '').trim())}
+                        className={`inline-flex items-center px-3 py-2 rounded-full border font-black text-xs transition-all ${
+                          String(selectedFashionSize || '').trim() === String(s?.label || '').trim()
+                            ? 'bg-white border-slate-900'
+                            : 'bg-slate-50 border-slate-200 hover:bg-white'
+                        }`}
+                      >
+                        {String(s?.label || '')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-6">
              {isRestaurant && hasMenuVariants && (
@@ -664,6 +854,32 @@ const ProductPage: React.FC = () => {
                       }
                       return;
                     }
+
+                    if (shop?.category === Category.FASHION) {
+                      if (fashionColors.length === 0 || fashionSizes.length === 0) {
+                        try {
+                          const toast = document.createElement('div');
+                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+                          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
+                          document.body.appendChild(toast);
+                          setTimeout(() => toast.remove(), 2500);
+                        } catch {
+                        }
+                        return;
+                      }
+                      if (!selectedFashionColorValue || !selectedFashionSize) {
+                        try {
+                          const toast = document.createElement('div');
+                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+                          toast.textContent = 'يرجى اختيار اللون والمقاس';
+                          document.body.appendChild(toast);
+                          setTimeout(() => toast.remove(), 2500);
+                        } catch {
+                        }
+                        return;
+                      }
+                    }
+
                     setIsResModalOpen(true);
                   }}
                   className="flex-1 py-6 bg-[#00E5FF] text-black rounded-[2.5rem] font-black text-2xl hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-4"
@@ -751,7 +967,14 @@ const ProductPage: React.FC = () => {
               };
             });
           })(),
-          variantSelection: selectedMenuVariant,
+          variantSelection: isFashion
+            ? {
+                kind: 'fashion',
+                colorName: String((fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim()) as any)?.name || '').trim(),
+                colorValue: String(selectedFashionColorValue || '').trim(),
+                size: String(selectedFashionSize || '').trim(),
+              }
+            : selectedMenuVariant,
         }}
       />
       <CartDrawer

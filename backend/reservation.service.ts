@@ -7,17 +7,31 @@ export class ReservationService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
 
-  private normalizeVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
+  private normalizeMenuVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
     if (!raw || typeof raw !== 'object') return null;
     const obj: any = raw as any;
+    const kind = String(obj?.kind || '').trim().toLowerCase();
+    if (kind === 'fashion') return null;
     const typeId = String(obj?.typeId || obj?.variantId || obj?.type || obj?.variant || '').trim();
     const sizeId = String(obj?.sizeId || obj?.size || '').trim();
     if (!typeId || !sizeId) return null;
     return { typeId, sizeId };
   }
 
+  private normalizeFashionSelection(raw: any): { kind: 'fashion'; colorName: string; colorValue: string; size: string } | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj: any = raw as any;
+    const kind = String(obj?.kind || '').trim().toLowerCase();
+    if (kind !== 'fashion') return null;
+    const colorName = String(obj?.colorName || obj?.color?.name || '').trim();
+    const colorValue = String(obj?.colorValue || obj?.color?.value || '').trim();
+    const size = String(obj?.size || '').trim();
+    if (!colorValue || !size) return null;
+    return { kind: 'fashion', colorName, colorValue, size };
+  }
+
   private computeMenuVariantForProduct(menuVariantsRaw: any, selectionRaw: any) {
-    const selection = this.normalizeVariantSelection(selectionRaw);
+    const selection = this.normalizeMenuVariantSelection(selectionRaw);
     const defs = Array.isArray(menuVariantsRaw) ? (menuVariantsRaw as any[]) : [];
     if (defs.length === 0) {
       if (selection) {
@@ -202,19 +216,73 @@ export class ReservationService {
     if (!shop) throw new NotFoundException('المتجر غير موجود');
 
     const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
+    const isFashion = String((shop as any)?.category || '').toUpperCase() === 'FASHION';
 
     const product = await this.prisma.product.findFirst({
       where: { id: itemId, shopId, isActive: true },
     });
     if (!product) throw new NotFoundException('المنتج غير موجود');
 
+    const fashionSelection = isFashion ? this.normalizeFashionSelection((input as any)?.variantSelection) : null;
+    if (isFashion && !fashionSelection) {
+      throw new BadRequestException('يرجى اختيار اللون والمقاس');
+    }
+
+    if (isFashion && fashionSelection) {
+      const selectedColorValue = String((fashionSelection as any)?.colorValue || '').trim();
+      const selectedSize = String((fashionSelection as any)?.size || '').trim();
+      const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
+      const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
+      const hasColor = allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue);
+      const hasSize = allowedSizes.some((s: any) => {
+        if (typeof s === 'string') return String(s || '').trim() === selectedSize;
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          return label === selectedSize;
+        }
+        return false;
+      });
+      if (!hasColor || !hasSize) {
+        throw new BadRequestException('اللون أو المقاس غير متاح');
+      }
+    }
+
     const menuVariant = isRestaurant
       ? this.computeMenuVariantForProduct((product as any)?.menuVariants, (input as any)?.variantSelection)
       : { normalized: null as any, price: null as any };
 
+    const resolveFashionSizePrice = (product: any, fashionSelection: any) => {
+      const selectedSize = String(fashionSelection?.size || '').trim();
+      const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
+      const found = allowedSizes.find((s: any) => {
+        if (typeof s === 'string') return String(s || '').trim() === selectedSize;
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          return label === selectedSize;
+        }
+        return false;
+      });
+      if (found && typeof found === 'object') {
+        const pRaw = typeof (found as any)?.price === 'number' ? (found as any).price : Number((found as any)?.price);
+        const p = Number.isFinite(pRaw) && pRaw >= 0 ? pRaw : NaN;
+        if (Number.isFinite(p)) return p;
+      }
+      const base = typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0);
+      return Number.isFinite(base) && base >= 0 ? base : 0;
+    };
+
+    const applyDiscountPercent = (price: number, discountPercent: any) => {
+      const disc = typeof discountPercent === 'number' ? discountPercent : Number(discountPercent);
+      if (!Number.isFinite(disc) || disc <= 0) return price;
+      const next = price * (1 - disc / 100);
+      return Math.round(next * 100) / 100;
+    };
+
     let basePrice = typeof menuVariant?.price === 'number'
       ? menuVariant.price
-      : (typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0));
+      : (isFashion && fashionSelection
+        ? resolveFashionSizePrice(product, fashionSelection)
+        : (typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0)));
     try {
       const offer = await this.prisma.offer.findFirst({
         where: {
@@ -223,9 +291,14 @@ export class ReservationService {
           productId: itemId as any,
           expiresAt: { gt: new Date() } as any,
         } as any,
-        select: { newPrice: true } as any,
+        select: { newPrice: true, discount: true } as any,
       });
       const oPrice = typeof (offer as any)?.newPrice === 'number' ? (offer as any).newPrice : Number((offer as any)?.newPrice || NaN);
+      const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+
+      if (isFashion && fashionSelection && Number.isFinite(disc) && disc > 0) {
+        basePrice = applyDiscountPercent(resolveFashionSizePrice(product, fashionSelection), disc);
+      }
       if (typeof menuVariant?.price !== 'number' && Number.isFinite(oPrice) && oPrice >= 0) {
         basePrice = oPrice;
       }
@@ -243,7 +316,7 @@ export class ReservationService {
         itemImage,
         itemPrice: finalPrice,
         extras: addonsComputed.normalized,
-        variantSelection: menuVariant?.normalized || null,
+        variantSelection: isRestaurant ? (menuVariant?.normalized || null) : (isFashion ? fashionSelection : null),
         shopId,
         shopName,
         customerName,
@@ -268,7 +341,7 @@ export class ReservationService {
             customerPhone,
             itemPrice: finalPrice,
             extras: addonsComputed.normalized,
-            variantSelection: menuVariant?.normalized || null,
+            variantSelection: isRestaurant ? (menuVariant?.normalized || null) : (isFashion ? fashionSelection : null),
           },
         } as any,
       });

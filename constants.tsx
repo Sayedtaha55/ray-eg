@@ -133,6 +133,13 @@ export const RayDB = {
     const variantSig = (() => {
       const raw = (input as any)?.variantSelection ?? (input as any)?.variant_selection;
       if (!raw || typeof raw !== 'object') return '';
+      const kind = String((raw as any)?.kind || '').trim().toLowerCase();
+      if (kind === 'fashion') {
+        const colorValue = String((raw as any)?.colorValue || (raw as any)?.color?.value || '').trim();
+        const size = String((raw as any)?.size || '').trim();
+        if (!colorValue || !size) return '';
+        return `fashion-${colorValue}-${size}`;
+      }
       const typeId = String((raw as any)?.typeId || (raw as any)?.variantId || (raw as any)?.type || (raw as any)?.variant || '').trim();
       const sizeId = String((raw as any)?.sizeId || (raw as any)?.size || '').trim();
       if (!typeId || !sizeId) return '';
