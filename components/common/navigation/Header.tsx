@@ -29,6 +29,8 @@ const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-3"
           >
             <button
+              type="button"
+              aria-label={isMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
               onClick={onMenuToggle}
               className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden"
             >
@@ -59,12 +61,12 @@ const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-3"
           >
             {/* Mobile Search */}
-            <button className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden">
+            <button type="button" aria-label="بحث" className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden">
               <Search size={20} />
             </button>
 
             {/* Cart */}
-            <button className="relative p-2 text-white hover:bg-white/10 rounded-xl transition-all">
+            <button type="button" aria-label="السلة" className="relative p-2 text-white hover:bg-white/10 rounded-xl transition-all">
               <ShoppingCart size={20} />
               {cartItemsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#00E5FF] text-black text-xs font-black rounded-full flex items-center justify-center">

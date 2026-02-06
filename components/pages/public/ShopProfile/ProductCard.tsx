@@ -282,6 +282,8 @@ const ProductCard = React.memo(function ProductCard({
         </div>
 
         <button
+          type="button"
+          aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
           onClick={toggleFav}
           className={`absolute top-2 left-2 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
             isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
@@ -353,6 +355,8 @@ const ProductCard = React.memo(function ProductCard({
             <div className="flex gap-1.5 md:gap-2">
               {showAddToCart && (
                 <button
+                  type="button"
+                  aria-label={isAdded ? "تمت الإضافة للسلة" : "إضافة للسلة"}
                   onClick={(e) => {
                     e.stopPropagation();
                     onAdd(product, currentPrice);
@@ -369,6 +373,8 @@ const ProductCard = React.memo(function ProductCard({
               )}
               {showReserve && (
                 <button
+                  type="button"
+                  aria-label="حجز المنتج"
                   onClick={(e) => {
                     e.stopPropagation();
                     onReserve({ ...product, price: currentPrice });
