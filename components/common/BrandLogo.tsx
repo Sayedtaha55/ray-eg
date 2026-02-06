@@ -69,7 +69,7 @@ const BrandLogo: React.FC<Props> = ({
       onError={() => setImgError(true)}
       alt={name}
       decoding="async"
-      fetchPriority="low"
+      fetchPriority="high"
       width={64}
       height={64}
     />

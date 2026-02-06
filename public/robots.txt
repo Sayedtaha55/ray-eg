@@ -13,4 +13,4 @@ Disallow: /admin/
 Disallow: /pos/
 Disallow: /builder/
 
-Sitemap: /sitemap.xml
+Sitemap: https://mnmknk.com/sitemap.xml
