@@ -17,6 +17,13 @@ export type MerchantDashboardTabDefinition = {
   id: MerchantDashboardTabId;
   label: string;
   visibleFor?: Category[];
+  dynamicLabel?: (category?: string) => string;
+};
+
+export const getProductTabLabel = (category?: string): string => {
+  const cat = String(category || '').toUpperCase();
+  if (cat === 'RESTAURANT') return 'المنيو';
+  return 'المخزون';
 };
 
 export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
@@ -24,7 +31,7 @@ export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'gallery', label: 'معرض الصور' },
   { id: 'reports', label: 'التقارير' },
   { id: 'customers', label: 'العملاء' },
-  { id: 'products', label: 'المخزون' },
+  { id: 'products', label: 'المخزون', dynamicLabel: getProductTabLabel },
   { id: 'promotions', label: 'العروض' },
   { id: 'reservations', label: 'الحجوزات' },
   { id: 'sales', label: 'المبيعات' },

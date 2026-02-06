@@ -210,6 +210,12 @@ const SignupPage: React.FC = () => {
                      >
                         <option value={Category.RETAIL}>محل تجاري / ملابس / إلكترونيات</option>
                         <option value={Category.RESTAURANT}>مطعم / كافيه / أكلات</option>
+                        <option value={Category.FASHION}>ملابس وأزياء</option>
+                        <option value={Category.ELECTRONICS}>إلكترونيات وموبايلات</option>
+                        <option value={Category.HEALTH}>صيدلية / مستحضرات تجميل</option>
+                        <option value={Category.SERVICE}>خدمات / صيانة / ورش</option>
+                        <option value={Category.FOOD}>سوبر ماركت / بقالة</option>
+                        <option value={Category.OTHER}>أخرى</option>
                      </select>
                    </div>
                 </div>

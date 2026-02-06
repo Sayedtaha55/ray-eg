@@ -15,6 +15,7 @@ import {
   Smartphone,
   TrendingUp,
   Users,
+  Eye,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
@@ -110,6 +111,7 @@ const MerchantDashboardPage: React.FC = () => {
   const visibleTabs = getVisibleMerchantDashboardTabs(shopCategory).map((t) => ({
     ...t,
     icon: ICON_BY_TAB_ID[t.id],
+    label: t.dynamicLabel ? t.dynamicLabel(shopCategory) : t.label,
   }));
   const effectiveTab = resolveMerchantDashboardTab(activeTab, shopCategory);
 
@@ -309,7 +311,7 @@ const MerchantDashboardPage: React.FC = () => {
   useEffect(() => {
     if (!currentShop) return;
     if (!searchParams.get('tab')) {
-      setTab('reservations');
+      setTab('overview');
     }
   }, [currentShop, searchParams, setTab]);
 
@@ -521,6 +523,12 @@ const MerchantDashboardPage: React.FC = () => {
             </div>
           </div>
           <div className="flex gap-3">
+            <button
+              onClick={() => navigate(`/shop/${currentShop.slug}`)}
+              className="flex-1 md:flex-none px-10 py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl"
+            >
+              <Eye size={20} /> معاينة المحل
+            </button>
             <button
               onClick={() => setTab('pos')}
               className="flex-1 md:flex-none px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"

@@ -7,7 +7,7 @@ import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import { 
   ShoppingCart, CalendarCheck, ArrowRight, Heart, 
-  Share2, ShieldCheck, Truck, Package, Store, Loader2, AlertCircle, Home
+  Share2, ShieldCheck, Truck, Package, Store, Loader2, AlertCircle, Home, MessageCircle
 } from 'lucide-react';
 import ReservationModal from '../shared/ReservationModal';
 import CartDrawer from '../shared/CartDrawer';
@@ -575,6 +575,21 @@ const ProductPage: React.FC = () => {
     ? (product as any).trackStock
     : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
 
+  // WhatsApp button logic
+  const shopPhone = shop?.phone || '';
+  const shopWhatsApp = (shop as any)?.layoutConfig?.whatsapp || shopPhone;
+  const whatsappDigits = String(shopWhatsApp || '').replace(/[^\d]/g, '');
+  const whatsappHref = whatsappDigits
+    ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop?.name || ''}، أنا مهتم بمنتج: ${product?.name || ''}`)}`
+    : '';
+
+  const WhatsAppIcon = (
+    <svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor" aria-hidden="true">
+      <path d="M19.11 17.48c-.28-.14-1.64-.81-1.9-.9-.25-.1-.43-.14-.62.14-.18.28-.71.9-.88 1.09-.16.18-.32.2-.6.07-.28-.14-1.17-.43-2.23-1.37-.82-.73-1.38-1.63-1.54-1.9-.16-.28-.02-.43.12-.57.13-.13.28-.32.43-.48.14-.16.18-.28.28-.46.09-.18.05-.35-.02-.48-.07-.14-.62-1.5-.86-2.06-.23-.55-.46-.48-.62-.49h-.53c-.18 0-.48.07-.73.35-.25.28-.96.94-.96 2.29s.98 2.65 1.11 2.83c.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.57.65.2 1.24.17 1.7.1.52-.08 1.64-.67 1.87-1.31.23-.65.23-1.2.16-1.31-.07-.12-.25-.18-.53-.32z" />
+      <path d="M26.72 5.28A14.92 14.92 0 0 0 16.02 0C7.18 0 0 7.18 0 16.02c0 2.82.74 5.57 2.14 7.99L0 32l8.2-2.09a15.9 15.9 0 0 0 7.82 2c8.84 0 16.02-7.18 16.02-15.9 0-4.27-1.66-8.29-4.32-10.73zm-10.7 24.1a13.2 13.2 0 0 1-6.73-1.84l-.48-.28-4.87 1.24 1.3-4.74-.31-.49a13.14 13.14 0 0 1-2.01-7.25c0-7.22 5.88-13.1 13.1-13.1 3.5 0 6.78 1.36 9.23 3.83a12.92 12.92 0 0 1 3.86 9.27c0 7.22-5.88 13.36-13.09 13.36z" />
+    </svg>
+  );
+
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
       {/* Cart Icon in Header for Mobile */}
@@ -984,6 +999,21 @@ const ProductPage: React.FC = () => {
         onRemove={removeFromCart}
         onUpdateQuantity={updateCartItemQuantity}
       />
+
+      {/* Floating WhatsApp Button for Mobile */}
+      {whatsappHref && (
+        <div className="fixed bottom-24 right-4 z-[150] flex flex-col gap-4 items-end md:hidden">
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noreferrer"
+            className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-2 border-white bg-[#25D366] text-white"
+            aria-label="تواصل عبر واتساب"
+          >
+            {WhatsAppIcon}
+          </a>
+        </div>
+      )}
     </div>
   );
 };
