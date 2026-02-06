@@ -406,14 +406,31 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                           <div className="text-right">
                             <p className="font-black text-sm">{String(item.name)}</p>
                             <p className="text-[#00E5FF] font-black text-xs">ج.م {Number(item.price)}</p>
-                            {(item as any)?.variantSelection && (
-                              <p className="mt-1 text-[10px] font-bold text-slate-500">
-                                {String((item as any)?.variantSelection?.typeName || (item as any)?.variantSelection?.typeId || '')}
-                                {String((item as any)?.variantSelection?.sizeLabel || (item as any)?.variantSelection?.sizeId || '')
-                                  ? ` - ${String((item as any)?.variantSelection?.sizeLabel || (item as any)?.variantSelection?.sizeId || '')}`
-                                  : ''}
-                              </p>
-                            )}
+                            {(() => {
+                              const sel = (item as any)?.variantSelection;
+                              if (!sel || typeof sel !== 'object') return null;
+                              const kind = String(sel?.kind || '').trim().toLowerCase();
+                              if (kind === 'fashion') {
+                                const cName = String(sel?.colorName || sel?.color?.name || '').trim();
+                                const cValue = String(sel?.colorValue || sel?.color?.value || '').trim();
+                                const size = String(sel?.size || '').trim();
+                                if (!cValue || !size) return null;
+                                return (
+                                  <p className="mt-1 text-[10px] font-bold text-slate-500">
+                                    {cName || cValue}{size ? ` - ${size}` : ''}
+                                  </p>
+                                );
+                              }
+                              const typeName = String(sel?.typeName || sel?.typeId || '').trim();
+                              const sizeLabel = String(sel?.sizeLabel || sel?.sizeId || '').trim();
+                              if (!typeName && !sizeLabel) return null;
+                              return (
+                                <p className="mt-1 text-[10px] font-bold text-slate-500">
+                                  {typeName}
+                                  {sizeLabel ? ` - ${sizeLabel}` : ''}
+                                </p>
+                              );
+                            })()}
                             {Array.isArray((item as any)?.addons) && (item as any).addons.length > 0 && (
                               <div className="mt-2 space-y-1">
                                 {(item as any).addons.map((a: any, idx: number) => (

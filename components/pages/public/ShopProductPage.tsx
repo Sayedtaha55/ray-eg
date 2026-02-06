@@ -77,6 +77,9 @@ const ShopProductPage: React.FC = () => {
   const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
+  const [activeImageSrc, setActiveImageSrc] = useState('');
+  const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
+  const [selectedFashionSize, setSelectedFashionSize] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -278,81 +281,6 @@ const ShopProductPage: React.FC = () => {
     };
   }, [hasMenuVariants, menuVariantsDef, selectedMenuTypeId, selectedMenuSizeId]);
 
-  const addonsDef = isRestaurant
-    ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
-    : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
-  const addonsTotal = (() => {
-    const priceByKey = new Map<string, number>();
-    for (const g of addonsDef || []) {
-      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
-      for (const opt of options) {
-        const optId = String(opt?.id || '').trim();
-        if (!optId) continue;
-        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
-        for (const v of vars) {
-          const vid = String(v?.id || '').trim();
-          if (!vid) continue;
-          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
-        }
-      }
-    }
-    return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
-  })();
-
-  const normalizedAddons = (() => {
-    const priceByKey = new Map<string, number>();
-    const labelByKey = new Map<string, string>();
-    const optionNameById = new Map<string, string>();
-    const optionImageById = new Map<string, string>();
-    for (const g of addonsDef || []) {
-      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
-      for (const opt of options) {
-        const optId = String(opt?.id || '').trim();
-        if (!optId) continue;
-        optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
-        if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
-          optionImageById.set(optId, String(opt.imageUrl).trim());
-        }
-        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
-        for (const v of vars) {
-          const vid = String(v?.id || '').trim();
-          if (!vid) continue;
-          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
-          labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
-        }
-      }
-    }
-
-    return (selectedAddons || []).map((a) => {
-      const key = `${a.optionId}:${a.variantId}`;
-      return {
-        optionId: a.optionId,
-        optionName: optionNameById.get(a.optionId) || a.optionId,
-        optionImage: optionImageById.get(a.optionId) || null,
-        variantId: a.variantId,
-        variantLabel: labelByKey.get(key) || a.variantId,
-        price: priceByKey.get(key) || 0,
-      };
-    });
-  })();
-
-  const basePrice = hasMenuVariants
-    ? (() => {
-      const sel = selectedMenuVariant as any;
-      const typeId = String(sel?.typeId || '').trim();
-      const sizeId = String(sel?.sizeId || '').trim();
-      const rows = Array.isArray((offer as any)?.variantPricing) ? (offer as any).variantPricing : [];
-      const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
-        && String(r?.sizeId || r?.size || '').trim() === sizeId);
-      const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
-      if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
-      return Number(sel?.price || 0);
-    })()
-    : (Number(currentPrice) || 0);
-  const displayedPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
-
   const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
   const isVisible = useCallback((key: string, fallback: boolean = true) => {
     if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
@@ -427,6 +355,36 @@ const ShopProductPage: React.FC = () => {
       }
       return;
     }
+
+    if (isFashion) {
+      if (fashionColors.length === 0 || fashionSizes.length === 0) {
+        try {
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2500);
+        } catch {
+        }
+        return;
+      }
+      if (!selectedFashionColorValue || !selectedFashionSize) {
+        try {
+          const toast = document.createElement('div');
+          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+          toast.textContent = 'يرجى اختيار اللون والمقاس';
+          document.body.appendChild(toast);
+          setTimeout(() => toast.remove(), 2500);
+        } catch {
+        }
+        return;
+      }
+    }
+
+    const fashionSelectedColor = isFashion
+      ? fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim())
+      : null;
+
     RayDB.addToCart({
       ...product,
       price: displayedPrice,
@@ -434,7 +392,14 @@ const ShopProductPage: React.FC = () => {
       shopId: (shop as any)?.id,
       shopName: (shop as any)?.name,
       addons: normalizedAddons,
-      variantSelection: selectedMenuVariant,
+      variantSelection: isFashion
+        ? {
+            kind: 'fashion',
+            colorName: String((fashionSelectedColor as any)?.name || '').trim(),
+            colorValue: String(selectedFashionColorValue || '').trim(),
+            size: String(selectedFashionSize || '').trim(),
+          }
+        : selectedMenuVariant,
     });
     playSound();
   };
@@ -459,6 +424,150 @@ const ShopProductPage: React.FC = () => {
   const shopLogoSrc = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
   const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
   const productDescription = String((product as any)?.description || (product as any)?.details || '').trim();
+
+  const isFashion = String((shop as any)?.category || '').toUpperCase() === 'FASHION';
+  const galleryImages = useMemo(() => {
+    const extras = Array.isArray((product as any)?.images) ? (product as any).images : [];
+    const merged = [productImageSrc, ...extras]
+      .map((u) => String(u || '').trim())
+      .filter(Boolean);
+    const uniq: string[] = [];
+    for (const u of merged) {
+      if (!uniq.includes(u)) uniq.push(u);
+    }
+    return uniq;
+  }, [productImageSrc, (product as any)?.images]);
+
+  useEffect(() => {
+    setActiveImageSrc((prev) => {
+      const next = String(prev || '').trim();
+      if (next && galleryImages.includes(next)) return next;
+      return galleryImages[0] || '';
+    });
+  }, [galleryImages]);
+
+  const fashionColors = useMemo(() => {
+    const raw = (product as any)?.colors;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((c: any) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
+      .filter((c: any) => c.name && c.value);
+  }, [(product as any)?.colors]);
+
+  const fashionSizes = useMemo(() => {
+    const raw = (product as any)?.sizes;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((s: any) => {
+        if (typeof s === 'string') {
+          const label = String(s || '').trim();
+          if (!label) return null;
+          return { label, price: NaN };
+        }
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          if (!label) return null;
+          const priceRaw = typeof (s as any)?.price === 'number' ? (s as any).price : Number((s as any)?.price);
+          const price = Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : NaN;
+          return { label, price };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ label: string; price: number }>;
+  }, [(product as any)?.sizes]);
+
+  const addonsDef = isRestaurant
+    ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+    : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
+  const addonsTotal = (() => {
+    const priceByKey = new Map<string, number>();
+    for (const g of addonsDef || []) {
+      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+      for (const opt of options) {
+        const optId = String(opt?.id || '').trim();
+        if (!optId) continue;
+        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+        for (const v of vars) {
+          const vid = String(v?.id || '').trim();
+          if (!vid) continue;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+        }
+      }
+    }
+    return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
+  })();
+
+  const normalizedAddons = (() => {
+    const priceByKey = new Map<string, number>();
+    const labelByKey = new Map<string, string>();
+    const optionNameById = new Map<string, string>();
+    const optionImageById = new Map<string, string>();
+    for (const g of addonsDef || []) {
+      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
+      for (const opt of options) {
+        const optId = String(opt?.id || '').trim();
+        if (!optId) continue;
+        optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
+        if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
+          optionImageById.set(optId, String(opt.imageUrl).trim());
+        }
+        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
+        for (const v of vars) {
+          const vid = String(v?.id || '').trim();
+          if (!vid) continue;
+          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
+          labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
+        }
+      }
+    }
+
+    return (selectedAddons || []).map((a) => {
+      const key = `${a.optionId}:${a.variantId}`;
+      return {
+        optionId: a.optionId,
+        optionName: optionNameById.get(a.optionId) || a.optionId,
+        optionImage: optionImageById.get(a.optionId) || null,
+        variantId: a.variantId,
+        variantLabel: labelByKey.get(key) || a.variantId,
+        price: priceByKey.get(key) || 0,
+      };
+    });
+  })();
+
+  const basePrice = hasMenuVariants
+    ? (() => {
+      const sel = selectedMenuVariant as any;
+      const typeId = String(sel?.typeId || '').trim();
+      const sizeId = String(sel?.sizeId || '').trim();
+      const rows = Array.isArray((offer as any)?.variantPricing) ? (offer as any).variantPricing : [];
+      const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
+        && String(r?.sizeId || r?.size || '').trim() === sizeId);
+      const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+      if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
+      return Number(sel?.price || 0);
+    })()
+    : (() => {
+      if (isFashion) {
+        const sizeLabel = String(selectedFashionSize || '').trim();
+        const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
+        const prices = (fashionSizes as any[])
+          .map((s: any) => Number(s?.price))
+          .filter((n: any) => Number.isFinite(n) && n >= 0);
+        const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
+        const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
+          ? Number((selected as any)?.price)
+          : (Number.isFinite(minSize) ? minSize : Number(currentPrice) || 0);
+        const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+        if (Number.isFinite(disc) && disc > 0) {
+          return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
+        }
+        return rawPrice;
+      }
+      return Number(currentPrice) || 0;
+    })();
+  const displayedPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
 
   const shopPrefix = String(location?.pathname || '').startsWith('/shop/') ? '/shop' : '/s';
 
@@ -663,10 +772,27 @@ const ShopProductPage: React.FC = () => {
         <div className="flex flex-col md:flex-row-reverse gap-6 md:gap-10">
           <div className="w-full md:w-[420px]">
             <div className="aspect-square rounded-[2rem] bg-slate-100 border border-slate-200 shadow-sm overflow-hidden">
-              {productImageSrc ? (
-                <img src={productImageSrc} className="w-full h-full object-cover" alt={String((product as any)?.name || 'product')} />
+              {activeImageSrc ? (
+                <img src={activeImageSrc} className="w-full h-full object-cover" alt={String((product as any)?.name || 'product')} />
               ) : null}
             </div>
+            {galleryImages.length > 1 && (
+              <div className="mt-3 grid grid-cols-5 gap-2">
+                {galleryImages.slice(0, 5).map((src) => {
+                  const active = src === activeImageSrc;
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setActiveImageSrc(src)}
+                      className={`aspect-square rounded-xl overflow-hidden border transition-all ${active ? 'border-slate-900' : 'border-slate-200 hover:border-slate-400'}`}
+                    >
+                      <img src={src} className="w-full h-full object-cover" alt="thumb" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
             {shopLogoSrc && showStock && (
               <div className="mt-4 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -695,6 +821,54 @@ const ShopProductPage: React.FC = () => {
                 <span className="text-xl md:text-2xl font-black text-slate-900">ج.م {displayedPrice}</span>
                 {offer && !hasMenuVariants && (
                   <span className="text-xs font-black text-slate-400 line-through">ج.م {String((product as any)?.price || '')}</span>
+                )}
+              </div>
+            )}
+
+            {isFashion && (fashionColors.length > 0 || fashionSizes.length > 0) && (
+              <div className="border border-slate-100 rounded-[1.5rem] bg-white p-5 space-y-4">
+                {fashionColors.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-black text-slate-500">الألوان</p>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {fashionColors.map((c: any) => (
+                        <button
+                          key={c.value}
+                          type="button"
+                          onClick={() => setSelectedFashionColorValue(String(c.value || '').trim())}
+                          className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border font-black text-xs transition-all ${
+                            String(selectedFashionColorValue || '').trim() === String(c.value || '').trim()
+                              ? 'bg-white border-slate-900'
+                              : 'bg-slate-50 border-slate-200 hover:bg-white'
+                          }`}
+                        >
+                          <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {fashionSizes.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-black text-slate-500">المقاسات</p>
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {fashionSizes.map((s: any) => (
+                        <button
+                          key={String(s?.label || '')}
+                          type="button"
+                          onClick={() => setSelectedFashionSize(String(s?.label || '').trim())}
+                          className={`inline-flex items-center px-3 py-2 rounded-full border font-black text-xs transition-all ${
+                            String(selectedFashionSize || '').trim() === String(s?.label || '').trim()
+                              ? 'bg-white border-slate-900'
+                              : 'bg-slate-50 border-slate-200 hover:bg-white'
+                          }`}
+                        >
+                          {String(s?.label || '')}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -863,6 +1037,32 @@ const ShopProductPage: React.FC = () => {
                       }
                       return;
                     }
+
+                    if (isFashion) {
+                      if (fashionColors.length === 0 || fashionSizes.length === 0) {
+                        try {
+                          const toast = document.createElement('div');
+                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+                          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
+                          document.body.appendChild(toast);
+                          setTimeout(() => toast.remove(), 2500);
+                        } catch {
+                        }
+                        return;
+                      }
+                      if (!selectedFashionColorValue || !selectedFashionSize) {
+                        try {
+                          const toast = document.createElement('div');
+                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+                          toast.textContent = 'يرجى اختيار اللون والمقاس';
+                          document.body.appendChild(toast);
+                          setTimeout(() => toast.remove(), 2500);
+                        } catch {
+                        }
+                        return;
+                      }
+                    }
+
                     setIsResModalOpen(true);
                   }}
                   className="px-6 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white shadow-sm transition-all hover:bg-black"
@@ -1053,7 +1253,7 @@ const ShopProductPage: React.FC = () => {
 
                 {showMobileBottomNavCart && (
                   <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black">
-                    <CartIconWithAnimation 
+                    <CartIconWithAnimation
                       count={cartItems.length}
                       onClick={() => setCartOpen(true)}
                     />
@@ -1097,16 +1297,38 @@ const ShopProductPage: React.FC = () => {
       <ReservationModal
         isOpen={isResModalOpen}
         onClose={() => setIsResModalOpen(false)}
-        item={{
-          id: String((product as any)?.id || ''),
-          name: String((product as any)?.name || ''),
-          image: productImageSrc,
-          price: displayedPrice,
-          shopId: String((shop as any)?.id || ''),
-          shopName: String((shop as any)?.name || ''),
-          addons: normalizedAddons,
-          variantSelection: selectedMenuVariant,
-        }}
+        item={(() => {
+          if (!product || !shop) return null;
+          const itemImage = String((product as any)?.image || (product as any)?.imageUrl || (product as any)?.image_url || '').trim();
+          if (hasMenuVariants && selectedMenuVariant) {
+            return {
+              ...product,
+              image: itemImage,
+              price: displayedPrice,
+              shopId: String((shop as any)?.id || ''),
+              shopName: String((shop as any)?.name || ''),
+              addons: normalizedAddons,
+              variantSelection: selectedMenuVariant,
+            };
+          }
+
+          return {
+            ...product,
+            image: itemImage,
+            price: displayedPrice,
+            shopId: String((shop as any)?.id || ''),
+            shopName: String((shop as any)?.name || ''),
+            addons: normalizedAddons,
+            variantSelection: isFashion
+              ? {
+                  kind: 'fashion',
+                  colorName: String((fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim()) as any)?.name || '').trim(),
+                  colorValue: String(selectedFashionColorValue || '').trim(),
+                  size: String(selectedFashionSize || '').trim(),
+                }
+              : selectedMenuVariant,
+          };
+        })()}
       />
     </div>
   );
