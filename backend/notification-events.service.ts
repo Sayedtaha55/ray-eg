@@ -35,7 +35,7 @@ export class NotificationEventsService {
         order.shopId,
         order.id,
         order.user.name,
-        order.totalAmount
+        (order as any).total
       );
 
       await this.notificationService.notifyOrderConfirmed(order.userId, order.id);
@@ -102,7 +102,7 @@ export class NotificationEventsService {
         shop: {
           include: {
             followersList: {
-              select: { id: true }
+              select: { userId: true }
             }
           }
         }
@@ -114,7 +114,7 @@ export class NotificationEventsService {
         type: NotificationType.PROMOTIONAL_OFFER,
         title: 'عرض خاص!',
         content: `${offer.shop.name}: ${offer.title} - خصم ${offer.discount}%`,
-        userId: follower.id,
+        userId: (follower as any).userId,
         priority: NotificationPriority.MEDIUM,
         metadata: { 
           shopName: offer.shop.name, 
@@ -139,9 +139,10 @@ export class NotificationEventsService {
   }
 
   async onShopVisited(shopId: string) {
-    const analytics = await this.prisma.shopAnalytics.findUnique({
+    const analytics = await this.prisma.shopAnalytics.findFirst({
       where: { shopId },
-      select: { visitorsCount: true }
+      orderBy: { date: 'desc' },
+      select: { visitorsCount: true },
     });
 
     if (analytics?.visitorsCount && analytics.visitorsCount % 10 === 0) {

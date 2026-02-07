@@ -416,11 +416,15 @@ export class ReservationService {
     const id = String(userId || '').trim();
     if (!id) throw new BadRequestException('userId مطلوب');
 
-    await this.expireStaleReservations({ userId: id });
+    const user = await this.prisma.user.findUnique({ where: { id }, select: { phone: true } });
+    const phone = String(user?.phone || '').trim();
+    if (!phone) return [];
+
+    await this.expireStaleReservations({ customerPhone: phone } as any);
 
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
-      where: { userId: id },
+      where: { customerPhone: phone } as any,
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
@@ -430,11 +434,11 @@ export class ReservationService {
     const phone = String(customerPhone || '').trim();
     if (!phone) throw new BadRequestException('customerPhone مطلوب');
 
-    await this.expireStaleReservations({ phone });
+    await this.expireStaleReservations({ customerPhone: phone } as any);
 
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
-      where: { phone },
+      where: { customerPhone: phone } as any,
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });

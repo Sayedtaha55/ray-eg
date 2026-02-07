@@ -30,8 +30,8 @@ export class CustomersService {
       this.prisma.reservation.findMany({
         where: { shopId: sid, status: 'COMPLETED' as any },
         select: {
-          name: true,
-          phone: true,
+          customerName: true,
+          customerPhone: true,
           createdAt: true,
         },
         orderBy: { createdAt: 'desc' },
@@ -49,7 +49,7 @@ export class CustomersService {
     const reservationPhones = Array.from(
       new Set(
         (reservations || [])
-          .map((r: any) => String(r?.phone || '').trim())
+          .map((r: any) => String(r?.customerPhone || '').trim())
           .filter(Boolean),
       ),
     );
@@ -110,7 +110,7 @@ export class CustomersService {
       };
 
       base.orders = Number(base.orders || 0) + 1;
-      base.totalSpent = Number(base.totalSpent || 0) + Number((o as any).totalAmount || 0);
+      base.totalSpent = Number(base.totalSpent || 0) + Number((o as any).total || 0);
 
       if (!base.phone && user?.phone) base.phone = user.phone;
 
@@ -118,7 +118,7 @@ export class CustomersService {
     }
 
     for (const r of reservations || []) {
-      const phone = String((r as any)?.phone || '').trim();
+      const phone = String((r as any).customerPhone || '').trim();
       if (!phone) continue;
 
       const user = usersByPhone.get(phone);
@@ -128,7 +128,7 @@ export class CustomersService {
       const existing = customersById.get(customerId);
       const base = existing || {
         id: customerId,
-        name: String(user?.name || (r as any)?.name || 'عميل'),
+        name: String((r as any).customerName || '').trim() || user?.name || 'عميل',
         email: user?.email || null,
         phone,
         orders: 0,
@@ -136,10 +136,8 @@ export class CustomersService {
         status: this.statusOverrides.get(customerId) || 'active',
       };
 
-      if (!base.name && (r as any)?.name) base.name = (r as any).name;
-
       base.orders = Number(base.orders || 0) + 1;
-      // base.totalSpent = Number(base.totalSpent || 0) + Number((r as any)?.itemPrice || 0);
+      base.totalSpent = Number(base.totalSpent || 0) + Number((r as any).itemPrice || 0);
 
       customersById.set(customerId, base);
     }

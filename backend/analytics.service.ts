@@ -7,26 +7,28 @@ export class AnalyticsService {
 
   async getSystemAnalytics() {
     const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
-    const [totalUsers, totalShops, ordersAgg, reservationsAgg, totalVisitsAgg] = await Promise.all([
+    const [totalUsers, totalShops, ordersAgg, reservationsAgg, shopsVisitorsAgg] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.shop.count(),
       this.prisma.order.aggregate({
         where: { status: { in: successfulOrderStatuses as any } },
         _count: { id: true },
-        _sum: { totalAmount: true },
+        _sum: { total: true },
       }),
       this.prisma.reservation.aggregate({
         where: { status: 'COMPLETED' as any },
         _count: { id: true },
-        _sum: { guests: true }, // Reservation doesn't have price in schema, using guests for now or need to check
+        // Reservation model has no numeric revenue/guest field in Postgres schema
       }),
-      // Get total unique visits across all shops from Visit table
-      this.prisma.visit.count(),
+      // Fallback total visits: sum shops.visitors
+      this.prisma.shop.aggregate({
+        _sum: { visitors: true },
+      }),
     ]);
 
     const totalOrders = Number(ordersAgg?._count?.id || 0) + Number((reservationsAgg as any)?._count?.id || 0);
-    const totalRevenue = Number(ordersAgg?._sum?.totalAmount || 0);
-    const totalVisits = totalVisitsAgg;
+    const totalRevenue = Number((ordersAgg as any)?._sum?.total || 0);
+    const totalVisits = Number((shopsVisitorsAgg as any)?._sum?.visitors || 0);
 
     return {
       totalRevenue,
@@ -66,7 +68,7 @@ export class AnalyticsService {
           gte: start,
         },
       },
-      select: { totalAmount: true, createdAt: true },
+      select: { total: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -77,7 +79,7 @@ export class AnalyticsService {
           gte: start,
         },
       },
-      select: { guests: true, createdAt: true },
+      select: { createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -86,7 +88,7 @@ export class AnalyticsService {
       const bucket = buckets[key];
       if (!bucket) continue;
       bucket.orders += 1;
-      bucket.revenue += Number(o.totalAmount) || 0;
+      bucket.revenue += Number((o as any).total) || 0;
     }
 
     for (const r of reservations) {
@@ -111,7 +113,7 @@ export class AnalyticsService {
       this.prisma.order.findMany({
         take: safeLimit,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, totalAmount: true, status: true, createdAt: true },
+        select: { id: true, total: true, status: true, createdAt: true },
       }),
       this.prisma.shop.findMany({
         take: safeLimit,
@@ -157,7 +159,7 @@ export class AnalyticsService {
       events.push({
         id: `order:${o.id}`,
         type: 'order',
-        title: `طلب ${statusLabel} • ج.م ${Math.round(Number((o as any)?.totalAmount || 0))}`,
+        title: `طلب ${statusLabel} • ج.م ${Math.round(Number((o as any)?.total || 0))}`,
         createdAt: o.createdAt,
         color: '#10b981',
       });

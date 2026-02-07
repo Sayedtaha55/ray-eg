@@ -165,7 +165,7 @@ export class OrderService {
     const content = `تم تحديث حالة طلبك إلى: ${status}`;
 
     try {
-      await params.tx.notification.create({
+      await this.prisma.notification.create({
         data: {
           shopId: params.shopId,
           userId: params.userId,
@@ -173,7 +173,7 @@ export class OrderService {
           title,
           content,
           type: 'ORDER' as any,
-          read: false,
+          isRead: false,
         },
       });
     } catch {
@@ -650,7 +650,6 @@ export class OrderService {
       const created = await tx.order.create({
         data: {
           total: total,
-          totalAmount: total,
           user: { connect: { id: userId } },
           shop: { connect: { id: shopId } },
           items: {
@@ -714,7 +713,7 @@ export class OrderService {
             title: 'طلب جديد',
             content: `تم إنشاء طلب جديد بقيمة ${Number(total || 0)} ج.م`,
             type: 'ORDER' as any,
-            read: false,
+            isRead: false,
           },
         });
       } catch {
@@ -728,7 +727,7 @@ export class OrderService {
             title: 'تم استلام طلبك',
             content: `تم إنشاء طلبك بنجاح بقيمة ${Number(total || 0)} ج.م`,
             type: 'ORDER' as any,
-            read: false,
+            isRead: false,
           },
         });
       } catch {

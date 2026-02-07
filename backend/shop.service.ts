@@ -611,56 +611,27 @@ export class ShopService {
     const startTime = Date.now();
 
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Check if visit already exists for this IP today (unique daily visit)
-      const existingVisit = await this.prisma.visit.findFirst({
-        where: {
-          shopId,
-          date: {
-            gte: today,
-            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
+      // Postgres schema does not have Visit table; keep a simple counter.
+      await this.prisma.shop.update({
+        where: { id: shopId },
+        data: {
+          visitors: {
+            increment: 1,
           },
-          ipHash: ipHash || null,
         },
       });
 
-      // Only create new visit if no existing visit for this IP today
-      if (!existingVisit) {
-        await this.prisma.visit.create({
-          data: {
-            shopId,
-            date: new Date(),
-            ipHash: ipHash || null,
-            userAgent: userAgent || null,
-            source: source || null,
-            path: path || null,
-          },
-        });
-
-        // Update the legacy visitors count for backward compatibility
-        await this.prisma.shop.update({
-          where: { id: shopId },
-          data: {
-            visitors: {
-              increment: 1,
-            },
-          },
-        });
-
-        // Update cache counter
-        try {
-          await this.redis.incrementCounter(`shop:${shopId}:visitors`);
-        } catch {
-        }
+      // Update cache counter
+      try {
+        await this.redis.incrementCounter(`shop:${shopId}:visitors`);
+      } catch {
       }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
       this.monitoring.trackPerformance('incrementVisitors', duration);
 
-      return { recorded: !existingVisit, existing: !!existingVisit };
+      return { recorded: true, existing: false };
     } catch (error) {
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, false);
@@ -673,24 +644,13 @@ export class ShopService {
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.user.findFirst({
-          where: {
-            id: userId,
-            followingShops: {
-              some: { id: shopId }
-            }
-          }
+        const existing = await tx.shopFollower.findFirst({
+          where: { shopId, userId },
+          select: { id: true },
         });
 
         if (existing) {
-          await tx.user.update({
-            where: { id: userId },
-            data: {
-              followingShops: {
-                disconnect: { id: shopId }
-              }
-            }
-          });
+          await tx.shopFollower.delete({ where: { id: existing.id } });
 
           let updatedShop = await tx.shop.update({
             where: { id: shopId },
@@ -709,14 +669,7 @@ export class ShopService {
           return { followed: false, shop: updatedShop };
         }
 
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            followingShops: {
-              connect: { id: shopId }
-            }
-          }
-        });
+        await tx.shopFollower.create({ data: { shopId, userId } });
 
         try {
           const follower = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
@@ -726,7 +679,7 @@ export class ShopService {
               title: 'متابع جديد!',
               content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
               type: 'NEW_FOLLOWER',
-              read: false,
+              isRead: false,
               metadata: { followerId: userId, followerName: follower?.name },
             } as any,
           });
@@ -761,13 +714,9 @@ export class ShopService {
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.user.findFirst({
-          where: {
-            id: userId,
-            followingShops: {
-              some: { id: shopId }
-            }
-          }
+        const existing = await tx.shopFollower.findFirst({
+          where: { shopId, userId },
+          select: { id: true },
         });
 
         if (existing) {
@@ -778,14 +727,7 @@ export class ShopService {
           return { followed: true, followers: currentShop?.followers ?? 0 };
         }
 
-        await tx.user.update({
-          where: { id: userId },
-          data: {
-            followingShops: {
-              connect: { id: shopId }
-            }
-          }
-        });
+        await tx.shopFollower.create({ data: { shopId, userId } });
 
         try {
           const follower = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
@@ -795,7 +737,7 @@ export class ShopService {
               title: 'متابع جديد!',
               content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
               type: 'SYSTEM' as any,
-              read: false,
+              isRead: false,
             },
           });
         } catch {
@@ -878,16 +820,8 @@ export class ShopService {
         select: { id: true, visitors: true, followers: true },
       });
 
-      // Get accurate visitor count from Visit table for the date range
-      const visitCountInRange = await this.prisma.visit.count({
-        where: {
-          shopId,
-          date: {
-            gte: effectiveFrom,
-            lte: effectiveTo,
-          },
-        },
-      });
+      // Postgres schema does not have Visit table; use shop.visitors as a coarse metric.
+      const visitCountInRange = Number((shop as any)?.visitors || 0);
 
       const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
       const ordersInRange = await this.prisma.order.findMany({
@@ -899,7 +833,7 @@ export class ShopService {
             lte: effectiveTo,
           },
         },
-        select: { id: true, userId: true, totalAmount: true, createdAt: true },
+        select: { id: true, userId: true, total: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       });
 
@@ -912,17 +846,17 @@ export class ShopService {
             lte: effectiveTo,
           },
         },
-        select: { id: true, phone: true, createdAt: true },
+        select: { id: true, customerPhone: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       });
 
       const totalRevenue =
-        ordersInRange.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0) +
+        ordersInRange.reduce((sum, o) => sum + (Number((o as any).total) || 0), 0) +
         reservationsInRange.reduce((sum, r) => sum + 0, 0);
       const totalOrders = ordersInRange.length + reservationsInRange.length;
       const userIds = new Set<string>();
       for (const o of ordersInRange) userIds.add(String(o.userId));
-      for (const r of reservationsInRange) userIds.add(String(r.phone || ''));
+      for (const r of reservationsInRange) userIds.add(String((r as any).customerPhone || ''));
       userIds.delete('');
       const totalUsers = userIds.size;
 
@@ -942,7 +876,7 @@ export class ShopService {
 
       const salesCountToday = todayOrders.length + todayReservations.length;
       const revenueToday =
-        todayOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0) +
+        todayOrders.reduce((sum, o) => sum + (Number((o as any).total) || 0), 0) +
         todayReservations.reduce((sum, r) => sum + 0, 0);
 
       // Last 7 days chart (within available range)
@@ -962,7 +896,7 @@ export class ShopService {
         const dt = new Date(o.createdAt);
         const key = dt.toISOString().slice(0, 10);
         if (typeof chartBuckets[key] === 'number') {
-          chartBuckets[key] += Number(o.totalAmount) || 0;
+          chartBuckets[key] += Number((o as any).total) || 0;
         }
       }
 
