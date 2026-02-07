@@ -42,7 +42,10 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/backend/prisma ./backend/prisma
 
 # Ensure runtime-writable directories exist for non-root user
-RUN mkdir -p /app/logs /app/uploads && chown -R nextjs:nodejs /app/logs /app/uploads
+# Also ensure sqlite dev.db exists next to backend/prisma/schema.prisma (schema uses file:./dev.db)
+RUN mkdir -p /app/logs /app/uploads /app/backend/prisma \
+  && touch /app/backend/prisma/dev.db \
+  && chown -R nextjs:nodejs /app/logs /app/uploads /app/backend/prisma
 
 # Set permissions
 USER nextjs
