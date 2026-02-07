@@ -18,7 +18,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build the application
-RUN cd backend && npx prisma generate --schema prisma/schema.prisma
+RUN npx prisma generate --schema prisma/schema.prisma
 RUN npm run backend:build
 
 # Production image, copy all the files and run the app
@@ -39,13 +39,10 @@ COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/backend/prisma ./backend/prisma
 
 # Ensure runtime-writable directories exist for non-root user
-# Also ensure sqlite dev.db exists next to backend/prisma/schema.prisma (schema uses file:./dev.db)
-RUN mkdir -p /app/logs /app/uploads /app/backend/prisma \
-  && touch /app/backend/prisma/dev.db \
-  && chown -R nextjs:nodejs /app/logs /app/uploads /app/backend/prisma
+RUN mkdir -p /app/logs /app/uploads \
+  && chown -R nextjs:nodejs /app/logs /app/uploads
 
 # Set permissions
 USER nextjs
