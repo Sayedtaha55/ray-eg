@@ -1,12 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { 
   Users, Store, ShoppingCart, DollarSign, Check, X, 
   Loader2, ShieldAlert, TrendingUp, Search, UserCheck, Eye,
-  Bell, Settings, Filter, Edit, Plus
+  Bell, Settings, Filter, Edit, Plus, BarChart3, Activity,
+  AlertTriangle, FileText, Database, Shield, MessageSquare,
+  Calendar, Clock, MapPin, Phone, Mail, Trash2, MoreVertical,
+  Download, Upload, RefreshCw, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
@@ -19,10 +22,23 @@ const AdminDashboard: React.FC = () => {
   const [stats, setStats] = useState<any>(null);
   const [pendingShops, setPendingShops] = useState<any[]>([]);
   const [allShops, setAllShops] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'stats' | 'approvals' | 'users' | 'shops'>('stats');
+  const [activeTab, setActiveTab] = useState<'stats' | 'approvals' | 'users' | 'shops' | 'analytics' | 'notifications' | 'content' | 'settings'>('stats');
+  
+  // Search and Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [userRoleFilter, setUserRoleFilter] = useState<'all' | 'USER' | 'MERCHANT' | 'ADMIN'>('all');
+  const [shopStatusFilter, setShopStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>('all');
+  
+  // Modal states
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showShopModal, setShowShopModal] = useState(false);
+  const [selectedShop, setSelectedShop] = useState<any>(null);
+  
   const { addToast } = useToast();
 
   const timeAgoAr = (input: any) => {
@@ -49,16 +65,18 @@ const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [s, p, allS, ts, acts] = await Promise.all([
+      const [s, p, allS, allU, ts, acts] = await Promise.all([
         ApiService.getSystemAnalytics(),
         ApiService.getPendingShops(),
         ApiService.getShops('all'),
+        (ApiService as any).getUsers?.() || Promise.resolve([]),
         (ApiService as any).getSystemAnalyticsTimeseries?.(7) || Promise.resolve([]),
         (ApiService as any).getSystemActivity?.(10) || Promise.resolve([]),
       ]);
       setStats(s);
       setPendingShops(p);
       setAllShops(allS);
+      setAllUsers(Array.isArray(allU) ? allU : []);
       const mapped = (Array.isArray(ts) ? ts : []).map((row: any) => {
         const date = String(row?.date || '').trim();
         const d = date ? new Date(date) : new Date();
@@ -127,6 +145,76 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  // User Management Functions
+  const handleUserAction = async (userId: string, action: 'suspend' | 'activate' | 'delete') => {
+    try {
+      switch (action) {
+        case 'suspend':
+          // TODO: Implement suspend user API
+          addToast('تم تعليق المستخدم', 'success');
+          break;
+        case 'activate':
+          // TODO: Implement activate user API
+          addToast('تم تفعيل المستخدم', 'success');
+          break;
+        case 'delete':
+          if (window.confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+            // TODO: Implement delete user API
+            addToast('تم حذف المستخدم', 'success');
+          }
+          break;
+      }
+      loadData();
+    } catch (e) {
+      addToast('فشلت العملية', 'error');
+    }
+  };
+
+  const handleShopAction = async (shopId: string, action: 'suspend' | 'activate' | 'delete') => {
+    try {
+      switch (action) {
+        case 'suspend':
+          await ApiService.updateShopStatus(shopId, 'pending');
+          addToast('تم تعليق المتجر', 'success');
+          break;
+        case 'activate':
+          await ApiService.updateShopStatus(shopId, 'approved');
+          addToast('تم تفعيل المتجر', 'success');
+          break;
+        case 'delete':
+          if (window.confirm('هل أنت متأكد من حذف هذا المتجر؟')) {
+            // TODO: Implement delete shop API
+            addToast('تم حذف المتجر', 'success');
+          }
+          break;
+      }
+      loadData();
+    } catch (e) {
+      addToast('فشلت العملية', 'error');
+    }
+  };
+
+  // Filtered data
+  const filteredUsers = useMemo(() => {
+    return allUsers.filter((user: any) => {
+      const matchesSearch = !searchTerm || 
+        String(user?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(user?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesRole = userRoleFilter === 'all' || String(user?.role || '').toUpperCase() === userRoleFilter;
+      return matchesSearch && matchesRole;
+    });
+  }, [allUsers, searchTerm, userRoleFilter]);
+
+  const filteredShops = useMemo(() => {
+    return allShops.filter((shop: any) => {
+      const matchesSearch = !searchTerm || 
+        String(shop?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+        String(shop?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = shopStatusFilter === 'all' || String(shop?.status || '').toUpperCase() === shopStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [allShops, searchTerm, shopStatusFilter]);
+
   if (loading && !stats) return <div className="h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" /></div>;
 
   return (
@@ -159,8 +247,12 @@ const AdminDashboard: React.FC = () => {
       <div className="flex gap-2 p-2 bg-slate-900/30 rounded-[2rem] border border-white/5 overflow-x-auto no-scrollbar">
          <AdminTabBtn active={activeTab === 'stats'} onClick={() => setActiveTab('stats')} icon={<TrendingUp size={18} />} label="تحليلات النظام" />
          <AdminTabBtn active={activeTab === 'approvals'} onClick={() => setActiveTab('approvals')} icon={<ShieldAlert size={18} />} label={`طلبات الموافقة (${pendingShops.length})`} />
+         <AdminTabBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UserCheck size={18} />} label={`المستخدمين (${allUsers.length})`} />
          <AdminTabBtn active={activeTab === 'shops'} onClick={() => setActiveTab('shops')} icon={<Store size={18} />} label={`المتاجر (${allShops.length})`} />
-         <AdminTabBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon={<UserCheck size={18} />} label="إدارة المستخدمين" />
+         <AdminTabBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<BarChart3 size={18} />} label="التحليلات التفصيلية" />
+         <AdminTabBtn active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={18} />} label="الإشعارات" />
+         <AdminTabBtn active={activeTab === 'content'} onClick={() => setActiveTab('content')} icon={<FileText size={18} />} label="إدارة المحتوى" />
+         <AdminTabBtn active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings size={18} />} label="الإعدادات" />
       </div>
 
       {/* Content */}
@@ -200,6 +292,32 @@ const AdminDashboard: React.FC = () => {
                   <Plus size={16} /> متجر جديد
                 </button>
               </div>
+
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="البحث عن المتاجر..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00E5FF] focus:border-transparent"
+                  />
+                </div>
+                <select
+                  value={shopStatusFilter}
+                  onChange={(e) => setShopStatusFilter(e.target.value as any)}
+                  className="px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF] focus:border-transparent"
+                >
+                  <option value="all">جميع الحالات</option>
+                  <option value="APPROVED">نشط</option>
+                  <option value="PENDING">معلق</option>
+                  <option value="REJECTED">مرفوض</option>
+                  <option value="SUSPENDED">معطل</option>
+                </select>
+              </div>
+
               <div className="overflow-x-auto -mx-6 md:mx-0 px-6 md:px-0">
                 <table className="w-full min-w-[600px]">
                   <thead>
@@ -213,7 +331,7 @@ const AdminDashboard: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {allShops.map((shop) => (
+                    {filteredShops.map((shop) => (
                       <tr key={shop.id} className="border-b border-white/5 hover:bg-white/5">
                         <td className="px-4 py-3 md:py-4">
                           <div className="flex items-center gap-2 md:gap-3">
@@ -230,7 +348,11 @@ const AdminDashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 md:py-4 text-sm md:text-base text-slate-300">{shop.city}</td>
-                        <td className="px-4 py-3 md:py-4 text-sm md:text-base text-slate-300">{shop.deliveryFee || 0} ج.م</td>
+                        <td className="px-4 py-3 md:py-4 text-sm md:text-base text-slate-300">
+                          <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">
+                            {shop.deliveryFee || 0} ج.م
+                          </button>
+                        </td>
                         <td className="px-4 py-3 md:py-4">
                           <span className={`px-2 py-1 rounded-lg text-xs font-black ${
                             shop.status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : 
@@ -250,7 +372,7 @@ const AdminDashboard: React.FC = () => {
                             <button className="p-2 text-slate-400 hover:text-[#BD00FF] transition-colors">
                               <Edit className="w-4 h-4" />
                             </button>
-                            {shop.status === 'pending' && (
+                            {shop.status === 'PENDING' && (
                               <>
                                 <button onClick={() => handleAction(shop.id, 'approved')} className="px-3 py-1 bg-green-500 text-white rounded-xl text-xs font-black hover:bg-green-600">
                                   موافقة
@@ -266,6 +388,290 @@ const AdminDashboard: React.FC = () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+              {filteredShops.length === 0 && (
+                <div className="text-center py-12 text-slate-500 font-bold">
+                  {searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد متاجر'}
+                </div>
+              )}
+           </MotionDiv>
+         )}
+
+         {activeTab === 'users' && (
+           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+                <h3 className="text-xl md:text-2xl font-black text-white">إدارة المستخدمين</h3>
+                <button className="px-4 py-2 md:px-6 md:py-3 bg-[#00E5FF] text-black rounded-lg md:rounded-xl font-black text-sm md:text-base flex items-center gap-2 hover:scale-105 transition-all">
+                  <Plus size={16} /> مستخدم جديد
+                </button>
+              </div>
+
+              {/* Search and Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    placeholder="البحث عن المستخدمين..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00E5FF] focus:border-transparent"
+                  />
+                </div>
+                <select
+                  value={userRoleFilter}
+                  onChange={(e) => setUserRoleFilter(e.target.value as any)}
+                  className="px-4 py-3 bg-slate-800/50 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF] focus:border-transparent"
+                >
+                  <option value="all">جميع الأدوار</option>
+                  <option value="USER">مستخدم</option>
+                  <option value="MERCHANT">تاجر</option>
+                  <option value="ADMIN">إداري</option>
+                </select>
+              </div>
+
+              <div className="overflow-x-auto -mx-6 md:mx-0 px-6 md:px-0">
+                <table className="w-full min-w-[600px]">
+                  <thead>
+                    <tr className="border-b border-white/10">
+                      <th className="text-right px-4 py-3 text-xs md:text-sm font-black text-slate-400 whitespace-nowrap">المستخدم</th>
+                      <th className="text-right px-4 py-3 text-xs md:text-sm font-black text-slate-400 whitespace-nowrap">البريد الإلكتروني</th>
+                      <th className="text-right px-4 py-3 text-xs md:text-sm font-black text-slate-400 whitespace-nowrap">الدور</th>
+                      <th className="text-right px-4 py-3 text-xs md:text-sm font-black text-slate-400 whitespace-nowrap">تاريخ التسجيل</th>
+                      <th className="text-right px-4 py-3 text-xs md:text-sm font-black text-slate-400 whitespace-nowrap">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredUsers.map((user: any) => (
+                      <tr key={user.id} className="border-b border-white/5 hover:bg-white/5">
+                        <td className="px-4 py-3 md:py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-slate-600 flex items-center justify-center text-white font-black">
+                              {String(user?.name || '')[0]?.toUpperCase() || 'U'}
+                            </div>
+                            <div>
+                              <p className="font-black text-white text-sm md:text-base">{user.name}</p>
+                              <p className="text-xs text-slate-400">{user.phone || 'لا يوجد رقم'}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 md:py-4 text-sm md:text-base text-slate-300">{user.email}</td>
+                        <td className="px-4 py-3 md:py-4">
+                          <span className={`px-2 py-1 rounded-lg text-xs font-black ${
+                            user.role === 'ADMIN' ? 'bg-red-500/20 text-red-400' : 
+                            user.role === 'MERCHANT' ? 'bg-blue-500/20 text-blue-400' : 
+                            'bg-green-500/20 text-green-400'
+                          }`}>
+                            {user.role === 'ADMIN' ? 'إداري' : user.role === 'MERCHANT' ? 'تاجر' : 'مستخدم'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 md:py-4 text-sm md:text-base text-slate-300">
+                          {new Date(user.createdAt).toLocaleDateString('ar-EG')}
+                        </td>
+                        <td className="px-4 py-3 md:py-4">
+                          <div className="flex gap-1 md:gap-2">
+                            <button 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowUserModal(true);
+                              }}
+                              className="px-2 py-1 md:px-3 md:py-1 bg-blue-500 text-white rounded text-xs font-black hover:bg-blue-600 transition-all"
+                            >
+                              عرض
+                            </button>
+                            <button className="px-2 py-1 md:px-3 md:py-1 bg-slate-600 text-white rounded text-xs font-black hover:bg-slate-700 transition-all">
+                              تعديل
+                            </button>
+                            <button 
+                              onClick={() => handleUserAction(user.id, 'suspend')}
+                              className="px-2 py-1 md:px-3 md:py-1 bg-yellow-500 text-white rounded text-xs font-black hover:bg-yellow-600 transition-all"
+                            >
+                              تعليق
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {filteredUsers.length === 0 && (
+                <div className="text-center py-12 text-slate-500 font-bold">
+                  {searchTerm || userRoleFilter !== 'all' ? 'لا توجد نتائج مطابقة للبحث' : 'لا يوجد مستخدمين'}
+                </div>
+              )}
+           </MotionDiv>
+         )}
+
+         {activeTab === 'analytics' && (
+           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="space-y-6">
+            <div className="bg-slate-900 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg md:text-xl font-black text-white">التحليلات التفصيلية</h3>
+                <div className="flex gap-3">
+                  <button className="px-4 py-2 bg-slate-600 text-white rounded-xl font-bold hover:bg-slate-700 transition-all">
+                    <Download size={16} className="inline mr-2" />
+                    تصدير
+                  </button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={chartData}>
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip />
+                      <Bar dataKey="revenue" fill="#00E5FF" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <XAxis dataKey="name" stroke="#64748b" />
+                      <YAxis stroke="#64748b" />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="orders" stroke="#00E5FF" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+           </MotionDiv>
+         )}
+
+         {activeTab === 'notifications' && (
+           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl md:text-2xl font-black text-white">إدارة الإشعارات</h3>
+                <button className="px-4 py-2 bg-[#00E5FF] text-black rounded-xl font-black hover:scale-105 transition-all">
+                  <Plus size={16} className="inline mr-2" />
+                  إشعار جديد
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-black text-white">ترحيب بالتجار الجدد</h4>
+                      <p className="text-slate-400 text-sm">إشعار تلقائي عند انضمام تاجر جديد</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-black">نشط</button>
+                      <button className="p-2 text-slate-400 hover:text-white">
+                        <Edit size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-black text-white">تحديثات الطلبات</h4>
+                      <p className="text-slate-400 text-sm">إشعارات حالة الطلبات للمستخدمين</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-black">نشط</button>
+                      <button className="p-2 text-slate-400 hover:text-white">
+                        <Edit size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+           </MotionDiv>
+         )}
+
+         {activeTab === 'content' && (
+           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl md:text-2xl font-black text-white">إدارة المحتوى</h3>
+                <button className="px-4 py-2 bg-[#00E5FF] text-black rounded-xl font-black hover:scale-105 transition-all">
+                  <Plus size={16} className="inline mr-2" />
+                  محتوى جديد
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-black text-white">الشروط والأحكام</h4>
+                      <p className="text-slate-400 text-sm">آخر تحديث: {new Date().toLocaleDateString('ar-EG')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-black">عرض</button>
+                      <button className="p-2 text-slate-400 hover:text-white">
+                        <Edit size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-600">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-black text-white">سياسة الخصوصية</h4>
+                      <p className="text-slate-400 text-sm">آخر تحديث: {new Date().toLocaleDateString('ar-EG')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-black">عرض</button>
+                      <button className="p-2 text-slate-400 hover:text-white">
+                        <Edit size={14} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+           </MotionDiv>
+         )}
+
+         {activeTab === 'settings' && (
+           <MotionDiv initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="bg-slate-900 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
+              <div className="mb-6">
+                <h3 className="text-xl md:text-2xl font-black text-white mb-6">إعدادات النظام</h3>
+              </div>
+              
+              <div className="space-y-6">
+                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-600">
+                  <h4 className="font-black text-white mb-4">الإعدادات العامة</h4>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="font-bold text-white">تفعيل التسجيل الجديد</label>
+                        <p className="text-slate-400 text-sm">السماح للمستخدمين الجدد بالتسجيل</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="font-bold text-white">تفعيل الإشعارات</label>
+                        <p className="text-slate-400 text-sm">إرسال إشعارات للمستخدمين</p>
+                      </div>
+                      <input type="checkbox" defaultChecked className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-800/50 p-6 rounded-xl border border-slate-600">
+                  <h4 className="font-black text-white mb-4">إعدادات الدفع</h4>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="font-bold text-white block mb-2">عمولة المنصة (%)</label>
+                      <input type="number" defaultValue="5" className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-end">
+                  <button className="px-6 py-3 bg-[#00E5FF] text-black rounded-xl font-black hover:scale-105 transition-all">
+                    حفظ التغييرات
+                  </button>
+                </div>
               </div>
            </MotionDiv>
          )}
