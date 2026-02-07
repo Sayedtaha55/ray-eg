@@ -287,7 +287,7 @@ const PublicLayout: React.FC = () => {
             </div>
             <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
           </div>
-          <div className="grid grid-cols-2 gap-8 md:col-span-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:col-span-2">
             <div>
               <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
               <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
@@ -300,10 +300,18 @@ const PublicLayout: React.FC = () => {
               <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
               <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                 <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
-                <Link to="/business/courier-signup" className="hover:text-white transition-colors">تسجيل مندوب توصيل</Link>
                 {String(user?.role || '').toLowerCase() === 'courier' ? (
                   <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
                 ) : null}
+              </nav>
+            </div>
+            <div>
+              <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
+              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
+                <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
+                <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
+                <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
               </nav>
             </div>
           </div>

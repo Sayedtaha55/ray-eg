@@ -8,3 +8,7 @@ export { default as ProductPage } from './ProductPage';
 export { default as ShopProfile } from './ShopProfile';
 export { default as AboutPage } from './AboutPage';
 export { default as ProfilePage } from './ProfilePage';
+export { default as SupportPage } from './SupportPage';
+export { default as TermsPage } from './TermsPage';
+export { default as PrivacyPage } from './PrivacyPage';
+export { default as ContactPage } from './ContactPage';

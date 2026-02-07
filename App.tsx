@@ -14,6 +14,10 @@ const GoogleCallbackPage = React.lazy(() => import('./components/pages/auth/Goog
 const ResetPasswordPage = React.lazy(() => import('./components/pages/auth/ResetPasswordPage'));
 const ProfilePage = React.lazy(() => import('./components/pages/public/ProfilePage'));
 const AboutPage = React.lazy(() => import('./components/pages/public/AboutPage'));
+const SupportPage = React.lazy(() => import('./components/pages/public/SupportPage'));
+const TermsPage = React.lazy(() => import('./components/pages/public/TermsPage'));
+const PrivacyPage = React.lazy(() => import('./components/pages/public/PrivacyPage'));
+const ContactPage = React.lazy(() => import('./components/pages/public/ContactPage'));
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile.tsx'));
 const ShopProductPage = React.lazy(() => import('./components/pages/public/ShopProductPage'));
@@ -127,6 +131,10 @@ const App: React.FC = () => {
           <Route path="reset-password" element={suspense(<ResetPasswordPage />)} />
           <Route path="profile" element={suspense(<ProfilePage />)} />
           <Route path="about" element={suspense(<AboutPage />)} />
+          <Route path="support" element={suspense(<SupportPage />)} />
+          <Route path="terms" element={suspense(<TermsPage />)} />
+          <Route path="privacy" element={suspense(<PrivacyPage />)} />
+          <Route path="contact" element={suspense(<ContactPage />)} />
           <Route path="product/:id" element={suspense(<ProductPage />)} />
           <Route path="delivery" element={<Navigate to="/business/courier-signup" replace />} />
         </Route>
