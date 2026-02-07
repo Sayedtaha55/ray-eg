@@ -41,6 +41,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/backend/prisma ./backend/prisma
 
+# Ensure runtime-writable directories exist for non-root user
+RUN mkdir -p /app/logs /app/uploads && chown -R nextjs:nextjs /app/logs /app/uploads
+
 # Set permissions
 USER nextjs
 
