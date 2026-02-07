@@ -610,31 +610,60 @@ export class ShopService {
     }
   }
 
-  async incrementVisitors(shopId: string) {
+  async incrementVisitors(shopId: string, ipHash?: string, userAgent?: string, source?: string, path?: string) {
     const startTime = Date.now();
 
     try {
-      // Update database
-      await this.prisma.shop.update({
-        where: { id: shopId },
-        data: {
-          visitors: {
-            increment: 1,
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Check if visit already exists for this IP today (unique daily visit)
+      const existingVisit = await this.prisma.visit.findFirst({
+        where: {
+          shopId,
+          date: {
+            gte: today,
+            lt: new Date(today.getTime() + 24 * 60 * 60 * 1000),
           },
+          ipHash: ipHash || null,
         },
       });
 
-      // Update cache counter
-      try {
-        await this.redis.incrementCounter(`shop:${shopId}:visitors`);
-      } catch {
+      // Only create new visit if no existing visit for this IP today
+      if (!existingVisit) {
+        await this.prisma.visit.create({
+          data: {
+            shopId,
+            date: new Date(),
+            ipHash: ipHash || null,
+            userAgent: userAgent || null,
+            source: source || null,
+            path: path || null,
+          },
+        });
+
+        // Update the legacy visitors count for backward compatibility
+        await this.prisma.shop.update({
+          where: { id: shopId },
+          data: {
+            visitors: {
+              increment: 1,
+            },
+          },
+        });
+
+        // Update cache counter
+        try {
+          await this.redis.incrementCounter(`shop:${shopId}:visitors`);
+        } catch {
+        }
       }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);
       this.monitoring.trackPerformance('incrementVisitors', duration);
 
-      return true;
+      return { recorded: !existingVisit, existing: !!existingVisit };
     } catch (error) {
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, false);
@@ -849,6 +878,17 @@ export class ShopService {
         select: { id: true, visitors: true, followers: true },
       });
 
+      // Get accurate visitor count from Visit table for the date range
+      const visitCountInRange = await this.prisma.visit.count({
+        where: {
+          shopId,
+          date: {
+            gte: effectiveFrom,
+            lte: effectiveTo,
+          },
+        },
+      });
+
       const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
       const ordersInRange = await this.prisma.order.findMany({
         where: {
@@ -948,7 +988,7 @@ export class ShopService {
         totalRevenue,
         totalOrders,
         totalUsers,
-        visitorsCount: Number(shop?.visitors || 0),
+        visitorsCount: visitCountInRange, // Use accurate count from Visit table
         followersCount: Number(shop?.followers || 0),
         salesCountToday,
         revenueToday,

@@ -7,7 +7,7 @@ export class AnalyticsService {
 
   async getSystemAnalytics() {
     const successfulOrderStatuses = ['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED'];
-    const [totalUsers, totalShops, ordersAgg, reservationsAgg, shopsAgg] = await Promise.all([
+    const [totalUsers, totalShops, ordersAgg, reservationsAgg, totalVisitsAgg] = await Promise.all([
       this.prisma.user.count(),
       this.prisma.shop.count(),
       this.prisma.order.aggregate({
@@ -20,18 +20,13 @@ export class AnalyticsService {
         _count: { _all: true },
         _sum: { itemPrice: true },
       }),
-      this.prisma.shop.aggregate({
-        where: {
-          status: 'APPROVED',
-          isActive: true,
-        },
-        _sum: { visitors: true },
-      }),
+      // Get total unique visits across all shops from Visit table
+      this.prisma.visit.count(),
     ]);
 
     const totalOrders = Number(ordersAgg?._count?._all || 0) + Number((reservationsAgg as any)?._count?._all || 0);
     const totalRevenue = Number(ordersAgg?._sum?.total || 0) + Number((reservationsAgg as any)?._sum?.itemPrice || 0);
-    const totalVisits = Number(shopsAgg?._sum?.visitors || 0);
+    const totalVisits = totalVisitsAgg;
 
     return {
       totalRevenue,

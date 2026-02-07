@@ -173,6 +173,19 @@ const ShopProfile: React.FC = () => {
         const currentShopData = await ApiService.getShopBySlug(slug);
         if (currentShopData) {
           setShop(JSON.parse(JSON.stringify(currentShopData)));
+          
+          // Track visit with session-level deduplication
+          const shopId = String(currentShopData?.id || '').trim();
+          if (shopId) {
+            const sessionKey = `visited_shop_${shopId}`;
+            const hasVisitedThisSession = sessionStorage.getItem(sessionKey);
+            if (!hasVisitedThisSession) {
+              // First visit this session - track it
+              ApiService.incrementVisitors(shopId).catch(() => {});
+              sessionStorage.setItem(sessionKey, 'true');
+            }
+          }
+          
           // Fallback to default design if pageDesign is missing or invalid
           const design = currentShopData.pageDesign || {
             layout: 'modern',

@@ -354,13 +354,20 @@ export class ShopController {
   }
 
   @Post(':id/visit')
-  async trackVisit(@Param('id') id: string) {
+  async trackVisit(@Param('id') id: string, @Request() req) {
     const shopId = String(id || '').trim();
     if (!shopId) {
       throw new BadRequestException('id مطلوب');
     }
-    await this.shopService.incrementVisitors(shopId);
-    return { ok: true };
+    
+    // Get IP hash and user agent for unique visit tracking
+    const ip = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
+    const ipHash = Buffer.from(ip).toString('base64'); // Simple hash for privacy
+    const userAgent = req.headers['user-agent'] || null;
+    const referer = req.headers['referer'] || null;
+    
+    const result = await this.shopService.incrementVisitors(shopId, ipHash, userAgent, referer, req.path);
+    return { ok: true, recorded: result.recorded };
   }
 
   @UseGuards(JwtAuthGuard)

@@ -104,6 +104,7 @@ model Shop {
   followers        User[]     @relation("ShopFollowers")
   reservations     Reservation[]
   feedback         Feedback[]
+  visits           Visit[]
 
   @@map("shops")
 }
@@ -324,6 +325,23 @@ model ThemeTemplate {
   createdAt    DateTime @default(now())
 
   @@map("theme_templates")
+}
+
+model Visit {
+  id        String   @id @default(cuid())
+  shopId    String
+  date      DateTime @default(now())
+  ipHash    String?  // Hashed IP for uniqueness check (privacy-preserving)
+  userAgent String?  // Browser info
+  source    String?  // referrer source (direct, search, social, etc.)
+  path      String?  // path visited (/shop/:slug)
+  
+  // Relations
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@unique([shopId, date, ipHash]) // Prevent duplicate visits per day per IP
+  @@index([shopId, date])
+  @@map("visits")
 }
 
 enum MediaType {

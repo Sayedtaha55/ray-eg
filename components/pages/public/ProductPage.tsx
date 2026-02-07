@@ -93,9 +93,8 @@ const ProductPage: React.FC = () => {
             const s = shopRes.value as any;
             if (s) {
               setShop(s);
-              if ((s as any)?.id) {
-                ApiService.incrementVisitors(String((s as any).id)).catch(() => {});
-              }
+              // Note: Don't track visit here - only track on shop page, not product page
+              // to prevent inflated visit numbers
             }
           }
 
@@ -131,9 +130,8 @@ const ProductPage: React.FC = () => {
             try {
               const s = await ApiService.getShopBySlugOrId(String(shopId));
               setShop(s);
-              if (s?.id) {
-                await ApiService.incrementVisitors(String(s.id));
-              }
+              // Note: Don't track visit here - only track on shop page, not product page
+              // to prevent inflated visit numbers
             } catch {
             }
           }
