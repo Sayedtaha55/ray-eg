@@ -12,6 +12,7 @@ enum UserRole {
   USER
   MERCHANT
   ADMIN
+  COURIER
 }
 
 enum ShopStatus {
@@ -51,6 +52,9 @@ model User {
   password  String
   name      String
   role      UserRole @default(USER)
+  phone     String?  @unique
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -63,6 +67,7 @@ model User {
   reservations Reservation[]
   receivedMessages Message[] @relation("ReceivedMessages")
   followingShops Shop[] @relation("ShopFollowers")
+  notificationPreferences NotificationPreference?
 
   @@map("users")
 }
@@ -73,7 +78,9 @@ model Shop {
   slug             String     @unique
   description      String?
   logo             String?
+  logoUrl          String?    @map("logo_url")
   coverImage       String?
+  bannerUrl        String?    @map("banner_url")
   phone            String?
   email            String?
   address          String?
@@ -88,7 +95,16 @@ model Shop {
   openingHours     String?
   website          String?
   status           ShopStatus @default(PENDING)
+  category         String     @default("RETAIL")
+  governorate      String?
+  city             String?
+  deliveryFee      Float?     @map("delivery_fee")
+  isActive         Boolean    @default(true)
+  visitors         Int        @default(0)
+  followers        Int        @default(0)
   addons           Json?
+  pageDesign       Json?      @map("page_design")
+  layoutConfig     Json?      @map("layout_config")
   ownerId          String   @unique
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
@@ -101,7 +117,7 @@ model Shop {
   gallery          ShopGallery[]
   analytics        ShopAnalytics?
   theme            ShopTheme?
-  followers        User[]     @relation("ShopFollowers")
+  followersList    User[]     @relation("ShopFollowers")
   reservations     Reservation[]
   feedback         Feedback[]
   visits           Visit[]
@@ -116,8 +132,15 @@ model Product {
   price       Float
   category    String
   image       String?
+  imageUrl    String?  @map("image_url")
+  isActive    Boolean  @default(true)
   inStock     Boolean  @default(true)
   stock       Int?
+  trackStock  Boolean  @default(true) @map("track_stock")
+  images      Json?
+  colors      Json?
+  sizes       Json?
+  addons      Json?
   menuVariants Json?   @map("menu_variants")
   shopId      String
   createdAt   DateTime @default(now())
@@ -137,8 +160,13 @@ model Offer {
   title       String
   description String?
   discount    Float
+  oldPrice    Float?   @map("old_price")
+  newPrice    Float?   @map("new_price")
+  imageUrl    String?  @map("image_url")
+  isActive    Boolean  @default(true)
   startDate   DateTime
   endDate     DateTime
+  expiresAt   DateTime? @map("expires_at")
   shopId      String
   productId   String?
   createdAt   DateTime @default(now())
@@ -153,13 +181,15 @@ model Offer {
 
 model Order {
   id            String        @id @default(cuid())
-  totalAmount   Float
+  totalAmount   Float         @map("total_amount")
+  total         Float         @default(0)
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String?
   deliveryAddress String?
   userId        String
   shopId        String
+  courierId     String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -207,12 +237,13 @@ model Notification {
   title     String
   content   String
   type      NotificationType
-  userId    String
+  userId    String?
+  shopId    String?
   read      Boolean          @default(false)
   createdAt DateTime         @default(now())
 
   // Relations
-  user      User             @relation(fields: [userId], references: [id])
+  user      User?            @relation(fields: [userId], references: [id])
 
   @@map("notifications")
 }
@@ -342,6 +373,23 @@ model Visit {
   @@unique([shopId, date, ipHash]) // Prevent duplicate visits per day per IP
   @@index([shopId, date])
   @@map("visits")
+}
+
+model NotificationPreference {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  emailEnabled Boolean  @default(true)
+  smsEnabled   Boolean  @default(false)
+  pushEnabled  Boolean  @default(true)
+  inAppEnabled Boolean  @default(true)
+  typeSettings Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id])
+
+  @@map("notification_preferences")
 }
 
 enum MediaType {

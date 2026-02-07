@@ -41,6 +41,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
   const [savingAddons, setSavingAddons] = useState(false);
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const pageTitle = isRestaurant ? 'المنيو' : 'المخزون والمنتجات';
 
   useEffect(() => {
     if (!isRestaurant) return;
@@ -215,7 +216,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
     <>
       <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-12 flex-row-reverse">
-          <h3 className="text-3xl font-black">المخزون والمنتجات</h3>
+          <h3 className="text-3xl font-black">{pageTitle}</h3>
           <button
             onClick={onAdd}
             className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:bg-black transition-all"

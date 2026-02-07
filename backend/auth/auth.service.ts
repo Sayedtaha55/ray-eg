@@ -352,8 +352,7 @@ export class AuthService implements OnModuleInit {
 
     const env = String(process.env.NODE_ENV || '').toLowerCase();
     const autoApproveMerchantsInDev =
-      env !== 'production' &&
-      String(process.env.AUTO_APPROVE_MERCHANTS_IN_DEV || '').toLowerCase() === 'true';
+      env !== 'production';
 
     // 1. التحقق من صحة المدخلات
     if (password.length < 8) {
@@ -429,7 +428,11 @@ export class AuthService implements OnModuleInit {
 
       const updatedUser = await tx.user.update({
         where: { id: createdUser.id },
-        data: { shopId: createdShop.id },
+        data: {
+          shop: {
+            connect: { id: createdShop.id }
+          }
+        },
       });
 
       return { user: updatedUser, shop: createdShop };
@@ -438,7 +441,7 @@ export class AuthService implements OnModuleInit {
     if (String(result?.user?.role || '').toUpperCase() === 'MERCHANT') {
       const shopStatus = String((result as any)?.shop?.status || '').toUpperCase();
       if (shopStatus === 'APPROVED') {
-        return this.generateToken(result.user);
+        return await this.issueToken(result.user);
       }
       return {
         ok: true,
@@ -448,13 +451,12 @@ export class AuthService implements OnModuleInit {
           name: result.user.name,
           email: result.user.email,
           role: result.user.role,
-          shopId: result.user.shopId,
         },
         shop: result.shop,
       };
     }
 
-    return this.generateToken(result.user);
+    return await this.issueToken(result.user);
   }
 
   async courierSignup(dto: any) {
@@ -592,8 +594,7 @@ export class AuthService implements OnModuleInit {
         });
       }
 
-      const userShopId = String((user as any)?.shopId || '').trim() || undefined;
-      let shop = userShopId ? await tx.shop.findUnique({ where: { id: userShopId } }) : null;
+      let shop = user.id ? await tx.shop.findFirst({ where: { ownerId: user.id } }) : null;
 
       if (!shop) {
         const slug = await this.ensureUniqueSlug(devShopName, tx);
@@ -613,11 +614,6 @@ export class AuthService implements OnModuleInit {
             ownerId: user.id,
           },
         });
-
-        user = await tx.user.update({
-          where: { id: user.id },
-          data: { shopId: shop.id },
-        });
       } else {
         const status = String((shop as any)?.status || '').toUpperCase();
         const needsStatus = status !== 'APPROVED';
@@ -635,18 +631,10 @@ export class AuthService implements OnModuleInit {
         }
       }
 
-      const fixedShopId = String((user as any)?.shopId || '').trim();
-      if (!fixedShopId && shop?.id) {
-        user = await tx.user.update({
-          where: { id: user.id },
-          data: { shopId: shop.id },
-        });
-      }
-
       return user;
     });
 
-    return this.generateToken(resultUser);
+    return await this.issueToken(resultUser);
   }
 
   async devCourierLogin() {
@@ -700,7 +688,7 @@ export class AuthService implements OnModuleInit {
       return user;
     });
 
-    return this.generateToken(resultUser);
+    return await this.issueToken(resultUser);
   }
 
   /**
@@ -765,7 +753,7 @@ export class AuthService implements OnModuleInit {
 
         // After bootstrap, user object is guaranteed to be the correct admin.
         // Generate token directly instead of falling through to password check.
-        return this.generateToken(user);
+        return await this.issueToken(user);
       }
     }
 
@@ -784,14 +772,13 @@ export class AuthService implements OnModuleInit {
       throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
     }
     if (role === 'MERCHANT') {
-      const shopId = String((user as any)?.shopId || '').trim();
-      if (!shopId) {
-        throw new ForbiddenException('حساب التاجر غير مكتمل');
-      }
-      const shop = await this.prisma.shop.findUnique({
-        where: { id: shopId },
+      const shop = await this.prisma.shop.findFirst({
+        where: { ownerId: user.id },
         select: { id: true, status: true },
       });
+      if (!shop) {
+        throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
@@ -804,7 +791,7 @@ export class AuthService implements OnModuleInit {
       data: { lastLogin: new Date() }
     });
 
-    return this.generateToken(user);
+    return await this.issueToken(user);
   }
 
   async loginWithGoogleProfile(profile: any) {
@@ -842,7 +829,7 @@ export class AuthService implements OnModuleInit {
       });
     }
 
-    return this.generateToken(user);
+    return await this.issueToken(user);
   }
 
   async session(userId: string) {
@@ -854,34 +841,44 @@ export class AuthService implements OnModuleInit {
 
     const role = String(user?.role || '').toUpperCase();
     if (role === 'MERCHANT') {
-      const shopId = String((user as any)?.shopId || '').trim();
-      if (!shopId) {
-        throw new ForbiddenException('حساب التاجر غير مكتمل');
-      }
-      const shop = await this.prisma.shop.findUnique({
-        where: { id: shopId },
+      const shop = await this.prisma.shop.findFirst({
+        where: { ownerId: user.id },
         select: { id: true, status: true },
       });
+      if (!shop) {
+        throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
       }
     }
 
-    return this.generateToken(user);
+    return await this.issueToken(user);
   }
 
   /**
    * توليد توكن JWT آمن
    */
-  private generateToken(user: any) {
-    const payload = { 
-      sub: user.id, 
-      email: user.email, 
+  private async issueToken(user: any) {
+    const role = String(user?.role || '').toUpperCase();
+    let shopId: string | undefined;
+
+    if (role === 'MERCHANT') {
+      const shop = await this.prisma.shop.findFirst({
+        where: { ownerId: user.id },
+        select: { id: true },
+      });
+      if (shop?.id) shopId = shop.id;
+    }
+
+    const payload: any = {
+      sub: user.id,
+      email: user.email,
       role: user.role,
-      shopId: user.shopId 
+      ...(shopId ? { shopId } : {}),
     };
-    
+
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -889,8 +886,8 @@ export class AuthService implements OnModuleInit {
         name: user.name,
         email: user.email,
         role: user.role,
-        shopId: user.shopId
-      }
+        ...(shopId ? { shopId } : {}),
+      },
     };
   }
 }

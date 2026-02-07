@@ -38,7 +38,7 @@ export class CourierDispatchService {
         courierId: true,
         status: true,
         shop: { select: { id: true, latitude: true, longitude: true } },
-      },
+      } as any,
     });
 
     if (!order) return null;

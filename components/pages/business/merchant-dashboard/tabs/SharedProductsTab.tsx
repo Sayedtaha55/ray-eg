@@ -31,6 +31,9 @@ const SharedProductsTab: React.FC<Props> = ({
   const [togglingId, setTogglingId] = React.useState<string>('');
   const { addToast } = useToast();
 
+  const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const pageTitle = isRestaurant ? 'المنيو' : 'المخزون';
+
   const handleToggleActive = async (product: Product) => {
     if (!shopId || togglingId) return;
     setTogglingId(product.id);
@@ -50,7 +53,7 @@ const SharedProductsTab: React.FC<Props> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-black">المخزون</h2>
+        <h2 className="text-2xl font-black">{pageTitle}</h2>
         <button
           onClick={onAdd}
           className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all"

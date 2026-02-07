@@ -299,10 +299,12 @@ export class OfferService {
       if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
       if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) throw new BadRequestException('newPrice غير صحيح');
 
+      const startDate = new Date();
+      const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
+
       const created = await this.prisma.offer.create({
         data: {
-          shopId,
-          productId: null,
+          shop: { connect: { id: shopId } },
           title,
           description: input?.description ? String(input.description) : null,
           discount,
@@ -310,6 +312,8 @@ export class OfferService {
           newPrice,
           imageUrl: input?.imageUrl ? String(input.imageUrl) : null,
           expiresAt,
+          startDate,
+          endDate,
           isActive: true,
         },
       });
@@ -331,6 +335,9 @@ export class OfferService {
     if (products.length !== productIds.length) {
       throw new BadRequestException('المنتج غير صالح لهذا المتجر');
     }
+
+    const startDate = new Date();
+    const endDate = new Date(startDate.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days default
 
     const created = await this.prisma.$transaction(async (tx) => {
       const created: any[] = [];
@@ -372,9 +379,9 @@ export class OfferService {
             discount,
             oldPrice: baseOldPrice,
             newPrice,
-            variantPricing: variantPricing ? (variantPricing.rows as any) : undefined,
-            imageUrl: input?.imageUrl ? String(input.imageUrl) : (p.imageUrl ? String(p.imageUrl) : null),
             expiresAt,
+            startDate,
+            endDate,
             isActive: true,
           },
         });

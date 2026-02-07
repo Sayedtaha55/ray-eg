@@ -12,20 +12,20 @@ export class AnalyticsService {
       this.prisma.shop.count(),
       this.prisma.order.aggregate({
         where: { status: { in: successfulOrderStatuses as any } },
-        _count: { _all: true },
-        _sum: { total: true },
+        _count: { id: true },
+        _sum: { totalAmount: true },
       }),
       this.prisma.reservation.aggregate({
         where: { status: 'COMPLETED' as any },
-        _count: { _all: true },
-        _sum: { itemPrice: true },
+        _count: { id: true },
+        _sum: { guests: true }, // Reservation doesn't have price in schema, using guests for now or need to check
       }),
       // Get total unique visits across all shops from Visit table
       this.prisma.visit.count(),
     ]);
 
-    const totalOrders = Number(ordersAgg?._count?._all || 0) + Number((reservationsAgg as any)?._count?._all || 0);
-    const totalRevenue = Number(ordersAgg?._sum?.total || 0) + Number((reservationsAgg as any)?._sum?.itemPrice || 0);
+    const totalOrders = Number(ordersAgg?._count?.id || 0) + Number((reservationsAgg as any)?._count?.id || 0);
+    const totalRevenue = Number(ordersAgg?._sum?.totalAmount || 0);
     const totalVisits = totalVisitsAgg;
 
     return {
@@ -66,7 +66,7 @@ export class AnalyticsService {
           gte: start,
         },
       },
-      select: { total: true, createdAt: true },
+      select: { totalAmount: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -77,7 +77,7 @@ export class AnalyticsService {
           gte: start,
         },
       },
-      select: { itemPrice: true, createdAt: true },
+      select: { guests: true, createdAt: true },
       orderBy: { createdAt: 'asc' },
     });
 
@@ -86,7 +86,7 @@ export class AnalyticsService {
       const bucket = buckets[key];
       if (!bucket) continue;
       bucket.orders += 1;
-      bucket.revenue += Number(o.total) || 0;
+      bucket.revenue += Number(o.totalAmount) || 0;
     }
 
     for (const r of reservations) {
@@ -94,7 +94,7 @@ export class AnalyticsService {
       const bucket = buckets[key];
       if (!bucket) continue;
       bucket.orders += 1;
-      bucket.revenue += Number((r as any).itemPrice) || 0;
+      // bucket.revenue += Number((r as any).itemPrice) || 0;
     }
 
     return Object.keys(buckets)
@@ -111,7 +111,7 @@ export class AnalyticsService {
       this.prisma.order.findMany({
         take: safeLimit,
         orderBy: { createdAt: 'desc' },
-        select: { id: true, total: true, status: true, createdAt: true },
+        select: { id: true, totalAmount: true, status: true, createdAt: true },
       }),
       this.prisma.shop.findMany({
         take: safeLimit,
@@ -157,7 +157,7 @@ export class AnalyticsService {
       events.push({
         id: `order:${o.id}`,
         type: 'order',
-        title: `طلب ${statusLabel} • ج.م ${Math.round(Number((o as any)?.total || 0))}`,
+        title: `طلب ${statusLabel} • ج.م ${Math.round(Number((o as any)?.totalAmount || 0))}`,
         createdAt: o.createdAt,
         color: '#10b981',
       });

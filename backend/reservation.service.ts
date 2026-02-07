@@ -416,26 +416,25 @@ export class ReservationService {
     const id = String(userId || '').trim();
     if (!id) throw new BadRequestException('userId مطلوب');
 
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-      select: { phone: true },
+    await this.expireStaleReservations({ userId: id });
+
+    const pagination = this.getPagination(paging);
+    return this.prisma.reservation.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      ...(pagination ? pagination : {}),
     });
-
-    const phone = String(user?.phone || '').trim();
-    if (!phone) throw new BadRequestException('رقم الهاتف غير متوفر لهذا الحساب');
-
-    return this.listByCustomerPhone(phone, paging);
   }
 
   async listByCustomerPhone(customerPhone: string, paging?: { page?: number; limit?: number }) {
     const phone = String(customerPhone || '').trim();
     if (!phone) throw new BadRequestException('customerPhone مطلوب');
 
-    await this.expireStaleReservations({ customerPhone: phone });
+    await this.expireStaleReservations({ phone });
 
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
-      where: { customerPhone: phone },
+      where: { phone },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });

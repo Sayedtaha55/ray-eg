@@ -179,7 +179,7 @@ export class NotificationService {
     if (!uid) throw new BadRequestException('غير مصرح');
 
     const count = await this.prisma.notification.count({
-      where: { userId: uid, isRead: false },
+      where: { userId: uid, read: false },
     });
 
     return { count };
@@ -190,8 +190,8 @@ export class NotificationService {
     if (!uid) throw new BadRequestException('غير مصرح');
 
     await this.prisma.notification.updateMany({
-      where: { userId: uid, isRead: false },
-      data: { isRead: true },
+      where: { userId: uid, read: false },
+      data: { read: true },
     });
 
     return { ok: true };
@@ -213,7 +213,7 @@ export class NotificationService {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    await this.prisma.notification.update({ where: { id }, data: { isRead: true } });
+    await this.prisma.notification.update({ where: { id }, data: { read: true } });
     return { ok: true };
   }
 
@@ -230,7 +230,7 @@ export class NotificationService {
 
     await this.prisma.notification.update({
       where: { id },
-      data: { isRead: true },
+      data: { read: true },
     });
 
     return { ok: true };
@@ -266,7 +266,7 @@ export class NotificationService {
     }
 
     const count = await this.prisma.notification.count({
-      where: { shopId: sid, userId: null, isRead: false },
+      where: { shopId: sid, userId: null, read: false },
     });
 
     return { count };
@@ -282,8 +282,8 @@ export class NotificationService {
     }
 
     await this.prisma.notification.updateMany({
-      where: { shopId: sid, userId: null, isRead: false },
-      data: { isRead: true },
+      where: { shopId: sid, userId: null, read: false },
+      data: { read: true },
     });
 
     return { ok: true };

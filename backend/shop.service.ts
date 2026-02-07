@@ -442,8 +442,6 @@ export class ShopService {
           locationSource: true,
           locationAccuracy: true,
           locationUpdatedAt: true,
-          rating: true,
-          followers: true,
           visitors: true,
           isActive: true,
           status: true,
@@ -568,7 +566,6 @@ export class ShopService {
           take: 5,
         },
         gallery: {
-          where: { isActive: true },
           take: 6,
         },
       };
@@ -676,23 +673,23 @@ export class ShopService {
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.shopFollower.findUnique({
+        const existing = await tx.user.findFirst({
           where: {
-            shopId_userId: {
-              shopId,
-              userId,
-            },
-          },
+            id: userId,
+            followingShops: {
+              some: { id: shopId }
+            }
+          }
         });
 
         if (existing) {
-          await tx.shopFollower.delete({
-            where: {
-              shopId_userId: {
-                shopId,
-                userId,
-              },
-            },
+          await tx.user.update({
+            where: { id: userId },
+            data: {
+              followingShops: {
+                disconnect: { id: shopId }
+              }
+            }
           });
 
           let updatedShop = await tx.shop.update({
@@ -712,11 +709,13 @@ export class ShopService {
           return { followed: false, shop: updatedShop };
         }
 
-        await tx.shopFollower.create({
+        await tx.user.update({
+          where: { id: userId },
           data: {
-            shopId,
-            userId,
-          },
+            followingShops: {
+              connect: { id: shopId }
+            }
+          }
         });
 
         try {
@@ -727,7 +726,7 @@ export class ShopService {
               title: 'متابع جديد!',
               content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
               type: 'NEW_FOLLOWER',
-              isRead: false,
+              read: false,
               metadata: { followerId: userId, followerName: follower?.name },
             } as any,
           });
@@ -762,13 +761,13 @@ export class ShopService {
 
     try {
       const result = await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.shopFollower.findUnique({
+        const existing = await tx.user.findFirst({
           where: {
-            shopId_userId: {
-              shopId,
-              userId,
-            },
-          },
+            id: userId,
+            followingShops: {
+              some: { id: shopId }
+            }
+          }
         });
 
         if (existing) {
@@ -779,24 +778,25 @@ export class ShopService {
           return { followed: true, followers: currentShop?.followers ?? 0 };
         }
 
-        await tx.shopFollower.create({
+        await tx.user.update({
+          where: { id: userId },
           data: {
-            shopId,
-            userId,
-          },
+            followingShops: {
+              connect: { id: shopId }
+            }
+          }
         });
 
         try {
           const follower = await tx.user.findUnique({ where: { id: userId }, select: { name: true } });
           await tx.notification.create({
             data: {
-              shopId,
+              user: { connect: { id: userId } },
               title: 'متابع جديد!',
               content: `${String(follower?.name || 'عميل')} بدأ يتابع متجرك`,
-              type: 'NEW_FOLLOWER',
-              isRead: false,
-              metadata: { followerId: userId, followerName: follower?.name },
-            } as any,
+              type: 'SYSTEM' as any,
+              read: false,
+            },
           });
         } catch {
         }
@@ -899,7 +899,7 @@ export class ShopService {
             lte: effectiveTo,
           },
         },
-        select: { id: true, userId: true, total: true, createdAt: true },
+        select: { id: true, userId: true, totalAmount: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       });
 
@@ -912,17 +912,17 @@ export class ShopService {
             lte: effectiveTo,
           },
         },
-        select: { id: true, customerPhone: true, itemPrice: true, createdAt: true },
+        select: { id: true, phone: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       });
 
       const totalRevenue =
-        ordersInRange.reduce((sum, o) => sum + (Number(o.total) || 0), 0) +
-        reservationsInRange.reduce((sum, r) => sum + (Number((r as any).itemPrice) || 0), 0);
+        ordersInRange.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0) +
+        reservationsInRange.reduce((sum, r) => sum + 0, 0);
       const totalOrders = ordersInRange.length + reservationsInRange.length;
       const userIds = new Set<string>();
       for (const o of ordersInRange) userIds.add(String(o.userId));
-      for (const r of reservationsInRange) userIds.add(String((r as any).customerPhone || ''));
+      for (const r of reservationsInRange) userIds.add(String(r.phone || ''));
       userIds.delete('');
       const totalUsers = userIds.size;
 
@@ -936,14 +936,14 @@ export class ShopService {
       });
 
       const todayReservations = reservationsInRange.filter((r) => {
-        const t = new Date((r as any).createdAt).getTime();
+        const t = new Date(r.createdAt).getTime();
         return t >= todayStart.getTime() && t < todayEnd.getTime();
       });
 
       const salesCountToday = todayOrders.length + todayReservations.length;
       const revenueToday =
-        todayOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0) +
-        todayReservations.reduce((sum, r) => sum + (Number((r as any).itemPrice) || 0), 0);
+        todayOrders.reduce((sum, o) => sum + (Number(o.totalAmount) || 0), 0) +
+        todayReservations.reduce((sum, r) => sum + 0, 0);
 
       // Last 7 days chart (within available range)
       const chartFrom = new Date(effectiveTo);
@@ -962,7 +962,7 @@ export class ShopService {
         const dt = new Date(o.createdAt);
         const key = dt.toISOString().slice(0, 10);
         if (typeof chartBuckets[key] === 'number') {
-          chartBuckets[key] += Number(o.total) || 0;
+          chartBuckets[key] += Number(o.totalAmount) || 0;
         }
       }
 
@@ -970,7 +970,7 @@ export class ShopService {
         const dt = new Date((r as any).createdAt);
         const key = dt.toISOString().slice(0, 10);
         if (typeof chartBuckets[key] === 'number') {
-          chartBuckets[key] += Number((r as any).itemPrice) || 0;
+          chartBuckets[key] += 0;
         }
       }
 

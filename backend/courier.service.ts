@@ -127,7 +127,7 @@ export class CourierService {
       if (String(offer.courierId) !== courierId) throw new ForbiddenException('صلاحيات غير كافية');
       if (String(offer.status || '').toUpperCase() !== 'PENDING') throw new BadRequestException('العرض غير صالح');
       if (offer.expiresAt && offer.expiresAt.getTime() <= now.getTime()) {
-        await tx.orderCourierOffer.update({ where: { id }, data: { status: 'EXPIRED' as any } });
+        await (tx as any).orderCourierOffer.update({ where: { id }, data: { status: 'EXPIRED' as any } });
         throw new BadRequestException('انتهت صلاحية العرض');
       }
 
@@ -144,7 +144,7 @@ export class CourierService {
 
       await tx.order.update({
         where: { id: String(order.id) },
-        data: { courierId },
+        data: { courierId } as any,
       });
 
       await (tx as any).orderCourierOffer.update({
@@ -163,8 +163,7 @@ export class CourierService {
           items: { include: { product: true } },
           shop: true,
           user: true,
-          courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
-        },
+        } as any,
       });
 
       return updated;

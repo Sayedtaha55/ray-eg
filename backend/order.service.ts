@@ -172,8 +172,8 @@ export class OrderService {
           orderId: params.orderId,
           title,
           content,
-          type: 'ORDER_STATUS',
-          isRead: false,
+          type: 'ORDER' as any,
+          read: false,
         },
       });
     } catch {
@@ -295,11 +295,10 @@ export class OrderService {
 
           const productIds = Array.from(new Set((items || []).map((i) => String(i.productId || '').trim()).filter(Boolean)));
           const products = productIds.length
-            ? await tx.product.findMany({ where: { id: { in: productIds } }, select: { id: true, trackStock: true } as any })
+            ? await tx.product.findMany({ where: { id: { in: productIds } }, select: { id: true, stock: true } as any })
             : [];
           const tracked = new Set(
             (products || [])
-              .filter((p: any) => (typeof p?.trackStock === 'boolean' ? p.trackStock : true))
               .map((p: any) => String(p.id)),
           );
 
@@ -323,7 +322,6 @@ export class OrderService {
             },
             shop: true,
             user: true,
-            courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
           },
         });
         if (!found) throw new BadRequestException('الطلب غير موجود');
@@ -341,7 +339,6 @@ export class OrderService {
           },
           shop: true,
           user: true,
-          courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
         },
       });
     });
@@ -395,7 +392,6 @@ export class OrderService {
           },
         },
         user: { select: { id: true, name: true, email: true, phone: true } },
-        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
       ...(pagination ? pagination : {}),
     });
@@ -424,7 +420,6 @@ export class OrderService {
         },
         shop: true,
         user: true,
-        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
       ...(pagination ? pagination : {}),
     });
@@ -654,12 +649,10 @@ export class OrderService {
 
       const created = await tx.order.create({
         data: {
-          shopId,
-          userId,
-          total,
-          status,
-          paymentMethod: input?.paymentMethod ? String(input.paymentMethod) : null,
-          notes: safeNotes,
+          total: total,
+          totalAmount: total,
+          user: { connect: { id: userId } },
+          shop: { connect: { id: shopId } },
           items: {
             create: normalizedItems.map((item) => {
               const product = byId[item.productId];
@@ -717,11 +710,11 @@ export class OrderService {
       try {
         await tx.notification.create({
           data: {
-            shopId,
+            userId,
             title: 'طلب جديد',
             content: `تم إنشاء طلب جديد بقيمة ${Number(total || 0)} ج.م`,
-            type: 'ORDER',
-            isRead: false,
+            type: 'ORDER' as any,
+            read: false,
           },
         });
       } catch {
@@ -731,13 +724,11 @@ export class OrderService {
       try {
         await tx.notification.create({
           data: {
-            shopId,
             userId,
-            orderId: created.id,
             title: 'تم استلام طلبك',
             content: `تم إنشاء طلبك بنجاح بقيمة ${Number(total || 0)} ج.م`,
-            type: 'ORDER',
-            isRead: false,
+            type: 'ORDER' as any,
+            read: false,
           },
         });
       } catch {
@@ -771,12 +762,11 @@ export class OrderService {
 
     const updated = await this.prisma.order.update({
       where: { id },
-      data: { courierId: courier.id },
+      data: { courierId: courier.id } as any,
       include: {
         items: { include: { product: true } },
         shop: true,
         user: true,
-        courier: { select: { id: true, name: true, email: true, phone: true, role: true } },
       },
     });
 
