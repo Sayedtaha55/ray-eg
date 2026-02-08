@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnmknk-v1';
+const CACHE_NAME = 'mnmknk-v2';
 const urlsToCache = [
   '/',
   '/shops',
@@ -53,62 +53,86 @@ if (DEV_HOST) {
 
 // Install event
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event?.data?.type === 'SKIP_WAITING') {
+    try {
+      self.skipWaiting();
+    } catch {
+    }
+  }
+});
+
 // Fetch event
 self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
+  if (event.request.method !== 'GET') return;
 
-        // Clone the request
-        const fetchRequest = event.request.clone();
+  const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document';
 
-        return fetch(fetchRequest).then(response => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-
-          // Clone the response
+  if (isNavigation) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
           const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          return cached || (await caches.match('/'));
+        }),
+    );
+    return;
+  }
 
-          caches.open(CACHE_NAME)
-            .then(cache => {
+  event.respondWith(
+    caches.match(event.request).then((cached) => {
+      const fetchPromise = fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
             });
-
-          return response;
-        }).catch(() => {
-          // Return offline page for navigation requests
-          if (event.request.destination === 'document') {
-            return caches.match('/');
           }
-        });
-      })
+          return response;
+        })
+        .catch(() => cached);
+
+      return cached || fetchPromise;
+    }),
   );
 });
 
 // Activate event
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
+    (async () => {
+      try {
+        const cacheNames = await caches.keys();
+        await Promise.all(
+          cacheNames.map((cacheName) => {
+            if (cacheName !== CACHE_NAME) {
+              return caches.delete(cacheName);
+            }
+          }),
+        );
+      } catch {
+      }
+
+      try {
+        await self.clients.claim();
+      } catch {
+      }
+    })()
   );
 });
 }

@@ -17,6 +17,8 @@ function resolveBackendBaseUrl() {
   const fallbackHost = hostname === 'localhost' ? '127.0.0.1' : hostname;
   const fallback = `http://${fallbackHost}:4000`;
 
+  const prodDefault = 'https://api.mnmknk.com';
+
   // Prevent silent misconfiguration in production builds.
   // If this triggers on prod, you MUST set VITE_BACKEND_URL in your hosting environment.
   const isProdBuild = Boolean((import.meta as any)?.env?.PROD);
@@ -27,6 +29,8 @@ function resolveBackendBaseUrl() {
       fallback,
       '— this will likely break production. Set VITE_BACKEND_URL=https://api.mnmknk.com',
     );
+
+    return normalizeBaseUrl(prodDefault);
   }
 
   return normalizeBaseUrl(fallback);

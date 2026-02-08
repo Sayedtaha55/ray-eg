@@ -113,7 +113,14 @@ import {
   getThemeTemplatesViaMock,
   updateThemeViaMock,
 } from './api/modules/themes';
-import { getFeedbackViaMock, saveFeedbackViaMock } from './api/modules/feedback';
+import {
+  createFeedbackViaBackend,
+  deleteFeedbackAdminViaBackend,
+  getFeedbackViaMock,
+  listFeedbackAdminViaBackend,
+  saveFeedbackViaMock,
+  updateFeedbackStatusAdminViaBackend,
+} from './api/modules/feedback';
 import {
   getMerchantChatsViaMock,
   getMessagesViaMock,
@@ -597,11 +604,17 @@ export const ApiService = {
   },
 
   // Feedback
-  getFeedback: () => {
-    return getFeedbackViaMock(mockDb);
+  getFeedback: async (opts?: { take?: number; skip?: number; status?: string; q?: string }) => {
+    return await listFeedbackAdminViaBackend(opts);
+  },
+  updateFeedbackStatus: async (id: string, status: string) => {
+    return await updateFeedbackStatusAdminViaBackend(id, status);
+  },
+  deleteFeedback: async (id: string) => {
+    return await deleteFeedbackAdminViaBackend(id);
   },
   saveFeedback: async (feedbackData: any) => {
-    return await saveFeedbackViaMock(feedbackData);
+    return await createFeedbackViaBackend(feedbackData);
   },
 
   // Customer Management

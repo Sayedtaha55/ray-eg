@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, ChevronRight, Bell, Zap, Menu, X, MessageSquare, CreditCard, Store } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, MessageSquare, CreditCard, Store, BarChart3, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
@@ -60,13 +60,16 @@ const AdminLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto no-scrollbar">
-           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname === '/admin/dashboard'} />
-           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname === '/admin/approvals'} />
-           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname === '/admin/shops'} />
-           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname === '/admin/users'} />
-           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname === '/admin/orders'} />
-           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname === '/admin/feedback'} />
-           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label="إعدادات النظام" active={location.pathname === '/admin/settings'} />
+           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname.startsWith('/admin/dashboard')} />
+           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname.startsWith('/admin/approvals')} />
+           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname.startsWith('/admin/shops')} />
+           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname.startsWith('/admin/users')} />
+           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname.startsWith('/admin/orders')} />
+           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname.startsWith('/admin/feedback')} />
+           <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label="التحليلات" active={location.pathname.startsWith('/admin/analytics')} />
+           <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label="الإشعارات" active={location.pathname.startsWith('/admin/notifications')} />
+           <AdminNavItem to="/admin/content" icon={<FileText size={20} />} label="إدارة المحتوى" active={location.pathname.startsWith('/admin/content')} />
+           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label="إعدادات النظام" active={location.pathname.startsWith('/admin/settings')} />
         </nav>
 
         <div className="p-8 border-t border-white/5">

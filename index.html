@@ -48,8 +48,41 @@
         window.addEventListener('load', async () => {
           if (import.meta.env.PROD) {
             navigator.serviceWorker.register('/sw.js')
-              .then(registration => {
+              .then(async (registration) => {
                 console.log('SW registered: ', registration);
+
+                try {
+                  await registration.update();
+                } catch {
+                }
+
+                const reloadOnUpdate = () => {
+                  try {
+                    if (navigator.serviceWorker.controller) {
+                      window.location.reload();
+                    }
+                  } catch {
+                  }
+                };
+
+                const watchInstalling = (worker) => {
+                  if (!worker) return;
+                  worker.addEventListener('statechange', () => {
+                    if (worker.state === 'activated') {
+                      reloadOnUpdate();
+                    }
+                  });
+                };
+
+                registration.addEventListener('updatefound', () => {
+                  watchInstalling(registration.installing);
+                });
+
+                watchInstalling(registration.installing);
+
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  reloadOnUpdate();
+                });
               })
               .catch(registrationError => {
                 console.log('SW registration failed: ', registrationError);

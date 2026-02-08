@@ -16,6 +16,7 @@ import { CustomersModule } from './customers.module';
 import { NotificationModule } from './notification.module';
 import { MediaModule } from './media.module';
 import { CourierModule } from './courier.module';
+import { FeedbackModule } from './feedback.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -55,6 +56,7 @@ import { DatabaseTestController } from './db-test.controller';
           ...(includeAllModules || bootModules.has('notification') ? [NotificationModule] : []),
           ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
           ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
+          ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
         ]),
   ],
   controllers: minimalBoot

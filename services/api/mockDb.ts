@@ -650,29 +650,7 @@ class MockDatabase {
 
   // Feedback
   async getFeedback() {
-    // Return mock feedback data
-    return [
-      {
-        id: '1',
-        userId: 'user1',
-        userName: 'أحمد محمد',
-        userEmail: 'ahmed@example.com',
-        rating: 5,
-        comment: 'خدمة ممتازة ومنتجات رائعة!',
-        createdAt: new Date().toISOString(),
-        status: 'published'
-      },
-      {
-        id: '2',
-        userId: 'user2',
-        userName: 'فاطمة علي',
-        userEmail: 'fatima@example.com',
-        rating: 4,
-        comment: 'جيد جدا ولكن يمكن تحسين سرعة التوصيل',
-        createdAt: new Date().toISOString(),
-        status: 'published'
-      }
-    ];
+    return [];
   }
 }
 

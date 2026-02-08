@@ -27,6 +27,24 @@ const AdminFeedback: React.FC = () => {
     loadFeedback();
   }, []);
 
+  const normalizeItem = (item: any) => {
+    const userName = item?.user?.name || item?.userName || item?.user_name || 'مستخدم مجهول';
+    const userEmail = item?.user?.email || item?.userEmail || item?.user_email || '';
+    const content = item?.comment || item?.content || item?.text || '';
+    const createdAt = item?.createdAt || item?.created_at || new Date().toISOString();
+    const status = item?.status || item?.state || item?.ticketStatus || 'PENDING';
+    return {
+      ...item,
+      user_name: userName,
+      user_email: userEmail,
+      content,
+      created_at: createdAt,
+      status,
+    };
+  };
+
+  const normalizedFeedback = Array.isArray(feedback) ? feedback.map(normalizeItem) : [];
+
   return (
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
@@ -49,14 +67,14 @@ const AdminFeedback: React.FC = () => {
 
       {loading ? (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
-      ) : feedback.length === 0 ? (
+      ) : normalizedFeedback.length === 0 ? (
         <div className="bg-slate-900/50 border border-white/5 rounded-[3.5rem] p-24 text-center">
            <MessageCircle size={48} className="mx-auto text-slate-700 mb-6" />
            <p className="text-slate-500 font-bold text-xl">لا توجد رسائل من المستخدمين حتى الآن.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {feedback.map((item) => (
+          {normalizedFeedback.map((item) => (
             <MotionDiv 
               key={item.id}
               initial={{ opacity: 0, scale: 0.95 }}

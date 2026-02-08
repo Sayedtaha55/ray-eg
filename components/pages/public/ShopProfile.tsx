@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
@@ -24,6 +24,13 @@ import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
 const MotionDiv = motion.div as any;
+
+const DEFAULT_SHOP_DESIGN: ShopDesign = {
+  layout: 'modern',
+  primaryColor: '#00E5FF',
+  secondaryColor: '#BD00FF',
+  bannerUrl: '/placeholder-banner.jpg',
+} as any;
 
 // Helper to update meta tags for sharing
 const updateShopMetaTags = (shop: any) => {
@@ -70,24 +77,24 @@ const updateShopMetaTags = (shop: any) => {
 const ShopProfile: React.FC = () => {
   const { slug } = useParams();
   const location = useLocation();
-  const [shop, setShop] = useState<Shop | null>(null);
-  const [currentDesign, setCurrentDesign] = useState<ShopDesign | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [isCartOpen, setCartOpen] = useState(false);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [spatialMode, setSpatialMode] = useState(false);
-  const [addedItemId, setAddedItemId] = useState<string | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [offers, setOffers] = useState<Offer[]>([]);
-  const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
-  const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
-  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('الكل');
-  const [hasFollowed, setHasFollowed] = useState(false);
-  const [followLoading, setFollowLoading] = useState(false);
-  const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
+  const [shop, setShop] = React.useState<Shop | null>(null);
+  const [currentDesign, setCurrentDesign] = React.useState<ShopDesign>(DEFAULT_SHOP_DESIGN);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(false);
+  const [user, setUser] = React.useState<any>(null);
+  const [isCartOpen, setCartOpen] = React.useState(false);
+  const [cartItems, setCartItems] = React.useState<any[]>([]);
+  const [spatialMode, setSpatialMode] = React.useState(false);
+  const [addedItemId, setAddedItemId] = React.useState<string | null>(null);
+  const [products, setProducts] = React.useState<Product[]>([]);
+  const [offers, setOffers] = React.useState<Offer[]>([]);
+  const [galleryImages, setGalleryImages] = React.useState<ShopGallery[]>([]);
+  const [activeTab, setActiveTab] = React.useState<'products' | 'gallery' | 'info'>('products');
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = React.useState(false);
+  const [activeCategory, setActiveCategory] = React.useState('الكل');
+  const [hasFollowed, setHasFollowed] = React.useState(false);
+  const [followLoading, setFollowLoading] = React.useState(false);
+  const [selectedProductForRes, setSelectedProductForRes] = React.useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { playSound } = useCartSound();
@@ -119,12 +126,12 @@ const ShopProfile: React.FC = () => {
     };
   }, []);
 
-  const [hasMoreProducts, setHasMoreProducts] = useState(true);
-  const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
-  const [productsTabLoading, setProductsTabLoading] = useState(false);
-  const [productsTabError, setProductsTabError] = useState<string | null>(null);
-  const [galleryTabLoading, setGalleryTabLoading] = useState(false);
-  const [galleryTabError, setGalleryTabError] = useState<string | null>(null);
+  const [hasMoreProducts, setHasMoreProducts] = React.useState(true);
+  const [loadingMoreProducts, setLoadingMoreProducts] = React.useState(false);
+  const [productsTabLoading, setProductsTabLoading] = React.useState(false);
+  const [productsTabError, setProductsTabError] = React.useState<string | null>(null);
+  const [galleryTabLoading, setGalleryTabLoading] = React.useState(false);
+  const [galleryTabError, setGalleryTabError] = React.useState<string | null>(null);
 
   const prefersReducedMotion = useReducedMotion();
 
@@ -187,12 +194,7 @@ const ShopProfile: React.FC = () => {
           }
           
           // Fallback to default design if pageDesign is missing or invalid
-          const design = currentShopData.pageDesign || {
-            layout: 'modern',
-            primaryColor: '#00E5FF',
-            secondaryColor: '#BD00FF',
-            bannerUrl: '/placeholder-banner.jpg'
-          };
+          const design = currentShopData.pageDesign || DEFAULT_SHOP_DESIGN;
           const canApplyPreview = (() => {
             try {
               const rawUser = localStorage.getItem('ray_user');
@@ -211,15 +213,15 @@ const ShopProfile: React.FC = () => {
               const parsed = rawPreview ? JSON.parse(rawPreview) : null;
               const previewDesign = parsed && typeof parsed === 'object' ? parsed : null;
               if (previewDesign) {
-                setCurrentDesign({ ...design, ...previewDesign });
+                setCurrentDesign({ ...(design as any), ...(previewDesign as any) } as any);
               } else {
-                setCurrentDesign(design);
+                setCurrentDesign(design as any);
               }
             } catch {
-              setCurrentDesign(design);
+              setCurrentDesign(design as any);
             }
           } else {
-            setCurrentDesign(design);
+            setCurrentDesign(design as any);
           }
 
           // Reset lazy-load state

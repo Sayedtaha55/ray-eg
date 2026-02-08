@@ -34,9 +34,13 @@ const AdminLayout = React.lazy(() => import('./components/layouts/AdminLayout'))
 const AdminDashboard = React.lazy(() => import('./components/pages/admin/AdminDashboard'));
 const AdminLogin = React.lazy(() => import('./components/pages/auth/AdminLogin'));
 const AdminApprovals = React.lazy(() => import('./components/pages/admin/AdminApprovals'));
+const AdminShops = React.lazy(() => import('./components/pages/admin/AdminShops'));
 const AdminUsers = React.lazy(() => import('./components/pages/admin/AdminUsers'));
 const AdminOrders = React.lazy(() => import('./components/pages/admin/AdminOrders'));
 const AdminFeedback = React.lazy(() => import('./components/pages/admin/AdminFeedback'));
+const AdminAnalytics = React.lazy(() => import('./components/pages/admin/AdminAnalytics'));
+const AdminNotifications = React.lazy(() => import('./components/pages/admin/AdminNotifications'));
+const AdminContent = React.lazy(() => import('./components/pages/admin/AdminContent'));
 const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSettings'));
 
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
@@ -164,10 +168,13 @@ const App: React.FC = () => {
         <Route path="/admin" element={suspense(<AdminLayout />)}>
           <Route path="dashboard" element={suspense(<AdminDashboard />)} />
           <Route path="approvals" element={suspense(<AdminApprovals />)} />
-          <Route path="shops" element={suspense(<AdminDashboard />)} />
+          <Route path="shops" element={suspense(<AdminShops />)} />
           <Route path="users" element={suspense(<AdminUsers />)} />
           <Route path="orders" element={suspense(<AdminOrders />)} />
           <Route path="feedback" element={suspense(<AdminFeedback />)} />
+          <Route path="analytics" element={suspense(<AdminAnalytics />)} />
+          <Route path="notifications" element={suspense(<AdminNotifications />)} />
+          <Route path="content" element={suspense(<AdminContent />)} />
           <Route path="settings" element={suspense(<AdminSettings />)} />
         </Route>
 

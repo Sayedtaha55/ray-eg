@@ -275,13 +275,16 @@ model Feedback {
   id        String   @id @default(cuid())
   rating    Int
   comment   String?
-  userId    String
+  userId    String?
+  userName  String?
+  userEmail String?
   shopId    String?
   productId String?
+  status    String   @default("PENDING")
   createdAt DateTime @default(now())
 
   // Relations
-  user      User     @relation(fields: [userId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
   shop      Shop?    @relation(fields: [shopId], references: [id])
   product   Product? @relation(fields: [productId], references: [id])
 
