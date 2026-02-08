@@ -88,6 +88,7 @@ model Shop {
   gallery       ShopGallery[]
   analytics     ShopAnalytics[]
   reservations  Reservation[]
+  feedback      Feedback[]
   themeSettings ShopTheme[] // Theme settings
   followersList ShopFollower[]
 
@@ -132,6 +133,7 @@ model Product {
   shop        Shop     @relation(fields: [shopId], references: [id])
   offers      Offer[]
   orderItems  OrderItem[]
+  feedback    Feedback[]
 
   @@map("products")
 }
@@ -383,6 +385,8 @@ model Feedback {
 
   // Relations
   user      User?    @relation(fields: [userId], references: [id])
+  shop      Shop?    @relation(fields: [shopId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id])
 
   @@map("feedback")
 }
