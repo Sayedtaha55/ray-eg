@@ -113,8 +113,14 @@ model Product {
   description String?
   price       Float
   stock       Int      @default(0)
+  trackStock  Boolean  @default(true) @map("track_stock")
   category    String   @default("عام")
+  unit        String?
+  packOptions Json?
   imageUrl    String?  @map("image_url")
+  images      Json?
+  colors      Json?
+  sizes       Json?
   addons      Json?
   menuVariants Json?   @map("menu_variants")
   isActive    Boolean  @default(true)

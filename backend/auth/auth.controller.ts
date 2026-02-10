@@ -292,6 +292,15 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Post('deactivate')
+  @UseGuards(JwtAuthGuard)
+  async deactivate(@Request() req: any, @Res({ passthrough: true }) res: Response) {
+    const userId = String(req?.user?.id || '').trim();
+    const result = await this.authService.deactivateAccount(userId);
+    this.clearAuthCookie(res);
+    return result;
+  }
+
   @Post('password/forgot')
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.requestPasswordReset(dto.email);

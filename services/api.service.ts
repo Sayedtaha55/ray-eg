@@ -321,6 +321,10 @@ export const ApiService = {
     });
   },
 
+  deactivateMyAccount: async () => {
+    return await backendPost<{ ok: boolean }>('/api/v1/auth/deactivate', {});
+  },
+
   // Chat
   sendMessage: async (msg: any) => {
     return await sendMessageViaMock(mockDb, msg);

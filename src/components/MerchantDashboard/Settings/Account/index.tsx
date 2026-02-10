@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface AccountProps {
   shop: any;
@@ -15,6 +16,8 @@ interface AccountProps {
 const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
   const [, setIsSaving] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     name: shop?.name || '',
     governorate: shop?.governorate || '',
@@ -129,6 +132,59 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+  };
+
+  const deactivateAccount = async () => {
+    if (adminShopId) {
+      toast({
+        title: 'غير متاح',
+        description: 'لا يمكن حذف الحساب أثناء وضع الإدارة/الانتحال',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isDeleting) return;
+
+    const expected = 'حذف';
+    if (String(deleteConfirmText || '').trim() !== expected) {
+      toast({
+        title: 'تأكيد مطلوب',
+        description: `اكتب كلمة "${expected}" للتأكيد`,
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await ApiService.deactivateMyAccount();
+      try {
+        localStorage.removeItem('ray_user');
+        localStorage.removeItem('ray_token');
+        window.dispatchEvent(new Event('auth-change'));
+      } catch {
+      }
+
+      toast({
+        title: 'تم حذف الحساب',
+        description: 'تم تعطيل حسابك بنجاح',
+      });
+
+      try {
+        window.location.href = '/login';
+      } catch {
+      }
+    } catch (error: any) {
+      const msg = error?.message ? String(error.message) : 'حدث خطأ أثناء حذف الحساب';
+      toast({
+        title: 'خطأ',
+        description: msg,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -256,6 +312,34 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
                 placeholder="أدخل وصفاً لمتجرك"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-red-600">حذف الحساب</CardTitle>
+            <CardDescription>
+              سيتم تعطيل الحساب والمتجر. هذا الإجراء لا يمكن التراجع عنه بسهولة.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">لتأكيد الحذف اكتب: حذف</Label>
+              <Input
+                id="delete-confirm"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                disabled={isDeleting}
+              />
+            </div>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={deactivateAccount}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'جاري الحذف...' : 'حذف الحساب'}
+            </Button>
           </CardContent>
         </Card>
       </form>

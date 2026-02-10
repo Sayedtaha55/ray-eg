@@ -225,6 +225,39 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
+  async deactivateAccount(userId: string) {
+    const uid = String(userId || '').trim();
+    if (!uid) throw new UnauthorizedException('غير مصرح');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: uid },
+      select: { id: true, role: true },
+    });
+    if (!user) throw new UnauthorizedException('غير مصرح');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: uid },
+        data: { isActive: false },
+        select: { id: true },
+      });
+
+      const role = String((user as any)?.role || '').toUpperCase();
+      if (role === 'MERCHANT') {
+        try {
+          await tx.shop.updateMany({
+            where: { ownerId: uid },
+            data: { isActive: false },
+          });
+        } catch {
+          // ignore
+        }
+      }
+    });
+
+    return { ok: true };
+  }
+
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
     const uid = String(userId || '').trim();
     if (!uid) throw new UnauthorizedException('غير مصرح');
@@ -777,16 +810,22 @@ export class AuthService implements OnModuleInit {
     }
 
     const role = String(user?.role || '').toUpperCase();
-    if (role === 'COURIER' && user?.isActive === false) {
-      throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
+    if (user?.isActive === false) {
+      if (role === 'COURIER') {
+        throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
+      }
+      throw new ForbiddenException('الحساب معطل');
     }
     if (role === 'MERCHANT') {
       const shop = await this.prisma.shop.findFirst({
         where: { ownerId: user.id },
-        select: { id: true, status: true },
+        select: { id: true, status: true, isActive: true },
       });
       if (!shop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
+      if ((shop as any)?.isActive === false) {
+        throw new ForbiddenException('الحساب معطل');
       }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
@@ -849,13 +888,22 @@ export class AuthService implements OnModuleInit {
     if (!user) throw new UnauthorizedException('غير مصرح');
 
     const role = String(user?.role || '').toUpperCase();
+    if (user?.isActive === false) {
+      if (role === 'COURIER') {
+        throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
+      }
+      throw new ForbiddenException('الحساب معطل');
+    }
     if (role === 'MERCHANT') {
       const shop = await this.prisma.shop.findFirst({
         where: { ownerId: user.id },
-        select: { id: true, status: true },
+        select: { id: true, status: true, isActive: true },
       });
       if (!shop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
+      }
+      if ((shop as any)?.isActive === false) {
+        throw new ForbiddenException('الحساب معطل');
       }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {

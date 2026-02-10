@@ -233,8 +233,10 @@ async function bootstrap() {
     return next();
   });
 
-  app.use(bodyParser.json({ limit: '10mb' }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
+  const bodyLimitRaw = String(process.env.BODY_LIMIT || '').trim();
+  const bodyLimit = bodyLimitRaw || '25mb';
+  app.use(bodyParser.json({ limit: bodyLimit }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
 
   try {
     const httpAdapter: any = app.getHttpAdapter?.();

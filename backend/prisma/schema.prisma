@@ -131,20 +131,18 @@ model Product {
   name        String
   description String?
   price       Float
-  category    String
-  image       String?
-  imageUrl    String?  @map("image_url")
-  isActive    Boolean  @default(true)
-  inStock     Boolean  @default(true)
-  stock       Int?
+  stock       Int      @default(0)
   trackStock  Boolean  @default(true) @map("track_stock")
+  category    String   @default("عام")
   unit        String?
   packOptions Json?
+  imageUrl    String?  @map("image_url")
   images      Json?
   colors      Json?
   sizes       Json?
   addons      Json?
   menuVariants Json?   @map("menu_variants")
+  isActive    Boolean  @default(true)
   shopId      String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
