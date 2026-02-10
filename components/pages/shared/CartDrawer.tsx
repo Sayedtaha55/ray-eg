@@ -33,6 +33,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [invalidLineIds, setInvalidLineIds] = useState<string[]>([]);
   const [localItems, setLocalItems] = useState<CartItem[]>(items);
   const [step, setStep] = useState<'cart' | 'cod_location'>('cart');
   const [isLocating, setIsLocating] = useState(false);
@@ -61,6 +62,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       setLocationNote('');
       setFallbackAddress('');
       setError('');
+      setInvalidLineIds([]);
       setDeliveryFees({});
       if (mapRef.current) {
         mapRef.current.remove();
@@ -69,6 +71,55 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       }
     }
   }, [isOpen]);
+
+  const getLineKey = (item: any) => String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+
+  const getQtyStep = (item: any) => {
+    try {
+      return RayDB.getQuantityStepForUnit((item as any)?.unit);
+    } catch {
+      return 1;
+    }
+  };
+
+  const isLikelyInvalidProductId = (raw: any) => {
+    const id = String(raw || '').trim();
+    if (!id) return true;
+    if (id.toLowerCase().startsWith('ai_')) return true;
+    if (id.toLowerCase().startsWith('manual_')) return true;
+    return false;
+  };
+
+  const computeInvalidItems = (list: CartItem[]) => {
+    const bad = (Array.isArray(list) ? list : []).filter((it: any) => {
+      const shopId = String(it?.shopId || '').trim();
+      const productId = String(it?.id || it?.productId || '').trim();
+      if (!shopId || shopId === 'unknown') return true;
+      if (isLikelyInvalidProductId(productId)) return true;
+      const q = Number(it?.quantity);
+      if (!Number.isFinite(q) || q <= 0) return true;
+      return false;
+    });
+    return bad;
+  };
+
+  const removeInvalidItems = () => {
+    const current = RayDB.getCart();
+    const bad = computeInvalidItems(current as any);
+    if (bad.length === 0) {
+      setInvalidLineIds([]);
+      return;
+    }
+
+    const badKeys = bad.map(getLineKey);
+    let next = current as any[];
+    for (const k of badKeys) {
+      next = next.filter((i: any) => getLineKey(i) !== k);
+    }
+    RayDB.setCart(next);
+    setInvalidLineIds([]);
+    setError('تم حذف المنتجات غير المتاحة من السلة');
+  };
 
   React.useEffect(() => {
     if (step !== 'cod_location') return;
@@ -226,6 +277,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const handleCheckout = async () => {
     if (localItems.length === 0) return;
 
+    const bad = computeInvalidItems(localItems);
+    if (bad.length > 0) {
+      setInvalidLineIds(bad.map(getLineKey));
+      setError('يوجد منتجات غير متاحة/غير صالحة في السلة. احذفها ثم حاول مرة أخرى.');
+      return;
+    }
+
     const token = (() => {
       try {
         return localStorage.getItem('ray_token') || '';
@@ -237,6 +295,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     if (step === 'cart') {
       setStep('cod_location');
       setError('');
+      setInvalidLineIds([]);
       setLocationError('');
       if (!coords) {
         requestLocation();
@@ -255,6 +314,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
 
     setIsProcessing(true);
     setError('');
+    setInvalidLineIds([]);
     
     try {
       if (!token) {
@@ -271,10 +331,51 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
 
       for (const [shopId, shop] of Object.entries(groupedItems)) {
         const items = (shop as any)?.items || [];
+        const normalizedItems = (Array.isArray(items) ? items : []).map((it: any) => {
+          const rawVariant = (it as any)?.variantSelection ?? (it as any)?.variant_selection;
+          const hasValidVariant = (() => {
+            if (!rawVariant || typeof rawVariant !== 'object') return false;
+            const kind = String((rawVariant as any)?.kind || '').trim().toLowerCase();
+            if (kind === 'fashion') {
+              const colorValue = String((rawVariant as any)?.colorValue || (rawVariant as any)?.color?.value || '').trim();
+              const size = String((rawVariant as any)?.size || '').trim();
+              return Boolean(colorValue && size);
+            }
+            const typeId = String((rawVariant as any)?.typeId || (rawVariant as any)?.variantId || (rawVariant as any)?.type || (rawVariant as any)?.variant || '').trim();
+            const sizeId = String((rawVariant as any)?.sizeId || (rawVariant as any)?.size || '').trim();
+            return Boolean(typeId && sizeId);
+          })();
+          if (hasValidVariant) return it;
+
+          const selectedColor = String((it as any)?.selectedColor || '').trim();
+          const selectedSizeLabel = (() => {
+            const s = (it as any)?.selectedSize;
+            if (!s) return '';
+            if (typeof s === 'string') return String(s).trim();
+            if (s && typeof s === 'object') return String((s as any)?.label || '').trim();
+            return '';
+          })();
+
+          if (!selectedColor || !selectedSizeLabel) return it;
+
+          return {
+            ...it,
+            variantSelection: {
+              kind: 'fashion',
+              colorName: selectedColor,
+              colorValue: selectedColor,
+              size: selectedSizeLabel,
+            },
+          };
+        });
+        try {
+          console.log('[CartDrawer] placeOrder payload', { shopId, items: normalizedItems });
+        } catch {
+        }
         const shopTotal = items.reduce((sum: number, item: any) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0), 0);
         await ApiService.placeOrder({
           shopId,
-          items,
+          items: normalizedItems,
           total: shopTotal,
           paymentMethod: 'COD',
           notes: buildOrderNotes(),
@@ -290,8 +391,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         window.location.reload(); 
       }, 2500);
     } catch (err: any) {
+      const msg = String(err?.message || '').trim();
+      if (msg.includes('غير متاحة') || msg.toLowerCase().includes('productid')) {
+        const current = RayDB.getCart();
+        const badNow = computeInvalidItems(current as any);
+        if (badNow.length > 0) {
+          setInvalidLineIds(badNow.map(getLineKey));
+        }
+      }
       setIsProcessing(false);
-      const status = (err as any)?.status;
+      const status = (err as any)?.status || (err as any)?.response?.status;
       if (status === 401) {
         setError('يجب تسجيل الدخول لإتمام الشراء');
         try {
@@ -310,8 +419,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[200]" />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[201] shadow-2xl flex flex-col text-right" dir="rtl">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[400]" />
+          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[401] shadow-2xl flex flex-col text-right" dir="rtl">
             <header className="p-8 border-b border-slate-100 flex items-center justify-between">
               <h2 className="text-2xl font-black flex items-center gap-4">
                 <ShoppingBag className="w-8 h-8 text-[#00E5FF]" /> سلة التسوق
@@ -421,6 +530,33 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                   </p>
                                 );
                               }
+                              if (kind === 'pack') {
+                                const label = String(sel?.label || '').trim();
+                                const qtyRaw = typeof sel?.qty === 'number' ? sel.qty : Number(sel?.qty || NaN);
+                                const unit = String(sel?.unit || '').trim();
+
+                                const packId = String(sel?.packId || sel?.id || '').trim();
+                                const defs = Array.isArray((item as any)?.packOptions) ? (item as any).packOptions : [];
+                                const def = packId && Array.isArray(defs)
+                                  ? (defs as any[]).find((x: any) => String(x?.id || '').trim() === packId)
+                                  : null;
+                                const defLabel = String(def?.label || def?.name || '').trim();
+                                const defQtyRaw = typeof def?.qty === 'number' ? def.qty : Number(def?.qty || NaN);
+                                const defUnit = String(def?.unit || (item as any)?.unit || '').trim();
+
+                                const fallback = Number.isFinite(qtyRaw) && qtyRaw > 0
+                                  ? `${qtyRaw}${unit ? ` ${unit}` : ''}`
+                                  : (Number.isFinite(defQtyRaw) && defQtyRaw > 0
+                                    ? `${defQtyRaw}${defUnit ? ` ${defUnit}` : ''}`
+                                    : '');
+                                const text = label || defLabel || fallback;
+                                if (!text) return null;
+                                return (
+                                  <p className="mt-1 text-[10px] font-bold text-slate-500">
+                                    {text}
+                                  </p>
+                                );
+                              }
                               const typeName = String(sel?.typeName || sel?.typeId || '').trim();
                               const sizeLabel = String(sel?.sizeLabel || sel?.sizeId || '').trim();
                               if (!typeName && !sizeLabel) return null;
@@ -447,9 +583,29 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                         </div>
                         <div className="flex items-center justify-between flex-row-reverse">
                            <div className="flex items-center gap-4 bg-white px-4 py-2 rounded-xl shadow-sm border border-slate-200">
-                              <button onClick={() => updateQuantity(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`), 1)} className="text-slate-900 hover:text-[#00E5FF]"><Plus size={16} /></button>
+                              <button
+                                onClick={() =>
+                                  onUpdateQuantity?.(
+                                    String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`),
+                                    getQtyStep(item),
+                                  )
+                                }
+                                className="text-slate-900 hover:text-[#00E5FF]"
+                              >
+                                <Plus size={16} />
+                              </button>
                               <span className="font-black text-sm w-4 text-center">{Number(item.quantity)}</span>
-                              <button onClick={() => updateQuantity(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`), -1)} className="text-slate-900 hover:text-red-500"><Minus size={16} /></button>
+                              <button
+                                onClick={() =>
+                                  onUpdateQuantity?.(
+                                    String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`),
+                                    -getQtyStep(item),
+                                  )
+                                }
+                                className="text-slate-900 hover:text-red-500"
+                              >
+                                <Minus size={16} />
+                              </button>
                            </div>
                            <p className="font-black text-lg text-slate-900">ج.م {Number(item.price) * Number(item.quantity)}</p>
                         </div>
@@ -463,6 +619,28 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
             {!showSuccess && localItems.length > 0 && (
               <footer className="p-8 border-t border-slate-100 bg-slate-50 space-y-6">
                 {error && <p className="text-red-500 text-xs font-bold text-center">{String(error)}</p>}
+                {invalidLineIds.length > 0 && (
+                  <div className="space-y-3">
+                    <button
+                      onClick={removeInvalidItems}
+                      disabled={isProcessing}
+                      className="w-full py-3 bg-red-50 text-red-700 rounded-2xl font-black text-sm hover:bg-red-100 transition-all disabled:opacity-50"
+                    >
+                      حذف المنتجات غير المتاحة
+                    </button>
+                    <button
+                      onClick={() => {
+                        RayDB.clearCart();
+                        setInvalidLineIds([]);
+                        setError('تم تفريغ السلة');
+                      }}
+                      disabled={isProcessing}
+                      className="w-full py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
+                    >
+                      تفريغ السلة بالكامل
+                    </button>
+                  </div>
+                )}
                 <div className="space-y-2">
                   <div className="flex justify-between items-center flex-row-reverse">
                     <span className="font-black text-slate-400">إجمالي المنتجات</span>

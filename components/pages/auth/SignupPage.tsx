@@ -33,6 +33,7 @@ const SignupPage: React.FC = () => {
 
   const params = new URLSearchParams(location.search);
   const roleParam = params.get('role');
+  const categoryParam = params.get('category');
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
@@ -46,6 +47,17 @@ const SignupPage: React.FC = () => {
       setRole('merchant');
     }
   }, [roleParam]);
+
+  useEffect(() => {
+    const cat = String(categoryParam || '').trim().toUpperCase();
+    if (!cat) return;
+    const allowed = new Set(Object.values(Category).map((v) => String(v).toUpperCase()));
+    if (!allowed.has(cat)) return;
+    setFormData((prev) => ({
+      ...prev,
+      category: cat as any,
+    }));
+  }, [categoryParam]);
 
   const buildLoginLink = () => {
     const q = new URLSearchParams();
@@ -209,12 +221,12 @@ const SignupPage: React.FC = () => {
                        onChange={(e) => setFormData({...formData, category: e.target.value as Category})}
                      >
                         <option value={Category.RETAIL}>محل تجاري / ملابس / إلكترونيات</option>
-                        <option value={Category.RESTAURANT}>مطعم / كافيه / أكلات</option>
+                        <option value={Category.RESTAURANT}>مطعم / أكلات</option>
                         <option value={Category.FASHION}>ملابس وأزياء</option>
                         <option value={Category.ELECTRONICS}>إلكترونيات وموبايلات</option>
                         <option value={Category.HEALTH}>صيدلية / مستحضرات تجميل</option>
                         <option value={Category.SERVICE}>خدمات / صيانة / ورش</option>
-                        <option value={Category.FOOD}>سوبر ماركت / بقالة</option>
+                        <option value={Category.FOOD}>سوبر ماركت / بقالة / عطارة</option>
                         <option value={Category.OTHER}>أخرى</option>
                      </select>
                    </div>

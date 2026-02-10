@@ -4,6 +4,11 @@ export enum ShopCategory {
   RETAIL = 'RETAIL',
   RESTAURANT = 'RESTAURANT',
   SERVICE = 'SERVICE',
+  ELECTRONICS = 'ELECTRONICS',
+  FASHION = 'FASHION',
+  FOOD = 'FOOD',
+  HEALTH = 'HEALTH',
+  OTHER = 'OTHER',
 }
 
 export class CreateShopDto {

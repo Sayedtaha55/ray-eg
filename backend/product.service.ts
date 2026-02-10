@@ -75,11 +75,25 @@ export class ProductService {
     } catch {
     }
 
-    const products = await this.prisma.product.findMany({
-      where: { shopId, isActive: true },
-      orderBy: { createdAt: 'desc' },
-      ...(pagination ? pagination : {}),
-    });
+    let products: any[];
+    try {
+      products = await this.prisma.product.findMany({
+        where: {
+          shopId,
+          isActive: true,
+          NOT: [
+            { category: '__IMAGE_MAP__' },
+            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        ...(pagination ? pagination : {}),
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
+      throw e;
+    }
 
     try {
       await this.redis.set(cacheKey, products, 120);
@@ -105,7 +119,13 @@ export class ProductService {
 
     const pagination = this.getPagination(paging);
     return this.prisma.product.findMany({
-      where: { shopId, isActive: true },
+      where: {
+        shopId,
+        NOT: [
+          { category: '__IMAGE_MAP__' },
+          { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
@@ -124,7 +144,13 @@ export class ProductService {
     }
 
     const products = await this.prisma.product.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        NOT: [
+          { category: '__IMAGE_MAP__' },
+          { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+        ],
+      },
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
@@ -143,6 +169,7 @@ export class ProductService {
     price: number;
     stock?: number;
     category?: string;
+    unit?: string;
     imageUrl?: string | null;
     description?: string | null;
     trackStock?: boolean;
@@ -150,7 +177,9 @@ export class ProductService {
     colors?: any;
     sizes?: any;
     addons?: any;
+    packOptions?: any;
     menuVariants?: any;
+    isActive?: boolean;
   }) {
     const shop = await this.prisma.shop.findUnique({ where: { id: input.shopId }, select: { id: true, slug: true, category: true } });
     if (!shop) {
@@ -171,6 +200,8 @@ export class ProductService {
         stock: input.stock ?? 0,
         trackStock: resolvedTrackStock,
         category: input.category || 'عام',
+        unit: typeof input.unit === 'string' ? input.unit : undefined,
+        packOptions: typeof input.packOptions === 'undefined' ? undefined : input.packOptions,
         imageUrl: input.imageUrl || null,
         images: typeof input.images === 'undefined' ? undefined : input.images,
         colors: typeof input.colors === 'undefined' ? undefined : input.colors,
@@ -178,7 +209,7 @@ export class ProductService {
         addons: typeof input.addons === 'undefined' ? undefined : input.addons,
         menuVariants: typeof input.menuVariants === 'undefined' ? undefined : input.menuVariants,
         description: input.description || null,
-        isActive: true,
+        isActive: typeof input.isActive === 'boolean' ? input.isActive : true,
       } as any,
     });
 
@@ -195,6 +226,110 @@ export class ProductService {
     }
 
     return created;
+  }
+
+  async importDrafts(
+    shopId: string,
+    items: Array<{ name: string; price: number; stock?: number; category?: string; unit?: string; packOptions?: any; description?: string | null; colors?: any; sizes?: any }>,
+    actor: { role: string; shopId?: string },
+  ) {
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+
+    const role = String(actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && actor?.shopId !== shopId) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const normalized = (Array.isArray(items) ? items : [])
+      .map((it) => {
+        const name = String(it?.name || '').trim();
+        const price = Number(it?.price);
+        const stockRaw = typeof it?.stock === 'undefined' ? undefined : Number(it.stock);
+        const stock = typeof stockRaw === 'number' && Number.isFinite(stockRaw) && stockRaw >= 0 ? Math.floor(stockRaw) : 0;
+        const category = typeof it?.category === 'string' && it.category.trim() ? it.category.trim() : 'عام';
+        const unit = typeof it?.unit === 'string' && it.unit.trim() ? it.unit.trim() : undefined;
+        const packOptions = typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions;
+        const description = typeof it?.description === 'string' ? it.description : null;
+        const colors = Array.isArray(it?.colors) ? it.colors : undefined;
+        const sizes = Array.isArray(it?.sizes) ? it.sizes : undefined;
+
+        if (!name) return null;
+        if (!Number.isFinite(price) || price < 0) return null;
+
+        return { name, price, stock, category, unit, packOptions, description, colors, sizes };
+      })
+      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any }>;
+
+    if (!normalized.length) {
+      throw new BadRequestException('items مطلوبة');
+    }
+
+    let res: any;
+    try {
+      res = await (this.prisma as any).$transaction(async (tx: any) => {
+        const created: any[] = [];
+        const updated: any[] = [];
+
+        for (const it of normalized) {
+          const existing = await tx.product.findFirst({
+            where: { shopId, name: it.name },
+            select: { id: true, isActive: true },
+          });
+
+          if (!existing) {
+            const c = await tx.product.create({
+              data: {
+                shopId,
+                name: it.name,
+                price: it.price,
+                stock: it.stock,
+                category: it.category,
+                unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
+                packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
+                description: it.description,
+                imageUrl: null,
+                isActive: true,
+                ...(it.colors !== undefined ? { colors: it.colors } : {}),
+                ...(it.sizes !== undefined ? { sizes: it.sizes } : {}),
+              },
+            });
+            created.push(c);
+            continue;
+          }
+
+          const u = await tx.product.update({
+            where: { id: existing.id },
+            data: {
+              price: it.price,
+              stock: it.stock,
+              category: it.category,
+              unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
+              packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
+              description: it.description,
+              ...(it.colors !== undefined ? { colors: it.colors } : {}),
+              ...(it.sizes !== undefined ? { sizes: it.sizes } : {}),
+              ...(existing.isActive === false ? { isActive: true } : {}),
+            },
+          });
+          updated.push(u);
+        }
+
+        return { created, updated };
+      });
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : 'Database error';
+      if (msg.toLowerCase().includes('column') || msg.toLowerCase().includes('does not exist')) {
+        throw new BadRequestException('قاعدة البيانات غير محدثة. شغّل migrations ثم أعد تشغيل السيرفر');
+      }
+      throw new BadRequestException(msg);
+    }
+
+    try {
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
+
+    return res;
   }
 
   async updateStock(productId: string, stock: number, actor: { role: string; shopId?: string }) {
@@ -241,6 +376,7 @@ export class ProductService {
     price?: number;
     stock?: number;
     category?: string;
+    unit?: string;
     imageUrl?: string;
     description?: string;
     trackStock?: boolean;
@@ -248,6 +384,7 @@ export class ProductService {
     colors?: any;
     sizes?: any;
     addons?: any;
+    packOptions?: any;
     menuVariants?: any;
     isActive?: boolean;
   }, actor: { role: string; shopId?: string }) {
@@ -271,6 +408,7 @@ export class ProductService {
     if (data.price !== undefined) updateData.price = data.price;
     if (data.stock !== undefined) updateData.stock = data.stock;
     if (data.category !== undefined) updateData.category = data.category;
+    if (data.unit !== undefined) updateData.unit = data.unit;
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.trackStock !== undefined) updateData.trackStock = data.trackStock;
@@ -278,6 +416,7 @@ export class ProductService {
     if (data.colors !== undefined) updateData.colors = data.colors;
     if (data.sizes !== undefined) updateData.sizes = data.sizes;
     if (data.addons !== undefined) updateData.addons = data.addons;
+    if (data.packOptions !== undefined) updateData.packOptions = data.packOptions;
     if (data.menuVariants !== undefined) updateData.menuVariants = data.menuVariants;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 

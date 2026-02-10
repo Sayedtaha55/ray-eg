@@ -19,6 +19,8 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
+  const [unit, setUnit] = useState('');
+  const [packOptionItems, setPackOptionItems] = useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [description, setDescription] = useState('');
   const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
   const [menuVariantItems, setMenuVariantItems] = useState<
@@ -58,6 +60,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
+  const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -304,9 +307,28 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         price: resolvedBasePrice,
         stock: isRestaurant ? 0 : parsedStock,
         category: String(cat || '').trim() || 'عام',
+        ...(unit ? { unit } : {}),
         imageUrl: upload.url,
         description: description ? description : null,
         trackStock: isRestaurant ? false : true,
+        ...(isFood
+          ? {
+              packOptions: (Array.isArray(packOptionItems) ? packOptionItems : [])
+                .map((p) => {
+                  const qty = parseNumberInput(p?.qty);
+                  const pr = parseNumberInput(p?.price);
+                  if (!Number.isFinite(qty) || qty <= 0) return null;
+                  if (!Number.isFinite(pr) || pr < 0) return null;
+                  return {
+                    id: String(p?.id || '').trim() || `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                    qty: Math.round(qty * 1000) / 1000,
+                    unit: unit ? String(unit).trim() : null,
+                    price: Math.round(pr * 100) / 100,
+                  };
+                })
+                .filter(Boolean),
+            }
+          : {}),
         ...(isRestaurant ? { menuVariants } : {}),
         ...(isRestaurant
           ? {}
@@ -320,6 +342,8 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       setPrice('');
       setStock('');
       setCat('عام');
+      setUnit('');
+      setPackOptionItems([]);
       setDescription('');
       setFashionSizeItems([]);
       setMenuVariantItems([]);
@@ -400,6 +424,93 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
               <input type="file" hidden accept="image/jpeg,image/png,image/webp,image/avif" ref={fileInputRef} onChange={handleImageChange} />
             </div>
           </div>
+
+          {isFood && (
+            <div className="space-y-3">
+              <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest block pr-4">وحدة البيع</label>
+              <select
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none appearance-none"
+              >
+                <option value="">بدون</option>
+                <option value="PIECE">قطعة</option>
+                <option value="KG">كيلو</option>
+                <option value="G">جرام</option>
+                <option value="L">لتر</option>
+                <option value="ML">ملّي</option>
+                <option value="PACK">عبوة</option>
+              </select>
+            </div>
+          )}
+
+          {isFood && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">باقات البيع (اختياري)</label>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPackOptionItems((prev) => [
+                      ...(Array.isArray(prev) ? prev : []),
+                      { id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' },
+                    ])
+                  }
+                  className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                >
+                  + إضافة باقة
+                </button>
+              </div>
+
+              {packOptionItems.length > 0 && (
+                <div className="space-y-3">
+                  {packOptionItems.map((p, idx) => (
+                    <div key={p.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-sm font-black">باقة #{idx + 1}</p>
+                        <button
+                          type="button"
+                          onClick={() => setPackOptionItems((prev) => prev.filter((x) => x.id !== p.id))}
+                          className="text-slate-400 hover:text-red-500"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية داخل الباقة</label>
+                          <input
+                            type="number"
+                            placeholder={unit ? `مثلاً: 5 (${unit})` : 'مثلاً: 5'}
+                            value={p.qty}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setPackOptionItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, qty: v } : x)));
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">سعر الباقة (ج.م)</label>
+                          <input
+                            type="number"
+                            placeholder="0"
+                            value={p.price}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              setPackOptionItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, price: v } : x)));
+                            }}
+                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-6">
             <div className="space-y-3">

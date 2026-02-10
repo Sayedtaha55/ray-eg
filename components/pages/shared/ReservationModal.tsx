@@ -118,7 +118,15 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                 </div>
 
                 <div className="bg-slate-50 p-6 rounded-3xl mb-8 flex items-center gap-4 flex-row-reverse">
-                   <img src={String(item?.image || '')} className="w-20 h-20 rounded-2xl object-cover shadow-sm" alt={String(item?.name || 'صنف')} />
+                   {String(item?.image || '').trim() ? (
+                     <img
+                       src={String(item?.image || '').trim()}
+                       className="w-20 h-20 rounded-2xl object-cover shadow-sm"
+                       alt={String(item?.name || 'صنف')}
+                     />
+                   ) : (
+                     <div className="w-20 h-20 rounded-2xl bg-white/70 border border-slate-200 shadow-sm" />
+                   )}
                    <div className="flex-1">
                       <p className="font-black text-lg">{String(item?.name || 'صنف')}</p>
                       <p className="text-[#00E5FF] font-black">ج.م {Number(item?.price || 0)}</p>

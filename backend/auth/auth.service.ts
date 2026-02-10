@@ -542,24 +542,33 @@ export class AuthService implements OnModuleInit {
     }
 
     const requestedCategory = opts?.shopCategory ? this.normalizeShopCategory(opts.shopCategory) : undefined;
-    const restaurantMode = String(requestedCategory || '').toUpperCase() === 'RESTAURANT';
+    const requestedCategoryUpper = String(requestedCategory || '').toUpperCase();
+    const restaurantMode = requestedCategoryUpper === 'RESTAURANT';
+    const categoryMode = Boolean(requestedCategoryUpper && !restaurantMode);
+    const categorySuffix = categoryMode ? requestedCategoryUpper.toLowerCase() : '';
 
     const devEmail = (
       restaurantMode
         ? (String(process.env.DEV_RESTAURANT_MERCHANT_EMAIL || '').trim().toLowerCase() || '')
-        : (String(process.env.DEV_MERCHANT_EMAIL || '').trim().toLowerCase() || '')
+        : (categoryMode
+            ? `dev-merchant-${categorySuffix}@ray.local`
+            : (String(process.env.DEV_MERCHANT_EMAIL || '').trim().toLowerCase() || ''))
     ) || (restaurantMode ? 'dev-restaurant@ray.local' : 'dev-merchant@ray.local');
 
     const devName = (
       restaurantMode
         ? (String(process.env.DEV_RESTAURANT_MERCHANT_NAME || '').trim() || '')
-        : (String(process.env.DEV_MERCHANT_NAME || '').trim() || '')
+        : (categoryMode
+            ? `Dev Merchant (${requestedCategoryUpper})`
+            : (String(process.env.DEV_MERCHANT_NAME || '').trim() || ''))
     ) || (restaurantMode ? 'Dev Restaurant' : 'Dev Merchant');
 
     const devShopName = (
       restaurantMode
         ? (String(process.env.DEV_RESTAURANT_SHOP_NAME || '').trim() || '')
-        : (String(process.env.DEV_MERCHANT_SHOP_NAME || '').trim() || '')
+        : (categoryMode
+            ? `Dev ${requestedCategoryUpper} Shop`
+            : (String(process.env.DEV_MERCHANT_SHOP_NAME || '').trim() || ''))
     ) || (restaurantMode ? 'Dev Restaurant Shop' : 'Dev Shop');
     const devShopPhone = String(process.env.DEV_MERCHANT_SHOP_PHONE || '').trim() || '01000000000';
     const devGovernorate = String(process.env.DEV_MERCHANT_GOVERNORATE || '').trim() || 'Cairo';

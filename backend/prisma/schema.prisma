@@ -121,6 +121,7 @@ model Shop {
   reservations     Reservation[]
   feedback         Feedback[]
   visits           Visit[]
+  imageMaps        ShopImageMap[]
 
   @@map("shops")
 }
@@ -137,6 +138,8 @@ model Product {
   inStock     Boolean  @default(true)
   stock       Int?
   trackStock  Boolean  @default(true) @map("track_stock")
+  unit        String?
+  packOptions Json?
   images      Json?
   colors      Json?
   sizes       Json?
@@ -151,8 +154,74 @@ model Product {
   orderItems  OrderItem[]
   offers      Offer[]
   feedback    Feedback[]
+  imageHotspots ShopImageHotspot[]
 
   @@map("products")
+}
+
+model ShopImageMap {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  title     String?
+  imageUrl  String   @map("image_url")
+  width     Int?
+  height    Int?
+  isActive  Boolean  @default(true) @map("is_active")
+  aiMeta    Json?    @map("ai_meta")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  sections  ShopImageSection[]
+  hotspots  ShopImageHotspot[]
+
+  @@index([shopId])
+  @@map("shop_image_maps")
+}
+
+model ShopImageSection {
+  id        String   @id @default(cuid())
+  mapId     String   @map("map_id")
+  name      String
+  sortOrder Int      @default(0) @map("sort_order")
+  imageUrl  String?  @map("image_url")
+  width     Int?
+  height    Int?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  map       ShopImageMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  hotspots  ShopImageHotspot[]
+
+  @@index([mapId])
+  @@map("shop_image_sections")
+}
+
+model ShopImageHotspot {
+  id            String   @id @default(cuid())
+  mapId         String   @map("map_id")
+  sectionId     String?  @map("section_id")
+  productId     String?  @map("product_id")
+  x             Float
+  y             Float
+  width         Float?   @map("width")
+  height        Float?   @map("height")
+  label         String?
+  sortOrder     Int      @default(0) @map("sort_order")
+  priceOverride Float?   @map("price_override")
+  isActive      Boolean  @default(true) @map("is_active")
+  aiMeta        Json?    @map("ai_meta")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  map       ShopImageMap      @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  section   ShopImageSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  product   Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([mapId])
+  @@index([sectionId])
+  @@index([productId])
+  @@map("shop_image_hotspots")
 }
 
 model Offer {

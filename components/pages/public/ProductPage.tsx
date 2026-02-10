@@ -37,6 +37,7 @@ const ProductPage: React.FC = () => {
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
+  const [selectedPackId, setSelectedPackId] = useState('');
 
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
@@ -48,6 +49,7 @@ const ProductPage: React.FC = () => {
   useEffect(() => {
     setSelectedFashionColorValue('');
     setSelectedFashionSize('');
+    setSelectedPackId('');
   }, [(product as any)?.id]);
 
   const removeFromCart = (lineId: string) => RayDB.removeFromCart(lineId);
@@ -216,6 +218,19 @@ const ProductPage: React.FC = () => {
   const handleAddToCart = () => {
     if (!product) return;
 
+    const isFood = shop?.category === Category.FOOD;
+    const packDefs = isFood
+      ? (Array.isArray((product as any)?.packOptions)
+        ? (product as any).packOptions
+        : (Array.isArray((product as any)?.pack_options) ? (product as any).pack_options : []))
+      : [];
+    const hasPacks = Array.isArray(packDefs) && packDefs.length > 0;
+    const selectedPack = hasPacks
+      ? (packDefs as any[]).find((p: any) => String(p?.id || '').trim() === String(selectedPackId || '').trim())
+      : null;
+    const packPriceRaw = selectedPack ? (typeof selectedPack?.price === 'number' ? selectedPack.price : Number(selectedPack?.price || NaN)) : NaN;
+    const packPrice = Number.isFinite(packPriceRaw) && packPriceRaw >= 0 ? packPriceRaw : NaN;
+
     const menuVariantsDef = isRestaurant
       ? (Array.isArray((product as any)?.menuVariants)
         ? (product as any).menuVariants
@@ -257,6 +272,18 @@ const ProductPage: React.FC = () => {
         }
         return;
       }
+    }
+
+    if (hasPacks && !selectedPackId) {
+      try {
+        const toast = document.createElement('div');
+        toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
+        toast.textContent = 'يرجى اختيار الباقة';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 2500);
+      } catch {
+      }
+      return;
     }
 
     // Play directly on click for mobile browsers (iOS) to allow audio
@@ -355,7 +382,9 @@ const ProductPage: React.FC = () => {
 
     const basePrice = hasMenuVariants
       ? Number((selectedMenuVariant as any)?.price || 0)
-      : (() => {
+      : (hasPacks && Number.isFinite(packPrice)
+        ? packPrice
+        : (() => {
         if (shop?.category === Category.FASHION) {
           const sizeLabel = String(selectedFashionSize || '').trim();
           const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
@@ -373,7 +402,7 @@ const ProductPage: React.FC = () => {
           return rawPrice;
         }
         return Number(offer ? offer.newPrice : product.price) || 0;
-      })();
+      })());
 
     const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
     const event = new CustomEvent('add-to-cart', { 
@@ -391,7 +420,10 @@ const ProductPage: React.FC = () => {
               colorValue: String(selectedFashionColorValue || '').trim(),
               size: String(selectedFashionSize || '').trim(),
             }
-          : selectedMenuVariant,
+          : (hasPacks
+            ? { kind: 'pack', packId: String(selectedPackId || '').trim() }
+            : selectedMenuVariant),
+        unit: (product as any)?.unit,
         __skipSound: true,
       } 
     });
@@ -848,6 +880,23 @@ const ProductPage: React.FC = () => {
              </div>
              
              <div className="flex flex-col md:flex-row gap-4">
+               {shop?.category === Category.FOOD && Array.isArray((product as any)?.packOptions) && (product as any).packOptions.length > 0 && (
+                 <div className="flex-1">
+                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 text-right">الباقة</label>
+                   <select
+                     value={selectedPackId}
+                     onChange={(e) => setSelectedPackId(e.target.value)}
+                     className="w-full py-6 bg-white border border-slate-200 rounded-[2.5rem] font-black text-lg text-right px-6"
+                   >
+                     <option value="">اختر</option>
+                     {(product as any).packOptions.map((p: any) => (
+                       <option key={String(p?.id || '')} value={String(p?.id || '')}>
+                         {String(p?.label || p?.name || '').trim() || `${p?.qty} ${p?.unit || (product as any)?.unit || ''}`} - {p?.price} ج.م
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+               )}
                 <button 
                   onClick={handleAddToCart}
                   className="flex-1 py-6 bg-slate-900 text-white rounded-[2.5rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4"

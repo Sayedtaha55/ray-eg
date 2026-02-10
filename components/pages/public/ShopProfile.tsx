@@ -20,6 +20,7 @@ import NavTab from './ShopProfile/NavTab';
 import { isVideoUrl, hexToRgba, coerceBoolean, coerceNumber, scopeCss } from './ShopProfile/utils';
 import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
+import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionImg = motion.img as any;
@@ -914,13 +915,12 @@ const ShopProfile: React.FC = () => {
           <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        {false && (
-        <div className="absolute bottom-6 md:bottom-10 left-0 right-0 flex justify-center px-6">
-           <button onClick={() => setSpatialMode(true)} className="bg-white/95 backdrop-blur-sm text-slate-900 px-6 py-3 md:px-8 md:py-4 rounded-full font-black text-xs md:text-base flex items-center gap-2 md:gap-3 shadow-2xl active:scale-95 transition-all border border-slate-100 hover:gap-5">
-             <Eye size={16} className="md:w-5 md:h-5 text-[#00E5FF] animate-pulse" />
-           </button>
+        <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20">
+          <PurchaseModeButton
+            onClick={() => navigate(`/shop/${encodeURIComponent(String(slug || ''))}/image-map`)}
+            className="px-8 active:scale-95 transition-all shadow-2xl"
+          />
         </div>
-        )}
       </section>
 
       {/* Brand Header */}

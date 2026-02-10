@@ -89,6 +89,8 @@ export interface Product {
   isActive?: boolean;
   description?: string | null;
   category?: string;
+  unit?: string;
+  packOptions?: any;
   trackStock?: boolean;
   images?: any;
   colors?: any;

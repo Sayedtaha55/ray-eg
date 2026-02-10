@@ -4,6 +4,8 @@ import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
 import EditProductModal from '../modals/EditProductModal';
+import ProductEditorLegacyModal from '../modals/ProductEditorLegacyModal';
+import { backendPost } from '@/services/api/httpClient';
 
 type Props = {
   products: Product[];
@@ -20,6 +22,15 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [togglingId, setTogglingId] = useState<string>('');
+  const [imageMapEditorOpen, setImageMapEditorOpen] = useState(false);
+  const [imageMapProductsOpen, setImageMapProductsOpen] = useState(false);
+  const [imageMapLoading, setImageMapLoading] = useState(false);
+  const [imageMapSyncing, setImageMapSyncing] = useState(false);
+  const [imageMapError, setImageMapError] = useState<string>('');
+  const [activeMap, setActiveMap] = useState<any | null>(null);
+  const [imageMapRows, setImageMapRows] = useState<
+    Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean; colors?: string[]; sizes?: any[] }>
+  >([]);
 
   const { addToast } = useToast();
 
@@ -41,7 +52,185 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
   const [savingAddons, setSavingAddons] = useState(false);
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const canUseImageMapEditor = !isRestaurant;
   const pageTitle = isRestaurant ? 'المنيو' : 'المخزون والمنتجات';
+
+  const normalizeNumber = (v: any, fallback: number) => {
+    const n = typeof v === 'number' ? v : v == null ? NaN : Number(v);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  const normalizeText = (v: any) => String(v ?? '').trim();
+
+  const buildRowsFromMap = (map: any, productsIndex?: Map<string, any>) => {
+    const hs = Array.isArray(map?.hotspots) ? map.hotspots : [];
+    const rows: Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean; colors?: string[]; sizes?: any[] }> = [];
+    for (const h of hs) {
+      const name = normalizeText(h?.label || h?.product?.name || h?.name);
+      if (!name) continue;
+      const productId = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id) || null;
+      const override = h?.priceOverride ?? h?.price_override;
+      const price = normalizeNumber(override, normalizeNumber(h?.product?.price, 0));
+      const stock = (() => {
+        const p = productId ? productsIndex?.get(productId) : null;
+        const s = p?.stock ?? h?.product?.stock;
+        const n = normalizeNumber(s, 0);
+        return n < 0 ? 0 : Math.floor(n);
+      })();
+
+      const linkedProduct = productId ? productsIndex?.get(productId) : null;
+      const rawColors = linkedProduct?.colors ?? h?.product?.colors;
+      const rawSizes = linkedProduct?.sizes ?? h?.product?.sizes;
+      const colors = Array.isArray(rawColors) ? rawColors.map((c: any) => normalizeText(c)).filter(Boolean) : undefined;
+      const sizes = Array.isArray(rawSizes) ? rawSizes : undefined;
+      rows.push({
+        key: normalizeText(h?.id) || `${name}:${rows.length}`,
+        name,
+        price,
+        stock,
+        productId,
+        linked: Boolean(productId),
+        colors: colors && colors.length ? colors : undefined,
+        sizes: sizes && sizes.length ? sizes : undefined,
+      });
+    }
+
+    rows.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
+    return rows;
+  };
+
+  const updateRowStock = (key: string, value: any) => {
+    const raw = typeof value === 'number' ? value : value == null ? NaN : Number(value);
+    const nextStock = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+    setImageMapRows((prev) => (Array.isArray(prev) ? prev.map((r) => (r.key === key ? { ...r, stock: nextStock } : r)) : prev));
+  };
+
+  const loadImageMapProducts = async () => {
+    if (!shopId) return;
+    setImageMapError('');
+    setImageMapLoading(true);
+    try {
+      const [maps, manageProducts] = await Promise.all([
+        ApiService.listShopImageMapsForManage(shopId),
+        ApiService.getProductsForManage(shopId, { page: 1, limit: 2000 }),
+      ]);
+
+      const list = Array.isArray(maps) ? maps : [];
+      const current = list.find((m: any) => Boolean(m?.isActive)) || list[0] || null;
+      setActiveMap(current);
+
+      const idx = new Map<string, any>();
+      (Array.isArray(manageProducts) ? manageProducts : []).forEach((p: any) => {
+        const id = normalizeText(p?.id);
+        if (id) idx.set(id, p);
+      });
+
+      const rows = buildRowsFromMap(current, idx);
+      setImageMapRows(rows);
+      if (!current) {
+        setImageMapError('لا يوجد خريطة صورة مفعلة لهذا المتجر');
+      } else if (!Array.isArray((current as any)?.hotspots)) {
+        setImageMapError('تعذر تحميل نقاط المنتجات من خريطة الصورة');
+      } else if (rows.length === 0) {
+        setImageMapError('لا يوجد منتجات مضافة على الصورة');
+      }
+    } catch (e: any) {
+      setImageMapError(String(e?.message || 'فشل تحميل منتجات الصورة'));
+    } finally {
+      setImageMapLoading(false);
+    }
+  };
+
+  const syncImageMapProducts = async () => {
+    if (!shopId) return;
+    const mapId = normalizeText(activeMap?.id);
+    if (!mapId) {
+      setImageMapError('لا يوجد خريطة صورة مفعلة');
+      return;
+    }
+
+    const rawRows = Array.isArray(imageMapRows) ? imageMapRows : [];
+    const items = rawRows
+      .map((r) => ({
+        name: normalizeText(r?.name),
+        price: normalizeNumber(r?.price, NaN),
+        stock: normalizeNumber(r?.stock, 0),
+        category: '__IMAGE_MAP__',
+        description: null,
+      }))
+      .filter((r) => r.name && Number.isFinite(r.price) && r.price >= 0);
+
+    if (items.length === 0) {
+      setImageMapError('لا يوجد منتجات صالحة للاعتماد');
+      return;
+    }
+
+    setImageMapSyncing(true);
+    setImageMapError('');
+    try {
+      const res = await backendPost<any>(`/api/v1/products/manage/by-shop/${encodeURIComponent(String(shopId))}/import-drafts`, {
+        items,
+      });
+
+      const created = Array.isArray(res?.created) ? res.created : [];
+      const updated = Array.isArray(res?.updated) ? res.updated : [];
+      const nameToId = new Map<string, string>();
+      for (const p of [...created, ...updated]) {
+        const id = normalizeText(p?.id);
+        const name = normalizeText(p?.name);
+        if (id && name) nameToId.set(name, id);
+      }
+
+      const currentMap = activeMap;
+      const currentHotspots = Array.isArray(currentMap?.hotspots) ? currentMap.hotspots : [];
+      const currentSections = Array.isArray(currentMap?.sections) ? currentMap.sections : [];
+      if (currentHotspots.length === 0) {
+        throw new Error('لا يوجد نقاط لحفظها');
+      }
+
+      const nextHotspots = currentHotspots.map((h: any) => {
+        const label = normalizeText(h?.label || h?.product?.name || h?.name);
+        const mapped = label ? nameToId.get(label) : undefined;
+        const prevPid = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id) || null;
+        const productId = mapped || prevPid;
+        const override = h?.priceOverride ?? h?.price_override;
+        const priceOverride = typeof override === 'number' ? override : override == null ? null : Number(override);
+        return {
+          x: normalizeNumber(h?.x, 0),
+          y: normalizeNumber(h?.y, 0),
+          label: label || null,
+          sortOrder: typeof h?.sortOrder === 'number' ? h.sortOrder : (typeof h?.sort_order === 'number' ? h.sort_order : 0),
+          sectionId: normalizeText(h?.sectionId ?? h?.section_id) || null,
+          productId: productId || null,
+          priceOverride: Number.isFinite(priceOverride) ? priceOverride : null,
+          width: typeof h?.width === 'number' ? h.width : (typeof h?.width === 'string' ? Number(h.width) : null),
+          height: typeof h?.height === 'number' ? h.height : (typeof h?.height === 'string' ? Number(h.height) : null),
+          aiMeta: h?.aiMeta ?? h?.ai_meta ?? null,
+        };
+      });
+
+      const nextSections = currentSections.map((s: any, idx: number) => ({
+        name: normalizeText(s?.name) || `قسم ${idx + 1}`,
+        sortOrder: typeof s?.sortOrder === 'number' ? s.sortOrder : (typeof s?.sort_order === 'number' ? s.sort_order : idx),
+        imageUrl: normalizeText(s?.imageUrl ?? s?.image_url) || null,
+      }));
+
+      await ApiService.saveShopImageMapLayout(String(shopId), String(mapId), {
+        imageUrl: normalizeText(currentMap?.imageUrl ?? currentMap?.image_url) || '',
+        title: normalizeText(currentMap?.title) || 'خريطة الصورة',
+        sections: nextSections,
+        hotspots: nextHotspots,
+      });
+
+      addToast('تم اعتماد وربط منتجات الصورة', 'success');
+      await loadImageMapProducts();
+    } catch (e: any) {
+      setImageMapError(String(e?.message || 'فشل اعتماد منتجات الصورة'));
+      addToast(String(e?.message || 'فشل اعتماد منتجات الصورة'), 'error');
+    } finally {
+      setImageMapSyncing(false);
+    }
+  };
 
   useEffect(() => {
     if (!isRestaurant) return;
@@ -199,7 +388,6 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
   };
 
   const handleToggleActive = async (product: Product) => {
-    if (!isRestaurant) return;
     const current = typeof (product as any)?.isActive === 'boolean' ? (product as any).isActive : true;
     const next = !current;
     setTogglingId(String(product.id));
@@ -212,17 +400,57 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
     }
   };
 
+  const isImageMapProduct = (p: any) => {
+    const raw = p?.category;
+    const cat =
+      typeof raw === 'string'
+        ? raw
+        : typeof raw?.name === 'string'
+          ? raw.name
+          : typeof raw?.slug === 'string'
+            ? raw.slug
+            : '';
+    const normalized = String(cat || '').trim().toUpperCase();
+    return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+  };
+
+  const filteredProducts = (Array.isArray(products) ? products : []).filter((p: any) => !isImageMapProduct(p));
+
   return (
     <>
       <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
         <div className="flex items-center justify-between mb-12 flex-row-reverse">
           <h3 className="text-3xl font-black">{pageTitle}</h3>
-          <button
-            onClick={onAdd}
-            className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:bg-black transition-all"
-          >
-            <Plus size={24} /> إضافة صنف جديد
-          </button>
+          <div className="flex items-center gap-3">
+            {canUseImageMapEditor && (
+              <button
+                onClick={() => setImageMapEditorOpen(true)}
+                className="px-10 py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:scale-105 transition-all"
+                type="button"
+              >
+                تحرير المنتجات بالصورة
+              </button>
+            )}
+            {canUseImageMapEditor && (
+              <button
+                onClick={async () => {
+                  setImageMapProductsOpen(true);
+                  await loadImageMapProducts();
+                }}
+                className="px-10 py-5 bg-slate-100 text-slate-900 rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-sm hover:bg-slate-200 transition-all"
+                type="button"
+              >
+                قائمة منتجات الصورة
+              </button>
+            )}
+            <button
+              onClick={onAdd}
+              className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:bg-black transition-all"
+              type="button"
+            >
+              <Plus size={24} /> إضافة صنف جديد
+            </button>
+          </div>
         </div>
 
         {isRestaurant && (
@@ -434,20 +662,24 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
         )}
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8">
-          {products.map((p) => (
+          {filteredProducts.map((p) => (
             <div
               key={p.id}
               className={`group relative bg-slate-50/50 p-4 md:p-5 rounded-[2rem] md:rounded-[2.5rem] border border-transparent hover:border-[#00E5FF] hover:bg-white transition-all hover:shadow-2xl ${
-                isRestaurant && (p as any)?.isActive === false ? 'opacity-70' : ''
+                (p as any)?.isActive === false ? 'opacity-70' : ''
               }`}
             >
               <div className="aspect-square rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-4 md:mb-6 bg-white shadow-sm">
-                <img
-                  src={(p as any).imageUrl || (p as any).image_url}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
-                />
+                {String(((p as any).imageUrl || (p as any).image_url || '')).trim() ? (
+                  <img
+                    src={String(((p as any).imageUrl || (p as any).image_url)).trim()}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-slate-100" />
+                )}
               </div>
-              {isRestaurant && (p as any)?.isActive === false && (
+              {(p as any)?.isActive === false && (
                 <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black">
                   مقفول
                 </div>
@@ -464,22 +696,21 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
                 >
                   <Edit size={18} className="md:w-5 md:h-5" />
                 </button>
-                {isRestaurant && (
-                  <button
-                    onClick={() => handleToggleActive(p)}
-                    className={`p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
-                      (p as any)?.isActive === false ? 'text-slate-900' : 'text-slate-500'
-                    }`}
-                    disabled={String(togglingId) === String(p.id)}
-                  >
-                    {String(togglingId) === String(p.id)
-                      ? <Loader2 size={18} className="animate-spin md:w-5 md:h-5" />
-                      : ((p as any)?.isActive === false ? <Eye size={18} className="md:w-5 md:h-5" /> : <EyeOff size={18} className="md:w-5 md:h-5" />)}
-                  </button>
-                )}
                 <button
-                  onClick={() => onMakeOffer(p)}
-                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-[#BD00FF] hover:scale-110 transition-transform"
+                  onClick={() => handleToggleActive(p)}
+                  className={`p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
+                    (p as any)?.isActive === false ? 'text-slate-900' : 'text-slate-500'
+                  }`}
+                  disabled={String(togglingId) === String(p.id)}
+                >
+                  {String(togglingId) === String(p.id)
+                    ? <Loader2 size={18} className="animate-spin md:w-5 md:h-5" />
+                    : ((p as any)?.isActive === false ? <Eye size={18} className="md:w-5 md:h-5" /> : <EyeOff size={18} className="md:w-5 md:h-5" />)}
+                </button>
+                <button
+                  onClick={() => onDelete(p.id)}
+                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-400 hover:text-red-500 hover:scale-110 transition-transform"
+                  type="button"
                 >
                   <Tag size={18} className="md:w-5 md:h-5" />
                 </button>
@@ -503,6 +734,126 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
         product={selectedProduct}
         onUpdate={handleProductUpdate}
       />
+
+      {imageMapProductsOpen && (
+        <div className="fixed inset-0 z-[600]">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setImageMapProductsOpen(false);
+              setImageMapError('');
+            }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden" dir="rtl">
+              <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
+                <div className="text-right">
+                  <h3 className="text-xl md:text-2xl font-black">قائمة منتجات الصورة</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">المنتجات الموجودة على خريطة الصورة (للاستخدام في الشراء فقط)</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageMapProductsOpen(false);
+                    setImageMapError('');
+                  }}
+                  className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-sm"
+                >
+                  إغلاق
+                </button>
+              </div>
+
+              <div className="p-6 md:p-8 space-y-4 max-h-[70vh] overflow-auto">
+                <div className="flex items-center gap-3 justify-between flex-row-reverse">
+                  <button
+                    type="button"
+                    onClick={loadImageMapProducts}
+                    disabled={imageMapLoading || imageMapSyncing}
+                    className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-xs hover:bg-slate-200 disabled:opacity-50"
+                  >
+                    {imageMapLoading ? <Loader2 size={16} className="animate-spin" /> : 'تحديث'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={syncImageMapProducts}
+                    disabled={imageMapLoading || imageMapSyncing}
+                    className="px-5 py-3 rounded-2xl bg-[#00E5FF] text-black font-black text-sm disabled:opacity-50"
+                  >
+                    {imageMapSyncing ? <Loader2 size={18} className="animate-spin" /> : 'اعتماد/مزامنة المنتجات'}
+                  </button>
+                </div>
+
+                {imageMapError && (
+                  <div className="p-4 rounded-3xl bg-red-50 border border-red-100 text-red-700 text-sm font-bold text-right">
+                    {imageMapError}
+                  </div>
+                )}
+
+                <div className="rounded-3xl border border-slate-100 overflow-hidden">
+                  <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
+                    <div className="col-span-5 text-right">الاسم</div>
+                    <div className="col-span-3 text-right">السعر</div>
+                    <div className="col-span-2 text-right">المخزون</div>
+                    <div className="col-span-2 text-right">الربط</div>
+                  </div>
+                  <div className="divide-y divide-slate-100">
+                    {(imageMapRows || []).map((r) => (
+                      <div key={r.key} className="grid grid-cols-12 px-4 py-3 text-sm items-center">
+                        <div className="col-span-5 text-right">
+                          <div className="font-black text-slate-900 truncate">{r.name}</div>
+                          {(Array.isArray(r.colors) && r.colors.length > 0) || (Array.isArray(r.sizes) && r.sizes.length > 0) ? (
+                            <div className="mt-1 space-y-1">
+                              {Array.isArray(r.colors) && r.colors.length > 0 && (
+                                <div className="text-[10px] font-bold text-slate-500">
+                                  الألوان: {r.colors.join(' - ')}
+                                </div>
+                              )}
+                              {Array.isArray(r.sizes) && r.sizes.length > 0 && (
+                                <div className="text-[10px] font-bold text-slate-500">
+                                  المقاسات: {(r.sizes as any[])
+                                    .map((s: any) => {
+                                      const label = String(s?.label || '').trim();
+                                      const value = label === 'custom' ? String(s?.customValue ?? '') : label;
+                                      const price = typeof s?.price === 'number' ? s.price : Number(s?.price || 0);
+                                      return value ? `${value} (${Number.isFinite(price) ? price : 0}ج)` : '';
+                                    })
+                                    .filter(Boolean)
+                                    .join(' - ')}
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                        </div>
+                        <div className="col-span-3 font-black text-right text-slate-700">ج.م {r.price}</div>
+                        <div className="col-span-2 text-right">
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            value={Number.isFinite(Number(r.stock)) ? String(Math.max(0, Math.floor(Number(r.stock)))) : '0'}
+                            onChange={(e) => updateRowStock(r.key, (e.target as any).value)}
+                            className="w-full max-w-[120px] bg-white border border-slate-200 rounded-xl py-2 px-3 font-black text-right outline-none focus:border-[#00E5FF]/60"
+                          />
+                        </div>
+                        <div className="col-span-2 text-right">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black ${r.linked ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {r.linked ? 'مربوط' : 'غير مربوط'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                    {(imageMapRows || []).length === 0 && !imageMapLoading && !imageMapError && (
+                      <div className="p-6 text-center text-slate-400 font-black">لا يوجد منتجات</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <ProductEditorLegacyModal open={imageMapEditorOpen} onClose={() => setImageMapEditorOpen(false)} shopId={shopId} />
     </>
   );
 };

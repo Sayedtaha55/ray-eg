@@ -20,6 +20,16 @@ export class OrderService {
     return { typeId, sizeId };
   }
 
+  private normalizePackSelection(raw: any): { kind: 'pack'; packId: string } | null {
+    if (!raw || typeof raw !== 'object') return null;
+    const obj: any = raw as any;
+    const kind = String(obj?.kind || '').trim().toLowerCase();
+    if (kind !== 'pack') return null;
+    const packId = String(obj?.packId || obj?.id || '').trim();
+    if (!packId) return null;
+    return { kind: 'pack', packId };
+  }
+
   private normalizeFashionSelection(raw: any): { kind: 'fashion'; colorName: string; colorValue: string; size: string } | null {
     if (!raw || typeof raw !== 'object') return null;
     const obj: any = raw as any;
@@ -459,6 +469,7 @@ export class OrderService {
         rawVariantSelection: rawSel,
         menuVariantSelection: this.normalizeMenuVariantSelection(rawSel),
         fashionSelection: this.normalizeFashionSelection(rawSel),
+        packSelection: this.normalizePackSelection(rawSel),
       };
     });
 
@@ -534,16 +545,22 @@ export class OrderService {
 
       if (isFashion) {
         for (const item of normalizedItems) {
-          if (!(item as any)?.fashionSelection) {
+          const product = byId[(item as any).productId];
+          const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
+          const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
+
+          const needsSelection = allowedColors.length > 0 && allowedSizes.length > 0;
+          if (!needsSelection) {
+            continue;
+          }
+
+          const sel = (item as any).fashionSelection;
+          if (!sel) {
             throw new BadRequestException('يرجى اختيار اللون والمقاس');
           }
 
-          const product = byId[(item as any).productId];
-          const sel = (item as any).fashionSelection;
           const selectedColorValue = String(sel?.colorValue || '').trim();
           const selectedSize = String(sel?.size || '').trim();
-          const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
-          const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
           const hasColor = allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue);
           const hasSize = allowedSizes.some((s: any) => {
             if (typeof s === 'string') return String(s || '').trim() === selectedSize;
@@ -586,13 +603,47 @@ export class OrderService {
         return Math.round(next * 100) / 100;
       };
 
+      const computeStockDelta = (product: any, item: any) => {
+        const currentStock = typeof product?.stock === 'number' ? product.stock : Number(product?.stock || 0);
+        const packsCountRaw = Number(item?.quantity);
+        if (!Number.isFinite(packsCountRaw) || packsCountRaw <= 0) {
+          throw new BadRequestException('quantity غير صحيحة');
+        }
+        const packsCount = Math.floor(packsCountRaw);
+        if (packsCount !== packsCountRaw) {
+          throw new BadRequestException('quantity غير صحيحة');
+        }
+
+        const packSel = (item as any)?.packSelection;
+        if (packSel) {
+          const defs = Array.isArray((product as any)?.packOptions) ? ((product as any).packOptions as any[]) : [];
+          const def = defs.find((p: any) => String(p?.id || '').trim() === String(packSel.packId || '').trim());
+          if (!def) {
+            throw new BadRequestException('اختيار الباقة غير متاح');
+          }
+          const qtyRaw = typeof def?.qty === 'number' ? def.qty : Number(def?.qty || NaN);
+          const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
+          if (!Number.isFinite(qty)) {
+            throw new BadRequestException('اختيار الباقة غير متاح');
+          }
+          const delta = packsCount * qty;
+          return { currentStock, delta, packsCount };
+        }
+
+        if (!Number.isInteger(item.quantity)) {
+          return { currentStock, delta: 0, packsCount };
+        }
+        return { currentStock, delta: item.quantity, packsCount };
+      };
+
       // Validate stock
       for (const item of normalizedItems) {
         const product = byId[item.productId];
         const trackStock = typeof product?.trackStock === 'boolean' ? product.trackStock : true;
         if (!trackStock) continue;
-        const currentStock = typeof product?.stock === 'number' ? product.stock : Number(product?.stock || 0);
-        if (currentStock < item.quantity) {
+        const { currentStock, delta } = computeStockDelta(product, item);
+        if (delta <= 0) continue;
+        if (currentStock < delta) {
           throw new BadRequestException('المخزون غير كاف');
         }
       }
@@ -602,8 +653,9 @@ export class OrderService {
         const product = byId[item.productId];
         const trackStock = typeof product?.trackStock === 'boolean' ? product.trackStock : true;
         if (!trackStock) continue;
-        const currentStock = typeof product?.stock === 'number' ? product.stock : Number(product?.stock || 0);
-        const nextStock = Math.max(0, currentStock - item.quantity);
+        const { currentStock, delta } = computeStockDelta(product, item);
+        if (delta <= 0) continue;
+        const nextStock = Math.max(0, currentStock - delta);
         await tx.product.update({
           where: { id: item.productId },
           data: { stock: nextStock },
@@ -619,26 +671,40 @@ export class OrderService {
         const variantOfferPrice = typeof menuVariant?.price === 'number'
           ? resolveVariantOfferPrice(offerForProduct, (item as any)?.rawVariantSelection)
           : null;
-        const basePrice = typeof variantOfferPrice === 'number'
-          ? variantOfferPrice
-          : (typeof menuVariant?.price === 'number'
-            ? menuVariant.price
-            : (() => {
-              if (isFashion && (item as any)?.fashionSelection) {
-                const raw = resolveFashionSizePrice(product, (item as any).fashionSelection);
-                const discounted = offerForProduct && typeof offerForProduct?.discount === 'number'
-                  ? applyDiscountPercent(raw, offerForProduct.discount)
-                  : raw;
-                if (offerForProduct && (typeof offerForProduct?.discount !== 'number' || offerForProduct.discount <= 0)) {
-                  const n = typeof offerForProduct?.newPrice === 'number' ? offerForProduct.newPrice : NaN;
-                  if (Number.isFinite(n) && n >= 0) return n;
+        const resolvePackPrice = () => {
+          const sel = (item as any)?.packSelection;
+          if (!sel) return null;
+          const defs = Array.isArray((product as any)?.packOptions) ? ((product as any).packOptions as any[]) : [];
+          const def = defs.find((p: any) => String(p?.id || '').trim() === String(sel.packId || '').trim());
+          if (!def) throw new BadRequestException('اختيار الباقة غير متاح');
+          const priceRaw = typeof def?.price === 'number' ? def.price : Number(def?.price || NaN);
+          if (!Number.isFinite(priceRaw) || priceRaw < 0) throw new BadRequestException('اختيار الباقة غير متاح');
+          return priceRaw;
+        };
+
+        const packPrice = resolvePackPrice();
+        const basePrice = typeof packPrice === 'number'
+          ? packPrice
+          : (typeof variantOfferPrice === 'number'
+            ? variantOfferPrice
+            : (typeof menuVariant?.price === 'number'
+              ? menuVariant.price
+              : (() => {
+                if (isFashion && (item as any)?.fashionSelection) {
+                  const raw = resolveFashionSizePrice(product, (item as any).fashionSelection);
+                  const discounted = offerForProduct && typeof offerForProduct?.discount === 'number'
+                    ? applyDiscountPercent(raw, offerForProduct.discount)
+                    : raw;
+                  if (offerForProduct && (typeof offerForProduct?.discount !== 'number' || offerForProduct.discount <= 0)) {
+                    const n = typeof offerForProduct?.newPrice === 'number' ? offerForProduct.newPrice : NaN;
+                    if (Number.isFinite(n) && n >= 0) return n;
+                  }
+                  return discounted;
                 }
-                return discounted;
-              }
-              return typeof offerForProduct?.newPrice === 'number'
-                ? offerForProduct.newPrice
-                : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
-            })());
+                return typeof offerForProduct?.newPrice === 'number'
+                  ? offerForProduct.newPrice
+                  : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
+              })()));
         const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
         const { total: addonsTotal } = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
         const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
@@ -662,26 +728,45 @@ export class OrderService {
               const variantOfferPrice = typeof menuVariant?.price === 'number'
                 ? resolveVariantOfferPrice(offerForProduct, (item as any)?.rawVariantSelection)
                 : null;
-              const basePrice = typeof variantOfferPrice === 'number'
-                ? variantOfferPrice
-                : (typeof menuVariant?.price === 'number'
-                  ? menuVariant.price
-                  : (() => {
-                    if (isFashion && (item as any)?.fashionSelection) {
-                      const raw = resolveFashionSizePrice(product, (item as any).fashionSelection);
-                      const discounted = offerForProduct && typeof offerForProduct?.discount === 'number'
-                        ? applyDiscountPercent(raw, offerForProduct.discount)
-                        : raw;
-                      if (offerForProduct && (typeof offerForProduct?.discount !== 'number' || offerForProduct.discount <= 0)) {
-                        const n = typeof offerForProduct?.newPrice === 'number' ? offerForProduct.newPrice : NaN;
-                        if (Number.isFinite(n) && n >= 0) return n;
+              const resolvePackForRow = () => {
+                const sel = (item as any)?.packSelection;
+                if (!sel) return null;
+                const defs = Array.isArray((product as any)?.packOptions) ? ((product as any).packOptions as any[]) : [];
+                const def = defs.find((p: any) => String(p?.id || '').trim() === String(sel.packId || '').trim());
+                if (!def) throw new BadRequestException('اختيار الباقة غير متاح');
+                const qtyRaw = typeof def?.qty === 'number' ? def.qty : Number(def?.qty || NaN);
+                const priceRaw = typeof def?.price === 'number' ? def.price : Number(def?.price || NaN);
+                const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
+                const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
+                if (!Number.isFinite(qty) || !Number.isFinite(price)) throw new BadRequestException('اختيار الباقة غير متاح');
+                const unit = String(def?.unit || (product as any)?.unit || '').trim() || null;
+                const label = String(def?.label || def?.name || '').trim() || null;
+                return { packId: String(def?.id || '').trim(), qty, unit, label, price };
+              };
+
+              const packRow = resolvePackForRow();
+              const basePrice = packRow && typeof packRow.price === 'number'
+                ? packRow.price
+                : (typeof variantOfferPrice === 'number'
+                  ? variantOfferPrice
+                  : (typeof menuVariant?.price === 'number'
+                    ? menuVariant.price
+                    : (() => {
+                      if (isFashion && (item as any)?.fashionSelection) {
+                        const raw = resolveFashionSizePrice(product, (item as any).fashionSelection);
+                        const discounted = offerForProduct && typeof offerForProduct?.discount === 'number'
+                          ? applyDiscountPercent(raw, offerForProduct.discount)
+                          : raw;
+                        if (offerForProduct && (typeof offerForProduct?.discount !== 'number' || offerForProduct.discount <= 0)) {
+                          const n = typeof offerForProduct?.newPrice === 'number' ? offerForProduct.newPrice : NaN;
+                          if (Number.isFinite(n) && n >= 0) return n;
+                        }
+                        return discounted;
                       }
-                      return discounted;
-                    }
-                    return typeof offerForProduct?.newPrice === 'number'
-                      ? offerForProduct.newPrice
-                      : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
-                  })());
+                      return typeof offerForProduct?.newPrice === 'number'
+                        ? offerForProduct.newPrice
+                        : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
+                    })()));
               const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
               const addons = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
               const row: any = {
@@ -691,7 +776,7 @@ export class OrderService {
                 addons: addons.normalized,
                 variantSelection: isRestaurant
                   ? (menuVariant?.normalized || null)
-                  : (isFashion ? ((item as any)?.fashionSelection || null) : null),
+                  : (isFashion ? ((item as any)?.fashionSelection || null) : (packRow ? ({ kind: 'pack', ...packRow } as any) : null)),
               };
               return row;
             }),
@@ -709,10 +794,10 @@ export class OrderService {
       try {
         await tx.notification.create({
           data: {
-            userId,
+            shopId,
             title: 'طلب جديد',
             content: `تم إنشاء طلب جديد بقيمة ${Number(total || 0)} ج.م`,
-            type: 'ORDER' as any,
+            type: 'NEW_ORDER' as any,
             isRead: false,
           },
         });
@@ -726,7 +811,7 @@ export class OrderService {
             userId,
             title: 'تم استلام طلبك',
             content: `تم إنشاء طلبك بنجاح بقيمة ${Number(total || 0)} ج.م`,
-            type: 'ORDER' as any,
+            type: 'ORDER_CONFIRMED' as any,
             isRead: false,
           },
         });

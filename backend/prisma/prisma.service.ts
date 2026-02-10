@@ -38,6 +38,27 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     const databaseUrl = String(process.env.DATABASE_URL || '').trim();
     const allowProdDbInDev = String(process.env.ALLOW_PROD_DATABASE_IN_DEV || '').toLowerCase() === 'true';
 
+    if (env !== 'production') {
+      try {
+        if (databaseUrl) {
+          const u = new URL(databaseUrl);
+          const dbName = String(u.pathname || '').replace(/^\//, '');
+          // eslint-disable-next-line no-console
+          console.log('[PrismaService] DATABASE_URL (safe):', {
+            protocol: u.protocol.replace(':', ''),
+            host: u.host,
+            database: dbName,
+          });
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('[PrismaService] DATABASE_URL (safe):', { empty: true });
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.log('[PrismaService] DATABASE_URL (safe):', { parseError: true });
+      }
+    }
+
     if (env !== 'production' && !allowProdDbInDev) {
       const lowered = databaseUrl.toLowerCase();
       const looksLikeRailway = lowered.includes('railway') || lowered.includes('rlwy') || lowered.includes('proxy.rlwy.net');

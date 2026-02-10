@@ -89,6 +89,7 @@ export class ProductController {
     const price = this.parseNumberInput(body?.price);
     const stock = this.parseNumberInput(body?.stock);
     const category = typeof body?.category === 'string' ? body.category : 'عام';
+    const unit = typeof body?.unit === 'string' ? body.unit : undefined;
     const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : null;
     const description = typeof body?.description === 'string' ? body.description : null;
 
@@ -97,6 +98,7 @@ export class ProductController {
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
     const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
+    const packOptions = typeof body?.packOptions === 'undefined' ? undefined : body.packOptions;
     const menuVariants = typeof body?.menuVariants === 'undefined'
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
@@ -110,6 +112,7 @@ export class ProductController {
       price,
       stock: Number.isNaN(stock) || stock < 0 ? 0 : stock,
       category,
+      unit,
       imageUrl,
       description,
       trackStock,
@@ -117,8 +120,44 @@ export class ProductController {
       colors,
       sizes,
       addons,
+      packOptions,
       menuVariants,
     });
+  }
+
+  @Post('manage/by-shop/:shopId/import-drafts')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async importDrafts(@Param('shopId') shopId: string, @Body() body: any, @Request() req) {
+    const role = String(req.user?.role || '').toUpperCase();
+    const shopIdFromToken = req.user?.shopId;
+    const targetShopId = role === 'ADMIN' ? String(shopId || '').trim() : String(shopIdFromToken || '').trim();
+
+    if (!targetShopId) {
+      throw new BadRequestException('shopId مطلوب');
+    }
+
+    if (role !== 'ADMIN' && shopIdFromToken !== targetShopId) {
+      throw new ForbiddenException('ليس لديك صلاحية لإدارة هذا المتجر');
+    }
+
+    const itemsRaw = Array.isArray(body?.items) ? body.items : [];
+    const items = itemsRaw
+      .map((it: any) => {
+        const name = String(it?.name || '').trim();
+        const price = this.parseNumberInput(it?.price);
+        const stock = typeof it?.stock === 'undefined' ? undefined : this.parseNumberInput(it?.stock);
+        const category = typeof it?.category === 'string' ? it.category : undefined;
+        const unit = typeof it?.unit === 'string' ? it.unit : undefined;
+        const description = typeof it?.description === 'string' ? it.description : undefined;
+        const colors = typeof it?.colors === 'undefined' ? undefined : it.colors;
+        const sizes = typeof it?.sizes === 'undefined' ? undefined : it.sizes;
+        const packOptions = typeof it?.packOptions === 'undefined' ? undefined : it.packOptions;
+        return { name, price, stock, category, unit, description, colors, sizes, packOptions };
+      })
+      .filter((it: any) => it?.name && Number.isFinite(it?.price));
+
+    return this.productService.importDrafts(targetShopId, items, { role, shopId: shopIdFromToken });
   }
 
   @Patch(':id/stock')
@@ -141,6 +180,7 @@ export class ProductController {
     const price = typeof body?.price === 'undefined' ? undefined : this.parseNumberInput(body?.price);
     const stock = typeof body?.stock === 'undefined' ? undefined : this.parseNumberInput(body?.stock);
     const category = typeof body?.category === 'string' ? body.category : undefined;
+    const unit = typeof body?.unit === 'string' ? body.unit : undefined;
     const imageUrl = typeof body?.imageUrl === 'string' ? body.imageUrl : undefined;
     const description = typeof body?.description === 'string' ? body.description : undefined;
 
@@ -149,6 +189,7 @@ export class ProductController {
     const colors = typeof body?.colors === 'undefined' ? undefined : body.colors;
     const sizes = typeof body?.sizes === 'undefined' ? undefined : body.sizes;
     const addons = typeof body?.addons === 'undefined' ? undefined : body.addons;
+    const packOptions = typeof body?.packOptions === 'undefined' ? undefined : body.packOptions;
     const menuVariants = typeof body?.menuVariants === 'undefined'
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
@@ -164,6 +205,7 @@ export class ProductController {
       price,
       stock,
       category,
+      unit,
       imageUrl,
       description,
       trackStock,
@@ -171,6 +213,7 @@ export class ProductController {
       colors,
       sizes,
       addons,
+      packOptions,
       menuVariants,
       isActive,
     }, { role, shopId: shopIdFromToken });

@@ -175,6 +175,42 @@ export const ApiService = {
   login: async (email: string, pass: string) => {
     return await loginViaBackend(email, pass);
   },
+
+  // Shop Image Map
+  getActiveShopImageMap: async (slug: string) => {
+    const s = String(slug || '').trim();
+    if (!s) throw new Error('Missing slug');
+    return await backendGet<any>(`/api/v1/shops/${encodeURIComponent(s)}/image-map/active`);
+  },
+  listShopImageMapsForManage: async (shopId: string) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps/manage`);
+  },
+  createShopImageMap: async (shopId: string, payload: any) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    return await backendPost<any>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps`, payload);
+  },
+  activateShopImageMap: async (shopId: string, mapId: string) => {
+    const sid = String(shopId || '').trim();
+    const mid = String(mapId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    if (!mid) throw new Error('Missing mapId');
+    return await backendPatch<any>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps/${encodeURIComponent(mid)}/activate`, {});
+  },
+  saveShopImageMapLayout: async (shopId: string, mapId: string, payload: any) => {
+    const sid = String(shopId || '').trim();
+    const mid = String(mapId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    if (!mid) throw new Error('Missing mapId');
+    return await backendPatch<any>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps/${encodeURIComponent(mid)}/layout`, payload);
+  },
+  analyzeShopImageMap: async (shopId: string, payload: { imageUrl: string; language?: string }) => {
+    const sid = String(shopId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    return await backendPost<any>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps/analyze`, payload);
+  },
   uploadMedia: async (payload: { file: File; purpose?: string; shopId?: string }) => {
     const file = payload?.file;
     if (!file) throw new Error('Missing file');

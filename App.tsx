@@ -21,6 +21,7 @@ const ContactPage = React.lazy(() => import('./components/pages/public/ContactPa
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile.tsx'));
 const ShopProductPage = React.lazy(() => import('./components/pages/public/ShopProductPage'));
+const ShopImageMapPurchaseView = React.lazy(() => import('./src/features/shop-image-map/components/ShopImageMapPurchaseView'));
 
 const BusinessLayout = React.lazy(() => import('./components/layouts/BusinessLayout'));
 const BusinessLanding = React.lazy(() => import('./components/pages/business/BusinessLanding'));
@@ -147,7 +148,7 @@ const App: React.FC = () => {
         <Route path="/s/:slug/product/:id" element={<RedirectSShopProduct />} />
 
         <Route path="/shop/:slug" element={suspense(<ShopProfile />)} />
-
+        <Route path="/shop/:slug/image-map" element={suspense(<ShopImageMapPurchaseView />)} />
         <Route path="/shop/:slug/product/:id" element={suspense(<ShopProductPage />)} />
 
         <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />

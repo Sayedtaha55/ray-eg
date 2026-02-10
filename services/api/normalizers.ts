@@ -80,6 +80,8 @@ export function normalizeProductFromBackend(product: any) {
   if (!product) return product;
   const imageUrlRaw = product.imageUrl ?? product.image_url ?? product.image ?? '';
   const imageUrl = typeof imageUrlRaw === 'string' ? toBackendUrl(imageUrlRaw) : imageUrlRaw;
+  const unit = typeof (product as any)?.unit === 'string' ? String((product as any).unit).trim() : undefined;
+  const packOptions = (product as any)?.packOptions ?? (product as any)?.pack_options;
   const shopId = product.shopId ?? product.shop_id;
   const isActiveRaw = product.isActive ?? product.is_active;
   const isActive = typeof isActiveRaw === 'boolean' ? isActiveRaw : true;
@@ -119,6 +121,8 @@ export function normalizeProductFromBackend(product: any) {
     shop_id: product.shop_id ?? shopId,
     stock: typeof product.stock === 'number' ? product.stock : Number(product.stock || 0),
     price: typeof product.price === 'number' ? product.price : Number(product.price || 0),
+    unit,
+    packOptions,
     isActive,
     is_active: product.is_active ?? isActive,
     trackStock,

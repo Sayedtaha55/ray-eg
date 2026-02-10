@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -365,6 +365,14 @@ const BusinessLayout: React.FC = () => {
         </Link>
         <div className="flex items-center gap-4">
            <button
+             onClick={() => window.location.reload()}
+             aria-label="تحديث"
+             title="تحديث"
+             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+           >
+             <RefreshCw className="w-6 h-6" />
+           </button>
+           <button
              onClick={() => navigate(buildDashboardUrl('pos'))}
              aria-label="نظام الكاشير"
              title="نظام الكاشير"
@@ -675,6 +683,14 @@ const BusinessLayout: React.FC = () => {
               className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
             >
               <Palette className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              aria-label="تحديث"
+              title="تحديث"
+              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
+            >
+              <RefreshCw className="w-5 h-5" />
             </button>
             <button
               onClick={() => navigate(buildDashboardUrl('pos'))}

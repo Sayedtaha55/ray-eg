@@ -837,7 +837,7 @@ export class ShopService {
         orderBy: { createdAt: 'asc' },
       });
 
-      const reservationsInRange = await this.prisma.reservation.findMany({
+      const reservationsInRange = await (this.prisma as any).reservation.findMany({
         where: {
           shopId,
           status: 'COMPLETED' as any,
@@ -846,7 +846,7 @@ export class ShopService {
             lte: effectiveTo,
           },
         },
-        select: { id: true, customerPhone: true, createdAt: true },
+        select: { id: true, phone: true, createdAt: true },
         orderBy: { createdAt: 'asc' },
       });
 
@@ -856,7 +856,7 @@ export class ShopService {
       const totalOrders = ordersInRange.length + reservationsInRange.length;
       const userIds = new Set<string>();
       for (const o of ordersInRange) userIds.add(String(o.userId));
-      for (const r of reservationsInRange) userIds.add(String((r as any).customerPhone || ''));
+      for (const r of reservationsInRange) userIds.add(String((r as any).phone || ''));
       userIds.delete('');
       const totalUsers = userIds.size;
 

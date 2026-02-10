@@ -29,6 +29,11 @@ export const RayDB = {
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
   getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  getQuantityStepForUnit: (unitRaw: any) => {
+    const unit = String(unitRaw || '').trim().toUpperCase();
+    if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
+    return 1;
+  },
   getCart: () => {
     try {
       const raw = localStorage.getItem('ray_cart');
@@ -130,6 +135,7 @@ export const RayDB = {
     const productId = String(input?.productId || input?.id || '').trim();
     const shopId = String(input?.shopId || '').trim();
     if (!productId) return RayDB.getCart();
+    const qtyStep = RayDB.getQuantityStepForUnit((input as any)?.unit);
     const variantSig = (() => {
       const raw = (input as any)?.variantSelection ?? (input as any)?.variant_selection;
       if (!raw || typeof raw !== 'object') return '';
@@ -139,6 +145,11 @@ export const RayDB = {
         const size = String((raw as any)?.size || '').trim();
         if (!colorValue || !size) return '';
         return `fashion-${colorValue}-${size}`;
+      }
+      if (kind === 'pack') {
+        const packId = String((raw as any)?.packId || (raw as any)?.id || '').trim();
+        if (!packId) return '';
+        return `pack-${packId}`;
       }
       const typeId = String((raw as any)?.typeId || (raw as any)?.variantId || (raw as any)?.type || (raw as any)?.variant || '').trim();
       const sizeId = String((raw as any)?.sizeId || (raw as any)?.size || '').trim();
@@ -166,7 +177,7 @@ export const RayDB = {
       id: productId,
       shopId,
       lineId,
-      quantity: Math.max(1, Number(input?.quantity) || 1),
+      quantity: Math.max(qtyStep, Number(input?.quantity) || qtyStep),
       price: Number(input?.price) || 0,
       name: String(input?.name || ''),
       shopName: String(input?.shopName || input?.shop_name || ''),
@@ -204,8 +215,10 @@ export const RayDB = {
       .map((i: any) => {
         const itemKey = String(i?.lineId || `${i?.shopId || 'unknown'}:${i?.id}`);
         if (itemKey !== key) return i;
+        const step = RayDB.getQuantityStepForUnit((i as any)?.unit);
         const nextQty = Math.max(0, (Number(i?.quantity) || 0) + d);
-        return { ...i, quantity: nextQty };
+        const clamped = nextQty > 0 ? Math.max(step, nextQty) : 0;
+        return { ...i, quantity: clamped };
       })
       .filter((i: any) => (Number(i?.quantity) || 0) > 0);
     return RayDB.setCart(next);

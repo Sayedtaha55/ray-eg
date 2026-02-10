@@ -78,6 +78,7 @@ export { default as Modal } from './common/ui/Modal';
 export { default as Card } from './common/ui/Card';
 export { default as Badge } from './common/ui/Badge';
 export { default as Loading } from './common/ui/Loading';
+export { PurchaseModeButton } from './common/PurchaseModeButton';
 
 // Common - Forms
 export { default as LoginForm } from './common/forms/LoginForm';

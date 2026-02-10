@@ -21,6 +21,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [price, setPrice] = useState('');
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
+  const [unit, setUnit] = useState('');
+  const [packOptionItems, setPackOptionItems] = useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [description, setDescription] = useState('');
   const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
   const [menuVariantItems, setMenuVariantItems] = useState<
@@ -62,6 +64,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
+  const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -108,6 +111,17 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       setStock(String(product.stock || ''));
       setCat(product.category || 'عام');
       setDescription(product.description || '');
+      setUnit(typeof (product as any)?.unit === 'string' ? String((product as any).unit) : '');
+      setPackOptionItems(() => {
+        const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
+        const list = Array.isArray(raw) ? raw : [];
+        return list.map((p: any, idx: number) => {
+          const id = String(p?.id || '').trim() || `pack_${idx + 1}`;
+          const qty = typeof p?.qty === 'number' ? String(p.qty) : (p?.qty != null ? String(p.qty) : '');
+          const price = typeof p?.price === 'number' ? String(p.price) : (p?.price != null ? String(p.price) : '');
+          return { id, qty, price };
+        });
+      });
       setImagePreview((product as any).imageUrl || (product as any).image_url || null);
       setMenuVariantItems(() => {
         const raw = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
@@ -276,6 +290,33 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     e.preventDefault();
     if (!product) return;
 
+    const packOptions = (() => {
+      if (!isFood) return undefined;
+      const list = Array.isArray(packOptionItems) ? packOptionItems : [];
+      if (list.length === 0) return [];
+      const mapped = list
+        .map((p) => {
+          const qty = parseNumberInput(p?.qty);
+          const pr = parseNumberInput(p?.price);
+          if (!Number.isFinite(qty) || qty <= 0) return null;
+          if (!Number.isFinite(pr) || pr < 0) return null;
+          return {
+            id: String(p?.id || '').trim() || `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+            qty: Math.round(qty * 1000) / 1000,
+            unit: unit ? String(unit).trim() : null,
+            price: Math.round(pr * 100) / 100,
+          };
+        })
+        .filter(Boolean);
+      if (mapped.length !== list.length) return '__INVALID__';
+      return mapped;
+    })();
+
+    if (packOptions === '__INVALID__') {
+      addToast('يرجى إدخال باقات البيع بشكل صحيح', 'error');
+      return;
+    }
+
     const sizes = (() => {
       if (!isFashion) return undefined;
       const list = Array.isArray(fashionSizeItems) ? fashionSizeItems : [];
@@ -432,6 +473,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         description: description ? description : null,
         imageUrl,
         trackStock: isRestaurant ? false : true,
+        ...(isFood ? { unit: unit ? String(unit).trim() : null, packOptions } : {}),
         ...(isRestaurant ? { menuVariants } : {}),
         ...(isRestaurant
           ? {}

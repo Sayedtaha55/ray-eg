@@ -17,6 +17,7 @@ import { NotificationModule } from './notification.module';
 import { MediaModule } from './media.module';
 import { CourierModule } from './courier.module';
 import { FeedbackModule } from './feedback.module';
+import { ShopImageMapModule } from './shop-image-map.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -57,6 +58,9 @@ import { DatabaseTestController } from './db-test.controller';
           ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
           ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
           ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
+          ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') || bootModules.has('product')
+            ? [ShopImageMapModule]
+            : []),
         ]),
   ],
   controllers: minimalBoot

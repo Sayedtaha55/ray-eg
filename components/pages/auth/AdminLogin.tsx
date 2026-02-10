@@ -102,6 +102,22 @@ const AdminLogin: React.FC = () => {
     }
   };
 
+  const handleDevFoodLogin = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await ApiService.devMerchantLogin({ shopCategory: 'FOOD' });
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      window.dispatchEvent(new Event('auth-change'));
+      navigate('/business/dashboard');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر تسجيل دخول المطور');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDevCourierLogin = async () => {
     setLoading(true);
     setError('');
@@ -212,6 +228,15 @@ const AdminLogin: React.FC = () => {
                  >
                    <Store size={18} />
                    دخول المطور (ملابس)
+                 </button>
+                 <button
+                   type="button"
+                   disabled={loading}
+                   onClick={handleDevFoodLogin}
+                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                 >
+                   <Store size={18} />
+                   دخول المطور (سوبر ماركت/بقالة/عطارة)
                  </button>
                  <button
                    type="button"
