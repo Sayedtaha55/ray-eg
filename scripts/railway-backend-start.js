@@ -26,12 +26,22 @@ function deployMigrations() {
   return run(prisma, ['migrate', 'deploy', '--schema', 'prisma/schema.prisma']);
 }
 
+function resolveRolledBack(migrationName) {
+  const prisma = prismaBin();
+  if (!migrationName) return 0;
+  return run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--rolled-back', migrationName]);
+}
+
 (function main() {
   try {
     tryBaselineInit();
 
     let deployStatus = deployMigrations();
     if (deployStatus !== 0) {
+      // If a migration is marked failed in the database, Prisma will refuse to apply new ones (P3009).
+      // In our case, the migration can fail if it attempted to create an enum that already exists.
+      // Mark it as rolled back then retry deploy.
+      resolveRolledBack('20260208184005_shop_image_maps');
       tryBaselineInit();
       deployStatus = deployMigrations();
     }

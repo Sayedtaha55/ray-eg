@@ -1,5 +1,10 @@
 -- CreateEnum
-CREATE TYPE "OrderCourierOfferStatus" AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED');
+DO $$
+BEGIN
+  CREATE TYPE "OrderCourierOfferStatus" AS ENUM ('PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED');
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- DropForeignKey
 ALTER TABLE "feedback" DROP CONSTRAINT "feedback_user_email_fkey";
