@@ -135,7 +135,7 @@ model Product {
   trackStock  Boolean  @default(true) @map("track_stock")
   category    String   @default("عام")
   unit        String?
-  packOptions Json?
+  packOptions Json?    @map("pack_options")
   imageUrl    String?  @map("image_url")
   images      Json?
   colors      Json?

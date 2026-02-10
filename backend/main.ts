@@ -162,6 +162,7 @@ async function bootstrap() {
   }, 8000);
 
   const app = await NestFactory.create(AppModule, {
+    bodyParser: false,
     cors: {
       origin: (origin, callback) => {
         return callback(null, isAllowedOrigin(origin));
@@ -174,6 +175,11 @@ async function bootstrap() {
   });
   clearTimeout(createWatchdog);
   console.log('[main.ts] NestFactory.create() done');
+
+  const bodyLimitRaw = String(process.env.BODY_LIMIT || '').trim();
+  const bodyLimit = bodyLimitRaw || '25mb';
+  app.use(bodyParser.json({ limit: bodyLimit }));
+  app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
 
   console.log('[main.ts] app.init() starting...');
   await app.init();
@@ -232,11 +238,6 @@ async function bootstrap() {
 
     return next();
   });
-
-  const bodyLimitRaw = String(process.env.BODY_LIMIT || '').trim();
-  const bodyLimit = bodyLimitRaw || '25mb';
-  app.use(bodyParser.json({ limit: bodyLimit }));
-  app.use(bodyParser.urlencoded({ extended: true, limit: bodyLimit }));
 
   try {
     const httpAdapter: any = app.getHttpAdapter?.();
