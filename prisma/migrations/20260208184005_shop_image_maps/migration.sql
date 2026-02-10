@@ -7,19 +7,20 @@ EXCEPTION
 END $$;
 
 -- DropForeignKey
-ALTER TABLE "feedback" DROP CONSTRAINT "feedback_user_email_fkey";
+ALTER TABLE "feedback" DROP CONSTRAINT IF EXISTS "feedback_user_email_fkey";
 
 -- AlterTable
-ALTER TABLE "offers" ADD COLUMN     "variant_pricing" JSONB;
+ALTER TABLE "offers" ADD COLUMN IF NOT EXISTS "variant_pricing" JSONB;
 
 -- AlterTable
-ALTER TABLE "products" ADD COLUMN     "colors" JSONB,
-ADD COLUMN     "images" JSONB,
-ADD COLUMN     "sizes" JSONB,
-ADD COLUMN     "track_stock" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE "products"
+ADD COLUMN IF NOT EXISTS "colors" JSONB,
+ADD COLUMN IF NOT EXISTS "images" JSONB,
+ADD COLUMN IF NOT EXISTS "sizes" JSONB,
+ADD COLUMN IF NOT EXISTS "track_stock" BOOLEAN NOT NULL DEFAULT true;
 
 -- CreateTable
-CREATE TABLE "shop_image_maps" (
+CREATE TABLE IF NOT EXISTS "shop_image_maps" (
     "id" TEXT NOT NULL,
     "shop_id" TEXT NOT NULL,
     "title" TEXT,
@@ -35,7 +36,7 @@ CREATE TABLE "shop_image_maps" (
 );
 
 -- CreateTable
-CREATE TABLE "shop_image_sections" (
+CREATE TABLE IF NOT EXISTS "shop_image_sections" (
     "id" TEXT NOT NULL,
     "map_id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
@@ -47,7 +48,7 @@ CREATE TABLE "shop_image_sections" (
 );
 
 -- CreateTable
-CREATE TABLE "shop_image_hotspots" (
+CREATE TABLE IF NOT EXISTS "shop_image_hotspots" (
     "id" TEXT NOT NULL,
     "map_id" TEXT NOT NULL,
     "section_id" TEXT,
@@ -68,7 +69,7 @@ CREATE TABLE "shop_image_hotspots" (
 );
 
 -- CreateTable
-CREATE TABLE "courier_states" (
+CREATE TABLE IF NOT EXISTS "courier_states" (
     "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "is_available" BOOLEAN NOT NULL DEFAULT false,
@@ -83,7 +84,7 @@ CREATE TABLE "courier_states" (
 );
 
 -- CreateTable
-CREATE TABLE "order_courier_offers" (
+CREATE TABLE IF NOT EXISTS "order_courier_offers" (
     "id" TEXT NOT NULL,
     "order_id" TEXT NOT NULL,
     "courier_id" TEXT NOT NULL,
@@ -98,55 +99,95 @@ CREATE TABLE "order_courier_offers" (
 );
 
 -- CreateIndex
-CREATE INDEX "shop_image_maps_shop_id_idx" ON "shop_image_maps"("shop_id");
+CREATE INDEX IF NOT EXISTS "shop_image_maps_shop_id_idx" ON "shop_image_maps"("shop_id");
 
 -- CreateIndex
-CREATE INDEX "shop_image_sections_map_id_idx" ON "shop_image_sections"("map_id");
+CREATE INDEX IF NOT EXISTS "shop_image_sections_map_id_idx" ON "shop_image_sections"("map_id");
 
 -- CreateIndex
-CREATE INDEX "shop_image_hotspots_map_id_idx" ON "shop_image_hotspots"("map_id");
+CREATE INDEX IF NOT EXISTS "shop_image_hotspots_map_id_idx" ON "shop_image_hotspots"("map_id");
 
 -- CreateIndex
-CREATE INDEX "shop_image_hotspots_section_id_idx" ON "shop_image_hotspots"("section_id");
+CREATE INDEX IF NOT EXISTS "shop_image_hotspots_section_id_idx" ON "shop_image_hotspots"("section_id");
 
 -- CreateIndex
-CREATE INDEX "shop_image_hotspots_product_id_idx" ON "shop_image_hotspots"("product_id");
+CREATE INDEX IF NOT EXISTS "shop_image_hotspots_product_id_idx" ON "shop_image_hotspots"("product_id");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "courier_states_user_id_key" ON "courier_states"("user_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "courier_states_user_id_key" ON "courier_states"("user_id");
 
 -- CreateIndex
-CREATE INDEX "courier_states_user_id_idx" ON "courier_states"("user_id");
+CREATE INDEX IF NOT EXISTS "courier_states_user_id_idx" ON "courier_states"("user_id");
 
 -- CreateIndex
-CREATE INDEX "order_courier_offers_courier_id_status_idx" ON "order_courier_offers"("courier_id", "status");
+CREATE INDEX IF NOT EXISTS "order_courier_offers_courier_id_status_idx" ON "order_courier_offers"("courier_id", "status");
 
 -- CreateIndex
-CREATE INDEX "order_courier_offers_order_id_status_idx" ON "order_courier_offers"("order_id", "status");
+CREATE INDEX IF NOT EXISTS "order_courier_offers_order_id_status_idx" ON "order_courier_offers"("order_id", "status");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "order_courier_offers_order_id_courier_id_key" ON "order_courier_offers"("order_id", "courier_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "order_courier_offers_order_id_courier_id_key" ON "order_courier_offers"("order_id", "courier_id");
 
 -- AddForeignKey
-ALTER TABLE "shop_image_maps" ADD CONSTRAINT "shop_image_maps_shop_id_fkey" FOREIGN KEY ("shop_id") REFERENCES "shops"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "shop_image_maps" ADD CONSTRAINT "shop_image_maps_shop_id_fkey" FOREIGN KEY ("shop_id") REFERENCES "shops"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shop_image_sections" ADD CONSTRAINT "shop_image_sections_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "shop_image_maps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "shop_image_sections" ADD CONSTRAINT "shop_image_sections_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "shop_image_maps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "shop_image_maps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_map_id_fkey" FOREIGN KEY ("map_id") REFERENCES "shop_image_maps"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_section_id_fkey" FOREIGN KEY ("section_id") REFERENCES "shop_image_sections"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_section_id_fkey" FOREIGN KEY ("section_id") REFERENCES "shop_image_sections"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "shop_image_hotspots" ADD CONSTRAINT "shop_image_hotspots_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "courier_states" ADD CONSTRAINT "courier_states_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "courier_states" ADD CONSTRAINT "courier_states_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "order_courier_offers" ADD CONSTRAINT "order_courier_offers_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "order_courier_offers" ADD CONSTRAINT "order_courier_offers_order_id_fkey" FOREIGN KEY ("order_id") REFERENCES "orders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "order_courier_offers" ADD CONSTRAINT "order_courier_offers_courier_id_fkey" FOREIGN KEY ("courier_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$
+BEGIN
+  ALTER TABLE "order_courier_offers" ADD CONSTRAINT "order_courier_offers_courier_id_fkey" FOREIGN KEY ("courier_id") REFERENCES "users"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN null;
+END $$;
