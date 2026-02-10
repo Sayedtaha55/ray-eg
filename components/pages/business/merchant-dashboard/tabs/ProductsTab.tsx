@@ -62,6 +62,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
 
   const normalizeText = (v: any) => String(v ?? '').trim();
 
+  const normalizeColorLabel = (c: any) => {
+    if (typeof c === 'string') return normalizeText(c);
+    if (!c || typeof c !== 'object') return '';
+    const name = normalizeText((c as any)?.name || (c as any)?.label || (c as any)?.title);
+    const value = normalizeText((c as any)?.value || (c as any)?.colorValue || (c as any)?.hex);
+    return name || value;
+  };
+
   const buildRowsFromMap = (map: any, productsIndex?: Map<string, any>) => {
     const hs = Array.isArray(map?.hotspots) ? map.hotspots : [];
     const rows: Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean; colors?: string[]; sizes?: any[] }> = [];
@@ -81,7 +89,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
       const linkedProduct = productId ? productsIndex?.get(productId) : null;
       const rawColors = linkedProduct?.colors ?? h?.product?.colors;
       const rawSizes = linkedProduct?.sizes ?? h?.product?.sizes;
-      const colors = Array.isArray(rawColors) ? rawColors.map((c: any) => normalizeText(c)).filter(Boolean) : undefined;
+      const colors = Array.isArray(rawColors) ? rawColors.map((c: any) => normalizeColorLabel(c)).filter(Boolean) : undefined;
       const sizes = Array.isArray(rawSizes) ? rawSizes : undefined;
       rows.push({
         key: normalizeText(h?.id) || `${name}:${rows.length}`,
