@@ -9,6 +9,24 @@ export class ProductService {
     @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private mapDbErrorToBadRequest(e: any) {
+    const msg = e?.message ? String(e.message) : '';
+    const lowered = msg.toLowerCase();
+    if (
+      lowered.includes('does not exist') ||
+      lowered.includes('no such column') ||
+      lowered.includes('no such table') ||
+      lowered.includes('unknown column') ||
+      lowered.includes('column') && lowered.includes('not') && lowered.includes('exist')
+    ) {
+      return new BadRequestException('قاعدة البيانات غير محدثة. شغّل migrations ثم أعد تشغيل السيرفر');
+    }
+    if (msg) {
+      return new BadRequestException(msg);
+    }
+    return new BadRequestException('Database error');
+  }
+
   private getListCacheKey(prefix: string, input: Record<string, any>) {
     const sorted = Object.keys(input)
       .sort()
@@ -92,7 +110,7 @@ export class ProductService {
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
-      throw e;
+      throw this.mapDbErrorToBadRequest(e);
     }
 
     try {
@@ -118,17 +136,23 @@ export class ProductService {
     }
 
     const pagination = this.getPagination(paging);
-    return this.prisma.product.findMany({
-      where: {
-        shopId,
-        NOT: [
-          { category: '__IMAGE_MAP__' },
-          { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      ...(pagination ? pagination : {}),
-    });
+    try {
+      return await this.prisma.product.findMany({
+        where: {
+          shopId,
+          NOT: [
+            { category: '__IMAGE_MAP__' },
+            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        ...(pagination ? pagination : {}),
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductService.listByShopForManage] Prisma query failed', { shopId, error: e });
+      throw this.mapDbErrorToBadRequest(e);
+    }
   }
 
   async listAllActive(paging?: { page?: number; limit?: number }) {
@@ -143,17 +167,24 @@ export class ProductService {
     } catch {
     }
 
-    const products = await this.prisma.product.findMany({
-      where: {
-        isActive: true,
-        NOT: [
-          { category: '__IMAGE_MAP__' },
-          { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-        ],
-      },
-      orderBy: { createdAt: 'desc' },
-      ...(pagination ? pagination : {}),
-    });
+    let products: any[];
+    try {
+      products = await this.prisma.product.findMany({
+        where: {
+          isActive: true,
+          NOT: [
+            { category: '__IMAGE_MAP__' },
+            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        ...(pagination ? pagination : {}),
+      });
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
+      throw this.mapDbErrorToBadRequest(e);
+    }
 
     try {
       await this.redis.set(cacheKey, products, 60);

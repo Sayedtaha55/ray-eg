@@ -190,12 +190,35 @@ async function bootstrap() {
       const httpAdapter: any = app.getHttpAdapter?.();
       const instance: any = httpAdapter?.getInstance?.();
       const stack: any[] = instance?._router?.stack || [];
-      const routes = stack
-        .filter((layer: any) => layer?.route?.path)
-        .flatMap((layer: any) => {
-          const methods = layer?.route?.methods ? Object.keys(layer.route.methods) : [];
-          return methods.map((m: string) => `${m.toUpperCase()} ${layer.route.path}`);
-        });
+
+      const parseRoutePath = (p: any) => {
+        if (!p) return '';
+        if (typeof p === 'string') return p;
+        if (p instanceof RegExp) return p.toString();
+        return String(p);
+      };
+
+      const extractFromStack = (s: any[], prefix: string = ''): string[] => {
+        const out: string[] = [];
+        for (const layer of s || []) {
+          const route = layer?.route;
+          if (route?.path && route?.methods) {
+            const methods = Object.keys(route.methods);
+            const p = `${prefix}${parseRoutePath(route.path)}`;
+            for (const m of methods) out.push(`${m.toUpperCase()} ${p}`);
+            continue;
+          }
+
+          const nestedStack = layer?.handle?.stack;
+          if (Array.isArray(nestedStack)) {
+            const p = parseRoutePath(layer?.regexp || layer?.path);
+            out.push(...extractFromStack(nestedStack, `${prefix}${p === '/' ? '' : p}`));
+          }
+        }
+        return out;
+      };
+
+      const routes = extractFromStack(stack);
 
       const interesting = routes.filter(
         (r) => r.includes('/api/v1/shops') || r.includes('/api/v1/analytics') || r.includes('/api/v1/media'),

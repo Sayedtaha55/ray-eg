@@ -1,12 +1,40 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, Sparkles, UserPlus, Store, MapPin } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, Store, MapPin } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
+
+const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20, className }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 48 48"
+    className={className}
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      fill="#FFC107"
+      d="M43.611 20.083H42V20H24v8h11.303C33.654 32.657 29.19 36 24 36c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917Z"
+    />
+    <path
+      fill="#FF3D00"
+      d="M6.306 14.691 12.88 19.51C14.659 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.962 3.038l5.657-5.657C34.895 6.053 29.686 4 24 4 16.318 4 9.656 8.337 6.306 14.691Z"
+    />
+    <path
+      fill="#4CAF50"
+      d="M24 44c5.076 0 9.909-1.948 13.48-5.12l-6.219-5.263C29.2 35.091 26.715 36 24 36c-5.167 0-9.617-3.321-11.29-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44Z"
+    />
+    <path
+      fill="#1976D2"
+      d="M43.611 20.083H42V20H24v8h11.303c-.792 2.225-2.231 4.146-4.042 5.617l.003-.002 6.219 5.263C36.98 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917Z"
+    />
+  </svg>
+);
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -314,7 +342,7 @@ const LoginPage: React.FC = () => {
             onClick={handleGoogleLogin}
             className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
           >
-            <Sparkles size={20} className="text-[#BD00FF]" />
+            <GoogleIcon size={20} />
             تسجيل الدخول عبر Google
           </button>
         </div>

@@ -223,10 +223,7 @@ const MerchantDashboardPage: React.FC = () => {
       const { now, salesFrom, analyticsFrom } = getDateRanges();
 
       if (tab === 'products') {
-        const isRestaurant = String(shop?.category || '').toUpperCase() === 'RESTAURANT';
-        const list = isRestaurant
-          ? await (ApiService as any).getProductsForManage(shopId)
-          : await ApiService.getProducts(shopId);
+        const list = await (ApiService as any).getProductsForManage(shopId);
         setProducts(list);
       } else if (tab === 'reservations') {
         const list = await ApiService.getReservations(shopId);
@@ -367,10 +364,7 @@ const MerchantDashboardPage: React.FC = () => {
       addToast('تم تحديث المنتج بنجاح', 'success');
       // Refresh products list
       if (currentShop?.id) {
-        const isRestaurant = String(currentShop?.category || '').toUpperCase() === 'RESTAURANT';
-        const list = isRestaurant
-          ? await (ApiService as any).getProductsForManage(currentShop.id)
-          : await ApiService.getProducts(currentShop.id);
+        const list = await (ApiService as any).getProductsForManage(currentShop.id);
         setProducts(list);
       }
     } catch (err: any) {
@@ -416,10 +410,6 @@ const MerchantDashboardPage: React.FC = () => {
           <ProductsTab
             products={products}
             onAdd={() => setShowProductModal(true)}
-            onMakeOffer={(p) => {
-              setOfferSeedProduct(p);
-              setOfferModalOpen(true);
-            }}
             onDelete={handleDeleteProduct}
             onUpdate={handleUpdateProduct}
             shopId={currentShop.id}
@@ -525,15 +515,15 @@ const MerchantDashboardPage: React.FC = () => {
           <div className="flex gap-3">
             <button
               onClick={() => navigate(`/shop/${currentShop.slug}`)}
-              className="flex-1 md:flex-none px-10 py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:scale-105 transition-all shadow-xl"
+              className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-[#00E5FF] text-black rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:scale-105 transition-all shadow-md sm:shadow-xl"
             >
-              <Eye size={20} /> معاينة المحل
+              <Eye size={14} className="sm:w-5 sm:h-5" /> معاينة المحل
             </button>
             <button
               onClick={() => setTab('pos')}
-              className="flex-1 md:flex-none px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+              className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-slate-900 text-white rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
             >
-              <Smartphone size={20} /> الكاشير الذكي
+              <Smartphone size={14} className="sm:w-5 sm:h-5" /> الكاشير الذكي
             </button>
           </div>
         </div>

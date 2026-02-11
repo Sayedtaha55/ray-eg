@@ -227,7 +227,7 @@ const HomeFeed: React.FC = () => {
                 />
                 <div className="absolute top-3 left-3 md:top-5 md:left-5 bg-[#BD00FF] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                   <Eye size={32} className="text-white drop-shadow-lg" />
+                   <Eye size={24} className="text-white drop-shadow-lg sm:w-8 sm:h-8" />
                 </div>
               </div>
               <div className="px-1 md:px-3 text-right">
@@ -286,7 +286,7 @@ const HomeFeed: React.FC = () => {
                  initial={{ opacity: 0, scale: 0.9, y: 20 }} 
                  animate={{ opacity: 1, scale: 1, y: 0 }} 
                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                 className="absolute bottom-20 md:bottom-24 left-0 w-80 bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl p-8 text-right"
+                 className="absolute bottom-20 md:bottom-24 left-0 w-72 sm:w-80 bg-white border border-slate-100 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl p-4 sm:p-8 text-right"
                  dir="rtl"
                >
                   <div className="flex items-center justify-between mb-6">
@@ -324,7 +324,7 @@ const HomeFeed: React.FC = () => {
             type="button"
             aria-label="فتح المساعد"
             onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
-            className="w-14 h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
+            className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
          >
             <MessageSquarePlus className="group-hover:rotate-12 transition-transform" />
          </button>

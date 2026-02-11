@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { MessageSquare, Mail, Phone, MapPin } from 'lucide-react';
+import { MessageSquare, Mail, Phone, MapPin, Facebook } from 'lucide-react';
 
 const ContactPage: React.FC = () => {
   return (
@@ -31,7 +31,7 @@ const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900">البريد الإلكتروني</h3>
-                  <p className="text-slate-500">support@mnmknk.com</p>
+                  <p className="text-slate-500">mnmknk.eg@gmail.com</p>
                 </div>
               </div>
 
@@ -41,7 +41,7 @@ const ContactPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900">الهاتف</h3>
-                  <p className="text-slate-500">+20 123 456 7890</p>
+                  <p className="text-slate-500">01067461059</p>
                 </div>
               </div>
 
@@ -52,6 +52,27 @@ const ContactPage: React.FC = () => {
                 <div>
                   <h3 className="font-black text-slate-900">العنوان</h3>
                   <p className="text-slate-500">القاهرة، جمهورية مصر العربية</p>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <div className="flex items-center gap-3">
+                  <a
+                    href="https://wa.me/201067461059"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-xl font-black text-xs hover:bg-green-100 transition-all"
+                  >
+                    <span className="text-green-600">واتساب</span>
+                  </a>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61587556276694"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-xl font-black text-xs hover:bg-blue-100 transition-all"
+                  >
+                    <Facebook size={14} /> فيسبوك
+                  </a>
                 </div>
               </div>
             </div>

@@ -189,11 +189,11 @@ const ProductCard = React.memo(function ProductCard({
 
           <button
             onClick={toggleFav}
-            className={`absolute top-3 right-3 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
+            className={`absolute top-3 right-3 p-1.5 sm:p-2 md:p-2.5 transition-all z-10 shadow-sm ${
               isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
             } rounded-full`}
           >
-            <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
+            <Heart size={11} className="sm:w-3 sm:h-3 md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
 
           {showStock && (
@@ -276,8 +276,8 @@ const ProductCard = React.memo(function ProductCard({
         )}
 
         <div className="absolute inset-0 bg-black/5 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="w-8 h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-xl">
-            <Eye size={14} className="md:w-4 md:h-4" />
+          <div className="w-7 h-7 sm:w-8 sm:h-8 md:w-10 md:h-10 bg-white/90 backdrop-blur-md rounded-full flex items-center justify-center shadow-xl">
+            <Eye size={12} className="sm:w-[14px] sm:h-[14px] md:w-4 md:h-4" />
           </div>
         </div>
 
@@ -285,11 +285,11 @@ const ProductCard = React.memo(function ProductCard({
           type="button"
           aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
           onClick={toggleFav}
-          className={`absolute top-2 left-2 p-2 md:p-2.5 transition-all z-10 shadow-sm ${
+          className={`absolute top-2 left-2 p-1.5 sm:p-2 md:p-2.5 transition-all z-10 shadow-sm ${
             isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
           } rounded-full`}
         >
-          <Heart size={12} className="md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
+          <Heart size={11} className="sm:w-3 sm:h-3 md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
         </button>
 
         {showStock && (
@@ -367,7 +367,7 @@ const ProductCard = React.memo(function ProductCard({
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
                   } shadow-md`}
                 >
-                  {isAdded ? <Check size={12} /> : <Plus size={12} />}
+                  {isAdded ? <Check size={11} className="sm:w-3 sm:h-3" /> : <Plus size={11} className="sm:w-3 sm:h-3" />}
                   <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
                 </button>
               )}
@@ -384,7 +384,7 @@ const ProductCard = React.memo(function ProductCard({
                   }`}
                   style={{ backgroundColor: design.primaryColor }}
                 >
-                  <CalendarCheck size={12} /> حجز
+                  <CalendarCheck size={11} className="sm:w-3 sm:h-3" /> حجز
                 </button>
               )}
             </div>

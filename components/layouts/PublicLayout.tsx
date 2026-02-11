@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home } from 'lucide-react';
+import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
 import RayAssistant from '@/components/pages/shared/RayAssistant';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,35 @@ import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 
 const PublicLayout: React.FC = () => {
+  const WhatsAppIcon = (props: { size?: number }) => {
+    const s = typeof props?.size === 'number' ? props.size : 18;
+    return (
+      <svg
+        width={s}
+        height={s}
+        viewBox="0 0 24 24"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path
+          d="M12 2C6.477 2 2 6.145 2 11.26c0 2.007.688 3.866 1.86 5.367L3 22l5.633-1.76c1.413.747 3.046 1.172 4.367 1.172 5.523 0 10-4.145 10-9.26C23 6.145 17.523 2 12 2Z"
+          fill="currentColor"
+          opacity="0.22"
+        />
+        <path
+          d="M12 3.5c4.66 0 8.5 3.46 8.5 7.76 0 4.3-3.84 7.76-8.5 7.76-1.25 0-2.81-.39-4.1-1.12l-.42-.24-3.25 1.02.92-3.06-.27-.4C4.13 14.2 3.5 12.78 3.5 11.26 3.5 6.96 7.34 3.5 12 3.5Z"
+          stroke="currentColor"
+          strokeWidth="1.3"
+        />
+        <path
+          d="M9.4 8.5c-.2-.45-.4-.47-.58-.48h-.5c-.17 0-.45.06-.68.3-.23.25-.9.86-.9 2.09 0 1.23.92 2.42 1.05 2.59.13.17 1.78 2.72 4.34 3.7 2.13.82 2.56.66 3.02.62.46-.04 1.5-.6 1.71-1.18.21-.57.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3-.25-.13-1.5-.71-1.73-.8-.23-.09-.4-.13-.57.13-.17.26-.66.8-.81.96-.15.17-.3.19-.56.06-.25-.13-1.07-.38-2.03-1.2-.75-.63-1.25-1.4-1.4-1.64-.15-.25-.02-.38.12-.5.11-.1.25-.26.38-.39.13-.13.17-.22.25-.37.08-.15.04-.28-.02-.39-.06-.11-.52-1.23-.72-1.68Z"
+          fill="currentColor"
+        />
+      </svg>
+    );
+  };
+
   const [isAssistantOpen, setAssistantOpen] = useState(false);
   const [isCartOpen, setCartOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -286,6 +315,49 @@ const PublicLayout: React.FC = () => {
               <span className="text-2xl font-black tracking-tighter uppercase">من مكانك</span>
             </div>
             <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
+
+            <div className="mt-8 space-y-3">
+              <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
+                <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                  <Mail size={16} />
+                </span>
+                <span className="font-bold text-sm md:text-base">mnmknk.eg@gmail.com</span>
+              </a>
+              <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
+                <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                  <Phone size={16} />
+                </span>
+                <span className="font-bold text-sm md:text-base">01067461059</span>
+              </a>
+
+              <div className="pt-2 flex items-center gap-3 flex-row-reverse md:justify-end">
+                <a
+                  href="mailto:mnmknk.eg@gmail.com"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-[#00E5FF]/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(0,229,255,0.25)]"
+                  aria-label="Gmail"
+                >
+                  <Mail size={16} className="sm:w-[18px] sm:h-[18px]" />
+                </a>
+                <a
+                  href="https://wa.me/201067461059"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-emerald-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(16,185,129,0.25)]"
+                  aria-label="WhatsApp"
+                >
+                  <WhatsAppIcon size={16} />
+                </a>
+                <a
+                  href="https://www.facebook.com/profile.php?id=61587556276694"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-blue-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(96,165,250,0.25)]"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
+                </a>
+              </div>
+            </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:col-span-2">
             <div>

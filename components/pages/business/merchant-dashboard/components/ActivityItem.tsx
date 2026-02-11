@@ -4,9 +4,9 @@ import { CalendarCheck, ChevronRight, Clock, ShoppingCart, Users } from 'lucide-
 type Props = { n: any };
 
 const ActivityItem: React.FC<Props> = ({ n }) => (
-  <div className="flex items-center gap-6 flex-row-reverse group cursor-pointer">
+  <div className="flex items-center gap-3 sm:gap-6 flex-row-reverse group cursor-pointer">
     <div
-      className={`w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
+      className={`w-11 h-11 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
         n.type === 'sale'
           ? 'bg-green-50 text-green-500'
           : n.type === 'reservation'
@@ -15,11 +15,11 @@ const ActivityItem: React.FC<Props> = ({ n }) => (
       }`}
     >
       {n.type === 'sale' ? (
-        <ShoppingCart size={24} />
+        <ShoppingCart size={18} className="sm:w-6 sm:h-6" />
       ) : n.type === 'reservation' ? (
-        <CalendarCheck size={24} />
+        <CalendarCheck size={18} className="sm:w-6 sm:h-6" />
       ) : (
-        <Users size={24} />
+        <Users size={18} className="sm:w-6 sm:h-6" />
       )}
     </div>
     <div className="flex-1 text-right">
@@ -28,7 +28,7 @@ const ActivityItem: React.FC<Props> = ({ n }) => (
         <Clock size={12} /> {new Date(n.created_at).toLocaleTimeString('ar-EG')}
       </div>
     </div>
-    <ChevronRight size={16} className="text-slate-200 rotate-180" />
+    <ChevronRight size={14} className="text-slate-200 rotate-180 sm:w-4 sm:h-4" />
   </div>
 );
 

@@ -67,7 +67,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'background',
-    title: 'الخلفية',
+    title: 'صورة الخلفية',
     icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) =>
       React.createElement(BackgroundSection as any, {
@@ -102,7 +102,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'headerFooter',
-    title: 'الهيدر والفوتر',
+    title: 'أعلى وأسفل العرض',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({
       config,

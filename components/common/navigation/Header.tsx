@@ -34,11 +34,11 @@ const Header: React.FC<HeaderProps> = ({
               onClick={onMenuToggle}
               className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              {isMenuOpen ? <X size={20} className="sm:w-6 sm:h-6" /> : <Menu size={20} className="sm:w-6 sm:h-6" />}
             </button>
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] rounded-xl" />
-              <span className="text-xl font-black text-white">MNMKNK</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] rounded-xl" />
+              <span className="text-lg sm:text-xl font-black text-white">MNMKNK</span>
             </div>
           </motion.div>
 
@@ -62,14 +62,14 @@ const Header: React.FC<HeaderProps> = ({
           >
             {/* Mobile Search */}
             <button type="button" aria-label="بحث" className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden">
-              <Search size={20} />
+              <Search size={18} className="sm:w-5 sm:h-5" />
             </button>
 
             {/* Cart */}
             <button type="button" aria-label="السلة" className="relative p-2 text-white hover:bg-white/10 rounded-xl transition-all">
-              <ShoppingCart size={20} />
+              <ShoppingCart size={18} className="sm:w-5 sm:h-5" />
               {cartItemsCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-[#00E5FF] text-black text-xs font-black rounded-full flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-[#00E5FF] text-black text-[10px] sm:text-xs font-black rounded-full flex items-center justify-center">
                   {cartItemsCount}
                 </span>
               )}
@@ -78,7 +78,7 @@ const Header: React.FC<HeaderProps> = ({
             {/* User */}
             {userName ? (
               <div className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-xl">
-                <User size={16} />
+                <User size={14} className="sm:w-4 sm:h-4" />
                 <span className="text-white text-sm font-bold hidden sm:block">
                   {userName}
                 </span>

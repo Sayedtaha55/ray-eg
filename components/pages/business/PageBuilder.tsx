@@ -506,11 +506,11 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 initial={!isDesktop ? { y: '100%' } : { x: '100%' }}
                 animate={!isDesktop ? { y: 0 } : { x: 0 }}
                 exit={!isDesktop ? { y: '100%' } : { x: '100%' }}
-                className="fixed bottom-0 left-0 right-0 md:relative md:w-[340px] lg:w-[380px] h-[80vh] md:h-full bg-white md:border-l border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2.5rem] md:rounded-none"
+                className="fixed bottom-0 left-0 right-0 md:relative md:w-[340px] lg:w-[380px] h-[80vh] md:h-full bg-white md:border-l border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2rem] sm:rounded-t-[2.5rem] md:rounded-none"
               >
-                <header className="p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
+                <header className="p-4 sm:p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={20} /></button>
+                    <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={18} className="sm:w-5 sm:h-5" /></button>
                     <h2 className="font-black text-xl md:text-3xl tracking-tighter">التصميم</h2>
                   </div>
                   <button 
@@ -525,7 +525,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   </button>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-4">
+                <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4">
                   <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">معاينة الصفحة</span>
@@ -637,9 +637,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       {/* Live Preview */}
       <main className="flex-1 flex flex-col relative bg-[#F1F3F5] overflow-hidden">
-        <header className="h-20 md:h-24 bg-white/60 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-6 md:px-12 sticky top-0 z-10">
+        <header className="h-16 sm:h-20 md:h-24 bg-white/60 backdrop-blur-xl border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 md:px-12 sticky top-0 z-10">
            {!integratedMode && (
-             <button onClick={onClose} className="p-3 bg-white rounded-xl shadow-sm text-slate-900 transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"><ChevronLeft className="rotate-180" /></button>
+             <button onClick={onClose} className="p-2 sm:p-3 bg-white rounded-xl shadow-sm text-slate-900 transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"><ChevronLeft className="rotate-180" /></button>
            )}
            
            {isDesktop && (
@@ -654,7 +654,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <MotionDiv 
             layout
             className={`shadow-2xl overflow-hidden transition-all duration-700 flex flex-col relative ${
-              previewMode === 'mobile' ? 'w-full max-w-[375px] min-h-[667px] rounded-[3rem] border-[10px] border-slate-900 box-border' : 'w-full max-w-5xl rounded-[3rem]'
+              previewMode === 'mobile' ? 'w-full max-w-[375px] min-h-[667px] rounded-[2.2rem] sm:rounded-[3rem] border-[8px] sm:border-[10px] border-slate-900 box-border' : 'w-full max-w-5xl rounded-[3rem]'
             }`}
             style={{
               backgroundColor: config.pageBackgroundColor || config.backgroundColor || '#FFFFFF',
@@ -787,7 +787,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="absolute bottom-6 right-4 z-40">
                       <button
                         type="button"
-                        className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all border-4 border-white"
+                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all border-4 border-white"
                         style={{ backgroundColor: config.primaryColor, color: '#000' }}
                         aria-label="واتساب"
                       />
@@ -872,12 +872,12 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         <div className="absolute inset-0 z-10 bg-gradient-to-t from-white via-transparent" />
                       </div>
 
-                      <div className={`p-8 -mt-16 relative flex flex-col gap-6 flex-1 ${String(config.headerType || 'centered') === 'side' ? 'items-end text-right' : 'items-center text-center'}`}>
-                        <div className="w-24 h-24 md:w-32 md:h-32 bg-white rounded-[2.5rem] shadow-xl p-2 border border-slate-50">
+                      <div className={`p-5 sm:p-8 -mt-16 relative flex flex-col gap-5 sm:gap-6 flex-1 ${String(config.headerType || 'centered') === 'side' ? 'items-end text-right' : 'items-center text-center'}`}>
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-xl p-2 border border-slate-50">
                           {logoDataUrl ? (
-                            <img src={logoDataUrl} className="w-full h-full object-cover rounded-[2rem]" alt="logo" />
+                            <img src={logoDataUrl} className="w-full h-full object-cover rounded-[1.6rem] sm:rounded-[2rem]" alt="logo" />
                           ) : (
-                            <div className="w-full h-full bg-slate-50 rounded-[2rem] flex items-center justify-center font-black text-slate-200 border-2 border-dashed border-slate-100 overflow-hidden text-[8px]">LOGO</div>
+                            <div className="w-full h-full bg-slate-50 rounded-[1.6rem] sm:rounded-[2rem] flex items-center justify-center font-black text-slate-200 border-2 border-dashed border-slate-100 overflow-hidden text-[8px]">LOGO</div>
                           )}
                         </div>
                         <div className="space-y-2">

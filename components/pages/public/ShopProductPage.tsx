@@ -773,7 +773,7 @@ const ShopProductPage: React.FC = () => {
           <div className="w-full md:w-[420px]">
             <div className="aspect-square rounded-[2rem] bg-slate-100 border border-slate-200 shadow-sm overflow-hidden">
               {activeImageSrc ? (
-                <img src={activeImageSrc} className="w-full h-full object-cover" alt={String((product as any)?.name || 'product')} />
+                <img src={activeImageSrc} className="w-full h-full object-contain md:object-cover" alt={String((product as any)?.name || 'product')} />
               ) : null}
             </div>
             {galleryImages.length > 1 && (
@@ -787,7 +787,7 @@ const ShopProductPage: React.FC = () => {
                       onClick={() => setActiveImageSrc(src)}
                       className={`aspect-square rounded-xl overflow-hidden border transition-all ${active ? 'border-slate-900' : 'border-slate-200 hover:border-slate-400'}`}
                     >
-                      <img src={src} className="w-full h-full object-cover" alt="thumb" />
+                      <img src={src} className="w-full h-full object-contain md:object-cover" alt="thumb" />
                     </button>
                   );
                 })}

@@ -421,22 +421,22 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         <>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[400]" />
           <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[401] shadow-2xl flex flex-col text-right" dir="rtl">
-            <header className="p-8 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-2xl font-black flex items-center gap-4">
-                <ShoppingBag className="w-8 h-8 text-[#00E5FF]" /> سلة التسوق
+            <header className="p-4 sm:p-8 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-3 sm:gap-4">
+                <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 text-[#00E5FF]" /> سلة التسوق
               </h2>
-              <button onClick={onClose} className="p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
-                <X size={24} />
+              <button onClick={onClose} className="p-2 sm:p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
+                <X size={20} className="sm:w-6 sm:h-6" />
               </button>
             </header>
 
-            <div className="flex-1 overflow-y-auto p-8 space-y-10">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-10">
               {showSuccess ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
-                   <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mb-8 shadow-2xl animate-bounce">
-                      <CheckCircle2 size={48} className="text-white" />
+                   <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-500 rounded-full flex items-center justify-center mb-6 sm:mb-8 shadow-2xl animate-bounce">
+                      <CheckCircle2 size={40} className="text-white sm:w-12 sm:h-12" />
                    </div>
-                   <h3 className="text-3xl font-black mb-4">تم تأكيد طلبك!</h3>
+                   <h3 className="text-2xl sm:text-3xl font-black mb-3 sm:mb-4">تم تأكيد طلبك!</h3>
                    <p className="text-slate-400 font-bold">جاري إخطار المحل لتجهيز طلبك فوراً.</p>
                 </div>
               ) : step === 'cod_location' ? (
@@ -489,7 +489,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                 </div>
               ) : localItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-200">
-                  <ShoppingBag size={80} className="mb-6 opacity-10" />
+                  <ShoppingBag size={64} className="mb-6 opacity-10 sm:w-20 sm:h-20" />
                   <p className="font-black text-xl">سلتك فارغة تماماً</p>
                 </div>
               ) : (
@@ -497,7 +497,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   <div key={shopId} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
                        <span className="text-[10px] font-black bg-[#00E5FF] px-2 py-1 rounded text-black">متجر</span>
-                       <h3 className="font-black text-xl text-slate-900">{String(shop.name)}</h3>
+                       <h3 className="font-black text-lg sm:text-xl text-slate-900">{String(shop.name)}</h3>
                        <span className="text-[10px] font-black text-slate-400 mr-auto">
                          رسوم التوصيل: {(() => {
                            const fee = deliveryFees[String(shopId)];
@@ -578,7 +578,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                             )}
                           </div>
                           <button onClick={() => onRemove(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`))} className="text-slate-300 hover:text-red-500 transition-colors">
-                            <Trash2 size={18} />
+                            <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                           </button>
                         </div>
                         <div className="flex items-center justify-between flex-row-reverse">
@@ -592,7 +592,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 }
                                 className="text-slate-900 hover:text-[#00E5FF]"
                               >
-                                <Plus size={16} />
+                                <Plus size={14} className="sm:w-4 sm:h-4" />
                               </button>
                               <span className="font-black text-sm w-4 text-center">{Number(item.quantity)}</span>
                               <button
@@ -604,10 +604,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 }
                                 className="text-slate-900 hover:text-red-500"
                               >
-                                <Minus size={16} />
+                                <Minus size={14} className="sm:w-4 sm:h-4" />
                               </button>
                            </div>
-                           <p className="font-black text-lg text-slate-900">ج.م {Number(item.price) * Number(item.quantity)}</p>
+                           <p className="font-black text-base sm:text-lg text-slate-900">ج.م {Number(item.price) * Number(item.quantity)}</p>
                         </div>
                       </div>
                     ))}
@@ -617,7 +617,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
             </div>
 
             {!showSuccess && localItems.length > 0 && (
-              <footer className="p-8 border-t border-slate-100 bg-slate-50 space-y-6">
+              <footer className="p-4 sm:p-8 border-t border-slate-100 bg-slate-50 space-y-6">
                 {error && <p className="text-red-500 text-xs font-bold text-center">{String(error)}</p>}
                 {invalidLineIds.length > 0 && (
                   <div className="space-y-3">
@@ -644,23 +644,23 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                 <div className="space-y-2">
                   <div className="flex justify-between items-center flex-row-reverse">
                     <span className="font-black text-slate-400">إجمالي المنتجات</span>
-                    <span className="text-2xl font-black tracking-tighter">ج.م {total}</span>
+                    <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {total}</span>
                   </div>
                   <div className="flex justify-between items-center flex-row-reverse">
                     <span className="font-black text-slate-400">رسوم التوصيل</span>
-                    <span className="text-2xl font-black tracking-tighter">ج.م {deliveryFeeTotal}</span>
+                    <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {deliveryFeeTotal}</span>
                   </div>
                   <div className="flex justify-between items-center flex-row-reverse">
                     <span className="font-black text-slate-900">الإجمالي النهائي</span>
-                    <span className="text-4xl font-black tracking-tighter">ج.م {grandTotal}</span>
+                    <span className="text-3xl sm:text-4xl font-black tracking-tighter">ج.م {grandTotal}</span>
                   </div>
                 </div>
                 <button 
                   onClick={handleCheckout}
                   disabled={isProcessing}
-                  className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-4 hover:bg-black transition-all shadow-2xl disabled:opacity-50"
+                  className="w-full py-4 sm:py-6 bg-slate-900 text-white rounded-2xl sm:rounded-[2.5rem] font-black text-base sm:text-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-black transition-all shadow-2xl disabled:opacity-50"
                 >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : step === 'cart' ? <>التالي <CreditCard size={24} /></> : <>تأكيد الطلب (دفع عند الاستلام) <CreditCard size={24} /></>}
+                  {isProcessing ? <Loader2 className="animate-spin" /> : step === 'cart' ? <>التالي <CreditCard size={18} className="sm:w-6 sm:h-6" /></> : <>تأكيد الطلب (دفع عند الاستلام) <CreditCard size={18} className="sm:w-6 sm:h-6" /></>}
                 </button>
               </footer>
             )}

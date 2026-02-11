@@ -38,7 +38,7 @@ const HeaderFooterSection: React.FC<Props> = ({
   <div className="space-y-6">
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="font-black text-sm">هيدر شفاف</span>
+        <span className="font-black text-sm">أعلى العرض شفاف</span>
         <input
           type="checkbox"
           checked={Boolean(config.headerTransparent)}
@@ -85,7 +85,7 @@ const HeaderFooterSection: React.FC<Props> = ({
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-black text-sm">خلفية الهيدر (صورة)</span>
+          <span className="font-black text-sm">حذف الخلفية</span>
           <button
             type="button"
             onClick={() => {
@@ -99,7 +99,7 @@ const HeaderFooterSection: React.FC<Props> = ({
             className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
             disabled={!Boolean(headerBackgroundPreview || (config as any)?.headerBackgroundImageUrl)}
           >
-            مسح
+            حذف
           </button>
         </div>
 
@@ -163,7 +163,7 @@ const HeaderFooterSection: React.FC<Props> = ({
 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="font-black text-sm">فوتر شفاف</span>
+        <span className="font-black text-sm">أسفل العرض شفاف</span>
         <input
           type="checkbox"
           checked={Boolean(config.footerTransparent)}

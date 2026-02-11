@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Tag, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components';
@@ -10,7 +10,6 @@ import { backendPost } from '@/services/api/httpClient';
 type Props = {
   products: Product[];
   onAdd: () => void;
-  onMakeOffer: (p: Product) => void;
   onDelete: (id: string) => void;
   onUpdate: (product: Product) => void;
   shopId: string;
@@ -18,7 +17,7 @@ type Props = {
   shop?: any;
 };
 
-const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, onUpdate, shopId, shopCategory, shop }) => {
+const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, shopId, shopCategory, shop }) => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [togglingId, setTogglingId] = useState<string>('');
@@ -426,14 +425,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
 
   return (
     <>
-      <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
-        <div className="flex items-center justify-between mb-12 flex-row-reverse">
-          <h3 className="text-3xl font-black">{pageTitle}</h3>
-          <div className="flex items-center gap-3">
+      <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-sm">
+        <div className="flex items-start sm:items-center justify-between mb-6 sm:mb-12 flex-row-reverse gap-4">
+          <h3 className="text-2xl sm:text-3xl font-black">{pageTitle}</h3>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {canUseImageMapEditor && (
               <button
                 onClick={() => setImageMapEditorOpen(true)}
-                className="px-10 py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:scale-105 transition-all"
+                className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-[#00E5FF] text-black rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:scale-105 transition-all"
                 type="button"
               >
                 تحرير المنتجات بالصورة
@@ -445,7 +444,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
                   setImageMapProductsOpen(true);
                   await loadImageMapProducts();
                 }}
-                className="px-10 py-5 bg-slate-100 text-slate-900 rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-sm hover:bg-slate-200 transition-all"
+                className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-slate-100 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-200 transition-all"
                 type="button"
               >
                 قائمة منتجات الصورة
@@ -453,10 +452,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
             )}
             <button
               onClick={onAdd}
-              className="px-10 py-5 bg-slate-900 text-white rounded-[2rem] font-black text-sm flex items-center gap-3 shadow-2xl hover:bg-black transition-all"
+              className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-slate-900 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:bg-black transition-all"
               type="button"
             >
-              <Plus size={24} /> إضافة صنف جديد
+              <Plus size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" /> إضافة صنف جديد
             </button>
           </div>
         </div>
@@ -700,33 +699,26 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onMakeOffer, onDelete, 
               <div className="absolute top-3 left-3 md:top-4 md:left-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-[-10px] md:group-hover:translate-x-0">
                 <button
                   onClick={() => handleEdit(p)}
-                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-blue-500 hover:scale-110 transition-transform"
+                  className="p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-blue-500 hover:scale-110 transition-transform"
                 >
-                  <Edit size={18} className="md:w-5 md:h-5" />
+                  <Edit size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
                 </button>
                 <button
                   onClick={() => handleToggleActive(p)}
-                  className={`p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
+                  className={`p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
                     (p as any)?.isActive === false ? 'text-slate-900' : 'text-slate-500'
                   }`}
                   disabled={String(togglingId) === String(p.id)}
                 >
                   {String(togglingId) === String(p.id)
-                    ? <Loader2 size={18} className="animate-spin md:w-5 md:h-5" />
-                    : ((p as any)?.isActive === false ? <Eye size={18} className="md:w-5 md:h-5" /> : <EyeOff size={18} className="md:w-5 md:h-5" />)}
+                    ? <Loader2 size={16} className="animate-spin sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
+                    : ((p as any)?.isActive === false ? <Eye size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" /> : <EyeOff size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />)}
                 </button>
                 <button
                   onClick={() => onDelete(p.id)}
-                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-400 hover:text-red-500 hover:scale-110 transition-transform"
-                  type="button"
+                  className="p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-500 hover:scale-110 transition-transform"
                 >
-                  <Tag size={18} className="md:w-5 md:h-5" />
-                </button>
-                <button
-                  onClick={() => onDelete(p.id)}
-                  className="p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-500 hover:scale-110 transition-transform"
-                >
-                  <Trash2 size={18} className="md:w-5 md:h-5" />
+                  <Trash2 size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
                 </button>
               </div>
             </div>

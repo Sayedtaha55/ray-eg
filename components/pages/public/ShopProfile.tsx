@@ -1103,7 +1103,7 @@ const ShopProfile: React.FC = () => {
                   <button
                     type="button"
                     onClick={retryGalleryTab}
-                    className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all"
+                    className="px-6 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all"
                   >
                     إعادة المحاولة
                   </button>
@@ -1276,11 +1276,11 @@ const ShopProfile: React.FC = () => {
                   <div className="w-10 h-10 md:w-12 md:h-12 border-[4px] md:border-[6px] rounded-full border-white/5 border-t-[#BD00FF] animate-spin-reverse" />
                </div>
              </div>
-             <h2 className="text-3xl md:text-7xl font-black mb-4 md:mb-6 tracking-tighter">جاري تهيئة الشعاع المكاني...</h2>
+             <h2 className="text-2xl sm:text-3xl md:text-7xl font-black mb-4 md:mb-6 tracking-tighter">جاري تهيئة الشعاع المكاني...</h2>
              <p className="text-slate-400 font-bold text-sm md:text-xl max-w-2xl mx-auto mb-10 md:mb-16 leading-relaxed px-4">
                استعد لتجربة تسوق ثورية. ستتمكن قريباً من المشي داخل "{shop.name}" واختيار منتجاتك بشكل ثلاثي الأبعاد بالكامل من منزلك.
              </p>
-             <button onClick={() => setSpatialMode(false)} className="px-10 py-4 md:px-16 md:py-6 bg-white text-black rounded-full font-black text-lg md:text-2xl active:scale-95 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]">العودة للواقع</button>
+             <button onClick={() => setSpatialMode(false)} className="px-6 py-3 md:px-16 md:py-6 bg-white text-black rounded-full font-black text-base sm:text-lg md:text-2xl active:scale-95 transition-all shadow-[0_0_50px_rgba(255,255,255,0.2)]">العودة للواقع</button>
           </MotionDiv>
         )}
       </AnimatePresence>

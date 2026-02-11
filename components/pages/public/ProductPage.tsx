@@ -645,7 +645,7 @@ const ProductPage: React.FC = () => {
           animate={{ opacity: 1, x: 0 }}
           className="relative aspect-square rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
         >
-          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-cover" alt={product.name} />
+          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-contain md:object-cover" alt={product.name} />
           {hasDiscount && (
             <div className="absolute top-10 left-10 bg-[#BD00FF] text-white px-8 py-3 rounded-2xl font-black text-xl shadow-2xl">
               -{offer?.discount}%
@@ -669,7 +669,7 @@ const ProductPage: React.FC = () => {
                   onClick={() => setActiveImageSrc(src)}
                   className={`aspect-square rounded-2xl overflow-hidden border transition-all ${active ? 'border-slate-900' : 'border-slate-200 hover:border-slate-400'}`}
                 >
-                  <img loading="lazy" src={src} className="w-full h-full object-cover" alt="thumb" />
+                  <img loading="lazy" src={src} className="w-full h-full object-contain md:object-cover" alt="thumb" />
                 </button>
               );
             })}

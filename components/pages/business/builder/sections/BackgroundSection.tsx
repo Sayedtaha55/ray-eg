@@ -60,7 +60,7 @@ const BackgroundSection: React.FC<Props> = ({
             className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
             disabled={!hasAnyBackgroundImage}
           >
-            مسح
+            حذف خلفية
           </button>
         </div>
 
@@ -122,6 +122,15 @@ const BackgroundSection: React.FC<Props> = ({
 
       <div className="space-y-2">
         <span className="font-black text-sm">لون الخلفية</span>
+        <div className="space-y-1">
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">اختيار لون</label>
+          <input
+            type="color"
+            value={String(selectedBackgroundColor || '#FFFFFF')}
+            onChange={(e) => setConfig({ ...config, pageBackgroundColor: e.target.value, backgroundColor: e.target.value })}
+            className="w-full h-10 rounded-xl border border-slate-200 bg-white"
+          />
+        </div>
         <div className="grid grid-cols-5 gap-3">
           {BACKGROUNDS.map((color) => (
             <button

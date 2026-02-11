@@ -380,12 +380,12 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[400] flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-[400] flex items-start sm:items-center justify-center p-0 sm:p-6">
       <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
       <MotionDiv
         initial={{ scale: 0.9, opacity: 0, y: 20 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
-        className="relative bg-white w-full max-w-2xl rounded-[3rem] p-8 md:p-12 text-right shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar"
+        className="relative bg-white w-full sm:max-w-2xl rounded-none sm:rounded-[3rem] p-4 sm:p-8 md:p-12 text-right shadow-2xl overflow-hidden h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto no-scrollbar"
       >
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-3xl font-black">إضافة صنف جديد</h2>
@@ -394,7 +394,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-8 pb-24 sm:pb-0">
           <div className="space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صورة المنتج</label>
             <div
@@ -405,7 +405,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             >
               {imagePreview ? (
                 <>
-                  <img src={imagePreview} className="w-full h-full object-cover" alt="preview" />
+                  <img src={imagePreview} className="w-full h-full object-contain sm:object-cover" alt="preview" />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="bg-white/90 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2">
                       <Upload size={16} /> تغيير الصورة
@@ -1096,14 +1096,16 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4 mt-4 disabled:bg-slate-200"
-          >
-            {loading ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle2 size={24} className="text-[#00E5FF]" />}
-            {loading ? 'جاري الحفظ...' : 'تأكيد وحفظ الصنف'}
-          </button>
+          <div className="sticky bottom-0 left-0 right-0 -mx-4 sm:mx-0 bg-white pt-4 pb-4 sm:pb-0 border-t border-slate-100">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4 disabled:bg-slate-200"
+            >
+              {loading ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle2 size={24} className="text-[#00E5FF]" />}
+              {loading ? 'جاري الحفظ...' : 'تأكيد وحفظ الصنف'}
+            </button>
+          </div>
         </form>
       </MotionDiv>
     </div>

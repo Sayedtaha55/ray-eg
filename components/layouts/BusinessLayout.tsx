@@ -40,9 +40,24 @@ const BusinessLayout: React.FC = () => {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [shopCategory, setShopCategory] = useState<Category | undefined>(undefined);
+  const [isMobile, setIsMobile] = useState(false);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia('(max-width: 767px)');
+    const onChange = () => setIsMobile(Boolean(mq.matches));
+    onChange();
+    try {
+      mq.addEventListener('change', onChange);
+      return () => mq.removeEventListener('change', onChange);
+    } catch {
+      mq.addListener(onChange);
+      return () => mq.removeListener(onChange);
+    }
+  }, []);
 
   const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
     overview: <LayoutDashboard size={20} />,
@@ -328,7 +343,7 @@ const BusinessLayout: React.FC = () => {
       <>
         <Link to="/" className="flex items-center gap-2 md:gap-3">
           <BrandLogo variant="business" iconOnly />
-          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
+          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
         </Link>
         <div className="flex items-center gap-4 md:gap-8">
           <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
@@ -361,7 +376,7 @@ const BusinessLayout: React.FC = () => {
       <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[60] border-b border-slate-100">
         <Link to="/" className="flex items-center gap-2">
           <BrandLogo variant="business" iconOnly />
-          <span className="font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
+          <span className="font-black tracking-tighter uppercase">من مكانك للأعمال</span>
         </Link>
         <div className="flex items-center gap-4">
            <button
@@ -406,17 +421,17 @@ const BusinessLayout: React.FC = () => {
           <MotionDiv 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] md:hidden"
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] md:hidden"
           />
         )}
       </AnimatePresence>
 
-      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 left-0 z-[110] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-r border-slate-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 left-0 z-[310] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-r border-slate-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         {!isBuilderTab ? (
           <div className="p-10 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
               <BrandLogo variant="business" iconOnly />
-              <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK للأعمال</span>
+              <span className="text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
             </Link>
             {isSettingsTab ? (
               <button
@@ -495,7 +510,7 @@ const BusinessLayout: React.FC = () => {
             </>
           ) : (() => {
             const activeBuilderId = String(builderTabRaw || '').trim();
-            const focusMode = Boolean(activeBuilderId);
+            const focusMode = !isMobile && Boolean(activeBuilderId);
             const item = (id: string, label: string, icon: React.ReactNode) => (
               <>
                 <NavItem
@@ -522,15 +537,14 @@ const BusinessLayout: React.FC = () => {
                 <>
                   <NavItem to={buildBuilderIndexUrl()} onClick={() => setSidebarOpen(false)} icon={<ChevronRight size={20} />} label="رجوع" active={false} />
                   {activeBuilderId === 'colors' ? item('colors', 'الألوان', <Palette size={20} />) : null}
-                  {activeBuilderId === 'background' ? item('background', 'الخلفية', <Palette size={20} />) : null}
+                  {activeBuilderId === 'background' ? item('background', 'صورة الخلفية', <Palette size={20} />) : null}
                   {activeBuilderId === 'banner' ? item('banner', 'البانر', <Layout size={20} />) : null}
                   {activeBuilderId === 'header' ? item('header', 'اللوجو', <Layout size={20} />) : null}
-                  {activeBuilderId === 'headerFooter' ? item('headerFooter', 'الهيدر والفوتر', <Layout size={20} />) : null}
+                  {activeBuilderId === 'headerFooter' ? item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />) : null}
                   {activeBuilderId === 'products' ? item('products', 'عرض المعروضات', <Layout size={20} />) : null}
-                  {activeBuilderId === 'productPage' ? item('productPage', 'صفحة المنتج', <Layout size={20} />) : null}
                   {activeBuilderId === 'layout' ? item('layout', 'النمط', <Layout size={20} />) : null}
                   {activeBuilderId === 'typography' ? item('typography', 'الخطوط', <Type size={20} />) : null}
-                  {activeBuilderId === 'buttons' ? item('buttons', 'الأزرار', <Layout size={20} />) : null}
+                  {activeBuilderId === 'buttons' ? item('buttons', 'شكل وحجم الزر', <Layout size={20} />) : null}
                   {activeBuilderId === 'visibility' ? item('visibility', 'إظهار / إخفاء', <Sliders size={20} />) : null}
                   {activeBuilderId === 'customCss' ? item('customCss', 'CSS مخصص', <Sliders size={20} />) : null}
                 </>
@@ -541,15 +555,14 @@ const BusinessLayout: React.FC = () => {
               <>
                 <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="رجوع للوحة" active={false} />
                 {item('colors', 'الألوان', <Palette size={20} />)}
-                {item('background', 'الخلفية', <Palette size={20} />)}
+                {item('background', 'صورة الخلفية', <Palette size={20} />)}
                 {item('banner', 'البانر', <Layout size={20} />)}
                 {item('header', 'اللوجو', <Layout size={20} />)}
-                {item('headerFooter', 'الهيدر والفوتر', <Layout size={20} />)}
+                {item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />)}
                 {item('products', 'عرض المعروضات', <Layout size={20} />)}
-                {item('productPage', 'صفحة المنتج', <Layout size={20} />)}
                 {item('layout', 'النمط', <Layout size={20} />)}
                 {item('typography', 'الخطوط', <Type size={20} />)}
-                {item('buttons', 'الأزرار', <Layout size={20} />)}
+                {item('buttons', 'شكل وحجم الزر', <Layout size={20} />)}
                 {item('visibility', 'إظهار / إخفاء', <Sliders size={20} />)}
                 {item('customCss', 'CSS مخصص', <Sliders size={20} />)}
               </>

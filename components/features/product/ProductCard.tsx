@@ -53,13 +53,13 @@ const ProductCard: React.FC<ProductCardProps> = ({
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => onToggleFavorite?.(product.id)}
-          className={`absolute top-3 left-3 w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+          className={`absolute top-3 left-3 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
             isFavorite 
               ? 'bg-red-500 text-white' 
               : 'bg-white/80 text-gray-600 hover:bg-white'
           }`}
         >
-          <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+          <Heart size={16} className="sm:w-[18px] sm:h-[18px]" fill={isFavorite ? 'currentColor' : 'none'} />
         </motion.button>
       </div>
 
