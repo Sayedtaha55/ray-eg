@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Loader2, Zap, Search, Check } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { Product } from '@/types';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 type Props = {
   isOpen: boolean;

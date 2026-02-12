@@ -21,7 +21,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import MerchantSettings from '@/src/components/MerchantDashboard/Settings';
 
 import POSSystem from '../POSSystem';

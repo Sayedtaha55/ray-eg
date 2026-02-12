@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Megaphone, Search as SearchIcon, UserCheck, UserMinus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 type Props = { shopId: string };
 

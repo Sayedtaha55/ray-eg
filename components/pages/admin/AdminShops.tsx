@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Store, Search, Plus, Eye, Edit, Check, X, Loader2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const MotionDiv = motion.div as any;
 

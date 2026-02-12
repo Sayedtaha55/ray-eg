@@ -1,10 +1,28 @@
-import React, { useState } from 'react';
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
 
 type Props = { analytics: any; sales: any[]; reservations?: any[] };
 
 const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   const [range, setRange] = useState<'30d' | '6m' | '12m'>('6m');
+
+  const [recharts, setRecharts] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('recharts');
+        if (cancelled) return;
+        setRecharts(mod);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const R = recharts;
 
   const safeSales = Array.isArray(sales) ? sales : [];
   const safeReservations = Array.isArray(reservations) ? reservations : [];
@@ -124,6 +142,22 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   const conversionGrowth = pctChange(conversion, prevConversion);
   const revenueGrowth = pctChange(totalRevenue, prevRevenue);
 
+  const chartBody = useMemo(() => {
+    if (!R) return null;
+    const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = R;
+    return (
+      <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+        <BarChart data={monthlyData}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
+          <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} />
+          <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={window.innerWidth < 768 ? 24 : 40} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }, [R, monthlyData]);
+
   const SummaryCard = ({ label, value, growth }: any) => {
     const growthNum = typeof growth === 'number' ? growth : Number(growth || 0);
     const sign = growthNum > 0 ? '+' : '';
@@ -156,15 +190,7 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
           <div className="py-16 md:py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
         ) : (
           <div className="h-[300px] md:h-[450px] w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">
-            <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
-                <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} />
-                <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={window.innerWidth < 768 ? 24 : 40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartBody}
           </div>
         )}
       </div>

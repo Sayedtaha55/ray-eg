@@ -17,7 +17,7 @@ const BrandLogo: React.FC<Props> = ({
   name = 'MNMKNK',
   suffix,
   showName = true,
-  logoSrc = '/brand/logo.png',
+  logoSrc = '/icon-192x192.png',
   iconOnly = false,
 }) => {
   const [imgError, setImgError] = useState(false);

@@ -1,25 +1,32 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { BarChart3, Loader2, RefreshCw, TrendingUp, Users, Store, ShoppingBag, Eye, Clock } from 'lucide-react';
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const AdminAnalytics: React.FC = () => {
   const { addToast } = useToast();
+  const [recharts, setRecharts] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [days, setDays] = useState<number>(14);
   const [kpis, setKpis] = useState<any>(null);
   const [series, setSeries] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('recharts');
+        if (cancelled) return;
+        setRecharts(mod);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const loadData = async (quiet = false) => {
     if (!quiet) setLoading(true);
@@ -62,6 +69,26 @@ const AdminAnalytics: React.FC = () => {
     const v = Number(n || 0);
     return `ج.م ${Math.round(Number.isFinite(v) ? v : 0).toLocaleString('ar-EG')}`;
   };
+
+  const chartBody = useMemo(() => {
+    if (!recharts) return null;
+    const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = recharts;
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} />
+          <Tooltip
+            cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+            contentStyle={{ borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', background: '#0b1220', color: '#fff' }}
+            labelStyle={{ color: '#94a3b8', fontWeight: 800 }}
+          />
+          <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={18} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }, [recharts, chartData]);
 
   const KpiCard = ({ icon, label, value, accent }: any) => (
     <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-6">
@@ -168,19 +195,7 @@ const AdminAnalytics: React.FC = () => {
                 <div className="text-slate-500 text-xs font-black uppercase tracking-widest">Daily</div>
               </div>
               <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(255,255,255,0.04)' }}
-                      contentStyle={{ borderRadius: '18px', border: '1px solid rgba(255,255,255,0.08)', background: '#0b1220', color: '#fff' }}
-                      labelStyle={{ color: '#94a3b8', fontWeight: 800 }}
-                    />
-                    <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={18} />
-                  </BarChart>
-                </ResponsiveContainer>
+                {chartBody}
               </div>
             </div>
 

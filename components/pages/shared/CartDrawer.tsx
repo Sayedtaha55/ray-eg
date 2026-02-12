@@ -4,10 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, CreditCard, Loader2, CheckCircle2, Plus, Minus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
-import L from 'leaflet';
-import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
-import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 interface CartItem {
   id: string;
@@ -43,8 +39,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const [fallbackAddress, setFallbackAddress] = useState('');
   const [deliveryFees, setDeliveryFees] = useState<Record<string, number | null>>({});
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
-  const mapRef = React.useRef<L.Map | null>(null);
-  const markerRef = React.useRef<L.Marker | null>(null);
+  const mapRef = React.useRef<any>(null);
+  const markerRef = React.useRef<any>(null);
 
   React.useEffect(() => {
     // نضمن أننا نقبل فقط المصفوفات الصالحة لتجنب الأخطاء
@@ -71,6 +67,15 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       }
     }
   }, [isOpen]);
+
+  React.useEffect(() => {
+    if (step === 'cod_location') return;
+    if (mapRef.current) {
+      mapRef.current.remove();
+      mapRef.current = null;
+      markerRef.current = null;
+    }
+  }, [step]);
 
   const getLineKey = (item: any) => String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
 
@@ -126,44 +131,68 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     if (!coords) return;
     if (!mapContainerRef.current) return;
 
-    const defaultIcon = L.icon({
-      iconUrl: markerIconUrl,
-      iconRetinaUrl: markerIconRetinaUrl,
-      shadowUrl: markerShadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      shadowSize: [41, 41],
-    });
-    (L.Marker.prototype as any).options.icon = defaultIcon;
+    let cancelled = false;
 
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current, {
-        zoomControl: true,
-        attributionControl: false,
-      }).setView([coords.lat, coords.lng], 16);
+    (async () => {
+      try {
+        await import('leaflet/dist/leaflet.css');
+        const leaflet = await import('leaflet');
+        const markerIconMod: any = await import('leaflet/dist/images/marker-icon.png');
+        const markerIcon2xMod: any = await import('leaflet/dist/images/marker-icon-2x.png');
+        const markerShadowMod: any = await import('leaflet/dist/images/marker-shadow.png');
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(mapRef.current);
+        if (cancelled) return;
 
-      markerRef.current = L.marker([coords.lat, coords.lng], { draggable: true }).addTo(mapRef.current);
+        const L: any = (leaflet as any)?.default || leaflet;
+        const markerIconUrl: string = String(markerIconMod?.default || markerIconMod || '');
+        const markerIconRetinaUrl: string = String(markerIcon2xMod?.default || markerIcon2xMod || '');
+        const markerShadowUrl: string = String(markerShadowMod?.default || markerShadowMod || '');
 
-      markerRef.current.on('dragend', () => {
-        const p = markerRef.current?.getLatLng();
-        if (!p) return;
-        setCoords({ lat: p.lat, lng: p.lng });
-      });
+        const defaultIcon = L.icon({
+          iconUrl: markerIconUrl,
+          iconRetinaUrl: markerIconRetinaUrl,
+          shadowUrl: markerShadowUrl,
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          shadowSize: [41, 41],
+        });
+        (L.Marker.prototype as any).options.icon = defaultIcon;
 
-      mapRef.current.on('click', (e: any) => {
-        const p = e?.latlng;
-        if (!p) return;
-        setCoords({ lat: p.lat, lng: p.lng });
-        markerRef.current?.setLatLng(p);
-      });
-    } else {
-      mapRef.current.setView([coords.lat, coords.lng], mapRef.current.getZoom() || 16);
-      markerRef.current?.setLatLng([coords.lat, coords.lng]);
-    }
+        if (!mapRef.current) {
+          mapRef.current = L.map(mapContainerRef.current, {
+            zoomControl: true,
+            attributionControl: false,
+          }).setView([coords.lat, coords.lng], 16);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+          }).addTo(mapRef.current);
+
+          markerRef.current = L.marker([coords.lat, coords.lng], { draggable: true }).addTo(mapRef.current);
+
+          markerRef.current.on('dragend', () => {
+            const p = markerRef.current?.getLatLng();
+            if (!p) return;
+            setCoords({ lat: p.lat, lng: p.lng });
+          });
+
+          mapRef.current.on('click', (e: any) => {
+            const p = e?.latlng;
+            if (!p) return;
+            setCoords({ lat: p.lat, lng: p.lng });
+            markerRef.current?.setLatLng(p);
+          });
+        } else {
+          mapRef.current.setView([coords.lat, coords.lng], mapRef.current.getZoom() || 16);
+          markerRef.current?.setLatLng([coords.lat, coords.lng]);
+        }
+      } catch {
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [step, coords?.lat, coords?.lng]);
 
   const updateQuantity = (id: string, delta: number) => {

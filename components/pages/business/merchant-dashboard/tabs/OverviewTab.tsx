@@ -1,6 +1,5 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, DollarSign, Eye, ShoppingCart, TrendingUp, Users } from 'lucide-react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import ActivityItem from '../components/ActivityItem';
 import StatCard from '../components/StatCard';
 
@@ -11,10 +10,59 @@ type Props = {
 };
 
 const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
+  const [recharts, setRecharts] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('recharts');
+        if (cancelled) return;
+        setRecharts(mod);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const R = recharts;
+
   const safeAnalytics = analytics || {};
   const salesCountToday = safeAnalytics.salesCountToday ?? 0;
   const revenueToday = safeAnalytics.revenueToday ?? 0;
   const chartData = Array.isArray(safeAnalytics.chartData) ? safeAnalytics.chartData : [];
+
+  const chartBody = useMemo(() => {
+    if (!R) return null;
+    const { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = R;
+    return (
+      <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
+        <AreaChart data={chartData}>
+          <defs>
+            <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.4} />
+              <stop offset="95%" stopColor="#00E5FF" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: '#94a3b8' }} />
+          <YAxis hide />
+          <Tooltip
+            contentStyle={{
+              borderRadius: '24px',
+              border: 'none',
+              boxShadow: '0 30px 60px rgba(0,0,0,0.15)',
+              direction: 'rtl',
+              padding: '20px',
+            }}
+          />
+          <Area type="monotone" dataKey="sales" stroke="#00E5FF" strokeWidth={6} fillOpacity={1} fill="url(#colorSales)" />
+        </AreaChart>
+      </ResponsiveContainer>
+    );
+  }, [R, chartData]);
 
   return (
     <div className="space-y-6 sm:space-y-10 md:space-y-12">
@@ -34,29 +82,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
             </div>
           </div>
           <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            <ResponsiveContainer width="100%" height={450} minWidth={300} minHeight={400}>
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00E5FF" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#00E5FF" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f8fafc" />
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 'bold', fill: '#94a3b8' }} />
-                <YAxis hide />
-                <Tooltip
-                  contentStyle={{
-                    borderRadius: '24px',
-                    border: 'none',
-                    boxShadow: '0 30px 60px rgba(0,0,0,0.15)',
-                    direction: 'rtl',
-                    padding: '20px',
-                  }}
-                />
-                <Area type="monotone" dataKey="sales" stroke="#00E5FF" strokeWidth={6} fillOpacity={1} fill="url(#colorSales)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            {chartBody}
           </div>
         </div>
 

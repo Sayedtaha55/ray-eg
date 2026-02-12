@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import { Category } from '@/types';
 
 type Props = {

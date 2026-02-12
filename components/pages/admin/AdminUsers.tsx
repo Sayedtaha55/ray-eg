@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, MoreVertical, Shield, User, Trash2, ShieldCheck, ArrowLeftRight, Loader2, X, RefreshCw } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const MotionDiv = motion.div as any;
 

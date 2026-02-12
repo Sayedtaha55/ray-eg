@@ -2,7 +2,7 @@ import React from 'react';
 import { Product } from '@/types';
 import { Plus, Tag, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import EditProductModal from '../modals/EditProductModal';
 
 type Props = {

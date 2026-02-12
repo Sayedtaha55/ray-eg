@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FileText, Loader2, RefreshCw, Search, Trash2, CheckCircle2, Clock3, Wrench, XCircle } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const AdminContent: React.FC = () => {
   const { addToast } = useToast();

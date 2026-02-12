@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import * as ReactRouterDOM from 'react-router-dom';
 import { BUILDER_SECTIONS } from './builder/registry';
 

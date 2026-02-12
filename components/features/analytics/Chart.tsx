@@ -1,5 +1,4 @@
-import React from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Card } from '../../common/ui';
 
 interface ChartProps {
@@ -21,6 +20,25 @@ const Chart: React.FC<ChartProps> = ({
   color = '#00E5FF',
   height = 300,
 }) => {
+  const [recharts, setRecharts] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('recharts');
+        if (cancelled) return;
+        setRecharts(mod);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const R = recharts;
+
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
@@ -35,10 +53,21 @@ const Chart: React.FC<ChartProps> = ({
     return null;
   };
 
-  return (
-    <Card className="p-6">
-      <h3 className="text-xl font-black text-white mb-6">{title}</h3>
-      
+  const chartBody = useMemo(() => {
+    if (!R) return null;
+    const {
+      LineChart,
+      Line,
+      XAxis,
+      YAxis,
+      CartesianGrid,
+      Tooltip,
+      ResponsiveContainer,
+      BarChart,
+      Bar,
+    } = R;
+
+    return (
       <ResponsiveContainer width="100%" height={height} minWidth={200} minHeight={200}>
         {type === 'line' ? (
           <LineChart data={data}>
@@ -83,6 +112,13 @@ const Chart: React.FC<ChartProps> = ({
           </BarChart>
         )}
       </ResponsiveContainer>
+    );
+  }, [R, height, type, data, xAxisKey, dataKey, color]);
+
+  return (
+    <Card className="p-6">
+      <h3 className="text-xl font-black text-white mb-6">{title}</h3>
+      {chartBody}
     </Card>
   );
 };

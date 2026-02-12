@@ -31,7 +31,7 @@ export default defineConfig(({ mode }) => {
               vendor: ['react', 'react-dom'],
               router: ['react-router-dom'],
               ui: ['framer-motion', 'lucide-react'],
-              charts: ['recharts']
+              charts: ['recharts'],
             }
           }
         },

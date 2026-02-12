@@ -2,11 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
-import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 import { ApiService } from '@/services/api.service';
 import { Shop } from '@/types';
 import { Skeleton } from '@/components/common/ui';
@@ -50,9 +45,10 @@ const MapPage: React.FC = () => {
   const [mapReady, setMapReady] = useState(false);
 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markersLayerRef = useRef<L.LayerGroup | null>(null);
-  const userMarkerRef = useRef<L.Marker | null>(null);
+  const leafletRef = useRef<any>(null);
+  const mapRef = useRef<any>(null);
+  const markersLayerRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
 
   const loadShops = async () => {
     setLoading(true);
@@ -75,38 +71,62 @@ const MapPage: React.FC = () => {
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const defaultIcon = L.icon({
-      iconUrl: markerIconUrl,
-      iconRetinaUrl: markerIconRetinaUrl,
-      shadowUrl: markerShadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      shadowSize: [41, 41],
-    });
-    (L.Marker.prototype as any).options.icon = defaultIcon;
+    let cancelled = false;
 
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current, {
-        zoomControl: true,
-        attributionControl: false,
-      }).setView([30.0444, 31.2357], 12);
+    (async () => {
+      try {
+        await import('leaflet/dist/leaflet.css');
+        const leaflet = await import('leaflet');
+        const markerIconMod: any = await import('leaflet/dist/images/marker-icon.png');
+        const markerIcon2xMod: any = await import('leaflet/dist/images/marker-icon-2x.png');
+        const markerShadowMod: any = await import('leaflet/dist/images/marker-shadow.png');
 
-      mapRef.current.whenReady(() => setMapReady(true));
+        if (cancelled) return;
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(mapRef.current);
+        const L: any = (leaflet as any)?.default || leaflet;
+        leafletRef.current = L;
 
-      markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
-    }
+        const markerIconUrl: string = String(markerIconMod?.default || markerIconMod || '');
+        const markerIconRetinaUrl: string = String(markerIcon2xMod?.default || markerIcon2xMod || '');
+        const markerShadowUrl: string = String(markerShadowMod?.default || markerShadowMod || '');
+
+        const defaultIcon = L.icon({
+          iconUrl: markerIconUrl,
+          iconRetinaUrl: markerIconRetinaUrl,
+          shadowUrl: markerShadowUrl,
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          shadowSize: [41, 41],
+        });
+        (L.Marker.prototype as any).options.icon = defaultIcon;
+
+        if (!mapRef.current) {
+          mapRef.current = L.map(mapContainerRef.current, {
+            zoomControl: true,
+            attributionControl: false,
+          }).setView([30.0444, 31.2357], 12);
+
+          mapRef.current.whenReady(() => setMapReady(true));
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+          }).addTo(mapRef.current);
+
+          markersLayerRef.current = L.layerGroup().addTo(mapRef.current);
+        }
+      } catch {
+      }
+    })();
 
     return () => {
+      cancelled = true;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
         markersLayerRef.current = null;
         userMarkerRef.current = null;
       }
+      leafletRef.current = null;
       setMapReady(false);
     };
   }, []);
@@ -138,6 +158,9 @@ const MapPage: React.FC = () => {
   useEffect(() => {
     if (!mapRef.current) return;
     if (!markersLayerRef.current) return;
+    if (!leafletRef.current) return;
+
+    const L: any = leafletRef.current;
 
     markersLayerRef.current.clearLayers();
 

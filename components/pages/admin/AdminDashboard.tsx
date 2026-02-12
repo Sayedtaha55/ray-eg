@@ -1,10 +1,9 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } from 'recharts';
 import { Users, Store, ShoppingCart, DollarSign, Loader2, Eye } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const MotionDiv = motion.div as any;
 
@@ -13,8 +12,24 @@ const AdminDashboard: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [recharts, setRecharts] = useState<any>(null);
   
   const { addToast } = useToast();
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const mod = await import('recharts');
+        if (cancelled) return;
+        setRecharts(mod);
+      } catch {
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const timeAgoAr = (input: any) => {
     const t = input ? new Date(String(input)) : new Date();
@@ -118,6 +133,10 @@ const AdminDashboard: React.FC = () => {
                     );
                   }
 
+                  if (!recharts) return null;
+
+                  const { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip } = recharts;
+
                   return (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
@@ -133,7 +152,7 @@ const AdminDashboard: React.FC = () => {
                           tickLine={false}
                           axisLine={false}
                           width={40}
-                          tickFormatter={(v) => (Number(v) === 0 ? '' : String(v))}
+                          tickFormatter={(v: any) => (Number(v) === 0 ? '' : String(v))}
                           tick={{ fontSize: 10 }}
                         />
                         <Tooltip />

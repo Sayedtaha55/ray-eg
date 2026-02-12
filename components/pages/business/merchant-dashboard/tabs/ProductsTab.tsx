@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import EditProductModal from '../modals/EditProductModal';
 import ProductEditorLegacyModal from '../modals/ProductEditorLegacyModal';
 import { backendPost } from '@/services/api/httpClient';

@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Loader2, MapPin, ShieldCheck, Store, User } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 const { Link, useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;

@@ -5,10 +5,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
-import L from 'leaflet';
-import markerIconUrl from 'leaflet/dist/images/marker-icon.png';
-import markerIconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import markerShadowUrl from 'leaflet/dist/images/marker-shadow.png';
 
 
 interface StoreSettingsProps {
@@ -91,8 +87,8 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const [locatingShop, setLocatingShop] = useState(false);
   const [locationError, setLocationError] = useState('');
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<L.Map | null>(null);
-  const markerRef = useRef<L.Marker | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   const touchLocationMeta = (source: string, accuracy: number | null) => {
     setLocationSource(String(source || '').trim().toLowerCase());
@@ -171,69 +167,93 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const defaultIcon = L.icon({
-      iconUrl: markerIconUrl,
-      iconRetinaUrl: markerIconRetinaUrl,
-      shadowUrl: markerShadowUrl,
-      iconSize: [25, 41],
-      iconAnchor: [12, 41],
-      shadowSize: [41, 41],
-    });
-    (L.Marker.prototype as any).options.icon = defaultIcon;
+    let cancelled = false;
 
-    const hasCoords = latitude != null && longitude != null;
-    const centerLat = hasCoords ? latitude! : 30.0444;
-    const centerLng = hasCoords ? longitude! : 31.2357;
-    const defaultZoom = hasCoords ? 15 : 12;
+    (async () => {
+      try {
+        await import('leaflet/dist/leaflet.css');
+        const leaflet = await import('leaflet');
+        const markerIconMod: any = await import('leaflet/dist/images/marker-icon.png');
+        const markerIcon2xMod: any = await import('leaflet/dist/images/marker-icon-2x.png');
+        const markerShadowMod: any = await import('leaflet/dist/images/marker-shadow.png');
 
-    const ensureMarker = (lat: number, lng: number) => {
-      if (!mapRef.current) return;
-      if (!markerRef.current) {
-        markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
-        markerRef.current.on('dragend', () => {
-          const p = markerRef.current?.getLatLng();
-          if (!p) return;
-          setLatitude(p.lat);
-          setLongitude(p.lng);
-          touchLocationMeta('map', null);
+        if (cancelled) return;
+
+        const L: any = (leaflet as any)?.default || leaflet;
+        const markerIconUrl: string = String(markerIconMod?.default || markerIconMod || '');
+        const markerIconRetinaUrl: string = String(markerIcon2xMod?.default || markerIcon2xMod || '');
+        const markerShadowUrl: string = String(markerShadowMod?.default || markerShadowMod || '');
+
+        const defaultIcon = L.icon({
+          iconUrl: markerIconUrl,
+          iconRetinaUrl: markerIconRetinaUrl,
+          shadowUrl: markerShadowUrl,
+          iconSize: [25, 41],
+          iconAnchor: [12, 41],
+          shadowSize: [41, 41],
         });
-      } else {
-        markerRef.current.setLatLng([lat, lng]);
+        (L.Marker.prototype as any).options.icon = defaultIcon;
+
+        const hasCoords = latitude != null && longitude != null;
+        const centerLat = hasCoords ? latitude! : 30.0444;
+        const centerLng = hasCoords ? longitude! : 31.2357;
+        const defaultZoom = hasCoords ? 15 : 12;
+
+        const ensureMarker = (lat: number, lng: number) => {
+          if (!mapRef.current) return;
+          if (!markerRef.current) {
+            markerRef.current = L.marker([lat, lng], { draggable: true }).addTo(mapRef.current);
+            markerRef.current.on('dragend', () => {
+              const p = markerRef.current?.getLatLng();
+              if (!p) return;
+              setLatitude(p.lat);
+              setLongitude(p.lng);
+              touchLocationMeta('map', null);
+            });
+          } else {
+            markerRef.current.setLatLng([lat, lng]);
+          }
+        };
+
+        if (!mapRef.current) {
+          mapRef.current = L.map(mapContainerRef.current, {
+            zoomControl: true,
+            attributionControl: false,
+          }).setView([centerLat, centerLng], defaultZoom);
+
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+          }).addTo(mapRef.current);
+
+          mapRef.current.on('click', (e: any) => {
+            const p = e?.latlng;
+            if (!p) return;
+            setLatitude(p.lat);
+            setLongitude(p.lng);
+            touchLocationMeta('map', null);
+            ensureMarker(p.lat, p.lng);
+          });
+
+          if (hasCoords) {
+            ensureMarker(latitude!, longitude!);
+          }
+        } else {
+          mapRef.current.setView([centerLat, centerLng], mapRef.current.getZoom() || defaultZoom);
+          if (hasCoords) {
+            ensureMarker(latitude!, longitude!);
+          }
+        }
+
+        setTimeout(() => {
+          mapRef.current?.invalidateSize();
+        }, 0);
+      } catch {
       }
+    })();
+
+    return () => {
+      cancelled = true;
     };
-
-    if (!mapRef.current) {
-      mapRef.current = L.map(mapContainerRef.current, {
-        zoomControl: true,
-        attributionControl: false,
-      }).setView([centerLat, centerLng], defaultZoom);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-      }).addTo(mapRef.current);
-
-      mapRef.current.on('click', (e: any) => {
-        const p = e?.latlng;
-        if (!p) return;
-        setLatitude(p.lat);
-        setLongitude(p.lng);
-        touchLocationMeta('map', null);
-        ensureMarker(p.lat, p.lng);
-      });
-
-      if (hasCoords) {
-        ensureMarker(latitude!, longitude!);
-      }
-    } else {
-      mapRef.current.setView([centerLat, centerLng], mapRef.current.getZoom() || defaultZoom);
-      if (hasCoords) {
-        ensureMarker(latitude!, longitude!);
-      }
-    }
-
-    setTimeout(() => {
-      mapRef.current?.invalidateSize();
-    }, 0);
   }, [latitude, longitude]);
 
   const handleUseMyLocation = async () => {

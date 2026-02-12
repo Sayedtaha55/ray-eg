@@ -1,4 +1,4 @@
-const CACHE_NAME = 'mnmknk-v2';
+const CACHE_NAME = 'mnmknk-v3';
 const urlsToCache = [
   '/',
   '/shops',

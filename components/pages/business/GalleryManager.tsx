@@ -5,7 +5,7 @@ import {
   Eye, Edit2, Save, Camera, Sparkles, AlertCircle
 } from 'lucide-react';
 import { ShopGallery } from '@/types';
-import { useToast } from '@/components';
+import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
 
 interface GalleryManagerProps {
