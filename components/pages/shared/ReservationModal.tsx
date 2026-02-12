@@ -56,9 +56,16 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
     if (!item) return;
 
     if (!isAuthed) {
-      const returnTo = `${location.pathname}${location.search || ''}`;
-      onClose();
-      navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+      try {
+        const returnTo = `${location.pathname}${location.search || ''}`;
+        window.dispatchEvent(new CustomEvent('ray-auth-required', {
+          detail: {
+            message: 'قبل الحجز لازم تسجل حساب.',
+            returnTo,
+          },
+        }));
+      } catch {
+      }
       return;
     }
 
@@ -146,9 +153,16 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     <button
                       type="button"
                       onClick={() => {
-                        const returnTo = `${location.pathname}${location.search || ''}`;
-                        onClose();
-                        navigate(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+                        try {
+                          const returnTo = `${location.pathname}${location.search || ''}`;
+                          window.dispatchEvent(new CustomEvent('ray-auth-required', {
+                            detail: {
+                              message: 'قبل الحجز لازم تسجل حساب.',
+                              returnTo,
+                            },
+                          }));
+                        } catch {
+                        }
                       }}
                       className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
                     >

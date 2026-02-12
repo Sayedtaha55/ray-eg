@@ -49,6 +49,11 @@ const PublicLayout: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [authPrompt, setAuthPrompt] = useState<{ open: boolean; message: string; returnTo: string }>(() => ({
+    open: false,
+    message: 'قبل أي عملية لازم تسجل حساب.',
+    returnTo: '/',
+  }));
   const location = useLocation();
   const navigate = useNavigate();
   const { playSound } = useCartSound();
@@ -75,11 +80,20 @@ const PublicLayout: React.FC = () => {
     window.addEventListener('add-to-cart', handleAddToCart);
     window.addEventListener('cart-updated', syncCart);
     window.addEventListener('auth-change', checkAuth);
+
+    const onAuthRequired = (e: any) => {
+      const detail = e?.detail || {};
+      const msg = String(detail?.message || '').trim() || 'قبل أي عملية لازم تسجل حساب.';
+      const returnTo = String(detail?.returnTo || '').trim() || `${window.location.pathname}${window.location.search || ''}`;
+      setAuthPrompt({ open: true, message: msg, returnTo });
+    };
+    window.addEventListener('ray-auth-required', onAuthRequired as any);
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('add-to-cart', handleAddToCart);
       window.removeEventListener('cart-updated', syncCart);
       window.removeEventListener('auth-change', checkAuth);
+      window.removeEventListener('ray-auth-required', onAuthRequired as any);
     };
   }, [playSound]);
 
@@ -306,6 +320,60 @@ const PublicLayout: React.FC = () => {
 
       <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
       <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
+
+      <AnimatePresence>
+        {authPrompt.open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[500]"
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              transition={{ duration: 0.22 }}
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[510] w-[92vw] max-w-md"
+              dir="rtl"
+            >
+              <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-6 md:p-8 text-right">
+                <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">يجب تسجل الدخول</div>
+                <div className="text-slate-500 font-bold text-sm leading-relaxed mb-6">{authPrompt.message}</div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Link
+                    to={`/signup?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
+                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                    className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm flex items-center justify-center"
+                  >
+                    التسجيل
+                  </Link>
+                  <Link
+                    to="/"
+                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                    className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center"
+                  >
+                    الرئيسية
+                  </Link>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <Link
+                    to={`/login?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
+                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                    className="text-slate-500 font-black text-xs hover:text-slate-900 transition-colors"
+                  >
+                    عندك حساب؟ تسجيل الدخول
+                  </Link>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20 text-right">

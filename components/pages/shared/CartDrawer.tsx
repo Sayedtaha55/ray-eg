@@ -319,12 +319,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     try {
       if (!token) {
         setIsProcessing(false);
-        setError('يجب تسجيل الدخول لإتمام الشراء');
+        setError('');
         try {
-          const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
-          window.location.href = `/login?returnTo=${returnTo}`;
+          const returnTo = `${window.location.pathname}${window.location.search}`;
+          window.dispatchEvent(new CustomEvent('ray-auth-required', {
+            detail: {
+              message: 'قبل إتمام الشراء لازم تسجل حساب.',
+              returnTo,
+            },
+          }));
         } catch {
-          window.location.href = '/login';
         }
         return;
       }
@@ -402,12 +406,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       setIsProcessing(false);
       const status = (err as any)?.status || (err as any)?.response?.status;
       if (status === 401) {
-        setError('يجب تسجيل الدخول لإتمام الشراء');
+        setError('');
         try {
-          const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}`);
-          window.location.href = `/login?returnTo=${returnTo}`;
+          const returnTo = `${window.location.pathname}${window.location.search}`;
+          window.dispatchEvent(new CustomEvent('ray-auth-required', {
+            detail: {
+              message: 'قبل إتمام الشراء لازم تسجل حساب.',
+              returnTo,
+            },
+          }));
         } catch {
-          window.location.href = '/login';
         }
         return;
       }
