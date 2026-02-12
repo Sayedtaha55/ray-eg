@@ -2,7 +2,6 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './src/index.css';
-import BackendStatusBanner from './components/common/feedback/BackendStatusBanner';
 import ErrorBoundary from './components/common/feedback/ErrorBoundary';
 import { ToastProvider } from './components/common/feedback/Toaster';
 
@@ -16,7 +15,6 @@ root.render(
   <React.StrictMode>
     <ErrorBoundary>
       <ToastProvider>
-        <BackendStatusBanner />
         <App />
       </ToastProvider>
     </ErrorBoundary>

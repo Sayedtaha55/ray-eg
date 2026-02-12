@@ -45,7 +45,7 @@ const AdminContent = React.lazy(() => import('./components/pages/admin/AdminCont
 const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSettings'));
 
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
-const NotFoundPage = React.lazy(() => import('./components/pages/shared/NotFoundPage'));
+const Page404 = React.lazy(() => import('./components/pages/shared/404'));
 
 const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams, useNavigate, Navigate } = ReactRouterDOM as any;
 
@@ -115,6 +115,52 @@ const suspense = (element: React.ReactElement) => (
   <React.Suspense fallback={<AppLoadingFallback />}>{element}</React.Suspense>
 );
 
+const OfflineOrBackendDownRedirector: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [backendDownUntil, setBackendDownUntil] = useState<number>(0);
+
+  useEffect(() => {
+    const handleBackendStatus = (evt: Event) => {
+      const detail = (evt as CustomEvent<{ status?: 'up' | 'down'; downUntil?: number }>)?.detail;
+      if (!detail) return;
+      if (detail.status === 'up') setBackendDownUntil(0);
+      if (typeof detail.downUntil === 'number') setBackendDownUntil(detail.downUntil);
+    };
+
+    window.addEventListener('ray-backend-status', handleBackendStatus as any);
+    return () => {
+      window.removeEventListener('ray-backend-status', handleBackendStatus as any);
+    };
+  }, []);
+
+  useEffect(() => {
+    const isOn404 = String(location?.pathname || '') === '/404';
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      if (!isOn404) navigate('/404?reason=offline', { replace: true });
+      return;
+    }
+
+    const isBackendDown = backendDownUntil > Date.now();
+    if (isBackendDown) {
+      if (!isOn404) navigate('/404?reason=service', { replace: true });
+    }
+  }, [backendDownUntil, location?.pathname, navigate]);
+
+  useEffect(() => {
+    const handleOffline = () => {
+      const isOn404 = String(window.location?.pathname || '') === '/404';
+      if (!isOn404) navigate('/404?reason=offline', { replace: true });
+    };
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [navigate]);
+
+  return null;
+};
+
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
@@ -123,6 +169,7 @@ const App: React.FC = () => {
     <Router>
       <ScrollToTop />
       <RoleRedirector />
+      <OfflineOrBackendDownRedirector />
       <Routes>
         <Route path="/" element={suspense(<PublicLayout />)}>
           <Route index element={suspense(<HomeFeed />)} />
@@ -181,7 +228,9 @@ const App: React.FC = () => {
 
         <Route path="/courier/orders" element={suspense(<CourierOrders />)} />
 
-        <Route path="*" element={suspense(<NotFoundPage />)} />
+        <Route path="/404" element={suspense(<Page404 />)} />
+
+        <Route path="*" element={suspense(<Page404 />)} />
       </Routes>
     </Router>
   );

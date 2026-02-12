@@ -94,4 +94,3 @@ export { default as Sidebar } from './common/navigation/Sidebar';
 export { default as Toaster } from './common/feedback/Toaster';
 export { useToast, ToastProvider } from './common/feedback/Toaster';
 export { default as ErrorBoundary } from './common/feedback/ErrorBoundary';
-export { default as BackendStatusBanner } from './common/feedback/BackendStatusBanner';

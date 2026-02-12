@@ -33,6 +33,16 @@ export default class ErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      try {
+        if (typeof window !== 'undefined') {
+          const currentPath = String(window.location?.pathname || '');
+          if (currentPath !== '/404') {
+            window.location.replace('/404?reason=error');
+            return null;
+          }
+        }
+      } catch {
+      }
       return (
         <div className="min-h-screen bg-[#0B1220] text-white flex items-center justify-center p-6" dir="rtl">
           <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/5 p-6">
