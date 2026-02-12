@@ -312,13 +312,12 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           let imageUrl: string | null = a?.imageUrl ? String(a.imageUrl) : null;
           const file = a?.imageUploadFile;
           if (file) {
-            const upload = await ApiService.uploadMedia({
+            const upload = await ApiService.uploadMediaRobust({
               file,
               purpose: 'product_image',
               shopId,
             });
-            const nextUrl = String(upload?.url || '').trim();
-            if (nextUrl) imageUrl = nextUrl;
+            imageUrl = String(upload?.url || '').trim() || null;
           }
 
           const pSmall = parseNumberInput(a?.priceSmall);

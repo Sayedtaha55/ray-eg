@@ -1,18 +1,19 @@
-import { BadRequestException, Body, Controller, Get, HttpException, Inject, Post, Put, Request, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, Inject, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
 import { MediaPresignDto } from './media-presign.dto';
 import { MediaPresignService } from './media-presign.service';
 import { MediaStorageService } from './media-storage.service';
+import { MediaOptimizeQueue } from './media-optimize.queue';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
- const disableGuards = String(process.env.MEDIA_DISABLE_GUARDS || '').toLowerCase() === 'true';
- const disableRoles = String(process.env.MEDIA_DISABLE_ROLES || '').toLowerCase() === 'true';
- const guards: any[] = disableGuards ? [] : [JwtAuthGuard, RolesGuard];
- const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
+const disableGuards = String(process.env.MEDIA_DISABLE_GUARDS || '').toLowerCase() === 'true';
+const disableRoles = String(process.env.MEDIA_DISABLE_ROLES || '').toLowerCase() === 'true';
+const guards: any[] = disableGuards ? [] : [JwtAuthGuard, RolesGuard];
+const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
 
 @Controller('api/v1/media')
 export class MediaController {
@@ -191,13 +192,54 @@ export class MediaControllerLite {
 
 @Controller('api/v1/media')
 export class MediaControllerPresignOnly {
-  constructor(private readonly mediaPresign: MediaPresignService) {}
+  constructor(
+    private readonly mediaPresign: MediaPresignService,
+    private readonly mediaOptimizeQueue: MediaOptimizeQueue,
+  ) {}
 
   @Post('presign')
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async presign(@Request() req, @Body() body: MediaPresignDto) {
     return await this.mediaPresign.presignUpload(body, { role: req.user?.role, shopId: req.user?.shopId });
+  }
+
+  @Post('complete')
+  @UseGuards(...guards)
+  @Roles(...merchantAdminRoles)
+  async complete(@Request() req, @Body() body: any) {
+    const key = String(body?.key || '').trim();
+    const mimeType = String(body?.mimeType || '').toLowerCase().trim();
+    const purpose = typeof body?.purpose === 'string' ? String(body.purpose).trim() : undefined;
+    if (!key) throw new BadRequestException('key مطلوب');
+    if (!mimeType) throw new BadRequestException('mimeType مطلوب');
+
+    const jobId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+    try {
+      await this.mediaOptimizeQueue.enqueue({ jobId, key, mimeType, purpose });
+    } catch {
+      return { jobId, state: 'queued', queued: false };
+    }
+
+    return { jobId, state: 'queued', queued: true };
+  }
+
+  @Get('status')
+  @UseGuards(...guards)
+  @Roles(...merchantAdminRoles)
+  async status(@Query('jobId') jobIdRaw?: string, @Query('key') keyRaw?: string) {
+    const jobId = String(jobIdRaw || '').trim();
+    const key = String(keyRaw || '').trim();
+
+    let id = jobId;
+    if (!id && key) {
+      id = (await this.mediaOptimizeQueue.getJobIdByMediaKey(key)) || '';
+    }
+    if (!id) throw new BadRequestException('jobId مطلوب');
+
+    const status = await this.mediaOptimizeQueue.getStatus(id);
+    return { jobId: id, status };
   }
 }
 

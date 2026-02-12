@@ -228,7 +228,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setSaving(true);
     try {
       const uploadMedia = async (file: File, purpose: string) => {
-        const uploaded = await ApiService.uploadMedia({ file, purpose, shopId });
+        const uploaded = await ApiService.uploadMediaRobust({ file, purpose, shopId });
         return String(uploaded?.url || '').trim();
       };
 

@@ -85,8 +85,15 @@ function isAbortError(err: any) {
   return msg.includes('abort');
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit & { signal?: AbortSignal }, timeoutMs?: number) {
-  const ms = typeof timeoutMs === 'number' ? timeoutMs : resolveApiTimeoutMs();
+function normalizeTimeoutMs(timeoutMs?: number) {
+  if (typeof timeoutMs === 'number' && Number.isFinite(timeoutMs) && timeoutMs > 0) {
+    return Math.max(3000, Math.min(10 * 60 * 1000, Math.floor(timeoutMs)));
+  }
+  return resolveApiTimeoutMs();
+}
+
+export async function fetchWithTimeout(url: string, init: RequestInit & { signal?: AbortSignal }, timeoutMs?: number) {
+  const ms = normalizeTimeoutMs(timeoutMs);
   const hasAbort = typeof AbortController !== 'undefined';
   if (!hasAbort || ms <= 0) return fetch(url, init);
 
@@ -214,6 +221,14 @@ function handleUnauthorized(path: string, token: string) {
 }
 
 export async function backendPost<T>(path: string, body: any): Promise<T> {
+  return await backendPostWithOptions<T>(path, body);
+}
+
+export async function backendPostWithOptions<T>(
+  path: string,
+  body: any,
+  opts?: { timeoutMs?: number; signal?: AbortSignal },
+): Promise<T> {
   const token = getAuthToken();
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   let res: Response;
@@ -227,12 +242,13 @@ export async function backendPost<T>(path: string, body: any): Promise<T> {
     res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'POST',
       credentials: 'include',
+      ...(opts?.signal ? { signal: opts.signal } : {}),
       headers: {
         ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: isFormData ? body : JSON.stringify(body),
-    });
+    }, opts?.timeoutMs);
   } catch (err) {
     if (isAbortError(err)) {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });

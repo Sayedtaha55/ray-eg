@@ -11,6 +11,7 @@ export class MediaStorageService implements MediaStorage {
   private aws: {
     S3Client: any;
     PutObjectCommand: any;
+    GetObjectCommand: any;
   } | null = null;
 
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {
@@ -18,8 +19,8 @@ export class MediaStorageService implements MediaStorage {
 
   private async getAws() {
     if (this.aws) return this.aws;
-    const { S3Client, PutObjectCommand } = await import('@aws-sdk/client-s3');
-    this.aws = { S3Client, PutObjectCommand };
+    const { S3Client, PutObjectCommand, GetObjectCommand } = await import('@aws-sdk/client-s3');
+    this.aws = { S3Client, PutObjectCommand, GetObjectCommand };
     return this.aws;
   }
 
@@ -201,6 +202,106 @@ export class MediaStorageService implements MediaStorage {
     await client.send(command);
 
     return { key, url: `${base}/${key}` };
+  }
+
+  private getUploadsRoot() {
+    return path.resolve(process.cwd(), 'uploads');
+  }
+
+  private getPublicBaseUrl() {
+    const base = this.cleanEnv(this.config.get<string>('R2_PUBLIC_BASE_URL')).replace(/\/+$/, '');
+    return base;
+  }
+
+  getPublicUrlForKey(key: string) {
+    const driver = this.chooseDriver();
+    if (driver === 'local') return `/uploads/${key}`;
+    const base = this.getPublicBaseUrl();
+    return base ? `${base}/${key}` : '';
+  }
+
+  async downloadToBuffer(key: string): Promise<{ buffer: Buffer; driver: 'local' | 'r2' }> {
+    const driver = this.chooseDriver();
+
+    if (driver === 'local') {
+      const uploadsRoot = this.getUploadsRoot();
+      const filePath = path.resolve(uploadsRoot, key);
+      if (!filePath.startsWith(uploadsRoot)) {
+        throw new BadRequestException('Invalid key');
+      }
+      const buffer = await fs.promises.readFile(filePath);
+      return { buffer, driver };
+    }
+
+    if (!this.hasR2Config()) {
+      throw new BadRequestException('R2 is not configured');
+    }
+
+    const bucket = this.cleanEnv(this.config.get<string>('R2_BUCKET'));
+    if (!bucket) throw new BadRequestException('R2_BUCKET not configured');
+
+    const { GetObjectCommand } = await this.getAws();
+    const client = await this.getClient();
+    const res = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }));
+
+    const body = (res as any)?.Body;
+    if (!body) {
+      throw new BadRequestException('Failed to download object');
+    }
+
+    const chunks: Buffer[] = [];
+    for await (const chunk of body as any) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+    return { buffer: Buffer.concat(chunks), driver };
+  }
+
+  async uploadBufferToKey(params: {
+    key: string;
+    buffer: Buffer;
+    contentType: string;
+    cacheControl?: string;
+  }): Promise<MediaUploadResult> {
+    const driver = this.chooseDriver();
+
+    if (driver === 'local') {
+      const uploadsRoot = this.getUploadsRoot();
+      const targetPath = path.resolve(uploadsRoot, params.key);
+      if (!targetPath.startsWith(uploadsRoot)) {
+        throw new BadRequestException('Invalid key');
+      }
+      try {
+        fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+      } catch {
+      }
+      await fs.promises.writeFile(targetPath, params.buffer);
+      return { key: params.key, url: `/uploads/${params.key}` };
+    }
+
+    if (!this.hasR2Config()) {
+      throw new BadRequestException('R2 is not configured');
+    }
+
+    const bucket = this.cleanEnv(this.config.get<string>('R2_BUCKET'));
+    if (!bucket) throw new BadRequestException('R2_BUCKET not configured');
+
+    const base = this.getPublicBaseUrl();
+    if (!base) throw new BadRequestException('R2_PUBLIC_BASE_URL not configured');
+
+    const { PutObjectCommand } = await this.getAws();
+    const client = await this.getClient();
+
+    await client.send(
+      new PutObjectCommand({
+        Bucket: bucket,
+        Key: params.key,
+        Body: params.buffer,
+        ContentType: params.contentType,
+        CacheControl: params.cacheControl,
+      }),
+    );
+
+    return { key: params.key, url: `${base}/${params.key}` };
   }
 
   async upload(input: MediaUploadInput): Promise<MediaUploadResult> {

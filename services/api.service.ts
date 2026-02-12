@@ -5,8 +5,10 @@ import {
   backendGet,
   backendPatch,
   backendPost,
+  backendPostWithOptions,
   backendPut,
   disablePathPrefix,
+  fetchWithTimeout,
   toBackendUrl,
 } from './api/httpClient';
 import {
@@ -220,7 +222,129 @@ export const ApiService = {
     if (typeof payload?.purpose === 'string') form.append('purpose', payload.purpose);
     if (typeof payload?.shopId === 'string') form.append('shopId', payload.shopId);
 
-    return await backendPost<{ url: string; key: string }>('/api/v1/media/upload', form);
+    // Uploading large media over slow networks can exceed the default API timeout.
+    // Give uploads a longer, explicit timeout.
+    return await backendPostWithOptions<{ url: string; key: string }>('/api/v1/media/upload', form, { timeoutMs: 180_000 });
+  },
+
+  uploadMediaRobust: async (payload: { file: File; purpose?: string; shopId?: string }) => {
+    const file = payload?.file;
+    if (!file) throw new Error('Missing file');
+
+    const maxAttempts = 2;
+    let lastErr: any = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      try {
+        const presign = await ApiService.presignMediaUpload({
+          mimeType: String((file as any)?.type || '').trim(),
+          size: typeof (file as any)?.size === 'number' ? (file as any).size : undefined,
+          fileName: String((file as any)?.name || '').trim() || undefined,
+          purpose: payload?.purpose,
+          shopId: payload?.shopId,
+        });
+
+        const uploadUrl = String((presign as any)?.uploadUrl || '').trim();
+        const publicUrl = String((presign as any)?.publicUrl || '').trim();
+        const key = String((presign as any)?.key || '').trim();
+        if (!uploadUrl || !publicUrl) throw new Error('Invalid presign response');
+
+        // PUT directly to R2 (or backend-local upload URL). Avoids backend timeouts.
+        const rawUrl = uploadUrl.startsWith('/') ? toBackendUrl(uploadUrl) : uploadUrl;
+        const backendBase = toBackendUrl('/').replace(/\/+$/, '');
+        const isBackendUpload = rawUrl.startsWith(backendBase);
+
+        let token = '';
+        if (isBackendUpload) {
+          try {
+            token = localStorage.getItem('ray_token') || '';
+          } catch {
+            token = '';
+          }
+        }
+
+        const res = await fetchWithTimeout(
+          rawUrl,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': String((file as any)?.type || 'application/octet-stream'),
+              ...(isBackendUpload && token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: file,
+          },
+          5 * 60 * 1000,
+        );
+
+        if (!res.ok) {
+          throw new Error(`Upload failed (${res.status})`);
+        }
+
+        // Enqueue async optimization (server-side). This is best-effort and should never block the upload flow.
+        let jobId = '';
+        try {
+          const completeRes = await backendPost<{ jobId?: string } | any>('/api/v1/media/complete', {
+            key,
+            mimeType: String((file as any)?.type || '').trim(),
+            purpose: payload?.purpose,
+          });
+          jobId = String(completeRes?.jobId || '').trim();
+        } catch {
+          jobId = '';
+        }
+
+        // Short polling window: improves UX for inventory uploads (images often finish fast).
+        // Never fail the upload flow if optimization isn't ready.
+        const mime = String((file as any)?.type || '').toLowerCase().trim();
+        const isVideo = mime.startsWith('video/');
+        const pollMaxMs = isVideo ? 20_000 : 8_000;
+        const pollIntervalMs = 800;
+
+        const started = Date.now();
+        while (Date.now() - started < pollMaxMs) {
+          try {
+            const st = await ApiService.getMediaOptimizeStatus({ jobId: jobId || undefined, key });
+            const s = (st as any)?.status;
+            const state = String(s?.state || '').toLowerCase();
+            if (state === 'done') {
+              const outUrl = String(s?.url || '').trim();
+              const thumbUrl = String(s?.thumbUrl || '').trim();
+              const mediumUrl = String(s?.mediumUrl || '').trim();
+              if (outUrl) {
+                return {
+                  url: outUrl,
+                  key: String(s?.key || key),
+                  ...(thumbUrl ? { thumbUrl } : {}),
+                  ...(mediumUrl ? { mediumUrl } : {}),
+                } as any;
+              }
+              break;
+            }
+            if (state === 'failed') {
+              break;
+            }
+          } catch {
+            // ignore
+          }
+          await new Promise((r) => setTimeout(r, pollIntervalMs));
+        }
+
+        return { url: publicUrl, key };
+      } catch (e: any) {
+        lastErr = e;
+        // On the final attempt, fallback to backend multipart upload.
+        if (attempt >= maxAttempts) break;
+        await new Promise((r) => setTimeout(r, 800));
+      }
+    }
+
+    try {
+      return await ApiService.uploadMedia(payload);
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : '';
+      const prefix = lastErr?.message ? String(lastErr.message) : '';
+      throw new Error([prefix, msg].filter(Boolean).join(' | ') || 'Upload failed');
+    }
   },
   presignMediaUpload: async (payload: {
     mimeType: string;
@@ -239,6 +363,15 @@ export const ApiService = {
         ...(typeof payload?.shopId === 'string' ? { shopId: payload.shopId } : {}),
       },
     );
+  },
+
+  getMediaOptimizeStatus: async (payload: { jobId?: string; key?: string }) => {
+    const jobId = typeof payload?.jobId === 'string' ? payload.jobId.trim() : '';
+    const key = typeof payload?.key === 'string' ? payload.key.trim() : '';
+    const qs = new URLSearchParams();
+    if (jobId) qs.set('jobId', jobId);
+    if (key) qs.set('key', key);
+    return await backendGet<{ jobId: string; status: any }>(`/api/v1/media/status?${qs.toString()}`);
   },
   uploadFileToPresignedUrl: async (uploadUrl: string, file: File) => {
     const rawUrl = String(uploadUrl || '').trim();

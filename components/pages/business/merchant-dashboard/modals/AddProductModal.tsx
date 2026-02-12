@@ -260,13 +260,12 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
     setLoading(true);
     try {
-      const mime = String(imageUploadFile.type || '').toLowerCase().trim();
-      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-      if (!mime || !allowed.has(mime)) {
+      const mime = String((imageUploadFile as any)?.type || '').toLowerCase();
+      if (!mime.startsWith('image/') || mime.includes('gif')) {
         addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
         return;
       }
-      const upload = await ApiService.uploadMedia({
+      const upload = await ApiService.uploadMediaRobust({
         file: imageUploadFile,
         purpose: 'product_image',
         shopId,
@@ -276,7 +275,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       if (!isRestaurant && extraImageUploadFiles.length > 0) {
         const uploads = await Promise.all(
           extraImageUploadFiles.map((f) =>
-            ApiService.uploadMedia({
+            ApiService.uploadMediaRobust({
               file: f,
               purpose: 'product_image',
               shopId,
