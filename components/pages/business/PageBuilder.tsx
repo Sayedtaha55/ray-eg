@@ -122,6 +122,28 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isDesktop, setIsDesktop] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
 
+  const syncVisibilityWithModules = (current: any, shop: any) => {
+    const next = { ...(current && typeof current === 'object' ? current : {}) } as Record<string, boolean>;
+
+    const enabled = (() => {
+      const layout = shop?.layoutConfig;
+      const raw = layout && typeof layout === 'object' ? (layout as any).enabledModules : undefined;
+      if (!Array.isArray(raw)) return new Set<string>();
+      return new Set(raw.map((x: any) => String(x || '').trim()).filter(Boolean));
+    })();
+
+    const hasSales = enabled.has('sales');
+    const hasReservations = enabled.has('reservations');
+    const hasGallery = enabled.has('gallery');
+
+    next.productCardAddToCart = Boolean(hasSales);
+    next.mobileBottomNavCart = Boolean(hasSales);
+    next.productCardReserve = Boolean(hasReservations);
+    next.headerNavGallery = Boolean(hasGallery);
+
+    return next;
+  };
+
   const query = new URLSearchParams(String(location?.search || ''));
   const requestedBuilderTabRaw = String(query.get('builderTab') || '').trim();
   const allowedBuilderTabs = new Set(BUILDER_SECTIONS.map((s) => String(s.id)));
@@ -154,6 +176,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   Object.entries(elementsVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
                 )
               : undefined;
+            const elementsVisibilitySynced = syncVisibilityWithModules(elementsVisibilityNormalized, myShop);
             const customCssNormalized = typeof merged?.customCss === 'string' ? merged.customCss : '';
             setConfig({
               ...merged,
@@ -161,11 +184,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               footerTransparent: coerceBoolean(merged.footerTransparent, Boolean(DEFAULT_PAGE_DESIGN.footerTransparent)),
               headerOpacity: coerceNumber(merged.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
               footerOpacity: coerceNumber(merged.footerOpacity, Number(DEFAULT_PAGE_DESIGN.footerOpacity)),
-              elementsVisibility: elementsVisibilityNormalized,
+              elementsVisibility: elementsVisibilitySynced,
               customCss: customCssNormalized,
             });
           } else {
-            setConfig(DEFAULT_PAGE_DESIGN);
+            setConfig({
+              ...DEFAULT_PAGE_DESIGN,
+              elementsVisibility: syncVisibilityWithModules((DEFAULT_PAGE_DESIGN as any).elementsVisibility, myShop),
+            } as any);
           }
         } catch {
           setConfig(DEFAULT_PAGE_DESIGN);

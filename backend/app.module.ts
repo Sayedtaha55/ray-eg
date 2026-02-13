@@ -9,6 +9,7 @@ import { GalleryModule } from './gallery.module';
 import { ReservationModule } from './reservation.module';
 import { OrderModule } from './order.module';
 import { OfferModule } from './offer.module';
+import { InvoiceModule } from './invoice.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { UsersModule } from './users.module';
 import { AnalyticsModule } from './analytics.module';
@@ -50,6 +51,7 @@ import { DatabaseTestController } from './db-test.controller';
           ...(includeAllModules || bootModules.has('reservation') ? [ReservationModule] : []),
           ...(includeAllModules || bootModules.has('order') ? [OrderModule] : []),
           ...(includeAllModules || bootModules.has('offer') ? [OfferModule] : []),
+          ...(includeAllModules || bootModules.has('invoice') ? [InvoiceModule] : []),
           ...(includeAllModules || bootModules.has('monitoring') ? [MonitoringModule] : []),
           ...(includeAllModules || bootModules.has('users') ? [UsersModule] : []),
           ...(includeAllModules || bootModules.has('analytics') ? [AnalyticsModule] : []),

@@ -9,6 +9,8 @@ import { Category } from '@/types';
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
+const MERCHANT_ONBOARDING_STORAGE_KEY = 'ray_merchant_onboarding';
+
 const SignupPage: React.FC = () => {
   const [role, setRole] = useState<'customer' | 'merchant'>('customer');
   const [formData, setFormData] = useState({ 
@@ -42,9 +44,36 @@ const SignupPage: React.FC = () => {
     ((import.meta as any)?.env?.VITE_API_URL as string) ||
     `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:4000`;
 
+  const [merchantOnboardingConfig, setMerchantOnboardingConfig] = useState<null | {
+    enabledModules?: string[];
+    dashboardMode?: string;
+    activityId?: string;
+    category?: string;
+  }>(null);
+
   useEffect(() => {
     if (roleParam === 'merchant') {
       setRole('merchant');
+    }
+  }, [roleParam]);
+
+  useEffect(() => {
+    if (roleParam !== 'merchant') return;
+    try {
+      const raw = sessionStorage.getItem(MERCHANT_ONBOARDING_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      setMerchantOnboardingConfig(parsed && typeof parsed === 'object' ? parsed : null);
+      const cat = String(parsed?.category || '').trim().toUpperCase();
+      const allowed = new Set(Object.values(Category).map((v) => String(v).toUpperCase()));
+      if (cat && allowed.has(cat)) {
+        setFormData((prev) => ({
+          ...prev,
+          category: cat as any,
+        }));
+      }
+    } catch {
+      setMerchantOnboardingConfig(null);
     }
   }, [roleParam]);
 
@@ -67,6 +96,30 @@ const SignupPage: React.FC = () => {
     return `/login${qs ? `?${qs}` : ''}`;
   };
 
+  useEffect(() => {
+    if (role !== 'merchant') return;
+
+    const hasOnboarding = (() => {
+      try {
+        const raw = sessionStorage.getItem(MERCHANT_ONBOARDING_STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = JSON.parse(raw);
+        const cat = String((parsed as any)?.category || '').trim().toUpperCase();
+        const allowed = new Set(Object.values(Category).map((v) => String(v).toUpperCase()));
+        return Boolean(cat && allowed.has(cat));
+      } catch {
+        return false;
+      }
+    })();
+
+    if (hasOnboarding) return;
+
+    const q = new URLSearchParams();
+    if (returnTo) q.set('returnTo', returnTo);
+    if (followShopId) q.set('followShopId', followShopId);
+    navigate(`/business/onboarding${q.toString() ? `?${q.toString()}` : ''}`, { replace: true } as any);
+  }, [role, returnTo, followShopId, navigate]);
+
   const handleGoogleLogin = () => {
     const q = new URLSearchParams();
     if (returnTo) q.set('returnTo', returnTo);
@@ -81,7 +134,26 @@ const SignupPage: React.FC = () => {
     setError('');
 
     try {
-      const response = await ApiService.signup({ ...formData, role });
+      const payload: any = { ...formData, role };
+
+      if (role === 'merchant') {
+        const cfg = merchantOnboardingConfig;
+
+        const enabledModules = Array.isArray(cfg?.enabledModules)
+          ? cfg?.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+          : [];
+
+        if (enabledModules.length > 0) {
+          payload.enabledModules = enabledModules;
+        }
+
+        const dashboardMode = String(cfg?.dashboardMode || '').trim();
+        if (dashboardMode) {
+          payload.dashboardMode = dashboardMode;
+        }
+      }
+
+      const response = await ApiService.signup(payload);
       const isPending = Boolean((response as any)?.pending);
       if (isPending) {
         try {
@@ -92,6 +164,13 @@ const SignupPage: React.FC = () => {
         window.dispatchEvent(new Event('auth-change'));
         navigate('/business/pending');
         return;
+      }
+
+      if (role === 'merchant') {
+        try {
+          sessionStorage.removeItem(MERCHANT_ONBOARDING_STORAGE_KEY);
+        } catch {
+        }
       }
 
       localStorage.setItem('ray_user', JSON.stringify((response as any).user));

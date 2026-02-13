@@ -100,6 +100,16 @@ const ShopProfile: React.FC = () => {
   const { addToast } = useToast();
   const { playSound } = useCartSound();
 
+  const enabledShopModules = useMemo(() => {
+    const layout = (shop as any)?.layoutConfig;
+    const raw = layout && typeof layout === 'object' ? (layout as any).enabledModules : undefined;
+    if (!Array.isArray(raw)) return new Set<string>();
+    return new Set(raw.map((x: any) => String(x || '').trim()).filter(Boolean));
+  }, [shop]);
+
+  const allowAddToCart = enabledShopModules.has('sales');
+  const allowReserve = enabledShopModules.has('reservations');
+
   useEffect(() => {
     const checkAuth = () => {
       try {
@@ -1061,6 +1071,8 @@ const ShopProfile: React.FC = () => {
                       onAdd={handleAddToCart}
                       isAdded={addedItemId === p.id} 
                       onReserve={handleReserve}
+                      allowAddToCart={allowAddToCart}
+                      allowReserve={allowReserve}
                       disableMotion={disableCardMotion}
                     />
                   ))

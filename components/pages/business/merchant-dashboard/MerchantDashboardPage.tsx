@@ -6,6 +6,7 @@ import {
   Camera,
   CheckCircle2,
   CreditCard,
+  FileText,
   Loader2,
   MapPin,
   Megaphone,
@@ -32,8 +33,8 @@ import CreateOfferModal from './modals/CreateOfferModal';
 import TabButton from './components/TabButton';
 import {
   MerchantDashboardTabId,
-  getVisibleMerchantDashboardTabs,
-  resolveMerchantDashboardTab,
+  getMerchantDashboardTabsForShop,
+  resolveMerchantDashboardTabForShop,
 } from './dashboardTabs';
 
 import CustomersTab from './tabs/CustomersTab';
@@ -44,6 +45,7 @@ import PromotionsTab from './tabs/PromotionsTab';
 import ReportsTab from './tabs/ReportsTab';
 import { ReservationsTab } from './tabs/ReservationsTab';
 import SalesTab from './tabs/SalesTab';
+import InvoiceTab from './tabs/InvoiceTab.tsx';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -58,6 +60,7 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   products: <Package size={18} />,
   promotions: <Megaphone size={18} />,
   reservations: <CalendarCheck size={18} />,
+  invoice: <FileText size={18} />,
   sales: <CreditCard size={18} />,
   builder: <Palette size={18} />,
   settings: <Settings size={18} />,
@@ -108,12 +111,12 @@ const MerchantDashboardPage: React.FC = () => {
   };
 
   const shopCategory = currentShop?.category;
-  const visibleTabs = getVisibleMerchantDashboardTabs(shopCategory).map((t) => ({
+  const visibleTabs = getMerchantDashboardTabsForShop(currentShop || { category: shopCategory }).map((t) => ({
     ...t,
     icon: ICON_BY_TAB_ID[t.id],
     label: t.dynamicLabel ? t.dynamicLabel(shopCategory) : t.label,
   }));
-  const effectiveTab = resolveMerchantDashboardTab(activeTab, shopCategory);
+  const effectiveTab = resolveMerchantDashboardTabForShop(activeTab, currentShop || { category: shopCategory });
 
   const setTab = useCallback((tab: TabType) => {
     const next = new URLSearchParams(searchParams);
@@ -265,7 +268,7 @@ const MerchantDashboardPage: React.FC = () => {
   const refreshShopAndActiveTab = useCallback(async (forceTab = true) => {
     const shop = (await loadShop()) || currentShop;
     if (!shop) return;
-    await ensureTabData(resolveMerchantDashboardTab(searchParams.get('tab'), shop?.category), shop, forceTab);
+    await ensureTabData(resolveMerchantDashboardTabForShop(searchParams.get('tab'), shop), shop, forceTab);
   }, [currentShop, ensureTabData, loadShop, searchParams]);
 
   useEffect(() => {
@@ -274,7 +277,7 @@ const MerchantDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!currentShop) return;
-    ensureTabData(resolveMerchantDashboardTab(tabParam, currentShop?.category), currentShop);
+    ensureTabData(resolveMerchantDashboardTabForShop(tabParam, currentShop), currentShop);
   }, [currentShop, ensureTabData, tabParam]);
 
   useEffect(() => {
@@ -439,6 +442,8 @@ const MerchantDashboardPage: React.FC = () => {
         );
       case 'reservations':
         return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
+      case 'invoice':
+        return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
       case 'sales':
         return <SalesTab sales={sales} />;
       case 'reports':

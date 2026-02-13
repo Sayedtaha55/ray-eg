@@ -19,6 +19,94 @@ export class ShopService {
     @Inject(EmailService) private readonly email: EmailService,
   ) {}
 
+  private getDefaultDashboardConfigForCategory(categoryRaw: any) {
+    const cat = String(categoryRaw || '').trim().toUpperCase();
+    const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
+    const manageExtras = ['gallery', 'customers', 'sales', 'reports', 'reservations', 'invoice'];
+    const showcaseExtras = ['gallery', 'reservations', 'invoice'];
+
+    const manageByDefault =
+      cat === 'RESTAURANT' ||
+      cat === 'FOOD' ||
+      cat === 'RETAIL' ||
+      cat === 'HEALTH';
+
+    const enabledModules = manageByDefault
+      ? [...core, ...manageExtras]
+      : [...core, ...showcaseExtras];
+
+    return {
+      dashboardMode: manageByDefault ? 'manage' : 'showcase',
+      enabledModules,
+    };
+  }
+
+  async adminUpgradeDashboardConfig(input?: {
+    shopIds?: string[];
+    dryRun?: boolean;
+  }) {
+    const dryRun = Boolean(input?.dryRun);
+    const shopIds = Array.isArray(input?.shopIds)
+      ? input?.shopIds.map((id) => String(id || '').trim()).filter(Boolean)
+      : [];
+
+    const where = shopIds.length > 0 ? { id: { in: shopIds } } : {};
+
+    const shops = await this.prisma.shop.findMany({
+      where: where as any,
+      select: { id: true, category: true, layoutConfig: true },
+    });
+
+    let updatedCount = 0;
+    const details: Array<{ id: string; changed: boolean }> = [];
+
+    for (const s of shops) {
+      const prevLayout = (s?.layoutConfig && typeof s.layoutConfig === 'object') ? (s.layoutConfig as any) : {};
+      const defaults = this.getDefaultDashboardConfigForCategory((s as any)?.category);
+
+      const prevEnabled = Array.isArray(prevLayout?.enabledModules)
+        ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : [];
+      const defaultEnabled = Array.isArray((defaults as any)?.enabledModules)
+        ? (defaults as any).enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : [];
+
+      const mergedEnabled = Array.from(new Set([...prevEnabled, ...defaultEnabled]));
+
+      const prevModeRaw = prevLayout?.dashboardMode;
+      const prevMode = String(prevModeRaw || '').trim().toLowerCase();
+      const hasValidMode = prevMode === 'showcase' || prevMode === 'manage';
+
+      const nextLayout = {
+        ...prevLayout,
+        enabledModules: mergedEnabled,
+        dashboardMode: hasValidMode ? prevMode : String((defaults as any)?.dashboardMode || 'manage'),
+      };
+
+      const changed =
+        JSON.stringify(prevLayout?.enabledModules || null) !== JSON.stringify(nextLayout.enabledModules || null) ||
+        String(prevLayout?.dashboardMode || '') !== String(nextLayout.dashboardMode || '');
+
+      details.push({ id: String((s as any)?.id || ''), changed });
+      if (!changed) continue;
+      updatedCount++;
+      if (dryRun) continue;
+
+      await this.prisma.shop.update({
+        where: { id: String((s as any)?.id || '') },
+        data: { layoutConfig: nextLayout as any },
+      });
+    }
+
+    return {
+      ok: true,
+      dryRun,
+      total: shops.length,
+      updated: updatedCount,
+      details,
+    };
+  }
+
   private parseBase64DataUrl(dataUrl: string) {
     const raw = String(dataUrl || '');
     const m = raw.match(/^data:([^;]+);base64,(.+)$/i);
@@ -260,6 +348,8 @@ export class ShopService {
       addons?: any[] | null;
       deliveryFee?: number | null;
       isActive?: boolean;
+      dashboardMode?: string;
+      enabledModules?: any;
     },
   ) {
     const startTime = Date.now();
@@ -281,8 +371,71 @@ export class ShopService {
         : null;
 
       const prevLayout = (current?.layoutConfig as any) || {};
+
+      const normalizeDashboardConfigUpdate = (next: { category?: any; dashboardMode?: any; enabledModules?: any }) => {
+        const allowedModules = new Set([
+          'overview',
+          'products',
+          'promotions',
+          'builder',
+          'settings',
+          'gallery',
+          'reservations',
+          'invoice',
+          'sales',
+          'customers',
+          'reports',
+          'pos',
+        ]);
+        const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
+
+        const requestedMode = String(next.dashboardMode || '').trim().toLowerCase();
+        const mode = requestedMode === 'showcase' || requestedMode === 'manage' ? requestedMode : undefined;
+
+        const requested = Array.isArray(next.enabledModules)
+          ? next.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+          : [];
+
+        const filtered = requested.filter((id: string) => allowedModules.has(id));
+        const merged = Array.from(new Set([...filtered, ...core]));
+
+        const safeMode = (mode || ((): 'showcase' | 'manage' => {
+          const cat = String(next.category || '').trim().toUpperCase();
+          const manageByDefault = cat === 'RESTAURANT' || cat === 'FOOD' || cat === 'RETAIL' || cat === 'HEALTH';
+          return manageByDefault ? 'manage' : 'showcase';
+        })());
+
+        let enabled = merged;
+
+        const salesOn = enabled.includes('sales');
+        if (!salesOn) {
+          enabled = enabled.filter((id) => id !== 'customers' && id !== 'reports');
+        }
+
+        if (safeMode === 'showcase') {
+          const disallowed = new Set(['sales', 'customers', 'reports']);
+          enabled = enabled.filter((id) => !disallowed.has(id));
+          return { dashboardMode: 'showcase', enabledModules: enabled };
+        }
+
+        return { dashboardMode: 'manage', enabledModules: enabled };
+      };
+
+      const hasDashboardUpdate =
+        typeof input.dashboardMode !== 'undefined' ||
+        typeof input.enabledModules !== 'undefined';
+
+      const dashboardCfg = hasDashboardUpdate
+        ? normalizeDashboardConfigUpdate({
+            category: typeof input.category === 'undefined' ? (current as any)?.category : input.category,
+            dashboardMode: input.dashboardMode,
+            enabledModules: input.enabledModules,
+          })
+        : null;
+
       const nextLayout = {
         ...prevLayout,
+        ...(dashboardCfg ? { dashboardMode: dashboardCfg.dashboardMode, enabledModules: dashboardCfg.enabledModules } : {}),
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
         ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),
@@ -1101,6 +1254,7 @@ ${urlset}
         governorate: createShopDto.governorate,
         city: createShopDto.city,
         openingHours: createShopDto.openingHours,
+        layoutConfig: this.getDefaultDashboardConfigForCategory(createShopDto.category) as any,
         owner: {
           connect: {
             id: ownerId,

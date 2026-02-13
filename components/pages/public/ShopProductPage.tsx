@@ -333,8 +333,19 @@ const ShopProductPage: React.FC = () => {
 
   const showPrice = isVisible('productCardPrice', true);
   const showStock = isVisible('productCardStock', true);
-  const showAddToCart = isVisible('productCardAddToCart', true);
-  const showReserve = isVisible('productCardReserve', true);
+
+  const enabledShopModules = useMemo(() => {
+    const layout = (shop as any)?.layoutConfig;
+    const raw = layout && typeof layout === 'object' ? (layout as any).enabledModules : undefined;
+    if (!Array.isArray(raw)) return new Set<string>();
+    return new Set(raw.map((x: any) => String(x || '').trim()).filter(Boolean));
+  }, [shop]);
+
+  const allowAddToCart = enabledShopModules.has('sales');
+  const allowReserve = enabledShopModules.has('reservations');
+
+  const showAddToCart = isVisible('productCardAddToCart', true) && allowAddToCart;
+  const showReserve = isVisible('productCardReserve', true) && allowReserve;
 
   const handleToggleFavorite = () => {
     if (!product) return;

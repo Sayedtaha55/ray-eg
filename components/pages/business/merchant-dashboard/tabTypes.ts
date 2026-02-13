@@ -4,6 +4,7 @@ export type MerchantDashboardTabId =
   | 'overview'
   | 'products'
   | 'reservations'
+  | 'invoice'
   | 'sales'
   | 'promotions'
   | 'reports'

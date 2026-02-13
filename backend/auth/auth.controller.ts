@@ -81,6 +81,13 @@ class SignupDto {
   @IsOptional()
   @IsIn(['customer', 'merchant', 'CUSTOMER', 'MERCHANT'])
   role?: string;
+
+  @IsOptional()
+  @IsString()
+  dashboardMode?: string;
+
+  @IsOptional()
+  enabledModules?: any;
 }
 
 class CourierSignupDto {

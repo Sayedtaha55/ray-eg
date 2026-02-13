@@ -18,6 +18,9 @@ type VisibilityKey =
   | 'productCardStock'
   | 'productCardAddToCart'
   | 'productCardReserve'
+  | 'productTabs'
+  | 'productShareButton'
+  | 'productQuickSpecs'
   | 'mobileBottomNav'
   | 'mobileBottomNavHome'
   | 'mobileBottomNavCart'
@@ -39,6 +42,9 @@ const VISIBILITY_ITEMS: { key: VisibilityKey; label: string }[] = [
   { key: 'productCardStock', label: 'إظهار المخزون في كارت المنتج' },
   { key: 'productCardAddToCart', label: 'إظهار زر (إضافة للسلة)' },
   { key: 'productCardReserve', label: 'إظهار زر (حجز)' },
+  { key: 'productTabs', label: 'إظهار تبويبات صفحة المنتج' },
+  { key: 'productShareButton', label: 'إظهار زر المشاركة في صفحة المنتج' },
+  { key: 'productQuickSpecs', label: 'إظهار (مواصفات سريعة) في صفحة المنتج' },
   { key: 'mobileBottomNav', label: 'إظهار فوتر الموبايل (هوم/سلة/حساب)' },
   { key: 'mobileBottomNavHome', label: 'إظهار زر (الرئيسية) في فوتر الموبايل' },
   { key: 'mobileBottomNavCart', label: 'إظهار زر (السلة) في فوتر الموبايل' },

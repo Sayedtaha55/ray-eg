@@ -151,6 +151,20 @@ export class ShopController {
       return body.addons;
     })();
 
+    const enabledModules = (() => {
+      if (typeof body?.enabledModules === 'undefined') return undefined;
+      if (body.enabledModules === null) return null;
+      if (!Array.isArray(body.enabledModules)) return undefined;
+      return body.enabledModules;
+    })();
+
+    const dashboardMode = (() => {
+      if (typeof body?.dashboardMode === 'undefined') return undefined;
+      if (body.dashboardMode === null) return null;
+      const v = String(body.dashboardMode || '').trim();
+      return v ? v : undefined;
+    })();
+
     const shouldTouchLocationMeta =
       typeof body?.latitude !== 'undefined' ||
       typeof body?.longitude !== 'undefined' ||
@@ -191,6 +205,8 @@ export class ShopController {
       paymentConfig,
       addons,
       isActive,
+      enabledModules,
+      dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
       deliveryFee:
         userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')
           ? ((): number | null => {
@@ -276,6 +292,15 @@ export class ShopController {
       throw new NotFoundException('لم يتم العثور على المتجر');
     }
     return shop;
+  }
+
+  @Post('admin/upgrade-dashboard-config')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminUpgradeDashboardConfig(@Body() body: { shopIds?: string[]; dryRun?: boolean }) {
+    const shopIds = Array.isArray(body?.shopIds) ? body.shopIds : undefined;
+    const dryRun = Boolean(body?.dryRun);
+    return this.shopService.adminUpgradeDashboardConfig({ shopIds, dryRun });
   }
 
   @Patch('admin/:id/status')

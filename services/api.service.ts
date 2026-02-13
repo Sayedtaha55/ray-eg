@@ -49,6 +49,7 @@ import {
   updateMyShopViaBackend,
   updateShopDesignViaBackend,
   updateShopStatusViaBackend,
+  upgradeDashboardConfigViaBackend,
   uploadMyShopBannerViaBackend,
 } from './api/modules/shops';
 import {
@@ -129,6 +130,13 @@ import {
   sendMessageViaMock,
   subscribeToMessagesViaMock,
 } from './api/modules/chat';
+import {
+  createInvoiceViaBackend,
+  getInvoiceByIdViaBackend,
+  getMyInvoiceSummaryViaBackend,
+  listMyInvoicesViaBackend,
+  updateInvoiceViaBackend,
+} from './api/modules/invoices';
 import { mockDb } from './api/mockDb';
 
  let rayDbUpdateTimer: any;
@@ -573,6 +581,10 @@ export const ApiService = {
   updateShopStatus: async (id: string, status: 'approved' | 'pending' | 'rejected') => {
     return await updateShopStatusViaBackend(id, status);
   },
+
+  upgradeDashboardConfig: async (payload?: { shopIds?: string[]; dryRun?: boolean }) => {
+    return await upgradeDashboardConfigViaBackend(payload);
+  },
   followShop: async (shopId: string) => {
     return await followShopViaBackend(shopId);
   },
@@ -805,5 +817,22 @@ export const ApiService = {
 
   sendCustomerPromotion: async (customerId: string, shopId: string) => {
     return await sendCustomerPromotionViaBackendWithFallback(customerId, shopId);
-  }
+  },
+
+  // Accounting invoices
+  listMyInvoices: async (opts?: { from?: string; to?: string; page?: number; limit?: number }) => {
+    return await listMyInvoicesViaBackend(opts);
+  },
+  getMyInvoiceSummary: async (opts?: { from?: string; to?: string }) => {
+    return await getMyInvoiceSummaryViaBackend(opts);
+  },
+  getInvoiceById: async (id: string) => {
+    return await getInvoiceByIdViaBackend(id);
+  },
+  createInvoice: async (payload: any) => {
+    return await createInvoiceViaBackend(payload);
+  },
+  updateInvoice: async (id: string, payload: any) => {
+    return await updateInvoiceViaBackend(id, payload);
+  },
 };

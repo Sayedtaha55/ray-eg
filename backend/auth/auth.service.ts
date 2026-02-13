@@ -358,6 +358,8 @@ export class AuthService implements OnModuleInit {
       address,
       shopDescription: shopDescriptionRaw,
       description,
+      dashboardMode: dashboardModeRaw,
+      enabledModules: enabledModulesRaw,
     } = dto;
 
     const resolvedName = String(name || fullName || '').trim() || undefined;
@@ -368,6 +370,52 @@ export class AuthService implements OnModuleInit {
     const resolvedAddressDetailed = String(addressDetailedRaw || address || '').trim() || undefined;
     const resolvedShopDescription = String(shopDescriptionRaw || description || '').trim() || undefined;
     const resolvedCategory = (categoryRaw || storeType) as any;
+
+    const normalizeDashboardConfig = (input: { category: any; dashboardMode?: any; enabledModules?: any }) => {
+      const allowedModules = new Set([
+        'overview',
+        'products',
+        'promotions',
+        'builder',
+        'settings',
+        'gallery',
+        'reservations',
+        'invoice',
+        'sales',
+        'customers',
+        'reports',
+      ]);
+      const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
+
+      const requestedMode = String(input.dashboardMode || '').trim().toLowerCase();
+      const mode = requestedMode === 'showcase' || requestedMode === 'manage' ? requestedMode : undefined;
+
+      const requested = Array.isArray(input.enabledModules)
+        ? input.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : [];
+
+      const filtered = requested.filter((id: string) => allowedModules.has(id));
+      const merged = Array.from(new Set([...filtered, ...core]));
+
+      const safeMode = (mode || ((): 'showcase' | 'manage' => {
+        const cat = String(input.category || '').trim().toUpperCase();
+        const manageByDefault = cat === 'RESTAURANT' || cat === 'FOOD' || cat === 'RETAIL' || cat === 'HEALTH';
+        return manageByDefault ? 'manage' : 'showcase';
+      })());
+
+      if (safeMode === 'showcase') {
+        const disallowed = new Set(['sales', 'customers', 'reports']);
+        return {
+          dashboardMode: 'showcase',
+          enabledModules: merged.filter((id) => !disallowed.has(id)),
+        };
+      }
+
+      return {
+        dashboardMode: 'manage',
+        enabledModules: merged,
+      };
+    };
 
     if (!email || typeof email !== 'string') {
       throw new BadRequestException('البريد الإلكتروني مطلوب');
@@ -442,6 +490,13 @@ export class AuthService implements OnModuleInit {
       }
 
       const slug = await this.ensureUniqueSlug(resolvedShopName || resolvedName || `shop-${createdUser.id}`, tx);
+
+      const dashboardCfg = normalizeDashboardConfig({
+        category: resolvedCategory,
+        dashboardMode: dashboardModeRaw,
+        enabledModules: enabledModulesRaw,
+      });
+
       const createdShop = await tx.shop.create({
         data: {
           name: resolvedShopName,
@@ -456,6 +511,7 @@ export class AuthService implements OnModuleInit {
           addressDetailed: resolvedAddressDetailed || null,
           status: (autoApproveMerchantsInDev ? 'APPROVED' : 'PENDING') as any,
           ownerId: createdUser.id,
+          layoutConfig: dashboardCfg as any,
         },
       });
 

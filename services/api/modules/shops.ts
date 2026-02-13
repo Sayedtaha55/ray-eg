@@ -121,6 +121,13 @@ export async function updateShopStatusViaBackend(id: string, status: 'approved' 
   return normalizeShopFromBackend(updated);
 }
 
+export async function upgradeDashboardConfigViaBackend(payload?: { shopIds?: string[]; dryRun?: boolean }) {
+  const body: any = {};
+  if (Array.isArray(payload?.shopIds)) body.shopIds = payload?.shopIds;
+  if (typeof payload?.dryRun === 'boolean') body.dryRun = payload.dryRun;
+  return await backendPost<any>('/api/v1/shops/admin/upgrade-dashboard-config', body);
+}
+
 export async function followShopViaBackend(shopId: string) {
   return await backendPost<{ followed: boolean; followers: number }>(
     `/api/v1/shops/${encodeURIComponent(shopId)}/follow`,

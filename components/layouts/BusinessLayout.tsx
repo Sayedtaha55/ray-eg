@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -9,7 +9,7 @@ import BrandLogo from '@/components/common/BrandLogo';
 import { Category } from '@/types';
 import {
   MerchantDashboardTabId,
-  getVisibleMerchantDashboardTabs,
+  getMerchantDashboardTabsForShop,
 } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
@@ -40,6 +40,7 @@ const BusinessLayout: React.FC = () => {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [shopCategory, setShopCategory] = useState<Category | undefined>(undefined);
+  const [shopForModules, setShopForModules] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
@@ -63,6 +64,7 @@ const BusinessLayout: React.FC = () => {
     overview: <LayoutDashboard size={20} />,
     sales: <CreditCard size={20} />,
     reservations: <Calendar size={20} />,
+    invoice: <FileText size={20} />,
     products: <ShoppingBag size={20} />,
     customers: <Users size={20} />,
     promotions: <Megaphone size={20} />,
@@ -84,7 +86,7 @@ const BusinessLayout: React.FC = () => {
     return String(activeTab) === String(id);
   };
 
-  const visibleMainTabs = getVisibleMerchantDashboardTabs(shopCategory)
+  const visibleMainTabs = getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
     .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] }))
     .filter((t) => t.id !== 'pos');
 
@@ -292,9 +294,11 @@ const BusinessLayout: React.FC = () => {
           : await ApiService.getMyShop();
         if (cancelled) return;
         setShopCategory((shop as any)?.category);
+        setShopForModules(shop);
       } catch {
         if (cancelled) return;
         setShopCategory(undefined);
+        setShopForModules(null);
       }
     })();
 
@@ -347,7 +351,7 @@ const BusinessLayout: React.FC = () => {
         </Link>
         <div className="flex items-center gap-4 md:gap-8">
           <Link to="/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
-          <Link to="/signup" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
+          <Link to="/signup?role=merchant" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
         </div>
       </>
     );
@@ -504,6 +508,7 @@ const BusinessLayout: React.FC = () => {
               <NavItem to={buildSettingsUrl('account')} onClick={() => setSidebarOpen(false)} icon={<User size={20} />} label="الحساب" active={String(settingsTab) === 'account'} />
               <NavItem to={buildSettingsUrl('security')} onClick={() => setSidebarOpen(false)} icon={<Shield size={20} />} label="الأمان" active={String(settingsTab) === 'security'} />
               <NavItem to={buildSettingsUrl('store')} onClick={() => setSidebarOpen(false)} icon={<Store size={20} />} label="إعدادات المتجر" active={String(settingsTab) === 'store'} />
+              <NavItem to={buildSettingsUrl('modules')} onClick={() => setSidebarOpen(false)} icon={<RefreshCw size={20} />} label="ترقية" active={String(settingsTab) === 'modules'} />
               <NavItem to={buildSettingsUrl('receipt_theme')} onClick={() => setSidebarOpen(false)} icon={<FileText size={20} />} label="ثيم الفاتورة" active={String(settingsTab) === 'receipt_theme'} />
               <NavItem to={buildSettingsUrl('payments')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="المدفوعات" active={String(settingsTab) === 'payments'} />
               <NavItem to={buildSettingsUrl('notifications')} onClick={() => setSidebarOpen(false)} icon={<Bell size={20} />} label="التنبيهات" active={String(settingsTab) === 'notifications'} />

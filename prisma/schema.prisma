@@ -36,6 +36,7 @@ model User {
   shopFollows ShopFollower[]
   notifications Notification[]
   preferences NotificationPreference[]
+  accountingInvoices AccountingInvoice[]
 
   @@map("users")
 }
@@ -92,6 +93,7 @@ model Shop {
   imageMaps     ShopImageMap[]
   themeSettings ShopTheme[] // Theme settings
   followersList ShopFollower[]
+  accountingInvoices AccountingInvoice[]
 
   @@map("shops")
 }
@@ -310,6 +312,49 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+model AccountingInvoice {
+  id            String   @id @default(cuid())
+  sequence      Int
+  shopId        String   @map("shop_id")
+  createdById   String   @map("created_by_id")
+  invoiceDate   DateTime @default(now()) @map("invoice_date")
+  notes         String?
+  discount      Float    @default(0)
+  vatRate       Float    @default(0) @map("vat_rate")
+  subtotal      Float    @default(0)
+  vatAmount     Float    @default(0) @map("vat_amount")
+  total         Float    @default(0)
+  currency      String?  @default("EGP")
+  meta          Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  shop          Shop     @relation(fields: [shopId], references: [id])
+  createdBy     User     @relation(fields: [createdById], references: [id])
+  items         AccountingInvoiceItem[]
+
+  @@unique([shopId, sequence])
+  @@index([shopId, invoiceDate])
+  @@map("accounting_invoices")
+}
+
+model AccountingInvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String   @map("invoice_id")
+  name        String
+  quantity    Int      @default(1)
+  unitPrice   Float    @default(0) @map("unit_price")
+  lineTotal   Float    @default(0) @map("line_total")
+  meta        Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  invoice     AccountingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("accounting_invoice_items")
 }
 
 // Messages table - Chat system

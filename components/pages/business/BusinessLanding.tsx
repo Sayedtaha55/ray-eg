@@ -96,7 +96,7 @@ const BusinessLanding: React.FC = () => {
                 <div className="flex flex-col md:flex-row items-center justify-center gap-6">
                   <div className="w-full md:w-auto">
                     <Link
-                      to="/business/dashboard"
+                      to="/business/onboarding"
                       className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-14 py-6 rounded-[2rem] font-black text-xl transition-all shadow-2xl shadow-cyan-500/20 hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.99]"
                     >
                       ابدأ تجربتك المجانية
@@ -218,7 +218,7 @@ const BusinessLanding: React.FC = () => {
           </div>
           <div className="relative z-10">
             <Link 
-              to="/business/dashboard"
+              to="/business/onboarding"
               className="bg-[#00E5FF] text-slate-900 px-6 py-3 rounded-xl font-black text-sm hover:bg-[#00d4e8] transition-colors whitespace-nowrap block shadow-lg shadow-[#00E5FF]/25 hover:scale-[1.03] active:scale-[0.99]"
             >
               ابدأ تجربتك

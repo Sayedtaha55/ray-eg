@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown } from 'lucide-react';
+import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown, Puzzle } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { RayDB } from '@/constants';
@@ -13,10 +13,11 @@ import Account from './Account';
 import Security from './Security';
 import StoreSettings from './StoreSettings';
 import Payments from './Payments';
+import ModulesSettings from './Modules';
 
 const { Link, useLocation, useNavigate } = ReactRouterDOM as any;
 
-type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'payments' | 'notifications' | 'receipt_theme';
+type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'payments' | 'notifications' | 'receipt_theme';
 
 type SaveHandler = () => Promise<boolean>;
 
@@ -27,6 +28,7 @@ const SettingsTabs = [
   { id: 'account' as const, label: 'الحساب', icon: <User className="w-5 h-5" /> },
   { id: 'security' as const, label: 'الأمان', icon: <Shield className="w-5 h-5" /> },
   { id: 'store' as const, label: 'إعدادات المتجر', icon: <Store className="w-5 h-5" /> },
+  { id: 'modules' as const, label: 'ترقية', icon: <Puzzle className="w-5 h-5" /> },
   { id: 'receipt_theme' as const, label: 'ثيم الفاتورة', icon: <FileText className="w-5 h-5" /> },
   { id: 'payments' as const, label: 'المدفوعات', icon: <CreditCard className="w-5 h-5" /> },
   { id: 'notifications' as const, label: 'التنبيهات', icon: <Bell className="w-5 h-5" /> },
@@ -515,6 +517,8 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         return <Security shop={shop} onSaved={onSaved} />;
       case 'store':
         return <StoreSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
+      case 'modules':
+        return <ModulesSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       case 'receipt_theme':
         return <ReceiptThemeSettings shop={shop} adminShopId={adminShopId} />;
       case 'payments':
@@ -593,6 +597,9 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                 </div>
                 <div className={cn(String(activeSettingsTab) === 'store' ? 'block' : 'hidden')}>
                   {renderTabContent('store')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'modules' ? 'block' : 'hidden')}>
+                  {renderTabContent('modules')}
                 </div>
                 <div className={cn(String(activeSettingsTab) === 'receipt_theme' ? 'block' : 'hidden')}>
                   {renderTabContent('receipt_theme')}

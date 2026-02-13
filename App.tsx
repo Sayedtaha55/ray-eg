@@ -26,6 +26,7 @@ const ShopImageMapPurchaseView = React.lazy(() => import('./src/features/shop-im
 const BusinessLayout = React.lazy(() => import('./components/layouts/BusinessLayout'));
 const BusinessLanding = React.lazy(() => import('./components/pages/business/BusinessLanding'));
 const BusinessHero = React.lazy(() => import('./components/pages/business/BusinessHero'));
+const MerchantOnboarding = React.lazy(() => import('./components/pages/business/MerchantOnboarding'));
 const MerchantDashboard = React.lazy(() => import('./components/pages/business/merchant-dashboard'));
 const MerchantProfilePage = React.lazy(() => import('./components/pages/business/MerchantProfilePage'));
 const BusinessPendingApproval = React.lazy(() => import('./components/pages/business/BusinessPendingApproval'));
@@ -206,6 +207,7 @@ const App: React.FC = () => {
         
         <Route path="/business" element={suspense(<BusinessLayout />)}>
           <Route index element={suspense(<BusinessLanding />)} />
+          <Route path="onboarding" element={suspense(<MerchantOnboarding />)} />
           <Route path="dashboard" element={suspense(<MerchantDashboard />)} />
           <Route path="profile" element={suspense(<MerchantProfilePage />)} />
           <Route path="pending" element={suspense(<BusinessPendingApproval />)} />

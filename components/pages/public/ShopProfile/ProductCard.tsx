@@ -18,6 +18,8 @@ const ProductCard = React.memo(function ProductCard({
   onReserve,
   disableMotion,
   shopCategory,
+  allowAddToCart,
+  allowReserve,
 }: {
   product: Product;
   design: ShopDesign;
@@ -27,6 +29,8 @@ const ProductCard = React.memo(function ProductCard({
   onReserve: (p: any) => void;
   disableMotion?: boolean;
   shopCategory?: Category;
+  allowAddToCart?: boolean;
+  allowReserve?: boolean;
 }) {
   const [isFavorite, setIsFavorite] = useState(() => {
     try {
@@ -49,8 +53,8 @@ const ProductCard = React.memo(function ProductCard({
 
   const showPrice = isVisible('productCardPrice', true);
   const showStock = isVisible('productCardStock', true);
-  const showAddToCart = isVisible('productCardAddToCart', true);
-  const showReserve = isVisible('productCardReserve', true);
+  const showAddToCart = isVisible('productCardAddToCart', true) && (allowAddToCart ?? true);
+  const showReserve = false;
 
   const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (
     | ShopDesign['productDisplay']
