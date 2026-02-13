@@ -37,6 +37,7 @@ export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'reservations', label: 'الحجوزات' },
   { id: 'invoice', label: 'فاتورة' },
   { id: 'sales', label: 'المبيعات' },
+  { id: 'pos', label: 'الكاشير' },
   { id: 'builder', label: 'التصميم' },
   { id: 'settings', label: 'الإعدادات' },
 ];
@@ -47,7 +48,6 @@ export const CORE_MERCHANT_MODULES: MerchantDashboardTabId[] = [
   'overview',
   'products',
   'promotions',
-  'pos',
   'builder',
   'settings',
 ];

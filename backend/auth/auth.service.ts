@@ -381,6 +381,7 @@ export class AuthService implements OnModuleInit {
         'gallery',
         'reservations',
         'invoice',
+        'pos',
         'sales',
         'customers',
         'reports',

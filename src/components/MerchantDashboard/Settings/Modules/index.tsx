@@ -7,6 +7,7 @@ type ModuleId =
   | 'products'
   | 'reservations'
   | 'invoice'
+  | 'pos'
   | 'sales'
   | 'promotions'
   | 'reports'
@@ -31,6 +32,7 @@ const MODULES: ModuleDef[] = [
   { id: 'gallery', label: 'معرض الصور', kind: 'optional' },
   { id: 'reservations', label: 'الحجوزات', kind: 'optional' },
   { id: 'invoice', label: 'فاتورة', kind: 'optional' },
+  { id: 'pos', label: 'الكاشير', kind: 'optional' },
   { id: 'sales', label: 'الطلبات / المبيعات', kind: 'optional' },
   { id: 'customers', label: 'العملاء', kind: 'optional' },
   { id: 'reports', label: 'التقارير', kind: 'optional' },

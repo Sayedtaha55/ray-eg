@@ -88,7 +88,7 @@ const BusinessLayout: React.FC = () => {
 
   const visibleMainTabs = getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
     .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] }))
-    .filter((t) => t.id !== 'pos');
+    ;
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -304,6 +304,37 @@ const BusinessLayout: React.FC = () => {
 
     return () => {
       cancelled = true;
+    };
+  }, [isDashboard, effectiveUser?.shopId, impersonateShopId]);
+
+  useEffect(() => {
+    if (!isDashboard) return;
+    if (!effectiveUser?.shopId) return;
+
+    let cancelled = false;
+    let timer: any;
+
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(async () => {
+        try {
+          const shop = impersonateShopId
+            ? await ApiService.getShopAdminById(String(impersonateShopId))
+            : await ApiService.getMyShop();
+          if (cancelled) return;
+          setShopCategory((shop as any)?.category);
+          setShopForModules(shop);
+        } catch {
+          if (cancelled) return;
+        }
+      }, 200);
+    };
+
+    window.addEventListener('ray-db-update', refresh);
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('ray-db-update', refresh);
     };
   }, [isDashboard, effectiveUser?.shopId, impersonateShopId]);
 

@@ -19,6 +19,7 @@ type ModuleId =
   | 'reservations'
   | 'invoice'
   | 'sales'
+  | 'pos'
   | 'promotions'
   | 'reports'
   | 'customers'
@@ -39,6 +40,7 @@ const MODULE_EXPLANATIONS: Record<ModuleId, string> = {
   invoice:
     'فاتورة حسابات (مش POS): تعمل فاتورة مرنة لما السعر يتغير/في فِصال — تضيف أصناف وتحدد خصم وتطلع إجمالي + طباعة/نسخة إلكترونية بنفس ثيم الفاتورة.',
   sales: 'إدارة الطلبات والمدفوعات والمبيعات والشحن/التوصيل (لو موجود).',
+  pos: 'الكاشير (POS): نقطة بيع لإدارة عمليات البيع داخل المحل.',
   promotions: 'إنشاء عروض وكوبونات وخصومات لزيادة المبيعات.',
   reports: 'تقارير وتحليلات عن المبيعات والمنتجات والأداء.',
   customers: 'إدارة العملاء وبياناتهم وسجل الشراء والتواصل معهم.',
@@ -59,6 +61,7 @@ const OPTIONAL_MODULES: ModuleDef[] = [
   { id: 'gallery', label: 'معرض الصور' },
   { id: 'reservations', label: 'الحجوزات' },
   { id: 'invoice', label: 'فاتورة' },
+  { id: 'pos', label: 'الكاشير' },
   { id: 'sales', label: 'الطلبات / المبيعات' },
   { id: 'customers', label: 'العملاء' },
   { id: 'reports', label: 'التقارير' },
