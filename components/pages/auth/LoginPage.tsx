@@ -49,11 +49,13 @@ const LoginPage: React.FC = () => {
   const location = useLocation();
   const { addToast } = useToast();
 
+  const isBusinessLogin = String(location?.pathname || '').startsWith('/business/login');
+
   const params = new URLSearchParams(location.search);
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
-  const showDevCourierLogin = !Boolean((import.meta as any)?.env?.PROD);
+  const showDevCourierLogin = !Boolean((import.meta as any)?.env?.PROD) && isBusinessLogin;
 
   const backendBaseUrl =
     ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
@@ -66,7 +68,11 @@ const LoginPage: React.FC = () => {
     if (returnTo) q.set('returnTo', returnTo);
     if (followShopId) q.set('followShopId', followShopId);
     const qs = q.toString();
-    return `/signup${qs ? `?${qs}` : ''}`;
+    if (!isBusinessLogin) {
+      return `/signup${qs ? `?${qs}` : ''}`;
+    }
+    q.set('role', 'merchant');
+    return `/signup?${q.toString()}`;
   };
 
   const handleDevCourierLogin = async () => {
@@ -108,6 +114,32 @@ const LoginPage: React.FC = () => {
 
       const role = String((response as any)?.user?.role || '').toLowerCase();
 
+      if (!isBusinessLogin) {
+        if (role === 'merchant' || role === 'admin' || role === 'courier') {
+          try {
+            localStorage.removeItem('ray_user');
+            localStorage.removeItem('ray_token');
+          } catch {
+          }
+          window.dispatchEvent(new Event('auth-change'));
+          setError('هذه الصفحة مخصصة لدخول المشتري فقط. ادخل من صفحة الأعمال.');
+          navigate('/business/login', { replace: true } as any);
+          return;
+        }
+      } else {
+        if (role !== 'merchant') {
+          try {
+            localStorage.removeItem('ray_user');
+            localStorage.removeItem('ray_token');
+          } catch {
+          }
+          window.dispatchEvent(new Event('auth-change'));
+          setError('هذه الصفحة مخصصة لدخول التاجر فقط.');
+          navigate('/login', { replace: true } as any);
+          return;
+        }
+      }
+
       if (returnTo) {
         try {
           if (followShopId) {
@@ -121,9 +153,7 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-      } else if (role === 'merchant') {
+      if (role === 'merchant') {
         try {
           const myShop = await ApiService.getMyShop();
           const status = String(myShop?.status || '').toLowerCase();
@@ -135,8 +165,6 @@ const LoginPage: React.FC = () => {
         } catch {
           navigate('/business/pending');
         }
-      } else if (role === 'courier') {
-        navigate('/courier/orders');
       } else {
         navigate('/profile');
       }
@@ -144,12 +172,14 @@ const LoginPage: React.FC = () => {
       const status = typeof err?.status === 'number' ? err.status : undefined;
       if (status === 403) {
         const msg = String(err?.message || '').trim();
-        if (msg.includes('المندوب')) {
-          navigate('/business/courier-signup?pending=1');
+        if (isBusinessLogin) {
+          if (msg.includes('المندوب')) {
+            navigate('/business/courier-signup?pending=1');
+            return;
+          }
+          navigate('/business/pending');
           return;
         }
-        navigate('/business/pending');
-        return;
       }
       setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
     } finally {
@@ -288,14 +318,17 @@ const LoginPage: React.FC = () => {
       >
         <div className="flex flex-col items-center text-center mb-12">
            <div 
-              onClick={() => navigate('/admin/gate')}
+              onClick={() => {
+                if (!isBusinessLogin) return;
+                navigate('/admin/gate');
+              }}
               className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
            >
               <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="text-white font-black text-4xl relative z-10">R</span>
            </div>
            <h1 className="text-4xl font-black tracking-tighter mb-4">أهلاً بك <span className="text-[#00E5FF]">مجدداً.</span></h1>
-           <p className="text-slate-400 font-bold text-sm">سجل دخولك أو افتح حساب نشاط تجاري جديد.</p>
+           <p className="text-slate-400 font-bold text-sm">{isBusinessLogin ? 'دخول التاجر لإدارة نشاطك.' : 'دخول المشتري لمتابعة طلباتك وحسابك.'}</p>
         </div>
 
         <AnimatePresence>
@@ -349,16 +382,21 @@ const LoginPage: React.FC = () => {
 
         <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
            <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
-           <div className="grid grid-cols-2 gap-4">
-              <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+           {!isBusinessLogin ? (
+             <div className="grid grid-cols-1 gap-4">
+               <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
                  <UserPlus size={20} className="text-slate-900" />
-                 <span className="font-black text-[10px]">تسجيل زبون</span>
-              </Link>
-              <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+                 <span className="font-black text-[10px]">تسجيل مشتري</span>
+               </Link>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 gap-4">
+               <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
                  <Store size={20} className="text-[#BD00FF]" />
                  <span className="font-black text-[10px]">تسجيل نشاط</span>
-              </Link>
-           </div>
+               </Link>
+             </div>
+           )}
 
            {showDevCourierLogin && (
              <button

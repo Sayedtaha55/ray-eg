@@ -93,7 +93,8 @@ const SignupPage: React.FC = () => {
     if (returnTo) q.set('returnTo', returnTo);
     if (followShopId) q.set('followShopId', followShopId);
     const qs = q.toString();
-    return `/login${qs ? `?${qs}` : ''}`;
+    const base = role === 'merchant' ? '/business/login' : '/login';
+    return `${base}${qs ? `?${qs}` : ''}`;
   };
 
   useEffect(() => {

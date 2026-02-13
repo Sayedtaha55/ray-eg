@@ -207,6 +207,7 @@ const App: React.FC = () => {
         
         <Route path="/business" element={suspense(<BusinessLayout />)}>
           <Route index element={suspense(<BusinessLanding />)} />
+          <Route path="login" element={suspense(<LoginPage />)} />
           <Route path="onboarding" element={suspense(<MerchantOnboarding />)} />
           <Route path="dashboard" element={suspense(<MerchantDashboard />)} />
           <Route path="profile" element={suspense(<MerchantProfilePage />)} />
