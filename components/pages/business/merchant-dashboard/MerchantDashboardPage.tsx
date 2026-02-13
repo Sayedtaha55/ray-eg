@@ -116,6 +116,7 @@ const MerchantDashboardPage: React.FC = () => {
     icon: ICON_BY_TAB_ID[t.id],
     label: t.dynamicLabel ? t.dynamicLabel(shopCategory) : t.label,
   }));
+  const hasPosTab = visibleTabs.some((t) => t.id === 'pos');
   const effectiveTab = resolveMerchantDashboardTabForShop(activeTab, currentShop || { category: shopCategory });
 
   const setTab = useCallback((tab: TabType) => {
@@ -524,12 +525,14 @@ const MerchantDashboardPage: React.FC = () => {
             >
               <Eye size={14} className="sm:w-5 sm:h-5" /> معاينة المحل
             </button>
-            <button
-              onClick={() => setTab('pos')}
-              className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-slate-900 text-white rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
-            >
-              <Smartphone size={14} className="sm:w-5 sm:h-5" /> الكاشير الذكي
-            </button>
+            {hasPosTab && (
+              <button
+                onClick={() => setTab('pos')}
+                className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-slate-900 text-white rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
+              >
+                <Smartphone size={14} className="sm:w-5 sm:h-5" /> الكاشير الذكي
+              </button>
+            )}
           </div>
         </div>
       )}
