@@ -31,7 +31,7 @@ import { DatabaseTestController } from './db-test.controller';
      ? bootModulesRaw.split(',').map((s) => s.trim()).filter(Boolean)
      : [],
  );
- const includeAllModules = !minimalBoot && bootModules.size === 0;
+ const includeAllModules = bootModules.size === 0;
 
 @Module({
   imports: [
