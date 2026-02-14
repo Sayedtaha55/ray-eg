@@ -9,7 +9,7 @@
     "backend:build": "tsc -p backend/tsconfig.json",
     "backend:start": "node scripts/railway-backend-start.js",
     "backend:render:start": "prisma generate --schema prisma/schema.postgres.prisma && prisma migrate deploy --schema prisma/schema.postgres.prisma && tsx --tsconfig backend/tsconfig.json backend/main.ts",
-    "backend:dev:stable": "powershell -NoProfile -Command \"$env:BOOT_MODULES='auth,shop,product,gallery,media,reservation,order,offer,invoice,users,analytics,customers,notification,feedback'; $env:SHOP_IMPORTS='none'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='file:./dev.db'; prisma generate --schema prisma/schema.prisma; tsx watch --tsconfig backend/tsconfig.json backend/main.ts\"",
+    "backend:dev:stable": "powershell -NoProfile -Command \"$env:BOOT_MODULES='auth,shop,product,gallery,media,reservation,order,offer,invoice,users,analytics,customers,notification,feedback'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; prisma generate --schema prisma/schema.prisma; tsx watch --tsconfig backend/tsconfig.json backend/main.ts\"",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "backend:typecheck": "tsc -p backend/tsconfig.json --noEmit",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
