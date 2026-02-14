@@ -192,15 +192,39 @@ const ShopProfile: React.FC = () => {
         if (currentShopData) {
           setShop(JSON.parse(JSON.stringify(currentShopData)));
           
-          // Track visit with session-level deduplication
-          const shopId = String(currentShopData?.id || '').trim();
-          if (shopId) {
-            const sessionKey = `visited_shop_${shopId}`;
-            const hasVisitedThisSession = sessionStorage.getItem(sessionKey);
-            if (!hasVisitedThisSession) {
-              // First visit this session - track it
-              ApiService.incrementVisitors(shopId).catch(() => {});
-              sessionStorage.setItem(sessionKey, 'true');
+          const isPreviewVisit = (() => {
+            try {
+              const params = new URLSearchParams(String(location?.search || ''));
+              const previewParam = String(params.get('preview') || '').trim().toLowerCase();
+              if (previewParam === '1' || previewParam === 'true' || previewParam === 'yes') return true;
+            } catch {
+            }
+            try {
+              const rawUser = localStorage.getItem('ray_user');
+              if (!rawUser) return false;
+              const u = JSON.parse(rawUser);
+              const userShopId = String(u?.shopId || u?.shop_id || '').trim();
+              const currentShopId = String(currentShopData?.id || '').trim();
+              if (!userShopId || userShopId !== currentShopId) return false;
+              const rawPreview = localStorage.getItem('ray_builder_preview_design');
+              if (!rawPreview) return false;
+              const parsed = JSON.parse(rawPreview);
+              return Boolean(parsed && typeof parsed === 'object');
+            } catch {
+              return false;
+            }
+          })();
+
+          // Track visit with session-level deduplication (skip preview visits)
+          if (!isPreviewVisit) {
+            const shopId = String(currentShopData?.id || '').trim();
+            if (shopId) {
+              const sessionKey = `visited_shop_${shopId}`;
+              const hasVisitedThisSession = sessionStorage.getItem(sessionKey);
+              if (!hasVisitedThisSession) {
+                ApiService.incrementVisitors(shopId).catch(() => {});
+                sessionStorage.setItem(sessionKey, 'true');
+              }
             }
           }
           
