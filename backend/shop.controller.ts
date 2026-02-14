@@ -313,17 +313,6 @@ export class ShopController {
     return this.shopService.getShopsByStatus(normalized as any);
   }
 
-  @Get('admin/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin')
-  async adminGetById(@Param('id') id: string) {
-    const shop = await this.shopService.getShopById(id);
-    if (!shop) {
-      throw new NotFoundException('لم يتم العثور على المتجر');
-    }
-    return shop;
-  }
-
   @Post('admin/upgrade-dashboard-config')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
@@ -364,6 +353,17 @@ export class ShopController {
   async adminRejectModuleUpgradeRequest(@Param('id') id: string, @Body() body: any, @Request() req) {
     const adminId = req.user?.id ? String(req.user.id).trim() : null;
     return this.shopService.adminRejectModuleUpgradeRequest(id, { note: body?.note }, adminId);
+  }
+
+  @Get('admin/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminGetById(@Param('id') id: string) {
+    const shop = await this.shopService.getShopById(id);
+    if (!shop) {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
+    return shop;
   }
 
   @Patch('admin/:id/status')
