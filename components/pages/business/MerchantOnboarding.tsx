@@ -86,6 +86,11 @@ const ACTIVITIES: ActivityDef[] = [
     category: Category.FASHION,
   },
   {
+    id: 'home-textiles',
+    label: 'المفروشات والسجاد',
+    category: Category.RETAIL,
+  },
+  {
     id: 'furniture',
     label: 'أثاث / معارض',
     category: Category.SERVICE,

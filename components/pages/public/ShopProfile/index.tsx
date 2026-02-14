@@ -87,6 +87,7 @@ const ShopProfile: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [offers, setOffers] = useState<Offer[]>([]);
   const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
+  const [imageMapLinkedProductIds, setImageMapLinkedProductIds] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState('الكل');
@@ -213,6 +214,54 @@ const ShopProfile: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [slug]);
 
+  const normalizeText = (v: any) => {
+    const s = typeof v === 'string' ? v : v == null ? '' : String(v);
+    return s.trim();
+  };
+
+  const isImageMapProduct = (p: any) => {
+    const raw = p?.category;
+    const cat = typeof raw === 'string'
+      ? raw
+      : typeof raw?.name === 'string'
+        ? raw.name
+        : typeof raw?.slug === 'string'
+          ? raw.slug
+          : '';
+    const normalized = String(cat || '').trim().toUpperCase();
+    return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+  };
+
+  useEffect(() => {
+    const s = normalizeText(slug);
+    if (!s) {
+      setImageMapLinkedProductIds(new Set());
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      try {
+        const map = await ApiService.getActiveShopImageMap(s);
+        if (!mounted) return;
+        const hs = Array.isArray((map as any)?.hotspots) ? (map as any).hotspots : [];
+        const ids = new Set<string>();
+        hs.forEach((h: any) => {
+          const pid = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id);
+          if (pid) ids.add(pid);
+        });
+        setImageMapLinkedProductIds(ids);
+      } catch {
+        if (!mounted) return;
+        setImageMapLinkedProductIds(new Set());
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
+
   useEffect(() => {
     const applyPreview = () => {
       const sid = String(shop?.id || '').trim();
@@ -259,19 +308,13 @@ const ShopProfile: React.FC = () => {
             ApiService.getProducts(shopId, { page, limit }),
             ApiService.getOffers({ take: 100, skip: 0, shopId }),
           ]);
-          const isImageMapProduct = (p: any) => {
-            const raw = p?.category;
-            const cat = typeof raw === 'string'
-              ? raw
-              : typeof raw?.name === 'string'
-                ? raw.name
-                : typeof raw?.slug === 'string'
-                  ? raw.slug
-                  : '';
-            const normalized = String(cat || '').trim().toUpperCase();
-            return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
-          };
-          const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => !isImageMapProduct(p));
+          const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => {
+            if (!p) return false;
+            if (isImageMapProduct(p)) return false;
+            const id = normalizeText((p as any)?.id);
+            if (id && imageMapLinkedProductIds.has(id)) return false;
+            return true;
+          });
           setProducts(list);
           productsPagingRef.current.hasMore = list.length >= limit;
           setHasMoreProducts(list.length >= limit);
@@ -319,19 +362,13 @@ const ShopProfile: React.FC = () => {
         ApiService.getProducts(shopId, { page, limit }),
         ApiService.getOffers({ take: 100, skip: 0, shopId }),
       ]);
-      const isImageMapProduct = (p: any) => {
-        const raw = p?.category;
-        const cat = typeof raw === 'string'
-          ? raw
-          : typeof raw?.name === 'string'
-            ? raw.name
-            : typeof raw?.slug === 'string'
-              ? raw.slug
-              : '';
-        const normalized = String(cat || '').trim().toUpperCase();
-        return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
-      };
-      const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => !isImageMapProduct(p));
+      const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => {
+        if (!p) return false;
+        if (isImageMapProduct(p)) return false;
+        const id = normalizeText((p as any)?.id);
+        if (id && imageMapLinkedProductIds.has(id)) return false;
+        return true;
+      });
       setProducts(list);
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
@@ -377,19 +414,13 @@ const ShopProfile: React.FC = () => {
       const nextPage = productsPagingRef.current.page + 1;
       const limit = productsPagingRef.current.limit;
       const next = await ApiService.getProducts(shopId, { page: nextPage, limit });
-      const isImageMapProduct = (p: any) => {
-        const raw = p?.category;
-        const cat = typeof raw === 'string'
-          ? raw
-          : typeof raw?.name === 'string'
-            ? raw.name
-            : typeof raw?.slug === 'string'
-              ? raw.slug
-              : '';
-        const normalized = String(cat || '').trim().toUpperCase();
-        return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
-      };
-      const list = (Array.isArray(next) ? next : []).filter((p: any) => !isImageMapProduct(p));
+      const list = (Array.isArray(next) ? next : []).filter((p: any) => {
+        if (!p) return false;
+        if (isImageMapProduct(p)) return false;
+        const id = normalizeText((p as any)?.id);
+        if (id && imageMapLinkedProductIds.has(id)) return false;
+        return true;
+      });
       setProducts((prev) => [...prev, ...list]);
       productsPagingRef.current.page = nextPage;
       productsPagingRef.current.hasMore = list.length >= limit;

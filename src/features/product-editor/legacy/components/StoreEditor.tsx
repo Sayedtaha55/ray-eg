@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, startTransition } from 'react';
 import { Plus, Save, Edit3, Trash2, Loader2, X, Move, ChevronDown, ChevronUp } from 'lucide-react';
 import { Product, StockStatus, StoreSection } from '../types';
 import { backendPost } from '@/services/api/httpClient';
@@ -128,6 +128,11 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   const [sections, setSections] = useState<StoreSection[]>(initialSections.length > 0 ? initialSections : []);
   const [activeSectionId, setActiveSectionId] = useState<string>(initialSections[0]?.id || '');
 
+  const sectionsRef = useRef<StoreSection[]>(sections);
+  useEffect(() => {
+    sectionsRef.current = Array.isArray(sections) ? sections : [];
+  }, [sections]);
+
   const didInitFromPropsRef = useRef(false);
 
   useEffect(() => {
@@ -221,17 +226,24 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       return;
     }
 
-    setSections((prev) => {
-      const list = Array.isArray(prev) ? prev : [];
-      const next = list.filter((s) => String(s?.id || '') !== sid);
-      if (next.length === list.length) return prev;
+    startTransition(() => {
+      setSections((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        const idx = list.findIndex((s) => String(s?.id || '') === sid);
+        if (idx === -1) return prev;
+        const next = [...list.slice(0, idx), ...list.slice(idx + 1)];
 
-      if (String(activeSectionId || '') === sid) {
-        setActiveSectionId(String(next[0]?.id || ''));
-        setSelectedProductId(null);
-      }
+        sectionsRef.current = next;
 
-      return next;
+        const isDeletingActive = String(activeSectionId || '') === sid;
+        if (isDeletingActive) {
+          const nextActiveId = String(next[0]?.id || '');
+          setActiveSectionId(nextActiveId);
+          setSelectedProductId(null);
+        }
+
+        return next;
+      });
     });
   };
 
@@ -325,7 +337,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   const handleSave = async () => {
     setIsSaving(true);
     // Save all sections at once
-    await onSave({ name: storeName, type: storeType, sections });
+    await onSave({ name: storeName, type: storeType, sections: sectionsRef.current });
     setIsSaving(false);
   };
 

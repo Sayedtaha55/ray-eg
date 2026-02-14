@@ -88,6 +88,17 @@ const SignupPage: React.FC = () => {
     }));
   }, [categoryParam]);
 
+  const categoryLabelMap: Record<string, string> = {
+    [Category.RETAIL]: 'محل تجاري / ملابس / إلكترونيات',
+    [Category.RESTAURANT]: 'مطعم / أكلات',
+    [Category.FASHION]: 'ملابس وأزياء',
+    [Category.ELECTRONICS]: 'إلكترونيات وموبايلات',
+    [Category.HEALTH]: 'صيدلية / مستحضرات تجميل',
+    [Category.SERVICE]: 'خدمات / صيانة / ورش',
+    [Category.FOOD]: 'سوبر ماركت / بقالة / عطارة',
+    [Category.OTHER]: 'أخرى',
+  };
+
   const buildLoginLink = () => {
     const q = new URLSearchParams();
     if (returnTo) q.set('returnTo', returnTo);
@@ -293,23 +304,7 @@ const SignupPage: React.FC = () => {
                        onChange={(e) => setFormData({...formData, shopName: e.target.value})}
                      />
                    </div>
-                   <div className="space-y-2">
-                     <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest mr-4">نوع النشاط</label>
-                     <select 
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none appearance-none"
-                       value={formData.category}
-                       onChange={(e) => setFormData({...formData, category: e.target.value as Category})}
-                     >
-                        <option value={Category.RETAIL}>محل تجاري / ملابس / إلكترونيات</option>
-                        <option value={Category.RESTAURANT}>مطعم / أكلات</option>
-                        <option value={Category.FASHION}>ملابس وأزياء</option>
-                        <option value={Category.ELECTRONICS}>إلكترونيات وموبايلات</option>
-                        <option value={Category.HEALTH}>صيدلية / مستحضرات تجميل</option>
-                        <option value={Category.SERVICE}>خدمات / صيانة / ورش</option>
-                        <option value={Category.FOOD}>سوبر ماركت / بقالة / عطارة</option>
-                        <option value={Category.OTHER}>أخرى</option>
-                     </select>
-                   </div>
+                   <div />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
