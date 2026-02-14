@@ -45,6 +45,13 @@ enum NotificationType {
   SYSTEM
 }
 
+enum ShopModuleUpgradeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
 // Models
 model User {
   id        String   @id @default(cuid())
@@ -122,8 +129,28 @@ model Shop {
   feedback         Feedback[]
   visits           Visit[]
   imageMaps        ShopImageMap[]
+  moduleUpgradeRequests ShopModuleUpgradeRequest[]
 
   @@map("shops")
+}
+
+model ShopModuleUpgradeRequest {
+  id                String                        @id @default(cuid())
+  shopId             String                       @map("shop_id")
+  status             ShopModuleUpgradeRequestStatus @default(PENDING)
+  requestedModules   Json                         @map("requested_modules")
+  reviewedAt         DateTime?                    @map("reviewed_at")
+  note               String?
+  requestedByUserId  String?                      @map("requested_by_user_id")
+  reviewedByAdminId  String?                      @map("reviewed_by_admin_id")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+
+  shop              Shop                          @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+  @@index([status])
+  @@map("shop_module_upgrade_requests")
 }
 
 model Product {

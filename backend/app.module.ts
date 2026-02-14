@@ -41,29 +41,25 @@ import { DatabaseTestController } from './db-test.controller';
     }),
     PrismaModule,
     RedisModule,
-    ...(minimalBoot
-      ? []
-      : [
-          ...(includeAllModules || bootModules.has('auth') ? [AuthModule] : []),
-          ...(includeAllModules || bootModules.has('shop') ? [ShopModule] : []),
-          ...(includeAllModules || bootModules.has('product') ? [ProductModule] : []),
-          ...(includeAllModules || bootModules.has('gallery') ? [GalleryModule] : []),
-          ...(includeAllModules || bootModules.has('reservation') ? [ReservationModule] : []),
-          ...(includeAllModules || bootModules.has('order') ? [OrderModule] : []),
-          ...(includeAllModules || bootModules.has('offer') ? [OfferModule] : []),
-          ...(includeAllModules || bootModules.has('invoice') ? [InvoiceModule] : []),
-          ...(includeAllModules || bootModules.has('monitoring') ? [MonitoringModule] : []),
-          ...(includeAllModules || bootModules.has('users') ? [UsersModule] : []),
-          ...(includeAllModules || bootModules.has('analytics') ? [AnalyticsModule] : []),
-          ...(includeAllModules || bootModules.has('customers') ? [CustomersModule] : []),
-          ...(includeAllModules || bootModules.has('notification') ? [NotificationModule] : []),
-          ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
-          ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
-          ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
-          ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') || bootModules.has('product')
-            ? [ShopImageMapModule]
-            : []),
-        ]),
+    ...(includeAllModules || bootModules.has('auth') ? [AuthModule] : []),
+    ...(includeAllModules || bootModules.has('shop') ? [ShopModule] : []),
+    ...(includeAllModules || bootModules.has('product') ? [ProductModule] : []),
+    ...(includeAllModules || bootModules.has('gallery') ? [GalleryModule] : []),
+    ...(includeAllModules || bootModules.has('reservation') ? [ReservationModule] : []),
+    ...(includeAllModules || bootModules.has('order') ? [OrderModule] : []),
+    ...(includeAllModules || bootModules.has('offer') ? [OfferModule] : []),
+    ...(includeAllModules || bootModules.has('invoice') ? [InvoiceModule] : []),
+    ...(includeAllModules || bootModules.has('monitoring') ? [MonitoringModule] : []),
+    ...(includeAllModules || bootModules.has('users') ? [UsersModule] : []),
+    ...(includeAllModules || bootModules.has('analytics') ? [AnalyticsModule] : []),
+    ...(includeAllModules || bootModules.has('customers') ? [CustomersModule] : []),
+    ...(includeAllModules || bootModules.has('notification') ? [NotificationModule] : []),
+    ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
+    ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
+    ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
+    ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') || bootModules.has('product')
+      ? [ShopImageMapModule]
+      : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]
