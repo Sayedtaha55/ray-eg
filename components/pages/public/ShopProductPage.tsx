@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ArrowRight, CalendarCheck, Heart, Home, Loader2, Share2, ShoppingCart, Truck, ShieldCheck, Package, User } from 'lucide-react';
@@ -78,6 +78,7 @@ const ShopProductPage: React.FC = () => {
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
   const [activeImageSrc, setActiveImageSrc] = useState('');
+  const touchStartXRef = useRef<number | null>(null);
   const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
 
@@ -456,6 +457,42 @@ const ShopProductPage: React.FC = () => {
       return galleryImages[0] || '';
     });
   }, [galleryImages]);
+
+  const goToGalleryIndex = (nextIndex: number) => {
+    if (!galleryImages.length) return;
+    const idx = Math.max(0, Math.min(nextIndex, galleryImages.length - 1));
+    setActiveImageSrc(galleryImages[idx] || '');
+  };
+
+  const onGalleryTouchStart = (e: React.TouchEvent) => {
+    try {
+      touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+    } catch {
+      touchStartXRef.current = null;
+    }
+  };
+
+  const onGalleryTouchEnd = (e: React.TouchEvent) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (typeof startX !== 'number') return;
+    const endX = (() => {
+      try {
+        return e.changedTouches?.[0]?.clientX;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (typeof endX !== 'number') return;
+
+    const dx = endX - startX;
+    if (Math.abs(dx) < 35) return;
+    const currentIndex = galleryImages.indexOf(activeImageSrc);
+    const idx = currentIndex >= 0 ? currentIndex : 0;
+    // RTL: swipe left => next, swipe right => prev
+    if (dx < 0) goToGalleryIndex(idx + 1);
+    else goToGalleryIndex(idx - 1);
+  };
 
   const fashionColors = useMemo(() => {
     const raw = (product as any)?.colors;

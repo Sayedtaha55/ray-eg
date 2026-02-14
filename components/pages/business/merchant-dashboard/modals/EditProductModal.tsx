@@ -106,6 +106,23 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   // Load product data when modal opens
   useEffect(() => {
     if (isOpen && product) {
+      // Reset transient image state to avoid leaking previous modal session state across products
+      try {
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreview);
+        }
+      } catch {
+      }
+      try {
+        for (const p of extraImagePreviews) {
+          if (p && p.startsWith('blob:')) URL.revokeObjectURL(p);
+        }
+      } catch {
+      }
+      setImageUploadFile(null);
+      setImageChanged(false);
+      setExtraImageUploadFiles([]);
+
       setName(product.name || '');
       setPrice(String(product.price || ''));
       setStock(String(product.stock || ''));

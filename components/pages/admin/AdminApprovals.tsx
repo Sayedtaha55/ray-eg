@@ -9,7 +9,9 @@ const MotionDiv = motion.div as any;
 const AdminApprovals: React.FC = () => {
   const [shops, setShops] = useState<any[]>([]);
   const [couriers, setCouriers] = useState<any[]>([]);
+  const [moduleRequests, setModuleRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [moduleLoading, setModuleLoading] = useState(false);
   const { addToast } = useToast();
 
   const loadShops = async () => {
@@ -28,8 +30,21 @@ const AdminApprovals: React.FC = () => {
     }
   };
 
+  const loadModuleRequests = async () => {
+    setModuleLoading(true);
+    try {
+      const res = await (ApiService as any).adminListModuleUpgradeRequests?.({ status: 'PENDING', take: 100 });
+      setModuleRequests(Array.isArray(res) ? res : []);
+    } catch {
+      addToast('فشل تحميل طلبات ترقية الأزرار', 'error');
+    } finally {
+      setModuleLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadShops();
+    loadModuleRequests();
   }, []);
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
@@ -57,6 +72,27 @@ const AdminApprovals: React.FC = () => {
     }
   };
 
+  const handleModuleRequestApprove = async (id: string) => {
+    try {
+      await (ApiService as any).adminApproveModuleUpgradeRequest?.(id);
+      addToast('تمت الموافقة على الترقية وتفعيل الأزرار فورًا', 'success');
+      loadModuleRequests();
+    } catch {
+      addToast('حدث خطأ في الموافقة على الترقية', 'error');
+    }
+  };
+
+  const handleModuleRequestReject = async (id: string) => {
+    const note = prompt('سبب الرفض (اختياري):') || '';
+    try {
+      await (ApiService as any).adminRejectModuleUpgradeRequest?.(id, { note: note || null });
+      addToast('تم رفض طلب الترقية', 'success');
+      loadModuleRequests();
+    } catch {
+      addToast('حدث خطأ في رفض طلب الترقية', 'error');
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4 mb-8">
@@ -73,6 +109,67 @@ const AdminApprovals: React.FC = () => {
         <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
       ) : (
         <div className="space-y-10">
+          <div className="space-y-4">
+            <h3 className="text-white font-black text-lg">طلبات ترقية الأزرار</h3>
+            {moduleLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
+            ) : moduleRequests.length === 0 ? (
+              <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
+                <p className="text-slate-500 font-bold">لا توجد طلبات ترقية معلقة حالياً.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {moduleRequests.map((r: any) => {
+                  const shopName = r?.shop?.name || '';
+                  const shopSlug = r?.shop?.slug || '';
+                  const modules = Array.isArray(r?.requestedModules) ? r.requestedModules : [];
+                  const createdAt = r?.createdAt ? String(r.createdAt) : '';
+                  return (
+                    <MotionDiv
+                      key={r.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
+                    >
+                      <div className="text-right flex-1">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <h4 className="text-xl font-black text-white">{shopName || 'متجر'}</h4>
+                            <div className="text-slate-500 text-xs font-bold mt-1">{shopSlug ? `/${shopSlug}` : ''}</div>
+                          </div>
+                          <div className="text-slate-500 text-xs font-bold">{createdAt ? new Date(createdAt).toLocaleString() : ''}</div>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2 justify-end">
+                          {(modules || []).map((m: any) => (
+                            <span key={String(m)} className="px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">
+                              {String(m)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => handleModuleRequestApprove(String(r.id))}
+                          className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
+                        >
+                          <Check size={18} /> موافقة
+                        </button>
+                        <button
+                          onClick={() => handleModuleRequestReject(String(r.id))}
+                          className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
+                        >
+                          <X size={18} /> رفض
+                        </button>
+                      </div>
+                    </MotionDiv>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-4">
             <h3 className="text-white font-black text-lg">طلبات انضمام التجار</h3>
             {shops.length === 0 ? (

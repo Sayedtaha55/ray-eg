@@ -141,7 +141,10 @@ export const db = {
     if (!sid) throw new Error('shopId مطلوب');
     const shop = payload?.shop;
     const sectionsIn = Array.isArray(shop?.sections) ? shop.sections : [];
-    if (!sectionsIn.length) return;
+    if (!sectionsIn.length) {
+      await db.deleteCurrentShop({ shopId: sid });
+      return;
+    }
 
     const uploadedSections = await Promise.all(
       sectionsIn.map(async (s) => {

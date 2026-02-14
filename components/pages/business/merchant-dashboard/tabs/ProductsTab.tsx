@@ -27,6 +27,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   const [imageMapSyncing, setImageMapSyncing] = useState(false);
   const [imageMapError, setImageMapError] = useState<string>('');
   const [activeMap, setActiveMap] = useState<any | null>(null);
+  const [imageMapLinkedProductIds, setImageMapLinkedProductIds] = useState<Set<string>>(new Set());
   const [imageMapRows, setImageMapRows] = useState<
     Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean; colors?: string[]; sizes?: any[] }>
   >([]);
@@ -106,6 +107,18 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     return rows;
   };
 
+  const collectLinkedProductIdsFromMaps = (maps: any[]) => {
+    const ids = new Set<string>();
+    (Array.isArray(maps) ? maps : []).forEach((m: any) => {
+      const hs = Array.isArray(m?.hotspots) ? m.hotspots : [];
+      hs.forEach((h: any) => {
+        const productId = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id);
+        if (productId) ids.add(productId);
+      });
+    });
+    return ids;
+  };
+
   const updateRowStock = (key: string, value: any) => {
     const raw = typeof value === 'number' ? value : value == null ? NaN : Number(value);
     const nextStock = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
@@ -123,6 +136,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       ]);
 
       const list = Array.isArray(maps) ? maps : [];
+      setImageMapLinkedProductIds(collectLinkedProductIdsFromMaps(list));
       const current = list.find((m: any) => Boolean(m?.isActive)) || list[0] || null;
       setActiveMap(current);
 
@@ -147,6 +161,26 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       setImageMapLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!shopId) return;
+    if (!canUseImageMapEditor) return;
+    let mounted = true;
+    (async () => {
+      try {
+        const maps = await ApiService.listShopImageMapsForManage(shopId);
+        if (!mounted) return;
+        const list = Array.isArray(maps) ? maps : [];
+        setImageMapLinkedProductIds(collectLinkedProductIdsFromMaps(list));
+      } catch {
+        if (!mounted) return;
+        setImageMapLinkedProductIds(new Set());
+      }
+    })();
+    return () => {
+      mounted = false;
+    };
+  }, [shopId, canUseImageMapEditor]);
 
   const syncImageMapProducts = async () => {
     if (!shopId) return;
@@ -420,7 +454,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
   };
 
-  const filteredProducts = (Array.isArray(products) ? products : []).filter((p: any) => !isImageMapProduct(p));
+  const filteredProducts = (Array.isArray(products) ? products : []).filter((p: any) => {
+    if (!p) return false;
+    if (isImageMapProduct(p)) return false;
+    const id = normalizeText(p?.id);
+    if (id && imageMapLinkedProductIds.has(id)) return false;
+    return true;
+  });
 
   return (
     <>

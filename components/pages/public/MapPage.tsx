@@ -10,6 +10,19 @@ const { Link, useNavigate } = ReactRouterDOM as any;
 
 type Coords = { lat: number; lng: number };
 
+function buildShopMarkerHtml(name: string, city: string) {
+  return `<div dir="rtl" style="display:flex; flex-direction:column; align-items:center; gap:7px; transform:translateZ(0);">
+    <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.96); border:1px solid rgba(226,232,240,0.95); border-radius:999px; padding:8px 12px; box-shadow:0 14px 30px rgba(15,23,42,0.16); cursor:pointer; user-select:none; transition:transform 160ms ease, box-shadow 160ms ease;">
+      <div style="display:flex; flex-direction:column; text-align:right; line-height:1.2; min-width:0;">
+        <div style="font-weight:950; font-size:12px; color:#0f172a; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${name}</div>
+        <div style="font-weight:800; font-size:10px; color:#64748b; max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${city}</div>
+      </div>
+      <div style="background:#0f172a; color:#ffffff; font-weight:950; font-size:10px; padding:5px 12px; border-radius:999px; white-space:nowrap; letter-spacing:0.2px;">زيارة</div>
+    </div>
+    <div style="width:10px; height:10px; background:#0f172a; border:2px solid #ffffff; border-radius:999px; box-shadow:0 10px 22px rgba(15,23,42,0.20);"></div>
+  </div>`;
+}
+
 function escapeHtml(input: string) {
   const s = String(input ?? '');
   return s.replace(/[&<>"']/g, (ch) => {
@@ -176,18 +189,9 @@ const MapPage: React.FC = () => {
       const marker = L.marker([lat, lng], {
         icon: L.divIcon({
           className: '',
-          iconSize: [220, 54],
-          iconAnchor: [110, 54],
-          html: `<div dir="rtl" style="display:flex; flex-direction:column; align-items:center; gap:6px;">
-            <div style="display:flex; align-items:center; gap:10px; background:rgba(255,255,255,0.95); border:1px solid #e2e8f0; border-radius:999px; padding:6px 10px; box-shadow:0 10px 22px rgba(15,23,42,0.14);">
-              <div style="display:flex; flex-direction:column; text-align:right; line-height:1.15;">
-                <div style="font-weight:900; font-size:12px; color:#0f172a; white-space:nowrap; max-width:140px; overflow:hidden; text-overflow:ellipsis;">${name}</div>
-                <div style="font-weight:800; font-size:10px; color:#64748b; white-space:nowrap; max-width:140px; overflow:hidden; text-overflow:ellipsis;">${city}</div>
-              </div>
-              <div style="background:#0f172a; color:#ffffff; font-weight:900; font-size:10px; padding:4px 10px; border-radius:999px; white-space:nowrap;">زيارة</div>
-            </div>
-            <div style="width:10px; height:10px; background:#0f172a; border:2px solid #ffffff; border-radius:999px; box-shadow:0 8px 18px rgba(15,23,42,0.18);"></div>
-          </div>`,
+          iconSize: [250, 62],
+          iconAnchor: [125, 62],
+          html: buildShopMarkerHtml(name, city),
         }),
       });
       marker.on('click', () => {

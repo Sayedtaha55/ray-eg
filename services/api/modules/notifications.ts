@@ -51,6 +51,11 @@ export function subscribeToNotificationsViaBackend(
       schedule(baseIntervalMs);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : undefined;
+      if (status === 401 || status === 403) {
+        stopped = true;
+        if (timer) clearTimeout(timer);
+        return;
+      }
       if (status === 429) {
         schedule(Math.max(baseIntervalMs, 60_000));
         return;

@@ -19,6 +19,66 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
   const containerRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
 
+  const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
+
+  const imageRef = useRef<HTMLImageElement | null>(null);
+  const [imageNatural, setImageNatural] = useState<{ w: number; h: number } | null>(null);
+  const [panOffsetPx, setPanOffsetPx] = useState(0);
+  const panStateRef = useRef<{ active: boolean; startX: number; startOffset: number }>({
+    active: false,
+    startX: 0,
+    startOffset: 0,
+  });
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => {
+      const rect = el.getBoundingClientRect();
+      setContainerSize({ w: rect.width, h: rect.height });
+    });
+    ro.observe(el);
+    const rect = el.getBoundingClientRect();
+    setContainerSize({ w: rect.width, h: rect.height });
+    return () => ro.disconnect();
+  }, []);
+
+  const coverMetrics = (() => {
+    const nat = imageNatural;
+    const cw = containerSize.w;
+    const ch = containerSize.h;
+    if (!nat || !cw || !ch || !nat.w || !nat.h) {
+      return {
+        objectPosXPercent: 50,
+        scale: 1,
+        scaledW: 0,
+        scaledH: 0,
+        cropX: 0,
+        cropY: 0,
+      };
+    }
+
+    const scale = Math.max(cw / nat.w, ch / nat.h);
+    const scaledW = nat.w * scale;
+    const scaledH = nat.h * scale;
+
+    const overflowX = Math.max(0, scaledW - cw);
+    const overflowY = Math.max(0, scaledH - ch);
+
+    const clampedX = overflowX
+      ? Math.max(-(overflowX / 2), Math.min(overflowX / 2, panOffsetPx))
+      : 0;
+    const objectPosXPercent = overflowX ? ((clampedX + overflowX / 2) / overflowX) * 100 : 50;
+
+    // crop offset in pixels from the LEFT/TOP of the scaled image.
+    // object-position x% means the left edge shifts accordingly.
+    const cropX = overflowX ? (objectPosXPercent / 100) * overflowX : 0;
+    // y stays centered for now.
+    const cropY = overflowY ? overflowY / 2 : 0;
+
+    return { objectPosXPercent, scale, scaledW, scaledH, cropX, cropY };
+  })();
+
   // 3D Tilt & Parallax Logic
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
@@ -31,12 +91,20 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
   const handleNextSection = () => {
     setActiveSectionIndex((prev) => (prev + 1) % sections.length);
     setOpenProductId(null); // Close cards when changing section
+    setPanOffsetPx(0);
+    setImageNatural(null);
   };
 
   const handlePrevSection = () => {
     setActiveSectionIndex((prev) => (prev - 1 + sections.length) % sections.length);
     setOpenProductId(null);
+    setPanOffsetPx(0);
+    setImageNatural(null);
   };
+
+  useEffect(() => {
+    setPanOffsetPx(0);
+  }, [activeSectionIndex, activeSection?.id]);
 
   // Close card when clicking on background
   const handleBackgroundClick = (e: React.MouseEvent) => {
@@ -70,6 +138,51 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
             <img
               src={String(activeSection.image).trim()}
               alt={activeSection.name}
+              ref={(el) => {
+                imageRef.current = el;
+              }}
+              onLoad={(e) => {
+                const el = e.currentTarget;
+                const w = Number(el.naturalWidth);
+                const h = Number(el.naturalHeight);
+                if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+                  setImageNatural({ w, h });
+                }
+              }}
+              onPointerDown={(e) => {
+                if (!containerRef.current) return;
+                if (e.pointerType === 'mouse') return;
+                const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
+                if (!overflowX) return;
+
+                panStateRef.current = {
+                  active: true,
+                  startX: e.clientX,
+                  startOffset: panOffsetPx,
+                };
+                try {
+                  (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+                } catch {
+                }
+              }}
+              onPointerMove={(e) => {
+                if (!panStateRef.current.active) return;
+                if (e.pointerType === 'mouse') return;
+                const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
+                if (!overflowX) return;
+
+                const dx = e.clientX - panStateRef.current.startX;
+                const half = overflowX / 2;
+                const next = panStateRef.current.startOffset + dx;
+                setPanOffsetPx(Math.max(-half, Math.min(half, next)));
+              }}
+              onPointerUp={() => {
+                panStateRef.current.active = false;
+              }}
+              onPointerCancel={() => {
+                panStateRef.current.active = false;
+              }}
+              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'pan-y' }}
               className="w-full h-full object-cover filter brightness-[0.7] contrast-[1.1]"
             />
           ) : (
@@ -80,11 +193,16 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
         </div>
 
         {/* Products Layer (Interactive Dots) */}
-        <div key={`products-${activeSection.id}`} className="absolute inset-0 z-20 pointer-events-none">
+        <div
+          key={`products-${activeSection.id}`}
+          className="absolute inset-0 z-20 pointer-events-none"
+        >
           {activeSection.products.map((product, idx) => (
             <ProductNode
               key={product.id}
               product={product}
+              coverMetrics={coverMetrics}
+              containerSize={containerSize}
               isOpen={openProductId === product.id}
               onToggle={() => setOpenProductId(openProductId === product.id ? null : product.id)}
               onAddToCart={onAddToCart}
@@ -124,13 +242,15 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
 
 interface ProductNodeProps {
   product: Product;
+  coverMetrics: { objectPosXPercent: number; scale: number; scaledW: number; scaledH: number; cropX: number; cropY: number };
+  containerSize: { w: number; h: number };
   isOpen: boolean;
   onToggle: () => void;
   onAddToCart: (p: Product) => void;
   isFood: boolean;
 }
 
-const ProductNode: React.FC<ProductNodeProps> = ({ product, isOpen, onToggle, onAddToCart, isFood }) => {
+const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, isFood }) => {
   const isGhost = product.stockStatus === 'OUT_OF_STOCK';
   const isLowStock = product.stockStatus === 'LOW_STOCK';
   const [justAdded, setJustAdded] = useState(false);
@@ -238,9 +358,24 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, isOpen, onToggle, on
     }, 800);
   };
 
-  // Convert percentages to CSS
-  const top = `${product.y}%`;
-  const left = `${product.x}%`;
+  const computePxPosition = () => {
+    const xPct = typeof (product as any)?.x === 'number' ? (product as any).x : Number((product as any)?.x);
+    const yPct = typeof (product as any)?.y === 'number' ? (product as any).y : Number((product as any)?.y);
+    if (!Number.isFinite(xPct) || !Number.isFinite(yPct)) {
+      return { left: '50%', top: '50%' };
+    }
+
+    if (!coverMetrics.scaledW || !coverMetrics.scaledH || !containerSize.w || !containerSize.h) {
+      return { left: `${xPct}%`, top: `${yPct}%` };
+    }
+
+    const xPx = (xPct / 100) * coverMetrics.scaledW - coverMetrics.cropX;
+    const yPx = (yPct / 100) * coverMetrics.scaledH - coverMetrics.cropY;
+
+    return { left: `${xPx}px`, top: `${yPx}px` };
+  };
+
+  const { left, top } = computePxPosition();
 
   return (
     <div

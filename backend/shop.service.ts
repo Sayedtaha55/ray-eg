@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
@@ -8,6 +8,7 @@ import { CreateShopDto, ShopCategory } from './create-shop.dto';
 import * as path from 'path';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class ShopService {
@@ -19,26 +20,240 @@ export class ShopService {
     @Inject(EmailService) private readonly email: EmailService,
   ) {}
 
+  private get upgradeRequests() {
+    return (this.prisma as any).shopModuleUpgradeRequest as any;
+  }
+
+  private getAllowedDashboardModules() {
+    return new Set([
+      'overview',
+      'products',
+      'promotions',
+      'builder',
+      'settings',
+      'gallery',
+      'reservations',
+      'invoice',
+      'sales',
+      'customers',
+      'reports',
+      'pos',
+    ]);
+  }
+
+  private normalizeRequestedModules(raw: any) {
+    const list = Array.isArray(raw) ? raw : [];
+    const allowed = this.getAllowedDashboardModules();
+    const normalized = list
+      .map((x) => String(x || '').trim())
+      .filter(Boolean)
+      .filter((id) => allowed.has(id));
+    return Array.from(new Set(normalized));
+  }
+
   private getDefaultDashboardConfigForCategory(categoryRaw: any) {
     const cat = String(categoryRaw || '').trim().toUpperCase();
     const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
-    const manageExtras = ['gallery', 'customers', 'sales', 'reports', 'reservations', 'invoice'];
-    const showcaseExtras = ['gallery', 'reservations', 'invoice'];
-
     const manageByDefault =
       cat === 'RESTAURANT' ||
       cat === 'FOOD' ||
       cat === 'RETAIL' ||
       cat === 'HEALTH';
 
-    const enabledModules = manageByDefault
-      ? [...core, ...manageExtras]
-      : [...core, ...showcaseExtras];
-
     return {
       dashboardMode: manageByDefault ? 'manage' : 'showcase',
-      enabledModules,
+      enabledModules: core,
     };
+  }
+
+  async createModuleUpgradeRequest(input: {
+    shopId: string;
+    requestedModules: any;
+    requestedByUserId?: string | null;
+  }) {
+    const shopId = String(input?.shopId || '').trim();
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+
+    const requestedByUserId = input?.requestedByUserId ? String(input.requestedByUserId).trim() : null;
+
+    const requestedModules = this.normalizeRequestedModules(input?.requestedModules);
+    if (requestedModules.length === 0) throw new BadRequestException('requestedModules مطلوب');
+
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, slug: true, layoutConfig: true },
+    });
+    if (!shop) throw new NotFoundException('المتجر غير موجود');
+
+    const prevLayout = (shop.layoutConfig as any) || {};
+    const prevEnabled = Array.isArray(prevLayout?.enabledModules)
+      ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+      : [];
+    const enabledSet = new Set(prevEnabled);
+    const pendingModules = requestedModules.filter((m) => !enabledSet.has(m));
+    if (pendingModules.length === 0) throw new BadRequestException('كل الأزرار المطلوبة مفعلة بالفعل');
+
+    const existingPending = await this.upgradeRequests.findFirst({
+      where: { shopId, status: 'PENDING' as any },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    });
+
+    if (existingPending?.id) {
+      return this.upgradeRequests.update({
+        where: { id: existingPending.id },
+        data: {
+          requestedModules: pendingModules as any,
+          ...(typeof requestedByUserId === 'string' ? { requestedByUserId } : {}),
+        },
+      });
+    }
+
+    return this.upgradeRequests.create({
+      data: {
+        shopId,
+        requestedModules: pendingModules as any,
+        ...(typeof requestedByUserId === 'string' ? { requestedByUserId } : {}),
+      },
+    });
+  }
+
+  async listModuleUpgradeRequestsForShop(shopIdRaw: string, actor: { role: string; shopId?: string }) {
+    const shopId = String(shopIdRaw || '').trim();
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+
+    const role = String(actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && String(actor?.shopId || '').trim() !== shopId) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    return this.upgradeRequests.findMany({
+      where: { shopId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async adminListModuleUpgradeRequests(input?: {
+    status?: string;
+    shopId?: string;
+    take?: number;
+    skip?: number;
+  }) {
+    const statusRaw = String(input?.status || '').trim().toUpperCase();
+    const allowedStatuses = new Set(['PENDING', 'APPROVED', 'REJECTED', 'CANCELED', 'ALL', '']);
+    if (!allowedStatuses.has(statusRaw)) throw new BadRequestException('status غير صحيح');
+
+    const shopId = typeof input?.shopId === 'string' ? String(input.shopId).trim() : '';
+    const take = typeof input?.take === 'number' && Number.isFinite(input.take)
+      ? Math.min(200, Math.max(1, Math.floor(input.take)))
+      : 50;
+    const skip = typeof input?.skip === 'number' && Number.isFinite(input.skip)
+      ? Math.max(0, Math.floor(input.skip))
+      : 0;
+
+    return this.upgradeRequests.findMany({
+      where: {
+        ...(shopId ? { shopId } : {}),
+        ...(statusRaw && statusRaw !== 'ALL' ? { status: statusRaw as any } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      skip,
+      include: {
+        shop: { select: { id: true, name: true, slug: true } },
+      },
+    });
+  }
+
+  async adminApproveModuleUpgradeRequest(idRaw: string, adminIdRaw?: string | null) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const adminId = adminIdRaw ? String(adminIdRaw).trim() : '';
+
+    const allowed = this.getAllowedDashboardModules();
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const req = await (tx as any).shopModuleUpgradeRequest.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          shopId: true,
+          status: true,
+          requestedModules: true,
+          shop: { select: { id: true, slug: true, layoutConfig: true } },
+        },
+      });
+
+      if (!req) throw new NotFoundException('الطلب غير موجود');
+      if (String(req.status) !== 'PENDING') throw new BadRequestException('هذا الطلب ليس قيد المراجعة');
+
+      const requested = Array.isArray(req.requestedModules)
+        ? (req.requestedModules as any[]).map((x) => String(x || '').trim()).filter(Boolean)
+        : [];
+      const requestedFiltered = Array.from(new Set(requested.filter((m) => allowed.has(m))));
+      if (requestedFiltered.length === 0) throw new BadRequestException('requestedModules غير صالح');
+
+      const prevLayout = (req.shop?.layoutConfig as any) || {};
+      const prevEnabled = Array.isArray(prevLayout?.enabledModules)
+        ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : [];
+      const nextEnabled = Array.from(new Set([...prevEnabled, ...requestedFiltered]));
+
+      const nextLayout = {
+        ...prevLayout,
+        enabledModules: nextEnabled,
+      };
+
+      const shopUpdated = await tx.shop.update({
+        where: { id: req.shopId },
+        data: { layoutConfig: nextLayout as any },
+        select: { id: true, slug: true, layoutConfig: true },
+      });
+
+      const reqUpdated = await (tx as any).shopModuleUpgradeRequest.update({
+        where: { id: req.id },
+        data: {
+          status: 'APPROVED' as any,
+          reviewedAt: new Date(),
+          ...(adminId ? { reviewedByAdminId: adminId } : {}),
+        },
+      });
+
+      return { shopUpdated, reqUpdated };
+    });
+
+    try {
+      await this.redis.invalidateShopCache(updated.shopUpdated.id, updated.shopUpdated.slug);
+    } catch {
+    }
+
+    return updated;
+  }
+
+  async adminRejectModuleUpgradeRequest(idRaw: string, input?: { note?: string | null }, adminIdRaw?: string | null) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const adminId = adminIdRaw ? String(adminIdRaw).trim() : '';
+    const note = input?.note == null ? null : String(input.note).trim();
+
+    const existing = await this.upgradeRequests.findUnique({
+      where: { id },
+      select: { id: true, status: true },
+    });
+    if (!existing) throw new NotFoundException('الطلب غير موجود');
+    if (String(existing.status) !== 'PENDING') throw new BadRequestException('هذا الطلب ليس قيد المراجعة');
+
+    return this.upgradeRequests.update({
+      where: { id },
+      data: {
+        status: 'REJECTED' as any,
+        note,
+        reviewedAt: new Date(),
+        ...(adminId ? { reviewedByAdminId: adminId } : {}),
+      },
+    });
   }
 
   async adminUpgradeDashboardConfig(input?: {
@@ -70,8 +285,7 @@ export class ShopService {
       const defaultEnabled = Array.isArray((defaults as any)?.enabledModules)
         ? (defaults as any).enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
         : [];
-
-      const mergedEnabled = Array.from(new Set([...prevEnabled, ...defaultEnabled]));
+      const nextEnabled = prevEnabled.length > 0 ? prevEnabled : defaultEnabled;
 
       const prevModeRaw = prevLayout?.dashboardMode;
       const prevMode = String(prevModeRaw || '').trim().toLowerCase();
@@ -79,7 +293,7 @@ export class ShopService {
 
       const nextLayout = {
         ...prevLayout,
-        enabledModules: mergedEnabled,
+        ...(prevEnabled.length > 0 ? {} : { enabledModules: nextEnabled }),
         dashboardMode: hasValidMode ? prevMode : String((defaults as any)?.dashboardMode || 'manage'),
       };
 
@@ -692,9 +906,6 @@ export class ShopService {
           const duration = Date.now() - startTime;
           this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
           this.monitoring.trackPerformance('getShopBySlug_cached', duration);
-
-          // Increment visitors counter asynchronously
-          this.incrementVisitors(String((cachedShop as any).id)).catch(() => undefined);
           return cachedShop;
         }
         this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, false, Date.now() - startTime);
@@ -743,9 +954,6 @@ export class ShopService {
           await this.redis.cacheShop(shop.id, shop, 3600);
         } catch {
         }
-
-        // Increment visitors
-        await this.incrementVisitors(shop.id);
       }
 
       const duration = Date.now() - startTime;
@@ -764,6 +972,23 @@ export class ShopService {
     const startTime = Date.now();
 
     try {
+      // If Redis is available, de-duplicate visits to avoid inflating counts from rapid reloads / internal navigation.
+      // Count at most once per visitor fingerprint per TTL window.
+      try {
+        const client = this.redis.getClient();
+        if (client) {
+          const ua = String(userAgent || '').trim().toLowerCase();
+          const ip = String(ipHash || '').trim();
+          const fp = createHash('sha256').update(`${ip}|${ua}`).digest('hex');
+          const dedupeKey = `shop:${shopId}:visit:${fp}`;
+          const ok = await this.redis.setIfNotExists(dedupeKey, '1', 60 * 30);
+          if (!ok) {
+            return { recorded: false, existing: true };
+          }
+        }
+      } catch {
+      }
+
       // Postgres schema does not have Visit table; keep a simple counter.
       await this.prisma.shop.update({
         where: { id: shopId },

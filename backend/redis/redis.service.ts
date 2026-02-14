@@ -89,6 +89,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.client.expire(key, ttl);
   }
 
+  async setIfNotExists(key: string, value: string, ttlSeconds?: number): Promise<boolean> {
+    if (!this.client) return false;
+    const ttl = typeof ttlSeconds === 'number' && Number.isFinite(ttlSeconds) ? Math.max(1, Math.floor(ttlSeconds)) : undefined;
+    const res = ttl
+      ? await this.client.set(key, value, 'EX', ttl, 'NX')
+      : await this.client.set(key, value, 'NX');
+    return res === 'OK';
+  }
+
   // Cache utilities
   async invalidatePattern(pattern: string): Promise<void> {
     if (!this.client) return;

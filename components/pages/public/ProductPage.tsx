@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Product, Offer, Shop } from '@/types';
@@ -488,6 +488,7 @@ const ProductPage: React.FC = () => {
     return uniq;
   }, [productImageSrc, (product as any)?.images]);
   const [activeImageSrc, setActiveImageSrc] = useState('');
+  const touchStartXRef = useRef<number | null>(null);
   useEffect(() => {
     setActiveImageSrc((prev) => {
       const next = String(prev || '').trim();
@@ -495,6 +496,42 @@ const ProductPage: React.FC = () => {
       return galleryImages[0] || '';
     });
   }, [galleryImages]);
+
+  const goToGalleryIndex = (nextIndex: number) => {
+    if (!galleryImages.length) return;
+    const idx = Math.max(0, Math.min(nextIndex, galleryImages.length - 1));
+    setActiveImageSrc(galleryImages[idx] || '');
+  };
+
+  const onGalleryTouchStart = (e: React.TouchEvent) => {
+    try {
+      touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+    } catch {
+      touchStartXRef.current = null;
+    }
+  };
+
+  const onGalleryTouchEnd = (e: React.TouchEvent) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (typeof startX !== 'number') return;
+    const endX = (() => {
+      try {
+        return e.changedTouches?.[0]?.clientX;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (typeof endX !== 'number') return;
+
+    const dx = endX - startX;
+    if (Math.abs(dx) < 35) return;
+    const currentIndex = galleryImages.indexOf(activeImageSrc);
+    const idx = currentIndex >= 0 ? currentIndex : 0;
+    // RTL: swipe left => next, swipe right => prev
+    if (dx < 0) goToGalleryIndex(idx + 1);
+    else goToGalleryIndex(idx - 1);
+  };
 
   const fashionColors = useMemo(() => {
     const raw = (product as any)?.colors;
@@ -644,8 +681,10 @@ const ProductPage: React.FC = () => {
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           className="relative aspect-square rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
+          onTouchStart={onGalleryTouchStart}
+          onTouchEnd={onGalleryTouchEnd}
         >
-          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-contain md:object-cover" alt={product.name} />
+          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-contain" alt={product.name} />
           {hasDiscount && (
             <div className="absolute top-10 left-10 bg-[#BD00FF] text-white px-8 py-3 rounded-2xl font-black text-xl shadow-2xl">
               -{offer?.discount}%

@@ -55,13 +55,22 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
 
   const baselineRef = useRef<string[]>([]);
 
-  const initialEnabled = useMemo(() => {
+  const activeEnabled = useMemo(() => {
     const raw = (shop as any)?.layoutConfig?.enabledModules;
-    const list = Array.isArray(raw) ? raw.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+    if (!Array.isArray(raw)) {
+      const all = Array.from(new Set(MODULES.map((m) => m.id)));
+      all.sort();
+      return all;
+    }
+    const list = raw.map((x: any) => String(x || '').trim()).filter(Boolean) as ModuleId[];
     const merged = Array.from(new Set([...list, ...CORE_IDS]));
     merged.sort();
     return merged;
   }, [shop]);
+
+  const initialEnabled = useMemo(() => {
+    return activeEnabled;
+  }, [activeEnabled]);
 
   const [enabled, setEnabled] = useState<Set<ModuleId>>(() => new Set(initialEnabled as any));
   const [saving, setSaving] = useState(false);
@@ -100,6 +109,10 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     setEnabled((prev) => {
       const next = new Set(prev);
 
+      if (activeEnabled.includes(id)) {
+        return prev;
+      }
+
       if (next.has(id)) {
         next.delete(id);
         if (id === 'sales') {
@@ -131,14 +144,45 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     try {
       const list = toSortedArray(enabled);
 
-      await ApiService.updateMyShop({
-        ...(adminShopId ? { shopId: adminShopId } : {}),
-        enabledModules: list,
+      if (adminShopId) {
+        await ApiService.updateMyShop({
+          shopId: adminShopId,
+          enabledModules: list,
+        });
+
+        baselineRef.current = list;
+        emitChanges(0);
+        toast({ title: 'تم الحفظ', description: 'تم حفظ الأزرار والإضافات بنجاح' });
+        onSaved();
+        return true;
+      }
+
+      const activeSet = new Set<ModuleId>(activeEnabled as any);
+      const requestedModules = list
+        .filter((id) => !activeSet.has(id as any))
+        .filter((id) => !CORE_IDS.includes(id as any));
+
+      if (requestedModules.length === 0) {
+        toast({ title: 'لا يوجد جديد', description: 'لم يتم اختيار أزرار إضافية جديدة لإرسالها للأدمن' });
+        baselineRef.current = toSortedArray(activeSet as any);
+        emitChanges(0);
+        setEnabled(new Set(activeSet as any));
+        return true;
+      }
+
+      await (ApiService as any).createMyModuleUpgradeRequest?.({
+        requestedModules,
       });
 
-      baselineRef.current = list;
+      toast({
+        title: 'تم إرسال الطلب',
+        description: 'جاري معالجة طلبك من الأدمن. ستظهر الأزرار بعد الموافقة.',
+      });
+
+      const baseline = toSortedArray(activeSet as any);
+      baselineRef.current = baseline;
       emitChanges(0);
-      toast({ title: 'تم الحفظ', description: 'تم حفظ الأزرار والإضافات بنجاح' });
+      setEnabled(new Set(activeSet as any));
       onSaved();
       return true;
     } catch (e: any) {
@@ -152,7 +196,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     } finally {
       setSaving(false);
     }
-  }, [adminShopId, enabled, onSaved, toast]);
+  }, [activeEnabled, adminShopId, enabled, onSaved, toast]);
 
   useEffect(() => {
     try {
@@ -197,7 +241,10 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         <div className="space-y-3">
           {optionalModules.map((m) => {
             const checked = enabled.has(m.id);
-            const disabled = (m.id === 'customers' || m.id === 'reports') && !enabled.has('sales');
+            const isActive = activeEnabled.includes(m.id);
+            const disabled =
+              isActive ||
+              ((m.id === 'customers' || m.id === 'reports') && !enabled.has('sales'));
 
             return (
               <button

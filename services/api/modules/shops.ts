@@ -128,6 +128,39 @@ export async function upgradeDashboardConfigViaBackend(payload?: { shopIds?: str
   return await backendPost<any>('/api/v1/shops/admin/upgrade-dashboard-config', body);
 }
 
+export async function createMyModuleUpgradeRequestViaBackend(payload: { requestedModules: string[] }) {
+  const body: any = {
+    requestedModules: Array.isArray(payload?.requestedModules) ? payload.requestedModules : [],
+  };
+  return await backendPost<any>('/api/v1/shops/me/module-upgrade-requests', body);
+}
+
+export async function listMyModuleUpgradeRequestsViaBackend() {
+  return await backendGet<any[]>('/api/v1/shops/me/module-upgrade-requests');
+}
+
+export async function adminListModuleUpgradeRequestsViaBackend(payload?: { status?: string; shopId?: string; take?: number; skip?: number }) {
+  const params = new URLSearchParams();
+  if (payload?.status) params.set('status', String(payload.status));
+  if (payload?.shopId) params.set('shopId', String(payload.shopId));
+  if (typeof payload?.take === 'number') params.set('take', String(payload.take));
+  if (typeof payload?.skip === 'number') params.set('skip', String(payload.skip));
+  const qs = params.toString();
+  return await backendGet<any[]>(`/api/v1/shops/admin/module-upgrade-requests${qs ? `?${qs}` : ''}`);
+}
+
+export async function adminApproveModuleUpgradeRequestViaBackend(id: string) {
+  const rid = String(id || '').trim();
+  return await backendPost<any>(`/api/v1/shops/admin/module-upgrade-requests/${encodeURIComponent(rid)}/approve`, {});
+}
+
+export async function adminRejectModuleUpgradeRequestViaBackend(id: string, payload?: { note?: string | null }) {
+  const rid = String(id || '').trim();
+  const body: any = {};
+  if (typeof payload?.note !== 'undefined') body.note = payload?.note;
+  return await backendPost<any>(`/api/v1/shops/admin/module-upgrade-requests/${encodeURIComponent(rid)}/reject`, body);
+}
+
 export async function followShopViaBackend(shopId: string) {
   return await backendPost<{ followed: boolean; followers: number }>(
     `/api/v1/shops/${encodeURIComponent(shopId)}/follow`,

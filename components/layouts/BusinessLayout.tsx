@@ -46,6 +46,11 @@ const BusinessLayout: React.FC = () => {
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
 
+  const canUseShopNotifications =
+    Boolean(isDashboard) &&
+    String((effectiveUser as any)?.role || '').toLowerCase() === 'merchant' &&
+    Boolean((effectiveUser as any)?.shopId);
+
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
     const mq = window.matchMedia('(max-width: 767px)');
@@ -89,6 +94,8 @@ const BusinessLayout: React.FC = () => {
   const visibleMainTabs = getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
     .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] }))
     ;
+
+  const hasPosTab = visibleMainTabs.some((t) => t.id === 'pos');
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -202,7 +209,7 @@ const BusinessLayout: React.FC = () => {
   };
 
   const loadNotifications = async () => {
-    if (!effectiveUser?.shopId) return;
+    if (!canUseShopNotifications) return;
     try {
       const data = await ApiService.getNotifications(effectiveUser.shopId);
       const normalized = (data || []).map(normalizeNotif).filter((n: any) => Boolean(n?.id));
@@ -222,7 +229,7 @@ const BusinessLayout: React.FC = () => {
   };
 
   useEffect(() => {
-    if (isDashboard && effectiveUser?.shopId) {
+    if (canUseShopNotifications) {
       loadNotifications();
       
       // الاشتراك في قناة الإشعارات الحية
@@ -280,11 +287,11 @@ const BusinessLayout: React.FC = () => {
         subscription.unsubscribe();
       };
     }
-  }, [isDashboard, effectiveUser?.shopId]);
+  }, [canUseShopNotifications, effectiveUser?.shopId]);
 
   useEffect(() => {
     if (!isDashboard) return;
-    if (!effectiveUser?.shopId) return;
+    if (!canUseShopNotifications) return;
 
     let cancelled = false;
     (async () => {
@@ -350,7 +357,7 @@ const BusinessLayout: React.FC = () => {
   }, []);
 
   const handleMarkRead = async () => {
-    if (!effectiveUser?.shopId) return;
+    if (!canUseShopNotifications) return;
     await ApiService.markNotificationsRead(effectiveUser.shopId);
     setUnreadCount(0);
   };
@@ -422,14 +429,16 @@ const BusinessLayout: React.FC = () => {
            >
              <RefreshCw className="w-6 h-6" />
            </button>
-           <button
-             onClick={() => navigate(buildDashboardUrl('pos'))}
-             aria-label="نظام الكاشير"
-             title="نظام الكاشير"
-             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
-           >
-             <Store className="w-6 h-6" />
-           </button>
+           {hasPosTab && (
+             <button
+               onClick={() => navigate(buildDashboardUrl('pos'))}
+               aria-label="نظام الكاشير"
+               title="نظام الكاشير"
+               className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+             >
+               <Store className="w-6 h-6" />
+             </button>
+           )}
            <button
              onClick={() => navigate(buildBuilderIndexUrl())}
              aria-label="هوية المتجر"
@@ -725,6 +734,16 @@ const BusinessLayout: React.FC = () => {
                </motion.div>
                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
             </div>
+            {hasPosTab && (
+              <button
+                onClick={() => navigate(buildDashboardUrl('pos'))}
+                aria-label="نظام الكاشير"
+                title="نظام الكاشير"
+                className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
+              >
+                <Store className="w-5 h-5" />
+              </button>
+            )}
             <button
               onClick={() => navigate(buildBuilderIndexUrl())}
               aria-label="هوية المتجر"
@@ -734,20 +753,17 @@ const BusinessLayout: React.FC = () => {
               <Palette className="w-5 h-5" />
             </button>
             <button
-              onClick={() => window.location.reload()}
-              aria-label="تحديث"
-              title="تحديث"
+              onClick={() => {
+                try {
+                  window.dispatchEvent(new Event('ray-db-update'));
+                } catch {
+                }
+              }}
+              aria-label="تحديث البيانات"
+              title="تحديث البيانات"
               className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
             >
               <RefreshCw className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => navigate(buildDashboardUrl('pos'))}
-              aria-label="نظام الكاشير"
-              title="نظام الكاشير"
-              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
-            >
-              <Store className="w-5 h-5" />
             </button>
           </div>
           <div className="flex flex-col text-right">

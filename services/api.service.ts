@@ -46,6 +46,11 @@ import {
   getShopGalleryViaBackend,
   getShopsViaBackend,
   incrementVisitorsViaBackend,
+  createMyModuleUpgradeRequestViaBackend,
+  listMyModuleUpgradeRequestsViaBackend,
+  adminListModuleUpgradeRequestsViaBackend,
+  adminApproveModuleUpgradeRequestViaBackend,
+  adminRejectModuleUpgradeRequestViaBackend,
   updateMyShopViaBackend,
   updateShopDesignViaBackend,
   updateShopStatusViaBackend,
@@ -584,6 +589,22 @@ export const ApiService = {
 
   upgradeDashboardConfig: async (payload?: { shopIds?: string[]; dryRun?: boolean }) => {
     return await upgradeDashboardConfigViaBackend(payload);
+  },
+
+  createMyModuleUpgradeRequest: async (payload: { requestedModules: string[] }) => {
+    return await createMyModuleUpgradeRequestViaBackend(payload);
+  },
+  listMyModuleUpgradeRequests: async () => {
+    return await listMyModuleUpgradeRequestsViaBackend();
+  },
+  adminListModuleUpgradeRequests: async (payload?: { status?: string; shopId?: string; take?: number; skip?: number }) => {
+    return await adminListModuleUpgradeRequestsViaBackend(payload);
+  },
+  adminApproveModuleUpgradeRequest: async (id: string) => {
+    return await adminApproveModuleUpgradeRequestViaBackend(id);
+  },
+  adminRejectModuleUpgradeRequest: async (id: string, payload?: { note?: string | null }) => {
+    return await adminRejectModuleUpgradeRequestViaBackend(id, payload);
   },
   followShop: async (shopId: string) => {
     return await followShopViaBackend(shopId);

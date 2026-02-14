@@ -59,6 +59,36 @@ export class ShopController {
     return shop;
   }
 
+  @Post('me/module-upgrade-requests')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async createMyModuleUpgradeRequest(@Request() req, @Body() body: any) {
+    const shopId = String(req.user?.shopId || '').trim();
+    if (!shopId) {
+      throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
+    }
+
+    const userId = req.user?.id ? String(req.user.id).trim() : null;
+
+    return this.shopService.createModuleUpgradeRequest({
+      shopId,
+      requestedModules: body?.requestedModules,
+      requestedByUserId: userId,
+    });
+  }
+
+  @Get('me/module-upgrade-requests')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async listMyModuleUpgradeRequests(@Request() req) {
+    const shopId = String(req.user?.shopId || '').trim();
+    if (!shopId) {
+      throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
+    }
+
+    return this.shopService.listModuleUpgradeRequestsForShop(shopId, { role: req.user?.role, shopId });
+  }
+
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
@@ -301,6 +331,39 @@ export class ShopController {
     const shopIds = Array.isArray(body?.shopIds) ? body.shopIds : undefined;
     const dryRun = Boolean(body?.dryRun);
     return this.shopService.adminUpgradeDashboardConfig({ shopIds, dryRun });
+  }
+
+  @Get('admin/module-upgrade-requests')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminListModuleUpgradeRequests(
+    @Query('status') status: string,
+    @Query('shopId') shopId: string,
+    @Query('take') take: string,
+    @Query('skip') skip: string,
+  ) {
+    return this.shopService.adminListModuleUpgradeRequests({
+      status: typeof status === 'string' ? status : undefined,
+      shopId: typeof shopId === 'string' ? String(shopId).trim() || undefined : undefined,
+      take: this.parseOptionalInt(take),
+      skip: this.parseOptionalInt(skip),
+    });
+  }
+
+  @Post('admin/module-upgrade-requests/:id/approve')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminApproveModuleUpgradeRequest(@Param('id') id: string, @Request() req) {
+    const adminId = req.user?.id ? String(req.user.id).trim() : null;
+    return this.shopService.adminApproveModuleUpgradeRequest(id, adminId);
+  }
+
+  @Post('admin/module-upgrade-requests/:id/reject')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminRejectModuleUpgradeRequest(@Param('id') id: string, @Body() body: any, @Request() req) {
+    const adminId = req.user?.id ? String(req.user.id).trim() : null;
+    return this.shopService.adminRejectModuleUpgradeRequest(id, { note: body?.note }, adminId);
   }
 
   @Patch('admin/:id/status')

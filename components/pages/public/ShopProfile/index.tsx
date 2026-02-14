@@ -259,7 +259,19 @@ const ShopProfile: React.FC = () => {
             ApiService.getProducts(shopId, { page, limit }),
             ApiService.getOffers({ take: 100, skip: 0, shopId }),
           ]);
-          const list = Array.isArray(prodData) ? prodData : [];
+          const isImageMapProduct = (p: any) => {
+            const raw = p?.category;
+            const cat = typeof raw === 'string'
+              ? raw
+              : typeof raw?.name === 'string'
+                ? raw.name
+                : typeof raw?.slug === 'string'
+                  ? raw.slug
+                  : '';
+            const normalized = String(cat || '').trim().toUpperCase();
+            return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+          };
+          const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => !isImageMapProduct(p));
           setProducts(list);
           productsPagingRef.current.hasMore = list.length >= limit;
           setHasMoreProducts(list.length >= limit);
@@ -307,7 +319,19 @@ const ShopProfile: React.FC = () => {
         ApiService.getProducts(shopId, { page, limit }),
         ApiService.getOffers({ take: 100, skip: 0, shopId }),
       ]);
-      const list = Array.isArray(prodData) ? prodData : [];
+      const isImageMapProduct = (p: any) => {
+        const raw = p?.category;
+        const cat = typeof raw === 'string'
+          ? raw
+          : typeof raw?.name === 'string'
+            ? raw.name
+            : typeof raw?.slug === 'string'
+              ? raw.slug
+              : '';
+        const normalized = String(cat || '').trim().toUpperCase();
+        return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+      };
+      const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => !isImageMapProduct(p));
       setProducts(list);
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
@@ -353,7 +377,19 @@ const ShopProfile: React.FC = () => {
       const nextPage = productsPagingRef.current.page + 1;
       const limit = productsPagingRef.current.limit;
       const next = await ApiService.getProducts(shopId, { page: nextPage, limit });
-      const list = Array.isArray(next) ? next : [];
+      const isImageMapProduct = (p: any) => {
+        const raw = p?.category;
+        const cat = typeof raw === 'string'
+          ? raw
+          : typeof raw?.name === 'string'
+            ? raw.name
+            : typeof raw?.slug === 'string'
+              ? raw.slug
+              : '';
+        const normalized = String(cat || '').trim().toUpperCase();
+        return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+      };
+      const list = (Array.isArray(next) ? next : []).filter((p: any) => !isImageMapProduct(p));
       setProducts((prev) => [...prev, ...list]);
       productsPagingRef.current.page = nextPage;
       productsPagingRef.current.hasMore = list.length >= limit;

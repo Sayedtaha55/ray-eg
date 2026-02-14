@@ -1,5 +1,5 @@
-import React, { useRef, useState } from 'react';
-import { Plus, Save, Edit3, Trash2, Loader2, X } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Plus, Save, Edit3, Trash2, Loader2, X, Move, ChevronDown, ChevronUp } from 'lucide-react';
 import { Product, StockStatus, StoreSection } from '../types';
 import { backendPost } from '@/services/api/httpClient';
 import { ApiService } from '@/services/api.service';
@@ -128,9 +128,21 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   const [sections, setSections] = useState<StoreSection[]>(initialSections.length > 0 ? initialSections : []);
   const [activeSectionId, setActiveSectionId] = useState<string>(initialSections[0]?.id || '');
 
+  const didInitFromPropsRef = useRef(false);
+
+  useEffect(() => {
+    if (didInitFromPropsRef.current) return;
+    if (!Array.isArray(initialSections) || initialSections.length === 0) return;
+    didInitFromPropsRef.current = true;
+    setSections(initialSections);
+    setActiveSectionId(String(initialSections[0]?.id || ''));
+  }, [initialSections]);
+
   // UI States
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
   const [isAddingMode, setIsAddingMode] = useState(false);
+  const [isMoveMode, setIsMoveMode] = useState(false);
+  const [isProductSheetCollapsed, setIsProductSheetCollapsed] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAnalyzingNewImage, setIsAnalyzingNewImage] = useState(false);
   const [pendingNewSectionBase64, setPendingNewSectionBase64] = useState<string | null>(null);
@@ -157,6 +169,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
     setActiveSectionId(newSection.id);
     setSelectedProductId(null);
     setIsAddingMode(false);
+    setIsMoveMode(false);
   };
 
   const handleAddSection = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,22 +214,25 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   };
 
   const deleteSectionById = (sectionId: string) => {
-    if (sections.length <= 1) {
-      alert('يجب أن يحتوي المتجر على قسم واحد على الأقل');
-      return;
-    }
+    const sid = String(sectionId || '').trim();
+    if (!sid) return;
 
     if (!window.confirm('هل أنت متأكد من حذف هذا القسم نهائياً؟ ستفقد جميع المنتجات بداخله.')) {
       return;
     }
 
-    const newSections = sections.filter((s) => s.id !== sectionId);
-    setSections(() => newSections);
+    setSections((prev) => {
+      const list = Array.isArray(prev) ? prev : [];
+      const next = list.filter((s) => String(s?.id || '') !== sid);
+      if (next.length === list.length) return prev;
 
-    if (activeSectionId === sectionId) {
-      setActiveSectionId(newSections[0]?.id || '');
-      setSelectedProductId(null);
-    }
+      if (String(activeSectionId || '') === sid) {
+        setActiveSectionId(String(next[0]?.id || ''));
+        setSelectedProductId(null);
+      }
+
+      return next;
+    });
   };
 
   const deleteActiveSection = () => {
@@ -260,7 +276,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       return;
     }
 
-    if (selectedProductId) {
+    if (selectedProductId && isMoveMode) {
       setSections((prev) =>
         prev.map((s) => {
           if (s.id !== activeSectionId) return s;
@@ -315,6 +331,11 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
 
   const selectedProduct = activeProducts.find((p) => p.id === selectedProductId);
 
+  useEffect(() => {
+    if (!selectedProduct) return;
+    setIsProductSheetCollapsed(false);
+  }, [selectedProduct?.id]);
+
   if (isAnalyzingNewImage) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
@@ -365,7 +386,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       <div className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-3 sm:px-6 z-40">
         <div className="flex items-center gap-4">
           <div className="bg-cyan-900/50 p-2 rounded-lg">
-            <Edit3 size={20} className="text-cyan-400" />
+            <Edit3 size={18} className="text-cyan-400" />
           </div>
           <div>
             <h2 className="font-bold text-white">محرر المتجر المتكامل</h2>
@@ -373,7 +394,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
           </div>
         </div>
         <div className="flex gap-2 sm:gap-3">
-          <button onClick={onCancel} className="px-3 sm:px-4 py-2 text-slate-300 hover:text-white transition-colors text-sm">
+          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-colors text-xs sm:text-sm">
             إلغاء
           </button>
           <button
@@ -381,9 +402,10 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
               if (!activeSection) return;
               setIsAddingMode(!isAddingMode);
               setSelectedProductId(null);
+              setIsMoveMode(false);
             }}
             disabled={!activeSection}
-            className={`px-3 sm:px-4 py-2 rounded-lg border font-bold transition-all text-sm
+            className={`px-2 sm:px-4 py-2 rounded-lg border font-bold transition-all text-xs sm:text-sm
               ${
                 !activeSection
                   ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
@@ -394,16 +416,16 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
             `}
           >
             <span className="flex items-center gap-2">
-              <Plus size={16} />
+              <Plus size={14} />
               {isAddingMode ? 'انقر على الصورة لإضافة المنتج' : 'إضافة منتج'}
             </span>
           </button>
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white px-4 sm:px-6 py-2 rounded-lg font-bold flex items-center gap-2 disabled:opacity-50 text-sm"
+            className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 sm:px-6 py-2 rounded-lg font-bold flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm"
           >
-            {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             حفظ التغييرات
           </button>
         </div>
@@ -481,14 +503,25 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
               <div
                 ref={editorImageRef}
                 onClick={handleCanvasClick}
-                className={`relative max-h-[55vh] sm:max-h-[75vh] shadow-2xl rounded-lg overflow-hidden cursor-crosshair border-2 transition-colors ${isAddingMode ? 'border-green-500' : 'border-slate-700'}`}
+                className={`relative max-h-[55vh] sm:max-h-[75vh] shadow-2xl rounded-lg overflow-hidden border-2 transition-colors ${
+                  isAddingMode
+                    ? 'border-green-500 cursor-crosshair'
+                    : isMoveMode
+                      ? 'border-cyan-400 cursor-move'
+                      : 'border-slate-700 cursor-default'
+                }`}
               >
                 {String(activeSection.image || '').trim() ? (
-                  <img src={String(activeSection.image).trim()} alt="Editor" className="max-w-full max-h-[75vh] object-contain opacity-90" />
+                  <img
+                    src={activeSection.image}
+                    alt="Active Section"
+                    className="w-full max-h-[55vh] sm:max-h-[75vh] object-contain"
+                  />
                 ) : (
-                  <div className="w-full h-[45vh] sm:h-[65vh] bg-black/20" />
+                  <div className="w-full h-[55vh] sm:h-[75vh] bg-slate-800 flex items-center justify-center text-slate-500">
+                    لا توجد صورة للقسم
+                  </div>
                 )}
-
                 {activeProducts.map((product) => (
                   <div
                     key={product.id}
@@ -496,6 +529,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                       e.stopPropagation();
                       setSelectedProductId(product.id);
                       setIsAddingMode(false);
+                      setIsMoveMode(false);
                     }}
                     className={`absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 flex items-center justify-center transition-all hover:scale-125 cursor-pointer z-10
                       ${
@@ -512,48 +546,91 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                   </div>
                 ))}
 
-                {(isAddingMode || selectedProduct) && (
+                {(isAddingMode || (selectedProduct && !isMoveMode)) && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-t border-slate-700 p-3 sm:p-4"
+                    className={`absolute bottom-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-t border-slate-700 transition-all ${
+                      isProductSheetCollapsed ? 'p-2' : 'p-3 sm:p-4'
+                    }`}
+                    style={{
+                      transform: isProductSheetCollapsed ? 'translateY(calc(100% - 56px))' : 'translateY(0)',
+                      transitionProperty: 'transform, padding',
+                      transitionDuration: '220ms',
+                      transitionTimingFunction: 'ease',
+                    }}
                   >
                     {isAddingMode && !selectedProduct && <div className="text-slate-200 text-sm font-bold">انقر على الصورة لإضافة المنتج</div>}
 
                     {selectedProduct && (
-                      <div className="bg-slate-800/70 rounded-xl border border-slate-700 p-3 space-y-3">
-                        <div className="flex items-center justify-between">
+                      <div className={`bg-slate-800/70 rounded-xl border border-slate-700 ${isProductSheetCollapsed ? 'p-2' : 'p-3'} `}>
+                        <div className="h-1.5 w-12 mx-auto rounded-full bg-slate-600/60" />
+                        <div className="flex items-center justify-between gap-2">
                           <h3 className="text-xs font-bold text-slate-300 uppercase">تعديل المنتج</h3>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1 sm:gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setIsProductSheetCollapsed((v) => !v)}
+                              className="p-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white"
+                              aria-label={isProductSheetCollapsed ? 'فتح' : 'تصغير'}
+                            >
+                              {isProductSheetCollapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!selectedProductId) return;
+                                setIsMoveMode(true);
+                                setIsAddingMode(false);
+                              }}
+                              className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold"
+                            >
+                              <span className="flex items-center gap-1">
+                                <Move size={11} />
+                                تحريك
+                              </span>
+                            </button>
                             <button
                               type="button"
                               onClick={handleSave}
                               disabled={isSaving}
-                              className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold disabled:opacity-60"
+                              className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold disabled:opacity-60"
                             >
                               حفظ
                             </button>
-                            <button onClick={() => setSelectedProductId(null)} className="text-slate-400 hover:text-white text-xs">
+                            <button
+                              onClick={() => {
+                                setSelectedProductId(null);
+                                setIsMoveMode(false);
+                              }}
+                              className="text-slate-400 hover:text-white text-[11px] sm:text-xs"
+                            >
                               إغلاق
                             </button>
                           </div>
                         </div>
 
-                        <input
-                          type="text"
-                          value={selectedProduct.name}
-                          onChange={(e) => updateProductDetails(selectedProduct.id, { name: e.target.value })}
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                          placeholder="اسم المنتج"
-                        />
-                        <input
-                          type="number"
-                          value={selectedProduct.price}
-                          onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                          placeholder="السعر"
-                        />
+                        {!isProductSheetCollapsed && (
+                          <div className="space-y-3 mt-3">
+                            <div className="h-1.5 w-14 mx-auto rounded-full bg-slate-600/60" />
 
-                        {isFood && (
+                            <input
+                              type="text"
+                              value={selectedProduct.name}
+                              onChange={(e) => updateProductDetails(selectedProduct.id, { name: e.target.value })}
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                              placeholder="اسم المنتج"
+                            />
+                            <input
+                              type="number"
+                              value={selectedProduct.price}
+                              onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                              placeholder="السعر"
+                            />
+                          </div>
+                        )}
+
+                        {isFood && !isProductSheetCollapsed && (
                           <div className="space-y-2 pt-2 border-t border-slate-700">
                             <div className="text-[10px] font-bold text-slate-400 uppercase">سوبر ماركت</div>
 

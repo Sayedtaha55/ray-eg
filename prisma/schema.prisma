@@ -94,8 +94,35 @@ model Shop {
   themeSettings ShopTheme[] // Theme settings
   followersList ShopFollower[]
   accountingInvoices AccountingInvoice[]
+  moduleUpgradeRequests ShopModuleUpgradeRequest[]
 
   @@map("shops")
+}
+
+enum ShopModuleUpgradeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
+}
+
+model ShopModuleUpgradeRequest {
+  id                 String                        @id @default(cuid())
+  shopId             String                        @map("shop_id")
+  status             ShopModuleUpgradeRequestStatus @default(PENDING)
+  requestedModules   Json                          @map("requested_modules")
+  note               String?
+  requestedByUserId  String?                       @map("requested_by_user_id")
+  reviewedByAdminId  String?                       @map("reviewed_by_admin_id")
+  reviewedAt         DateTime?                     @map("reviewed_at")
+  createdAt          DateTime                      @default(now()) @map("created_at")
+  updatedAt          DateTime                      @updatedAt @map("updated_at")
+
+  shop               Shop                          @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+  @@index([status])
+  @@map("shop_module_upgrade_requests")
 }
 model ShopFollower {
   id        String   @id @default(cuid())

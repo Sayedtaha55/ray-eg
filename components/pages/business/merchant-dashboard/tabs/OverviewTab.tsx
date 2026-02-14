@@ -34,6 +34,20 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
   const revenueToday = safeAnalytics.revenueToday ?? 0;
   const chartData = Array.isArray(safeAnalytics.chartData) ? safeAnalytics.chartData : [];
 
+  const showSalesAnalytics = useMemo(() => {
+    const layoutConfig = (shop?.layoutConfig && typeof shop.layoutConfig === 'object') ? shop.layoutConfig : undefined;
+    const enabledRaw = layoutConfig?.enabledModules;
+    const modeRaw = layoutConfig?.dashboardMode;
+    const mode = String(modeRaw || '').trim().toLowerCase();
+
+    if (mode && mode !== 'manage') return false;
+
+    if (!Array.isArray(enabledRaw)) return true;
+
+    const enabled = new Set((enabledRaw || []).map((x: any) => String(x || '').trim()));
+    return enabled.has('sales');
+  }, [shop]);
+
   const chartBody = useMemo(() => {
     if (!R) return null;
     const { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = R;
@@ -69,22 +83,28 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-10">
         <StatCard label="المتابعين" value={shop.followers?.toLocaleString() || '0'} icon={<Users size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
         <StatCard label="زيارات المتجر" value={shop.visitors?.toLocaleString() || '0'} icon={<Eye size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
-        <StatCard label="مبيعات اليوم" value={`${salesCountToday}`} icon={<ShoppingCart size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="slate" />
-        <StatCard label="إيرادات اليوم" value={`ج.م ${revenueToday}`} icon={<DollarSign size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
+        {showSalesAnalytics ? (
+          <>
+            <StatCard label="مبيعات اليوم" value={`${salesCountToday}`} icon={<ShoppingCart size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="slate" />
+            <StatCard label="إيرادات اليوم" value={`ج.م ${revenueToday}`} icon={<DollarSign size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
+          </>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
-        <div className="lg:col-span-2 bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6 sm:mb-10 md:mb-12 flex-row-reverse">
-            <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">رادار المبيعات</h3>
-            <div className="flex items-center gap-2 text-green-500 font-black text-xs sm:text-sm px-3 sm:px-4 py-1 bg-green-50 rounded-full">
-              <TrendingUp size={16} /> نمو مستمر
+        {showSalesAnalytics ? (
+          <div className="lg:col-span-2 bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6 sm:mb-10 md:mb-12 flex-row-reverse">
+              <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">رادار المبيعات</h3>
+              <div className="flex items-center gap-2 text-green-500 font-black text-xs sm:text-sm px-3 sm:px-4 py-1 bg-green-50 rounded-full">
+                <TrendingUp size={16} /> نمو مستمر
+              </div>
+            </div>
+            <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
+              {chartBody}
             </div>
           </div>
-          <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-            {chartBody}
-          </div>
-        </div>
+        ) : null}
 
         <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
