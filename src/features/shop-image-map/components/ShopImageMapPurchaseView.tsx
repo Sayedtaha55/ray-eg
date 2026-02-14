@@ -50,15 +50,13 @@ const ShopImageMapPurchaseView: React.FC = () => {
     const rawSections = Array.isArray((map as any)?.sections) ? (map as any).sections : [];
     const rawHotspots = Array.isArray((map as any)?.hotspots) ? (map as any).hotspots : [];
     const version = String((map as any)?.updatedAt || (map as any)?.updated_at || (map as any)?.id || '').trim();
-    const fallbackImage = withCacheBust(
-      resolveBackendMediaUrl(String((map as any)?.imageUrl || (map as any)?.image_url || '').trim()),
-      version,
-    );
+    const mapImageRaw = resolveBackendMediaUrl(String((map as any)?.imageUrl || (map as any)?.image_url || '').trim());
+    const fallbackImage = mapImageRaw ? withCacheBust(mapImageRaw, version) : '';
 
     const sectionsFromMap = rawSections
       .map((s: any) => {
-        const img =
-          withCacheBust(resolveBackendMediaUrl(String(s?.imageUrl || s?.image_url || '').trim()), version) || fallbackImage;
+        const secImageRaw = resolveBackendMediaUrl(String(s?.imageUrl || s?.image_url || '').trim());
+        const img = secImageRaw ? withCacheBust(secImageRaw, version) : '';
         return {
           id: String(s?.id || ''),
           name: String(s?.name || ''),
@@ -78,7 +76,10 @@ const ShopImageMapPurchaseView: React.FC = () => {
         sectionById.set(secId, {
           id: secId,
           name: secName || 'قسم',
-          image: withCacheBust(resolveBackendMediaUrl(String(sec?.imageUrl || sec?.image_url || '').trim()), version) || fallbackImage,
+          image: (() => {
+            const secImageRaw = resolveBackendMediaUrl(String(sec?.imageUrl || sec?.image_url || '').trim());
+            return secImageRaw ? withCacheBust(secImageRaw, version) : '';
+          })(),
         });
       }
     }
@@ -137,7 +138,7 @@ const ShopImageMapPurchaseView: React.FC = () => {
       return String(a?.name || '').localeCompare(String(b?.name || ''), 'ar');
     });
 
-    if (!sectionList.length) {
+    if (!sectionList.length && fallbackImage) {
       sectionList.push({
         id: 'default',
         name: 'المعرض',
@@ -159,6 +160,17 @@ const ShopImageMapPurchaseView: React.FC = () => {
 
     return merged;
   }, [map, shop?.id, shop?.name]);
+
+  const hasAnyImage = useMemo(() => {
+    try {
+      const mapImg = String((map as any)?.imageUrl || (map as any)?.image_url || '').trim();
+      if (mapImg) return true;
+      const rawSections = Array.isArray((map as any)?.sections) ? (map as any).sections : [];
+      return rawSections.some((s: any) => String(s?.imageUrl || s?.image_url || '').trim());
+    } catch {
+      return false;
+    }
+  }, [map]);
 
   const legacyShop = useMemo(() => {
     const sid = String(shop?.id || '').trim();
@@ -199,7 +211,7 @@ const ShopImageMapPurchaseView: React.FC = () => {
     );
   }
 
-  if (!map || sections.length === 0) {
+  if (!map || sections.length === 0 || !hasAnyImage) {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
         <div className="text-slate-600 font-black">لا توجد معاينة بالصورة لهذا المتجر حالياً</div>
