@@ -15,6 +15,8 @@ const ShopImageMapPurchaseView: React.FC = () => {
     const raw = String(url || '').trim();
     const ver = String(v || '').trim();
     if (!raw || !ver) return raw;
+    const lower = raw.toLowerCase();
+    if (lower.startsWith('data:') || lower.startsWith('blob:')) return raw;
     return raw.includes('?') ? `${raw}&v=${encodeURIComponent(ver)}` : `${raw}?v=${encodeURIComponent(ver)}`;
   };
 
