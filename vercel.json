@@ -11,6 +11,10 @@
       "destination": "https://api.mnmknk.com/api/v1/shops/sitemap"
     },
     {
+      "source": "/api/(.*)",
+      "destination": "https://api.mnmknk.com/api/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
