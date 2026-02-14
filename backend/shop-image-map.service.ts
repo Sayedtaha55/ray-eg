@@ -277,7 +277,13 @@ export class ShopImageMapService {
           width: typeof payload?.width === 'undefined' ? undefined : this.normalizeOptionalInt(payload?.width),
           height: typeof payload?.height === 'undefined' ? undefined : this.normalizeOptionalInt(payload?.height),
           title: typeof payload?.title === 'undefined' ? undefined : this.normalizeOptionalString(payload?.title),
-          imageUrl: typeof payload?.imageUrl === 'undefined' ? undefined : this.normalizeId(payload?.imageUrl),
+          imageUrl:
+            typeof payload?.imageUrl === 'undefined'
+              ? undefined
+              : (() => {
+                  const raw = this.normalizeId(payload?.imageUrl);
+                  return raw ? raw : null;
+                })(),
           aiMeta: typeof payload?.aiMeta === 'undefined' ? undefined : payload.aiMeta,
         },
         include: {

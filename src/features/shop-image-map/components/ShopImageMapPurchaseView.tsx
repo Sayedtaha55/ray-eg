@@ -11,6 +11,13 @@ const ShopImageMapPurchaseView: React.FC = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
 
+  const withCacheBust = (url: string, v: string) => {
+    const raw = String(url || '').trim();
+    const ver = String(v || '').trim();
+    if (!raw || !ver) return raw;
+    return raw.includes('?') ? `${raw}&v=${encodeURIComponent(ver)}` : `${raw}?v=${encodeURIComponent(ver)}`;
+  };
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<any>(null);
@@ -40,11 +47,16 @@ const ShopImageMapPurchaseView: React.FC = () => {
 
     const rawSections = Array.isArray((map as any)?.sections) ? (map as any).sections : [];
     const rawHotspots = Array.isArray((map as any)?.hotspots) ? (map as any).hotspots : [];
-    const fallbackImage = resolveBackendMediaUrl(String((map as any)?.imageUrl || (map as any)?.image_url || '').trim());
+    const version = String((map as any)?.updatedAt || (map as any)?.updated_at || (map as any)?.id || '').trim();
+    const fallbackImage = withCacheBust(
+      resolveBackendMediaUrl(String((map as any)?.imageUrl || (map as any)?.image_url || '').trim()),
+      version,
+    );
 
     const sectionsFromMap = rawSections
       .map((s: any) => {
-        const img = resolveBackendMediaUrl(String(s?.imageUrl || s?.image_url || '').trim()) || fallbackImage;
+        const img =
+          withCacheBust(resolveBackendMediaUrl(String(s?.imageUrl || s?.image_url || '').trim()), version) || fallbackImage;
         return {
           id: String(s?.id || ''),
           name: String(s?.name || ''),
@@ -64,7 +76,7 @@ const ShopImageMapPurchaseView: React.FC = () => {
         sectionById.set(secId, {
           id: secId,
           name: secName || 'قسم',
-          image: resolveBackendMediaUrl(String(sec?.imageUrl || sec?.image_url || '').trim()) || fallbackImage,
+          image: withCacheBust(resolveBackendMediaUrl(String(sec?.imageUrl || sec?.image_url || '').trim()), version) || fallbackImage,
         });
       }
     }
