@@ -489,10 +489,17 @@ export class ProductService {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    const deleted = await this.prisma.product.update({
-      where: { id: productId },
-      data: { isActive: false },
-    });
+    let deleted: any;
+    try {
+      deleted = await this.prisma.product.delete({
+        where: { id: productId },
+      });
+    } catch {
+      deleted = await this.prisma.product.update({
+        where: { id: productId },
+        data: { isActive: false },
+      });
+    }
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });
     // await this.redis.invalidateProductCache(productId);
