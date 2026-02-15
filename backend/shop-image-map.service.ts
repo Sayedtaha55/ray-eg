@@ -103,7 +103,9 @@ export class ShopImageMapService {
 
     const toHeal = (Array.isArray(maps) ? maps : []).filter((m: any) => {
       const img = this.normalizeId(m?.imageUrl);
-      return Boolean(img) && Array.isArray(m?.sections) && m.sections.length === 0;
+      const sectionsEmpty = Array.isArray(m?.sections) && m.sections.length === 0;
+      const hasHotspots = Array.isArray(m?.hotspots) && m.hotspots.length > 0;
+      return Boolean(img) && sectionsEmpty && hasHotspots;
     });
 
     if (toHeal.length === 0) return maps;
@@ -392,7 +394,9 @@ export class ShopImageMapService {
     }
 
     const img = this.normalizeId((map as any)?.imageUrl);
-    if (img && Array.isArray((map as any)?.sections) && (map as any).sections.length === 0) {
+    const sectionsEmpty = Array.isArray((map as any)?.sections) && (map as any).sections.length === 0;
+    const hasHotspots = Array.isArray((map as any)?.hotspots) && (map as any).hotspots.length > 0;
+    if (img && sectionsEmpty && hasHotspots) {
       await this.ensureDefaultSectionIfMissing(String((map as any).id));
       map = await (this.prisma as any).shopImageMap.findUnique({
         where: { id: String((map as any).id) },
