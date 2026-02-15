@@ -13,6 +13,26 @@ export class ShopImageMapService {
     return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
   }
 
+  private async ensureDefaultSectionIfMissing(mapId: string) {
+    const mid = this.normalizeId(mapId);
+    if (!mid) return;
+
+    await (this.prisma as any).$transaction(async (tx: any) => {
+      const count = await tx.shopImageSection.count({ where: { mapId: mid } });
+      if (count > 0) return;
+      await tx.shopImageSection.create({
+        data: {
+          mapId: mid,
+          name: 'منتجات',
+          sortOrder: 0,
+          imageUrl: null,
+          width: null,
+          height: null,
+        },
+      });
+    });
+  }
+
   async analyze(shopId: string, payload: any, ctx: { role?: any; shopId?: any }) {
     const sid = this.normalizeId(shopId);
     if (!sid) throw new BadRequestException('shopId مطلوب');
@@ -65,6 +85,30 @@ export class ShopImageMapService {
     if (!sid) throw new BadRequestException('shopId مطلوب');
 
     this.assertCanManageShop({ tokenRole: ctx?.role, tokenShopId: ctx?.shopId, targetShopId: sid });
+
+    const maps = await (this.prisma as any).shopImageMap.findMany({
+      where: { shopId: sid },
+      orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
+      include: {
+        sections: { orderBy: { sortOrder: 'asc' } },
+        hotspots: {
+          orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+          include: {
+            product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true } },
+            section: { select: { id: true, name: true, sortOrder: true, imageUrl: true, width: true, height: true } },
+          },
+        },
+      },
+    });
+
+    const toHeal = (Array.isArray(maps) ? maps : []).filter((m: any) => {
+      const img = this.normalizeId(m?.imageUrl);
+      return Boolean(img) && Array.isArray(m?.sections) && m.sections.length === 0;
+    });
+
+    if (toHeal.length === 0) return maps;
+
+    await Promise.all(toHeal.map((m: any) => this.ensureDefaultSectionIfMissing(String(m.id))));
 
     return (this.prisma as any).shopImageMap.findMany({
       where: { shopId: sid },
@@ -313,7 +357,7 @@ export class ShopImageMapService {
 
     if (!shop || !shop.isActive) throw new NotFoundException('المتجر غير موجود');
 
-    const map = await (this.prisma as any).shopImageMap.findFirst({
+    let map = await (this.prisma as any).shopImageMap.findFirst({
       where: { shopId: shop.id, isActive: true },
       orderBy: { updatedAt: 'desc' },
       include: {
@@ -345,6 +389,39 @@ export class ShopImageMapService {
 
     if (!map) {
       return { shop, map: null };
+    }
+
+    const img = this.normalizeId((map as any)?.imageUrl);
+    if (img && Array.isArray((map as any)?.sections) && (map as any).sections.length === 0) {
+      await this.ensureDefaultSectionIfMissing(String((map as any).id));
+      map = await (this.prisma as any).shopImageMap.findUnique({
+        where: { id: String((map as any).id) },
+        include: {
+          sections: { orderBy: { sortOrder: 'asc' } },
+          hotspots: {
+            orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  price: true,
+                  stock: true,
+                  unit: true,
+                  packOptions: true,
+                  colors: true,
+                  sizes: true,
+                  imageUrl: true,
+                  images: true,
+                  isActive: true,
+                  shopId: true,
+                },
+              },
+              section: { select: { id: true, name: true, sortOrder: true, imageUrl: true, width: true, height: true } },
+            },
+          },
+        },
+      });
     }
 
     const cleaned = {
