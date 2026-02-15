@@ -230,7 +230,7 @@ const ShopImageMapEditorModal: React.FC<Props> = ({ open, onClose, shopId, produ
     setSaving(true);
     try {
       await saveShopImageMapLayout(shopId, String(activeMap.id), {
-        sections: [],
+        sections: [{ name: 'منتجات', sortOrder: 0 }],
         hotspots: hotspots.map((h, idx) => ({
           x: h.x,
           y: h.y,
@@ -238,6 +238,7 @@ const ShopImageMapEditorModal: React.FC<Props> = ({ open, onClose, shopId, produ
           productId: h.productId,
           priceOverride: h.priceOverride,
           sortOrder: idx,
+          sectionIndex: 0,
         })),
       });
 
