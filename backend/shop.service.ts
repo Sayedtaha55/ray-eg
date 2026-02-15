@@ -535,6 +535,36 @@ export class ShopService {
     }
   }
 
+  async adminResetShopVisitors(shopIdRaw: string) {
+    const shopId = String(shopIdRaw || '').trim();
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+
+    const shop = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { id: true, slug: true },
+    });
+    if (!shop) throw new NotFoundException('المتجر غير موجود');
+
+    await this.prisma.shop.update({
+      where: { id: shopId },
+      data: { visitors: 0 },
+      select: { id: true },
+    });
+
+    try {
+      await this.redis.del(`shop:${shopId}:visitors`);
+      await this.redis.invalidatePattern(`shop:${shopId}:visit:*`);
+    } catch {
+    }
+
+    try {
+      await this.redis.invalidateShopCache(shopId, (shop as any).slug);
+    } catch {
+    }
+
+    return { ok: true, shopId };
+  }
+
   async updateShopSettings(
     shopId: string,
     input: {

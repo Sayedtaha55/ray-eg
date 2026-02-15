@@ -322,6 +322,13 @@ export class ShopController {
     return this.shopService.adminUpgradeDashboardConfig({ shopIds, dryRun });
   }
 
+  @Post('admin/:id/reset-visitors')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async adminResetVisitors(@Param('id') id: string) {
+    return this.shopService.adminResetShopVisitors(id);
+  }
+
   @Get('admin/module-upgrade-requests')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
