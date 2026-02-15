@@ -112,6 +112,14 @@ const RedirectSShopProduct: React.FC = () => {
   return <ReactRouterDOM.Navigate to={`/shop/${slug}/product/${id}`} replace />;
 };
 
+const RedirectShopImageMapToShopProfile: React.FC = () => {
+  const { slug } = useParams();
+  const host = String((typeof window !== 'undefined' ? window.location?.hostname : '') || '').toLowerCase();
+  const isLocal = host === 'localhost' || host === '127.0.0.1';
+  if (!isLocal) return <ReactRouterDOM.Navigate to={`/shop/${slug}`} replace />;
+  return suspense(<ShopImageMapPurchaseView />);
+};
+
 const suspense = (element: React.ReactElement) => (
   <React.Suspense fallback={<AppLoadingFallback />}>{element}</React.Suspense>
 );
@@ -196,7 +204,7 @@ const App: React.FC = () => {
         <Route path="/s/:slug/product/:id" element={<RedirectSShopProduct />} />
 
         <Route path="/shop/:slug" element={suspense(<ShopProfile />)} />
-        <Route path="/shop/:slug/image-map" element={suspense(<ShopImageMapPurchaseView />)} />
+        <Route path="/shop/:slug/image-map" element={<RedirectShopImageMapToShopProfile />} />
         <Route path="/shop/:slug/product/:id" element={suspense(<ShopProductPage />)} />
 
         <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />

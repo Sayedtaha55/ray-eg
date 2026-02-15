@@ -949,12 +949,19 @@ const ShopProfile: React.FC = () => {
           <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20">
-          <PurchaseModeButton
-            onClick={() => navigate(`/shop/${encodeURIComponent(String(slug || ''))}/image-map`)}
-            className="px-8 active:scale-95 transition-all shadow-2xl"
-          />
-        </div>
+        {(() => {
+          const host = String((typeof window !== 'undefined' ? window.location?.hostname : '') || '').toLowerCase();
+          const isLocal = host === 'localhost' || host === '127.0.0.1';
+          if (!isLocal) return null;
+          return (
+            <div className="absolute left-1/2 bottom-6 -translate-x-1/2 z-20">
+              <PurchaseModeButton
+                onClick={() => navigate(`/shop/${encodeURIComponent(String(slug || ''))}/image-map`)}
+                className="px-8 active:scale-95 transition-all shadow-2xl"
+              />
+            </div>
+          );
+        })()}
       </section>
 
       {/* Brand Header */}

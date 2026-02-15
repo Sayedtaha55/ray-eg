@@ -52,7 +52,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   const [savingAddons, setSavingAddons] = useState(false);
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
-  const canUseImageMapEditor = !isRestaurant;
+  const host = String((typeof window !== 'undefined' ? window.location?.hostname : '') || '').toLowerCase();
+  const isLocalEnv = host === 'localhost' || host === '127.0.0.1';
+  const canUseImageMapEditor = !isRestaurant && isLocalEnv;
   const pageTitle = isRestaurant ? 'المنيو' : 'المخزون والمنتجات';
 
   const normalizeNumber = (v: any, fallback: number) => {
