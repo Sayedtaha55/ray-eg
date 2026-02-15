@@ -193,7 +193,7 @@ const HomeFeed: React.FC = () => {
       <section className="mb-16 md:mb-24">
         <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
            <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
-           <Link to="/shops" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
+           <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
              مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
            </Link>
         </div>

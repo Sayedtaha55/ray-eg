@@ -17,12 +17,13 @@ import {
   normalizeShopFromBackend,
 } from './api/normalizers';
 import {
+  loginViaBackend,
+  signupViaBackend,
+  courierSignupViaBackend,
   devMerchantLoginViaBackend,
   devCourierLoginViaBackend,
-  courierSignupViaBackend,
-  loginViaBackend,
   sessionViaBackend,
-  signupViaBackend,
+  changePasswordViaBackend,
 } from './api/modules/auth';
 import {
   getMyNotificationsViaBackend,
@@ -97,11 +98,12 @@ import {
   createCourierViaBackend,
   deleteUserViaMock,
   getAllUsersViaMock,
+  updateUserRoleViaMock,
   getCouriersViaBackend,
   getPendingCouriersViaBackend,
   approveCourierViaBackend,
   rejectCourierViaBackend,
-  updateUserRoleViaMock,
+  updateMyProfileViaBackend,
 } from './api/modules/users';
 import {
   getPendingShopsViaBackend,
@@ -461,7 +463,7 @@ export const ApiService = {
     });
   },
   changePassword: async (payload: { currentPassword: string; newPassword: string }) => {
-    return await backendPost<any>('/api/v1/auth/password/change', {
+    return await changePasswordViaBackend({
       currentPassword: String(payload?.currentPassword || ''),
       newPassword: String(payload?.newPassword || ''),
     });
@@ -779,6 +781,10 @@ export const ApiService = {
   },
   rejectCourier: async (id: string) => {
     return await rejectCourierViaBackend(id);
+  },
+
+  updateMyProfile: async (payload: { name?: string; phone?: string | null }) => {
+    return await updateMyProfileViaBackend(payload);
   },
 
   // Analytics

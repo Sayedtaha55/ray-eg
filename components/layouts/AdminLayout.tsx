@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, MessageSquare, CreditCard, Store, BarChart3, FileText } from 'lucide-react';
+import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, MessageSquare, CreditCard, Store, BarChart3, FileText, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
@@ -65,6 +65,7 @@ const AdminLayout: React.FC = () => {
            <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname.startsWith('/admin/shops')} />
            <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname.startsWith('/admin/users')} />
            <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname.startsWith('/admin/orders')} />
+           <AdminNavItem to="/admin/delivery" icon={<Truck size={20} />} label="إدارة التوصيل" active={location.pathname.startsWith('/admin/delivery')} />
            <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname.startsWith('/admin/feedback')} />
            <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label="التحليلات" active={location.pathname.startsWith('/admin/analytics')} />
            <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label="الإشعارات" active={location.pathname.startsWith('/admin/notifications')} />

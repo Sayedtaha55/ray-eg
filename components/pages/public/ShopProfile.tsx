@@ -833,7 +833,7 @@ const ShopProfile: React.FC = () => {
                 </button>
               )}
               <button
-                onClick={() => navigate(-1)}
+                onClick={() => navigate('/', { replace: true })}
                 className="hidden md:inline-flex p-2 md:p-2.5 bg-white/90 backdrop-blur-md rounded-full shadow-sm border pointer-events-auto active:scale-90 transition-transform"
                 style={{ borderColor: `${headerTextColor}15` }}
               >

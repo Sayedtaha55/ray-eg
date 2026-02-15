@@ -269,8 +269,6 @@ const PublicLayout: React.FC = () => {
                 <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
               <nav className="flex flex-col gap-6 flex-1">
-                <MobileNavItem to="/shops" onClick={() => setMobileMenuOpen(false)} icon={<ShoppingCart className="text-[#00E5FF]" />} label="المحلات" />
-                <MobileNavItem to="/restaurants" onClick={() => setMobileMenuOpen(false)} icon={<ShoppingCart className="text-[#BD00FF]" />} label="المطاعم" />
               </nav>
             </motion.div>
           </>
@@ -432,8 +430,6 @@ const PublicLayout: React.FC = () => {
               <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
               <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                 <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
-                <Link to="/shops" className="hover:text-white transition-colors">المحلات</Link>
-                <Link to="/restaurants" className="hover:text-white transition-colors">المطاعم</Link>
               </nav>
             </div>
             <div>

@@ -11,7 +11,8 @@ import {
   Store,
   Palette,
   MessageSquare,
-  CreditCard
+  CreditCard,
+  Truck
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 
@@ -38,6 +39,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
     { icon: <Store size={20} />, label: 'إدارة المتاجر', href: '/admin/shops' },
     { icon: <Users size={20} />, label: 'إدارة المستخدمين', href: '/admin/users' },
     { icon: <CreditCard size={20} />, label: 'كافة العمليات', href: '/admin/orders' },
+    { icon: <Truck size={20} />, label: 'إدارة التوصيل', href: '/admin/delivery' },
     { icon: <MessageSquare size={20} />, label: 'مركز الاقتراحات', href: '/admin/feedback' },
     { icon: <Settings size={20} />, label: 'إعدادات النظام', href: '/admin/settings' },
   ];
@@ -53,8 +55,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
 
   const customerNavItems: NavItem[] = [
     { icon: <LayoutDashboard size={20} />, label: 'الرئيسية', href: '/' },
-    { icon: <Store size={20} />, label: 'المتاجر', href: '/shops' },
-    { icon: <Store size={20} />, label: 'المطاعم', href: '/restaurants' },
     { icon: <CreditCard size={20} />, label: 'طلباتي', href: '/orders' },
     { icon: <MessageSquare size={20} />, label: 'الرسائل', href: '/messages' },
     { icon: <Settings size={20} />, label: 'الإعدادات', href: '/settings' },

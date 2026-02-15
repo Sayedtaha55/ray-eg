@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { MapPin, Loader2, CheckCircle, Banknote, RefreshCw, LogOut, Menu, X, Settings, ClipboardList, Bell } from 'lucide-react';
+import { MapPin, Loader2, CheckCircle, Banknote, RefreshCw, LogOut, Menu, X, Settings, ClipboardList, Bell, Phone, Copy, Navigation } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 
 const { useNavigate } = ReactRouterDOM as any;
@@ -92,6 +92,19 @@ const CourierOrders: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersRefreshing, setOffersRefreshing] = useState(false);
+  const [stateLoading, setStateLoading] = useState(false);
+  const [lastState, setLastState] = useState<any>(null);
+  const [geoStatus, setGeoStatus] = useState<'unknown' | 'ok' | 'blocked' | 'unsupported'>('unknown');
+  const [geoLastFixAt, setGeoLastFixAt] = useState<number | null>(null);
+
+  const [profileName, setProfileName] = useState('');
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileSaving, setProfileSaving] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
 
   const courierUser = useMemo(() => {
     try {
@@ -101,6 +114,86 @@ const CourierOrders: React.FC = () => {
       return {};
     }
   }, []);
+
+  useEffect(() => {
+    setProfileName(String((courierUser as any)?.name || '').trim());
+    setProfilePhone(String((courierUser as any)?.phone || '').trim());
+  }, [courierUser]);
+
+  const persistLocalUser = (updatedUser: any) => {
+    try {
+      localStorage.setItem('ray_user', JSON.stringify(updatedUser || {}));
+    } catch {
+    }
+    try {
+      window.dispatchEvent(new Event('auth-change'));
+    } catch {
+    }
+  };
+
+  const handleSaveProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (profileSaving) return;
+    const name = String(profileName || '').trim();
+    const phone = String(profilePhone || '').trim();
+    if (!name) {
+      window.alert('الاسم مطلوب');
+      return;
+    }
+
+    setProfileSaving(true);
+    try {
+      const updated = await ApiService.updateMyProfile({
+        name,
+        phone: phone ? phone : null,
+      });
+      const merged = { ...(courierUser as any), ...(updated || {}) };
+      persistLocalUser(merged);
+      window.alert('تم حفظ البيانات بنجاح');
+    } catch (err: any) {
+      window.alert(String(err?.message || 'فشل حفظ البيانات'));
+    } finally {
+      setProfileSaving(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwordSaving) return;
+
+    const cur = String(currentPassword || '');
+    const next = String(newPassword || '');
+    const conf = String(confirmNewPassword || '');
+
+    if (!cur) {
+      window.alert('اكتب كلمة المرور الحالية');
+      return;
+    }
+    if (!next || next.length < 8) {
+      window.alert('كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل');
+      return;
+    }
+    if (next !== conf) {
+      window.alert('تأكيد كلمة المرور غير مطابق');
+      return;
+    }
+
+    const ok = window.confirm('تأكيد تغيير كلمة المرور؟');
+    if (!ok) return;
+
+    setPasswordSaving(true);
+    try {
+      await ApiService.changePassword({ currentPassword: cur, newPassword: next });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+      window.alert('تم تغيير كلمة المرور بنجاح');
+    } catch (err: any) {
+      window.alert(String(err?.message || 'فشل تغيير كلمة المرور'));
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   const loadOffers = useCallback(async (quiet = false) => {
     if (!quiet) setOffersLoading(true);
@@ -117,14 +210,73 @@ const CourierOrders: React.FC = () => {
   }, []);
 
   const syncCourierStateFromBackend = useCallback(async () => {
+    setStateLoading(true);
     try {
       const s = await ApiService.getCourierState();
+      setLastState(s);
       if (typeof s?.isAvailable === 'boolean') {
         setIsAvailable(Boolean(s.isAvailable));
       }
     } catch {
+      setLastState(null);
     }
+    setStateLoading(false);
   }, []);
+
+  const copyText = async (value: string, fallbackLabel: string) => {
+    const v = String(value || '').trim();
+    if (!v) return;
+    try {
+      await navigator.clipboard.writeText(v);
+      return;
+    } catch {
+      try {
+        window.prompt(fallbackLabel, v);
+      } catch {
+      }
+    }
+  };
+
+  const getOrderGrandTotal = (order: any) => {
+    const fee = getDeliveryFeeFromNotes(order?.notes) || 0;
+    return Number(order?.total || 0) + fee;
+  };
+
+  const updateLocationOnce = useCallback(async () => {
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoStatus('unsupported');
+      return;
+    }
+    try {
+      setGeoStatus('unknown');
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          const lat = Number(pos?.coords?.latitude);
+          const lng = Number(pos?.coords?.longitude);
+          const accuracy = Number(pos?.coords?.accuracy);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+          try {
+            await ApiService.updateCourierState({
+              ...(typeof isAvailable === 'boolean' ? { isAvailable } : {}),
+              lat,
+              lng,
+              ...(Number.isFinite(accuracy) ? { accuracy } : {}),
+            });
+            setGeoStatus('ok');
+            setGeoLastFixAt(Date.now());
+            syncCourierStateFromBackend();
+          } catch {
+          }
+        },
+        () => {
+          setGeoStatus('blocked');
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 } as any,
+      );
+    } catch {
+      setGeoStatus('blocked');
+    }
+  }, [isAvailable, syncCourierStateFromBackend]);
 
   const handleLogout = async () => {
     try {
@@ -249,6 +401,17 @@ const CourierOrders: React.FC = () => {
     const totalOrders = orders.length;
     const delivered = orders.filter((o) => String(o.status || '').toUpperCase() === 'DELIVERED').length;
     return { totalOrders, delivered };
+  }, [orders]);
+
+  const kpis = useMemo(() => {
+    const active = (orders || []).filter((o) => String(o.status || '').toUpperCase() !== 'DELIVERED');
+    const pendingCod = (orders || []).filter((o) => String(o.status || '').toUpperCase() === 'DELIVERED' && !o?.codCollectedAt);
+    const pendingCodAmount = pendingCod.reduce((acc, o) => acc + getOrderGrandTotal(o), 0);
+    return {
+      activeCount: active.length,
+      pendingCodCount: pendingCod.length,
+      pendingCodAmount,
+    };
   }, [orders]);
 
   const offersSummary = useMemo(() => {
@@ -485,14 +648,12 @@ const CourierOrders: React.FC = () => {
                 <p className="text-lg md:text-2xl font-black text-emerald-400">{summary.delivered}</p>
               </div>
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">تحديث تلقائي</p>
-                <p className="text-lg md:text-2xl font-black text-white">{autoRefresh ? `${refreshSeconds}s` : 'مغلق'}</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">طلبات قيد التنفيذ</p>
+                <p className="text-lg md:text-2xl font-black text-white">{kpis.activeCount}</p>
               </div>
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">تبويب</p>
-                <p className="text-sm md:text-base font-black text-white">
-                  {activeTab === 'orders' ? 'الطلبات' : activeTab === 'offers' ? `عروض (${offersSummary.pending})` : activeTab === 'delivered' ? 'تم التوصيل' : 'الإعدادات'}
-                </p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">كاش معلّق</p>
+                <p className="text-sm md:text-base font-black text-white">{kpis.pendingCodCount ? `ج.م ${Math.round(kpis.pendingCodAmount).toLocaleString()}` : 'لا يوجد'}</p>
               </div>
             </div>
 
@@ -506,14 +667,61 @@ const CourierOrders: React.FC = () => {
                   <Settings size={20} className="text-slate-400" />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-3">
+                <div className="grid lg:grid-cols-2 gap-4">
+                  <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
                     <p className="text-xs text-slate-500 font-black">بيانات الحساب</p>
-                    <div className="text-sm font-black text-white break-all">{String(courierUser?.name || 'مندوب')}</div>
-                    <div className="text-xs font-bold text-slate-400 break-all">{String(courierUser?.email || '')}</div>
-                    {courierUser?.phone ? (
-                      <div className="text-xs font-bold text-slate-500 break-all">{String(courierUser.phone)}</div>
-                    ) : null}
+                    <form onSubmit={handleSaveProfile} className="space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الاسم</label>
+                        <input
+                          value={profileName}
+                          onChange={(e) => setProfileName(e.target.value)}
+                          disabled={profileSaving}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                          placeholder="اسم المندوب"
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الهاتف</label>
+                        <input
+                          value={profilePhone}
+                          onChange={(e) => setProfilePhone(e.target.value)}
+                          disabled={profileSaving}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                          placeholder="01xxxxxxxxx"
+                        />
+                      </div>
+
+                      <div className="text-[11px] text-slate-500 font-bold">البريد: {String((courierUser as any)?.email || '')}</div>
+
+                      <button
+                        type="submit"
+                        disabled={profileSaving}
+                        className="w-full py-3 rounded-2xl bg-[#00E5FF] text-slate-900 font-black text-sm disabled:opacity-60"
+                      >
+                        {profileSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
+                      </button>
+                    </form>
+
+                    <div className="pt-3 border-t border-white/10 space-y-2">
+                      <p className="text-xs text-slate-500 font-black">الحالة من السيرفر</p>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs font-bold text-slate-300">
+                          {stateLoading ? 'جاري المزامنة...' : `متاح: ${typeof lastState?.isAvailable === 'boolean' ? (lastState.isAvailable ? 'نعم' : 'لا') : 'غير معروف'}`}
+                        </div>
+                        <button
+                          onClick={syncCourierStateFromBackend}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-black"
+                        >
+                          <RefreshCw size={14} className={stateLoading ? 'animate-spin' : ''} />
+                          مزامنة
+                        </button>
+                      </div>
+                      {lastState?.lastSeenAt ? (
+                        <div className="text-[11px] text-slate-500 font-bold">آخر ظهور: {new Date(lastState.lastSeenAt).toLocaleString('ar-EG')}</div>
+                      ) : null}
+                    </div>
                   </div>
 
                   <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
@@ -537,6 +745,31 @@ const CourierOrders: React.FC = () => {
                         className="w-5 h-5"
                       />
                     </label>
+
+                    <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-black text-slate-200">حالة GPS</p>
+                          <p className="text-[11px] font-bold text-slate-500 mt-1">
+                            {geoStatus === 'unsupported'
+                              ? 'غير مدعوم'
+                              : geoStatus === 'blocked'
+                                ? 'مرفوض'
+                                : geoStatus === 'ok'
+                                  ? 'شغال'
+                                  : 'غير معروف'}
+                            {geoLastFixAt ? ` • آخر تحديث: ${new Date(geoLastFixAt).toLocaleTimeString('ar-EG')}` : ''}
+                          </p>
+                        </div>
+                        <button
+                          onClick={updateLocationOnce}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 text-xs font-black"
+                        >
+                          <Navigation size={14} />
+                          تحديث الموقع
+                        </button>
+                      </div>
+                    </div>
 
                     <label className="flex items-center justify-between gap-3">
                       <span className="text-sm font-black">تفعيل التحديث التلقائي</span>
@@ -574,6 +807,43 @@ const CourierOrders: React.FC = () => {
                     >
                       فتح الطلبات الآن
                     </button>
+
+                    <div className="pt-4 border-t border-white/10">
+                      <p className="text-xs text-slate-500 font-black mb-3">تغيير كلمة المرور</p>
+                      <form onSubmit={handleChangePassword} className="space-y-3">
+                        <input
+                          type="password"
+                          value={currentPassword}
+                          onChange={(e) => setCurrentPassword(e.target.value)}
+                          disabled={passwordSaving}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                          placeholder="كلمة المرور الحالية"
+                        />
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          disabled={passwordSaving}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                          placeholder="كلمة المرور الجديدة"
+                        />
+                        <input
+                          type="password"
+                          value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          disabled={passwordSaving}
+                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                          placeholder="تأكيد كلمة المرور الجديدة"
+                        />
+                        <button
+                          type="submit"
+                          disabled={passwordSaving}
+                          className="w-full py-3 rounded-2xl bg-white text-slate-900 font-black text-sm disabled:opacity-60"
+                        >
+                          {passwordSaving ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -688,15 +958,18 @@ const CourierOrders: React.FC = () => {
                   const shopLat = Number((order as any)?.shop?.latitude);
                   const shopLng = Number((order as any)?.shop?.longitude);
                   const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
+                  const customerPhone = String(order?.user?.phone || '').trim();
+                  const customerName = String(order?.user?.name || 'غير معروف');
+                  const shopName = String(order?.shop?.name || 'متجر غير معروف');
 
                   return (
                     <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 lg:p-8">
                       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
                         <div className="space-y-1 md:space-y-2">
                           <p className="text-xs text-slate-500 font-black uppercase">طلب #{String(order.id).slice(0, 8)}</p>
-                          <h3 className="text-lg md:text-xl font-black">{order?.shop?.name || 'متجر غير معروف'}</h3>
+                          <h3 className="text-lg md:text-xl font-black">{shopName}</h3>
                           <p className="text-xs md:text-sm text-slate-400 font-bold">
-                            العميل: {order?.user?.name || 'غير معروف'} {order?.user?.phone ? `• ${order.user.phone}` : ''}
+                            العميل: {customerName} {customerPhone ? `• ${customerPhone}` : ''}
                           </p>
                           <p className="text-xs text-slate-500">{new Date(order.created_at || order.createdAt).toLocaleString('ar-EG')}</p>
                         </div>
@@ -721,6 +994,23 @@ const CourierOrders: React.FC = () => {
                               <MapPin size={12} /> مسار من المتجر
                             </a>
                           )}
+                          {customerPhone ? (
+                            <a
+                              href={`tel:${customerPhone}`}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
+                            >
+                              <Phone size={12} /> اتصال
+                            </a>
+                          ) : null}
+                          {customerPhone ? (
+                            <button
+                              type="button"
+                              onClick={() => copyText(customerPhone, 'انسخ رقم العميل')}
+                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
+                            >
+                              <Copy size={12} /> نسخ الرقم
+                            </button>
+                          ) : null}
                           <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
                             الإجمالي: ج.م {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
                           </span>
@@ -752,18 +1042,37 @@ const CourierOrders: React.FC = () => {
                           <div className="flex flex-wrap gap-2 md:gap-3">
                             <button
                               disabled={delivered}
-                              onClick={() => updateOrder(String(order.id), { status: 'DELIVERED' })}
+                              onClick={async () => {
+                                if (delivered) return;
+                                const ok = window.confirm('تأكيد: تم تسليم الطلب للعميل؟');
+                                if (!ok) return;
+                                await updateOrder(String(order.id), { status: 'DELIVERED' });
+                              }}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${delivered ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'}`}
                             >
                               <CheckCircle size={12} /> تم التوصيل
                             </button>
                             <button
                               disabled={codCollected}
-                              onClick={() => updateOrder(String(order.id), { codCollected: true })}
+                              onClick={async () => {
+                                if (codCollected) return;
+                                const ok = window.confirm('تأكيد: تم تحصيل الكاش من العميل؟');
+                                if (!ok) return;
+                                await updateOrder(String(order.id), { codCollected: true });
+                              }}
                               className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${codCollected ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}
                             >
                               <Banknote size={12} /> {codCollected ? 'تم تحصيل الكاش' : 'تحصيل الكاش'}
                             </button>
+                            {location?.address ? (
+                              <button
+                                type="button"
+                                onClick={() => copyText(String(location.address), 'انسخ العنوان')}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black bg-white/5 text-slate-200 hover:bg-white/10"
+                              >
+                                <Copy size={12} /> نسخ العنوان
+                              </button>
+                            ) : null}
                           </div>
                           {(location?.address || location?.note) && (
                             <div className="text-xs text-slate-400">

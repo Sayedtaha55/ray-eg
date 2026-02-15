@@ -122,7 +122,7 @@ export class MediaPresignService {
 
     const isVideo = mimeType.startsWith('video/');
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-    const maxImageMbRaw = String(this.config.get<string>('MEDIA_IMAGE_MAX_MB') || '5').trim();
+    const maxImageMbRaw = String(this.config.get<string>('MEDIA_IMAGE_MAX_MB') || '25').trim();
     const maxVideoMbRaw = String(this.config.get<string>('MEDIA_VIDEO_MAX_MB') || (isProd ? '50' : '150')).trim();
     const maxBytes = Math.floor((isVideo ? Number(maxVideoMbRaw) : Number(maxImageMbRaw)) * 1024 * 1024);
 

@@ -28,7 +28,6 @@ const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, se
             onChange={(e) => {
               const file = e.target.files?.[0];
               if (!file) return;
-              if (file.size > 2 * 1024 * 1024) return;
               try {
                 if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
                   URL.revokeObjectURL(logoDataUrl);
@@ -55,7 +54,6 @@ const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, se
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                if (file.size > 2 * 1024 * 1024) return;
                 try {
                   if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
                     URL.revokeObjectURL(logoDataUrl);

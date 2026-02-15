@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Check, X, Loader2, Store, MapPin, ShieldAlert } from 'lucide-react';
+import { Check, X, Loader2, Store, MapPin, ShieldAlert, Truck } from 'lucide-react';
+import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { BackendRequestError } from '@/services/api/httpClient';
 
 const MotionDiv = motion.div as any;
 
+const { Link } = ReactRouterDOM as any;
+
 const AdminApprovals: React.FC = () => {
   const [shops, setShops] = useState<any[]>([]);
-  const [couriers, setCouriers] = useState<any[]>([]);
   const [moduleRequests, setModuleRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleLoading, setModuleLoading] = useState(false);
@@ -18,12 +20,10 @@ const AdminApprovals: React.FC = () => {
   const loadShops = async () => {
     setLoading(true);
     try {
-      const [data, courierData] = await Promise.all([
+      const [data] = await Promise.all([
         ApiService.getPendingShops(),
-        ApiService.getPendingCouriers(),
       ]);
       setShops(data);
-      setCouriers(Array.isArray(courierData) ? courierData : []);
     } catch (e) {
       addToast('فشل تحميل الطلبات', 'error');
     } finally {
@@ -57,21 +57,6 @@ const AdminApprovals: React.FC = () => {
     try {
       await ApiService.updateShopStatus(id, action);
       addToast(action === 'approved' ? 'تم تفعيل المحل بنجاح' : 'تم رفض الطلب', 'success');
-      loadShops();
-    } catch (e) {
-      addToast('حدث خطأ في العملية', 'error');
-    }
-  };
-
-  const handleCourierAction = async (id: string, action: 'approved' | 'rejected') => {
-    try {
-      if (action === 'approved') {
-        await ApiService.approveCourier(id);
-        addToast('تم قبول المندوب وتفعيله', 'success');
-      } else {
-        await ApiService.rejectCourier(id);
-        addToast('تم رفض طلب المندوب', 'success');
-      }
       loadShops();
     } catch (e) {
       addToast('حدث خطأ في العملية', 'error');
@@ -224,48 +209,18 @@ const AdminApprovals: React.FC = () => {
 
           <div className="space-y-4">
             <h3 className="text-white font-black text-lg">طلبات تسجيل المندوبين</h3>
-            {couriers.length === 0 ? (
-              <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
-                <p className="text-slate-500 font-bold">لا توجد طلبات مندوبين معلقة حالياً.</p>
+            <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
+              <div className="flex items-center justify-center gap-3 flex-row-reverse text-slate-300 font-black">
+                <Truck size={18} className="text-[#00E5FF]" />
+                إدارة طلبات المندوبين أصبحت في صفحة إدارة التوصيل
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {couriers.map((c: any) => (
-                  <MotionDiv
-                    key={c.id}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
-                  >
-                    <div className="flex items-center gap-6 flex-row-reverse">
-                      <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-[#00E5FF] text-2xl">
-                        {String(c?.name || 'C').charAt(0)}
-                      </div>
-                      <div className="text-right">
-                        <h4 className="text-xl font-black text-white">{c?.name || 'مندوب'}</h4>
-                        <div className="text-slate-400 text-xs font-bold mt-1">{c?.email}</div>
-                        {c?.phone ? <div className="text-slate-500 text-xs font-bold mt-1">{c.phone}</div> : null}
-                      </div>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <button
-                        onClick={() => handleCourierAction(String(c.id), 'approved')}
-                        className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
-                      >
-                        <Check size={18} /> قبول المندوب
-                      </button>
-                      <button
-                        onClick={() => handleCourierAction(String(c.id), 'rejected')}
-                        className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
-                      >
-                        <X size={18} /> رفض الطلب
-                      </button>
-                    </div>
-                  </MotionDiv>
-                ))}
-              </div>
-            )}
+              <Link
+                to="/admin/delivery?tab=pending"
+                className="inline-flex items-center gap-2 px-6 py-3 mt-6 rounded-2xl bg-[#00E5FF] text-black font-black text-sm"
+              >
+                فتح إدارة التوصيل
+              </Link>
+            </div>
           </div>
         </div>
       )}

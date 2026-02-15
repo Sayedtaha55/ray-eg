@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard, Search, MoreVertical, DollarSign, Loader2, Filter, ShoppingBag, UserPlus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import * as ReactRouterDOM from 'react-router-dom';
+
+const { useNavigate } = ReactRouterDOM as any;
 
 const AdminOrders: React.FC = () => {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [couriers, setCouriers] = useState<any[]>([]);
@@ -139,39 +143,8 @@ const AdminOrders: React.FC = () => {
     }
   };
 
-  const createCourier = async () => {
-    const token = (() => {
-      try {
-        return localStorage.getItem('ray_token') || '';
-      } catch {
-        return '';
-      }
-    })();
-    if (!token) {
-      window.alert('غير مسجل دخول كـ Admin أو التوكن غير موجود. سجّل دخول من بوابة الآدمن ثم أعد المحاولة.');
-      return;
-    }
-
-    const name = window.prompt('اسم المندوب');
-    if (!name) return;
-    const email = window.prompt('البريد الإلكتروني');
-    if (!email) return;
-    const phone = window.prompt('رقم الهاتف (اختياري)');
-    const password = window.prompt('كلمة المرور (8 أحرف على الأقل)');
-    if (!password) return;
-
-    try {
-      await ApiService.createCourier({
-        name: String(name).trim(),
-        email: String(email).trim(),
-        phone: phone ? String(phone).trim() : undefined,
-        password: String(password),
-      });
-      await loadCouriers();
-      window.alert('تم إنشاء المندوب بنجاح');
-    } catch (e: any) {
-      window.alert(e?.message || 'فشل إنشاء المندوب');
-    }
+  const goToCourierCreate = () => {
+    navigate('/admin/delivery?tab=create');
   };
 
   return (
@@ -189,7 +162,7 @@ const AdminOrders: React.FC = () => {
         
         <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto md:items-center">
           <button
-            onClick={createCourier}
+            onClick={goToCourierCreate}
             className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-black hover:bg-[#00E5FF]/20 transition"
           >
             <UserPlus size={16} />

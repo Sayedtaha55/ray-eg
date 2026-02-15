@@ -243,8 +243,6 @@ const BusinessLanding: React.FC = () => {
             <div>
               <h4 className="text-lg font-black text-white mb-4">روابط سريعة</h4>
               <ul className="space-y-2">
-                <li><Link to="/shops" className="hover:text-[#00E5FF] transition-colors">المحلات</Link></li>
-                <li><Link to="/restaurants" className="hover:text-[#00E5FF] transition-colors">المطاعم</Link></li>
                 <li><Link to="/" className="hover:text-[#00E5FF] transition-colors">الرئيسية</Link></li>
               </ul>
             </div>

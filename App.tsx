@@ -4,8 +4,6 @@ import * as ReactRouterDOM from 'react-router-dom';
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
 
 const HomeFeed = React.lazy(() => import('./components/pages/public/HomeFeed'));
-const ShopsPage = React.lazy(() => import('./components/pages/public/ShopsPage'));
-const RestaurantsPage = React.lazy(() => import('./components/pages/public/RestaurantsPage'));
 const OffersPage = React.lazy(() => import('./components/pages/public/OffersPage'));
 const MapPage = React.lazy(() => import('./components/pages/public/MapPage'));
 const LoginPage = React.lazy(() => import('./components/pages/auth/LoginPage'));
@@ -39,6 +37,7 @@ const AdminApprovals = React.lazy(() => import('./components/pages/admin/AdminAp
 const AdminShops = React.lazy(() => import('./components/pages/admin/AdminShops'));
 const AdminUsers = React.lazy(() => import('./components/pages/admin/AdminUsers'));
 const AdminOrders = React.lazy(() => import('./components/pages/admin/AdminOrders'));
+const AdminDelivery = React.lazy(() => import('./components/pages/admin/AdminDelivery'));
 const AdminFeedback = React.lazy(() => import('./components/pages/admin/AdminFeedback'));
 const AdminAnalytics = React.lazy(() => import('./components/pages/admin/AdminAnalytics'));
 const AdminNotifications = React.lazy(() => import('./components/pages/admin/AdminNotifications'));
@@ -182,8 +181,8 @@ const App: React.FC = () => {
       <Routes>
         <Route path="/" element={suspense(<PublicLayout />)}>
           <Route index element={suspense(<HomeFeed />)} />
-          <Route path="shops" element={suspense(<ShopsPage />)} />
-          <Route path="restaurants" element={suspense(<RestaurantsPage />)} />
+          <Route path="shops" element={<Navigate to="/" replace />} />
+          <Route path="restaurants" element={<Navigate to="/" replace />} />
           <Route path="offers" element={suspense(<OffersPage />)} />
           <Route path="map" element={suspense(<MapPage />)} />
           <Route path="login" element={suspense(<LoginPage />)} />
@@ -230,6 +229,7 @@ const App: React.FC = () => {
           <Route path="shops" element={suspense(<AdminShops />)} />
           <Route path="users" element={suspense(<AdminUsers />)} />
           <Route path="orders" element={suspense(<AdminOrders />)} />
+          <Route path="delivery" element={suspense(<AdminDelivery />)} />
           <Route path="feedback" element={suspense(<AdminFeedback />)} />
           <Route path="analytics" element={suspense(<AdminAnalytics />)} />
           <Route path="notifications" element={suspense(<AdminNotifications />)} />

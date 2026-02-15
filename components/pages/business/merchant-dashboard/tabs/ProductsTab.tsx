@@ -596,10 +596,6 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                               addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
                               return;
                             }
-                            if (file.size > 2 * 1024 * 1024) {
-                              addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
-                              return;
-                            }
                             setAddonItems((prev) =>
                               prev.map((x) => {
                                 if (x.id !== a.id) return x;

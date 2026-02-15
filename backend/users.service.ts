@@ -6,6 +6,52 @@ import { PrismaService } from './prisma/prisma.service';
 export class UsersService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  async updateMe(userIdRaw: string, input: { name?: string; phone?: string | null }) {
+    const userId = String(userIdRaw || '').trim();
+    if (!userId) throw new BadRequestException('غير مصرح');
+
+    const name = input?.name != null ? String(input.name).trim() : undefined;
+    const phone = input?.phone != null ? String(input.phone).trim() : undefined;
+
+    const data: any = {};
+    if (name != null) {
+      if (!name) throw new BadRequestException('الاسم مطلوب');
+      data.name = name;
+    }
+
+    if (phone != null) {
+      if (!phone) {
+        data.phone = null;
+      } else {
+        const existingPhone = await this.prisma.user.findUnique({ where: { phone } });
+        if (existingPhone && String(existingPhone.id) !== String(userId)) {
+          throw new ConflictException('رقم الهاتف مستخدم بالفعل في نظامنا');
+        }
+        data.phone = phone;
+      }
+    }
+
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('لا توجد بيانات للتحديث');
+    }
+
+    const updated = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+
+    return updated;
+  }
+
   async listCouriers() {
     return this.prisma.user.findMany({
       where: { role: 'COURIER' as any },

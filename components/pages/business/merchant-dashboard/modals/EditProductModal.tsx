@@ -252,10 +252,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         }
         return;
       }
-      if (file.size > 2 * 1024 * 1024) {
-        addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
-        return;
-      }
       try {
         if (imagePreview && imagePreview.startsWith('blob:')) {
           URL.revokeObjectURL(imagePreview);
@@ -281,10 +277,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       const mime = String(file.type || '').toLowerCase().trim();
       if (!mime || !allowed.has(mime)) {
         addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-        continue;
-      }
-      if (file.size > 2 * 1024 * 1024) {
-        addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
         continue;
       }
       nextFiles.push(file);
@@ -559,7 +551,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                     <Upload size={32} />
                   </div>
                   <p className="font-black text-slate-900 mb-1">اضغط لرفع صورة</p>
-                  <p className="text-xs text-slate-400 font-bold">JPG, PNG (بحد أقصى 2 ميجا)</p>
+                  <p className="text-xs text-slate-400 font-bold">JPG, PNG</p>
                 </div>
               )}
               <input type="file" hidden accept="image/jpeg,image/png,image/webp,image/avif" ref={fileInputRef} onChange={handleImageChange} />
@@ -859,10 +851,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                                 const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
                                 if (!mime || !allowed.has(mime)) {
                                   addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-                                  return;
-                                }
-                                if (file.size > 2 * 1024 * 1024) {
-                                  addToast('الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', 'error');
                                   return;
                                 }
                                 setAddonItems((prev) =>

@@ -12,6 +12,10 @@ export async function loginViaBackend(email: string, pass: string) {
   };
 }
 
+export async function changePasswordViaBackend(payload: { currentPassword: string; newPassword: string }) {
+  return await backendPost<any>('/api/v1/auth/password/change', payload);
+}
+
 export async function courierSignupViaBackend(payload: { email: string; password: string; fullName: string; phone?: string }) {
   const data = await backendPost<any>('/api/v1/auth/courier-signup', payload);
   return {

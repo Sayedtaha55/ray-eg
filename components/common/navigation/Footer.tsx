@@ -38,8 +38,6 @@ const Footer: React.FC = () => {
     {
       title: 'الخدمات',
       links: [
-        { name: 'المتاجر', href: '/shops' },
-        { name: 'المطاعم', href: '/restaurants' },
         { name: 'العروض', href: '/offers' },
         { name: 'التوصيل', href: '/delivery' },
       ],

@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Settings, ShoppingBag, Heart, MapPin, Bell, LogOut, ChevronLeft, Star, CalendarCheck, Clock, CheckCircle2, AlertCircle, Zap, ArrowLeft, Store, UtensilsCrossed, Sparkles } from 'lucide-react';
+import { User, Settings, ShoppingBag, Heart, MapPin, Bell, LogOut, ChevronLeft, Star, CalendarCheck, Clock, CheckCircle2, AlertCircle, Zap, ArrowLeft, Sparkles } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
@@ -165,16 +165,10 @@ const ProfilePage: React.FC = () => {
                            <Heart size={48} fill="currentColor" />
                         </div>
                         <h3 className="text-3xl font-black mb-4">فين الحب؟</h3>
-                        <p className="text-slate-400 font-bold text-lg mb-10 max-w-sm leading-relaxed">
+                        <p className="text-slate-500 text-sm font-bold mb-8">
                            لسة مفيش منتجات في المفضلة. ضيف الحاجات اللي عجبتك عشان تلاقيها هنا بسرعة.
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
-                          <Link to="/shops" className="px-8 py-5 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all">
-                             <Store size={18} /> تسوق المحلات
-                          </Link>
-                          <Link to="/restaurants" className="px-8 py-5 bg-white border border-slate-200 text-slate-900 rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-slate-50 transition-all">
-                             <UtensilsCrossed size={18} /> اكتشف المطاعم
-                          </Link>
                         </div>
                      </div>
                    ) : (

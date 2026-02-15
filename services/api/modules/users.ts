@@ -36,3 +36,7 @@ export async function approveCourierViaBackend(id: string) {
 export async function rejectCourierViaBackend(id: string) {
   return await backendPatch<any>(`/api/v1/users/couriers/${encodeURIComponent(id)}/reject`, {});
 }
+
+export async function updateMyProfileViaBackend(payload: { name?: string; phone?: string | null }) {
+  return await backendPatch<any>(`/api/v1/users/me`, payload);
+}
