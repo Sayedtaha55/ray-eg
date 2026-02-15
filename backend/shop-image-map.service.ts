@@ -33,6 +33,28 @@ export class ShopImageMapService {
     });
   }
 
+  private isInlineDataImageUrl(value: any) {
+    const s = this.normalizeId(value);
+    return Boolean(s) && s.toLowerCase().startsWith('data:image/');
+  }
+
+  private shouldPurgeInlineImage(map: any) {
+    if (!map) return false;
+    if (!this.isInlineDataImageUrl(map?.imageUrl)) return false;
+    const sectionsEmpty = Array.isArray(map?.sections) && map.sections.length === 0;
+    const hotspotsEmpty = Array.isArray(map?.hotspots) && map.hotspots.length === 0;
+    return sectionsEmpty && hotspotsEmpty;
+  }
+
+  private async purgeInlineImageIfNeeded(mapId: string) {
+    const mid = this.normalizeId(mapId);
+    if (!mid) return;
+    await (this.prisma as any).shopImageMap.update({
+      where: { id: mid },
+      data: { imageUrl: null },
+    });
+  }
+
   async analyze(shopId: string, payload: any, ctx: { role?: any; shopId?: any }) {
     const sid = this.normalizeId(shopId);
     if (!sid) throw new BadRequestException('shopId مطلوب');
@@ -101,6 +123,11 @@ export class ShopImageMapService {
       },
     });
 
+    const toPurge = (Array.isArray(maps) ? maps : []).filter((m: any) => this.shouldPurgeInlineImage(m));
+    if (toPurge.length) {
+      await Promise.all(toPurge.map((m: any) => this.purgeInlineImageIfNeeded(String(m.id))));
+    }
+
     const toHeal = (Array.isArray(maps) ? maps : []).filter((m: any) => {
       const img = this.normalizeId(m?.imageUrl);
       const sectionsEmpty = Array.isArray(m?.sections) && m.sections.length === 0;
@@ -108,7 +135,7 @@ export class ShopImageMapService {
       return Boolean(img) && sectionsEmpty && hasHotspots;
     });
 
-    if (toHeal.length === 0) return maps;
+    if (toHeal.length === 0 && toPurge.length === 0) return maps;
 
     await Promise.all(toHeal.map((m: any) => this.ensureDefaultSectionIfMissing(String(m.id))));
 
@@ -393,11 +420,20 @@ export class ShopImageMapService {
       return { shop, map: null };
     }
 
+    const needsPurge = this.shouldPurgeInlineImage(map);
+
     const img = this.normalizeId((map as any)?.imageUrl);
     const sectionsEmpty = Array.isArray((map as any)?.sections) && (map as any).sections.length === 0;
     const hasHotspots = Array.isArray((map as any)?.hotspots) && (map as any).hotspots.length > 0;
-    if (img && sectionsEmpty && hasHotspots) {
+    const needsHeal = Boolean(img) && sectionsEmpty && hasHotspots;
+
+    if (needsPurge) {
+      await this.purgeInlineImageIfNeeded(String((map as any).id));
+    }
+    if (needsHeal) {
       await this.ensureDefaultSectionIfMissing(String((map as any).id));
+    }
+    if (needsPurge || needsHeal) {
       map = await (this.prisma as any).shopImageMap.findUnique({
         where: { id: String((map as any).id) },
         include: {
