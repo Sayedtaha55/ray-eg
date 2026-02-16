@@ -158,7 +158,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
 
     setIsDeleting(true);
     try {
-      await ApiService.deactivateMyAccount();
+      const result = await ApiService.deactivateMyAccount();
       try {
         localStorage.removeItem('ray_user');
         localStorage.removeItem('ray_token');
@@ -166,9 +166,23 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       } catch {
       }
 
+      const scheduled = (result as any)?.scheduledPurgeAt;
+      const scheduledText = (() => {
+        if (!scheduled) return '';
+        const d = new Date(String(scheduled));
+        if (Number.isNaN(d.getTime())) return '';
+        try {
+          return d.toLocaleString('ar-EG');
+        } catch {
+          return d.toISOString();
+        }
+      })();
+
       toast({
         title: 'تم حذف الحساب',
-        description: 'تم تعطيل حسابك بنجاح',
+        description: scheduledText
+          ? `تم تعطيل حسابك وإخفاء المتجر فوراً. إذا لم تقم بتسجيل الدخول خلال 30 يوم سيتم حذف الحساب نهائياً تلقائياً بتاريخ: ${scheduledText}`
+          : 'تم تعطيل حسابك وإخفاء المتجر فوراً. إذا لم تقم بتسجيل الدخول خلال 30 يوم سيتم حذف الحساب نهائياً تلقائياً.',
       });
 
       try {

@@ -82,6 +82,8 @@ const ShopProfile: React.FC = () => {
   const [currentDesign, setCurrentDesign] = useState<ShopDesign | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [bannerReady, setBannerReady] = useState(false);
+  const [pageBgReady, setPageBgReady] = useState(false);
   const [spatialMode, setSpatialMode] = useState(false);
   const [addedItemId, setAddedItemId] = useState<string | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -285,6 +287,61 @@ const ShopProfile: React.FC = () => {
     window.addEventListener('ray-builder-preview-update', applyPreview);
     return () => window.removeEventListener('ray-builder-preview-update', applyPreview);
   }, [shop?.id]);
+
+  useEffect(() => {
+    const onProductsUpdated = (ev: any) => {
+      const sid = String(shop?.id || '').trim();
+      if (!sid) return;
+      const detailShopId = String(ev?.detail?.shopId || '').trim();
+      if (detailShopId && detailShopId !== sid) return;
+
+      const key = `products:${sid}`;
+      tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+      retryProductsTab();
+    };
+
+    const onShopUpdated = async (ev: any) => {
+      const s = String(slug || '').trim();
+      if (!s) return;
+
+      const currentSid = String(shop?.id || '').trim();
+      const detailShopId = String(ev?.detail?.shopId || '').trim();
+      if (detailShopId && currentSid && detailShopId !== currentSid) return;
+
+      try {
+        const currentShopData = await ApiService.getShopBySlug(s);
+        if (!currentShopData) return;
+        setShop(JSON.parse(JSON.stringify(currentShopData)));
+        const design = currentShopData.pageDesign || {
+          layout: 'modern',
+          primaryColor: '#00E5FF',
+          secondaryColor: '#BD00FF',
+          bannerUrl: '/placeholder-banner.jpg',
+        };
+        setCurrentDesign(design as any);
+
+        productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
+        tabLoadStateRef.current = {};
+        setProducts([]);
+        setOffers([]);
+        setGalleryImages([]);
+        setHasMoreProducts(true);
+        setLoadingMoreProducts(false);
+        setProductsTabLoading(false);
+        setProductsTabError(null);
+        setGalleryTabLoading(false);
+        setGalleryTabError(null);
+      } catch {
+      }
+    };
+
+    window.addEventListener('ray-products-updated', onProductsUpdated as any);
+    window.addEventListener('ray-shop-updated', onShopUpdated as any);
+    return () => {
+      window.removeEventListener('ray-products-updated', onProductsUpdated as any);
+      window.removeEventListener('ray-shop-updated', onShopUpdated as any);
+    };
+  }, [slug, shop?.id]);
 
   useEffect(() => {
     const ensureTabData = async () => {
@@ -680,6 +737,67 @@ const ShopProfile: React.FC = () => {
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
 
+  useEffect(() => {
+    const url = String((currentDesign as any)?.bannerUrl || '').trim();
+    if (!url || isVideoUrl(url)) {
+      setBannerReady(true);
+      return;
+    }
+
+    let done = false;
+    setBannerReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      (img as any).loading = 'eager';
+      img.onload = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.src = url;
+    } catch {
+      setBannerReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [currentDesign?.bannerUrl]);
+
+  useEffect(() => {
+    const url = String(pageBgImage || '').trim();
+    if (!url) {
+      setPageBgReady(true);
+      return;
+    }
+
+    let done = false;
+    setPageBgReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.src = url;
+    } catch {
+      setPageBgReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [pageBgImage]);
+
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
   const whatsappHref = whatsappDigits
@@ -711,7 +829,7 @@ const ShopProfile: React.FC = () => {
           pageBgColor || pageBgImage
             ? ({
                 backgroundColor: pageBgColor,
-                backgroundImage: pageBgImage ? `url("${pageBgImage}")` : undefined,
+                backgroundImage: pageBgImage && pageBgReady ? `url("${pageBgImage}")` : undefined,
                 backgroundSize: pageBgImage ? 'cover' : undefined,
                 backgroundPosition: pageBgImage ? 'center' : undefined,
                 backgroundRepeat: pageBgImage ? 'no-repeat' : undefined,
@@ -958,7 +1076,16 @@ const ShopProfile: React.FC = () => {
               transition={{ duration: 15 }}
               src={currentDesign!.bannerUrl}
               className="w-full h-full object-cover opacity-70"
+              style={{ objectPosition: `${coerceNumber((currentDesign as any)?.bannerPosX, 50)}% ${coerceNumber((currentDesign as any)?.bannerPosY, 50)}%` }}
+              onLoad={() => setBannerReady(true)}
+              onError={() => setBannerReady(true)}
             />
+          )}
+
+          {!bannerReady && (
+            <div className="absolute inset-0 bg-slate-900">
+              <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-slate-800 via-slate-900 to-black" />
+            </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           {false && (

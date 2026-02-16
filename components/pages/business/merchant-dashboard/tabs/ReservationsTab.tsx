@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { CalendarCheck, Clock, Phone, User, UserCheck, Users } from 'lucide-react';
 import { Reservation } from '@/types';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 type Props = {
   reservations: Reservation[];
@@ -108,7 +109,12 @@ export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus 
               className="bg-slate-50/50 p-5 md:p-8 rounded-[2.5rem] border border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-6 md:gap-8 hover:bg-slate-50 transition-all group"
             >
               <div className="flex items-center gap-4 md:gap-8 flex-row-reverse w-full lg:w-auto min-w-0">
-                <img src={(res as any).itemImage} className="w-20 h-20 md:w-24 md:h-24 rounded-3xl object-cover shadow-xl group-hover:rotate-3 transition-transform" />
+                <SmartImage
+                  src={(res as any).itemImage}
+                  className="w-20 h-20 md:w-24 md:h-24 rounded-3xl"
+                  imgClassName="object-cover rounded-3xl shadow-xl group-hover:rotate-3 transition-transform"
+                  loading="lazy"
+                />
                 <div className="text-right min-w-0 flex-1">
                   <p className="font-black text-xl md:text-2xl text-slate-900 mb-2 break-words">
                     {(res as any).itemName}

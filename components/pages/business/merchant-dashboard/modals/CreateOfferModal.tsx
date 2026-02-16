@@ -4,6 +4,7 @@ import { Loader2, Zap, Search, Check } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { Product } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 type Props = {
   isOpen: boolean;
@@ -252,7 +253,12 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
             <div className="space-y-4">
               {product ? (
                 <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl">
-                  <img src={String((product as any).imageUrl || (product as any).image_url || '').trim() || '/placeholder-product.png'} className="w-16 h-16 rounded-xl object-cover" />
+                  <SmartImage
+                    src={String((product as any).imageUrl || (product as any).image_url || '').trim() || '/placeholder-product.png'}
+                    className="w-16 h-16 rounded-xl"
+                    imgClassName="object-cover rounded-xl"
+                    loading="lazy"
+                  />
                   <div className="text-right">
                     <p className="font-black text-sm">{(product as any).name}</p>
                     <p className="text-slate-400 font-bold text-xs">ج.م {(product as any).price}</p>
@@ -308,7 +314,12 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                           className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl border text-right ${checked ? 'bg-white border-[#BD00FF]/30' : 'bg-white/60 border-slate-100 hover:bg-white'}`}
                         >
                           <div className="flex items-center gap-3">
-                            <img src={String(p?.imageUrl || p?.image_url || '').trim() || '/placeholder-product.png'} className="w-10 h-10 rounded-xl object-cover" />
+                            <SmartImage
+                              src={String(p?.imageUrl || p?.image_url || '').trim() || '/placeholder-product.png'}
+                              className="w-10 h-10 rounded-xl"
+                              imgClassName="object-cover rounded-xl"
+                              loading="lazy"
+                            />
                             <div className="text-right">
                               <div className="font-black text-xs text-slate-900">{p?.name}</div>
                               <div className="font-bold text-[10px] text-slate-400">ج.م {p?.price}</div>

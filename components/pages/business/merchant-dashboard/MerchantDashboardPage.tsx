@@ -23,6 +23,7 @@ import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
+import SmartImage from '@/components/common/ui/SmartImage';
 import MerchantSettings from '@/src/components/MerchantDashboard/Settings';
 
 import POSSystem from '../POSSystem';
@@ -495,14 +496,17 @@ const MerchantDashboardPage: React.FC = () => {
         <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div className="flex items-center gap-8 flex-row-reverse">
             <div className="relative group">
-              <img
+              <SmartImage
                 src={
                   currentShop.logoUrl ||
                   currentShop.logo_url ||
                   'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'
                 }
                 className="w-20 h-20 md:w-32 md:h-32 rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
+                imgClassName="object-cover"
                 alt="logo"
+                loading="eager"
+                fetchPriority="high"
               />
               <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
                 <CheckCircle2 size={20} />

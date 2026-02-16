@@ -805,7 +805,7 @@ export class ShopService {
             const duration = Date.now() - startTime;
             this.monitoring.trackCache('getShopsList', cacheKey, true, duration);
             this.monitoring.trackPerformance('getAllShops_cached', duration);
-            return cached;
+            return (Array.isArray(cached) ? cached : []).filter((s: any) => (s as any)?.isActive !== false);
           }
           this.monitoring.trackCache('getShopsList', cacheKey, false, Date.now() - startTime);
         } catch {
@@ -814,6 +814,7 @@ export class ShopService {
 
       const shops = await this.prisma.shop.findMany({
         where: {
+          isActive: true,
           status: 'APPROVED',
           ...(category ? { category: category as any } : {}),
           ...(governorate ? { governorate } : {}),
@@ -933,6 +934,9 @@ export class ShopService {
       try {
         const cachedShop = await this.redis.getShopBySlug(slug);
         if (cachedShop) {
+          if ((cachedShop as any)?.isActive === false) {
+            return null;
+          }
           const duration = Date.now() - startTime;
           this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
           this.monitoring.trackPerformance('getShopBySlug_cached', duration);
@@ -977,6 +981,10 @@ export class ShopService {
               include,
             })
           : null;
+
+      if ((shop as any)?.isActive === false) {
+        return null;
+      }
 
       if (shop) {
         // Cache the shop data for 1 hour

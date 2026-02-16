@@ -1,6 +1,8 @@
 import React from 'react';
 import { Product } from '@/types';
 import { Plus, Tag, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Package } from 'lucide-react';
+import SmartImage from '@/components/common/ui/SmartImage';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import EditProductModal from '../modals/EditProductModal';
@@ -82,14 +84,16 @@ const SharedProductsTab: React.FC<Props> = ({
             >
               <div className="relative aspect-square rounded-xl bg-slate-50 mb-4 overflow-hidden">
                 {product.imageUrl ? (
-                  <img
+                  <SmartImage
                     src={product.imageUrl}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full"
+                    imgClassName="object-cover"
+                    loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                    <Tag size={48} />
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-10 h-10 text-slate-200" />
                   </div>
                 )}
                 <div className="absolute top-2 right-2 flex gap-1">

@@ -146,21 +146,21 @@ import {
 } from './api/modules/invoices';
 import { mockDb } from './api/mockDb';
 
- let rayDbUpdateTimer: any;
- function dispatchRayDbUpdateDebounced() {
-   try {
-     if (rayDbUpdateTimer) clearTimeout(rayDbUpdateTimer);
-     rayDbUpdateTimer = setTimeout(() => {
-       try {
-         window.dispatchEvent(new Event('ray-db-update'));
-       } catch {
-         // ignore
-       }
-     }, 150);
-   } catch {
-     // ignore
-   }
- }
+let rayDbUpdateTimer: any;
+function dispatchRayDbUpdateDebounced() {
+  try {
+    if (rayDbUpdateTimer) clearTimeout(rayDbUpdateTimer);
+    rayDbUpdateTimer = setTimeout(() => {
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+      } catch {
+        // ignore
+      }
+    }, 150);
+  } catch {
+    // ignore
+  }
+}
 
 function getLocalShopIdFromStorage(): string | undefined {
   try {
@@ -172,6 +172,91 @@ function getLocalShopIdFromStorage(): string | undefined {
     return undefined;
   } catch {
     return undefined;
+  }
+}
+
+type CacheEntry<T> = { value: T; expiresAt: number };
+const apiCache = new Map<string, CacheEntry<any>>();
+const apiInFlight = new Map<string, Promise<any>>();
+
+const nowMs = () => Date.now();
+
+const cacheGet = <T,>(key: string): T | undefined => {
+  const entry = apiCache.get(key);
+  if (!entry) return undefined;
+  if (entry.expiresAt <= nowMs()) {
+    apiCache.delete(key);
+    return undefined;
+  }
+  return entry.value as T;
+};
+
+const cacheSet = <T,>(key: string, value: T, ttlMs: number) => {
+  apiCache.set(key, { value, expiresAt: nowMs() + Math.max(0, ttlMs) });
+};
+
+const cacheDelByPrefix = (prefix: string) => {
+  for (const k of Array.from(apiCache.keys())) {
+    if (k.startsWith(prefix)) apiCache.delete(k);
+  }
+  for (const k of Array.from(apiInFlight.keys())) {
+    if (k.startsWith(prefix)) apiInFlight.delete(k);
+  }
+};
+
+const withRetry = async <T,>(fn: () => Promise<T>, maxAttempts: number) => {
+  const attempts = Math.max(1, Math.floor(maxAttempts));
+  let lastErr: any;
+  for (let i = 1; i <= attempts; i += 1) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts) {
+        await new Promise((r) => setTimeout(r, 350 * i));
+      }
+    }
+  }
+  throw lastErr;
+};
+
+const cached = async <T,>(key: string, ttlMs: number, fetcher: () => Promise<T>, retryAttempts: number) => {
+  const cachedValue = cacheGet<T>(key);
+  if (cachedValue !== undefined) return cachedValue;
+
+  const existing = apiInFlight.get(key);
+  if (existing) return (await existing) as T;
+
+  const p = (async () => {
+    const value = await withRetry(fetcher, retryAttempts);
+    cacheSet<T>(key, value, ttlMs);
+    return value;
+  })();
+  apiInFlight.set(key, p);
+  try {
+    return await p;
+  } finally {
+    apiInFlight.delete(key);
+  }
+};
+
+if (typeof window !== 'undefined') {
+  try {
+    window.addEventListener('ray-products-updated', (ev: any) => {
+      const sid = String(ev?.detail?.shopId || '').trim();
+      if (!sid) return;
+      cacheDelByPrefix(`products:${sid}:`);
+      cacheDelByPrefix(`offers:${sid}:`);
+    });
+    window.addEventListener('ray-shop-updated', (ev: any) => {
+      const sid = String(ev?.detail?.shopId || '').trim();
+      if (!sid) return;
+      cacheDelByPrefix(`shop:`);
+      cacheDelByPrefix(`products:${sid}:`);
+      cacheDelByPrefix(`gallery:${sid}`);
+      cacheDelByPrefix(`offers:${sid}:`);
+    });
+  } catch {
   }
 }
 
@@ -470,7 +555,7 @@ export const ApiService = {
   },
 
   deactivateMyAccount: async () => {
-    return await backendPost<{ ok: boolean }>('/api/v1/auth/deactivate', {});
+    return await backendPost<{ ok: boolean; scheduledPurgeAt?: string | Date | null }>('/api/v1/auth/deactivate', {});
   },
 
   // Chat
@@ -564,7 +649,10 @@ export const ApiService = {
     return await getShopBySlugOrIdViaBackend(slugOrId);
   },
   getShopBySlug: async (slug: string) => {
-    return await getShopBySlugViaBackend(slug);
+    const s = String(slug || '').trim();
+    if (!s) throw new Error('Missing slug');
+    const key = `shop:${s}`;
+    return await cached(key, 30_000, () => getShopBySlugViaBackend(s), 2);
   },
   getMyShop: async () => {
     return await getMyShopViaBackend();
@@ -624,10 +712,19 @@ export const ApiService = {
   // Offers
   getOffers: async (opts?: { take?: number; skip?: number; shopId?: string }) => {
     try {
-      return await getOffersViaBackend(opts);
+      const shopId = String(opts?.shopId || '').trim();
+      if (shopId) {
+        const take = typeof opts?.take === 'number' ? opts?.take : undefined;
+        const skip = typeof opts?.skip === 'number' ? opts?.skip : undefined;
+        const key = `offers:${shopId}:${take ?? ''}:${skip ?? ''}`;
+        return await cached(key, 20_000, () => getOffersViaBackend({ ...opts, shopId }), 2);
+      }
+      return await withRetry(() => getOffersViaBackend(opts), 2);
     } catch {
-      const offers = await mockDb.getOffers();
-      return offers || [];
+      // fallback to mock db if backend fails
+      const shops = await mockDb.getShops('all' as any);
+      const allOffers = shops.flatMap(s => (s.offers || []).map(o => ({ ...o, shopId: s.id })));
+      return allOffers || [];
     }
   },
   createOffer: async (offer: any) => {
@@ -658,7 +755,12 @@ export const ApiService = {
 
   // Products
   getProducts: async (shopId?: string, opts?: { page?: number; limit?: number }) => {
-    return await getProductsViaBackend(shopId, opts);
+    const sid = String(shopId || '').trim();
+    if (!sid) return await withRetry(() => getProductsViaBackend(shopId, opts), 2);
+    const page = typeof opts?.page === 'number' ? opts.page : undefined;
+    const limit = typeof opts?.limit === 'number' ? opts.limit : undefined;
+    const key = `products:${sid}:${page ?? ''}:${limit ?? ''}`;
+    return await cached(key, 15_000, () => getProductsViaBackend(sid, opts), 2);
   },
   getProductsForManage: async (shopId: string, opts?: { page?: number; limit?: number }) => {
     return await getProductsForManageViaBackend(shopId, opts);
@@ -742,7 +844,10 @@ export const ApiService = {
     return await getShopAnalyticsViaBackend(shopId, opts);
   },
   getShopGallery: async (shopId: string) => {
-    return await getShopGalleryViaBackend(shopId);
+    const sid = String(shopId || '').trim();
+    if (!sid) throw new Error('Missing shopId');
+    const key = `gallery:${sid}`;
+    return await cached(key, 30_000, () => getShopGalleryViaBackend(sid), 2);
   },
   addShopGalleryImage: async (shopId: string, image: any) => {
     if (image?.file) {

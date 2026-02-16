@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2, Upload, X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import SmartImage from '@/components/common/ui/SmartImage';
 import { Category } from '@/types';
 
 type Props = {
@@ -329,6 +330,10 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             }),
       });
       addToast('تمت إضافة المنتج بنجاح!', 'success');
+      try {
+        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId } }));
+      } catch {
+      }
       setName('');
       setPrice('');
       setStock('');
@@ -396,7 +401,14 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             >
               {imagePreview ? (
                 <>
-                  <img src={imagePreview} className="w-full h-full object-contain sm:object-cover" alt="preview" />
+                  <SmartImage
+                    src={imagePreview}
+                    alt="preview"
+                    className="w-full h-full"
+                    imgClassName="object-contain sm:object-cover"
+                    loading="eager"
+                    fetchPriority="high"
+                  />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <div className="bg-white/90 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2">
                       <Upload size={16} /> تغيير الصورة
@@ -783,7 +795,14 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
-                              {a.imagePreview ? <img src={a.imagePreview} className="w-full h-full object-cover" /> : null}
+                              {a.imagePreview ? (
+                                <SmartImage
+                                  src={a.imagePreview}
+                                  className="w-full h-full"
+                                  imgClassName="object-cover"
+                                  loading="lazy"
+                                />
+                              ) : null}
                             </div>
                             <input
                               type="file"
@@ -874,7 +893,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
                       <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                         {extraImagePreviews.map((p, idx) => (
                           <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100">
-                            <img src={p} className="w-full h-full object-cover" />
+                            <SmartImage src={p} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
                             <button
                               type="button"
                               onClick={() => {

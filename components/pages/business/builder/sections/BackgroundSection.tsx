@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 type Props = {
   config: any;
@@ -81,7 +82,13 @@ const BackgroundSection: React.FC<Props> = ({
                 }}
                 className={`h-16 rounded-2xl border overflow-hidden relative transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-[0.98] ${active ? 'ring-2 ring-slate-200 border-white shadow-lg' : 'border-slate-100 hover:shadow-sm'}`}
               >
-                <img src={p.url} alt={p.label} className="absolute inset-0 w-full h-full object-cover" />
+                <SmartImage
+                  src={p.url}
+                  alt={p.label}
+                  className="absolute inset-0 w-full h-full"
+                  imgClassName="object-cover"
+                  loading="lazy"
+                />
                 <div className="absolute inset-0 bg-black/20" />
                 <span className="absolute bottom-1 right-2 text-[10px] font-black text-white drop-shadow">{p.label}</span>
               </button>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Tag } from 'lucide-react';
 import { Offer } from '@/types';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 type Props = {
   offers: Offer[];
@@ -33,7 +34,12 @@ const PromotionsTab: React.FC<Props> = ({ offers, onDelete, onCreate }) => (
         offers.map((offer: any) => (
           <div key={offer.id} className="bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100 flex flex-col gap-6 group hover:shadow-xl transition-all">
             <div className="relative aspect-video rounded-3xl overflow-hidden shadow-sm">
-              <img src={offer.imageUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+              <SmartImage
+                src={offer.imageUrl}
+                className="w-full h-full"
+                imgClassName="object-cover group-hover:scale-105 transition-transform"
+                loading="lazy"
+              />
               <div className="absolute top-4 left-4 bg-[#BD00FF] text-white px-4 py-1.5 rounded-xl font-black text-sm shadow-xl shadow-purple-500/20">
                 -{offer.discount}%
               </div>

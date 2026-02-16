@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import SmartImage from '@/components/common/ui/SmartImage';
 import EditProductModal from '../modals/EditProductModal';
 import ProductEditorLegacyModal from '../modals/ProductEditorLegacyModal';
 import { backendPost } from '@/services/api/httpClient';
@@ -582,7 +583,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
                       <div className="flex items-center gap-3">
                         <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
-                          {a.imagePreview ? <img src={a.imagePreview} className="w-full h-full object-cover" /> : null}
+                          {a.imagePreview ? (
+                            <SmartImage src={a.imagePreview} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+                          ) : null}
                         </div>
                         <input
                           type="file"
@@ -715,12 +718,16 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
             >
               <div className="aspect-square rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-4 md:mb-6 bg-white shadow-sm">
                 {String(((p as any).imageUrl || (p as any).image_url || '')).trim() ? (
-                  <img
+                  <SmartImage
                     src={String(((p as any).imageUrl || (p as any).image_url)).trim()}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s]"
+                    className="w-full h-full"
+                    imgClassName="object-cover group-hover:scale-110 transition-transform duration-[1s]"
+                    loading="lazy"
                   />
                 ) : (
-                  <div className="w-full h-full bg-slate-100" />
+                  <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                    <ShoppingCart className="w-6 h-6 md:w-12 md:h-12 text-slate-300" />
+                  </div>
                 )}
               </div>
               {(p as any)?.isActive === false && (

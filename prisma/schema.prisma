@@ -20,6 +20,8 @@ model User {
   role        UserRole @default(CUSTOMER)
   shopId      String?  @unique
   isActive    Boolean  @default(true)
+  deactivatedAt DateTime? @map("deactivated_at")
+  scheduledPurgeAt DateTime? @map("scheduled_purge_at")
   lastLogin   DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

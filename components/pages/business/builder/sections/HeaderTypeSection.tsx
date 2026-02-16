@@ -1,4 +1,5 @@
 import React from 'react';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 type Props = {
   config: any;
@@ -39,7 +40,14 @@ const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, se
             }}
           />
           {logoDataUrl ? (
-            <img src={logoDataUrl} className="w-full h-full object-cover" alt="logo" />
+            <SmartImage
+              src={logoDataUrl}
+              alt="logo"
+              className="w-full h-full"
+              imgClassName="object-cover"
+              loading="eager"
+              fetchPriority="high"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-slate-300 font-black text-xs">LOGO</div>
           )}

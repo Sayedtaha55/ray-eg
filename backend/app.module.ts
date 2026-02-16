@@ -22,6 +22,7 @@ import { ShopImageMapModule } from './shop-image-map.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
+import { AccountPurgeService } from './account-purge.service';
 
  const nodeEnv = process.env.NODE_ENV || 'development';
  const minimalBoot = String(process.env.MINIMAL_BOOT || '').toLowerCase() === 'true';
@@ -64,5 +65,6 @@ import { DatabaseTestController } from './db-test.controller';
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]
     : [TestController, HealthController, DatabaseTestController],
+  providers: [AccountPurgeService],
 })
 export class AppModule {}

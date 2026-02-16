@@ -4,6 +4,7 @@ import { JwtService } from '@nestjs/jwt';
 import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 type IncomingRole = 'customer' | 'merchant' | 'admin' | 'courier' | 'CUSTOMER' | 'MERCHANT' | 'ADMIN' | 'COURIER';
 type IncomingShopCategory =
@@ -21,6 +22,7 @@ export class AuthService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(JwtService) private jwtService: JwtService,
+    @Inject(RedisService) private redis: RedisService,
   ) {}
 
   async onModuleInit() {
@@ -225,6 +227,58 @@ export class AuthService implements OnModuleInit {
     return { ok: true };
   }
 
+  private async maybeRestoreWithinGrace(user: any) {
+    const isInactive = user?.isActive === false;
+    if (!isInactive) return null;
+
+    const scheduled = (user as any)?.scheduledPurgeAt ? new Date((user as any).scheduledPurgeAt) : null;
+    if (!scheduled || Number.isNaN(scheduled.getTime())) return null;
+
+    const now = new Date();
+    if (scheduled.getTime() <= now.getTime()) {
+      // grace period ended; do not restore.
+      return null;
+    }
+
+    const role = String(user?.role || '').toUpperCase();
+
+    let shopToInvalidate: { id: string; slug: string } | null = null;
+    const restored = await this.prisma.$transaction(async (tx) => {
+      const nextUser = await tx.user.update({
+        where: { id: String(user.id) },
+        data: {
+          isActive: true,
+          deactivatedAt: null,
+          scheduledPurgeAt: null,
+          lastLogin: new Date(),
+        } as any,
+      });
+
+      if (role === 'MERCHANT') {
+        try {
+          const shop = await tx.shop.findFirst({ where: { ownerId: String(user.id) }, select: { id: true, slug: true } });
+          if (shop?.id && shop?.slug) {
+            shopToInvalidate = { id: String(shop.id), slug: String(shop.slug) };
+          }
+          await tx.shop.updateMany({ where: { ownerId: String(user.id) }, data: { isActive: true } });
+        } catch {
+          // ignore
+        }
+      }
+
+      return nextUser;
+    });
+
+    if (shopToInvalidate) {
+      try {
+        await this.redis.invalidateShopCache(shopToInvalidate.id, shopToInvalidate.slug);
+      } catch {
+      }
+    }
+
+    return restored;
+  }
+
   async deactivateAccount(userId: string) {
     const uid = String(userId || '').trim();
     if (!uid) throw new UnauthorizedException('غير مصرح');
@@ -235,27 +289,41 @@ export class AuthService implements OnModuleInit {
     });
     if (!user) throw new UnauthorizedException('غير مصرح');
 
+    let shopToInvalidate: { id: string; slug: string } | null = null;
+    const now = new Date();
+    const graceDaysRaw = String(process.env.ACCOUNT_DELETE_GRACE_DAYS || '30').trim();
+    const graceDays = Math.max(1, Math.min(365, Number(graceDaysRaw) || 30));
+    const scheduledPurgeAt = new Date(now.getTime() + graceDays * 24 * 60 * 60 * 1000);
+
     await this.prisma.$transaction(async (tx) => {
       await tx.user.update({
         where: { id: uid },
-        data: { isActive: false },
+        data: { isActive: false, deactivatedAt: now, scheduledPurgeAt } as any,
         select: { id: true },
       });
 
       const role = String((user as any)?.role || '').toUpperCase();
       if (role === 'MERCHANT') {
         try {
-          await tx.shop.updateMany({
-            where: { ownerId: uid },
-            data: { isActive: false },
-          });
+          const shop = await tx.shop.findFirst({ where: { ownerId: uid }, select: { id: true, slug: true } });
+          if (shop?.id && shop?.slug) {
+            shopToInvalidate = { id: String(shop.id), slug: String(shop.slug) };
+          }
+          await tx.shop.updateMany({ where: { ownerId: uid }, data: { isActive: false } });
         } catch {
           // ignore
         }
       }
     });
 
-    return { ok: true };
+    if (shopToInvalidate) {
+      try {
+        await this.redis.invalidateShopCache(shopToInvalidate.id, shopToInvalidate.slug);
+      } catch {
+      }
+    }
+
+    return { ok: true, scheduledPurgeAt };
   }
 
   async changePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -868,10 +936,15 @@ export class AuthService implements OnModuleInit {
 
     const role = String(user?.role || '').toUpperCase();
     if (user?.isActive === false) {
+      const restored = await this.maybeRestoreWithinGrace(user);
+      if (restored) {
+        user = restored;
+      } else {
       if (role === 'COURIER') {
         throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
       }
       throw new ForbiddenException('الحساب معطل');
+      }
     }
     if (role === 'MERCHANT') {
       const shop = await this.prisma.shop.findFirst({
@@ -882,7 +955,13 @@ export class AuthService implements OnModuleInit {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
       }
       if ((shop as any)?.isActive === false) {
-        throw new ForbiddenException('الحساب معطل');
+        // If the user was just restored, the shop might still be inactive; try restore path.
+        const restored = await this.maybeRestoreWithinGrace(user);
+        if (restored) {
+          user = restored;
+        } else {
+          throw new ForbiddenException('الحساب معطل');
+        }
       }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
@@ -946,6 +1025,10 @@ export class AuthService implements OnModuleInit {
 
     const role = String(user?.role || '').toUpperCase();
     if (user?.isActive === false) {
+      const restored = await this.maybeRestoreWithinGrace(user);
+      if (restored) {
+        return await this.issueToken(restored);
+      }
       if (role === 'COURIER') {
         throw new ForbiddenException('حساب المندوب قيد المراجعة من الأدمن');
       }

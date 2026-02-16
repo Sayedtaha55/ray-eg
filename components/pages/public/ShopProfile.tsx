@@ -95,6 +95,8 @@ const ShopProfile: React.FC = () => {
   const [activeCategory, setActiveCategory] = React.useState('الكل');
   const [hasFollowed, setHasFollowed] = React.useState(false);
   const [followLoading, setFollowLoading] = React.useState(false);
+  const [bannerReady, setBannerReady] = React.useState(false);
+  const [pageBgReady, setPageBgReady] = React.useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = React.useState<any | null>(null);
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -309,6 +311,56 @@ const ShopProfile: React.FC = () => {
     window.addEventListener('ray-builder-preview-update', applyPreview);
     return () => window.removeEventListener('ray-builder-preview-update', applyPreview);
   }, [shop?.id]);
+
+  useEffect(() => {
+    const onProductsUpdated = (ev: any) => {
+      const sid = String(shop?.id || '').trim();
+      if (!sid) return;
+      const detailShopId = String(ev?.detail?.shopId || '').trim();
+      if (detailShopId && detailShopId !== sid) return;
+
+      const key = `products:${sid}`;
+      tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
+      retryProductsTab();
+    };
+
+    const onShopUpdated = async (ev: any) => {
+      const s = String(slug || '').trim();
+      if (!s) return;
+
+      const currentSid = String(shop?.id || '').trim();
+      const detailShopId = String(ev?.detail?.shopId || '').trim();
+      if (detailShopId && currentSid && detailShopId !== currentSid) return;
+
+      try {
+        const currentShopData = await ApiService.getShopBySlug(s);
+        if (!currentShopData) return;
+        setShop(JSON.parse(JSON.stringify(currentShopData)));
+        const design = currentShopData.pageDesign || DEFAULT_SHOP_DESIGN;
+        setCurrentDesign(design as any);
+
+        productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
+        tabLoadStateRef.current = {};
+        setProducts([]);
+        setOffers([]);
+        setGalleryImages([]);
+        setHasMoreProducts(true);
+        setLoadingMoreProducts(false);
+        setProductsTabLoading(false);
+        setProductsTabError(null);
+        setGalleryTabLoading(false);
+        setGalleryTabError(null);
+      } catch {
+      }
+    };
+
+    window.addEventListener('ray-products-updated', onProductsUpdated as any);
+    window.addEventListener('ray-shop-updated', onShopUpdated as any);
+    return () => {
+      window.removeEventListener('ray-products-updated', onProductsUpdated as any);
+      window.removeEventListener('ray-shop-updated', onShopUpdated as any);
+    };
+  }, [slug, shop?.id]);
 
   useEffect(() => {
     const ensureTabData = async () => {
@@ -653,7 +705,7 @@ const ShopProfile: React.FC = () => {
   const isBold = currentDesign.layout === 'bold';
   const isMinimal = currentDesign.layout === 'minimal';
   const pageBgColor = currentDesign.pageBackgroundColor || (currentDesign as any).backgroundColor;
-  const pageBgImage = String((currentDesign as any).backgroundImageUrl || '');
+  const pageBgImage = String((currentDesign as any)?.backgroundImageUrl || '');
   const productDisplayMode = (currentDesign.productDisplay || ((currentDesign as any).productDisplayStyle === 'list' ? 'list' : undefined) || 'cards') as any;
 
   const headerTextColor = String(currentDesign.headerTextColor || '#0F172A');
@@ -702,6 +754,67 @@ const ShopProfile: React.FC = () => {
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
 
+  useEffect(() => {
+    const url = String((currentDesign as any)?.bannerUrl || '').trim();
+    if (!url || isVideoUrl(url)) {
+      setBannerReady(true);
+      return;
+    }
+
+    let done = false;
+    setBannerReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      (img as any).loading = 'eager';
+      img.onload = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.src = url;
+    } catch {
+      setBannerReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [currentDesign?.bannerUrl]);
+
+  useEffect(() => {
+    const url = String(pageBgImage || '').trim();
+    if (!url) {
+      setPageBgReady(true);
+      return;
+    }
+
+    let done = false;
+    setPageBgReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.src = url;
+    } catch {
+      setPageBgReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [pageBgImage]);
+
   const removeFromCart = (lineId: string) => {
     try {
       RayDB.removeFromCart(lineId);
@@ -747,7 +860,7 @@ const ShopProfile: React.FC = () => {
           (pageBgColor || pageBgImage)
             ? ({
               backgroundColor: pageBgColor,
-              backgroundImage: pageBgImage ? `url("${pageBgImage}")` : undefined,
+              backgroundImage: pageBgImage && pageBgReady ? `url("${pageBgImage}")` : undefined,
               backgroundSize: pageBgImage ? 'cover' : undefined,
               backgroundPosition: pageBgImage ? 'center' : undefined,
               backgroundRepeat: pageBgImage ? 'no-repeat' : undefined,
@@ -946,7 +1059,22 @@ const ShopProfile: React.FC = () => {
             <source src={currentDesign.bannerUrl} type="video/mp4" />
           </video>
         ) : (
-          <MotionImg initial={{ scale: 1.1 }} animate={{ scale: 1 }} transition={{ duration: 15 }} src={currentDesign.bannerUrl} className="w-full h-full object-cover opacity-70" />
+          <MotionImg
+            initial={{ scale: 1.1 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 15 }}
+            src={currentDesign.bannerUrl}
+            className="w-full h-full object-cover opacity-70"
+            style={{ objectPosition: `${coerceNumber((currentDesign as any)?.bannerPosX, 50)}% ${coerceNumber((currentDesign as any)?.bannerPosY, 50)}%` }}
+            onLoad={() => setBannerReady(true)}
+            onError={() => setBannerReady(true)}
+          />
+        )}
+
+        {!bannerReady && (
+          <div className="absolute inset-0 bg-slate-900">
+            <div className="absolute inset-0 animate-pulse bg-gradient-to-b from-slate-800 via-slate-900 to-black" />
+          </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         {(() => {

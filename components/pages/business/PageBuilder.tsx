@@ -11,6 +11,7 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import * as ReactRouterDOM from 'react-router-dom';
 import { BUILDER_SECTIONS } from './builder/registry';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 const MotionDiv = motion.div as any;
 const { useLocation } = ReactRouterDOM as any;
@@ -41,6 +42,8 @@ const DEFAULT_PAGE_DESIGN = {
   secondaryColor: '#BD00FF',
   layout: 'modern',
   bannerUrl: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=1200',
+  bannerPosX: 50,
+  bannerPosY: 50,
   headerType: 'centered',
   headerBackgroundColor: '#FFFFFF',
   headerBackgroundImageUrl: '',
@@ -73,6 +76,8 @@ interface ShopDesign {
   secondaryColor: string;
   layout: string;
   bannerUrl: string;
+  bannerPosX?: number;
+  bannerPosY?: number;
   headerType: string;
   headerBackgroundColor?: string;
   headerBackgroundImageUrl?: string;
@@ -170,6 +175,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setLogoFile(null);
           if (myShop && myShop.pageDesign) {
             const merged = { ...DEFAULT_PAGE_DESIGN, ...myShop.pageDesign } as any;
+            const bannerPosX = coerceNumber(merged?.bannerPosX, Number((DEFAULT_PAGE_DESIGN as any).bannerPosX));
+            const bannerPosY = coerceNumber(merged?.bannerPosY, Number((DEFAULT_PAGE_DESIGN as any).bannerPosY));
             const elementsVisibilityRaw = merged?.elementsVisibility;
             const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
               ? Object.fromEntries(
@@ -184,6 +191,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               footerTransparent: coerceBoolean(merged.footerTransparent, Boolean(DEFAULT_PAGE_DESIGN.footerTransparent)),
               headerOpacity: coerceNumber(merged.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
               footerOpacity: coerceNumber(merged.footerOpacity, Number(DEFAULT_PAGE_DESIGN.footerOpacity)),
+              bannerPosX,
+              bannerPosY,
               elementsVisibility: elementsVisibilitySynced,
               customCss: customCssNormalized,
             });
@@ -328,6 +337,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         ...(uploadedBanner?.bannerPosterUrl ? { bannerPosterUrl: uploadedBanner.bannerPosterUrl } : {}),
         ...(uploadedBackgroundUrl ? { backgroundImageUrl: uploadedBackgroundUrl } : {}),
         ...(uploadedHeaderBackgroundUrl ? { headerBackgroundImageUrl: uploadedHeaderBackgroundUrl } : {}),
+        bannerPosX: coerceNumber((config as any)?.bannerPosX, Number((DEFAULT_PAGE_DESIGN as any).bannerPosX)),
+        bannerPosY: coerceNumber((config as any)?.bannerPosY, Number((DEFAULT_PAGE_DESIGN as any).bannerPosY)),
         headerTransparent: Boolean(config.headerTransparent),
         footerTransparent: Boolean(config.footerTransparent),
         headerOpacity: coerceNumber(config.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
@@ -407,6 +418,10 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setSaving(false);
       setSaved(true);
       addToast('تم حفظ تصميم المتجر بنجاح!', 'success');
+      try {
+        window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));
+      } catch {
+      }
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       setSaving(false);
@@ -888,7 +903,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                               poster={String((config as any)?.bannerPosterUrl || '') || undefined}
                             />
                           ) : (
-                            <img src={bannerPreview || config.bannerUrl} className="w-full h-full object-cover" />
+                            <SmartImage
+                              src={bannerPreview || config.bannerUrl}
+                              className="w-full h-full"
+                              imgClassName="object-cover"
+                              loading="eager"
+                              fetchPriority="high"
+                              style={{ objectPosition: `${coerceNumber((config as any)?.bannerPosX, 50)}% ${coerceNumber((config as any)?.bannerPosY, 50)}%` }}
+                            />
                           )
                         ) : (
                           <div className="w-full h-full bg-slate-100 flex items-center justify-center">
@@ -901,7 +923,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <div className={`p-5 sm:p-8 -mt-16 relative flex flex-col gap-5 sm:gap-6 flex-1 ${String(config.headerType || 'centered') === 'side' ? 'items-end text-right' : 'items-center text-center'}`}>
                         <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-xl p-2 border border-slate-50">
                           {logoDataUrl ? (
-                            <img src={logoDataUrl} className="w-full h-full object-cover rounded-[1.6rem] sm:rounded-[2rem]" alt="logo" />
+                            <SmartImage
+                              src={logoDataUrl}
+                              alt="logo"
+                              className="w-full h-full rounded-[1.6rem] sm:rounded-[2rem]"
+                              imgClassName="object-cover rounded-[1.6rem] sm:rounded-[2rem]"
+                              loading="eager"
+                              fetchPriority="high"
+                            />
                           ) : (
                             <div className="w-full h-full bg-slate-50 rounded-[1.6rem] sm:rounded-[2rem] flex items-center justify-center font-black text-slate-200 border-2 border-dashed border-slate-100 overflow-hidden text-[8px]">LOGO</div>
                           )}

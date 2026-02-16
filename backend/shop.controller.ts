@@ -427,6 +427,9 @@ export class ShopController {
     if (!shop) {
       throw new NotFoundException('لم يتم العثور على المتجر');
     }
+    if ((shop as any)?.isActive === false) {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
     const status = String((shop as any)?.status || '').toUpperCase();
     if (status !== 'APPROVED' && status !== 'SUSPENDED') {
       throw new NotFoundException('لم يتم العثور على المتجر');
@@ -439,6 +442,9 @@ export class ShopController {
   async findById(@Param('id') id: string) {
     const shop = await this.shopService.getShopById(id);
     if (!shop) {
+      throw new NotFoundException('لم يتم العثور على المتجر');
+    }
+    if ((shop as any)?.isActive === false) {
       throw new NotFoundException('لم يتم العثور على المتجر');
     }
     const status = String((shop as any)?.status || '').toUpperCase();

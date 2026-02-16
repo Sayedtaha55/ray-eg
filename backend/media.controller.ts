@@ -201,7 +201,26 @@ export class MediaControllerPresignOnly {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async presign(@Request() req, @Body() body: MediaPresignDto) {
-    return await this.mediaPresign.presignUpload(body, { role: req.user?.role, shopId: req.user?.shopId });
+    try {
+      return await this.mediaPresign.presignUpload(body, { role: req.user?.role, shopId: req.user?.shopId });
+    } catch (e: any) {
+      if (e instanceof HttpException) throw e;
+      const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+      const isDev = nodeEnv !== 'production';
+      const host = String(req?.headers?.host || '').toLowerCase();
+      const isLocalHost = host.includes('localhost') || host.startsWith('127.0.0.1') || host.startsWith('0.0.0.0');
+
+      if (isDev || isLocalHost) {
+        const name = e?.name ? String(e.name) : '';
+        const status = typeof e?.$metadata?.httpStatusCode === 'number' ? e.$metadata.httpStatusCode : undefined;
+        const code = e?.Code ? String(e.Code) : e?.code ? String(e.code) : '';
+        const msg = e?.message ? String(e.message) : 'Internal error';
+        const meta = [name, code, status ? String(status) : ''].filter(Boolean).join(' ');
+        throw new BadRequestException(meta ? `${meta}: ${msg}` : msg);
+      }
+
+      throw e;
+    }
   }
 
   @Post('complete')
