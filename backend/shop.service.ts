@@ -816,6 +816,10 @@ export class ShopService {
         where: {
           isActive: true,
           status: 'APPROVED',
+          owner: {
+            isActive: true,
+            deactivatedAt: null,
+          } as any,
           ...(category ? { category: category as any } : {}),
           ...(governorate ? { governorate } : {}),
           ...(search
@@ -937,6 +941,10 @@ export class ShopService {
           if ((cachedShop as any)?.isActive === false) {
             return null;
           }
+          const owner = (cachedShop as any)?.owner;
+          if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
+            return null;
+          }
           const duration = Date.now() - startTime;
           this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
           this.monitoring.trackPerformance('getShopBySlug_cached', duration);
@@ -953,6 +961,8 @@ export class ShopService {
             id: true,
             name: true,
             email: true,
+            isActive: true,
+            deactivatedAt: true,
           },
         },
         products: {
@@ -983,6 +993,11 @@ export class ShopService {
           : null;
 
       if ((shop as any)?.isActive === false) {
+        return null;
+      }
+
+      const owner = (shop as any)?.owner;
+      if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
         return null;
       }
 

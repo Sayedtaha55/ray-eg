@@ -151,6 +151,70 @@ const ShopProfile: React.FC = () => {
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
 
+  const bannerUrlForPreload = String((currentDesign as any)?.bannerUrl || '').trim();
+  const pageBgImageForPreload = String((currentDesign as any)?.backgroundImageUrl || '').trim();
+
+  useEffect(() => {
+    const url = bannerUrlForPreload;
+    if (!url || isVideoUrl(url)) {
+      setBannerReady(true);
+      return;
+    }
+
+    let done = false;
+    setBannerReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      (img as any).loading = 'eager';
+      img.onload = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setBannerReady(true);
+      };
+      img.src = url;
+    } catch {
+      setBannerReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [bannerUrlForPreload]);
+
+  useEffect(() => {
+    const url = pageBgImageForPreload;
+    if (!url) {
+      setPageBgReady(true);
+      return;
+    }
+
+    let done = false;
+    setPageBgReady(false);
+    try {
+      const img = new Image();
+      img.decoding = 'async';
+      img.onload = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.onerror = () => {
+        if (done) return;
+        setPageBgReady(true);
+      };
+      img.src = url;
+    } catch {
+      setPageBgReady(true);
+    }
+
+    return () => {
+      done = true;
+    };
+  }, [pageBgImageForPreload]);
+
   const pageUrl = `https://mnmknk.com${location.pathname}`;
   const title = `${shop?.name} | ${shop?.category === 'RESTAURANT' ? 'مطعم' : 'متجر'} في ${shop?.city}`;
   const shopDescription = String((shop as any)?.description || '').trim();
@@ -753,67 +817,6 @@ const ShopProfile: React.FC = () => {
 
   const shopLogoSrc = String(shop.logoUrl || (shop as any).logo_url || '').trim();
   const bannerPosterUrl = String((currentDesign as any)?.bannerPosterUrl || '');
-
-  useEffect(() => {
-    const url = String((currentDesign as any)?.bannerUrl || '').trim();
-    if (!url || isVideoUrl(url)) {
-      setBannerReady(true);
-      return;
-    }
-
-    let done = false;
-    setBannerReady(false);
-    try {
-      const img = new Image();
-      img.decoding = 'async';
-      (img as any).loading = 'eager';
-      img.onload = () => {
-        if (done) return;
-        setBannerReady(true);
-      };
-      img.onerror = () => {
-        if (done) return;
-        setBannerReady(true);
-      };
-      img.src = url;
-    } catch {
-      setBannerReady(true);
-    }
-
-    return () => {
-      done = true;
-    };
-  }, [currentDesign?.bannerUrl]);
-
-  useEffect(() => {
-    const url = String(pageBgImage || '').trim();
-    if (!url) {
-      setPageBgReady(true);
-      return;
-    }
-
-    let done = false;
-    setPageBgReady(false);
-    try {
-      const img = new Image();
-      img.decoding = 'async';
-      img.onload = () => {
-        if (done) return;
-        setPageBgReady(true);
-      };
-      img.onerror = () => {
-        if (done) return;
-        setPageBgReady(true);
-      };
-      img.src = url;
-    } catch {
-      setPageBgReady(true);
-    }
-
-    return () => {
-      done = true;
-    };
-  }, [pageBgImage]);
 
   const removeFromCart = (lineId: string) => {
     try {
