@@ -182,8 +182,25 @@ model Product {
   offers      Offer[]
   feedback    Feedback[]
   imageHotspots ShopImageHotspot[]
+  furnitureMeta ProductFurnitureMeta?
 
   @@map("products")
+}
+
+model ProductFurnitureMeta {
+  id        String   @id @default(cuid())
+  productId String   @unique @map("product_id")
+  unit      String?
+  lengthCm  Float?   @map("length_cm")
+  widthCm   Float?   @map("width_cm")
+  heightCm  Float?   @map("height_cm")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_furniture_meta")
 }
 
 model ShopImageMap {

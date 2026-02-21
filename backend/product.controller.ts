@@ -103,6 +103,42 @@ export class ProductController {
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
 
+    const furnitureMetaRaw = typeof body?.furnitureMeta === 'undefined'
+      ? (typeof body?.furniture_meta === 'undefined' ? undefined : body.furniture_meta)
+      : body.furnitureMeta;
+
+    const furnitureMeta = (() => {
+      if (typeof furnitureMetaRaw === 'undefined') return undefined;
+      if (furnitureMetaRaw === null) return null;
+      if (!furnitureMetaRaw || typeof furnitureMetaRaw !== 'object') return undefined;
+      const unit = typeof (furnitureMetaRaw as any)?.unit === 'string' ? String((furnitureMetaRaw as any).unit).trim() : undefined;
+      const lengthCm = typeof (furnitureMetaRaw as any)?.lengthCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).lengthCm);
+      const widthCm = typeof (furnitureMetaRaw as any)?.widthCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).widthCm);
+      const heightCm = typeof (furnitureMetaRaw as any)?.heightCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).heightCm);
+
+      const normalizeDim = (n: any) => {
+        if (typeof n === 'undefined') return undefined;
+        if (!Number.isFinite(n) || n <= 0) return '__INVALID__';
+        return Math.round(Number(n) * 100) / 100;
+      };
+
+      const l = normalizeDim(lengthCm);
+      const w = normalizeDim(widthCm);
+      const h = normalizeDim(heightCm);
+      if (l === '__INVALID__' || w === '__INVALID__' || h === '__INVALID__') return '__INVALID__';
+
+      return {
+        unit: unit || undefined,
+        lengthCm: typeof l === 'number' ? l : undefined,
+        widthCm: typeof w === 'number' ? w : undefined,
+        heightCm: typeof h === 'number' ? h : undefined,
+      };
+    })();
+
+    if (furnitureMeta === '__INVALID__') {
+      throw new BadRequestException('furnitureMeta غير صحيح');
+    }
+
     if (!name) throw new BadRequestException('name مطلوب');
     if (Number.isNaN(price) || price < 0) throw new BadRequestException('price غير صحيح');
 
@@ -122,6 +158,7 @@ export class ProductController {
       addons,
       packOptions,
       menuVariants,
+      furnitureMeta,
     });
   }
 
@@ -153,7 +190,10 @@ export class ProductController {
         const colors = typeof it?.colors === 'undefined' ? undefined : it.colors;
         const sizes = typeof it?.sizes === 'undefined' ? undefined : it.sizes;
         const packOptions = typeof it?.packOptions === 'undefined' ? undefined : it.packOptions;
-        return { name, price, stock, category, unit, description, colors, sizes, packOptions };
+        const furnitureMetaRaw = typeof it?.furnitureMeta === 'undefined'
+          ? (typeof it?.furniture_meta === 'undefined' ? undefined : it.furniture_meta)
+          : it.furnitureMeta;
+        return { name, price, stock, category, unit, description, colors, sizes, packOptions, furnitureMeta: furnitureMetaRaw };
       })
       .filter((it: any) => it?.name && Number.isFinite(it?.price));
 
@@ -194,6 +234,42 @@ export class ProductController {
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
 
+    const furnitureMetaRaw = typeof body?.furnitureMeta === 'undefined'
+      ? (typeof body?.furniture_meta === 'undefined' ? undefined : body.furniture_meta)
+      : body.furnitureMeta;
+
+    const furnitureMeta = (() => {
+      if (typeof furnitureMetaRaw === 'undefined') return undefined;
+      if (furnitureMetaRaw === null) return null;
+      if (!furnitureMetaRaw || typeof furnitureMetaRaw !== 'object') return undefined;
+      const unit = typeof (furnitureMetaRaw as any)?.unit === 'string' ? String((furnitureMetaRaw as any).unit).trim() : undefined;
+      const lengthCm = typeof (furnitureMetaRaw as any)?.lengthCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).lengthCm);
+      const widthCm = typeof (furnitureMetaRaw as any)?.widthCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).widthCm);
+      const heightCm = typeof (furnitureMetaRaw as any)?.heightCm === 'undefined' ? undefined : this.parseNumberInput((furnitureMetaRaw as any).heightCm);
+
+      const normalizeDim = (n: any) => {
+        if (typeof n === 'undefined') return undefined;
+        if (!Number.isFinite(n) || n <= 0) return '__INVALID__';
+        return Math.round(Number(n) * 100) / 100;
+      };
+
+      const l = normalizeDim(lengthCm);
+      const w = normalizeDim(widthCm);
+      const h = normalizeDim(heightCm);
+      if (l === '__INVALID__' || w === '__INVALID__' || h === '__INVALID__') return '__INVALID__';
+
+      return {
+        unit: unit || undefined,
+        lengthCm: typeof l === 'number' ? l : undefined,
+        widthCm: typeof w === 'number' ? w : undefined,
+        heightCm: typeof h === 'number' ? h : undefined,
+      };
+    })();
+
+    if (furnitureMeta === '__INVALID__') {
+      throw new BadRequestException('furnitureMeta غير صحيح');
+    }
+
     const isActive = typeof body?.isActive === 'boolean' ? body.isActive : undefined;
 
     if (name !== undefined && !name) throw new BadRequestException('name لا يمكن أن يكون فارغاً');
@@ -216,6 +292,7 @@ export class ProductController {
       packOptions,
       menuVariants,
       isActive,
+      furnitureMeta,
     }, { role, shopId: shopIdFromToken });
   }
 

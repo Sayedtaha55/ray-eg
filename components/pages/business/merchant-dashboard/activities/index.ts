@@ -1,4 +1,5 @@
 import { Category } from '@/types';
+import { CORE_MERCHANT_MODULES } from '../coreModules';
 
 export type MerchantDashboardTabId =
   | 'overview'
@@ -225,4 +226,20 @@ export const resolveActivityConfig = (category?: Category): MerchantDashboardAct
 export const getVisibleTabsForCategory = (category?: Category): MerchantDashboardTabDefinition[] => {
   const config = resolveActivityConfig(category);
   return config.tabs;
+};
+
+export const getAllowedTabIdsForCategory = (category?: Category): Set<MerchantDashboardTabId> => {
+  const tabs = getVisibleTabsForCategory(category);
+  const set = new Set<MerchantDashboardTabId>();
+
+  for (const coreId of CORE_MERCHANT_MODULES) {
+    set.add(coreId as MerchantDashboardTabId);
+  }
+
+  set.add('reservations');
+
+  for (const t of tabs) {
+    set.add(t.id);
+  }
+  return set;
 };

@@ -10,12 +10,12 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: Number(env.VITE_PORT || 5173),
+        port: Number(env.VITE_PORT || env.PORT || 5174),
         host: env.VITE_HOST || '0.0.0.0',
         hmr: {
           protocol: 'ws',
           host: env.VITE_HMR_HOST || 'localhost',
-          port: Number(env.VITE_PORT || 5173),
+          port: Number(env.VITE_PORT || env.PORT || 5174),
         },
       },
       plugins: [react()],
@@ -32,10 +32,25 @@ export default defineConfig(({ mode }) => {
               router: ['react-router-dom'],
               ui: ['framer-motion', 'lucide-react'],
               charts: ['recharts'],
+              maps: ['leaflet'],
             }
           }
         },
-        chunkSizeWarningLimit: 600
-      }
+        chunkSizeWarningLimit: 600,
+        minify: 'terser',
+        terserOptions: {
+          compress: {
+            drop_console: mode === 'production',
+            drop_debugger: mode === 'production',
+          },
+        },
+        sourcemap: mode !== 'production',
+      },
+      optimizeDeps: {
+        include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
+      },
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
+      },
     };
 });

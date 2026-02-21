@@ -9,9 +9,10 @@ import { ApiService } from '@/services/api.service';
 
 type Props = {
   shopId: string;
+  onClose?: () => void;
 };
 
-const App: React.FC<Props> = ({ shopId }) => {
+const App: React.FC<Props> = ({ shopId, onClose }) => {
   const sid = useMemo(() => String(shopId || '').trim(), [shopId]);
   const [loading, setLoading] = useState(true);
   const [shop, setShop] = useState<Shop | null>(null);
@@ -121,6 +122,14 @@ const App: React.FC<Props> = ({ shopId }) => {
     return <CustomerView shop={shop} shopCategory={shopCategory} onExit={() => setMode('editor')} />;
   }
 
+  const handleCancel = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+      return;
+    }
+    setMode('editor');
+  };
+
   return (
     <div className="min-h-screen bg-black text-white">
       <StoreEditor
@@ -130,7 +139,7 @@ const App: React.FC<Props> = ({ shopId }) => {
         initialStoreType={shop?.type}
         shopCategory={shopCategory}
         onSave={handleSave}
-        onCancel={openCustomerMode}
+        onCancel={handleCancel}
       />
       <div className="px-6 pb-10">
         <PurchaseModeButton onClick={openCustomerMode} className="mt-4" />

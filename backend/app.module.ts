@@ -34,6 +34,8 @@ import { AccountPurgeService } from './account-purge.service';
  );
  const includeAllModules = bootModules.size === 0;
 
+ const shouldImportMediaModule = (includeAllModules || bootModules.has('media')) && !(includeAllModules || bootModules.has('shop'));
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -56,11 +58,9 @@ import { AccountPurgeService } from './account-purge.service';
     ...(includeAllModules || bootModules.has('customers') ? [CustomersModule] : []),
     ...(includeAllModules || bootModules.has('notification') ? [NotificationModule] : []),
     ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
-    ...(includeAllModules || bootModules.has('media') ? [MediaModule] : []),
+    ...(shouldImportMediaModule ? [MediaModule] : []),
     ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
-    ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') || bootModules.has('product')
-      ? [ShopImageMapModule]
-      : []),
+    ...(includeAllModules || bootModules.has('image-map') ? [ShopImageMapModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

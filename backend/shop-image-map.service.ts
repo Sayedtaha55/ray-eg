@@ -116,7 +116,7 @@ export class ShopImageMapService {
         hotspots: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           include: {
-            product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true } },
+            product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true, furnitureMeta: true } },
             section: { select: { id: true, name: true, sortOrder: true, imageUrl: true, width: true, height: true } },
           },
         },
@@ -147,7 +147,7 @@ export class ShopImageMapService {
         hotspots: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
           include: {
-            product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true } },
+            product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true, furnitureMeta: true } },
             section: { select: { id: true, name: true, sortOrder: true, imageUrl: true, width: true, height: true } },
           },
         },
@@ -364,7 +364,7 @@ export class ShopImageMapService {
           hotspots: {
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
             include: {
-              product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true } },
+              product: { select: { id: true, name: true, price: true, stock: true, unit: true, packOptions: true, colors: true, sizes: true, imageUrl: true, images: true, isActive: true, furnitureMeta: true } },
               section: { select: { id: true, name: true, sortOrder: true, imageUrl: true, width: true, height: true } },
             },
           },
@@ -406,6 +406,7 @@ export class ShopImageMapService {
                 sizes: true,
                 imageUrl: true,
                 images: true,
+                furnitureMeta: true,
                 isActive: true,
                 shopId: true,
               },
@@ -453,6 +454,7 @@ export class ShopImageMapService {
                   sizes: true,
                   imageUrl: true,
                   images: true,
+                  furnitureMeta: true,
                   isActive: true,
                   shopId: true,
                 },

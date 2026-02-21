@@ -21,6 +21,10 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [unit, setUnit] = useState('');
+  const [furnitureUnit, setFurnitureUnit] = useState('');
+  const [furnitureLengthCm, setFurnitureLengthCm] = useState('');
+  const [furnitureWidthCm, setFurnitureWidthCm] = useState('');
+  const [furnitureHeightCm, setFurnitureHeightCm] = useState('');
   const [packOptionItems, setPackOptionItems] = useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [description, setDescription] = useState('');
   const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
@@ -62,6 +66,37 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
+  const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
+  const isDevFurniture = (() => {
+    try {
+      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
+      return raw === 'furniture';
+    } catch {
+      return false;
+    }
+  })();
+  const isFurnitureActivity = Boolean(isService && isDevFurniture);
+
+  const furnitureMeta = (() => {
+    if (!isFurnitureActivity) return undefined;
+    const u = String((furnitureUnit || unit || '').trim());
+    const l = parseNumberInput(furnitureLengthCm);
+    const w = parseNumberInput(furnitureWidthCm);
+    const h = parseNumberInput(furnitureHeightCm);
+
+    const lengthCm = Number.isFinite(l) && l > 0 ? Math.round(l * 100) / 100 : undefined;
+    const widthCm = Number.isFinite(w) && w > 0 ? Math.round(w * 100) / 100 : undefined;
+    const heightCm = Number.isFinite(h) && h > 0 ? Math.round(h * 100) / 100 : undefined;
+
+    const meta: any = {
+      ...(u ? { unit: u } : {}),
+      ...(typeof lengthCm === 'number' ? { lengthCm } : {}),
+      ...(typeof widthCm === 'number' ? { widthCm } : {}),
+      ...(typeof heightCm === 'number' ? { heightCm } : {}),
+    };
+
+    return Object.keys(meta).length ? meta : undefined;
+  })();
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -80,15 +115,15 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
 
   const presetSizes: string[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
 
-  const toLatinDigits = (input: string) => {
+  function toLatinDigits(input: string) {
     const map: Record<string, string> = {
       '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
       '۰': '0', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9',
     };
     return String(input || '').replace(/[٠-٩۰-۹]/g, (d) => map[d] || d);
-  };
+  }
 
-  const parseNumberInput = (value: any) => {
+  function parseNumberInput(value: any) {
     if (typeof value === 'number') return value;
     const raw = String(value ?? '').trim();
     if (!raw) return NaN;
@@ -98,7 +133,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       .replace(/\s+/g, '');
     const n = Number(cleaned);
     return n;
-  };
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -177,6 +212,25 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         .filter(Boolean) as any[];
       if (mapped.length !== list.length) return '__INVALID__';
       return mapped;
+    })();
+
+    const furnitureMeta = (() => {
+      if (!isFurnitureActivity) return undefined;
+      const u = String((furnitureUnit || unit || '').trim());
+      const l = parseNumberInput(furnitureLengthCm);
+      const w = parseNumberInput(furnitureWidthCm);
+      const h = parseNumberInput(furnitureHeightCm);
+
+      const lengthCm = Number.isFinite(l) && l > 0 ? Math.round(l * 100) / 100 : undefined;
+      const widthCm = Number.isFinite(w) && w > 0 ? Math.round(w * 100) / 100 : undefined;
+      const heightCm = Number.isFinite(h) && h > 0 ? Math.round(h * 100) / 100 : undefined;
+
+      return {
+        unit: u || undefined,
+        lengthCm,
+        widthCm,
+        heightCm,
+      };
     })();
 
     if (sizes === '__INVALID__') {
@@ -299,10 +353,13 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         price: resolvedBasePrice,
         stock: isRestaurant ? 0 : parsedStock,
         category: String(cat || '').trim() || 'عام',
-        ...(unit ? { unit } : {}),
+        ...((isFurnitureActivity ? String((furnitureUnit || unit || '').trim()) : String(unit || '').trim())
+          ? { unit: isFurnitureActivity ? String((furnitureUnit || unit || '').trim()) : String(unit || '').trim() }
+          : {}),
         imageUrl: upload.url,
         description: description ? description : null,
         trackStock: isRestaurant ? false : true,
+        ...(isFurnitureActivity && furnitureMeta ? { furnitureMeta } : {}),
         ...(isFood
           ? {
               packOptions: (Array.isArray(packOptionItems) ? packOptionItems : [])
@@ -339,6 +396,10 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
       setStock('');
       setCat('عام');
       setUnit('');
+      setFurnitureUnit('');
+      setFurnitureLengthCm('');
+      setFurnitureWidthCm('');
+      setFurnitureHeightCm('');
       setPackOptionItems([]);
       setDescription('');
       setFashionSizeItems([]);
@@ -444,6 +505,57 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
                 <option value="ML">ملّي</option>
                 <option value="PACK">عبوة</option>
               </select>
+            </div>
+          )}
+
+          {isFurnitureActivity && (
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest block pr-4">وحدة البيع (أثاث/معارض)</label>
+                <select
+                  value={furnitureUnit}
+                  onChange={(e) => setFurnitureUnit(e.target.value)}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none appearance-none"
+                >
+                  <option value="">بدون</option>
+                  <option value="PIECE">قطعة</option>
+                  <option value="M">متر طولي</option>
+                  <option value="M2">متر مربع</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الطول الأفقي (سم)</label>
+                  <input
+                    type="number"
+                    value={furnitureLengthCm}
+                    onChange={(e) => setFurnitureLengthCm(e.target.value)}
+                    placeholder="مثلاً: 200"
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">العرض / العمق (سم)</label>
+                  <input
+                    type="number"
+                    value={furnitureWidthCm}
+                    onChange={(e) => setFurnitureWidthCm(e.target.value)}
+                    placeholder="مثلاً: 80"
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الارتفاع (من الأرض) (سم)</label>
+                  <input
+                    type="number"
+                    value={furnitureHeightCm}
+                    onChange={(e) => setFurnitureHeightCm(e.target.value)}
+                    placeholder="مثلاً: 75"
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                  />
+                </div>
+              </div>
             </div>
           )}
 

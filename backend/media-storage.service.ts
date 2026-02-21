@@ -12,15 +12,17 @@ export class MediaStorageService implements MediaStorage {
     S3Client: any;
     PutObjectCommand: any;
     GetObjectCommand: any;
+    DeleteObjectCommand: any;
   } | null = null;
 
   constructor(@Inject(ConfigService) private readonly config: ConfigService) {
+    console.log('[MediaStorageService] constructor');
   }
 
   private async getAws() {
     if (this.aws) return this.aws;
-    const { S3Client, PutObjectCommand, GetObjectCommand } = await import('@aws-sdk/client-s3');
-    this.aws = { S3Client, PutObjectCommand, GetObjectCommand };
+    const { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } = await import('@aws-sdk/client-s3');
+    this.aws = { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand };
     return this.aws;
   }
 
@@ -104,7 +106,9 @@ export class MediaStorageService implements MediaStorage {
   }
 
   private chooseDriver() {
-    const raw = this.cleanEnv(this.config.get<string>('STORAGE_DRIVER') || this.config.get<string>('MEDIA_STORAGE_MODE'))
+    // IMPORTANT: keep driver selection consistent with MediaPresignService.
+    // If presign returns an R2 public URL, uploads must also go to R2 (and vice versa).
+    const raw = this.cleanEnv(this.config.get<string>('MEDIA_STORAGE_MODE') || '')
       .toLowerCase()
       .trim();
     const mode = raw === 'r2' ? 'r2' : raw === 'local' ? 'local' : 'auto';
@@ -114,6 +118,10 @@ export class MediaStorageService implements MediaStorage {
     if (mode === 'local') return 'local' as const;
     if (mode === 'r2') return 'r2' as const;
 
+    // Auto:
+    // - Dev: default to local for simplicity.
+    // - Prod: use R2 only if fully configured, otherwise fallback to local.
+    //   (Presign layer may still enforce R2 for production uploads.)
     if (!isProd) return 'local' as const;
 
     return this.hasR2Config() ? ('r2' as const) : ('local' as const);
@@ -315,5 +323,46 @@ export class MediaStorageService implements MediaStorage {
     const driver = this.chooseDriver();
     if (driver === 'r2') return await this.uploadR2(input, key, mimeType);
     return await this.uploadLocal(input, key);
+  }
+
+  async deleteKey(key: string): Promise<{ ok: true; driver: 'local' | 'r2' } | { ok: false; driver: 'local' | 'r2'; error: string }> {
+    const cleanKey = String(key || '').trim();
+    if (!cleanKey) throw new BadRequestException('key مطلوب');
+
+    const driver = this.chooseDriver();
+
+    if (driver === 'local') {
+      const uploadsRoot = this.getUploadsRoot();
+      const targetPath = path.resolve(uploadsRoot, cleanKey);
+      if (!targetPath.startsWith(uploadsRoot)) {
+        throw new BadRequestException('Invalid key');
+      }
+
+      try {
+        await fs.promises.unlink(targetPath);
+      } catch (e: any) {
+        const code = String(e?.code || '');
+        if (code === 'ENOENT') return { ok: true, driver };
+        return { ok: false, driver, error: String(e?.message || 'Failed to delete file') };
+      }
+
+      return { ok: true, driver };
+    }
+
+    if (!this.hasR2Config()) {
+      return { ok: false, driver, error: 'R2 is not configured' };
+    }
+
+    const bucket = this.cleanEnv(this.config.get<string>('R2_BUCKET'));
+    if (!bucket) return { ok: false, driver, error: 'R2_BUCKET not configured' };
+
+    try {
+      const { DeleteObjectCommand } = await this.getAws();
+      const client = await this.getClient();
+      await client.send(new DeleteObjectCommand({ Bucket: bucket, Key: cleanKey }));
+      return { ok: true, driver };
+    } catch (e: any) {
+      return { ok: false, driver, error: String(e?.message || 'Failed to delete object') };
+    }
   }
 }

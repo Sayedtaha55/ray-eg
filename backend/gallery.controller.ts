@@ -4,10 +4,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
 import { GalleryService } from './gallery.service';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import * as fs from 'fs';
-import { randomBytes } from 'crypto';
+import multer from 'multer';
 
  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
  const galleryUploadMaxMbRaw = String(process.env.GALLERY_UPLOAD_MAX_MB || (isProd ? '20' : '80')).trim();
@@ -24,21 +21,7 @@ export class GalleryController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
   @UseInterceptors(FileInterceptor('image', {
-    storage: diskStorage({
-      destination: (req, file, cb) => {
-        const dest = './uploads/gallery';
-        try {
-          fs.mkdirSync(dest, { recursive: true });
-        } catch {
-          // ignore
-        }
-        cb(null, dest);
-      },
-      filename: (req, file, cb) => {
-        const randomName = randomBytes(16).toString('hex');
-        cb(null, `${randomName}${extname(file.originalname)}`);
-      }
-    }),
+    storage: multer.memoryStorage(),
     limits: {
       fileSize: galleryUploadMaxBytes,
     },

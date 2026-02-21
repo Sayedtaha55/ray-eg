@@ -58,9 +58,9 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const activeEnabled = useMemo(() => {
     const raw = (shop as any)?.layoutConfig?.enabledModules;
     if (!Array.isArray(raw)) {
-      const all = Array.from(new Set(MODULES.map((m) => m.id)));
-      all.sort();
-      return all;
+      const coreOnly = Array.from(new Set(CORE_IDS));
+      coreOnly.sort();
+      return coreOnly;
     }
     const list = raw.map((x: any) => String(x || '').trim()).filter(Boolean) as ModuleId[];
     const merged = Array.from(new Set([...list, ...CORE_IDS]));

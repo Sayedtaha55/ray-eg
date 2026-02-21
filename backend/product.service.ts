@@ -62,8 +62,9 @@ export class ProductService {
     } catch {
     }
 
-    const product = await this.prisma.product.findUnique({
+    const product = await (this.prisma.product as any).findUnique({
       where: { id },
+      include: { furnitureMeta: true },
     });
 
     if (!product || !product.isActive) {
@@ -95,7 +96,7 @@ export class ProductService {
 
     let products: any[];
     try {
-      products = await this.prisma.product.findMany({
+      products = await (this.prisma.product as any).findMany({
         where: {
           shopId,
           isActive: true,
@@ -105,6 +106,7 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
+        include: { furnitureMeta: true },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -137,7 +139,7 @@ export class ProductService {
 
     const pagination = this.getPagination(paging);
     try {
-      return await this.prisma.product.findMany({
+      return await (this.prisma.product as any).findMany({
         where: {
           shopId,
           NOT: [
@@ -146,6 +148,7 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
+        include: { furnitureMeta: true },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -169,7 +172,7 @@ export class ProductService {
 
     let products: any[];
     try {
-      products = await this.prisma.product.findMany({
+      products = await (this.prisma.product as any).findMany({
         where: {
           isActive: true,
           NOT: [
@@ -178,6 +181,7 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
+        include: { furnitureMeta: true },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -211,6 +215,7 @@ export class ProductService {
     packOptions?: any;
     menuVariants?: any;
     isActive?: boolean;
+    furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number };
   }) {
     const shop = await this.prisma.shop.findUnique({ where: { id: input.shopId }, select: { id: true, slug: true, category: true } });
     if (!shop) {
@@ -223,25 +228,45 @@ export class ProductService {
       ? false
       : (typeof input.trackStock === 'boolean' ? input.trackStock : defaultTrackStock);
 
-    const created = await this.prisma.product.create({
-      data: {
-        shopId: input.shopId,
-        name: input.name,
-        price: input.price,
-        stock: input.stock ?? 0,
-        trackStock: resolvedTrackStock,
-        category: input.category || 'عام',
-        unit: typeof input.unit === 'string' ? input.unit : undefined,
-        packOptions: typeof input.packOptions === 'undefined' ? undefined : input.packOptions,
-        imageUrl: input.imageUrl || null,
-        images: typeof input.images === 'undefined' ? undefined : input.images,
-        colors: typeof input.colors === 'undefined' ? undefined : input.colors,
-        sizes: typeof input.sizes === 'undefined' ? undefined : input.sizes,
-        addons: typeof input.addons === 'undefined' ? undefined : input.addons,
-        menuVariants: typeof input.menuVariants === 'undefined' ? undefined : input.menuVariants,
-        description: input.description || null,
-        isActive: typeof input.isActive === 'boolean' ? input.isActive : true,
-      } as any,
+    const created = await (this.prisma as any).$transaction(async (tx: any) => {
+      const p = await tx.product.create({
+        data: {
+          shopId: input.shopId,
+          name: input.name,
+          price: input.price,
+          stock: input.stock ?? 0,
+          trackStock: resolvedTrackStock,
+          category: input.category || 'عام',
+          unit: typeof input.unit === 'string' ? input.unit : undefined,
+          packOptions: typeof input.packOptions === 'undefined' ? undefined : input.packOptions,
+          imageUrl: input.imageUrl || null,
+          images: typeof input.images === 'undefined' ? undefined : input.images,
+          colors: typeof input.colors === 'undefined' ? undefined : input.colors,
+          sizes: typeof input.sizes === 'undefined' ? undefined : input.sizes,
+          addons: typeof input.addons === 'undefined' ? undefined : input.addons,
+          menuVariants: typeof input.menuVariants === 'undefined' ? undefined : input.menuVariants,
+          description: input.description || null,
+          isActive: typeof input.isActive === 'boolean' ? input.isActive : true,
+        } as any,
+      });
+
+      if (input.furnitureMeta && typeof input.furnitureMeta === 'object') {
+        const unit = typeof input.furnitureMeta.unit === 'string' ? input.furnitureMeta.unit.trim() : undefined;
+        const lengthCm = typeof input.furnitureMeta.lengthCm === 'number' ? input.furnitureMeta.lengthCm : undefined;
+        const widthCm = typeof input.furnitureMeta.widthCm === 'number' ? input.furnitureMeta.widthCm : undefined;
+        const heightCm = typeof input.furnitureMeta.heightCm === 'number' ? input.furnitureMeta.heightCm : undefined;
+        await tx.productFurnitureMeta.create({
+          data: {
+            productId: p.id,
+            unit: unit || null,
+            lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+            widthCm: typeof widthCm === 'number' ? widthCm : null,
+            heightCm: typeof heightCm === 'number' ? heightCm : null,
+          } as any,
+        });
+      }
+
+      return await (tx.product as any).findUnique({ where: { id: p.id }, include: { furnitureMeta: true } });
     });
 
     try {
@@ -261,7 +286,18 @@ export class ProductService {
 
   async importDrafts(
     shopId: string,
-    items: Array<{ name: string; price: number; stock?: number; category?: string; unit?: string; packOptions?: any; description?: string | null; colors?: any; sizes?: any }>,
+    items: Array<{
+      name: string;
+      price: number;
+      stock?: number;
+      category?: string;
+      unit?: string;
+      packOptions?: any;
+      description?: string | null;
+      colors?: any;
+      sizes?: any;
+      furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
+    }>,
     actor: { role: string; shopId?: string },
   ) {
     if (!shopId) throw new BadRequestException('shopId مطلوب');
@@ -284,12 +320,43 @@ export class ProductService {
         const colors = Array.isArray(it?.colors) ? it.colors : undefined;
         const sizes = Array.isArray(it?.sizes) ? it.sizes : undefined;
 
+        const furnitureMetaRaw = typeof (it as any)?.furnitureMeta === 'undefined' ? undefined : (it as any).furnitureMeta;
+        const furnitureMeta = (() => {
+          if (typeof furnitureMetaRaw === 'undefined') return undefined;
+          if (furnitureMetaRaw === null) return null;
+          if (!furnitureMetaRaw || typeof furnitureMetaRaw !== 'object') return undefined;
+          const u = typeof (furnitureMetaRaw as any)?.unit === 'string' ? String((furnitureMetaRaw as any).unit).trim() : undefined;
+          const lengthCm = typeof (furnitureMetaRaw as any)?.lengthCm === 'number' ? (furnitureMetaRaw as any).lengthCm : undefined;
+          const widthCm = typeof (furnitureMetaRaw as any)?.widthCm === 'number' ? (furnitureMetaRaw as any).widthCm : undefined;
+          const heightCm = typeof (furnitureMetaRaw as any)?.heightCm === 'number' ? (furnitureMetaRaw as any).heightCm : undefined;
+
+          const normalizeDim = (n: any) => {
+            if (typeof n === 'undefined') return undefined;
+            if (!Number.isFinite(n) || n <= 0) return '__INVALID__';
+            return Math.round(Number(n) * 100) / 100;
+          };
+
+          const l = normalizeDim(lengthCm);
+          const w = normalizeDim(widthCm);
+          const h = normalizeDim(heightCm);
+          if (l === '__INVALID__' || w === '__INVALID__' || h === '__INVALID__') return '__INVALID__';
+
+          return {
+            unit: u || undefined,
+            lengthCm: typeof l === 'number' ? l : undefined,
+            widthCm: typeof w === 'number' ? w : undefined,
+            heightCm: typeof h === 'number' ? h : undefined,
+          };
+        })();
+
+        if (furnitureMeta === '__INVALID__') return null;
+
         if (!name) return null;
         if (!Number.isFinite(price) || price < 0) return null;
 
-        return { name, price, stock, category, unit, packOptions, description, colors, sizes };
+        return { name, price, stock, category, unit, packOptions, description, colors, sizes, furnitureMeta };
       })
-      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any }>;
+      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any; furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null }>;
 
     if (!normalized.length) {
       throw new BadRequestException('items مطلوبة');
@@ -324,7 +391,25 @@ export class ProductService {
                 ...(it.sizes !== undefined ? { sizes: it.sizes } : {}),
               },
             });
-            created.push(c);
+
+            if (it.furnitureMeta && typeof it.furnitureMeta === 'object') {
+              const unit = typeof it.furnitureMeta.unit === 'string' ? it.furnitureMeta.unit.trim() : undefined;
+              const lengthCm = typeof it.furnitureMeta.lengthCm === 'number' ? it.furnitureMeta.lengthCm : undefined;
+              const widthCm = typeof it.furnitureMeta.widthCm === 'number' ? it.furnitureMeta.widthCm : undefined;
+              const heightCm = typeof it.furnitureMeta.heightCm === 'number' ? it.furnitureMeta.heightCm : undefined;
+              await tx.productFurnitureMeta.create({
+                data: {
+                  productId: c.id,
+                  unit: unit || null,
+                  lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+                  widthCm: typeof widthCm === 'number' ? widthCm : null,
+                  heightCm: typeof heightCm === 'number' ? heightCm : null,
+                } as any,
+              });
+            }
+
+            const resolved = await tx.product.findUnique({ where: { id: c.id }, include: { furnitureMeta: true } });
+            created.push(resolved || c);
             continue;
           }
 
@@ -342,7 +427,34 @@ export class ProductService {
               ...(existing.isActive === false ? { isActive: true } : {}),
             },
           });
-          updated.push(u);
+
+          if (it.furnitureMeta === null) {
+            await tx.productFurnitureMeta.deleteMany({ where: { productId: existing.id } });
+          } else if (typeof it.furnitureMeta !== 'undefined') {
+            const unit = typeof it.furnitureMeta?.unit === 'string' ? it.furnitureMeta.unit.trim() : undefined;
+            const lengthCm = typeof it.furnitureMeta?.lengthCm === 'number' ? it.furnitureMeta.lengthCm : undefined;
+            const widthCm = typeof it.furnitureMeta?.widthCm === 'number' ? it.furnitureMeta.widthCm : undefined;
+            const heightCm = typeof it.furnitureMeta?.heightCm === 'number' ? it.furnitureMeta.heightCm : undefined;
+            await tx.productFurnitureMeta.upsert({
+              where: { productId: existing.id },
+              create: {
+                productId: existing.id,
+                unit: unit || null,
+                lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+                widthCm: typeof widthCm === 'number' ? widthCm : null,
+                heightCm: typeof heightCm === 'number' ? heightCm : null,
+              } as any,
+              update: {
+                unit: unit || null,
+                lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+                widthCm: typeof widthCm === 'number' ? widthCm : null,
+                heightCm: typeof heightCm === 'number' ? heightCm : null,
+              } as any,
+            });
+          }
+
+          const resolved = await tx.product.findUnique({ where: { id: existing.id }, include: { furnitureMeta: true } });
+          updated.push(resolved);
         }
 
         return { created, updated };
@@ -418,6 +530,7 @@ export class ProductService {
     packOptions?: any;
     menuVariants?: any;
     isActive?: boolean;
+    furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
   }, actor: { role: string; shopId?: string }) {
     if (!productId) throw new BadRequestException('id مطلوب');
 
@@ -451,9 +564,38 @@ export class ProductService {
     if (data.menuVariants !== undefined) updateData.menuVariants = data.menuVariants;
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
 
-    const updated = await this.prisma.product.update({
-      where: { id: productId },
-      data: updateData,
+    const updated = await (this.prisma as any).$transaction(async (tx: any) => {
+      await tx.product.update({
+        where: { id: productId },
+        data: updateData,
+      });
+
+      if (data.furnitureMeta === null) {
+        await tx.productFurnitureMeta.deleteMany({ where: { productId } });
+      } else if (typeof data.furnitureMeta !== 'undefined') {
+        const unit = typeof data.furnitureMeta?.unit === 'string' ? data.furnitureMeta.unit.trim() : undefined;
+        const lengthCm = typeof data.furnitureMeta?.lengthCm === 'number' ? data.furnitureMeta.lengthCm : undefined;
+        const widthCm = typeof data.furnitureMeta?.widthCm === 'number' ? data.furnitureMeta.widthCm : undefined;
+        const heightCm = typeof data.furnitureMeta?.heightCm === 'number' ? data.furnitureMeta.heightCm : undefined;
+        await tx.productFurnitureMeta.upsert({
+          where: { productId },
+          create: {
+            productId,
+            unit: unit || null,
+            lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+            widthCm: typeof widthCm === 'number' ? widthCm : null,
+            heightCm: typeof heightCm === 'number' ? heightCm : null,
+          } as any,
+          update: {
+            unit: unit || null,
+            lengthCm: typeof lengthCm === 'number' ? lengthCm : null,
+            widthCm: typeof widthCm === 'number' ? widthCm : null,
+            heightCm: typeof heightCm === 'number' ? heightCm : null,
+          } as any,
+        });
+      }
+
+      return await (tx.product as any).findUnique({ where: { id: productId }, include: { furnitureMeta: true } });
     });
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });

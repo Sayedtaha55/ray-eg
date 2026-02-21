@@ -18,6 +18,7 @@ const MotionDiv = motion.div as any;
 const BusinessLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isDev = !Boolean((import.meta as any)?.env?.PROD);
   const isDashboard = location.pathname.includes('/dashboard') || location.pathname.includes('/profile');
   const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
   const isProfilePage = location.pathname.includes('/profile');
@@ -39,7 +40,22 @@ const BusinessLayout: React.FC = () => {
   const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [shopCategory, setShopCategory] = useState<Category | undefined>(undefined);
+  const [isDevActivityMenuOpen, setIsDevActivityMenuOpen] = useState(false);
+  const [devSwitchLoading, setDevSwitchLoading] = useState(false);
+  const [shopCategory, setShopCategory] = useState<Category | undefined>(() => {
+    try {
+      const rawUser = localStorage.getItem('ray_user');
+      const u = rawUser ? JSON.parse(rawUser) : null;
+      const role = String(u?.role || '').toLowerCase();
+      if (!isDev || role !== 'merchant') return undefined;
+      const raw = String(localStorage.getItem('ray_dev_shop_category') || '').trim().toUpperCase();
+      const allowed = new Set(Object.values(Category).map((v) => String(v).toUpperCase()));
+      if (!raw || !allowed.has(raw)) return undefined;
+      return raw as any;
+    } catch {
+      return undefined;
+    }
+  });
   const [shopForModules, setShopForModules] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
@@ -50,6 +66,44 @@ const BusinessLayout: React.FC = () => {
     Boolean(isDashboard) &&
     String((effectiveUser as any)?.role || '').toLowerCase() === 'merchant' &&
     Boolean((effectiveUser as any)?.shopId);
+
+  const canUseDevActivitySwitcher =
+    Boolean(isDev) &&
+    String((effectiveUser as any)?.role || '').toLowerCase() === 'merchant';
+
+  const switchDevActivity = async (category?: string) => {
+    if (!canUseDevActivitySwitcher) return;
+    setDevSwitchLoading(true);
+    try {
+      const res = await ApiService.devMerchantLogin(category ? { shopCategory: category } : undefined);
+      localStorage.setItem('ray_user', JSON.stringify(res.user));
+      localStorage.setItem('ray_token', res.session?.access_token || '');
+      try {
+        if (category) {
+          localStorage.setItem('ray_dev_shop_category', String(category).toUpperCase());
+        } else {
+          localStorage.removeItem('ray_dev_shop_category');
+        }
+      } catch {
+      }
+      window.dispatchEvent(new Event('auth-change'));
+      setShopCategory(undefined);
+      setShopForModules(null);
+      navigate('/business/dashboard', { replace: true });
+      setTimeout(() => {
+        try {
+          window.location.reload();
+        } catch {
+        }
+      }, 50);
+      addToast('تم تبديل النشاط', 'success');
+    } catch (err: any) {
+      addToast(err?.message || 'تعذر تبديل النشاط', 'error');
+    } finally {
+      setDevSwitchLoading(false);
+      setIsDevActivityMenuOpen(false);
+    }
+  };
 
   useEffect(() => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -420,6 +474,113 @@ const BusinessLayout: React.FC = () => {
           <BrandLogo variant="business" iconOnly />
           <span className="font-black tracking-tighter uppercase">من مكانك للأعمال</span>
         </Link>
+
+        {canUseDevActivitySwitcher && (
+          <div className="relative">
+            <button
+              type="button"
+              disabled={devSwitchLoading}
+              onClick={() => setIsDevActivityMenuOpen((v) => !v)}
+              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
+              title="تبديل النشاط (تطوير)"
+              aria-label="تبديل النشاط (تطوير)"
+            >
+              <Store className="w-5 h-5" />
+            </button>
+
+            {isDevActivityMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
+                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity(undefined)}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    تاجر (Retail)
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('RESTAURANT')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    مطعم
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('FASHION')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    ملابس / أحذية
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('RETAIL')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    المفروشات والسجاد
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('FOOD')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    سوبر ماركت / بقالة / عطارة
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('ELECTRONICS')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    إلكترونيات
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => switchDevActivity('HEALTH')}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    صيدلية / مستحضرات
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => {
+                      try {
+                        localStorage.removeItem('ray_dev_activity_id');
+                      } catch {
+                      }
+                      switchDevActivity('SERVICE');
+                    }}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    خدمات / ورش / صيانة
+                  </button>
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('ray_dev_activity_id', 'furniture');
+                      } catch {
+                      }
+                      switchDevActivity('SERVICE');
+                    }}
+                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                  >
+                    أثاث / معارض
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <div className="flex items-center gap-4">
            <button
              onClick={() => window.location.reload()}
@@ -728,6 +889,116 @@ const BusinessLayout: React.FC = () => {
                  </>
                )}
             </div>
+
+            {canUseDevActivitySwitcher && (
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={devSwitchLoading}
+                  onClick={() => setIsDevActivityMenuOpen((v) => !v)}
+                  className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all font-black text-xs"
+                  title="تبديل النشاط (تطوير)"
+                  aria-label="تبديل النشاط (تطوير)"
+                >
+                  <Store size={16} />
+                  <span>النشاط</span>
+                  <ChevronDown size={14} className="text-slate-500" />
+                </button>
+
+                {isDevActivityMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
+                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity(undefined)}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        تاجر (Retail)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('RESTAURANT')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        مطعم
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('FASHION')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        ملابس / أحذية
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('RETAIL')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        المفروشات والسجاد
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('FOOD')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        سوبر ماركت / بقالة / عطارة
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('ELECTRONICS')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        إلكترونيات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => switchDevActivity('HEALTH')}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        صيدلية / مستحضرات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          switchDevActivity('SERVICE');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        خدمات / ورش / صيانة
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'furniture');
+                          } catch {
+                          }
+                          switchDevActivity('SERVICE');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        أثاث / معارض
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
                <motion.div animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
                  <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />

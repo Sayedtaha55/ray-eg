@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpException, Inject, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
@@ -194,7 +194,7 @@ export class MediaControllerLite {
 export class MediaControllerPresignOnly {
   constructor(
     private readonly mediaPresign: MediaPresignService,
-    private readonly mediaOptimizeQueue: MediaOptimizeQueue,
+    @Optional() private readonly mediaOptimizeQueue?: MediaOptimizeQueue,
   ) {}
 
   @Post('presign')
@@ -233,6 +233,10 @@ export class MediaControllerPresignOnly {
     if (!key) throw new BadRequestException('key مطلوب');
     if (!mimeType) throw new BadRequestException('mimeType مطلوب');
 
+    if (!this.mediaOptimizeQueue) {
+      return { jobId: '', state: 'queued', queued: false };
+    }
+
     const jobId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
 
     try {
@@ -248,6 +252,10 @@ export class MediaControllerPresignOnly {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async status(@Query('jobId') jobIdRaw?: string, @Query('key') keyRaw?: string) {
+    if (!this.mediaOptimizeQueue) {
+      return { jobId: String(jobIdRaw || '').trim() || '', status: null };
+    }
+
     const jobId = String(jobIdRaw || '').trim();
     const key = String(keyRaw || '').trim();
 

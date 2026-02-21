@@ -12,7 +12,9 @@ export class MediaOptimizeWorker implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly queue: MediaOptimizeQueue,
     private readonly optimize: MediaOptimizeService,
-  ) {}
+  ) {
+    console.log('[MediaOptimizeWorker] constructor');
+  }
 
   async onModuleInit() {
     if (!enabled) return;

@@ -109,6 +109,9 @@ export const db = {
         stock,
         category: String(h?.product?.category || 'عام'),
         unit: typeof h?.product?.unit === 'string' ? h.product.unit : undefined,
+        furnitureMeta: typeof (h as any)?.product?.furnitureMeta !== 'undefined'
+          ? (h as any).product.furnitureMeta
+          : (typeof (h as any)?.product?.furniture_meta !== 'undefined' ? (h as any).product.furniture_meta : undefined),
         packOptions: (h as any)?.product?.packOptions ?? (h as any)?.product?.pack_options,
         confidence: typeof h?.aiMeta?.confidence === 'number' ? h.aiMeta.confidence : 1,
         stockStatus,
@@ -173,6 +176,7 @@ export const db = {
           category: typeof p?.category === 'string' && p.category.trim() ? p.category.trim() : '__IMAGE_MAP__',
           description: typeof p?.description === 'string' ? p.description : null,
           unit: typeof p?.unit === 'string' && p.unit.trim() ? p.unit.trim() : undefined,
+          furnitureMeta: typeof (p as any)?.furnitureMeta === 'undefined' ? undefined : (p as any).furnitureMeta,
           packOptions: typeof p?.packOptions === 'undefined' ? undefined : p.packOptions,
           colors: Array.isArray(p?.colors) ? p.colors : undefined,
           sizes: Array.isArray(p?.sizes) ? p.sizes : undefined,

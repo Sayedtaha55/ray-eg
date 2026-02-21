@@ -23,6 +23,10 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [unit, setUnit] = useState('');
+  const [furnitureUnit, setFurnitureUnit] = useState('');
+  const [furnitureLengthCm, setFurnitureLengthCm] = useState('');
+  const [furnitureWidthCm, setFurnitureWidthCm] = useState('');
+  const [furnitureHeightCm, setFurnitureHeightCm] = useState('');
   const [packOptionItems, setPackOptionItems] = useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [description, setDescription] = useState('');
   const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
@@ -66,6 +70,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
+  const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
+  const isDevFurniture = (() => {
+    try {
+      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
+      return raw === 'furniture';
+    } catch {
+      return false;
+    }
+  })();
+  const isFurnitureActivity = Boolean(isService && isDevFurniture);
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -130,6 +144,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       setCat(product.category || 'عام');
       setDescription(product.description || '');
       setUnit(typeof (product as any)?.unit === 'string' ? String((product as any).unit) : '');
+
+      const fm = (product as any)?.furnitureMeta;
+      setFurnitureUnit(typeof fm?.unit === 'string' ? String(fm.unit) : '');
+      setFurnitureLengthCm(typeof fm?.lengthCm === 'number' ? String(fm.lengthCm) : (fm?.lengthCm != null ? String(fm.lengthCm) : ''));
+      setFurnitureWidthCm(typeof fm?.widthCm === 'number' ? String(fm.widthCm) : (fm?.widthCm != null ? String(fm.widthCm) : ''));
+      setFurnitureHeightCm(typeof fm?.heightCm === 'number' ? String(fm.heightCm) : (fm?.heightCm != null ? String(fm.heightCm) : ''));
       setPackOptionItems(() => {
         const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
         const list = Array.isArray(raw) ? raw : [];
@@ -492,6 +512,23 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             }),
       };
 
+      if (isFurnitureActivity) {
+        const u = String((furnitureUnit || unit || '').trim());
+        const l = parseNumberInput(furnitureLengthCm);
+        const w = parseNumberInput(furnitureWidthCm);
+        const h = parseNumberInput(furnitureHeightCm);
+        const hasAny = Boolean(u || String(furnitureLengthCm || '').trim() || String(furnitureWidthCm || '').trim() || String(furnitureHeightCm || '').trim());
+        updatePayload.unit = u || null;
+        updatePayload.furnitureMeta = hasAny
+          ? {
+              ...(u ? { unit: u } : {}),
+              ...(Number.isFinite(l) && l > 0 ? { lengthCm: l } : {}),
+              ...(Number.isFinite(w) && w > 0 ? { widthCm: w } : {}),
+              ...(Number.isFinite(h) && h > 0 ? { heightCm: h } : {}),
+            }
+          : null;
+      }
+
       // Only include stock if not restaurant
       if (!isRestaurant) {
         updatePayload.stock = parsedStock;
@@ -581,6 +618,57 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                 className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
               />
             </div>
+
+            {isFurnitureActivity && (
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest block pr-4">وحدة البيع (أثاث/معارض)</label>
+                  <select
+                    value={furnitureUnit}
+                    onChange={(e) => setFurnitureUnit(e.target.value)}
+                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none appearance-none"
+                  >
+                    <option value="">بدون</option>
+                    <option value="PIECE">قطعة</option>
+                    <option value="M">متر طولي</option>
+                    <option value="M2">متر مربع</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الطول الأفقي (سم)</label>
+                    <input
+                      type="number"
+                      value={furnitureLengthCm}
+                      onChange={(e) => setFurnitureLengthCm(e.target.value)}
+                      placeholder="مثلاً: 200"
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">العرض / العمق (سم)</label>
+                    <input
+                      type="number"
+                      value={furnitureWidthCm}
+                      onChange={(e) => setFurnitureWidthCm(e.target.value)}
+                      placeholder="مثلاً: 80"
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الارتفاع (من الأرض) (سم)</label>
+                    <input
+                      type="number"
+                      value={furnitureHeightCm}
+                      onChange={(e) => setFurnitureHeightCm(e.target.value)}
+                      placeholder="مثلاً: 75"
+                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className={`grid grid-cols-1 ${isRestaurant ? '' : 'md:grid-cols-2'} gap-6`}>
               <div className="space-y-3">

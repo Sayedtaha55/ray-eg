@@ -3,9 +3,11 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
-  private client: Redis | null;
+  private client: Redis | null = null;
 
   async onModuleInit() {
+    // eslint-disable-next-line no-console
+    console.log('[RedisService] onModuleInit() start');
     const redisUrl = String(process.env.REDIS_URL || '').trim();
 
     this.client = redisUrl
@@ -30,7 +32,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     });
 
     try {
-      await this.client.connect();
+      const timeoutMs = 3_000;
+      // eslint-disable-next-line no-console
+      console.log('[RedisService] attempting connect...');
+      await Promise.race([
+        this.client.connect(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error(`Redis connect timeout after ${timeoutMs}ms`)), timeoutMs)),
+      ]);
+
+      // eslint-disable-next-line no-console
+      console.log('[RedisService] connect attempt finished');
     } catch (err: any) {
       console.warn('⚠️ Redis is not available. Continuing without cache.');
       try {
@@ -39,6 +50,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         // ignore
       }
       this.client = null;
+
+      // eslint-disable-next-line no-console
+      console.log('[RedisService] cache disabled (client=null)');
     }
   }
 

@@ -17,7 +17,9 @@ export class MediaOptimizeService {
   constructor(
     private readonly compression: MediaCompressionService,
     private readonly storage: MediaStorageService,
-  ) {}
+  ) {
+    console.log('[MediaOptimizeService] constructor');
+  }
 
   private sanitizeSegment(input: string) {
     return String(input || '')

@@ -28,7 +28,7 @@ const ProductEditorLegacyModal: React.FC<Props> = ({ open, onClose, shopId }) =>
         </div>
 
         <div className="w-full h-full overflow-auto" dir="rtl">
-          <ProductEditorLegacyApp shopId={shopId} />
+          <ProductEditorLegacyApp shopId={shopId} onClose={onClose} />
         </div>
       </div>
     </div>

@@ -34,9 +34,19 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
   }
 
   async onModuleInit() {
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('[PrismaService] onModuleInit() start');
+    }
     const env = String(process.env.NODE_ENV || '').toLowerCase();
     const databaseUrl = String(process.env.DATABASE_URL || '').trim();
     const allowProdDbInDev = String(process.env.ALLOW_PROD_DATABASE_IN_DEV || '').toLowerCase() === 'true';
+
+    const connectOnBoot = (() => {
+      if (env === 'production') return true;
+      const raw = String(process.env.PRISMA_CONNECT_ON_BOOT || '').toLowerCase().trim();
+      return raw === 'true';
+    })();
 
     if (env !== 'production') {
       try {
@@ -59,6 +69,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     }
 
+    if (process.env.NODE_ENV !== 'production') {
+      // eslint-disable-next-line no-console
+      console.log('[PrismaService] onModuleInit() after DATABASE_URL checks');
+    }
+
     if (env !== 'production' && !allowProdDbInDev) {
       const lowered = databaseUrl.toLowerCase();
       const looksLikeRailway = lowered.includes('railway') || lowered.includes('rlwy') || lowered.includes('proxy.rlwy.net');
@@ -71,12 +86,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
     }
 
+    if (!connectOnBoot) {
+      if (env !== 'production') {
+        // eslint-disable-next-line no-console
+        console.log('[PrismaService] Skipping $connect() on boot (lazy connection enabled)');
+      }
+      return;
+    }
+
     try {
       if (env !== 'production') {
         console.log('[PrismaService] Attempting to connect to the database...');
       }
       if (env !== 'production') {
-        const timeoutMs = 15_000;
+        const timeoutMsRaw = String(process.env.PRISMA_CONNECT_TIMEOUT_MS || '').trim();
+        const timeoutMsParsed = Number(timeoutMsRaw);
+        const timeoutMs = Number.isFinite(timeoutMsParsed) && timeoutMsParsed > 0 ? Math.floor(timeoutMsParsed) : 5_000;
         await Promise.race([
           this.$connect(),
           new Promise((_, reject) => setTimeout(() => reject(new Error(`Prisma connect timeout after ${timeoutMs}ms`)), timeoutMs)),
@@ -86,6 +111,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
       }
       if (env !== 'production') {
         console.log('[PrismaService] Database connection successful.');
+      }
+
+      if (process.env.NODE_ENV !== 'production') {
+        // eslint-disable-next-line no-console
+        console.log('[PrismaService] onModuleInit() done');
       }
     } catch (error) {
       console.error('[PrismaService] !!! DATABASE CONNECTION FAILED !!!', error);

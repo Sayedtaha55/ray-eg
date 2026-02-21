@@ -456,6 +456,37 @@ export class AuthService implements OnModuleInit {
       ]);
       const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
+      const allowedForCategory = (() => {
+        const cat = String(input.category || '').trim().toUpperCase();
+        const always = new Set<string>(core);
+        always.add('gallery');
+
+        const add = (...ids: string[]) => {
+          for (const id of ids) always.add(id);
+        };
+
+        // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
+        if (cat === 'RESTAURANT') {
+          add('reservations', 'sales', 'customers', 'reports', 'pos');
+          return always;
+        }
+        if (cat === 'SERVICE') {
+          add('reservations', 'sales', 'customers', 'reports', 'pos');
+          return always;
+        }
+        if (cat === 'FASHION') {
+          add('sales', 'customers', 'reports', 'pos');
+          return always;
+        }
+        if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
+          add('sales', 'customers', 'reports', 'pos');
+          return always;
+        }
+
+        // OTHER / unknown
+        return always;
+      })();
+
       const requestedMode = String(input.dashboardMode || '').trim().toLowerCase();
       const mode = requestedMode === 'showcase' || requestedMode === 'manage' ? requestedMode : undefined;
 
@@ -463,7 +494,7 @@ export class AuthService implements OnModuleInit {
         ? input.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
         : [];
 
-      const filtered = requested.filter((id: string) => allowedModules.has(id));
+      const filtered = requested.filter((id: string) => allowedModules.has(id) && allowedForCategory.has(id));
       const merged = Array.from(new Set([...filtered, ...core]));
 
       const safeMode = (mode || ((): 'showcase' | 'manage' => {
@@ -733,33 +764,39 @@ export class AuthService implements OnModuleInit {
     const devCity = String(process.env.DEV_MERCHANT_CITY || '').trim() || 'Cairo';
     const devCategory = requestedCategory || this.normalizeShopCategory(String(process.env.DEV_MERCHANT_CATEGORY || '').trim() as any);
 
-    const resultUser = await this.prisma.$transaction(async (tx) => {
-      let user = await tx.user.findUnique({ where: { email: devEmail } });
+    const existingUser = await this.prisma.user.findUnique({ where: { email: devEmail } });
+    const createPasswordHash = async () => {
+      const salt = await bcrypt.genSalt(12);
+      return await bcrypt.hash(randomBytes(32).toString('hex'), salt);
+    };
+    const hashedPassword = existingUser ? null : await createPasswordHash();
 
-      if (!user) {
-        const salt = await bcrypt.genSalt(12);
-        const hashedPassword = await bcrypt.hash(randomBytes(32).toString('hex'), salt);
-        user = await tx.user.create({
-          data: {
-            email: devEmail,
-            name: devName,
-            password: hashedPassword,
-            role: 'MERCHANT' as any,
-            isActive: true,
-            lastLogin: new Date(),
-          },
-        });
-      } else {
-        user = await tx.user.update({
-          where: { id: user.id },
-          data: {
-            role: 'MERCHANT' as any,
-            isActive: true,
-            ...(devName && user.name !== devName ? { name: devName } : {}),
-            lastLogin: new Date(),
-          },
-        });
-      }
+    const resultUser = await this.prisma.$transaction(
+      async (tx) => {
+        let user = existingUser ? await tx.user.findUnique({ where: { id: existingUser.id } }) : null;
+
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              email: devEmail,
+              name: devName,
+              password: hashedPassword!,
+              role: 'MERCHANT' as any,
+              isActive: true,
+              lastLogin: new Date(),
+            },
+          });
+        } else {
+          user = await tx.user.update({
+            where: { id: user.id },
+            data: {
+              role: 'MERCHANT' as any,
+              isActive: true,
+              ...(devName && user.name !== devName ? { name: devName } : {}),
+              lastLogin: new Date(),
+            },
+          });
+        }
 
       let shop = user.id ? await tx.shop.findFirst({ where: { ownerId: user.id } }) : null;
 
@@ -798,8 +835,12 @@ export class AuthService implements OnModuleInit {
         }
       }
 
-      return user;
-    });
+        return user;
+      },
+      {
+        timeout: 15000,
+      },
+    );
 
     return await this.issueToken(resultUser);
   }
@@ -820,40 +861,50 @@ export class AuthService implements OnModuleInit {
     const devName = String(process.env.DEV_COURIER_NAME || '').trim() || 'Dev Courier';
     const devPhone = String(process.env.DEV_COURIER_PHONE || '').trim() || null;
 
-    const resultUser = await this.prisma.$transaction(async (tx) => {
-      let user = await tx.user.findUnique({ where: { email: devEmail } });
+    const existingUser = await this.prisma.user.findUnique({ where: { email: devEmail } });
+    const createPasswordHash = async () => {
+      const salt = await bcrypt.genSalt(12);
+      return await bcrypt.hash(randomBytes(32).toString('hex'), salt);
+    };
+    const hashedPassword = existingUser ? null : await createPasswordHash();
 
-      if (!user) {
-        const salt = await bcrypt.genSalt(12);
-        const hashedPassword = await bcrypt.hash(randomBytes(32).toString('hex'), salt);
-        user = await tx.user.create({
-          data: {
-            email: devEmail,
-            name: devName,
-            phone: devPhone,
-            password: hashedPassword,
-            role: 'COURIER' as any,
-            isActive: true,
-            lastLogin: new Date(),
-          },
-        });
-      } else {
-        user = await tx.user.update({
-          where: { id: user.id },
-          data: {
-            role: 'COURIER' as any,
-            isActive: true,
-            ...(devName && user.name !== devName ? { name: devName } : {}),
-            ...(devPhone != null && String((user as any)?.phone || '').trim() !== String(devPhone || '').trim()
-              ? { phone: devPhone }
-              : {}),
-            lastLogin: new Date(),
-          } as any,
-        });
-      }
+    const resultUser = await this.prisma.$transaction(
+      async (tx) => {
+        let user = existingUser ? await tx.user.findUnique({ where: { id: existingUser.id } }) : null;
 
-      return user;
-    });
+        if (!user) {
+          user = await tx.user.create({
+            data: {
+              email: devEmail,
+              name: devName,
+              phone: devPhone,
+              password: hashedPassword!,
+              role: 'COURIER' as any,
+              isActive: true,
+              lastLogin: new Date(),
+            },
+          });
+        } else {
+          user = await tx.user.update({
+            where: { id: user.id },
+            data: {
+              role: 'COURIER' as any,
+              isActive: true,
+              ...(devName && user.name !== devName ? { name: devName } : {}),
+              ...(devPhone != null && String((user as any)?.phone || '').trim() !== String(devPhone || '').trim()
+                ? { phone: devPhone }
+                : {}),
+              lastLogin: new Date(),
+            } as any,
+          });
+        }
+
+        return user;
+      },
+      {
+        timeout: 15000,
+      },
+    );
 
     return await this.issueToken(resultUser);
   }

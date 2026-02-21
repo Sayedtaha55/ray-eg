@@ -41,9 +41,46 @@ export class ShopService {
     ]);
   }
 
+  private getCoreDashboardModules() {
+    return ['overview', 'products', 'promotions', 'builder', 'settings'];
+  }
+
+  private getAllowedDashboardModulesForCategory(categoryRaw: any) {
+    const cat = String(categoryRaw || '').trim().toUpperCase();
+    const core = this.getCoreDashboardModules();
+    const always = new Set<string>(core);
+    always.add('gallery');
+    always.add('reservations');
+
+    const add = (...ids: string[]) => {
+      for (const id of ids) always.add(id);
+    };
+
+    // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
+    if (cat === 'RESTAURANT') {
+      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      return always;
+    }
+    if (cat === 'SERVICE') {
+      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      return always;
+    }
+    if (cat === 'FASHION') {
+      add('sales', 'customers', 'reports', 'pos');
+      return always;
+    }
+    if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
+      add('sales', 'customers', 'reports', 'pos');
+      return always;
+    }
+
+    return always;
+  }
+
   private normalizeRequestedModules(raw: any) {
     const list = Array.isArray(raw) ? raw : [];
     const allowed = this.getAllowedDashboardModules();
+    const core = this.getCoreDashboardModules();
     const normalized = list
       .map((x) => String(x || '').trim())
       .filter(Boolean)
@@ -81,16 +118,22 @@ export class ShopService {
 
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, slug: true, layoutConfig: true },
+      select: { id: true, slug: true, category: true, layoutConfig: true },
     });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
+
+    const allowedForCategory = this.getAllowedDashboardModulesForCategory((shop as any)?.category);
+    const requestedAllowed = requestedModules.filter((m) => allowedForCategory.has(m));
+    if (requestedAllowed.length === 0) {
+      throw new BadRequestException('الأزرار المطلوبة غير متاحة لهذا النشاط');
+    }
 
     const prevLayout = (shop.layoutConfig as any) || {};
     const prevEnabled = Array.isArray(prevLayout?.enabledModules)
       ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
       : [];
     const enabledSet = new Set(prevEnabled);
-    const pendingModules = requestedModules.filter((m) => !enabledSet.has(m));
+    const pendingModules = requestedAllowed.filter((m) => !enabledSet.has(m));
     if (pendingModules.length === 0) throw new BadRequestException('كل الأزرار المطلوبة مفعلة بالفعل');
 
     const existingPending = await this.upgradeRequests.findFirst({
@@ -172,6 +215,7 @@ export class ShopService {
     const adminId = adminIdRaw ? String(adminIdRaw).trim() : '';
 
     const allowed = this.getAllowedDashboardModules();
+    const core = this.getCoreDashboardModules();
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const req = await (tx as any).shopModuleUpgradeRequest.findUnique({
@@ -181,7 +225,7 @@ export class ShopService {
           shopId: true,
           status: true,
           requestedModules: true,
-          shop: { select: { id: true, slug: true, layoutConfig: true } },
+          shop: { select: { id: true, slug: true, category: true, layoutConfig: true } },
         },
       });
 
@@ -198,7 +242,12 @@ export class ShopService {
       const prevEnabled = Array.isArray(prevLayout?.enabledModules)
         ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
         : [];
-      const nextEnabled = Array.from(new Set([...prevEnabled, ...requestedFiltered]));
+
+      const shopCategory = (req.shop as any)?.category;
+      const allowedForCategory = this.getAllowedDashboardModulesForCategory(shopCategory);
+
+      const mergedRequested = Array.from(new Set([...prevEnabled, ...requestedFiltered, ...core]));
+      const nextEnabled = mergedRequested.filter((m) => allowed.has(m) && allowedForCategory.has(m));
 
       const nextLayout = {
         ...prevLayout,
@@ -633,6 +682,36 @@ export class ShopService {
         ]);
         const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
+        const allowedForCategory = (() => {
+          const cat = String(next.category || '').trim().toUpperCase();
+          const always = new Set<string>(core);
+          always.add('gallery');
+
+          const add = (...ids: string[]) => {
+            for (const id of ids) always.add(id);
+          };
+
+          // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
+          if (cat === 'RESTAURANT') {
+            add('reservations', 'sales', 'customers', 'reports', 'pos');
+            return always;
+          }
+          if (cat === 'SERVICE') {
+            add('reservations', 'sales', 'customers', 'reports', 'pos');
+            return always;
+          }
+          if (cat === 'FASHION') {
+            add('sales', 'customers', 'reports', 'pos');
+            return always;
+          }
+          if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
+            add('sales', 'customers', 'reports', 'pos');
+            return always;
+          }
+
+          return always;
+        })();
+
         const requestedMode = String(next.dashboardMode || '').trim().toLowerCase();
         const mode = requestedMode === 'showcase' || requestedMode === 'manage' ? requestedMode : undefined;
 
@@ -640,7 +719,7 @@ export class ShopService {
           ? next.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
           : [];
 
-        const filtered = requested.filter((id: string) => allowedModules.has(id));
+        const filtered = requested.filter((id: string) => allowedModules.has(id) && allowedForCategory.has(id));
         const merged = Array.from(new Set([...filtered, ...core]));
 
         const safeMode = (mode || ((): 'showcase' | 'manage' => {

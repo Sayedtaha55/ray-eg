@@ -1,165 +1,22 @@
 import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
-// import { RedisService } from './redis/redis.service';
-import * as fs from 'fs';
-import * as path from 'path';
-import { spawn } from 'child_process';
+import { RedisService } from './redis/redis.service';
+import { MediaOptimizeService } from './media-optimize.service';
+import { MediaStorageService } from './media-storage.service';
 
 @Injectable()
 export class GalleryService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    // @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService,
+    @Inject(MediaOptimizeService) private readonly mediaOptimize: MediaOptimizeService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
-  private async getFfmpegExe() {
-    try {
-      const mod: any = await import('ffmpeg-static');
-      const candidate = (mod && (mod.default ?? mod)) as any;
-      const ffmpegExe = typeof candidate === 'string' && candidate.trim() ? candidate.trim() : null;
-      return ffmpegExe;
-    } catch {
-      return null;
-    }
-  }
-
-  private async getSharp() {
-    try {
-      const mod: any = await import('sharp');
-      return (mod && (mod.default ?? mod)) as any;
-    } catch {
-      return null;
-    }
-  }
-
-  private getFfmpegTimeoutMs() {
-    const raw = String(process.env.FFMPEG_TIMEOUT_MS || '120000').trim();
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) return 120000;
-    return Math.floor(n);
-  }
-
-  private async runFfmpeg(args: string[]) {
-    const ffmpegExe = await this.getFfmpegExe();
-    if (!ffmpegExe) {
-      throw new BadRequestException('Video processing is not available (ffmpeg not found)');
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      const proc = spawn(ffmpegExe, args, { windowsHide: true });
-      let stderr = '';
-      const timeoutMs = this.getFfmpegTimeoutMs();
-      const timer = setTimeout(() => {
-        try {
-          proc.kill('SIGKILL');
-        } catch {
-          // ignore
-        }
-        reject(new Error('ffmpeg timeout'));
-      }, timeoutMs);
-
-      proc.stderr.on('data', (d) => {
-        stderr += String(d || '');
-      });
-      proc.on('error', reject);
-      proc.on('close', (code) => {
-        clearTimeout(timer);
-        if (code === 0) return resolve();
-        reject(new Error(stderr || `ffmpeg exited with code ${code}`));
-      });
-    });
-  }
-
-  private async optimizeVideo(inputPath: string, outputPath: string) {
-    await this.runFfmpeg([
-      '-y',
-      '-i', inputPath,
-      '-map', '0:v:0',
-      '-map', '0:a?',
-      '-vf', 'scale=1280:-2:force_original_aspect_ratio=decrease',
-      '-r', '30',
-      '-c:v', 'libx264',
-      '-preset', 'veryfast',
-      '-crf', '28',
-      '-pix_fmt', 'yuv420p',
-      '-movflags', '+faststart',
-      '-c:a', 'aac',
-      '-b:a', '96k',
-      outputPath,
-    ]);
-  }
-
-  private async generateVideoThumbnail(inputPath: string, outputPath: string) {
-    await this.runFfmpeg([
-      '-y',
-      '-ss', '00:00:01',
-      '-i', inputPath,
-      '-frames:v', '1',
-      '-vf', 'scale=640:-2:force_original_aspect_ratio=decrease',
-      outputPath,
-    ]);
-  }
-
-  private async getVideoDuration(inputPath: string): Promise<number | null> {
-    const ffmpegExe = await this.getFfmpegExe();
-    if (!ffmpegExe) {
-      return null;
-    }
-
-    return new Promise((resolve) => {
-      const proc = spawn(ffmpegExe, ['-i', inputPath, '-f', 'null', '-'], { windowsHide: true });
-      let stderr = '';
-      const timeoutMs = this.getFfmpegTimeoutMs();
-      const timer = setTimeout(() => {
-        try {
-          proc.kill('SIGKILL');
-        } catch {
-          // ignore
-        }
-        resolve(null);
-      }, timeoutMs);
-      
-      proc.stderr.on('data', (d) => {
-        stderr += String(d || '');
-      });
-      
-      proc.on('close', () => {
-        clearTimeout(timer);
-        // Parse duration from stderr
-        const durationMatch = stderr.match(/Duration: (\d{2}):(\d{2}):(\d{2}\.\d{2})/);
-        if (durationMatch) {
-          const hours = parseInt(durationMatch[1]);
-          const minutes = parseInt(durationMatch[2]);
-          const seconds = parseFloat(durationMatch[3]);
-          const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-          resolve(Math.round(totalSeconds));
-        } else {
-          resolve(null);
-        }
-      });
-      
-      proc.on('error', () => {
-        clearTimeout(timer);
-        resolve(null);
-      });
-    });
-  }
-
-  private getSharpMaxPixels() {
-    const raw = String(process.env.SHARP_MAX_INPUT_PIXELS || '40000000').trim();
-    const n = Number(raw);
-    if (!Number.isFinite(n) || n <= 0) return 40000000;
-    return Math.floor(n);
-  }
-
-  private async createSharp(input: string) {
-    const sharp = await this.getSharp();
-    if (!sharp) {
-      throw new BadRequestException('Image processing is not available (sharp not found)');
-    }
-    return sharp(input, { limitInputPixels: this.getSharpMaxPixels() });
-  }
+  private readonly cacheEnabled = ['1', 'true', 'yes', 'on'].includes(
+    String(process.env.GALLERY_CACHE_ENABLE || '').trim().toLowerCase(),
+  );
 
   private getVariantUrls(imageUrl: string) {
     if (!imageUrl) {
@@ -174,6 +31,26 @@ export class GalleryService {
       thumbUrl: `${base}-thumb.webp`,
       mediumUrl: `${base}-md.webp`,
     };
+  }
+
+  private extractKeyFromUrl(urlOrKey: string): string {
+    const raw = String(urlOrKey || '').trim();
+    if (!raw) return '';
+
+    if (raw.startsWith('/uploads/')) {
+      return raw.replace(/^\/uploads\//, '');
+    }
+
+    if (raw.startsWith('http://') || raw.startsWith('https://')) {
+      try {
+        const u = new URL(raw);
+        return decodeURIComponent(String(u.pathname || '')).replace(/^\/+/, '');
+      } catch {
+        return '';
+      }
+    }
+
+    return raw;
   }
 
   async uploadImage(userId: string, file: any, caption?: string, shopId?: string) {
@@ -211,70 +88,53 @@ export class GalleryService {
     });
 
     if (existingCount >= maxImages) {
-      try {
-        if (file?.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      } catch {
-        // ignore
-      }
       throw new BadRequestException(`Maximum ${maxImages} images allowed per gallery`);
     }
 
-    const uploadsDir = path.dirname(file.path);
-    const baseName = path.parse(file.filename).name;
-    const mime = String(file?.mimetype || '').toLowerCase();
+    const mime = String(file?.mimetype || '').toLowerCase().trim();
     const isVideo = mime.startsWith('video/');
 
+    const purpose = 'gallery';
+
+    let uploaded: { url: string; key: string };
+    try {
+      uploaded = await this.mediaStorage.upload({ file, shopId: targetShopId, purpose });
+    } catch (e: any) {
+      throw new BadRequestException(e?.message || 'Failed to upload media');
+    }
+
+    let optimized: any = null;
+    try {
+      optimized = await this.mediaOptimize.optimizeNow({ key: uploaded.key, mimeType: mime, purpose });
+    } catch {
+      optimized = null;
+    }
+
     if (isVideo) {
-      const outputFilename = `${baseName}-opt.mp4`;
-      const outputPath = path.join(uploadsDir, outputFilename);
-      const thumbFilename = `${baseName}-thumb.webp`;
-      const thumbPath = path.join(uploadsDir, thumbFilename);
-
-      let duration: number | null = null;
-
-      try {
-        await this.optimizeVideo(file.path, outputPath);
-        await this.generateVideoThumbnail(outputPath, thumbPath);
-        
-        // Extract video duration
-        duration = await this.getVideoDuration(outputPath);
-      } catch {
-        try {
-          if (file?.path && fs.existsSync(file.path)) {
-            fs.unlinkSync(file.path);
-          }
-        } catch {
-          // ignore
-        }
-        throw new BadRequestException('Failed to process video');
-      }
-
-      try {
-        if (file?.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      } catch {
-        // ignore
-      }
+      const url = String(optimized?.url || uploaded.url);
+      const thumbUrl = String(optimized?.thumbUrl || '').trim() || null;
 
       const galleryItem = await this.prisma.shopGallery.create({
         data: {
           shopId: targetShopId,
-          imageUrl: `/uploads/gallery/${outputFilename}`,
+          imageUrl: url,
           mediaType: 'VIDEO',
-          thumbUrl: `/uploads/gallery/${thumbFilename}`,
+          thumbUrl,
           caption: caption || '',
-          duration: duration || null,
+          duration: null,
           fileSize: file?.size ? BigInt(file.size) : null,
-          isHero: false, // Default to false, can be updated later
+          isHero: false,
         } as any,
       });
 
+      // Invalidate cache
       try {
-        // await this.redis.del(`gallery:${targetShopId}`);
-      } catch {}
+        if (this.cacheEnabled) {
+          await this.redis.del(`gallery:${targetShopId}`);
+        }
+      } catch {
+        // ignore
+      }
 
       return {
         id: galleryItem.id,
@@ -287,81 +147,29 @@ export class GalleryService {
       };
     }
 
-    const outputFilename = `${baseName}-opt.webp`;
-    const outputPath = path.join(uploadsDir, outputFilename);
-    const thumbFilename = `${baseName}-thumb.webp`;
-    const thumbPath = path.join(uploadsDir, thumbFilename);
-    const mediumFilename = `${baseName}-md.webp`;
-    const mediumPath = path.join(uploadsDir, mediumFilename);
-
-    try {
-      const base = (await this.createSharp(file.path)).rotate();
-
-      await base
-        .clone()
-        .resize({
-          width: 1600,
-          height: 1600,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 80 })
-        .toFile(outputPath);
-
-      await base
-        .clone()
-        .resize({
-          width: 900,
-          height: 900,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 78 })
-        .toFile(mediumPath);
-
-      await base
-        .clone()
-        .resize({
-          width: 320,
-          height: 320,
-          fit: 'cover',
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 75 })
-        .toFile(thumbPath);
-    } catch {
-      try {
-        if (file?.path && fs.existsSync(file.path)) {
-          fs.unlinkSync(file.path);
-        }
-      } catch {
-        // ignore
-      }
-      throw new BadRequestException('Failed to process image');
-    }
-
-    try {
-      if (file?.path && fs.existsSync(file.path)) {
-        fs.unlinkSync(file.path);
-      }
-    } catch {
-      // ignore
-    }
+    const url = String(optimized?.url || uploaded.url);
+    const thumbUrl = String(optimized?.thumbUrl || '').trim() || null;
+    const mediumUrl = String(optimized?.mediumUrl || optimized?.mdUrl || '').trim() || null;
 
     const galleryImage = await this.prisma.shopGallery.create({
       data: {
         shopId: targetShopId,
-        imageUrl: `/uploads/gallery/${outputFilename}`,
+        imageUrl: url,
         mediaType: 'IMAGE',
-        thumbUrl: `/uploads/gallery/${thumbFilename}`,
-        mediumUrl: `/uploads/gallery/${mediumFilename}`,
+        thumbUrl,
+        mediumUrl,
         caption: caption || '',
       } as any,
     });
 
+    // Invalidate cache
     try {
-      // await this.redis.del(`gallery:${targetShopId}`);
-    } catch {}
+      if (this.cacheEnabled) {
+        await this.redis.del(`gallery:${targetShopId}`);
+      }
+    } catch {
+      // ignore
+    }
 
     return {
       id: galleryImage.id,
@@ -380,10 +188,12 @@ export class GalleryService {
     
     // Try cache first
     try {
-      // const cached = await this.redis.get<any>(cacheKey);
-      // if (Array.isArray(cached)) {
-      //   return cached;
-      // }
+      if (this.cacheEnabled) {
+        const cached = await this.redis.get<any>(cacheKey);
+        if (Array.isArray(cached)) {
+          return cached;
+        }
+      }
     } catch {}
 
     let images: any[] = [];
@@ -421,7 +231,9 @@ export class GalleryService {
 
     // Cache for 5 minutes
     try {
-      // await this.redis.set(`gallery:${shopId}`, mapped, 300);
+      if (this.cacheEnabled) {
+        await this.redis.set(`gallery:${shopId}`, mapped, 300);
+      }
     } catch {}
 
     return mapped;
@@ -456,23 +268,18 @@ export class GalleryService {
       throw new NotFoundException('Image not found');
     }
 
-    const baseDir = path.resolve(process.cwd(), 'uploads', 'gallery');
     const variants = this.getVariantUrls((image as any).imageUrl);
-    const filesToDelete = [
+    const urlsToDelete = [
       (image as any).imageUrl,
       (image as any).mediumUrl || variants.mediumUrl,
       (image as any).thumbUrl || variants.thumbUrl,
     ];
 
-    for (const url of filesToDelete) {
-      const u = String(url || '');
-      if (!u.startsWith('/uploads/gallery/')) continue;
-      const rel = u.replace(/^\/uploads\/gallery\//, '');
-      const filePath = path.resolve(baseDir, rel);
-      if (filePath !== baseDir && !filePath.startsWith(baseDir + path.sep)) continue;
-      if (!fs.existsSync(filePath)) continue;
+    for (const u of urlsToDelete) {
+      const key = this.extractKeyFromUrl(String(u || ''));
+      if (!key) continue;
       try {
-        fs.unlinkSync(filePath);
+        await this.mediaStorage.deleteKey(key);
       } catch {
         // ignore
       }
@@ -485,7 +292,9 @@ export class GalleryService {
 
     // Invalidate cache
     try {
-      // await this.redis.del(`gallery:${image.shopId}`);
+      if (this.cacheEnabled) {
+        await this.redis.del(`gallery:${image.shopId}`);
+      }
     } catch {
       // ignore
     }
@@ -525,8 +334,11 @@ export class GalleryService {
         data: { caption },
       });
 
+      // Invalidate cache
       try {
-        // await this.redis.del(`gallery:${existing.shopId}`);
+        if (this.cacheEnabled) {
+          await this.redis.del(`gallery:${existing.shopId}`);
+        }
       } catch {}
 
       return { success: true };
@@ -547,7 +359,9 @@ export class GalleryService {
 
     // Invalidate cache
     try {
-      // await this.redis.del(`gallery:${shopId}`);
+      if (this.cacheEnabled) {
+        await this.redis.del(`gallery:${shopId}`);
+      }
     } catch {
       // ignore
     }

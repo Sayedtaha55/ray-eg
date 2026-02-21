@@ -131,6 +131,12 @@ async function bootstrap() {
   console.log('[main.ts] NestFactory.create() starting...');
 
   const createStartedAt = Date.now();
+  const createWatchdogMs = (() => {
+    const raw = String(process.env.NEST_CREATE_WATCHDOG_MS || '').trim();
+    const n = Number(raw);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+    return isDev ? 20000 : 8000;
+  })();
   const createWatchdog = setTimeout(() => {
     try {
       const elapsed = Date.now() - createStartedAt;
@@ -143,6 +149,10 @@ async function bootstrap() {
         const name = h?.constructor?.name || typeof h;
         const info = {
           name,
+          fd: (h as any)?.fd,
+          path: (h as any)?.path,
+          isStdout: h === (process as any).stdout,
+          isStderr: h === (process as any).stderr,
           localAddress: (h as any)?.localAddress,
           localPort: (h as any)?.localPort,
           remoteAddress: (h as any)?.remoteAddress,
@@ -159,10 +169,13 @@ async function bootstrap() {
       } catch {
       }
     }
-  }, 8000);
+  }, createWatchdogMs);
+
+  const disableNestLogger = String(process.env.NEST_DISABLE_LOGGER || '').toLowerCase().trim() === 'true';
 
   const app = await NestFactory.create(AppModule, {
     bodyParser: false,
+    ...(disableNestLogger ? { logger: false as any } : {}),
     cors: {
       origin: (origin, callback) => {
         return callback(null, isAllowedOrigin(origin));

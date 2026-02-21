@@ -51,6 +51,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
 
         const unit = typeof (p as any)?.unit === 'string' ? (p as any).unit : it?.unit;
         const packOptions = typeof (p as any)?.packOptions === 'undefined' ? undefined : (p as any).packOptions;
+        const furnitureMeta = typeof (p as any)?.furnitureMeta === 'undefined' ? (it as any)?.furnitureMeta : (p as any).furnitureMeta;
 
         const variantSelection = (it as any)?.variantSelection ?? (it as any)?.variant_selection;
         const kind = variantSelection && typeof variantSelection === 'object' ? String((variantSelection as any)?.kind || '').trim().toLowerCase() : '';
@@ -72,6 +73,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
           imageUrl: (p as any)?.imageUrl || (p as any)?.image_url || it?.imageUrl || it?.image_url,
           unit,
           packOptions,
+          furnitureMeta,
           price: resolvedPrice,
         };
       });
@@ -150,6 +152,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
       quantity: 1,
       ...(variantSelection ? { variantSelection } : {}),
       unit: typeof (product as any)?.unit === 'string' ? (product as any).unit : undefined,
+      furnitureMeta: (product as any)?.furnitureMeta,
     };
 
     try {
@@ -243,7 +246,19 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                 ) : (
                   cart.map((item, idx) => (
                     <div key={idx} className="flex justify-between items-center animate-slide-in-right text-sm">
-                      <span className="text-slate-300 truncate w-32">{item.name}</span>
+                      <div className="min-w-0">
+                        <div className="text-slate-300 truncate w-32">{item.name}</div>
+                        {(item as any)?.furnitureMeta && typeof (item as any)?.furnitureMeta === 'object' && (
+                          <div className="text-[10px] text-slate-500 truncate w-32">
+                            {typeof (item as any)?.furnitureMeta?.lengthCm === 'number' ? `${(item as any).furnitureMeta.lengthCm}×` : ''}
+                            {typeof (item as any)?.furnitureMeta?.widthCm === 'number' ? `${(item as any).furnitureMeta.widthCm}` : ''}
+                            {typeof (item as any)?.furnitureMeta?.heightCm === 'number' ? `×${(item as any).furnitureMeta.heightCm}` : ''}
+                            {((item as any)?.furnitureMeta?.lengthCm != null || (item as any)?.furnitureMeta?.widthCm != null || (item as any)?.furnitureMeta?.heightCm != null)
+                              ? ' سم'
+                              : ''}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"

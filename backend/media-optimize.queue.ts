@@ -14,7 +14,9 @@ export class MediaOptimizeQueue implements OnModuleInit, OnModuleDestroy {
   private readonly statusPrefix = String(process.env.MEDIA_OPT_STATUS_PREFIX || 'media:opt:status:').trim() || 'media:opt:status:';
   private readonly keyPrefix = String(process.env.MEDIA_OPT_KEY_PREFIX || 'media:opt:key:').trim() || 'media:opt:key:';
 
-  constructor(private readonly redis: RedisService) {}
+  constructor(private readonly redis: RedisService) {
+    console.log('[MediaOptimizeQueue] constructor');
+  }
 
   async onModuleInit() {
     // no-op

@@ -8,13 +8,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
+import { getAllowedTabIdsForCategory } from './merchant-dashboard/activities';
 import { useToast } from '@/components/common/feedback/Toaster';
-import * as ReactRouterDOM from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { BUILDER_SECTIONS } from './builder/registry';
 import SmartImage from '@/components/common/ui/SmartImage';
 
 const MotionDiv = motion.div as any;
-const { useLocation } = ReactRouterDOM as any;
 
 const isVideoUrl = (url: string) => {
   const u = String(url || '').toLowerCase();
@@ -130,16 +130,31 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const syncVisibilityWithModules = (current: any, shop: any) => {
     const next = { ...(current && typeof current === 'object' ? current : {}) } as Record<string, boolean>;
 
+    const allowedByActivity = getAllowedTabIdsForCategory(shop?.category);
+
     const enabled = (() => {
       const layout = shop?.layoutConfig;
       const raw = layout && typeof layout === 'object' ? (layout as any).enabledModules : undefined;
-      if (!Array.isArray(raw)) return new Set<string>();
-      return new Set(raw.map((x: any) => String(x || '').trim()).filter(Boolean));
+
+      const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
+      const base = new Set<string>(core);
+
+      if (!Array.isArray(raw)) return base;
+
+      for (const x of raw) {
+        const id = String(x || '').trim();
+        if (!id) continue;
+        base.add(id);
+      }
+
+      return base;
     })();
 
-    const hasSales = enabled.has('sales');
-    const hasReservations = enabled.has('reservations');
-    const hasGallery = enabled.has('gallery');
+    const isEnabled = (id: string) => enabled.has(id) && allowedByActivity.has(id as any);
+
+    const hasSales = isEnabled('sales');
+    const hasReservations = isEnabled('reservations');
+    const hasGallery = isEnabled('gallery');
 
     next.productCardAddToCart = Boolean(hasSales);
     next.mobileBottomNavCart = Boolean(hasSales);

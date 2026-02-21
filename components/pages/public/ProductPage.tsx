@@ -459,8 +459,6 @@ const ProductPage: React.FC = () => {
   if (error || !product) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
-        <AlertCircle className="w-16 h-16 text-slate-300 mb-6" />
-        <h2 className="text-2xl font-black mb-4">عفواً، المنتج غير متاح</h2>
         <p className="text-slate-500 font-bold mb-8">ربما تم حذفه أو أن الرابط غير صحيح.</p>
         <button 
           onClick={() => navigate('/')}
@@ -475,6 +473,43 @@ const ProductPage: React.FC = () => {
   const currentPrice = offer ? offer.newPrice : product.price;
   const isRestaurant = shop?.category === Category.RESTAURANT;
   const isFashion = shop?.category === Category.FASHION;
+  const furnitureMeta = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
+  const furnitureUnit = typeof furnitureMeta?.unit === 'string' ? String(furnitureMeta.unit).trim() : '';
+  const furnitureLengthCm = typeof furnitureMeta?.lengthCm === 'number' ? furnitureMeta.lengthCm : (furnitureMeta?.lengthCm != null ? Number(furnitureMeta.lengthCm) : NaN);
+  const furnitureWidthCm = typeof furnitureMeta?.widthCm === 'number' ? furnitureMeta.widthCm : (furnitureMeta?.widthCm != null ? Number(furnitureMeta.widthCm) : NaN);
+  const furnitureHeightCm = typeof furnitureMeta?.heightCm === 'number' ? furnitureMeta.heightCm : (furnitureMeta?.heightCm != null ? Number(furnitureMeta.heightCm) : NaN);
+  const hasFurnitureMeta = Boolean(
+    furnitureUnit ||
+      Number.isFinite(furnitureLengthCm) ||
+      Number.isFinite(furnitureWidthCm) ||
+      Number.isFinite(furnitureHeightCm),
+  );
+
+  const renderFurnitureSpecs = () => {
+    if (!hasFurnitureMeta) return null;
+    const fmt = (n: any) => {
+      const v = typeof n === 'number' ? n : Number(n);
+      if (!Number.isFinite(v) || v <= 0) return '';
+      return String(Math.round(v * 100) / 100);
+    };
+    const l = fmt(furnitureLengthCm);
+    const w = fmt(furnitureWidthCm);
+    const h = fmt(furnitureHeightCm);
+    const dims = [l ? `الطول: ${l} سم` : '', w ? `العرض: ${w} سم` : '', h ? `الارتفاع: ${h} سم` : ''].filter(Boolean);
+    return (
+      <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-2">
+        <p className="text-xs font-black text-slate-500">مواصفات الأثاث</p>
+        {furnitureUnit ? <p className="text-sm font-bold text-slate-700">الوحدة: {furnitureUnit}</p> : null}
+        {dims.length ? (
+          <div className="space-y-1">
+            {dims.map((t) => (
+              <p key={t} className="text-sm font-bold text-slate-700">{t}</p>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  };
   const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
   const galleryImages = useMemo(() => {
     const extras = Array.isArray((product as any)?.images) ? (product as any).images : [];
@@ -917,6 +952,8 @@ const ProductPage: React.FC = () => {
                    </p>
                 </div>
              </div>
+
+             {renderFurnitureSpecs()}
              
              <div className="flex flex-col md:flex-row gap-4">
                {shop?.category === Category.FOOD && Array.isArray((product as any)?.packOptions) && (product as any).packOptions.length > 0 && (

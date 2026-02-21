@@ -39,6 +39,10 @@ const SignupPage: React.FC = () => {
   const returnTo = params.get('returnTo');
   const followShopId = params.get('followShopId');
 
+  const allowMerchantSignup =
+    String(location?.pathname || '').startsWith('/business') ||
+    roleParam === 'merchant';
+
   const backendBaseUrl =
     ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
     ((import.meta as any)?.env?.VITE_API_URL as string) ||
@@ -54,6 +58,10 @@ const SignupPage: React.FC = () => {
   useEffect(() => {
     if (roleParam === 'merchant') {
       setRole('merchant');
+      return;
+    }
+    if (!allowMerchantSignup) {
+      setRole('customer');
     }
   }, [roleParam]);
 
@@ -245,13 +253,15 @@ const SignupPage: React.FC = () => {
            >
               <User size={18} /> زبون
            </button>
-           <button 
-             type="button"
-             onClick={() => setRole('merchant')}
-             className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'merchant' ? 'bg-white shadow-xl text-[#00E5FF]' : 'text-slate-400'}`}
-           >
-              <Store size={18} /> تاجر / صاحب عمل
-           </button>
+           {allowMerchantSignup && (
+             <button 
+               type="button"
+               onClick={() => setRole('merchant')}
+               className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'merchant' ? 'bg-white shadow-xl text-[#00E5FF]' : 'text-slate-400'}`}
+             >
+                <Store size={18} /> تاجر / صاحب عمل
+             </button>
+           )}
         </div>
 
         <AnimatePresence>

@@ -255,6 +255,23 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
   const isLowStock = product.stockStatus === 'LOW_STOCK';
   const [justAdded, setJustAdded] = useState(false);
 
+  const furnitureMeta = (product as any)?.furnitureMeta;
+
+  const furnitureDims = (() => {
+    if (!furnitureMeta || typeof furnitureMeta !== 'object') return null;
+    const toNum = (v: any) => {
+      const n = typeof v === 'number' ? v : v == null ? NaN : Number(v);
+      return Number.isFinite(n) ? n : NaN;
+    };
+    const lengthCm = toNum((furnitureMeta as any)?.lengthCm);
+    const widthCm = toNum((furnitureMeta as any)?.widthCm);
+    const heightCm = toNum((furnitureMeta as any)?.heightCm);
+    const unit = typeof (furnitureMeta as any)?.unit === 'string' ? String((furnitureMeta as any).unit).trim() : '';
+    const hasAny = Number.isFinite(lengthCm) || Number.isFinite(widthCm) || Number.isFinite(heightCm) || Boolean(unit);
+    if (!hasAny) return null;
+    return { lengthCm, widthCm, heightCm, unit };
+  })();
+
   const unitRaw = typeof (product as any)?.unit === 'string' ? String((product as any).unit).trim() : '';
   const unitLabel = (() => {
     const u = unitRaw.toUpperCase();
@@ -331,6 +348,7 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
       ...product,
       price: finalPrice,
       unit: unitRaw ? unitRaw : undefined,
+      furnitureMeta,
       selectedColor,
       selectedSize: selectedSize ? {
         label: selectedSize.label === 'custom' ? String(selectedSize.customValue) : selectedSize.label,
@@ -564,6 +582,22 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
                       <span>
                         المتاح: <span className="text-cyan-300">{stockNumber}</span>
                       </span>
+                    ) : null}
+                  </div>
+                )}
+
+                {furnitureDims && (
+                  <div className="text-[10px] text-slate-400 bg-slate-800/40 rounded-lg py-2 px-3">
+                    {Number.isFinite(furnitureDims.lengthCm) ? <span>الطول: <span className="text-cyan-300">{furnitureDims.lengthCm}</span> سم</span> : null}
+                    {Number.isFinite(furnitureDims.lengthCm) && Number.isFinite(furnitureDims.widthCm) ? <span className="mx-1">•</span> : null}
+                    {Number.isFinite(furnitureDims.widthCm) ? <span>العرض: <span className="text-cyan-300">{furnitureDims.widthCm}</span> سم</span> : null}
+                    {(Number.isFinite(furnitureDims.lengthCm) || Number.isFinite(furnitureDims.widthCm)) && Number.isFinite(furnitureDims.heightCm) ? <span className="mx-1">•</span> : null}
+                    {Number.isFinite(furnitureDims.heightCm) ? <span>الارتفاع: <span className="text-cyan-300">{furnitureDims.heightCm}</span> سم</span> : null}
+                    {furnitureDims.unit ? (
+                      <>
+                        <span className="mx-1">•</span>
+                        <span>وحدة البيع: <span className="text-cyan-300">{furnitureDims.unit}</span></span>
+                      </>
                     ) : null}
                   </div>
                 )}

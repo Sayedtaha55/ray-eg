@@ -15,6 +15,7 @@ export interface Product {
   category: string;
   unit?: string;
   packOptions?: any;
+  furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
   confidence: number;
   stockStatus: StockStatus;
   x: number; // Percentage 0-100

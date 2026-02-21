@@ -627,6 +627,24 @@ const ShopProductPage: React.FC = () => {
     [(product as any)?.category, (product as any)?.stock],
   );
 
+  const furnitureQuickSpecs = useMemo(() => {
+    const fm = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
+    const unit = typeof fm?.unit === 'string' ? String(fm.unit).trim() : '';
+    const l = typeof fm?.lengthCm === 'number' ? fm.lengthCm : Number(fm?.lengthCm || NaN);
+    const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
+    const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
+    const fmt = (n: number) => String(Math.round(n * 100) / 100);
+
+    const parts = [
+      unit ? `وحدة: ${unit}` : '',
+      Number.isFinite(l) && l > 0 ? `طول ${fmt(l)}سم` : '',
+      Number.isFinite(w) && w > 0 ? `عرض ${fmt(w)}سم` : '',
+      Number.isFinite(h) && h > 0 ? `ارتفاع ${fmt(h)}سم` : '',
+    ].filter(Boolean);
+
+    return parts.join(' - ');
+  }, [product]);
+
   const prefersReducedMotion = useReducedMotion();
 
   const removeFromCart = (lineId: string) => {
@@ -655,10 +673,34 @@ const ShopProductPage: React.FC = () => {
       );
     }
     if (activeTab === 'specs') {
+      const fm = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
+      const unit = typeof fm?.unit === 'string' ? String(fm.unit).trim() : '';
+      const l = typeof fm?.lengthCm === 'number' ? fm.lengthCm : Number(fm?.lengthCm || NaN);
+      const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
+      const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
+      const dims = [
+        Number.isFinite(l) && l > 0 ? `الطول: ${Math.round(l * 100) / 100} سم` : '',
+        Number.isFinite(w) && w > 0 ? `العرض: ${Math.round(w * 100) / 100} سم` : '',
+        Number.isFinite(h) && h > 0 ? `الارتفاع: ${Math.round(h * 100) / 100} سم` : '',
+      ].filter(Boolean);
+      const hasFurniture = Boolean(unit || dims.length);
       return (
         <div className="bg-white border border-slate-100 rounded-2xl p-5">
           <h3 className="font-black text-sm mb-2">المواصفات</h3>
-          <p className="text-sm font-bold text-slate-600 leading-relaxed">سيتم إضافة المواصفات قريباً.</p>
+          {hasFurniture ? (
+            <div className="space-y-2">
+              {unit ? <p className="text-sm font-bold text-slate-600">الوحدة: {unit}</p> : null}
+              {dims.length ? (
+                <div className="space-y-1">
+                  {dims.map((t) => (
+                    <p key={t} className="text-sm font-bold text-slate-600 leading-relaxed">{t}</p>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-sm font-bold text-slate-600 leading-relaxed">سيتم إضافة المواصفات قريباً.</p>
+          )}
         </div>
       );
     }
@@ -862,6 +904,9 @@ const ShopProductPage: React.FC = () => {
               ) : (
                 <p className="text-sm md:text-base font-bold text-slate-500">وصف المنتج سيتم إضافته قريباً.</p>
               )}
+              {furnitureQuickSpecs ? (
+                <p className="text-[10px] md:text-xs font-bold text-slate-500 line-clamp-1">{furnitureQuickSpecs}</p>
+              ) : null}
             </div>
 
             {showPrice && (

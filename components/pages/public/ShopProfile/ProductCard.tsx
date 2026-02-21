@@ -158,6 +158,23 @@ const ProductCard = React.memo(function ProductCard({
         ? 'bg-red-500 text-white'
         : 'bg-white/90 text-slate-900';
 
+  const furnitureLine = useMemo(() => {
+    const fm = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
+    if (!fm || typeof fm !== 'object') return '';
+    const unit = typeof fm?.unit === 'string' ? String(fm.unit).trim() : '';
+    const l = typeof fm?.lengthCm === 'number' ? fm.lengthCm : Number(fm?.lengthCm || NaN);
+    const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
+    const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
+    const dims = [
+      Number.isFinite(l) && l > 0 ? `طول ${Math.round(l * 100) / 100}سم` : '',
+      Number.isFinite(w) && w > 0 ? `عرض ${Math.round(w * 100) / 100}سم` : '',
+      Number.isFinite(h) && h > 0 ? `ارتفاع ${Math.round(h * 100) / 100}سم` : '',
+    ].filter(Boolean);
+    if (!unit && dims.length === 0) return '';
+    const parts = [unit ? `وحدة: ${unit}` : '', ...dims].filter(Boolean);
+    return parts.join(' - ');
+  }, [product]);
+
   const goToProduct = () => {
     const sid = String(slug || '').trim();
     if (sid) {

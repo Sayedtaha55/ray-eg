@@ -13,6 +13,7 @@ export class MediaPresignService {
   } | null = null;
 
   constructor(private readonly config: ConfigService) {
+    console.log('[MediaPresignService] constructor');
   }
 
   private async getAws() {

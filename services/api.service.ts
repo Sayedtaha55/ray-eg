@@ -324,7 +324,17 @@ export const ApiService = {
 
     // Uploading large media over slow networks can exceed the default API timeout.
     // Give uploads a longer, explicit timeout.
-    return await backendPostWithOptions<{ url: string; key: string }>('/api/v1/media/upload', form, { timeoutMs: 180_000 });
+    try {
+      return await backendPostWithOptions<{ url: string; key: string }>('/api/v1/media/upload', form, { timeoutMs: 180_000 });
+    } catch (e: any) {
+      const status = typeof e?.status === 'number' ? e.status : undefined;
+      const msg = e?.message ? String(e.message) : '';
+      const isMissingUploadEndpoint = status === 404 || msg.includes('Cannot POST /api/v1/media/upload');
+      if (isMissingUploadEndpoint) {
+        return await ApiService.uploadMediaRobust(payload);
+      }
+      throw e;
+    }
   },
 
   uploadMediaRobust: async (payload: { file: File; purpose?: string; shopId?: string }) => {

@@ -26,7 +26,7 @@ const isShopImportsOverride = shopImportsRaw.length > 0;
   imports: [
     PrismaModule,
     ...(includeAllShopImports || shopImports.has('redis') ? [RedisModule] : []),
-    ...(includeAllShopImports || shopImports.has('media') ? [forwardRef(() => MediaModule)] : []),
+    ...(includeAllShopImports || shopImports.has('media') ? [MediaModule] : []),
     ...(includeAllShopImports || shopImports.has('notification') ? [forwardRef(() => NotificationModule)] : []),
     ...(includeAllShopImports || shopImports.has('email') ? [EmailModule] : []),
     forwardRef(() => AuthModule),

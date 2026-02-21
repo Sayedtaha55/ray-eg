@@ -120,6 +120,16 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   onCancel,
 }) => {
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
+  const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
+  const isDevFurniture = (() => {
+    try {
+      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
+      return raw === 'furniture';
+    } catch {
+      return false;
+    }
+  })();
+  const isFurnitureActivity = Boolean(isService && isDevFurniture);
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);
@@ -335,13 +345,21 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   };
 
   const handleSave = async () => {
+    if (isSaving) return;
     setIsSaving(true);
-    // Save all sections at once
-    await onSave({ name: storeName, type: storeType, sections: sectionsRef.current });
-    setIsSaving(false);
+    try {
+      // Save all sections at once
+      await onSave({ name: storeName, type: storeType, sections: sectionsRef.current });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const selectedProduct = activeProducts.find((p) => p.id === selectedProductId);
+
+  const shouldShowFurniture =
+    Boolean(isFurnitureActivity) ||
+    Boolean((selectedProduct as any)?.furnitureMeta);
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -395,18 +413,19 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       )}
 
       {/* Top Bar */}
-      <div className="h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-3 sm:px-6 z-40">
-        <div className="flex items-center gap-4">
-          <div className="bg-cyan-900/50 p-2 rounded-lg">
-            <Edit3 size={18} className="text-cyan-400" />
+      <div className="h-14 sm:h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-2.5 sm:px-6 z-40">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <div className="bg-cyan-900/50 p-1.5 sm:p-2 rounded-lg">
+            <Edit3 size={16} className="text-cyan-400 sm:hidden" />
+            <Edit3 size={18} className="text-cyan-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="font-bold text-white">محرر المتجر المتكامل</h2>
-            <p className="text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
+            <h2 className="font-bold text-white text-sm sm:text-base">محرر المتجر المتكامل</h2>
+            <p className="text-[10px] sm:text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
           </div>
         </div>
-        <div className="flex gap-2 sm:gap-3">
-          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-colors text-xs sm:text-sm">
+        <div className="flex gap-1.5 sm:gap-3">
+          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-colors text-[11px] sm:text-sm">
             إلغاء
           </button>
           <button
@@ -417,7 +436,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
               setIsMoveMode(false);
             }}
             disabled={!activeSection}
-            className={`px-2 sm:px-4 py-2 rounded-lg border font-bold transition-all text-xs sm:text-sm
+            className={`px-2 sm:px-4 py-2 rounded-lg border font-bold transition-all text-[11px] sm:text-sm
               ${
                 !activeSection
                   ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
@@ -428,7 +447,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
             `}
           >
             <span className="flex items-center gap-2">
-              <Plus size={14} />
+              <Plus size={12} className="sm:hidden" />
+              <Plus size={14} className="hidden sm:block" />
               {isAddingMode ? 'انقر على الصورة لإضافة المنتج' : 'إضافة منتج'}
             </span>
           </button>
@@ -639,6 +659,67 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                               placeholder="السعر"
                             />
+
+                            {shouldShowFurniture && (
+                              <div className="space-y-2 pt-2 border-t border-slate-700">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">الأثاث</div>
+
+                                <input
+                                  type="text"
+                                  value={String((selectedProduct as any)?.furnitureMeta?.unit || (selectedProduct as any)?.unit || '')}
+                                  onChange={(e) => {
+                                    const u = String(e.target.value || '').trim();
+                                    const prev = (selectedProduct as any)?.furnitureMeta;
+                                    const nextMeta = prev && typeof prev === 'object' ? { ...prev, unit: u || undefined } : { unit: u || undefined };
+                                    updateProductDetails(selectedProduct.id, { unit: u || undefined, furnitureMeta: nextMeta } as any);
+                                  }}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                                  placeholder="الوحدة (مثال: قطعة)"
+                                />
+
+                                <div className="grid grid-cols-3 gap-2">
+                                  <input
+                                    type="number"
+                                    value={String((selectedProduct as any)?.furnitureMeta?.lengthCm ?? '')}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const n = v === '' ? undefined : Number(v);
+                                      const prev = (selectedProduct as any)?.furnitureMeta;
+                                      const nextMeta = prev && typeof prev === 'object' ? { ...prev, lengthCm: Number.isFinite(n as any) ? n : undefined } : { lengthCm: Number.isFinite(n as any) ? n : undefined };
+                                      updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                                    }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                                    placeholder="الطول (سم)"
+                                  />
+                                  <input
+                                    type="number"
+                                    value={String((selectedProduct as any)?.furnitureMeta?.widthCm ?? '')}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const n = v === '' ? undefined : Number(v);
+                                      const prev = (selectedProduct as any)?.furnitureMeta;
+                                      const nextMeta = prev && typeof prev === 'object' ? { ...prev, widthCm: Number.isFinite(n as any) ? n : undefined } : { widthCm: Number.isFinite(n as any) ? n : undefined };
+                                      updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                                    }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                                    placeholder="العرض (سم)"
+                                  />
+                                  <input
+                                    type="number"
+                                    value={String((selectedProduct as any)?.furnitureMeta?.heightCm ?? '')}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      const n = v === '' ? undefined : Number(v);
+                                      const prev = (selectedProduct as any)?.furnitureMeta;
+                                      const nextMeta = prev && typeof prev === 'object' ? { ...prev, heightCm: Number.isFinite(n as any) ? n : undefined } : { heightCm: Number.isFinite(n as any) ? n : undefined };
+                                      updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                                    }}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                                    placeholder="الارتفاع (سم)"
+                                  />
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -886,7 +967,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
           {/* Active Section Info */}
 
           {/* Product List / Editor */}
-          <div className="flex-1 overflow-y-auto p-3 sm:p-4">
+          <div className="flex-1 overflow-y-auto p-2 sm:p-4">
             {selectedProduct && <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>}
           </div>
         </div>

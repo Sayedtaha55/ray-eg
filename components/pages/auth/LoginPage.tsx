@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, Store, MapPin } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -48,6 +48,22 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
+
+  const adminTapState = useRef({ count: 0, lastAt: 0 });
+
+  const handleAdminSecretTap = () => {
+    const now = Date.now();
+    const lastAt = adminTapState.current.lastAt;
+    const nextCount = now - lastAt > 1200 ? 1 : adminTapState.current.count + 1;
+    adminTapState.current.count = nextCount;
+    adminTapState.current.lastAt = now;
+    if (nextCount >= 6) {
+      adminTapState.current.count = 0;
+      adminTapState.current.lastAt = 0;
+      addToast('فتح بوابة الأدمن...', 'success');
+      navigate('/admin/gate');
+    }
+  };
 
   const isBusinessLogin = String(location?.pathname || '').startsWith('/business/login');
 
@@ -114,32 +130,6 @@ const LoginPage: React.FC = () => {
 
       const role = String((response as any)?.user?.role || '').toLowerCase();
 
-      if (!isBusinessLogin) {
-        if (role === 'merchant' || role === 'admin' || role === 'courier') {
-          try {
-            localStorage.removeItem('ray_user');
-            localStorage.removeItem('ray_token');
-          } catch {
-          }
-          window.dispatchEvent(new Event('auth-change'));
-          setError('هذه الصفحة مخصصة لدخول المشتري فقط. ادخل من صفحة الأعمال.');
-          navigate('/business/login', { replace: true } as any);
-          return;
-        }
-      } else {
-        if (role !== 'merchant') {
-          try {
-            localStorage.removeItem('ray_user');
-            localStorage.removeItem('ray_token');
-          } catch {
-          }
-          window.dispatchEvent(new Event('auth-change'));
-          setError('هذه الصفحة مخصصة لدخول التاجر فقط.');
-          navigate('/login', { replace: true } as any);
-          return;
-        }
-      }
-
       if (returnTo) {
         try {
           if (followShopId) {
@@ -149,7 +139,23 @@ const LoginPage: React.FC = () => {
         } catch {
           // ignore
         }
+
+        if (returnTo.startsWith('/admin') && role !== 'admin') {
+          setError('هذه المنطقة للمشرفين فقط!');
+          navigate('/admin/gate', { replace: true } as any);
+          return;
+        }
         navigate(returnTo);
+        return;
+      }
+
+      if (role === 'admin') {
+        navigate('/admin/dashboard');
+        return;
+      }
+
+      if (role === 'courier') {
+        navigate('/courier/orders');
         return;
       }
 
@@ -314,21 +320,18 @@ const LoginPage: React.FC = () => {
       <MotionDiv 
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-xl bg-white border border-slate-100 p-8 md:p-16 rounded-[3.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.05)] text-right"
+        className="w-full max-w-xl bg-white border border-slate-100 p-8 md:p-16 rounded-[3.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.05)] text-right text-slate-900"
       >
         <div className="flex flex-col items-center text-center mb-12">
            <div 
-              onClick={() => {
-                if (!isBusinessLogin) return;
-                navigate('/admin/gate');
-              }}
+              onPointerDown={handleAdminSecretTap}
               className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
            >
               <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="text-white font-black text-4xl relative z-10">R</span>
            </div>
            <h1 className="text-4xl font-black tracking-tighter mb-4">أهلاً بك <span className="text-[#00E5FF]">مجدداً.</span></h1>
-           <p className="text-slate-400 font-bold text-sm">{isBusinessLogin ? 'دخول التاجر لإدارة نشاطك.' : 'دخول المشتري لمتابعة طلباتك وحسابك.'}</p>
+           <p className="text-slate-400 font-bold text-sm">سجّل الدخول لمتابعة حسابك أو إدارة نشاطك.</p>
         </div>
 
         <AnimatePresence>
@@ -384,14 +387,14 @@ const LoginPage: React.FC = () => {
            <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
            {!isBusinessLogin ? (
              <div className="grid grid-cols-1 gap-4">
-               <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+               <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900">
                  <UserPlus size={20} className="text-slate-900" />
                  <span className="font-black text-[10px]">تسجيل مشتري</span>
                </Link>
              </div>
            ) : (
              <div className="grid grid-cols-1 gap-4">
-               <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all">
+               <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900">
                  <Store size={20} className="text-[#BD00FF]" />
                  <span className="font-black text-[10px]">تسجيل نشاط</span>
                </Link>

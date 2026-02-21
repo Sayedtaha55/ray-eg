@@ -22,6 +22,7 @@ const AdminLogin: React.FC = () => {
   const [bootstrapPassword, setBootstrapPassword] = useState('');
   const [bootstrapName, setBootstrapName] = useState('Admin');
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
+  const [isDevActivityMenuOpen, setIsDevActivityMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -61,6 +62,10 @@ const AdminLogin: React.FC = () => {
       const res = await ApiService.devMerchantLogin();
       localStorage.setItem('ray_user', JSON.stringify(res.user));
       localStorage.setItem('ray_token', res.session?.access_token || '');
+      try {
+        localStorage.removeItem('ray_dev_shop_category');
+      } catch {
+      }
       window.dispatchEvent(new Event('auth-change'));
       navigate('/business/dashboard');
     } catch (err: any) {
@@ -70,45 +75,21 @@ const AdminLogin: React.FC = () => {
     }
   };
 
-  const handleDevRestaurantLogin = async () => {
+  const handleDevMerchantLoginWithCategory = async (shopCategory?: string) => {
     setLoading(true);
     setError('');
     try {
-      const res = await ApiService.devMerchantLogin({ shopCategory: 'RESTAURANT' });
+      const res = await ApiService.devMerchantLogin(shopCategory ? { shopCategory } : undefined);
       localStorage.setItem('ray_user', JSON.stringify(res.user));
       localStorage.setItem('ray_token', res.session?.access_token || '');
-      window.dispatchEvent(new Event('auth-change'));
-      navigate('/business/dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المطور');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDevFashionLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await ApiService.devMerchantLogin({ shopCategory: 'FASHION' });
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
-      window.dispatchEvent(new Event('auth-change'));
-      navigate('/business/dashboard');
-    } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المطور');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDevFoodLogin = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const res = await ApiService.devMerchantLogin({ shopCategory: 'FOOD' });
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      try {
+        if (shopCategory) {
+          localStorage.setItem('ray_dev_shop_category', String(shopCategory).toUpperCase());
+        } else {
+          localStorage.removeItem('ray_dev_shop_category');
+        }
+      } catch {
+      }
       window.dispatchEvent(new Event('auth-change'));
       navigate('/business/dashboard');
     } catch (err: any) {
@@ -158,161 +139,243 @@ const AdminLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 text-right" dir="rtl">
-       <MotionDiv 
-        initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+      <MotionDiv
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-lg bg-slate-900 border border-white/5 p-12 rounded-[4rem] shadow-2xl"
-       >
-          <div className="text-center mb-10">
-             <div className="w-20 h-20 bg-[#BD00FF] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(189,0,255,0.4)]">
-                <ShieldAlert size={40} className="text-white" />
-             </div>
-             <h1 className="text-3xl font-black text-white tracking-tighter">بوابة الآدمن</h1>
-             <p className="text-slate-500 font-bold mt-2">يرجى إثبات هويتك للوصول لبيانات السيرفر.</p>
+      >
+        <div className="text-center mb-10">
+          <div className="w-20 h-20 bg-[#BD00FF] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(189,0,255,0.4)]">
+            <ShieldAlert size={40} className="text-white" />
           </div>
+          <h1 className="text-3xl font-black text-white tracking-tighter">بوابة الآدمن</h1>
+          <p className="text-slate-500 font-bold mt-2">يرجى إثبات هويتك للوصول لبيانات السيرفر.</p>
+        </div>
 
-          {error && <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl mb-8 text-sm font-bold">{error}</div>}
+        {error && (
+          <div className="p-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-2xl mb-8 text-sm font-bold">
+            {error}
+          </div>
+        )}
 
-          <form onSubmit={handleAdminLogin} className="space-y-6">
-             <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">اسم المستخدم</label>
-                <input 
-                  required 
-                  type="text" 
-                  value={email} 
-                  onChange={e => setEmail(e.target.value)} 
-                  placeholder="admin"
-                  className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all" 
-                />
-             </div>
-             <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">كلمة المرور</label>
-                <input 
-                  required 
-                  type="password" 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="1234"
-                  className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all" 
-                />
-             </div>
-             <button disabled={loading} className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3">
-              {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
-              دخول للنظام
-            </button>
+        <form onSubmit={handleAdminLogin} className="space-y-6">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">اسم المستخدم</label>
+            <input
+              required
+              type="text"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="admin"
+              className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">كلمة المرور</label>
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="1234"
+              className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+            />
+          </div>
+          <button
+            disabled={loading}
+            className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3"
+          >
+            {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
+            دخول للنظام
+          </button>
 
-             {showDevMerchantLogin && (
-               <>
-                 <button
-                   type="button"
-                   disabled={loading}
-                   onClick={handleDevMerchantLogin}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                 >
-                   <Store size={18} />
-                   دخول المطور (تاجر)
-                 </button>
-                 <button
-                   type="button"
-                   disabled={loading}
-                   onClick={handleDevRestaurantLogin}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                 >
-                   <Store size={18} />
-                   دخول المطور (مطعم)
-                 </button>
-                 <button
-                   type="button"
-                   disabled={loading}
-                   onClick={handleDevFashionLogin}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                 >
-                   <Store size={18} />
-                   دخول المطور (ملابس)
-                 </button>
-                 <button
-                   type="button"
-                   disabled={loading}
-                   onClick={handleDevFoodLogin}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                 >
-                   <Store size={18} />
-                   دخول المطور (سوبر ماركت/بقالة/عطارة)
-                 </button>
-                 <button
-                   type="button"
-                   disabled={loading}
-                   onClick={handleDevCourierLogin}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
-                 >
-                   <MapPin size={18} />
-                   دخول المندوب (تطوير)
-                 </button>
-               </>
-             )}
+          {showDevMerchantLogin && (
+            <>
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setIsDevActivityMenuOpen((v) => !v)}
+                  className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                >
+                  <Store size={18} />
+                  دخول المطور
+                </button>
 
-             {allowBootstrapUi && (
-               <>
-                 <button
-                   type="button"
-                   onClick={() => setBootstrapOpen((v) => !v)}
-                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all"
-                 >
-                   تهيئة الأدمن (Bootstrap)
-                 </button>
+                {isDevActivityMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
+                    <div className="absolute z-50 left-0 right-0 mt-3 bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl">
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLogin(); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        تاجر (Retail)
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('RESTAURANT'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        مطعم
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('FASHION'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        ملابس / أحذية
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('RETAIL'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        المفروشات والسجاد
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('FOOD'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        سوبر ماركت / بقالة / عطارة
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('ELECTRONICS'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        إلكترونيات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('HEALTH'); }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        صيدلية / مستحضرات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('SERVICE');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        خدمات / ورش / صيانة
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'furniture');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('SERVICE');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        أثاث / معارض
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
 
-                 {bootstrapOpen && (
-                   <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
-                     <div className="text-[11px] font-black text-slate-400">استخدم ADMIN_BOOTSTRAP_TOKEN من Railway لعمل/تحديث حساب الأدمن على الإنتاج.</div>
-                     <form onSubmit={handleBootstrap} className="space-y-4">
-                       <input
-                         required
-                         type="password"
-                         value={bootstrapToken}
-                         onChange={(e) => setBootstrapToken(e.target.value)}
-                         placeholder="ADMIN_BOOTSTRAP_TOKEN"
-                         className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                       />
-                       <input
-                         required
-                         type="email"
-                         value={bootstrapEmail}
-                         onChange={(e) => setBootstrapEmail(e.target.value)}
-                         placeholder="admin@mnmknk.com"
-                         className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                       />
-                       <input
-                         required
-                         type="password"
-                         value={bootstrapPassword}
-                         onChange={(e) => setBootstrapPassword(e.target.value)}
-                         placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
-                         className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                       />
-                       <input
-                         type="text"
-                         value={bootstrapName}
-                         onChange={(e) => setBootstrapName(e.target.value)}
-                         placeholder="اسم الأدمن"
-                         className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                       />
-                       <button
-                         disabled={bootstrapLoading}
-                         className="w-full py-4 bg-[#BD00FF] text-white rounded-[2rem] font-black text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
-                       >
-                         {bootstrapLoading ? <Loader2 className="animate-spin" size={18} /> : <ShieldAlert size={18} />}
-                         تنفيذ التهيئة
-                       </button>
-                     </form>
-                   </div>
-                 )}
-               </>
-             )}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={handleDevCourierLogin}
+                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+              >
+                <MapPin size={18} />
+                دخول المندوب (تطوير)
+              </button>
+            </>
+          )}
 
-             <button type="button" onClick={() => navigate('/login')} className="w-full py-4 text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-white transition-colors">
-               <ArrowRight size={16} /> العودة لتسجيل دخول المستخدمين
-             </button>
-          </form>
-       </MotionDiv>
+          {allowBootstrapUi && (
+            <>
+              <button
+                type="button"
+                onClick={() => setBootstrapOpen((v) => !v)}
+                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all"
+              >
+                تهيئة الأدمن (Bootstrap)
+              </button>
+
+              {bootstrapOpen && (
+                <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
+                  <div className="text-[11px] font-black text-slate-400">استخدم ADMIN_BOOTSTRAP_TOKEN من Railway لعمل/تحديث حساب الأدمن على الإنتاج.</div>
+                  <form onSubmit={handleBootstrap} className="space-y-4">
+                    <input
+                      required
+                      type="password"
+                      value={bootstrapToken}
+                      onChange={(e) => setBootstrapToken(e.target.value)}
+                      placeholder="ADMIN_BOOTSTRAP_TOKEN"
+                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                    />
+                    <input
+                      required
+                      type="email"
+                      value={bootstrapEmail}
+                      onChange={(e) => setBootstrapEmail(e.target.value)}
+                      placeholder="admin@mnmknk.com"
+                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                    />
+                    <input
+                      required
+                      type="password"
+                      value={bootstrapPassword}
+                      onChange={(e) => setBootstrapPassword(e.target.value)}
+                      placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
+                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                    />
+                    <input
+                      type="text"
+                      value={bootstrapName}
+                      onChange={(e) => setBootstrapName(e.target.value)}
+                      placeholder="اسم الأدمن"
+                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                    />
+                    <button
+                      disabled={bootstrapLoading}
+                      className="w-full py-4 bg-[#BD00FF] text-white rounded-[2rem] font-black text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+                    >
+                      {bootstrapLoading ? <Loader2 className="animate-spin" size={18} /> : <ShieldAlert size={18} />}
+                      تنفيذ التهيئة
+                    </button>
+                  </form>
+                </div>
+              )}
+            </>
+          )}
+
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="w-full py-4 text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-white transition-colors"
+          >
+            <ArrowRight size={16} /> العودة لتسجيل دخول المستخدمين
+          </button>
+        </form>
+      </MotionDiv>
     </div>
   );
 };

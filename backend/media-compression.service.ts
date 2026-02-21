@@ -5,6 +5,10 @@ import { spawn } from 'child_process';
 
 @Injectable()
 export class MediaCompressionService {
+  constructor() {
+    console.log('[MediaCompressionService] constructor');
+  }
+
   private async getFfmpegExe() {
     try {
       const mod: any = await import('ffmpeg-static');

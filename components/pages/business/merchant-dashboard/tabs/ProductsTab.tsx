@@ -22,6 +22,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [togglingId, setTogglingId] = useState<string>('');
+  const [previewImageSrc, setPreviewImageSrc] = useState<string>('');
   const [imageMapEditorOpen, setImageMapEditorOpen] = useState(false);
   const [imageMapProductsOpen, setImageMapProductsOpen] = useState(false);
   const [imageMapLoading, setImageMapLoading] = useState(false);
@@ -708,65 +709,92 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           </div>
         )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-8">
-          {filteredProducts.map((p) => (
-            <div
-              key={p.id}
-              className={`group relative bg-slate-50/50 p-4 md:p-5 rounded-[2rem] md:rounded-[2.5rem] border border-transparent hover:border-[#00E5FF] hover:bg-white transition-all hover:shadow-2xl ${
-                (p as any)?.isActive === false ? 'opacity-70' : ''
-              }`}
-            >
-              <div className="aspect-square rounded-[1.5rem] md:rounded-[2rem] overflow-hidden mb-4 md:mb-6 bg-white shadow-sm">
-                {String(((p as any).imageUrl || (p as any).image_url || '')).trim() ? (
-                  <SmartImage
-                    src={String(((p as any).imageUrl || (p as any).image_url)).trim()}
-                    className="w-full h-full"
-                    imgClassName="object-cover group-hover:scale-110 transition-transform duration-[1s]"
-                    loading="lazy"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                    <ShoppingCart className="w-6 h-6 md:w-12 md:h-12 text-slate-300" />
+        <div className="rounded-3xl border border-slate-100 overflow-hidden">
+          <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
+            <div className="col-span-2 text-right">الصورة</div>
+            <div className="col-span-4 text-right">الاسم</div>
+            <div className="col-span-2 text-right">السعر</div>
+            <div className="col-span-2 text-right">المخزون</div>
+            <div className="col-span-2 text-right">تحكم</div>
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {filteredProducts.map((p) => {
+              const imgSrc = String(((p as any).imageUrl || (p as any).image_url || '')).trim();
+              const isInactive = (p as any)?.isActive === false;
+              return (
+                <div key={p.id} className={`grid grid-cols-12 px-4 py-3 items-center ${isInactive ? 'opacity-70' : ''}`}>
+                  <div className="col-span-2 flex items-center justify-end">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!imgSrc) return;
+                        setPreviewImageSrc(imgSrc);
+                      }}
+                      className="w-10 h-10 rounded-xl overflow-hidden bg-white border border-slate-100 shrink-0"
+                      aria-label="Open image"
+                      disabled={!imgSrc}
+                    >
+                      {imgSrc ? (
+                        <SmartImage src={imgSrc} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                          <ShoppingCart className="w-4 h-4 text-slate-300" />
+                        </div>
+                      )}
+                    </button>
                   </div>
-                )}
-              </div>
-              {(p as any)?.isActive === false && (
-                <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-slate-900 text-white text-[10px] font-black">
-                  مقفول
+
+                  <div className="col-span-4 min-w-0 text-right">
+                    <div className="flex items-center justify-end gap-2 flex-row-reverse">
+                      <p className="font-black text-[12px] md:text-sm text-slate-800 line-clamp-1">{p.name}</p>
+                      {isInactive ? (
+                        <span className="px-2 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black">مقفول</span>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  <div className="col-span-2 text-right">
+                    <span className="text-[#00E5FF] font-black text-sm md:text-base">ج.م {p.price}</span>
+                  </div>
+
+                  <div className="col-span-2 text-right">
+                    <span className="bg-slate-100 px-2 py-1 rounded-xl text-[10px] font-black text-slate-500">{(p as any).stock}</span>
+                  </div>
+
+                  <div className="col-span-2 flex items-center justify-end gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(p)}
+                      className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-600"
+                      aria-label="Edit"
+                    >
+                      <Edit size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleActive(p)}
+                      className={`p-2 bg-white rounded-xl shadow-sm border border-slate-100 ${isInactive ? 'text-slate-900' : 'text-slate-500'}`}
+                      disabled={String(togglingId) === String(p.id)}
+                      aria-label="Toggle"
+                    >
+                      {String(togglingId) === String(p.id)
+                        ? <Loader2 size={14} className="animate-spin" />
+                        : (isInactive ? <Eye size={14} /> : <EyeOff size={14} />)}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(p.id)}
+                      className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-red-600"
+                      aria-label="Delete"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
-              )}
-              <h4 className="font-black text-sm md:text-base mb-2 text-right text-slate-800 line-clamp-2">{p.name}</h4>
-              <div className="flex items-center justify-between flex-row-reverse">
-                <span className="text-[#00E5FF] font-black text-lg md:text-xl">ج.م {p.price}</span>
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-[9px] md:text-[10px] font-black text-slate-400">م: {(p as any).stock}</span>
-              </div>
-              <div className="absolute top-3 left-3 md:top-4 md:left-4 flex flex-col gap-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all md:translate-x-[-10px] md:group-hover:translate-x-0">
-                <button
-                  onClick={() => handleEdit(p)}
-                  className="p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-blue-500 hover:scale-110 transition-transform"
-                >
-                  <Edit size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
-                </button>
-                <button
-                  onClick={() => handleToggleActive(p)}
-                  className={`p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl hover:scale-110 transition-transform ${
-                    (p as any)?.isActive === false ? 'text-slate-900' : 'text-slate-500'
-                  }`}
-                  disabled={String(togglingId) === String(p.id)}
-                >
-                  {String(togglingId) === String(p.id)
-                    ? <Loader2 size={16} className="animate-spin sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
-                    : ((p as any)?.isActive === false ? <Eye size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" /> : <EyeOff size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />)}
-                </button>
-                <button
-                  onClick={() => onDelete(p.id)}
-                  className="p-2 sm:p-2.5 md:p-3 bg-white rounded-xl shadow-xl text-red-500 hover:scale-110 transition-transform"
-                >
-                  <Trash2 size={16} className="sm:w-[18px] sm:h-[18px] md:w-5 md:h-5" />
-                </button>
-              </div>
-            </div>
-          ))}
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -778,6 +806,36 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         product={selectedProduct}
         onUpdate={handleProductUpdate}
       />
+
+      {previewImageSrc ? (
+        <div className="fixed inset-0 z-[650]">
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setPreviewImageSrc('')}
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4" dir="rtl">
+            <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
+                <div className="font-black text-sm">صورة المنتج</div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImageSrc('')}
+                  className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-sm"
+                >
+                  إغلاق
+                </button>
+              </div>
+              <div className="p-4 bg-slate-50">
+                <img
+                  src={previewImageSrc}
+                  alt=""
+                  className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {imageMapProductsOpen && (
         <div className="fixed inset-0 z-[600]">
