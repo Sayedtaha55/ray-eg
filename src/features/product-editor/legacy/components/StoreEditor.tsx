@@ -121,7 +121,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
 }) => {
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
   const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isFurnitureActivity = Boolean(isService);
+  const isRetail = String(shopCategory || '').toUpperCase() === 'RETAIL';
+  const isFurnitureActivity = Boolean(isService || isRetail);
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);

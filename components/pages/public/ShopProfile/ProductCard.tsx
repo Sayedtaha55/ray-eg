@@ -344,6 +344,12 @@ const ProductCard = React.memo(function ProductCard({
           {product.name}
         </h4>
 
+        {furnitureLine ? (
+          <p className="-mt-1 mb-2 text-[10px] md:text-[11px] font-bold text-slate-500 line-clamp-2">
+            {furnitureLine}
+          </p>
+        ) : null}
+
         <div className="mt-auto w-full">
           {showPrice && (
             <div

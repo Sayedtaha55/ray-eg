@@ -71,15 +71,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
   const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isDevFurniture = (() => {
-    try {
-      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
-      return raw === 'furniture';
-    } catch {
-      return false;
-    }
-  })();
-  const isFurnitureActivity = Boolean(isService && isDevFurniture);
+  const isRetail = String(shopCategory || '').toUpperCase() === 'RETAIL';
+  const isFurnitureActivity = Boolean(isService || isRetail);
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },

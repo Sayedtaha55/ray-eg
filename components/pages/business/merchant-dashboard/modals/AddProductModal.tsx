@@ -67,15 +67,8 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
   const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isDevFurniture = (() => {
-    try {
-      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
-      return raw === 'furniture';
-    } catch {
-      return false;
-    }
-  })();
-  const isFurnitureActivity = Boolean(isService && isDevFurniture);
+  const isRetail = String(shopCategory || '').toUpperCase() === 'RETAIL';
+  const isFurnitureActivity = Boolean(isService || isRetail);
 
   const furnitureMeta = (() => {
     if (!isFurnitureActivity) return undefined;
