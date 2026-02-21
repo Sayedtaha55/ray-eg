@@ -44,13 +44,15 @@ const selectedControllers =
     MediaCompressionService,
     MediaPresignService,
     MediaStorageService,
-    ...(enableOptimize ? [MediaOptimizeQueue, MediaOptimizeService, MediaOptimizeWorker] : []),
+    MediaOptimizeService,
+    ...(enableOptimize ? [MediaOptimizeQueue, MediaOptimizeWorker] : []),
   ],
   exports: [
     MediaCompressionService,
     MediaPresignService,
     MediaStorageService,
-    ...(enableOptimize ? [MediaOptimizeQueue, MediaOptimizeService] : []),
+    MediaOptimizeService,
+    ...(enableOptimize ? [MediaOptimizeQueue] : []),
   ],
 })
 export class MediaModule {}
