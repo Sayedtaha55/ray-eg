@@ -119,10 +119,12 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   onSave,
   onCancel,
 }) => {
-  const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
-  const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isRetail = String(shopCategory || '').toUpperCase() === 'RETAIL';
-  const isFurnitureActivity = Boolean(isService || isRetail);
+  const shopCategoryUpper = String(shopCategory || '').toUpperCase();
+  const isFood = shopCategoryUpper === 'FOOD';
+  const isRestaurant = shopCategoryUpper === 'RESTAURANT';
+  const isService = shopCategoryUpper === 'SERVICE';
+  const isRetail = shopCategoryUpper === 'RETAIL';
+  const isFurnitureActivity = !isFood && !isRestaurant;
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);

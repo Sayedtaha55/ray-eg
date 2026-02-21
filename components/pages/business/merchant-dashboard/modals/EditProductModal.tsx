@@ -67,12 +67,13 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const extraFilesInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
 
-  const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
-  const isFashion = String(shopCategory || '').toUpperCase() === 'FASHION';
-  const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
-  const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isRetail = String(shopCategory || '').toUpperCase() === 'RETAIL';
-  const isFurnitureActivity = Boolean(isService || isRetail);
+  const shopCategoryUpper = String(shopCategory || '').toUpperCase();
+  const isRestaurant = shopCategoryUpper === 'RESTAURANT';
+  const isFashion = shopCategoryUpper === 'FASHION';
+  const isFood = shopCategoryUpper === 'FOOD';
+  const isService = shopCategoryUpper === 'SERVICE';
+  const isRetail = shopCategoryUpper === 'RETAIL';
+  const isFurnitureActivity = !isFood && !isRestaurant;
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
