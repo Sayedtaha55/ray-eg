@@ -145,11 +145,60 @@ const ShopProfile: React.FC = () => {
   const [productsTabError, setProductsTabError] = React.useState<string | null>(null);
   const [galleryTabLoading, setGalleryTabLoading] = React.useState(false);
   const [galleryTabError, setGalleryTabError] = React.useState<string | null>(null);
+  const [imageMapLinkedProductIds, setImageMapLinkedProductIds] = React.useState<Set<string>>(new Set());
 
   const prefersReducedMotion = useReducedMotion();
 
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
+
+  const normalizeText = (v: any) => {
+    const s = typeof v === 'string' ? v : v == null ? '' : String(v);
+    return s.trim();
+  };
+
+  const isImageMapProduct = (p: any) => {
+    const raw = p?.category;
+    const cat = typeof raw === 'string'
+      ? raw
+      : typeof raw?.name === 'string'
+        ? raw.name
+        : typeof raw?.slug === 'string'
+          ? raw.slug
+          : '';
+    const normalized = String(cat || '').trim().toUpperCase();
+    return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+  };
+
+  useEffect(() => {
+    const s = normalizeText(slug);
+    if (!s) {
+      setImageMapLinkedProductIds(new Set());
+      return;
+    }
+
+    let mounted = true;
+    (async () => {
+      try {
+        const map = await (ApiService as any).getActiveShopImageMap(s);
+        if (!mounted) return;
+        const hs = Array.isArray((map as any)?.hotspots) ? (map as any).hotspots : [];
+        const ids = new Set<string>();
+        hs.forEach((h: any) => {
+          const pid = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id);
+          if (pid) ids.add(pid);
+        });
+        setImageMapLinkedProductIds(ids);
+      } catch {
+        if (!mounted) return;
+        setImageMapLinkedProductIds(new Set());
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [slug]);
 
   const bannerUrlForPreload = String((currentDesign as any)?.bannerUrl || '').trim();
   const pageBgImageForPreload = String((currentDesign as any)?.backgroundImageUrl || '').trim();
@@ -448,7 +497,13 @@ const ShopProfile: React.FC = () => {
             ApiService.getProducts(shopId, { page, limit }),
             ApiService.getOffers({ take: 100, skip: 0, shopId }),
           ]);
-          const list = Array.isArray(prodData) ? prodData : [];
+          const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => {
+            if (!p) return false;
+            if (isImageMapProduct(p)) return false;
+            const id = normalizeText((p as any)?.id);
+            if (id && imageMapLinkedProductIds.has(id)) return false;
+            return true;
+          });
           setProducts(list);
           productsPagingRef.current.hasMore = list.length >= limit;
           setHasMoreProducts(list.length >= limit);
@@ -477,7 +532,7 @@ const ShopProfile: React.FC = () => {
     };
 
     ensureTabData();
-  }, [activeTab, shop?.id]);
+  }, [activeTab, shop?.id, imageMapLinkedProductIds]);
 
   const retryProductsTab = async () => {
     const shopId = String(shop?.id || '').trim();
@@ -496,7 +551,13 @@ const ShopProfile: React.FC = () => {
         ApiService.getProducts(shopId, { page, limit }),
         ApiService.getOffers({ take: 100, skip: 0, shopId }),
       ]);
-      const list = Array.isArray(prodData) ? prodData : [];
+      const list = (Array.isArray(prodData) ? prodData : []).filter((p: any) => {
+        if (!p) return false;
+        if (isImageMapProduct(p)) return false;
+        const id = normalizeText((p as any)?.id);
+        if (id && imageMapLinkedProductIds.has(id)) return false;
+        return true;
+      });
       setProducts(list);
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
@@ -542,7 +603,13 @@ const ShopProfile: React.FC = () => {
       const nextPage = productsPagingRef.current.page + 1;
       const limit = productsPagingRef.current.limit;
       const next = await ApiService.getProducts(shopId, { page: nextPage, limit });
-      const list = Array.isArray(next) ? next : [];
+      const list = (Array.isArray(next) ? next : []).filter((p: any) => {
+        if (!p) return false;
+        if (isImageMapProduct(p)) return false;
+        const id = normalizeText((p as any)?.id);
+        if (id && imageMapLinkedProductIds.has(id)) return false;
+        return true;
+      });
       setProducts((prev) => [...prev, ...list]);
       productsPagingRef.current.page = nextPage;
       productsPagingRef.current.hasMore = list.length >= limit;
