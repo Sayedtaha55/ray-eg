@@ -108,6 +108,9 @@ async function bootstrap() {
         return true;
       }
 
+      const originHost = String(url.hostname || '').toLowerCase();
+      const originNormalized = `${String(url.protocol || '').toLowerCase()}//${originHost}${url.port ? `:${url.port}` : ''}`;
+
       if (!isDev && allowedOrigins.length === 0) {
         const host = String(url.hostname || '').toLowerCase();
         if (host === 'vercel.app' || host.endsWith('.vercel.app')) {
@@ -119,8 +122,31 @@ async function bootstrap() {
         return true;
       }
 
-      if (allowedOrigins.includes(origin)) {
-        return true;
+      for (const entryRaw of allowedOrigins) {
+        const entry = String(entryRaw || '').trim();
+        if (!entry) continue;
+
+        const entryLower = entry.toLowerCase();
+
+        if (entryLower.startsWith('http://') || entryLower.startsWith('https://')) {
+          try {
+            const allowedUrl = new URL(entryLower);
+            const allowedHost = String(allowedUrl.hostname || '').toLowerCase();
+            const allowedNormalized = `${String(allowedUrl.protocol || '').toLowerCase()}//${allowedHost}${allowedUrl.port ? `:${allowedUrl.port}` : ''}`;
+            if (allowedNormalized === originNormalized) return true;
+          } catch {
+            // ignore
+          }
+          continue;
+        }
+
+        if (entryLower.startsWith('*.')) {
+          const suffix = entryLower.slice(2);
+          if (suffix && (originHost === suffix || originHost.endsWith(`.${suffix}`))) return true;
+          continue;
+        }
+
+        if (originHost === entryLower) return true;
       }
     } catch {
       // ignore
