@@ -37,14 +37,11 @@ export default defineConfig(({ mode }) => {
           }
         },
         chunkSizeWarningLimit: 600,
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: mode === 'production',
-            drop_debugger: mode === 'production',
-          },
-        },
+        minify: 'esbuild',
         sourcemap: mode !== 'production',
+      },
+      esbuild: {
+        drop: mode === 'production' ? ['console', 'debugger'] : [],
       },
       optimizeDeps: {
         include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
