@@ -121,15 +121,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
 }) => {
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
   const isService = String(shopCategory || '').toUpperCase() === 'SERVICE';
-  const isDevFurniture = (() => {
-    try {
-      const raw = String(localStorage.getItem('ray_dev_activity_id') || '').trim().toLowerCase();
-      return raw === 'furniture';
-    } catch {
-      return false;
-    }
-  })();
-  const isFurnitureActivity = Boolean(isService && isDevFurniture);
+  const isFurnitureActivity = Boolean(isService);
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);
