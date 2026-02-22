@@ -130,6 +130,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
         className="relative w-full h-full preserve-3d transition-transform duration-500 ease-out"
         style={{
           transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) scale(0.9)`,
+          zIndex: openProductId ? 60 : 0,
         }}
       >
         {/* Store Environment Layer */}
