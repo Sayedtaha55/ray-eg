@@ -102,6 +102,7 @@ interface ShopDesign {
   pagePadding: string;
   itemGap: string;
   elementsVisibility?: Record<string, boolean>;
+  productEditorVisibility?: Record<string, boolean>;
   customCss?: string;
 }
 
@@ -376,19 +377,38 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       }
 
       // حفظ دائم في قاعدة البيانات
-      const elementsVisibilityRaw = (config as any)?.elementsVisibility;
+      const elementsVisibilityRaw = config?.elementsVisibility;
       const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
         ? Object.fromEntries(
             Object.entries(elementsVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
           )
         : undefined;
 
-      const productEditorVisibilityRaw = (config as any)?.productEditorVisibility;
-      const productEditorVisibilityNormalized = productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object'
-        ? Object.fromEntries(
+      const productEditorVisibilityRaw = config?.productEditorVisibility;
+      const productEditorVisibilityNormalized = (() => {
+        if (productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object') {
+          return Object.fromEntries(
             Object.entries(productEditorVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
-          )
-        : undefined;
+          );
+        }
+
+        // Migration: sync productEditorVisibility with elementsVisibility for consistency
+        // This ensures that if user only changes elementsVisibility, productEditorVisibility stays in sync
+        const base = elementsVisibilityNormalized && typeof elementsVisibilityNormalized === 'object'
+          ? (elementsVisibilityNormalized as Record<string, any>)
+          : ({} as Record<string, any>);
+
+        const keys = ['productCardPrice', 'productCardStock', 'productCardAddToCart', 'productCardReserve'];
+        const picked: Record<string, any> = {};
+        let hasAny = false;
+        for (const k of keys) {
+          if (base[k] !== undefined && base[k] !== null) {
+            picked[k] = coerceBoolean(base[k], true);
+            hasAny = true;
+          }
+        }
+        return hasAny ? picked : undefined;
+      })();
 
       const normalized = {
         ...config,
@@ -1055,20 +1075,20 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             <h1 className="text-2xl md:text-3xl font-black" style={{ color: config.primaryColor }}>اسم المنتج</h1>
                             <p className="text-sm md:text-base font-bold text-slate-500">وصف مختصر للمنتج هنا، وبعد كدا هنضيف تفاصيل أكتر.</p>
                           </div>
-                          {((config?.productEditorVisibility as any)?.productCardPrice !== false) && (
+                          {(config?.productEditorVisibility?.productCardPrice !== false) && (
                             <div className="flex items-center justify-between flex-row-reverse">
                               <span className="text-xl md:text-2xl font-black text-slate-900">EGP 249</span>
                               <span className="text-xs font-black text-slate-400 line-through">EGP 299</span>
                             </div>
                           )}
-                          {((config?.productEditorVisibility as any)?.productCardStock !== false) && (
+                          {(config?.productEditorVisibility?.productCardStock !== false) && (
                             <div className="flex items-center justify-between flex-row-reverse">
                               <span className="text-xs font-black text-slate-600">المخزون: 222</span>
                             </div>
                           )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {((config?.productEditorVisibility as any)?.productCardAddToCart !== false) && (
+                            {(config?.productEditorVisibility?.productCardAddToCart !== false) && (
                               <button
                                 type="button"
                                 className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
@@ -1077,7 +1097,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 إضافة للسلة
                               </button>
                             )}
-                            {((config?.productEditorVisibility as any)?.productCardReserve !== false) && (
+                            {(config?.productEditorVisibility?.productCardReserve !== false) && (
                               <button
                                 type="button"
                                 className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
