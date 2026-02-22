@@ -81,6 +81,7 @@ const ShopProductPage: React.FC = () => {
   const touchStartXRef = useRef<number | null>(null);
   const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
+  const [selectedPackId, setSelectedPackId] = useState('');
 
   useEffect(() => {
     const load = async () => {
@@ -164,6 +165,10 @@ const ShopProductPage: React.FC = () => {
   }, [slug, id]);
 
   useEffect(() => {
+    setSelectedPackId('');
+  }, [(product as any)?.id]);
+
+  useEffect(() => {
     const checkAuth = () => {
       try {
         const savedUser = localStorage.getItem('ray_user');
@@ -229,6 +234,25 @@ const ShopProductPage: React.FC = () => {
   const menuVariantsDef = isRestaurant ? rawMenuVariantsDef : [];
   const hasMenuVariants = Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0;
 
+  const packDefs = useMemo(() => {
+    const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
+    const list = Array.isArray(raw) ? raw : [];
+    return list;
+  }, [(product as any)?.packOptions, (product as any)?.pack_options]);
+
+  const hasPacks = Array.isArray(packDefs) && packDefs.length > 0;
+
+  const selectedPack = useMemo(() => {
+    if (!hasPacks) return null;
+    return (packDefs as any[]).find((p: any) => String(p?.id || '').trim() === String(selectedPackId || '').trim()) || null;
+  }, [hasPacks, packDefs, selectedPackId]);
+
+  const packPrice = useMemo(() => {
+    if (!selectedPack) return NaN;
+    const raw = typeof (selectedPack as any)?.price === 'number' ? (selectedPack as any).price : Number((selectedPack as any)?.price || NaN);
+    return Number.isFinite(raw) && raw >= 0 ? raw : NaN;
+  }, [selectedPack]);
+
   useEffect(() => {
     if (!isRestaurant || !hasMenuVariants) {
       setSelectedMenuTypeId('');
@@ -243,7 +267,7 @@ const ShopProductPage: React.FC = () => {
       if (exists) return prev;
       return String((menuVariantsDef as any[])[0]?.id || (menuVariantsDef as any[])[0]?.typeId || (menuVariantsDef as any[])[0]?.variantId || '').trim();
     });
-  }, [isRestaurant, hasMenuVariants, (product as any)?.id]);
+  }, [isRestaurant, hasMenuVariants, (product as any)?.id, menuVariantsDef]);
 
   useEffect(() => {
     if (!isRestaurant || !hasMenuVariants) return;
@@ -411,7 +435,10 @@ const ShopProductPage: React.FC = () => {
             colorValue: String(selectedFashionColorValue || '').trim(),
             size: String(selectedFashionSize || '').trim(),
           }
-        : selectedMenuVariant,
+        : (hasPacks
+          ? { kind: 'pack', packId: String(selectedPackId || '').trim() }
+          : selectedMenuVariant),
+      unit: (product as any)?.unit,
     });
     playSound();
   };
@@ -597,6 +624,9 @@ const ShopProductPage: React.FC = () => {
       return Number(sel?.price || 0);
     })()
     : (() => {
+      if (hasPacks && Number.isFinite(packPrice)) {
+        return Number(packPrice) || 0;
+      }
       if (isFashion) {
         const sizeLabel = String(selectedFashionSize || '').trim();
         const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
@@ -915,6 +945,30 @@ const ShopProductPage: React.FC = () => {
                 {offer && !hasMenuVariants && (
                   <span className="text-xs font-black text-slate-400 line-through">ج.م {String((product as any)?.price || '')}</span>
                 )}
+              </div>
+            )}
+
+            {hasPacks && (
+              <div className="border border-slate-100 rounded-[1.5rem] bg-white p-5 space-y-3">
+                <h3 className="font-black text-sm text-slate-900">الباقة</h3>
+                <select
+                  value={selectedPackId}
+                  onChange={(e) => setSelectedPackId(String(e.target.value || ''))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
+                >
+                  <option value="">اختر</option>
+                  {(packDefs as any[]).map((p: any, idx: number) => {
+                    const pid = String(p?.id || idx).trim();
+                    const label = String(p?.label || p?.name || '').trim() || `${p?.qty} ${p?.unit || (product as any)?.unit || ''}`;
+                    const priceRaw = typeof p?.price === 'number' ? p.price : Number(p?.price || 0);
+                    const pr = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
+                    return (
+                      <option key={pid} value={pid}>
+                        {label} - ج.م {pr}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
             )}
 

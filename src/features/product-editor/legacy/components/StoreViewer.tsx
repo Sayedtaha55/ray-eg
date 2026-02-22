@@ -214,7 +214,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
 
       {/* Section Navigation Controls (Buyer UI) */}
       {sections.length > 1 && (
-        <div className="absolute top-20 sm:top-28 inset-x-0 flex items-center justify-center gap-3 sm:gap-4 z-50 pointer-events-auto">
+        <div className="absolute top-20 sm:top-28 inset-x-0 flex items-center justify-center gap-3 sm:gap-4 z-40 pointer-events-auto">
           <button
             onClick={handlePrevSection}
             className="p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur border border-white/10 hover:border-cyan-500 text-white transition-all hover:scale-110"
@@ -447,6 +447,7 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
                 transition-all duration-300 flex flex-col overflow-hidden
                 ${justAdded ? 'scale-0 opacity-0 translate-y-10' : 'scale-100 opacity-100'}
             `}
+          style={{ zIndex: 70 }}
         >
           {/* Connecting Line */}
           {cardVertical === 'up' ? (

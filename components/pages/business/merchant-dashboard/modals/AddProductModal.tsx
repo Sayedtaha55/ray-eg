@@ -70,6 +70,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
   const isService = shopCategoryUpper === 'SERVICE';
   const isRetail = shopCategoryUpper === 'RETAIL';
   const isFurnitureActivity = !isFood && !isRestaurant;
+  const allowPackOptions = isFood || isRetail;
 
   const furnitureMeta = (() => {
     if (!isFurnitureActivity) return undefined;
@@ -354,7 +355,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
         description: description ? description : null,
         trackStock: isRestaurant ? false : true,
         ...(isFurnitureActivity && furnitureMeta ? { furnitureMeta } : {}),
-        ...(isFood
+        ...(allowPackOptions
           ? {
               packOptions: (Array.isArray(packOptionItems) ? packOptionItems : [])
                 .map((p) => {
@@ -553,7 +554,7 @@ const AddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategor
             </div>
           )}
 
-          {isFood && (
+          {allowPackOptions && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">باقات البيع (اختياري)</label>
