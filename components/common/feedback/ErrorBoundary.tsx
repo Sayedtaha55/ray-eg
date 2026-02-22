@@ -35,9 +35,18 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       try {
         if (typeof window !== 'undefined') {
+          const routerMode = String((window as any)?.__VITE_ROUTER_MODE || '').trim().toLowerCase();
+          const isBrowserRouter = routerMode === 'browser';
+
           const currentPath = String(window.location?.pathname || '');
-          if (currentPath !== '/404') {
-            window.location.replace('/404?reason=error');
+          const currentHash = String(window.location?.hash || '');
+          const isOn404 = isBrowserRouter
+            ? currentPath === '/404'
+            : currentHash.startsWith('#/404');
+
+          if (!isOn404) {
+            const target = isBrowserRouter ? '/404?reason=error' : '/#/404?reason=error';
+            window.location.replace(target);
             return null;
           }
         }

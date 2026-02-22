@@ -156,10 +156,20 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const hasReservations = isEnabled('reservations');
     const hasGallery = isEnabled('gallery');
 
-    next.productCardAddToCart = Boolean(hasSales);
-    next.mobileBottomNavCart = Boolean(hasSales);
-    next.productCardReserve = Boolean(hasReservations);
-    next.headerNavGallery = Boolean(hasGallery);
+    // Only force-hide features when their module is not enabled.
+    // If a module is enabled, keep the user's visibility toggle as-is.
+    if (!hasSales) {
+      next.productCardAddToCart = false;
+      next.mobileBottomNavCart = false;
+    }
+
+    if (!hasReservations) {
+      next.productCardReserve = false;
+    }
+
+    if (!hasGallery) {
+      next.headerNavGallery = false;
+    }
 
     return next;
   };
@@ -199,6 +209,32 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 )
               : undefined;
             const elementsVisibilitySynced = syncVisibilityWithModules(elementsVisibilityNormalized, myShop);
+
+            const productEditorVisibilityRaw = merged?.productEditorVisibility;
+            const productEditorVisibilityNormalized = (() => {
+              if (productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object') {
+                return Object.fromEntries(
+                  Object.entries(productEditorVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
+                );
+              }
+
+              // Migration: older builds stored editor-related toggles inside elementsVisibility.
+              // We copy only the productCard* keys once to keep the settings independent going forward.
+              const base = elementsVisibilityNormalized && typeof elementsVisibilityNormalized === 'object'
+                ? (elementsVisibilityNormalized as Record<string, any>)
+                : ({} as Record<string, any>);
+
+              const keys = ['productCardPrice', 'productCardStock', 'productCardAddToCart', 'productCardReserve'];
+              const picked: Record<string, any> = {};
+              let hasAny = false;
+              for (const k of keys) {
+                if (base[k] !== undefined && base[k] !== null) {
+                  picked[k] = coerceBoolean(base[k], true);
+                  hasAny = true;
+                }
+              }
+              return hasAny ? picked : undefined;
+            })();
             const customCssNormalized = typeof merged?.customCss === 'string' ? merged.customCss : '';
             setConfig({
               ...merged,
@@ -209,6 +245,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               bannerPosX,
               bannerPosY,
               elementsVisibility: elementsVisibilitySynced,
+              productEditorVisibility: productEditorVisibilityNormalized,
               customCss: customCssNormalized,
             });
           } else {
@@ -346,6 +383,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )
         : undefined;
 
+      const productEditorVisibilityRaw = (config as any)?.productEditorVisibility;
+      const productEditorVisibilityNormalized = productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object'
+        ? Object.fromEntries(
+            Object.entries(productEditorVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
+          )
+        : undefined;
+
       const normalized = {
         ...config,
         ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
@@ -359,6 +403,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         headerOpacity: coerceNumber(config.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
         footerOpacity: coerceNumber(config.footerOpacity, Number(DEFAULT_PAGE_DESIGN.footerOpacity)),
         elementsVisibility: elementsVisibilityNormalized,
+        productEditorVisibility: productEditorVisibilityNormalized,
         customCss: typeof (config as any)?.customCss === 'string' ? (config as any).customCss : undefined,
         pageBackgroundColor: config.pageBackgroundColor || config.backgroundColor,
         backgroundColor: config.backgroundColor || config.pageBackgroundColor,
@@ -1010,19 +1055,37 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             <h1 className="text-2xl md:text-3xl font-black" style={{ color: config.primaryColor }}>اسم المنتج</h1>
                             <p className="text-sm md:text-base font-bold text-slate-500">وصف مختصر للمنتج هنا، وبعد كدا هنضيف تفاصيل أكتر.</p>
                           </div>
-                          <div className="flex items-center justify-between flex-row-reverse">
-                            <span className="text-xl md:text-2xl font-black text-slate-900">EGP 249</span>
-                            <span className="text-xs font-black text-slate-400 line-through">EGP 299</span>
-                          </div>
+                          {((config?.productEditorVisibility as any)?.productCardPrice !== false) && (
+                            <div className="flex items-center justify-between flex-row-reverse">
+                              <span className="text-xl md:text-2xl font-black text-slate-900">EGP 249</span>
+                              <span className="text-xs font-black text-slate-400 line-through">EGP 299</span>
+                            </div>
+                          )}
+                          {((config?.productEditorVisibility as any)?.productCardStock !== false) && (
+                            <div className="flex items-center justify-between flex-row-reverse">
+                              <span className="text-xs font-black text-slate-600">المخزون: 222</span>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <button
-                              type="button"
-                              className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
-                              style={{ backgroundColor: config.primaryColor }}
-                            >
-                              إضافة للسلة
-                            </button>
+                            {((config?.productEditorVisibility as any)?.productCardAddToCart !== false) && (
+                              <button
+                                type="button"
+                                className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
+                                style={{ backgroundColor: config.primaryColor }}
+                              >
+                                إضافة للسلة
+                              </button>
+                            )}
+                            {((config?.productEditorVisibility as any)?.productCardReserve !== false) && (
+                              <button
+                                type="button"
+                                className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
+                                style={{ backgroundColor: config.secondaryColor || config.primaryColor }}
+                              >
+                                حجز
+                              </button>
+                            )}
                             {isVisible('productShareButton', true) && (
                               <button
                                 type="button"

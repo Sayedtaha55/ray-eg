@@ -32,6 +32,7 @@ export interface ShopDesign {
   footerTransparent?: boolean;
   footerOpacity?: number;
   elementsVisibility?: Record<string, boolean>;
+  productEditorVisibility?: Record<string, boolean>;
   customCss?: string;
 }
 

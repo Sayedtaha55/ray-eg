@@ -169,12 +169,14 @@ export const db = {
         const name = String(p?.name || '').trim();
         const price = Number(p?.price);
         if (!name || !Number.isFinite(price)) return;
+        const rawDescription = (p as any)?.description;
+        const description = typeof rawDescription === 'string' ? rawDescription : '';
         draftItems.push({
           name,
           price,
           stock: typeof p?.stock === 'number' && Number.isFinite(p.stock) ? Math.floor(p.stock) : guessStockFromStatus(p?.stockStatus),
           category: typeof p?.category === 'string' && p.category.trim() ? p.category.trim() : '__IMAGE_MAP__',
-          description: typeof p?.description === 'string' ? p.description : null,
+          description,
           unit: typeof p?.unit === 'string' && p.unit.trim() ? p.unit.trim() : undefined,
           furnitureMeta: typeof (p as any)?.furnitureMeta === 'undefined' ? undefined : (p as any).furnitureMeta,
           packOptions: typeof p?.packOptions === 'undefined' ? undefined : p.packOptions,

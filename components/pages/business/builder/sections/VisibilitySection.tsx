@@ -63,8 +63,13 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
   };
 
   const setValue = (key: VisibilityKey, value: boolean) => {
-    const next = { ...current, [key]: value };
-    setConfig({ ...config, elementsVisibility: next });
+    setConfig((prev: any) => {
+      const base = (prev?.elementsVisibility && typeof prev.elementsVisibility === 'object')
+        ? prev.elementsVisibility
+        : {};
+      const next = { ...base, [key]: value };
+      return { ...prev, elementsVisibility: next };
+    });
   };
 
   return (

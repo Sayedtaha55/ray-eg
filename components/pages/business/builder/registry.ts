@@ -1,4 +1,4 @@
-import { Layout, Palette, Sliders } from 'lucide-react';
+import { Layout, Palette, Sliders, ShoppingBag } from 'lucide-react';
 import React from 'react';
 
 import {
@@ -9,6 +9,7 @@ import {
   CustomCssSection,
   HeaderFooterSection,
   HeaderTypeSection,
+  ProductEditorSection,
   LayoutSection,
   ProductPageSection,
   ProductsSection,
@@ -23,6 +24,7 @@ export type BuilderSectionId =
   | 'header'
   | 'headerFooter'
   | 'products'
+  | 'productEditor'
   | 'productPage'
   | 'layout'
   | 'typography'
@@ -126,6 +128,12 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     title: 'عرض المعروضات',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ProductsSection as any, { config, setConfig }),
+  },
+  {
+    id: 'productEditor',
+    title: 'تحرير المنتجات',
+    icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
+    render: ({ config, setConfig }) => React.createElement(ProductEditorSection as any, { config, setConfig }),
   },
   {
     id: 'productPage',

@@ -1278,16 +1278,35 @@ export class ShopService {
     const startTime = Date.now();
 
     try {
+      const shopIdNormalized = String(shopId || '').trim();
+      if (!shopIdNormalized) {
+        throw new BadRequestException('shopId مطلوب');
+      }
+
+      if (!designConfig || typeof designConfig !== 'object' || Array.isArray(designConfig)) {
+        throw new BadRequestException('designConfig يجب أن يكون Object');
+      }
+
+      // Prisma JSON fields cannot store `undefined`. Strip it (deep) to guarantee persistence.
+      // This also ensures the payload is JSON-serializable.
+      const safeDesignConfig = (() => {
+        try {
+          return JSON.parse(JSON.stringify(designConfig));
+        } catch {
+          throw new BadRequestException('designConfig غير صالح (غير قابل للتحويل إلى JSON)');
+        }
+      })();
+
       // Update database
       const updatedShop = await this.prisma.shop.update({
-        where: { id: shopId },
+        where: { id: shopIdNormalized },
         data: {
-          pageDesign: designConfig,
+          pageDesign: safeDesignConfig,
         },
       });
 
       // Invalidate cache for this shop
-      await this.redis.invalidateShopCache(shopId, (updatedShop as any).slug);
+      await this.redis.invalidateShopCache(shopIdNormalized, (updatedShop as any).slug);
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);

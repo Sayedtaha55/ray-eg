@@ -5,6 +5,7 @@ export { default as BannerSection } from './BannerSection';
 export { default as HeaderTypeSection } from './HeaderTypeSection';
 export { default as ProductsSection } from './ProductsSection';
 export { default as ProductPageSection } from './ProductPageSection';
+export { default as ProductEditorSection } from './ProductEditorSection';
 export { default as LayoutSection } from './LayoutSection';
 export { default as TypographySection } from './TypographySection';
 export { default as ButtonsSection } from './ButtonsSection';

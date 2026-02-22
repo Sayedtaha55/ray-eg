@@ -748,6 +748,7 @@ const BusinessLayout: React.FC = () => {
                   {activeBuilderId === 'header' ? item('header', 'اللوجو', <Layout size={20} />) : null}
                   {activeBuilderId === 'headerFooter' ? item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />) : null}
                   {activeBuilderId === 'products' ? item('products', 'عرض المعروضات', <Layout size={20} />) : null}
+                  {activeBuilderId === 'productEditor' ? item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />) : null}
                   {activeBuilderId === 'layout' ? item('layout', 'النمط', <Layout size={20} />) : null}
                   {activeBuilderId === 'typography' ? item('typography', 'الخطوط', <Type size={20} />) : null}
                   {activeBuilderId === 'buttons' ? item('buttons', 'شكل وحجم الزر', <Layout size={20} />) : null}
@@ -766,6 +767,7 @@ const BusinessLayout: React.FC = () => {
                 {item('header', 'اللوجو', <Layout size={20} />)}
                 {item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />)}
                 {item('products', 'عرض المعروضات', <Layout size={20} />)}
+                {item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />)}
                 {item('layout', 'النمط', <Layout size={20} />)}
                 {item('typography', 'الخطوط', <Type size={20} />)}
                 {item('buttons', 'شكل وحجم الزر', <Layout size={20} />)}

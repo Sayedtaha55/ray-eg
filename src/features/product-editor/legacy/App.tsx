@@ -18,6 +18,7 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
   const [shop, setShop] = useState<Shop | null>(null);
   const [mode, setMode] = useState<'editor' | 'customer'>('editor');
   const [shopCategory, setShopCategory] = useState<string>('');
+  const [productEditorVisibility, setProductEditorVisibility] = useState<Record<string, any> | undefined>(undefined);
 
   const { addToast } = useToast();
 
@@ -41,6 +42,9 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
         if (mounted) {
           setShop(data);
           setShopCategory(String(shopData?.category || '').toUpperCase());
+          const pageDesign = (shopData as any)?.pageDesign;
+          const vis = pageDesign?.productEditorVisibility;
+          setProductEditorVisibility(vis && typeof vis === 'object' ? ({ ...(vis as any) } as any) : undefined);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -52,6 +56,40 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
       mounted = false;
     };
   }, [sid]);
+
+  useEffect(() => {
+    const applyPreview = () => {
+      try {
+        const raw = localStorage.getItem('ray_builder_preview_design');
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        const vis = parsed?.productEditorVisibility;
+        setProductEditorVisibility(vis && typeof vis === 'object' ? ({ ...(vis as any) } as any) : undefined);
+      } catch {
+      }
+    };
+
+    const onPreviewUpdate = () => applyPreview();
+    const onStorage = (e: StorageEvent) => {
+      if (!e) return;
+      if (e.key !== 'ray_builder_preview_design') return;
+      applyPreview();
+    };
+    try {
+      window.addEventListener('ray-builder-preview-update', onPreviewUpdate as any);
+      window.addEventListener('storage', onStorage as any);
+    } catch {
+    }
+
+    applyPreview();
+    return () => {
+      try {
+        window.removeEventListener('ray-builder-preview-update', onPreviewUpdate as any);
+        window.removeEventListener('storage', onStorage as any);
+      } catch {
+      }
+    };
+  }, []);
 
   const handleSave = async (payload: { name: string; type: string; sections: StoreSection[] }) => {
     if (!sid) return;
@@ -119,7 +157,7 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
   const sections = shop?.sections || [];
 
   if (mode === 'customer' && shop) {
-    return <CustomerView shop={shop} shopCategory={shopCategory} onExit={() => setMode('editor')} />;
+    return <CustomerView shop={shop} shopCategory={shopCategory} productEditorVisibility={productEditorVisibility} onExit={() => setMode('editor')} />;
   }
 
   const handleCancel = () => {

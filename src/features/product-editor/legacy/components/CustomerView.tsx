@@ -5,18 +5,21 @@ import { StoreViewer } from './StoreViewer';
 import { RayDB } from '@/constants';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
+import ReservationModal from '@/components/pages/shared/ReservationModal';
 
 interface CustomerViewProps {
   shop: Shop;
   shopCategory?: string;
+  productEditorVisibility?: Record<string, any>;
   onExit: () => void;
 }
 
-export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', onExit }) => {
+export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', productEditorVisibility, onExit }) => {
   const [cart, setCart] = useState<any[]>([]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [selectedProductForReservation, setSelectedProductForReservation] = useState<Product | null>(null);
   const { playSound } = useCartSound();
 
   useEffect(() => {
@@ -166,6 +169,12 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
     setIsCartOpen(true);
   };
 
+  const handleReserve = (product: Product) => {
+    // Open the reservation modal with the selected product
+    setSelectedProductForReservation(product);
+    playSound();
+  };
+
   const total = cart.reduce((sum, item: any) => sum + Number(item?.price || 0) * Number(item?.quantity || 0), 0);
   const count = cart.reduce((sum, item: any) => sum + Number(item?.quantity || 0), 0);
 
@@ -204,7 +213,13 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
       </div>
 
       <main className="h-full w-full">
-        <StoreViewer sections={shop.sections || []} shopCategory={shopCategory} onAddToCart={addToCart} />
+        <StoreViewer
+          sections={shop.sections || []}
+          shopCategory={shopCategory}
+          onAddToCart={addToCart}
+          onReserve={handleReserve}
+          productEditorVisibility={productEditorVisibility}
+        />
       </main>
 
       {/* Holographic Cart */}
@@ -326,6 +341,20 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
           )}
         </div>
       </div>
+
+      {/* Reservation Modal */}
+      <ReservationModal
+        isOpen={!!selectedProductForReservation}
+        onClose={() => setSelectedProductForReservation(null)}
+        item={selectedProductForReservation ? {
+          id: selectedProductForReservation.id,
+          name: selectedProductForReservation.name,
+          image: (selectedProductForReservation as any)?.imageUrl || (selectedProductForReservation as any)?.image_url || '',
+          price: selectedProductForReservation.price,
+          shopId: (shop as any)?.id || '',
+          shopName: shop.name,
+        } : null}
+      />
     </div>
   );
 };

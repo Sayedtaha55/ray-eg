@@ -1,8 +1,137 @@
-import React, { useEffect, useRef, useState, startTransition } from 'react';
+import React, { useEffect, useRef, useState, startTransition, useCallback, useMemo } from 'react';
 import { Plus, Save, Edit3, Trash2, Loader2, X, Move, ChevronDown, ChevronUp } from 'lucide-react';
 import { Product, StockStatus, StoreSection } from '../types';
 import { backendPost } from '@/services/api/httpClient';
 import { ApiService } from '@/services/api.service';
+
+type MetaChip = { label: string; value: string };
+
+const formatMetaValue = (value: any): string | null => {
+  if (value == null) return null;
+  if (typeof value === 'string') return value.trim() ? value.trim() : null;
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null;
+    const allStrings = value.every((v) => typeof v === 'string');
+    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join('، ');
+    if (value.every((v) => v && typeof v === 'object' && typeof v.label === 'string')) {
+      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join('، ');
+    }
+    return `(${value.length})`;
+  }
+  if (typeof value === 'object') {
+    if (
+      typeof (value as any).lengthCm !== 'undefined' ||
+      typeof (value as any).widthCm !== 'undefined' ||
+      typeof (value as any).heightCm !== 'undefined' ||
+      typeof (value as any).length_cm !== 'undefined' ||
+      typeof (value as any).width_cm !== 'undefined' ||
+      typeof (value as any).height_cm !== 'undefined'
+    ) {
+      const parts: string[] = [];
+      const lRaw = typeof (value as any).lengthCm !== 'undefined' ? (value as any).lengthCm : (value as any).length_cm;
+      const wRaw = typeof (value as any).widthCm !== 'undefined' ? (value as any).widthCm : (value as any).width_cm;
+      const hRaw = typeof (value as any).heightCm !== 'undefined' ? (value as any).heightCm : (value as any).height_cm;
+      const l = lRaw == null ? NaN : Number(lRaw);
+      const w = wRaw == null ? NaN : Number(wRaw);
+      const h = hRaw == null ? NaN : Number(hRaw);
+      if (Number.isFinite(l)) parts.push(`${l}`);
+      if (Number.isFinite(w)) parts.push(`${w}`);
+      if (Number.isFinite(h)) parts.push(`${h}`);
+      const dims = parts.length ? parts.join('×') : '';
+      const unitRaw = typeof (value as any).unit !== 'undefined' ? (value as any).unit : (value as any).unit_name;
+      const u = typeof unitRaw === 'string' ? String(unitRaw).trim() : '';
+      return [dims, u].filter(Boolean).join(' ');
+    }
+    try {
+      const s = JSON.stringify(value);
+      if (!s || s === '{}' || s === '[]') return null;
+      return s.length > 80 ? `${s.slice(0, 77)}...` : s;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const getProductMetaChips = (product: any): MetaChip[] => {
+  if (!product || typeof product !== 'object') return [];
+
+  const normalized: any = { ...(product as any) };
+  if ((normalized.furnitureMeta == null || typeof normalized.furnitureMeta === 'undefined') && normalized.furniture_meta != null) {
+    normalized.furnitureMeta = normalized.furniture_meta;
+  }
+
+  if (normalized.furnitureMeta == null || typeof normalized.furnitureMeta === 'undefined') {
+    const lRaw = typeof normalized.lengthCm !== 'undefined' ? normalized.lengthCm : normalized.length_cm;
+    const wRaw = typeof normalized.widthCm !== 'undefined' ? normalized.widthCm : normalized.width_cm;
+    const hRaw = typeof normalized.heightCm !== 'undefined' ? normalized.heightCm : normalized.height_cm;
+
+    const l = lRaw == null ? NaN : Number(lRaw);
+    const w = wRaw == null ? NaN : Number(wRaw);
+    const h = hRaw == null ? NaN : Number(hRaw);
+
+    if (Number.isFinite(l) || Number.isFinite(w) || Number.isFinite(h)) {
+      normalized.furnitureMeta = {
+        lengthCm: Number.isFinite(l) ? l : undefined,
+        widthCm: Number.isFinite(w) ? w : undefined,
+        heightCm: Number.isFinite(h) ? h : undefined,
+        unit: typeof normalized.unit === 'string' ? normalized.unit : undefined,
+      };
+    }
+  }
+
+  const hiddenKeys = new Set([
+    'id',
+    'name',
+    'description',
+    'price',
+    'stock',
+    'category',
+    'confidence',
+    'stockStatus',
+    'x',
+    'y',
+    'productId',
+    'backendProductId',
+    'selectedPackId',
+    'furniture_meta',
+    'lengthCm',
+    'widthCm',
+    'heightCm',
+    'length_cm',
+    'width_cm',
+    'height_cm',
+  ]);
+
+  const labelMap: Record<string, string> = {
+    unit: 'الوحدة',
+    packOptions: 'باقات',
+    colors: 'الألوان',
+    sizes: 'المقاسات',
+    furnitureMeta: 'الأبعاد',
+    addons: 'إضافات',
+    menuVariants: 'اختيارات',
+    images: 'صور',
+    imageUrl: 'صورة',
+  };
+
+  const preferred = ['unit', 'furnitureMeta', 'colors', 'sizes', 'packOptions', 'addons', 'menuVariants'];
+  const keys = Object.keys(normalized);
+  const ordered = [...preferred.filter((k) => keys.includes(k)), ...keys.filter((k) => !preferred.includes(k)).sort()];
+
+  const out: MetaChip[] = [];
+  for (const key of ordered) {
+    if (hiddenKeys.has(key)) continue;
+    const val = normalized[key];
+    const formatted = formatMetaValue(val);
+    if (!formatted) continue;
+    const label = labelMap[key] || key;
+    out.push({ label, value: formatted });
+  }
+  return out;
+};
 
 const compressImage = (file: File, maxWidth = 2048, quality = 0.8): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -110,7 +239,7 @@ interface StoreEditorProps {
   onCancel: () => void;
 }
 
-export const StoreEditor: React.FC<StoreEditorProps> = ({
+export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   initialSections,
   initialStoreName = '',
   initialStoreType = '',
@@ -157,6 +286,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   const [isAnalyzingNewImage, setIsAnalyzingNewImage] = useState(false);
   const [pendingNewSectionBase64, setPendingNewSectionBase64] = useState<string | null>(null);
   const [isNewSectionModePickerOpen, setIsNewSectionModePickerOpen] = useState(false);
+
+  const [productSheetDragY, setProductSheetDragY] = useState(0);
+  const productSheetDragRef = useRef<{ active: boolean; startY: number; startOffset: number }>({
+    active: false,
+    startY: 0,
+    startOffset: 0,
+  });
 
   const editorImageRef = useRef<HTMLDivElement>(null);
   const sectionInputRef = useRef<HTMLInputElement>(null);
@@ -352,6 +488,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
 
   const selectedProduct = activeProducts.find((p) => p.id === selectedProductId);
 
+  const selectedMetaChips = useMemo(() => getProductMetaChips(selectedProduct as any), [selectedProduct]);
+
   const shouldShowFurniture =
     Boolean(isFurnitureActivity) ||
     Boolean((selectedProduct as any)?.furnitureMeta);
@@ -372,24 +510,24 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
   }
 
   return (
-    <div className="min-h-screen md:h-screen flex flex-col bg-[#0b1121] overflow-hidden">
+    <div className="min-h-screen md:h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 overflow-hidden">
       {isNewSectionModePickerOpen && pendingNewSectionBase64 && (
-        <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl overflow-hidden">
-            <div className="p-5 border-b border-slate-800">
-              <div className="text-white font-bold">إضافة قسم جديد</div>
+        <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-lg flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-slate-900/95 backdrop-blur-2xl border border-slate-700/50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
+            <div className="p-6 border-b border-slate-800/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50">
+              <div className="text-white font-bold text-lg">إضافة قسم جديد</div>
               <div className="text-slate-400 text-sm mt-1">هل تريد تعديل يدوي أم استخدام الذكاء الاصطناعي؟</div>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-6 space-y-3 bg-slate-900/30">
               <button
                 onClick={confirmNewSectionManual}
-                className="w-full px-4 py-3 rounded-xl bg-slate-800 border border-slate-700 text-white font-bold hover:bg-slate-700 transition-colors"
+                className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 text-white font-bold hover:bg-slate-700/80 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
               >
                 تعديل يدوي
               </button>
               <button
                 onClick={confirmNewSectionAI}
-                className="w-full px-4 py-3 rounded-xl bg-cyan-600 border border-cyan-400/40 text-white font-bold hover:bg-cyan-500 transition-colors"
+                className="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-400/40 text-white font-bold hover:from-cyan-500 hover:to-blue-500 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-cyan-500/25 shadow-lg"
               >
                 ذكاء صناعي (تحليل تلقائي)
               </button>
@@ -398,7 +536,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                   setIsNewSectionModePickerOpen(false);
                   setPendingNewSectionBase64(null);
                 }}
-                className="w-full px-4 py-3 rounded-xl bg-transparent border border-slate-700 text-slate-300 font-bold hover:bg-slate-800 transition-colors"
+                className="w-full px-4 py-3 rounded-2xl bg-transparent border border-slate-700/50 text-slate-300 font-bold hover:bg-slate-800/50 transition-all duration-300"
               >
                 إلغاء
               </button>
@@ -408,19 +546,19 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       )}
 
       {/* Top Bar */}
-      <div className="h-14 sm:h-16 bg-slate-900 border-b border-slate-800 flex items-center justify-between px-2.5 sm:px-6 z-40">
+      <div className="h-14 sm:h-16 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-2.5 sm:px-6 z-40 shadow-lg">
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="bg-cyan-900/50 p-1.5 sm:p-2 rounded-lg">
+          <div className="bg-gradient-to-r from-cyan-600/20 to-blue-600/20 p-1.5 sm:p-2 rounded-xl border border-cyan-500/30 shadow-cyan-500/10 shadow-lg">
             <Edit3 size={16} className="text-cyan-400 sm:hidden" />
             <Edit3 size={18} className="text-cyan-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="font-bold text-white text-sm sm:text-base">محرر المتجر المتكامل</h2>
+            <h2 className="font-bold text-white text-sm sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر المتجر المتكامل</h2>
             <p className="text-[10px] sm:text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
           </div>
         </div>
         <div className="flex gap-1.5 sm:gap-3">
-          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-colors text-[11px] sm:text-sm">
+          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-all duration-300 text-[11px] sm:text-sm hover:bg-slate-800/50 rounded-lg">
             إلغاء
           </button>
           <button
@@ -431,13 +569,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
               setIsMoveMode(false);
             }}
             disabled={!activeSection}
-            className={`px-2 sm:px-4 py-2 rounded-lg border font-bold transition-all text-[11px] sm:text-sm
+            className={`px-2 sm:px-4 py-2 rounded-xl border font-bold transition-all duration-300 text-[11px] sm:text-sm transform hover:scale-[1.02]
               ${
                 !activeSection
-                  ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+                  ? 'bg-slate-800/50 border-slate-700/50 text-slate-500 cursor-not-allowed'
                   : isAddingMode
-                    ? 'bg-green-600 border-green-400 text-white'
-                    : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 border-green-400/50 text-white shadow-green-500/25 shadow-lg'
+                    : 'bg-slate-800/80 border-slate-700/50 text-slate-300 hover:bg-slate-700/80 hover:text-white'
               }
             `}
           >
@@ -450,7 +588,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-cyan-600 hover:bg-cyan-500 text-white px-3 sm:px-6 py-2 rounded-lg font-bold flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm"
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-3 sm:px-6 py-2 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-[1.02]"
           >
             {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             حفظ التغييرات
@@ -576,11 +714,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                 {(isAddingMode || (selectedProduct && !isMoveMode)) && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className={`absolute bottom-0 left-0 right-0 z-20 bg-slate-900/90 backdrop-blur border-t border-slate-700 transition-all ${
+                    className={`fixed bottom-0 left-0 right-0 z-[120] bg-slate-900/90 backdrop-blur border-t border-slate-700 transition-all ${
                       isProductSheetCollapsed ? 'p-2' : 'p-3 sm:p-4'
                     }`}
                     style={{
-                      transform: isProductSheetCollapsed ? 'translateY(calc(100% - 56px))' : 'translateY(0)',
+                      transform: isProductSheetCollapsed
+                        ? 'translateY(calc(100% - 56px))'
+                        : `translateY(${productSheetDragY}px)`,
                       transitionProperty: 'transform, padding',
                       transitionDuration: '220ms',
                       transitionTimingFunction: 'ease',
@@ -590,7 +730,35 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
 
                     {selectedProduct && (
                       <div className={`bg-slate-800/70 rounded-xl border border-slate-700 ${isProductSheetCollapsed ? 'p-2' : 'p-3'} `}>
-                        <div className="h-1.5 w-12 mx-auto rounded-full bg-slate-600/60" />
+                        <div
+                          className="h-1.5 w-12 mx-auto rounded-full bg-slate-600/60 cursor-grab active:cursor-grabbing"
+                          onPointerDown={(e) => {
+                            e.stopPropagation();
+                            if (isProductSheetCollapsed) return;
+                            try {
+                              (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+                            } catch {
+                            }
+                            productSheetDragRef.current.active = true;
+                            productSheetDragRef.current.startY = e.clientY;
+                            productSheetDragRef.current.startOffset = productSheetDragY;
+                          }}
+                          onPointerMove={(e) => {
+                            if (!productSheetDragRef.current.active) return;
+                            const dy = e.clientY - productSheetDragRef.current.startY;
+                            const next = productSheetDragRef.current.startOffset + dy;
+                            const wh = typeof window !== 'undefined' ? window.innerHeight : 800;
+                            const maxUp = -Math.round(wh * 0.45);
+                            const maxDown = 0;
+                            setProductSheetDragY(Math.max(maxUp, Math.min(maxDown, next)));
+                          }}
+                          onPointerUp={() => {
+                            productSheetDragRef.current.active = false;
+                          }}
+                          onPointerCancel={() => {
+                            productSheetDragRef.current.active = false;
+                          }}
+                        />
                         <div className="flex items-center justify-between gap-2">
                           <h3 className="text-xs font-bold text-slate-300 uppercase">تعديل المنتج</h3>
                           <div className="flex items-center gap-1 sm:gap-2">
@@ -647,6 +815,27 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                               placeholder="اسم المنتج"
                             />
+                            <textarea
+                              value={selectedProduct.description || ''}
+                              onChange={(e) => updateProductDetails(selectedProduct.id, { description: e.target.value })}
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm resize-none"
+                              placeholder="وصف المنتج"
+                              rows={3}
+                            />
+
+                            {selectedMetaChips.length > 0 && (
+                              <div className="flex flex-wrap gap-1.5 justify-center">
+                                {selectedMetaChips.map((c) => (
+                                  <span
+                                    key={`${c.label}:${c.value}`}
+                                    className="text-[10px] text-slate-200 bg-slate-800/60 border border-slate-700/60 rounded-full px-2 py-1"
+                                  >
+                                    <span className="text-slate-400">{c.label}:</span> <span className="text-cyan-300">{c.value}</span>
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
                             <input
                               type="number"
                               value={selectedProduct.price}
@@ -969,4 +1158,4 @@ export const StoreEditor: React.FC<StoreEditorProps> = ({
       </div>
     </div>
   );
-};
+});

@@ -1,14 +1,173 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Product, StoreSection, SizeVariant } from '../types';
-import { Eye, AlertCircle, Lock, ChevronLeft, ChevronRight, Map, X, ShoppingBag } from 'lucide-react';
+import { Eye, AlertCircle, Lock, ChevronLeft, ChevronRight, Map, X, ShoppingBag, CalendarCheck } from 'lucide-react';
 
 interface StoreViewerProps {
   sections: StoreSection[];
   onAddToCart: (product: Product) => void;
+  onReserve?: (product: Product) => void;
   shopCategory?: string;
+  productEditorVisibility?: Record<string, any>;
 }
 
-export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart, shopCategory = '' }) => {
+type MetaChip = { label: string; value: string };
+
+const coerceBoolean = (value: any, fallback: boolean = true): boolean => {
+  if (value === undefined || value === null) return fallback;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value !== 0;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (!v) return fallback;
+    if (v === 'false' || v === '0' || v === 'no' || v === 'off') return false;
+    if (v === 'true' || v === '1' || v === 'yes' || v === 'on') return true;
+    return fallback;
+  }
+  return Boolean(value);
+};
+
+const formatUnitLabel = (raw: string): string => {
+  const u = String(raw || '').trim();
+  const up = u.toUpperCase();
+  if (up === 'PIECE') return 'قطعة';
+  if (up === 'KG') return 'كيلو';
+  if (up === 'G') return 'جرام';
+  if (up === 'L') return 'لتر';
+  if (up === 'ML') return 'ملّي';
+  if (up === 'PACK') return 'عبوة';
+  return u;
+};
+
+const formatMetaValue = (value: any): string | null => {
+  if (value == null) return null;
+  if (typeof value === 'string') return value.trim() ? value.trim() : null;
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (Array.isArray(value)) {
+    if (value.length === 0) return null;
+    const allStrings = value.every((v) => typeof v === 'string');
+    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join('، ');
+    if (value.every((v) => v && typeof v === 'object' && typeof v.label === 'string')) {
+      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join('، ');
+    }
+    return `(${value.length})`;
+  }
+  if (typeof value === 'object') {
+    if (
+      typeof (value as any).lengthCm !== 'undefined' ||
+      typeof (value as any).widthCm !== 'undefined' ||
+      typeof (value as any).heightCm !== 'undefined' ||
+      typeof (value as any).length_cm !== 'undefined' ||
+      typeof (value as any).width_cm !== 'undefined' ||
+      typeof (value as any).height_cm !== 'undefined'
+    ) {
+      const parts: string[] = [];
+      const lRaw = typeof (value as any).lengthCm !== 'undefined' ? (value as any).lengthCm : (value as any).length_cm;
+      const wRaw = typeof (value as any).widthCm !== 'undefined' ? (value as any).widthCm : (value as any).width_cm;
+      const hRaw = typeof (value as any).heightCm !== 'undefined' ? (value as any).heightCm : (value as any).height_cm;
+      const l = lRaw == null ? NaN : Number(lRaw);
+      const w = wRaw == null ? NaN : Number(wRaw);
+      const h = hRaw == null ? NaN : Number(hRaw);
+      if (Number.isFinite(l)) parts.push(`${l}`);
+      if (Number.isFinite(w)) parts.push(`${w}`);
+      if (Number.isFinite(h)) parts.push(`${h}`);
+      const dims = parts.length ? parts.join('×') : '';
+      const unitRaw = typeof (value as any).unit !== 'undefined' ? (value as any).unit : (value as any).unit_name;
+      const u = typeof unitRaw === 'string' ? formatUnitLabel(String(unitRaw)) : '';
+      return [dims, u].filter(Boolean).join(' ');
+    }
+    try {
+      const s = JSON.stringify(value);
+      if (!s || s === '{}' || s === '[]') return null;
+      return s.length > 80 ? `${s.slice(0, 77)}...` : s;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const getProductMetaChips = (product: any): MetaChip[] => {
+  if (!product || typeof product !== 'object') return [];
+
+  const normalized: any = { ...(product as any) };
+  if ((normalized.furnitureMeta == null || typeof normalized.furnitureMeta === 'undefined') && normalized.furniture_meta != null) {
+    normalized.furnitureMeta = normalized.furniture_meta;
+  }
+
+  if (normalized.furnitureMeta == null || typeof normalized.furnitureMeta === 'undefined') {
+    const lRaw = typeof normalized.lengthCm !== 'undefined' ? normalized.lengthCm : normalized.length_cm;
+    const wRaw = typeof normalized.widthCm !== 'undefined' ? normalized.widthCm : normalized.width_cm;
+    const hRaw = typeof normalized.heightCm !== 'undefined' ? normalized.heightCm : normalized.height_cm;
+
+    const l = lRaw == null ? NaN : Number(lRaw);
+    const w = wRaw == null ? NaN : Number(wRaw);
+    const h = hRaw == null ? NaN : Number(hRaw);
+
+    if (Number.isFinite(l) || Number.isFinite(w) || Number.isFinite(h)) {
+      normalized.furnitureMeta = {
+        lengthCm: Number.isFinite(l) ? l : undefined,
+        widthCm: Number.isFinite(w) ? w : undefined,
+        heightCm: Number.isFinite(h) ? h : undefined,
+        unit: typeof normalized.unit === 'string' ? normalized.unit : undefined,
+      };
+    }
+  }
+
+  const hiddenKeys = new Set([
+    'id',
+    'name',
+    'description',
+    'price',
+    'category',
+    'confidence',
+    'stockStatus',
+    'x',
+    'y',
+    'productId',
+    'backendProductId',
+    'selectedPackId',
+    'furniture_meta',
+    'lengthCm',
+    'widthCm',
+    'heightCm',
+    'length_cm',
+    'width_cm',
+    'height_cm',
+  ]);
+
+  const labelMap: Record<string, string> = {
+    unit: 'الوحدة',
+    stock: 'المتاح',
+    packOptions: 'باقات',
+    colors: 'الألوان',
+    sizes: 'المقاسات',
+    furnitureMeta: 'الأبعاد',
+    addons: 'إضافات',
+    menuVariants: 'اختيارات',
+    images: 'صور',
+    imageUrl: 'صورة',
+  };
+
+  const preferred = ['unit', 'furnitureMeta', 'colors', 'sizes', 'packOptions', 'addons', 'menuVariants'];
+  const keys = Object.keys(normalized);
+  const ordered = [...preferred.filter((k) => keys.includes(k)), ...keys.filter((k) => !preferred.includes(k)).sort()];
+
+  const out: MetaChip[] = [];
+  for (const key of ordered) {
+    if (hiddenKeys.has(key)) continue;
+    const val = normalized[key];
+    const formatted = key === 'unit' && typeof val === 'string' ? formatUnitLabel(val) : formatMetaValue(val);
+    if (!formatted) continue;
+    const label = labelMap[key] || key;
+    out.push({ label, value: formatted });
+  }
+
+  return out;
+};
+
+export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, onAddToCart, onReserve, shopCategory = '', productEditorVisibility }) => {
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const activeSection = sections[activeSectionIndex];
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
@@ -176,6 +335,18 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
                 const half = overflowX / 2;
                 const next = panStateRef.current.startOffset + dx;
                 setPanOffsetPx(Math.max(-half, Math.min(half, next)));
+                
+                // Handle swipe navigation with reversed logic for RTL
+                if (Math.abs(dx) > 50) {
+                  if (dx < 0) {
+                    // Swipe left (negative dx) = next section
+                    handleNextSection();
+                  } else {
+                    // Swipe right (positive dx) = previous section  
+                    handlePrevSection();
+                  }
+                  panStateRef.current.active = false;
+                }
               }}
               onPointerUp={() => {
                 panStateRef.current.active = false;
@@ -207,7 +378,9 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
               isOpen={openProductId === product.id}
               onToggle={() => setOpenProductId(openProductId === product.id ? null : product.id)}
               onAddToCart={onAddToCart}
+              onReserve={onReserve}
               isFood={isFood}
+              productEditorVisibility={productEditorVisibility}
             />
           ))}
         </div>
@@ -239,7 +412,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = ({ sections, onAddToCart,
       )}
     </div>
   );
-};
+});
 
 interface ProductNodeProps {
   product: Product;
@@ -248,47 +421,44 @@ interface ProductNodeProps {
   isOpen: boolean;
   onToggle: () => void;
   onAddToCart: (p: Product) => void;
+  onReserve?: (p: Product) => void;
   isFood: boolean;
+  productEditorVisibility?: Record<string, any>;
 }
 
-const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, isFood }) => {
+const ProductNode: React.FC<ProductNodeProps> = React.memo(({ product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, onReserve, isFood, productEditorVisibility }) => {
   const isGhost = product.stockStatus === 'OUT_OF_STOCK';
   const isLowStock = product.stockStatus === 'LOW_STOCK';
   const [justAdded, setJustAdded] = useState(false);
 
-  const furnitureMeta = (product as any)?.furnitureMeta;
+  const isVisible = useCallback(
+    (key: string, fallback: boolean = true) => {
+      const current = (productEditorVisibility || {}) as Record<string, any>;
+      if (current[key] === undefined || current[key] === null) return fallback;
+      return coerceBoolean(current[key], fallback);
+    },
+    [productEditorVisibility]
+  );
 
-  const furnitureDims = (() => {
-    if (!furnitureMeta || typeof furnitureMeta !== 'object') return null;
-    const toNum = (v: any) => {
-      const n = typeof v === 'number' ? v : v == null ? NaN : Number(v);
-      return Number.isFinite(n) ? n : NaN;
-    };
-    const lengthCm = toNum((furnitureMeta as any)?.lengthCm);
-    const widthCm = toNum((furnitureMeta as any)?.widthCm);
-    const heightCm = toNum((furnitureMeta as any)?.heightCm);
-    const unit = typeof (furnitureMeta as any)?.unit === 'string' ? String((furnitureMeta as any).unit).trim() : '';
-    const hasAny = Number.isFinite(lengthCm) || Number.isFinite(widthCm) || Number.isFinite(heightCm) || Boolean(unit);
-    if (!hasAny) return null;
-    return { lengthCm, widthCm, heightCm, unit };
-  })();
+  const showPrice = isVisible('productCardPrice', true);
+  const showStock = isVisible('productCardStock', true);
+  const showAddToCart = isVisible('productCardAddToCart', true);
+  const showReserve = isVisible('productCardReserve', true);
+
+  const furnitureMeta = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
+
+  const compactDimsLabel = useMemo(() => {
+    const formatted = furnitureMeta ? formatMetaValue(furnitureMeta) : null;
+    return formatted || null;
+  }, [furnitureMeta]);
+
+  const metaChips = useMemo(() => {
+    const all = getProductMetaChips(product as any);
+    if (showStock) return all;
+    return all.filter((c) => c.label !== 'المتاح');
+  }, [product, showStock]);
 
   const unitRaw = typeof (product as any)?.unit === 'string' ? String((product as any).unit).trim() : '';
-  const unitLabel = (() => {
-    const u = unitRaw.toUpperCase();
-    if (u === 'PIECE') return 'قطعة';
-    if (u === 'KG') return 'كيلو';
-    if (u === 'G') return 'جرام';
-    if (u === 'L') return 'لتر';
-    if (u === 'ML') return 'ملّي';
-    if (u === 'PACK') return 'عبوة';
-    return unitRaw;
-  })();
-  const stockNumber = (() => {
-    const s = (product as any)?.stock;
-    const n = typeof s === 'number' ? s : Number(s);
-    return Number.isFinite(n) ? n : null;
-  })();
   
   // Selection states
   const [selectedColor, setSelectedColor] = useState<string | null>(
@@ -329,17 +499,17 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
     ? packPriceRaw
     : (selectedSize?.price ?? product.price);
 
-  const cardHorizontal = product.x < 20 ? 'left' : product.x > 80 ? 'right' : 'center';
-  const cardVertical = product.y < 25 ? 'down' : 'up';
-
-  const cardHorizontalClass =
-    cardHorizontal === 'center'
-      ? 'left-1/2 -translate-x-1/2'
-      : cardHorizontal === 'left'
-        ? 'left-0 translate-x-2'
-        : 'right-0 -translate-x-2';
-
-  const cardVerticalClass = cardVertical === 'up' ? '-translate-y-full -mt-4 origin-bottom' : 'translate-y-4 origin-top';
+  const handleReserve = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onReserve) {
+      onReserve(product);
+      setJustAdded(true);
+      setTimeout(() => {
+        setJustAdded(false);
+        onToggle(); // Close card after reserving
+      }, 800);
+    }
+  };
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -434,81 +604,97 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
         </div>
 
         {/* Price Tag Hint (Optional small hover text) */}
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-0.5 bg-black/70 backdrop-blur rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-          {product.price} ج.م
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/70 backdrop-blur rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+          {showPrice && <div className="leading-tight">{product.price} ج.م</div>}
+          {compactDimsLabel && <div className="leading-tight text-slate-200">{compactDimsLabel}</div>}
         </div>
       </div>
 
       {/* 2. The Detail Card - Visible only when Open */}
-      {isOpen && (
-        <div
-          className={`
-                absolute top-0 ${cardHorizontalClass} ${cardVerticalClass} w-56 sm:w-64 
-                bg-slate-900/95 backdrop-blur-xl border border-cyan-500/50 rounded-2xl shadow-[0_0_30px_rgba(6,182,212,0.3)]
-                transition-all duration-300 flex flex-col overflow-hidden
-                ${justAdded ? 'scale-0 opacity-0 translate-y-10' : 'scale-100 opacity-100'}
-            `}
-          style={{ zIndex: 70 }}
-        >
-          {/* Connecting Line */}
-          {cardVertical === 'up' ? (
-            <>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-[1px] h-4 bg-gradient-to-b from-cyan-500 to-transparent"></div>
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[4px] w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
-            </>
-          ) : (
-            <>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-full w-[1px] h-4 bg-gradient-to-t from-cyan-500 to-transparent"></div>
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-[4px] w-1.5 h-1.5 bg-cyan-500 rounded-full"></div>
-            </>
-          )}
+      {isOpen &&
+        (typeof document !== 'undefined'
+          ? createPortal(
+              <div
+                className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6"
+                onClick={(e) => {
+                  if (e.target === e.currentTarget) onToggle();
+                }}
+              >
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+                <div
+                  className={`
+                        relative w-full max-w-sm sm:max-w-md
+                        bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5),0_0_0_1px_rgba(6,182,212,0.1)] transition-all duration-500 flex flex-col overflow-hidden
+                        ${justAdded ? 'scale-95 opacity-0 translate-y-8' : 'scale-100 opacity-100 translate-y-0'}
+                    `}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{
+                    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(6,182,212,0.1), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  }}
+                >
+                  {/* Close Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onToggle();
+                    }}
+                    className="absolute top-2 left-2 text-slate-400 hover:text-white z-10 p-1 hover:bg-white/10 rounded-full transition-colors"
+                    type="button"
+                  >
+                    <X size={14} />
+                  </button>
 
-          {/* Close Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-            className="absolute top-2 left-2 text-slate-400 hover:text-white z-10 p-1 hover:bg-white/10 rounded-full transition-colors"
-          >
-            <X size={14} />
-          </button>
+                  {/* Card Content */}
+                  <div className="p-4 pt-6 text-center max-h-[75vh] overflow-y-auto">
+                    <h3 className={`font-bold text-base mb-2 leading-tight ${isGhost ? 'text-slate-400' : 'text-white'}`}>{product.name}</h3>
+                    {product.description && (
+                      <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">{product.description}</p>
+                    )}
 
-          {/* Card Content */}
-          <div className="p-4 pt-6 text-center max-h-[70vh] overflow-y-auto">
-            <h3 className={`font-bold text-base mb-2 leading-tight ${isGhost ? 'text-slate-400' : 'text-white'}`}>{product.name}</h3>
+                    {metaChips.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 justify-center mb-2">
+                        {metaChips.map((c) => (
+                          <span
+                            key={`${c.label}:${c.value}`}
+                            className="text-[10px] text-slate-200 bg-slate-800/60 border border-slate-700/60 rounded-full px-2 py-1"
+                          >
+                            <span className="text-slate-400">{c.label}:</span> <span className="text-cyan-300">{c.value}</span>
+                          </span>
+                        ))}
+                      </div>
+                    )}
 
-            {/* Status Badges */}
-            {isGhost ? (
-              <div className="inline-flex items-center gap-1 text-xs text-red-400 bg-red-900/30 px-2 py-1 rounded-full mt-2">
-                <Lock size={12} /> <span>غير متوفر</span>
-              </div>
-            ) : (
-              <div className="space-y-3 mt-2">
-                {hasPacks && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <span className="text-[10px] text-slate-400">الباقة</span>
-                    </div>
-                    <select
-                      value={selectedPackId}
-                      onChange={(e) => setSelectedPackId(e.target.value)}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-white text-sm"
-                    >
-                      {packDefs.map((p: any) => {
-                        const pid = String(p?.id || '').trim();
-                        const qty = p?.qty;
-                        const unit = String(p?.unit || (product as any)?.unit || '').trim();
-                        const label = String(p?.label || p?.name || '').trim() || `${qty} ${unit}`;
-                        return (
-                          <option key={pid} value={pid}>
-                            {label} - {p?.price} ج.م
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-                )}
+                    {/* Status Badges */}
+                    {isGhost ? (
+                      <div className="inline-flex items-center gap-1 text-xs text-red-400 bg-red-900/30 px-2 py-1 rounded-full mt-2">
+                        <Lock size={12} /> <span>غير متوفر</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 mt-2">
+                        {hasPacks && (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between px-1">
+                              <span className="text-[10px] text-slate-400">الباقة</span>
+                            </div>
+                            <select
+                              value={selectedPackId}
+                              onChange={(e) => setSelectedPackId(e.target.value)}
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-white text-sm"
+                            >
+                              {packDefs.map((p: any) => {
+                                const pid = String(p?.id || '').trim();
+                                const qty = p?.qty;
+                                const unit = String(p?.unit || (product as any)?.unit || '').trim();
+                                const label = String(p?.label || p?.name || '').trim() || `${qty} ${unit}`;
+                                return (
+                                  <option key={pid} value={pid}>
+                                    {label} - {p?.price} ج.م
+                                  </option>
+                                );
+                              })}
+                            </select>
+                          </div>
+                        )}
 
                 {/* Fashion: Colors Selection */}
                 {Array.isArray(product.colors) && product.colors.length > 0 && (
@@ -567,40 +753,14 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
                 )}
 
                 {/* Price Display */}
-                <div className="pt-2 border-t border-slate-700/50">
-                  <div className="text-3xl font-black text-cyan-400 font-mono tracking-tight">
-                    {finalPrice} <span className="text-sm text-cyan-600">EGP</span>
-                  </div>
-                  {selectedSize && selectedSize.price !== product.price && (
-                    <div className="text-[10px] text-slate-500 line-through">{product.price} EGP</div>
-                  )}
-                </div>
-
-                {(isFood || unitRaw || stockNumber !== null) && (
-                  <div className="text-[10px] text-slate-400 bg-slate-800/40 rounded-lg py-2 px-3">
-                    {unitLabel ? <span>الوحدة: <span className="text-cyan-300">{unitLabel}</span></span> : null}
-                    {unitLabel && stockNumber !== null ? <span className="mx-1">•</span> : null}
-                    {stockNumber !== null ? (
-                      <span>
-                        المتاح: <span className="text-cyan-300">{stockNumber}</span>
-                      </span>
-                    ) : null}
-                  </div>
-                )}
-
-                {furnitureDims && (
-                  <div className="text-[10px] text-slate-400 bg-slate-800/40 rounded-lg py-2 px-3">
-                    {Number.isFinite(furnitureDims.lengthCm) ? <span>الطول: <span className="text-cyan-300">{furnitureDims.lengthCm}</span> سم</span> : null}
-                    {Number.isFinite(furnitureDims.lengthCm) && Number.isFinite(furnitureDims.widthCm) ? <span className="mx-1">•</span> : null}
-                    {Number.isFinite(furnitureDims.widthCm) ? <span>العرض: <span className="text-cyan-300">{furnitureDims.widthCm}</span> سم</span> : null}
-                    {(Number.isFinite(furnitureDims.lengthCm) || Number.isFinite(furnitureDims.widthCm)) && Number.isFinite(furnitureDims.heightCm) ? <span className="mx-1">•</span> : null}
-                    {Number.isFinite(furnitureDims.heightCm) ? <span>الارتفاع: <span className="text-cyan-300">{furnitureDims.heightCm}</span> سم</span> : null}
-                    {furnitureDims.unit ? (
-                      <>
-                        <span className="mx-1">•</span>
-                        <span>وحدة البيع: <span className="text-cyan-300">{furnitureDims.unit}</span></span>
-                      </>
-                    ) : null}
+                {showPrice && (
+                  <div className="pt-2 border-t border-slate-700/50">
+                    <div className="text-3xl font-black text-cyan-400 font-mono tracking-tight">
+                      {finalPrice} <span className="text-sm text-cyan-600">EGP</span>
+                    </div>
+                    {selectedSize && selectedSize.price !== product.price && (
+                      <div className="text-[10px] text-slate-500 line-through">{product.price} EGP</div>
+                    )}
                   </div>
                 )}
 
@@ -623,18 +783,36 @@ const ProductNode: React.FC<ProductNodeProps> = ({ product, coverMetrics, contai
                   </div>
                 )}
 
-                <button
-                  onClick={handleAddToCart}
-                  className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 mt-2"
-                >
-                  <ShoppingBag size={18} />
-                  إضافة للسلة
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+                {(showAddToCart || (showReserve && onReserve)) && (
+                  <div className="flex gap-2 mt-2">
+                    {showAddToCart && (
+                      <button
+                        onClick={handleAddToCart}
+                        className="flex-1 py-3 bg-gradient-to-r from-cyan-600 via-cyan-500 to-blue-600 hover:from-cyan-500 hover:via-cyan-400 hover:to-blue-500 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 active:scale-95 transform hover:scale-[1.02]"
+                      >
+                        <ShoppingBag size={18} />
+                        إضافة للسلة
+                      </button>
+                    )}
+                    {showReserve && onReserve && (
+                      <button
+                        onClick={handleReserve}
+                        className="flex-1 py-3 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 hover:from-amber-500 hover:via-orange-400 hover:to-amber-500 text-white rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-amber-500/25 transition-all duration-300 active:scale-95 transform hover:scale-[1.02]"
+                      >
+                        <CalendarCheck size={18} />
+                        حجز
+                      </button>
+                    )}
+                  </div>
+                )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )
+          : null)}
     </div>
   );
-};
+});

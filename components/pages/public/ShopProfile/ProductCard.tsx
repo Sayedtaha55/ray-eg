@@ -55,7 +55,7 @@ const ProductCard = React.memo(function ProductCard({
   const showPrice = isVisible('productCardPrice', true);
   const showStock = isVisible('productCardStock', true);
   const showAddToCart = isVisible('productCardAddToCart', true) && (allowAddToCart ?? true);
-  const showReserve = false;
+  const showReserve = isVisible('productCardReserve', true) && (allowReserve ?? true);
 
   const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (
     | ShopDesign['productDisplay']
@@ -158,22 +158,10 @@ const ProductCard = React.memo(function ProductCard({
         ? 'bg-red-500 text-white'
         : 'bg-white/90 text-slate-900';
 
-  const furnitureLine = useMemo(() => {
-    const fm = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
-    if (!fm || typeof fm !== 'object') return '';
-    const unit = typeof fm?.unit === 'string' ? String(fm.unit).trim() : '';
-    const l = typeof fm?.lengthCm === 'number' ? fm.lengthCm : Number(fm?.lengthCm || NaN);
-    const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
-    const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
-    const dims = [
-      Number.isFinite(l) && l > 0 ? `طول ${Math.round(l * 100) / 100}سم` : '',
-      Number.isFinite(w) && w > 0 ? `عرض ${Math.round(w * 100) / 100}سم` : '',
-      Number.isFinite(h) && h > 0 ? `ارتفاع ${Math.round(h * 100) / 100}سم` : '',
-    ].filter(Boolean);
-    if (!unit && dims.length === 0) return '';
-    const parts = [unit ? `وحدة: ${unit}` : '', ...dims].filter(Boolean);
-    return parts.join(' - ');
-  }, [product]);
+  const descriptionLine = useMemo(() => {
+    const d = typeof (product as any)?.description === 'string' ? String((product as any).description).trim() : '';
+    return d;
+  }, [(product as any)?.description]);
 
   const goToProduct = () => {
     const sid = String(slug || '').trim();
@@ -288,16 +276,18 @@ const ProductCard = React.memo(function ProductCard({
         }`}
       >
         {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-        <img
-          loading="lazy"
-          decoding="async"
-          src={product.imageUrl || (product as any).image_url}
-          className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s] ${imageReady ? 'opacity-100' : 'opacity-0'}`}
-          style={{ transitionProperty: 'opacity, transform' }}
-          alt={product.name}
-          onLoad={() => setImageReady(true)}
-          onError={() => setImageReady(true)}
-        />
+        {(product.imageUrl || (product as any).image_url) ? (
+          <img
+            loading="lazy"
+            decoding="async"
+            src={product.imageUrl || (product as any).image_url}
+            className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1s] ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            style={{ transitionProperty: 'opacity, transform' }}
+            alt={product.name}
+            onLoad={() => setImageReady(true)}
+            onError={() => setImageReady(true)}
+          />
+        ) : null}
 
         {offer && (
           <div className="absolute top-2 right-2 bg-[#BD00FF] text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-black text-[8px] md:text-[10px] shadow-lg flex items-center gap-1 z-10">
@@ -344,9 +334,9 @@ const ProductCard = React.memo(function ProductCard({
           {product.name}
         </h4>
 
-        {furnitureLine ? (
+        {descriptionLine ? (
           <p className="-mt-1 mb-2 text-[10px] md:text-[11px] font-bold text-slate-500 line-clamp-2">
-            {furnitureLine}
+            {descriptionLine}
           </p>
         ) : null}
 
