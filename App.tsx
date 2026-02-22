@@ -113,9 +113,6 @@ const RedirectSShopProduct: React.FC = () => {
 
 const RedirectShopImageMapToShopProfile: React.FC = () => {
   const { slug } = useParams();
-  const host = String((typeof window !== 'undefined' ? window.location?.hostname : '') || '').toLowerCase();
-  const isLocal = host === 'localhost' || host === '127.0.0.1';
-  if (!isLocal) return <ReactRouterDOM.Navigate to={`/shop/${slug}`} replace />;
   return suspense(<ShopImageMapPurchaseView />);
 };
 
