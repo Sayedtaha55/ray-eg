@@ -129,6 +129,15 @@ const MapContainer: React.FC<MapContainerProps> = ({ shops, coords, onMapReady, 
       } else {
         userMarkerRef.current.setLatLng([coords.lat, coords.lng]);
       }
+
+      try {
+        const zoom = Math.max(14, Number(mapRef.current?.getZoom?.() ?? 0));
+        mapRef.current?.flyTo?.([coords.lat, coords.lng], zoom, { animate: true, duration: 0.7 });
+        setTimeout(() => {
+          mapRef.current?.invalidateSize?.();
+        }, 0);
+      } catch {
+      }
     }
   }, [shops, coords, navigate]);
 

@@ -242,6 +242,32 @@ const MapPage: React.FC = () => {
         navigator.geolocation.getCurrentPosition(resolve, reject, options);
       });
 
+    const getPosWithHardTimeout = (options: PositionOptions, hardTimeoutMs: number) => {
+      const ms = Number.isFinite(hardTimeoutMs) ? Math.max(1000, Math.floor(hardTimeoutMs)) : 10000;
+      return new Promise<GeoPosition>((resolve, reject) => {
+        let settled = false;
+        const timer = window.setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          reject(new Error('GEO_HARD_TIMEOUT'));
+        }, ms);
+
+        getPos(options)
+          .then((pos) => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            resolve(pos);
+          })
+          .catch((err) => {
+            if (settled) return;
+            settled = true;
+            window.clearTimeout(timer);
+            reject(err);
+          });
+      });
+    };
+
     const explainGeoError = (err: any) => {
       const code = Number((err as GeoError | undefined)?.code);
       if (code === 1) return 'تم رفض إذن الموقع. فعّل إذن الموقع من إعدادات المتصفح.';
@@ -252,7 +278,7 @@ const MapPage: React.FC = () => {
 
     try {
       // 1) محاولة سريعة (أخف على الأجهزة الضعيفة)
-      const pos = await getPos({ enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 });
+      const pos = await getPosWithHardTimeout({ enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 }, 12000);
       const lat = Number(pos?.coords?.latitude);
       const lng = Number(pos?.coords?.longitude);
       if (Number.isNaN(lat) || Number.isNaN(lng)) {
@@ -263,7 +289,7 @@ const MapPage: React.FC = () => {
     } catch (e1) {
       try {
         // 2) محاولة أدق لو الأولى فشلت
-        const pos2 = await getPos({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        const pos2 = await getPosWithHardTimeout({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }, 20000);
         const lat2 = Number(pos2?.coords?.latitude);
         const lng2 = Number(pos2?.coords?.longitude);
         if (Number.isNaN(lat2) || Number.isNaN(lng2)) {
@@ -272,7 +298,12 @@ const MapPage: React.FC = () => {
         setCoords({ lat: lat2, lng: lng2 });
         mapRef.current?.setView([lat2, lng2], 14);
       } catch (e2) {
-        setLocationError(explainGeoError(e2));
+        const msg = String((e2 as any)?.message || '');
+        if (msg === 'GEO_HARD_TIMEOUT') {
+          setLocationError('تحديد الموقع لم يستجب. افتح الموقع عبر HTTPS وفعّل إذن الموقع وجرّب مرة أخرى.');
+        } else {
+          setLocationError(explainGeoError(e2));
+        }
       }
     } finally {
       setLocating(false);
@@ -321,16 +352,27 @@ const MapPage: React.FC = () => {
           </Suspense>
         </div>
 
-        <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[1000]">
-          <div className="bg-white/95 backdrop-blur border border-slate-100 rounded-[2rem] p-4 md:p-5 space-y-3">
+        <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[2500] pointer-events-auto">
+          <div className="bg-white/95 backdrop-blur border border-slate-100 rounded-[2rem] p-4 md:p-5 space-y-3 pointer-events-auto relative">
             {locationError && (
               <p className="text-red-500 text-xs font-bold text-center">{String(locationError)}</p>
             )}
 
             <button
               onClick={handleLocateMe}
+              onTouchStart={(e) => {
+                e.preventDefault();
+                handleLocateMe();
+              }}
+              onPointerDown={(e) => {
+                // Some mobile browsers may not reliably fire click over map layers.
+                // PointerDown provides a more immediate interaction signal.
+                // We keep onClick as well for desktop.
+                e.currentTarget?.focus?.();
+              }}
               disabled={locating}
               className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ touchAction: 'manipulation' }}
             >
               {locating ? <Loader2 className="animate-spin" size={16} /> : <><MapPin size={16} /> تحديد موقعي</>}
             </button>
