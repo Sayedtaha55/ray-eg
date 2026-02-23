@@ -1,23 +1,22 @@
-
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { RayDB } from '@/constants';
-import { Product, Offer, Shop } from '@/types';
-import { Category } from '@/types';
-import { motion } from 'framer-motion';
-import { 
-  ShoppingCart, CalendarCheck, ArrowRight, Heart, 
-  Share2, ShieldCheck, Truck, Package, Store, Loader2, AlertCircle, Home, MessageCircle
-} from 'lucide-react';
-import ReservationModal from '../shared/ReservationModal';
-import CartDrawer from '../shared/CartDrawer';
-import { Skeleton } from '@/components/common/ui';
+import { ArrowRight, Home } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { RayDB } from '@/constants';
+import { Offer, Product, Shop } from '@/types';
+import { Category } from '@/types';
 import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
+import { Skeleton } from '@/components/common/ui';
 
-const { useParams, useNavigate, Link } = ReactRouterDOM as any;
-const MotionDiv = motion.div as any;
+import ProductTabs from './product/ProductTabs';
+import ProductGallery from './product/ProductGallery';
+import ProductDetails from './product/ProductDetails';
+
+const ReservationModal = lazy(() => import('../shared/ReservationModal'));
+const CartDrawer = lazy(() => import('../shared/CartDrawer'));
+
+const { useParams, useNavigate } = ReactRouterDOM as any;
 
 const ProductPage: React.FC = () => {
   const { id } = useParams();
@@ -38,6 +37,11 @@ const ProductPage: React.FC = () => {
   const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
   const [selectedPackId, setSelectedPackId] = useState('');
+  const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'shipping'>('details');
+
+  const isRestaurant = shop?.category === Category.RESTAURANT;
+  const isFashion = shop?.category === Category.FASHION;
+  const touchStartXRef = useRef<number | null>(null);
 
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
@@ -385,24 +389,24 @@ const ProductPage: React.FC = () => {
       : (hasPacks && Number.isFinite(packPrice)
         ? packPrice
         : (() => {
-        if (shop?.category === Category.FASHION) {
-          const sizeLabel = String(selectedFashionSize || '').trim();
-          const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
-          const prices = (fashionSizes as any[])
-            .map((s: any) => Number(s?.price))
-            .filter((n: any) => Number.isFinite(n) && n >= 0);
-          const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
-          const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
-            ? Number((selected as any)?.price)
-            : (Number.isFinite(minSize) ? minSize : Number(offer ? offer.newPrice : product.price) || 0);
-          const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
-          if (Number.isFinite(disc) && disc > 0) {
-            return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
+          if (shop?.category === Category.FASHION) {
+            const sizeLabel = String(selectedFashionSize || '').trim();
+            const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
+            const prices = (fashionSizes as any[])
+              .map((s: any) => Number(s?.price))
+              .filter((n: any) => Number.isFinite(n) && n >= 0);
+            const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
+            const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
+              ? Number((selected as any)?.price)
+              : (Number.isFinite(minSize) ? minSize : Number(offer ? offer.newPrice : product.price) || 0);
+            const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
+            if (Number.isFinite(disc) && disc > 0) {
+              return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
+            }
+            return rawPrice;
           }
-          return rawPrice;
-        }
-        return Number(offer ? offer.newPrice : product.price) || 0;
-      })());
+          return Number(offer ? offer.newPrice : product.price) || 0;
+        })());
 
     const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
     const event = new CustomEvent('add-to-cart', { 
@@ -429,6 +433,125 @@ const ProductPage: React.FC = () => {
     });
     window.dispatchEvent(event);
   };
+
+  const fashionColors = useMemo(() => {
+    const raw = (product as any)?.colors;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((c: any) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
+      .filter((c: any) => c.name && c.value);
+  }, [(product as any)?.colors]);
+
+  const fashionSizes = useMemo(() => {
+    const raw = (product as any)?.sizes;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((s: any) => {
+        if (typeof s === 'string') {
+          const label = String(s || '').trim();
+          return label ? { label, price: NaN } : null;
+        }
+        if (s && typeof s === 'object') {
+          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+          const priceRaw = typeof (s as any)?.price === 'number' ? (s as any).price : Number((s as any)?.price);
+          const price = Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : NaN;
+          return label ? { label, price } : null;
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{ label: string; price: number }>;
+  }, [(product as any)?.sizes]);
+
+  const packDefs = useMemo(() => {
+    const isFood = shop?.category === Category.FOOD;
+    if (!isFood) return [];
+    const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
+    return Array.isArray(raw) ? raw : [];
+  }, [shop?.category, (product as any)?.packOptions, (product as any)?.pack_options]);
+
+  const hasPacks = packDefs.length > 0;
+
+  const menuVariantsDef = useMemo(() => {
+    if (!isRestaurant) return [];
+    const raw = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+    return Array.isArray(raw) ? raw : [];
+  }, [isRestaurant, (product as any)?.menuVariants, (product as any)?.menu_variants]);
+
+  const addonsDef = useMemo(() => {
+    return isRestaurant
+      ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
+      : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
+  }, [isRestaurant, shop, product]);
+
+  const displayedPrice = useMemo(() => {
+    if (offer) return Number(offer.newPrice) || 0;
+    return Number(product?.price) || 0;
+  }, [offer, product]);
+
+  const productImageSrc = useMemo(
+    () => String((product as any)?.imageUrl || (product as any)?.image_url || '').trim(),
+    [(product as any)?.imageUrl, (product as any)?.image_url],
+  );
+
+  const galleryImages = useMemo(() => {
+    const extras = Array.isArray((product as any)?.images) ? (product as any).images : [];
+    const merged = [productImageSrc, ...extras].map((u) => String(u || '').trim()).filter(Boolean);
+    return Array.from(new Set(merged));
+  }, [productImageSrc, (product as any)?.images]);
+
+  const [activeImageSrc, setActiveImageSrc] = useState('');
+  useEffect(() => {
+    setActiveImageSrc((prev) => {
+      const next = String(prev || '').trim();
+      if (next && galleryImages.includes(next)) return next;
+      return galleryImages[0] || '';
+    });
+  }, [galleryImages]);
+
+  const isLowEndDevice = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    return isMobile && (cores <= 4 || memory <= 4);
+  }, []);
+
+  const onGalleryTouchStart = (e: React.TouchEvent) => {
+    try {
+      touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
+    } catch {
+      touchStartXRef.current = null;
+    }
+  };
+
+  const onGalleryTouchEnd = (e: React.TouchEvent) => {
+    const startX = touchStartXRef.current;
+    touchStartXRef.current = null;
+    if (typeof startX !== 'number') return;
+    let endX: number | undefined;
+    try {
+      endX = e.changedTouches?.[0]?.clientX;
+    } catch {
+      endX = undefined;
+    }
+    if (typeof endX !== 'number') return;
+
+    const dx = endX - startX;
+    if (Math.abs(dx) < 35) return;
+    const currentIndex = galleryImages.indexOf(activeImageSrc);
+    const idx = currentIndex >= 0 ? currentIndex : 0;
+    if (dx < 0) setActiveImageSrc(galleryImages[Math.min(idx + 1, galleryImages.length - 1)] || '');
+    else setActiveImageSrc(galleryImages[Math.max(idx - 1, 0)] || '');
+  };
+
+  const whatsappHref = useMemo(() => {
+    const shopPhone = (shop as any)?.phone || '';
+    const shopWhatsApp = (shop as any)?.layoutConfig?.whatsapp || shopPhone;
+    const digits = String(shopWhatsApp || '').replace(/[^\d]/g, '');
+    if (!digits) return '';
+    const text = `مرحبا ${shop?.name || ''}، أنا مهتم بمنتج: ${product?.name || ''}`;
+    return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
+  }, [shop, product]);
 
   if (loading) {
     return (
@@ -470,673 +593,96 @@ const ProductPage: React.FC = () => {
     );
   }
 
-  const currentPrice = offer ? offer.newPrice : product.price;
-  const isRestaurant = shop?.category === Category.RESTAURANT;
-  const isFashion = shop?.category === Category.FASHION;
-  const furnitureMeta = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
-  const furnitureUnit = typeof furnitureMeta?.unit === 'string' ? String(furnitureMeta.unit).trim() : '';
-  const furnitureLengthCm = typeof furnitureMeta?.lengthCm === 'number' ? furnitureMeta.lengthCm : (furnitureMeta?.lengthCm != null ? Number(furnitureMeta.lengthCm) : NaN);
-  const furnitureWidthCm = typeof furnitureMeta?.widthCm === 'number' ? furnitureMeta.widthCm : (furnitureMeta?.widthCm != null ? Number(furnitureMeta.widthCm) : NaN);
-  const furnitureHeightCm = typeof furnitureMeta?.heightCm === 'number' ? furnitureMeta.heightCm : (furnitureMeta?.heightCm != null ? Number(furnitureMeta.heightCm) : NaN);
-  const hasFurnitureMeta = Boolean(
-    furnitureUnit ||
-      Number.isFinite(furnitureLengthCm) ||
-      Number.isFinite(furnitureWidthCm) ||
-      Number.isFinite(furnitureHeightCm),
-  );
-
-  const renderFurnitureSpecs = () => {
-    if (!hasFurnitureMeta) return null;
-    const fmt = (n: any) => {
-      const v = typeof n === 'number' ? n : Number(n);
-      if (!Number.isFinite(v) || v <= 0) return '';
-      return String(Math.round(v * 100) / 100);
-    };
-    const l = fmt(furnitureLengthCm);
-    const w = fmt(furnitureWidthCm);
-    const h = fmt(furnitureHeightCm);
-    const dims = [l ? `الطول: ${l} سم` : '', w ? `العرض: ${w} سم` : '', h ? `الارتفاع: ${h} سم` : ''].filter(Boolean);
-    return (
-      <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-2">
-        <p className="text-xs font-black text-slate-500">مواصفات الأثاث</p>
-        {furnitureUnit ? <p className="text-sm font-bold text-slate-700">الوحدة: {furnitureUnit}</p> : null}
-        {dims.length ? (
-          <div className="space-y-1">
-            {dims.map((t) => (
-              <p key={t} className="text-sm font-bold text-slate-700">{t}</p>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    );
-  };
-  const productImageSrc = String((product as any)?.imageUrl || (product as any)?.image_url || '').trim();
-  const galleryImages = useMemo(() => {
-    const extras = Array.isArray((product as any)?.images) ? (product as any).images : [];
-    const merged = [productImageSrc, ...extras]
-      .map((u) => String(u || '').trim())
-      .filter(Boolean);
-    const uniq: string[] = [];
-    for (const u of merged) {
-      if (!uniq.includes(u)) uniq.push(u);
-    }
-    return uniq;
-  }, [productImageSrc, (product as any)?.images]);
-  const [activeImageSrc, setActiveImageSrc] = useState('');
-  const touchStartXRef = useRef<number | null>(null);
-  useEffect(() => {
-    setActiveImageSrc((prev) => {
-      const next = String(prev || '').trim();
-      if (next && galleryImages.includes(next)) return next;
-      return galleryImages[0] || '';
-    });
-  }, [galleryImages]);
-
-  const goToGalleryIndex = (nextIndex: number) => {
-    if (!galleryImages.length) return;
-    const idx = Math.max(0, Math.min(nextIndex, galleryImages.length - 1));
-    setActiveImageSrc(galleryImages[idx] || '');
-  };
-
-  const onGalleryTouchStart = (e: React.TouchEvent) => {
-    try {
-      touchStartXRef.current = e.touches?.[0]?.clientX ?? null;
-    } catch {
-      touchStartXRef.current = null;
-    }
-  };
-
-  const onGalleryTouchEnd = (e: React.TouchEvent) => {
-    const startX = touchStartXRef.current;
-    touchStartXRef.current = null;
-    if (typeof startX !== 'number') return;
-    const endX = (() => {
-      try {
-        return e.changedTouches?.[0]?.clientX;
-      } catch {
-        return undefined;
-      }
-    })();
-    if (typeof endX !== 'number') return;
-
-    const dx = endX - startX;
-    if (Math.abs(dx) < 35) return;
-    const currentIndex = galleryImages.indexOf(activeImageSrc);
-    const idx = currentIndex >= 0 ? currentIndex : 0;
-    // RTL: swipe left => next, swipe right => prev
-    if (dx < 0) goToGalleryIndex(idx + 1);
-    else goToGalleryIndex(idx - 1);
-  };
-
-  const fashionColors = useMemo(() => {
-    const raw = (product as any)?.colors;
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .map((c: any) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
-      .filter((c: any) => c.name && c.value);
-  }, [(product as any)?.colors]);
-  const fashionSizes = useMemo(() => {
-    const raw = (product as any)?.sizes;
-    if (!Array.isArray(raw)) return [];
-    return raw
-      .map((s: any) => {
-        if (typeof s === 'string') {
-          const label = String(s || '').trim();
-          if (!label) return null;
-          return { label, price: NaN };
-        }
-        if (s && typeof s === 'object') {
-          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
-          if (!label) return null;
-          const priceRaw = typeof (s as any)?.price === 'number' ? (s as any).price : Number((s as any)?.price);
-          const price = Number.isFinite(priceRaw) ? Math.round(priceRaw * 100) / 100 : NaN;
-          return { label, price };
-        }
-        return null;
-      })
-      .filter(Boolean) as Array<{ label: string; price: number }>;
-  }, [(product as any)?.sizes]);
-  const menuVariantsDef = isRestaurant
-    ? (Array.isArray((product as any)?.menuVariants)
-      ? (product as any).menuVariants
-      : (Array.isArray((product as any)?.menu_variants) ? (product as any).menu_variants : []))
-    : [];
-  const hasMenuVariants = Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0;
-  const selectedMenuVariant = (() => {
-    if (!hasMenuVariants) return null;
-    const type = (menuVariantsDef as any[]).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim());
-    if (!type) return null;
-    const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
-    const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === String(selectedMenuSizeId || '').trim());
-    if (!size) return null;
-    const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || 0);
-    const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
-    return {
-      typeId: String((type as any)?.id || (type as any)?.typeId || (type as any)?.variantId || '').trim(),
-      typeName: String((type as any)?.name || (type as any)?.label || '').trim() || String(selectedMenuTypeId || ''),
-      sizeId: String((size as any)?.id || (size as any)?.sizeId || '').trim(),
-      sizeLabel: String((size as any)?.label || (size as any)?.name || '').trim() || String(selectedMenuSizeId || ''),
-      price,
-    };
-  })();
-  const addonsDef = isRestaurant
-    ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
-    : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
-  const addonsTotal = (() => {
-    const priceByKey = new Map<string, number>();
-    for (const g of addonsDef || []) {
-      const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
-      for (const opt of options) {
-        const optId = String(opt?.id || '').trim();
-        if (!optId) continue;
-        const vars = Array.isArray(opt?.variants) ? opt.variants : [];
-        for (const v of vars) {
-          const vid = String(v?.id || '').trim();
-          if (!vid) continue;
-          const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-          priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
-        }
-      }
-    }
-    return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
-  })();
-  const basePrice = hasMenuVariants
-    ? (() => {
-      const sel = selectedMenuVariant as any;
-      const typeId = String(sel?.typeId || '').trim();
-      const sizeId = String(sel?.sizeId || '').trim();
-      const rows = Array.isArray((offer as any)?.variantPricing) ? (offer as any).variantPricing : [];
-      const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
-        && String(r?.sizeId || r?.size || '').trim() === sizeId);
-      const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
-      if (Number.isFinite(priceRaw) && priceRaw >= 0) return priceRaw;
-      return Number(sel?.price || 0);
-    })()
-    : (() => {
-      if (isFashion) {
-        const sizeLabel = String(selectedFashionSize || '').trim();
-        const selected = (fashionSizes as any[]).find((s: any) => String(s?.label || '').trim() === sizeLabel);
-        const prices = (fashionSizes as any[])
-          .map((s: any) => Number(s?.price))
-          .filter((n: any) => Number.isFinite(n) && n >= 0);
-        const minSize = prices.length > 0 ? Math.min(...prices) : NaN;
-        const rawPrice = selected && Number.isFinite(Number((selected as any)?.price))
-          ? Number((selected as any)?.price)
-          : (Number.isFinite(minSize) ? minSize : Number(currentPrice) || 0);
-        const disc = typeof (offer as any)?.discount === 'number' ? (offer as any).discount : Number((offer as any)?.discount);
-        if (Number.isFinite(disc) && disc > 0) {
-          return Math.round(rawPrice * (1 - disc / 100) * 100) / 100;
-        }
-        return rawPrice;
-      }
-      return Number(currentPrice) || 0;
-    })();
-  const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
-  const hasDiscount = !!offer;
-  const trackStock = typeof (product as any)?.trackStock === 'boolean'
-    ? (product as any).trackStock
-    : (typeof (product as any)?.track_stock === 'boolean' ? (product as any).track_stock : true);
-
-  // WhatsApp button logic
-  const shopPhone = shop?.phone || '';
-  const shopWhatsApp = (shop as any)?.layoutConfig?.whatsapp || shopPhone;
-  const whatsappDigits = String(shopWhatsApp || '').replace(/[^\d]/g, '');
-  const whatsappHref = whatsappDigits
-    ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop?.name || ''}، أنا مهتم بمنتج: ${product?.name || ''}`)}`
-    : '';
-
-  const WhatsAppIcon = (
-    <svg viewBox="0 0 32 32" width="20" height="20" fill="currentColor" aria-hidden="true">
-      <path d="M19.11 17.48c-.28-.14-1.64-.81-1.9-.9-.25-.1-.43-.14-.62.14-.18.28-.71.9-.88 1.09-.16.18-.32.2-.6.07-.28-.14-1.17-.43-2.23-1.37-.82-.73-1.38-1.63-1.54-1.9-.16-.28-.02-.43.12-.57.13-.13.28-.32.43-.48.14-.16.18-.28.28-.46.09-.18.05-.35-.02-.48-.07-.14-.62-1.5-.86-2.06-.23-.55-.46-.48-.62-.49h-.53c-.18 0-.48.07-.73.35-.25.28-.96.94-.96 2.29s.98 2.65 1.11 2.83c.14.18 1.93 2.95 4.67 4.13.65.28 1.16.45 1.56.57.65.2 1.24.17 1.7.1.52-.08 1.64-.67 1.87-1.31.23-.65.23-1.2.16-1.31-.07-.12-.25-.18-.53-.32z" />
-      <path d="M26.72 5.28A14.92 14.92 0 0 0 16.02 0C7.18 0 0 7.18 0 16.02c0 2.82.74 5.57 2.14 7.99L0 32l8.2-2.09a15.9 15.9 0 0 0 7.82 2c8.84 0 16.02-7.18 16.02-15.9 0-4.27-1.66-8.29-4.32-10.73zm-10.7 24.1a13.2 13.2 0 0 1-6.73-1.84l-.48-.28-4.87 1.24 1.3-4.74-.31-.49a13.14 13.14 0 0 1-2.01-7.25c0-7.22 5.88-13.1 13.1-13.1 3.5 0 6.78 1.36 9.23 3.83a12.92 12.92 0 0 1 3.86 9.27c0 7.22-5.88 13.36-13.09 13.36z" />
-    </svg>
-  );
-
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
-      {/* Cart Icon in Header for Mobile */}
       <div className="fixed top-24 right-4 z-[90] lg:hidden">
-        <CartIconWithAnimation 
-          count={cartItems.length}
-          onClick={() => setIsCartOpen(true)}
-        />
+        <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
       </div>
 
-      {/* Back Button */}
-      <button 
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all"
-      >
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all">
         <ArrowRight size={20} /> العودة للسابق
       </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24">
-        {/* Left: Image Gallery */}
-        <MotionDiv 
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="relative aspect-square rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
-          onTouchStart={onGalleryTouchStart}
-          onTouchEnd={onGalleryTouchEnd}
-        >
-          <img loading="lazy" src={activeImageSrc || product.imageUrl || (product as any).image_url} className="w-full h-full object-contain" alt={product.name} />
-          {hasDiscount && (
-            <div className="absolute top-10 left-10 bg-[#BD00FF] text-white px-8 py-3 rounded-2xl font-black text-xl shadow-2xl">
-              -{offer?.discount}%
-            </div>
-          )}
-          <button 
-            onClick={toggleFavorite}
-            className={`absolute top-10 right-10 p-5 rounded-3xl backdrop-blur-md transition-all ${isFavorite ? 'bg-red-500 text-white' : 'bg-white/40 text-slate-900 hover:bg-white'}`}
-          >
-            <Heart size={28} fill={isFavorite ? 'currentColor' : 'none'} />
-          </button>
-        </MotionDiv>
-        {galleryImages.length > 1 && (
-          <div className="mt-4 grid grid-cols-6 gap-2">
-            {galleryImages.slice(0, 6).map((src) => {
-              const active = src === activeImageSrc;
-              return (
-                <button
-                  key={src}
-                  type="button"
-                  onClick={() => setActiveImageSrc(src)}
-                  className={`aspect-square rounded-2xl overflow-hidden border transition-all ${active ? 'border-slate-900' : 'border-slate-200 hover:border-slate-400'}`}
-                >
-                  <img loading="lazy" src={src} className="w-full h-full object-contain md:object-cover" alt="thumb" />
-                </button>
-              );
-            })}
-          </div>
-        )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24" style={{ contentVisibility: 'auto' }}>
+        <ProductGallery
+          galleryImages={galleryImages}
+          activeImageSrc={activeImageSrc}
+          setActiveImageSrc={setActiveImageSrc}
+          productName={product?.name || ''}
+          hasDiscount={!!offer}
+          discount={offer?.discount}
+          onGalleryTouchStart={onGalleryTouchStart}
+          onGalleryTouchEnd={onGalleryTouchEnd}
+        />
 
-        {/* Right: Info */}
-        <MotionDiv 
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="space-y-12"
-        >
-          <div className="space-y-4">
-             {shop && (
-               <Link to={`/shop/${shop.slug}`} className="inline-flex items-center gap-3 bg-slate-50 px-6 py-2 rounded-full border border-slate-100 group">
-                  <img src={shop.logoUrl || (shop as any).logo_url} className="w-6 h-6 rounded-full object-cover" />
-                  <span className="text-sm font-black text-slate-900 group-hover:text-[#00E5FF] transition-colors">{shop.name}</span>
-               </Link>
-             )}
-             <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-tight">{product.name}</h1>
-             <div className="flex items-center gap-6">
-                <span className="text-4xl md:text-6xl font-black text-[#00E5FF] tracking-tighter">ج.م {unitPrice}</span>
-                {hasDiscount && !hasMenuVariants && (
-                  <span className="text-2xl md:text-3xl text-slate-300 line-through font-bold">ج.م {product.price}</span>
-                )}
-             </div>
-          </div>
+        <ProductDetails
+          product={product}
+          shop={shop}
+          offer={offer}
+          isFavorite={isFavorite}
+          toggleFavorite={toggleFavorite}
+          handleShare={() => {}} // TODO
+          handleAddToCart={handleAddToCart}
+          setIsResModalOpen={setIsResModalOpen}
+          displayedPrice={displayedPrice}
+          hasDiscount={!!offer}
+          isRestaurant={isRestaurant}
+          isFashion={isFashion}
+          hasPacks={hasPacks}
+          packDefs={packDefs}
+          selectedPackId={selectedPackId}
+          setSelectedPackId={setSelectedPackId}
+          menuVariantsDef={menuVariantsDef}
+          selectedMenuTypeId={selectedMenuTypeId}
+          setSelectedMenuTypeId={setSelectedMenuTypeId}
+          selectedMenuSizeId={selectedMenuSizeId}
+          setSelectedMenuSizeId={setSelectedMenuSizeId}
+          fashionColors={fashionColors}
+          selectedFashionColorValue={selectedFashionColorValue}
+          setSelectedFashionColorValue={setSelectedFashionColorValue}
+          fashionSizes={fashionSizes}
+          selectedFashionSize={selectedFashionSize}
+          setSelectedFashionSize={setSelectedFashionSize}
+          selectedAddons={selectedAddons}
+          setSelectedAddons={setSelectedAddons}
+          addonsDef={addonsDef}
+          whatsappHref={whatsappHref}
+          primaryColor="#00E5FF"
+        />
 
-          {isFashion && (fashionColors.length > 0 || fashionSizes.length > 0) && (
-            <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
-              {fashionColors.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-black text-slate-500">الألوان</p>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {fashionColors.map((c: any) => (
-                      <button
-                        key={c.value}
-                        type="button"
-                        onClick={() => setSelectedFashionColorValue(String(c.value || '').trim())}
-                        className={`inline-flex items-center gap-2 px-3 py-2 rounded-full border font-black text-xs transition-all ${
-                          String(selectedFashionColorValue || '').trim() === String(c.value || '').trim()
-                            ? 'bg-white border-slate-900'
-                            : 'bg-slate-50 border-slate-200 hover:bg-white'
-                        }`}
-                      >
-                        <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
-                        {c.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {fashionSizes.length > 0 && (
-                <div className="space-y-2">
-                  <p className="text-xs font-black text-slate-500">المقاسات</p>
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    {fashionSizes.map((s: any) => (
-                      <button
-                        key={String(s?.label || '')}
-                        type="button"
-                        onClick={() => setSelectedFashionSize(String(s?.label || '').trim())}
-                        className={`inline-flex items-center px-3 py-2 rounded-full border font-black text-xs transition-all ${
-                          String(selectedFashionSize || '').trim() === String(s?.label || '').trim()
-                            ? 'bg-white border-slate-900'
-                            : 'bg-slate-50 border-slate-200 hover:bg-white'
-                        }`}
-                      >
-                        {String(s?.label || '')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          <div className="space-y-6">
-             {isRestaurant && hasMenuVariants && (
-               <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-4">
-                 <div className="flex items-center justify-between">
-                   <h3 className="text-lg font-black">اختيار النوع والحجم</h3>
-                 </div>
-
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div className="space-y-2">
-                     <p className="text-xs font-black text-slate-500">النوع</p>
-                     <select
-                       value={selectedMenuTypeId}
-                       onChange={(e) => setSelectedMenuTypeId(String(e.target.value || ''))}
-                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
-                     >
-                       {(menuVariantsDef as any[]).map((t: any, idx: number) => {
-                         const tid = String(t?.id || t?.typeId || t?.variantId || idx).trim();
-                         const label = String(t?.name || t?.label || '').trim() || tid;
-                         return (
-                           <option key={tid} value={tid}>
-                             {label}
-                           </option>
-                         );
-                       })}
-                     </select>
-                   </div>
-
-                   <div className="space-y-2">
-                     <p className="text-xs font-black text-slate-500">الحجم</p>
-                     <select
-                       value={selectedMenuSizeId}
-                       onChange={(e) => setSelectedMenuSizeId(String(e.target.value || ''))}
-                       className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-3 px-4 text-sm font-black"
-                     >
-                       {(() => {
-                         const type = (menuVariantsDef as any[]).find(
-                           (t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim(),
-                         );
-                         const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
-                         return sizes.map((s: any, idx: number) => {
-                           const sid = String(s?.id || s?.sizeId || idx).trim();
-                           const label = String(s?.label || s?.name || '').trim() || sid;
-                           const priceRaw = typeof s?.price === 'number' ? s.price : Number(s?.price || 0);
-                           const p = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : 0;
-                           return (
-                             <option key={sid} value={sid}>
-                               {label} (ج.م {p})
-                             </option>
-                           );
-                         });
-                       })()}
-                     </select>
-                   </div>
-                 </div>
-               </div>
-             )}
-             {isRestaurant && Array.isArray(addonsDef) && addonsDef.length > 0 && (
-               <div className="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm space-y-6">
-                 <div className="flex items-center justify-between">
-                   <h3 className="text-lg font-black">منتجات إضافية</h3>
-                   <span className="text-xs font-black text-slate-400">اختياري</span>
-                 </div>
-
-                 <div className="space-y-6">
-                   {(addonsDef as any[]).map((group, gi) => (
-                     <div key={String(group?.id || gi)} className="space-y-4">
-                       {group?.title ? <p className="text-xs font-black text-slate-500">{String(group.title)}</p> : null}
-                       <div className="space-y-3">
-                         {(Array.isArray(group?.options) ? group.options : []).map((opt: any) => {
-                           const optId = String(opt?.id || '').trim();
-                           if (!optId) return null;
-                           const currentVariantId = selectedAddons.find((a) => a.optionId === optId)?.variantId || '';
-                           const variants = Array.isArray(opt?.variants) ? opt.variants : [];
-                           return (
-                             <div key={optId} className="flex items-center gap-4 bg-slate-50 rounded-2xl p-4 border border-slate-100">
-                               {opt?.imageUrl && (
-                                 <img src={String(opt.imageUrl)} className="w-12 h-12 rounded-xl object-cover" alt={String(opt?.name || '')} />
-                               )}
-                               <div className="flex-1">
-                                 <p className="font-black text-sm text-slate-900">{String(opt?.name || 'إضافة')}</p>
-                                 <p className="text-[10px] text-slate-400 font-bold">اختر الحجم</p>
-                               </div>
-                               <select
-                                 value={currentVariantId}
-                                 onChange={(e) => {
-                                   const v = String(e.target.value || '');
-                                   setSelectedAddons((prev) => {
-                                     const next = Array.isArray(prev) ? [...prev] : [];
-                                     const idx = next.findIndex((x) => x.optionId === optId);
-                                     if (!v) {
-                                       if (idx >= 0) next.splice(idx, 1);
-                                       return next;
-                                     }
-                                     if (idx >= 0) next[idx] = { optionId: optId, variantId: v };
-                                     else next.push({ optionId: optId, variantId: v });
-                                     return next;
-                                   });
-                                 }}
-                                 className="bg-white border border-slate-200 rounded-xl py-2 px-3 text-sm font-black"
-                               >
-                                 <option value="">بدون</option>
-                                 {variants.map((v: any, idx: number) => {
-                                   const vid = String(v?.id || idx).trim();
-                                   const label = String(v?.label || v?.name || '').trim() || 'اختيار';
-                                   const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-                                   return (
-                                     <option key={vid} value={vid}>
-                                       {label} (+{Number.isFinite(p) ? p : 0} ج.م)
-                                     </option>
-                                   );
-                                 })}
-                               </select>
-                             </div>
-                           );
-                         })}
-                       </div>
-                     </div>
-                   ))}
-                 </div>
-               </div>
-             )}
-             <div className="flex items-center gap-4 p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-[#BD00FF] shadow-sm">
-                   <Package size={24} />
-                </div>
-                <div>
-                   <p className="font-black text-slate-900">حالة المخزون</p>
-                   <p className="text-sm text-slate-400 font-bold">
-                     {!trackStock ? 'متوفر' : (product.stock > 0 ? `متوفر (${product.stock} قطعة)` : 'نفذت الكمية')}
-                   </p>
-                </div>
-             </div>
-
-             {renderFurnitureSpecs()}
-             
-             <div className="flex flex-col md:flex-row gap-4">
-               {shop?.category === Category.FOOD && Array.isArray((product as any)?.packOptions) && (product as any).packOptions.length > 0 && (
-                 <div className="flex-1">
-                   <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 text-right">الباقة</label>
-                   <select
-                     value={selectedPackId}
-                     onChange={(e) => setSelectedPackId(e.target.value)}
-                     className="w-full py-6 bg-white border border-slate-200 rounded-[2.5rem] font-black text-lg text-right px-6"
-                   >
-                     <option value="">اختر</option>
-                     {(product as any).packOptions.map((p: any) => (
-                       <option key={String(p?.id || '')} value={String(p?.id || '')}>
-                         {String(p?.label || p?.name || '').trim() || `${p?.qty} ${p?.unit || (product as any)?.unit || ''}`} - {p?.price} ج.م
-                       </option>
-                     ))}
-                   </select>
-                 </div>
-               )}
-                <button 
-                  onClick={handleAddToCart}
-                  className="flex-1 py-6 bg-slate-900 text-white rounded-[2.5rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4"
-                >
-                  <ShoppingCart size={28} /> أضف للسلة
-                </button>
-                <button 
-                  onClick={() => {
-                    if (hasMenuVariants && (!selectedMenuTypeId || !selectedMenuSizeId)) {
-                      try {
-                        const toast = document.createElement('div');
-                        toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-                        toast.textContent = 'يرجى اختيار النوع والحجم';
-                        document.body.appendChild(toast);
-                        setTimeout(() => toast.remove(), 2500);
-                      } catch {
-                      }
-                      return;
-                    }
-
-                    if (shop?.category === Category.FASHION) {
-                      if (fashionColors.length === 0 || fashionSizes.length === 0) {
-                        try {
-                          const toast = document.createElement('div');
-                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-                          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
-                          document.body.appendChild(toast);
-                          setTimeout(() => toast.remove(), 2500);
-                        } catch {
-                        }
-                        return;
-                      }
-                      if (!selectedFashionColorValue || !selectedFashionSize) {
-                        try {
-                          const toast = document.createElement('div');
-                          toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-                          toast.textContent = 'يرجى اختيار اللون والمقاس';
-                          document.body.appendChild(toast);
-                          setTimeout(() => toast.remove(), 2500);
-                        } catch {
-                        }
-                        return;
-                      }
-                    }
-
-                    setIsResModalOpen(true);
-                  }}
-                  className="flex-1 py-6 bg-[#00E5FF] text-black rounded-[2.5rem] font-black text-2xl hover:scale-105 transition-all shadow-xl flex items-center justify-center gap-4"
-                >
-                  <CalendarCheck size={28} /> حجز العرض
-                </button>
-             </div>
-
-             {shop && (
-               <button
-                 onClick={() => navigate(`/shop/${shop.slug}`)}
-                 className="w-full py-5 bg-slate-50 text-slate-900 rounded-[2.5rem] font-black text-xl hover:bg-slate-100 transition-all flex items-center justify-center gap-3 border border-slate-100"
-               >
-                 <Store size={22} /> {isRestaurant ? 'زيارة المطعم' : 'زيارة المحل'}
-               </button>
-             )}
-          </div>
-
-          <div className="grid grid-cols-2 gap-6 pt-12 border-t border-slate-100">
-             <div className="flex items-center gap-4">
-                <Truck className="text-slate-300" />
-                <div>
-                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">توصيل سريع</p>
-                   <p className="font-bold text-sm">خلال ٢٤-٤٨ ساعة</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-4">
-                <ShieldCheck className="text-slate-300" />
-                <div>
-                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">ضمان MNMKNK</p>
-                   <p className="font-bold text-sm">منتج أصلي ١٠٠٪</p>
-                </div>
-             </div>
-          </div>
-        </MotionDiv>
       </div>
 
-      <ReservationModal 
-        isOpen={isResModalOpen} 
-        onClose={() => setIsResModalOpen(false)} 
-        item={{
-          id: product.id,
-          name: product.name,
-          image: product.imageUrl || (product as any).image_url,
-          price: unitPrice,
-          shopId: shop?.id || 's1',
-          shopName: shop?.name || 'MNMKNK',
-          addons: (() => {
-            const isRestaurant = shop?.category === Category.RESTAURANT;
-            const addonsDef = isRestaurant
-              ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
-              : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
-            const priceByKey = new Map<string, number>();
-            const labelByKey = new Map<string, string>();
-            const optionNameById = new Map<string, string>();
-            const optionImageById = new Map<string, string>();
-            for (const g of addonsDef || []) {
-              const options = Array.isArray((g as any)?.options) ? (g as any).options : [];
-              for (const opt of options) {
-                const optId = String(opt?.id || '').trim();
-                if (!optId) continue;
-                optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
-                if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
-                  optionImageById.set(optId, String(opt.imageUrl).trim());
-                }
-                const vars = Array.isArray(opt?.variants) ? opt.variants : [];
-                for (const v of vars) {
-                  const vid = String(v?.id || '').trim();
-                  if (!vid) continue;
-                  const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-                  priceByKey.set(`${optId}:${vid}`, Number.isFinite(p) ? p : 0);
-                  labelByKey.set(`${optId}:${vid}`, String(v?.label || v?.name || '').trim() || vid);
-                }
-              }
-            }
-            return (selectedAddons || []).map((a) => {
-              const key = `${a.optionId}:${a.variantId}`;
-              return {
-                optionId: a.optionId,
-                optionName: optionNameById.get(a.optionId) || a.optionId,
-                optionImage: optionImageById.get(a.optionId) || null,
-                variantId: a.variantId,
-                variantLabel: labelByKey.get(key) || a.variantId,
-                price: priceByKey.get(key) || 0,
-              };
-            });
-          })(),
-          variantSelection: isFashion
-            ? {
-                kind: 'fashion',
-                colorName: String((fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim()) as any)?.name || '').trim(),
-                colorValue: String(selectedFashionColorValue || '').trim(),
-                size: String(selectedFashionSize || '').trim(),
-              }
-            : selectedMenuVariant,
-        }}
-      />
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        items={cartItems}
-        onRemove={removeFromCart}
-        onUpdateQuantity={updateCartItemQuantity}
-      />
+      <div className="mt-20">
+        <ProductTabs
+          activeTab={activeTab as any}
+          setActiveTab={setActiveTab as any}
+          productDescription={String((product as any)?.description || '').trim()}
+          product={product}
+          primaryColor="#00E5FF"
+        />
+      </div>
 
-      {/* Floating WhatsApp Button for Mobile */}
-      {whatsappHref && (
-        <div className="fixed bottom-24 right-4 z-[150] flex flex-col gap-4 items-end md:hidden">
-          <a
-            href={whatsappHref}
-            target="_blank"
-            rel="noreferrer"
-            className="w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-2 border-white bg-[#25D366] text-white"
-            aria-label="تواصل عبر واتساب"
-          >
-            {WhatsAppIcon}
-          </a>
-        </div>
-      )}
+      <Suspense fallback={null}>
+        <ReservationModal
+          isOpen={isResModalOpen}
+          onClose={() => setIsResModalOpen(false)}
+          item={product ? {
+            id: product.id,
+            name: product.name,
+            image: productImageSrc,
+            price: displayedPrice,
+            shopId: shop?.id,
+            shopName: shop?.name,
+          } : null}
+        />
+        <CartDrawer
+          isOpen={isCartOpen}
+          onClose={() => setIsCartOpen(false)}
+          items={cartItems}
+          onRemove={removeFromCart}
+          onUpdateQuantity={updateCartItemQuantity}
+        />
+      </Suspense>
     </div>
   );
 };

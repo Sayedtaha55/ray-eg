@@ -1,17 +1,23 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
-import { Sparkles, TrendingUp, ShoppingCart, CalendarCheck, Loader2, MessageSquarePlus, Send, X, AlertCircle, Eye, Wand2, MapPin } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, TrendingUp, Loader2, MapPin } from 'lucide-react';
+import { motion, useReducedMotion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
-import ReservationModal from '../shared/ReservationModal';
- 
 import { Skeleton } from '@/components/common/ui';
 import { useCartSound } from '@/hooks/useCartSound';
 
+// Sub-components
+import OfferCard from './home/OfferCard';
+import FeedbackWidget from './home/FeedbackWidget';
+
+// Lazy load heavy global components
+const ReservationModal = lazy(() => import('../shared/ReservationModal'));
+
 const { Link, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
+
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -25,11 +31,16 @@ const HomeFeed: React.FC = () => {
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
   const hasMoreOffersRef = useRef(true);
+  const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreOffersRef = useRef<(() => void) | null>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const MAX_RENDERED_OFFERS = 72;
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackResponse, setFeedbackResponse] = useState('');
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const PAGE_SIZE = 12;
@@ -59,8 +70,10 @@ const HomeFeed: React.FC = () => {
         const list = Array.isArray(next) ? next : [];
         setOffers((prev) => {
           const merged = [...prev, ...list];
-          offersLenRef.current = merged.length;
-          return merged;
+          // Cap DOM nodes for weak devices by keeping only the most recent items
+          const capped = merged.length > MAX_RENDERED_OFFERS ? merged.slice(merged.length - MAX_RENDERED_OFFERS) : merged;
+          offersLenRef.current = capped.length;
+          return capped;
         });
         const nextHasMore = list.length >= PAGE_SIZE;
         hasMoreOffersRef.current = nextHasMore;
@@ -72,21 +85,39 @@ const HomeFeed: React.FC = () => {
       }
     };
 
-    loadData();
-    window.addEventListener('ray-db-update', loadData);
-    const onScroll = () => {
-      try {
-        if (typeof window === 'undefined') return;
-        const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 900;
-        if (nearBottom) loadMoreOffers();
-      } catch {
-      }
+    loadMoreOffersRef.current = () => {
+      loadMoreOffers();
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    loadData();
+    window.addEventListener('ray-db-update', loadData);
+
+    // IntersectionObserver instead of scroll listener
+    try {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+        observerRef.current = null;
+      }
+      observerRef.current = new IntersectionObserver(
+        (entries) => {
+          const first = entries[0];
+          if (!first?.isIntersecting) return;
+          loadMoreOffersRef.current?.();
+        },
+        { root: null, rootMargin: '900px 0px', threshold: 0 },
+      );
+      if (loadMoreSentinelRef.current) {
+        observerRef.current.observe(loadMoreSentinelRef.current);
+      }
+    } catch {
+    }
     return () => {
       window.removeEventListener('ray-db-update', loadData);
-      window.removeEventListener('scroll', onScroll as any);
+      try {
+        observerRef.current?.disconnect();
+        observerRef.current = null;
+      } catch {
+      }
     };
   }, []);
 
@@ -169,7 +200,7 @@ const HomeFeed: React.FC = () => {
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
       <div className="flex flex-col items-center text-center mb-8 md:mb-20">
          <MotionDiv 
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-black text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
          >
@@ -201,147 +232,54 @@ const HomeFeed: React.FC = () => {
           {offers.length === 0 ? (
             <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
           ) : offers.map((offer, idx) => (
-            <MotionDiv 
+            <OfferCard
               key={offer.id}
-              className="group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
-            >
-              <div 
-                onClick={() => {
-                  const productId = String((offer as any).productId || offer.id || '').trim();
-                  const shopSlug = String((offer as any).shopSlug || '').trim();
-                  if (productId && shopSlug) {
-                    navigate(`/shop/${shopSlug}/product/${productId}?from=offers`);
-                    return;
-                  }
-                  navigate(`/product/${productId || offer.id}`);
-                }}
-                className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50 cursor-pointer"
-              >
-                <img
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                  fetchPriority={idx === 0 ? 'high' : 'auto'}
-                  decoding="async"
-                  src={offer.imageUrl}
-                  alt={offer.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
-                />
-                <div className="absolute top-3 left-3 md:top-5 md:left-5 bg-[#BD00FF] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
-                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                   <Eye size={24} className="text-white drop-shadow-lg sm:w-8 sm:h-8" />
-                </div>
-              </div>
-              <div className="px-1 md:px-3 text-right">
-                <h3 className="text-sm md:text-xl lg:text-2xl font-black mb-3 md:mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-row-reverse">
-                   <div className="text-right">
-                      <p className="text-slate-300 line-through text-[9px] md:text-xs font-bold">ج.م {offer.oldPrice}</p>
-                      <p className="text-base md:text-2xl lg:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
-                   </div>
-                   <div className="flex items-center justify-between gap-2 sm:justify-start">
-                      <button
-                        type="button"
-                        aria-label="حجز"
-                        onClick={() => setSelectedItem(offer)}
-                        className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-[#00E5FF] rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
-                      >
-                        <CalendarCheck size={16} className="md:w-5 md:h-5" />
-                      </button>
-                      <button 
-                        type="button"
-                        aria-label="إضافة للسلة"
-                        onClick={() => {
-                          playSound();
-                          const event = new CustomEvent('add-to-cart', {
-                            detail: {
-                              ...offer,
-                              id: (offer as any).productId || offer.id,
-                              productId: (offer as any).productId,
-                              shopId: (offer as any).shopId,
-                              shopName: (offer as any).shopName,
-                              name: offer.title,
-                              price: offer.newPrice,
-                              quantity: 1,
-                              __skipSound: true,
-                            }
-                          });
-                          window.dispatchEvent(event);
-                        }}
-                        className="w-8 h-8 md:w-10 md:h-12 bg-slate-900 text-white rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
-                      >
-                        <ShoppingCart size={18} className="md:w-5 md:h-5" />
-                      </button>
-                   </div>
-                </div>
-              </div>
-            </MotionDiv>
+              offer={offer}
+              idx={idx}
+              navigate={navigate}
+              setSelectedItem={setSelectedItem}
+              playSound={playSound}
+            />
           ))}
         </div>
+
+        {/* Sentinel for IntersectionObserver pagination */}
+        {hasMoreOffers && (
+          <div ref={loadMoreSentinelRef} className="h-10" aria-hidden="true" />
+        )}
+
+        {hasMoreOffers && (
+          <div className="mt-10 md:mt-16 flex items-center justify-center">
+            <button
+              type="button"
+              aria-label="تحميل المزيد من العروض"
+              onClick={() => loadMoreOffersRef.current?.()}
+              className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
+              disabled={loadingMore}
+            >
+              {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
+              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+            </button>
+          </div>
+        )}
       </section>
 
-      {/* Feedback Widget */}
-      <div className="fixed bottom-28 left-4 md:bottom-10 md:left-10 z-[150]">
-         <AnimatePresence>
-            {isFeedbackOpen && (
-               <MotionDiv 
-                 initial={{ opacity: 0, scale: 0.9, y: 20 }} 
-                 animate={{ opacity: 1, scale: 1, y: 0 }} 
-                 exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                 className="absolute bottom-20 md:bottom-24 left-0 w-72 sm:w-80 bg-white border border-slate-100 rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl p-4 sm:p-8 text-right"
-                 dir="rtl"
-               >
-                  <div className="flex items-center justify-between mb-6">
-                     <h4 className="font-black text-slate-900 flex items-center gap-2"><Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين MNMKNK</h4>
-                     <button type="button" aria-label="إغلاق" onClick={() => setIsFeedbackOpen(false)}><X size={16} /></button>
-                  </div>
-                  
-                  {feedbackResponse ? (
-                    <div className="space-y-4">
-                       <p className="text-sm font-bold text-[#BD00FF] bg-purple-50 p-6 rounded-3xl leading-loose">{feedbackResponse}</p>
-                      <button type="button" onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs">شكراً يا MNMKNK!</button>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                       <p className="text-xs text-slate-600 font-bold mb-4">عندك فكرة أو شايف حاجة مش عجباك؟ احنا لسه بنجرب ومحتاجين رأيك.</p>
-                       <textarea 
-                          className="w-full bg-slate-50 rounded-2xl p-4 text-xs font-bold border-none focus:ring-2 focus:ring-[#00E5FF] h-28 outline-none"
-                          placeholder="اكتب اقتراحك هنا يا بطل..."
-                          value={feedbackText}
-                          onChange={(e) => setFeedbackText(e.target.value)}
-                       />
-                       <button 
-                        onClick={handleSendFeedback}
-                        disabled={feedbackLoading}
-                        className="w-full py-5 bg-[#00E5FF] text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl"
-                       >
-                          {feedbackLoading ? <Loader2 className="animate-spin" size={16} /> : <><MessageSquarePlus size={16} /> إرسال لمهندسينا</>}
-                       </button>
-                    </div>
-                  )}
-               </MotionDiv>
-            )}
-         </AnimatePresence>
-         <button 
-            type="button"
-            aria-label="فتح المساعد"
-            onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
-            className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
-         >
-            <MessageSquarePlus className="group-hover:rotate-12 transition-transform" />
-         </button>
-      </div>
+      <FeedbackWidget />
 
-      <ReservationModal 
-        isOpen={!!selectedItem} 
-        onClose={() => setSelectedItem(null)} 
-        item={selectedItem ? {
-          id: selectedItem.id,
-          name: selectedItem.title,
-          image: selectedItem.imageUrl,
-          price: selectedItem.newPrice,
-          shopId: selectedItem.shopId,
-          shopName: selectedItem.shopName
-        } : null} 
-      />
+      <Suspense fallback={null}>
+        <ReservationModal 
+          isOpen={!!selectedItem} 
+          onClose={() => setSelectedItem(null)} 
+          item={selectedItem ? {
+            id: selectedItem.id,
+            name: selectedItem.title,
+            image: selectedItem.imageUrl,
+            price: selectedItem.newPrice,
+            shopId: selectedItem.shopId,
+            shopName: selectedItem.shopName
+          } : null} 
+        />
+      </Suspense>
     </div>
   );
 };

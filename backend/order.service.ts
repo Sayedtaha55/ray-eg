@@ -395,10 +395,26 @@ export class OrderService {
         ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      include: {
+      select: {
+        id: true,
+        total: true,
+        status: true,
+        paymentMethod: true,
+        createdAt: true,
         items: {
-          include: {
-            product: true,
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            addons: true,
+            variantSelection: true,
+            product: {
+              select: {
+                id: true,
+                name: true,
+                imageUrl: true,
+              },
+            },
           },
         },
         user: { select: { id: true, name: true, email: true, phone: true } },
@@ -413,10 +429,9 @@ export class OrderService {
     const shopId = query?.shopId ? String(query.shopId).trim() : undefined;
     const from = query?.from;
     const to = query?.to;
-
     const pagination = this.getPagination(paging);
 
-    return this.prisma.order.findMany({
+    const orders = await this.prisma.order.findMany({
       where: {
         ...(shopId ? { shopId } : {}),
         ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
@@ -433,6 +448,26 @@ export class OrderService {
       },
       ...(pagination ? pagination : {}),
     });
+
+    return orders;
+  }
+
+  async getById(id: string) {
+    if (!id) throw new BadRequestException('id مطلوب');
+    const found = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+        shop: true,
+        user: true,
+      },
+    });
+    if (!found) throw new BadRequestException('الطلب غير موجود');
+    return found;
   }
 
   async createOrder(input: {

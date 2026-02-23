@@ -98,6 +98,10 @@ model Shop {
   accountingInvoices AccountingInvoice[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
 
+  @@index([category])
+  @@index([slug])
+  @@index([status])
+  @@index([isActive])
   @@map("shops")
 }
 
@@ -171,6 +175,9 @@ model Product {
   imageHotspots ShopImageHotspot[]
   furnitureMeta ProductFurnitureMeta?
 
+  @@index([shopId])
+  @@index([category])
+  @@index([isActive])
   @@map("products")
 }
 
@@ -276,6 +283,10 @@ model Offer {
   product     Product? @relation(fields: [productId], references: [id])
   shop        Shop     @relation(fields: [shopId], references: [id])
 
+  @@index([shopId])
+  @@index([productId])
+  @@index([isActive])
+  @@index([expiresAt])
   @@map("offers")
 }
 

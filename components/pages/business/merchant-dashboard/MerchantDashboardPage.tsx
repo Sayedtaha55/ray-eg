@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3,
@@ -24,29 +24,31 @@ import { RayDB } from '@/constants';
 import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
-import MerchantSettings from '@/src/components/MerchantDashboard/Settings';
 
-import POSSystem from '../POSSystem';
-import PageBuilder from '../builder/PageBuilder';
+// Lazy load components
+const MerchantSettings = lazy(() => import('@/src/components/MerchantDashboard/Settings'));
+const POSSystem = lazy(() => import('../POSSystem'));
+const PageBuilder = lazy(() => import('../builder/PageBuilder'));
 
-import AddProductModal from './modals/AddProductModal';
-import CreateOfferModal from './modals/CreateOfferModal';
+const AddProductModal = lazy(() => import('./modals/AddProductModal'));
+const CreateOfferModal = lazy(() => import('./modals/CreateOfferModal'));
+
+const CustomersTab = lazy(() => import('./tabs/CustomersTab'));
+const GalleryTab = lazy(() => import('./tabs/GalleryTab'));
+const OverviewTab = lazy(() => import('./tabs/OverviewTab'));
+const ProductsTab = lazy(() => import('@/components/pages/business/merchant-dashboard/tabs/ProductsTab'));
+const PromotionsTab = lazy(() => import('./tabs/PromotionsTab'));
+const ReportsTab = lazy(() => import('./tabs/ReportsTab'));
+const ReservationsTab = lazy(() => import('./tabs/ReservationsTab').then(m => ({ default: m.ReservationsTab })));
+const SalesTab = lazy(() => import('./tabs/SalesTab'));
+const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
+
 import TabButton from './components/TabButton';
 import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
   resolveMerchantDashboardTabForShop,
 } from './dashboardTabs';
-
-import CustomersTab from './tabs/CustomersTab';
-import GalleryTab from './tabs/GalleryTab';
-import OverviewTab from './tabs/OverviewTab';
-import ProductsTab from './tabs/ProductsTab';
-import PromotionsTab from './tabs/PromotionsTab';
-import ReportsTab from './tabs/ReportsTab';
-import { ReservationsTab } from './tabs/ReservationsTab';
-import SalesTab from './tabs/SalesTab';
-import InvoiceTab from './tabs/InvoiceTab.tsx';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -406,57 +408,70 @@ const MerchantDashboardPage: React.FC = () => {
     }
   };
 
+  const TabFallback = (
+    <div className="py-20 flex flex-col items-center justify-center gap-4">
+      <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
+      <p className="font-bold text-slate-400">جاري تحميل القسم...</p>
+    </div>
+  );
+
   const renderContent = () => {
-    switch (activeTab) {
-      case 'overview':
-        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
-      case 'products':
-        return (
-          <ProductsTab
-            products={products}
-            onAdd={() => setShowProductModal(true)}
-            onDelete={handleDeleteProduct}
-            onUpdate={handleUpdateProduct}
-            shopId={currentShop.id}
-            shopCategory={currentShop?.category}
-            shop={currentShop}
-          />
-        );
-      case 'gallery':
-        return (
-          <GalleryTab
-            images={galleryImages}
-            onImagesChange={setGalleryImages}
-            shopId={currentShop.id}
-            primaryColor={currentShop.pageDesign?.primaryColor || '#00E5FF'}
-          />
-        );
-      case 'promotions':
-        return (
-          <PromotionsTab
-            offers={activeOffers}
-            onDelete={(id) => ApiService.deleteOffer(id).then(() => currentShop ? ensureTabData('promotions', currentShop, true) : undefined)}
-            onCreate={() => {
-              setOfferSeedProduct(null);
-              setOfferModalOpen(true);
-            }}
-          />
-        );
-      case 'reservations':
-        return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
-      case 'invoice':
-        return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
-      case 'sales':
-        return <SalesTab sales={sales} />;
-      case 'reports':
-        return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
-      case 'customers':
-        return <CustomersTab shopId={currentShop.id} />;
-      case 'settings':
-        return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
-      default:
-        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
-    }
+    return (
+      <Suspense fallback={TabFallback}>
+        {(() => {
+          switch (activeTab) {
+            case 'overview':
+              return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
+            case 'products':
+              return (
+                <ProductsTab
+                  products={products}
+                  onAdd={() => setShowProductModal(true)}
+                  onDelete={handleDeleteProduct}
+                  onUpdate={handleUpdateProduct}
+                  shopId={currentShop.id}
+                  shopCategory={currentShop?.category}
+                  shop={currentShop}
+                />
+              );
+            case 'gallery':
+              return (
+                <GalleryTab
+                  images={galleryImages}
+                  onImagesChange={setGalleryImages}
+                  shopId={currentShop.id}
+                  primaryColor={currentShop.pageDesign?.primaryColor || '#00E5FF'}
+                />
+              );
+            case 'promotions':
+              return (
+                <PromotionsTab
+                  offers={activeOffers}
+                  onDelete={(id) => ApiService.deleteOffer(id).then(() => currentShop ? ensureTabData('promotions', currentShop, true) : undefined)}
+                  onCreate={() => {
+                    setOfferSeedProduct(null);
+                    setOfferModalOpen(true);
+                  }}
+                />
+              );
+            case 'reservations':
+              return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
+            case 'invoice':
+              return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
+            case 'sales':
+              return <SalesTab sales={sales} />;
+            case 'reports':
+              return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
+            case 'customers':
+              return <CustomersTab shopId={currentShop.id} />;
+            case 'settings':
+              return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
+            default:
+              return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   if (loading) {
@@ -554,31 +569,35 @@ const MerchantDashboardPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
         >
-          {effectiveTab === 'pos' ? (
-            <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
-          ) : effectiveTab === 'builder' ? (
-            <PageBuilder onClose={() => setTab('overview')} />
-          ) : (
-            renderContent()
-          )}
+          <Suspense fallback={TabFallback}>
+            {effectiveTab === 'pos' ? (
+              <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
+            ) : effectiveTab === 'builder' ? (
+              <PageBuilder onClose={() => setTab('overview')} />
+            ) : (
+              renderContent()
+            )}
+          </Suspense>
         </MotionDiv>
       </AnimatePresence>
 
-      <AddProductModal isOpen={showProductModal} onClose={() => {
-        setShowProductModal(false);
-        if (currentShop) {
-          ensureTabData('products', currentShop, true);
-        }
-      }} shopId={currentShop.id} shopCategory={currentShop?.category} />
+      <Suspense fallback={null}>
+        <AddProductModal isOpen={showProductModal} onClose={() => {
+          setShowProductModal(false);
+          if (currentShop) {
+            ensureTabData('products', currentShop, true);
+          }
+        }} shopId={currentShop.id} shopCategory={currentShop?.category} />
 
-      <CreateOfferModal isOpen={offerModalOpen} product={offerSeedProduct} onClose={() => {
-        setOfferModalOpen(false);
-        setOfferSeedProduct(null);
-        if (currentShop) {
-          ensureTabData('promotions', currentShop, true);
-          ensureTabData('products', currentShop, true);
-        }
-      }} shopId={currentShop.id} products={products} />
+        <CreateOfferModal isOpen={offerModalOpen} product={offerSeedProduct} onClose={() => {
+          setOfferModalOpen(false);
+          setOfferSeedProduct(null);
+          if (currentShop) {
+            ensureTabData('promotions', currentShop, true);
+            ensureTabData('products', currentShop, true);
+          }
+        }} shopId={currentShop.id} products={products} />
+      </Suspense>
     </div>
   );
 };

@@ -1,9 +1,187 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, memo } from 'react';
 import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import Modal from '@/components/common/ui/Modal';
 
 type Props = { sales: any[] };
+
+const OrderRow = memo(({ 
+  sale, 
+  updatingId, 
+  openMenuId, 
+  setOpenMenuId, 
+  updateStatus, 
+  openDetails, 
+  statusMeta, 
+  renderDeliveryFee 
+}: any) => {
+  const id = String(sale?.id || '').trim();
+  const meta = statusMeta(sale?.status);
+  const status = String(sale?.status || '').toUpperCase();
+  const busy = updatingId === id;
+  const canAccept = status === 'PENDING';
+  const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
+  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+
+  return (
+    <div className="border border-slate-100 rounded-3xl p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</div>
+          <div className="text-slate-500 font-bold text-xs mt-1">
+            {new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}
+          </div>
+        </div>
+        <span className={`shrink-0 px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="bg-slate-50 rounded-2xl p-4">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</div>
+          <div className="mt-2 font-black text-slate-900 text-sm">{sale.items?.length || 0} صنف</div>
+        </div>
+        <div className="bg-slate-50 rounded-2xl p-4">
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
+          <div className="mt-2 font-black text-slate-900 text-sm">ج.م {Number(sale.total || 0).toLocaleString()}</div>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between mt-4">
+        <div className="text-slate-500 font-bold text-xs">رسوم التوصيل: {renderDeliveryFee(sale)}</div>
+
+        <div className="flex items-center gap-2" data-sales-actions-menu="1">
+          <button
+            onClick={() => openDetails(sale)}
+            className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
+          >
+            <Eye size={18} />
+          </button>
+
+          <div className="relative" data-sales-actions-menu="1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuId(openMenuId === id ? '' : id);
+              }}
+              className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
+              data-sales-actions-menu="1"
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {openMenuId === id && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-10"
+                data-sales-actions-menu="1"
+              >
+                <button
+                  disabled={!canAccept || busy}
+                  onClick={() => {
+                    setOpenMenuId('');
+                    updateStatus(id, 'CONFIRMED');
+                  }}
+                  className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
+                  data-sales-actions-menu="1"
+                >
+                  {busy && canAccept ? '...' : 'قبول'}
+                </button>
+                <button
+                  disabled={!canInProgress || busy}
+                  onClick={() => {
+                    setOpenMenuId('');
+                    updateStatus(id, 'PREPARING');
+                  }}
+                  className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
+                  data-sales-actions-menu="1"
+                >
+                  {busy && canInProgress ? '...' : 'قيد التنفيذ'}
+                </button>
+                <button
+                  disabled={!canReject || busy}
+                  onClick={() => {
+                    setOpenMenuId('');
+                    updateStatus(id, 'CANCELLED');
+                  }}
+                  className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
+                  data-sales-actions-menu="1"
+                >
+                  {busy && canReject ? '...' : 'رفض'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+const OrderTableRow = memo(({ 
+  sale, 
+  updatingId, 
+  updateStatus, 
+  openDetails, 
+  statusMeta, 
+  renderDeliveryFee 
+}: any) => {
+  const id = String(sale?.id || '').trim();
+  const meta = statusMeta(sale?.status);
+  const status = String(sale?.status || '').toUpperCase();
+  const busy = updatingId === id;
+  const canAccept = status === 'PENDING';
+  const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
+  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+
+  return (
+    <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
+      <td className="p-6 font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</td>
+      <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
+      <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
+      <td className="p-6">
+        <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+      </td>
+      <td className="p-6 text-slate-500 font-black text-sm">
+        {renderDeliveryFee(sale)}
+      </td>
+      <td className="p-6">
+        <span className="text-xl font-black text-[#00E5FF]">ج.م {Number(sale.total || 0).toLocaleString()}</span>
+      </td>
+      <td className="p-6">
+        <div className="flex flex-wrap gap-2 justify-end">
+          <button
+            disabled={!canAccept || busy}
+            onClick={() => updateStatus(id, 'CONFIRMED')}
+            className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canAccept || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
+          >
+            {busy && canAccept ? <Loader2 size={14} className="animate-spin inline" /> : 'قبول'}
+          </button>
+          <button
+            disabled={!canInProgress || busy}
+            onClick={() => updateStatus(id, 'PREPARING')}
+            className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canInProgress || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white'}`}
+          >
+            {busy && canInProgress ? <Loader2 size={14} className="animate-spin inline" /> : 'قيد التنفيذ'}
+          </button>
+          <button
+            disabled={!canReject || busy}
+            onClick={() => updateStatus(id, 'CANCELLED')}
+            className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canReject || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'}`}
+          >
+            {busy && canReject ? <Loader2 size={14} className="animate-spin inline" /> : 'رفض'}
+          </button>
+        </div>
+      </td>
+      <td className="p-6 text-left">
+        <button
+          onClick={() => openDetails(sale)}
+          className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
+        >
+          <Eye size={18} />
+        </button>
+      </td>
+    </tr>
+  );
+});
 
 const SalesTab: React.FC<Props> = ({ sales }) => {
   const [filter, setFilter] = useState<'all' | 'pending' | 'successful' | 'rejected'>('all');
@@ -135,111 +313,23 @@ const SalesTab: React.FC<Props> = ({ sales }) => {
         </div>
       </div>
 
-      <div className="md:hidden space-y-4">
-        {filteredSales.map((sale) => {
-          const id = String(sale?.id || '').trim();
-          const meta = statusMeta(sale?.status);
-          const status = String(sale?.status || '').toUpperCase();
-          const busy = updatingId === id;
-          const canAccept = status === 'PENDING';
-          const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
-          const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
-
-          return (
-            <div key={sale.id} className="border border-slate-100 rounded-3xl p-5">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</div>
-                  <div className="text-slate-500 font-bold text-xs mt-1">
-                    {new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}
-                  </div>
-                </div>
-                <span className={`shrink-0 px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-4">
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</div>
-                  <div className="mt-2 font-black text-slate-900 text-sm">{sale.items?.length || 0} صنف</div>
-                </div>
-                <div className="bg-slate-50 rounded-2xl p-4">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
-                  <div className="mt-2 font-black text-slate-900 text-sm">ج.م {Number(sale.total || 0).toLocaleString()}</div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-slate-500 font-bold text-xs">رسوم التوصيل: {renderDeliveryFee(sale)}</div>
-
-                <div className="flex items-center gap-2" data-sales-actions-menu="1">
-                  <button
-                    onClick={() => openDetails(sale)}
-                    className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
-                  >
-                    <Eye size={18} />
-                  </button>
-
-                  <div className="relative" data-sales-actions-menu="1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId((prev) => (prev === id ? '' : id));
-                      }}
-                      className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
-                      data-sales-actions-menu="1"
-                    >
-                      <MoreVertical size={18} />
-                    </button>
-
-                    {openMenuId === id && (
-                      <div
-                        className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-10"
-                        data-sales-actions-menu="1"
-                      >
-                        <button
-                          disabled={!canAccept || busy}
-                          onClick={() => {
-                            setOpenMenuId('');
-                            updateStatus(id, 'CONFIRMED');
-                          }}
-                          className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
-                          data-sales-actions-menu="1"
-                        >
-                          {busy && canAccept ? '...' : 'قبول'}
-                        </button>
-                        <button
-                          disabled={!canInProgress || busy}
-                          onClick={() => {
-                            setOpenMenuId('');
-                            updateStatus(id, 'PREPARING');
-                          }}
-                          className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
-                          data-sales-actions-menu="1"
-                        >
-                          {busy && canInProgress ? '...' : 'قيد التنفيذ'}
-                        </button>
-                        <button
-                          disabled={!canReject || busy}
-                          onClick={() => {
-                            setOpenMenuId('');
-                            updateStatus(id, 'CANCELLED');
-                          }}
-                          className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
-                          data-sales-actions-menu="1"
-                        >
-                          {busy && canReject ? '...' : 'رفض'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="md:hidden space-y-4" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 200px' }}>
+        {filteredSales.map((sale) => (
+          <OrderRow
+            key={sale.id}
+            sale={sale}
+            updatingId={updatingId}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            updateStatus={updateStatus}
+            openDetails={openDetails}
+            statusMeta={statusMeta}
+            renderDeliveryFee={renderDeliveryFee}
+          />
+        ))}
       </div>
 
-      <div className="hidden md:block overflow-x-auto no-scrollbar">
+      <div className="hidden md:block overflow-x-auto no-scrollbar" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <table className="w-full text-right border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
@@ -254,65 +344,17 @@ const SalesTab: React.FC<Props> = ({ sales }) => {
             </tr>
           </thead>
           <tbody>
-            {filteredSales.map((sale) => {
-              const id = String(sale?.id || '').trim();
-              const meta = statusMeta(sale?.status);
-              const status = String(sale?.status || '').toUpperCase();
-              const busy = updatingId === id;
-              const canAccept = status === 'PENDING';
-              const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
-              const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
-
-              return (
-                <tr key={sale.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                  <td className="p-6 font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</td>
-                  <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
-                  <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
-                  <td className="p-6">
-                    <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
-                  </td>
-                  <td className="p-6 text-slate-500 font-black text-sm">
-                    {renderDeliveryFee(sale)}
-                  </td>
-                  <td className="p-6">
-                    <span className="text-xl font-black text-[#00E5FF]">ج.م {Number(sale.total || 0).toLocaleString()}</span>
-                  </td>
-                  <td className="p-6">
-                    <div className="flex flex-wrap gap-2 justify-end">
-                      <button
-                        disabled={!canAccept || busy}
-                        onClick={() => updateStatus(id, 'CONFIRMED')}
-                        className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canAccept || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white'}`}
-                      >
-                        {busy && canAccept ? <Loader2 size={14} className="animate-spin inline" /> : 'قبول'}
-                      </button>
-                      <button
-                        disabled={!canInProgress || busy}
-                        onClick={() => updateStatus(id, 'PREPARING')}
-                        className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canInProgress || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-amber-50 text-amber-600 hover:bg-amber-600 hover:text-white'}`}
-                      >
-                        {busy && canInProgress ? <Loader2 size={14} className="animate-spin inline" /> : 'قيد التنفيذ'}
-                      </button>
-                      <button
-                        disabled={!canReject || busy}
-                        onClick={() => updateStatus(id, 'CANCELLED')}
-                        className={`px-4 py-2 rounded-xl font-black text-[10px] ${!canReject || busy ? 'bg-slate-50 text-slate-300 cursor-not-allowed' : 'bg-red-50 text-red-600 hover:bg-red-600 hover:text-white'}`}
-                      >
-                        {busy && canReject ? <Loader2 size={14} className="animate-spin inline" /> : 'رفض'}
-                      </button>
-                    </div>
-                  </td>
-                  <td className="p-6 text-left">
-                    <button
-                      onClick={() => openDetails(sale)}
-                      className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
-                    >
-                      <Eye size={18} />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
+            {filteredSales.map((sale) => (
+              <OrderTableRow
+                key={sale.id}
+                sale={sale}
+                updatingId={updatingId}
+                updateStatus={updateStatus}
+                openDetails={openDetails}
+                statusMeta={statusMeta}
+                renderDeliveryFee={renderDeliveryFee}
+              />
+            ))}
           </tbody>
         </table>
       </div>

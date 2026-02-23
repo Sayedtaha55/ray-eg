@@ -64,7 +64,33 @@ export class ProductService {
 
     const product = await (this.prisma.product as any).findUnique({
       where: { id },
-      include: { furnitureMeta: true },
+      select: {
+        id: true,
+        name: true,
+        price: true,
+        stock: true,
+        trackStock: true,
+        category: true,
+        unit: true,
+        imageUrl: true,
+        images: true,
+        description: true,
+        isActive: true,
+        shopId: true,
+        colors: true,
+        sizes: true,
+        addons: true,
+        menuVariants: true,
+        packOptions: true,
+        furnitureMeta: {
+          select: {
+            unit: true,
+            lengthCm: true,
+            widthCm: true,
+            heightCm: true,
+          }
+        },
+      },
     });
 
     if (!product || !product.isActive) {
@@ -106,7 +132,26 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
-        include: { furnitureMeta: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          trackStock: true,
+          category: true,
+          unit: true,
+          imageUrl: true,
+          isActive: true,
+          shopId: true,
+          furnitureMeta: {
+            select: {
+              unit: true,
+              lengthCm: true,
+              widthCm: true,
+              heightCm: true,
+            }
+          },
+        },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -116,7 +161,7 @@ export class ProductService {
     }
 
     try {
-      await this.redis.set(cacheKey, products, 120);
+      await this.redis.set(cacheKey, products, 600);
     } catch {
     }
 
@@ -148,7 +193,26 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
-        include: { furnitureMeta: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          trackStock: true,
+          category: true,
+          unit: true,
+          imageUrl: true,
+          isActive: true,
+          shopId: true,
+          furnitureMeta: {
+            select: {
+              unit: true,
+              lengthCm: true,
+              widthCm: true,
+              heightCm: true,
+            }
+          },
+        },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -181,7 +245,26 @@ export class ProductService {
           ],
         },
         orderBy: { createdAt: 'desc' },
-        include: { furnitureMeta: true },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          trackStock: true,
+          category: true,
+          unit: true,
+          imageUrl: true,
+          isActive: true,
+          shopId: true,
+          furnitureMeta: {
+            select: {
+              unit: true,
+              lengthCm: true,
+              widthCm: true,
+              heightCm: true,
+            }
+          },
+        },
         ...(pagination ? pagination : {}),
       });
     } catch (e) {
@@ -266,7 +349,36 @@ export class ProductService {
         });
       }
 
-      return await (tx.product as any).findUnique({ where: { id: p.id }, include: { furnitureMeta: true } });
+      return await (tx.product as any).findUnique({
+        where: { id: p.id },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          trackStock: true,
+          category: true,
+          unit: true,
+          imageUrl: true,
+          images: true,
+          description: true,
+          isActive: true,
+          shopId: true,
+          colors: true,
+          sizes: true,
+          addons: true,
+          menuVariants: true,
+          packOptions: true,
+          furnitureMeta: {
+            select: {
+              unit: true,
+              lengthCm: true,
+              widthCm: true,
+              heightCm: true,
+            }
+          },
+        },
+      });
     });
 
     try {
@@ -408,7 +520,36 @@ export class ProductService {
               });
             }
 
-            const resolved = await tx.product.findUnique({ where: { id: c.id }, include: { furnitureMeta: true } });
+            const resolved = await tx.product.findUnique({
+              where: { id: c.id },
+              select: {
+                id: true,
+                name: true,
+                price: true,
+                stock: true,
+                trackStock: true,
+                category: true,
+                unit: true,
+                imageUrl: true,
+                images: true,
+                description: true,
+                isActive: true,
+                shopId: true,
+                colors: true,
+                sizes: true,
+                addons: true,
+                menuVariants: true,
+                packOptions: true,
+                furnitureMeta: {
+                  select: {
+                    unit: true,
+                    lengthCm: true,
+                    widthCm: true,
+                    heightCm: true,
+                  }
+                },
+              },
+            });
             created.push(resolved || c);
             continue;
           }
@@ -453,7 +594,36 @@ export class ProductService {
             });
           }
 
-          const resolved = await tx.product.findUnique({ where: { id: existing.id }, include: { furnitureMeta: true } });
+          const resolved = await tx.product.findUnique({
+            where: { id: existing.id },
+            select: {
+              id: true,
+              name: true,
+              price: true,
+              stock: true,
+              trackStock: true,
+              category: true,
+              unit: true,
+              imageUrl: true,
+              images: true,
+              description: true,
+              isActive: true,
+              shopId: true,
+              colors: true,
+              sizes: true,
+              addons: true,
+              menuVariants: true,
+              packOptions: true,
+              furnitureMeta: {
+                select: {
+                  unit: true,
+                  lengthCm: true,
+                  widthCm: true,
+                  heightCm: true,
+                }
+              },
+            },
+          });
           updated.push(resolved);
         }
 
@@ -595,7 +765,36 @@ export class ProductService {
         });
       }
 
-      return await (tx.product as any).findUnique({ where: { id: productId }, include: { furnitureMeta: true } });
+      return await (tx.product as any).findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          stock: true,
+          trackStock: true,
+          category: true,
+          unit: true,
+          imageUrl: true,
+          images: true,
+          description: true,
+          isActive: true,
+          shopId: true,
+          colors: true,
+          sizes: true,
+          addons: true,
+          menuVariants: true,
+          packOptions: true,
+          furnitureMeta: {
+            select: {
+              unit: true,
+              lengthCm: true,
+              widthCm: true,
+              heightCm: true,
+            }
+          },
+        },
+      });
     });
 
     const shop = await this.prisma.shop.findUnique({ where: { id: existing.shopId }, select: { id: true, slug: true } });

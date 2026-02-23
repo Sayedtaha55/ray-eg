@@ -17,8 +17,7 @@ const TermsPage = React.lazy(() => import('./components/pages/public/TermsPage')
 const PrivacyPage = React.lazy(() => import('./components/pages/public/PrivacyPage'));
 const ContactPage = React.lazy(() => import('./components/pages/public/ContactPage'));
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
-const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile.tsx'));
-const ShopProductPage = React.lazy(() => import('./components/pages/public/ShopProductPage'));
+const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile'));
 const ShopImageMapPurchaseView = React.lazy(() => import('./src/features/shop-image-map/components/ShopImageMapPurchaseView'));
 
 const BusinessLayout = React.lazy(() => import('./components/layouts/BusinessLayout'));
@@ -28,7 +27,7 @@ const MerchantOnboarding = React.lazy(() => import('./components/pages/business/
 const MerchantDashboard = React.lazy(() => import('./components/pages/business/merchant-dashboard'));
 const MerchantProfilePage = React.lazy(() => import('./components/pages/business/MerchantProfilePage'));
 const BusinessPendingApproval = React.lazy(() => import('./components/pages/business/BusinessPendingApproval'));
-const CourierSignupPage = React.lazy(() => import('./components/pages/business/CourierSignupPage.tsx'));
+const CourierSignupPage = React.lazy(() => import('./components/pages/business/CourierSignupPage'));
 
 const AdminLayout = React.lazy(() => import('./components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('./components/pages/admin/AdminDashboard'));
@@ -201,7 +200,7 @@ const App: React.FC = () => {
 
         <Route path="/shop/:slug" element={suspense(<ShopProfile />)} />
         <Route path="/shop/:slug/image-map" element={<RedirectShopImageMapToShopProfile />} />
-        <Route path="/shop/:slug/product/:id" element={suspense(<ShopProductPage />)} />
+        <Route path="/shop/:slug/product/:id" element={suspense(<ProductPage />)} />
 
         <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />
 

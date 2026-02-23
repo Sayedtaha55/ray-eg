@@ -1,14 +1,21 @@
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { Shop } from '@/types';
 import { Skeleton } from '@/components/common/ui';
 
+// Lazy load heavy map components
+const MapRenderer = lazy(() => import('@/components/features/map/MapRenderer'));
+
 const { Link, useNavigate } = ReactRouterDOM as any;
 
+
 type Coords = { lat: number; lng: number };
+
+type GeoPosition = GeolocationPosition;
+type GeoError = GeolocationPositionError;
 
 function buildShopMarkerHtml(name: string, city: string) {
   return `<div dir="rtl" style="display:flex; flex-direction:column; align-items:center; gap:7px; transform:translateZ(0);">
@@ -223,26 +230,53 @@ const MapPage: React.FC = () => {
       return;
     }
 
+    if (typeof window !== 'undefined' && !(window as any).isSecureContext) {
+      setLocationError('تحديد الموقع يحتاج فتح الموقع عبر HTTPS.');
+      return;
+    }
+
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = Number(pos?.coords?.latitude);
-        const lng = Number(pos?.coords?.longitude);
-        if (Number.isNaN(lat) || Number.isNaN(lng)) {
-          setLocationError('تعذر الحصول على الموقع');
-          setLocating(false);
-          return;
+
+    const getPos = (options: PositionOptions) =>
+      new Promise<GeoPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, options);
+      });
+
+    const explainGeoError = (err: any) => {
+      const code = Number((err as GeoError | undefined)?.code);
+      if (code === 1) return 'تم رفض إذن الموقع. فعّل إذن الموقع من إعدادات المتصفح.';
+      if (code === 2) return 'تعذر تحديد الموقع. تأكد من تشغيل GPS/الإنترنت.';
+      if (code === 3) return 'انتهت مهلة تحديد الموقع. جرّب مرة أخرى.';
+      return 'فشل تحديد موقعك. تأكد من السماح بالوصول للموقع.';
+    };
+
+    try {
+      // 1) محاولة سريعة (أخف على الأجهزة الضعيفة)
+      const pos = await getPos({ enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 });
+      const lat = Number(pos?.coords?.latitude);
+      const lng = Number(pos?.coords?.longitude);
+      if (Number.isNaN(lat) || Number.isNaN(lng)) {
+        throw new Error('Invalid coords');
+      }
+      setCoords({ lat, lng });
+      mapRef.current?.setView([lat, lng], 14);
+    } catch (e1) {
+      try {
+        // 2) محاولة أدق لو الأولى فشلت
+        const pos2 = await getPos({ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+        const lat2 = Number(pos2?.coords?.latitude);
+        const lng2 = Number(pos2?.coords?.longitude);
+        if (Number.isNaN(lat2) || Number.isNaN(lng2)) {
+          throw new Error('Invalid coords');
         }
-        setCoords({ lat, lng });
-        mapRef.current?.setView([lat, lng], 14);
-        setLocating(false);
-      },
-      () => {
-        setLocationError('فشل تحديد موقعك. تأكد من السماح بالوصول للموقع.');
-        setLocating(false);
-      },
-      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-    );
+        setCoords({ lat: lat2, lng: lng2 });
+        mapRef.current?.setView([lat2, lng2], 14);
+      } catch (e2) {
+        setLocationError(explainGeoError(e2));
+      }
+    } finally {
+      setLocating(false);
+    }
   };
 
   return (
@@ -261,11 +295,9 @@ const MapPage: React.FC = () => {
       </div>
 
       <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
-        <div ref={mapContainerRef} className="w-full h-[70vh] md:h-[78vh]" />
-
-        {!mapReady && (
-          <div className="absolute inset-0 z-[500] bg-slate-50 pointer-events-none">
-            <div className="absolute inset-0 p-6 md:p-8">
+        <div className="w-full h-[70vh] md:h-[78vh]">
+          <Suspense fallback={
+            <div className="w-full h-full p-6 md:p-8">
               <div className="h-full w-full rounded-[2rem] border border-slate-200 bg-white/70 backdrop-blur-sm p-6 md:p-8">
                 <div className="grid grid-cols-1 gap-5">
                   <Skeleton className="h-6 w-48" />
@@ -279,8 +311,15 @@ const MapPage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          }>
+            <MapRenderer
+              shops={visibleShops}
+              coords={coords}
+              onMapReady={() => setMapReady(true)}
+              navigate={navigate}
+            />
+          </Suspense>
+        </div>
 
         <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[1000]">
           <div className="bg-white/95 backdrop-blur border border-slate-100 rounded-[2rem] p-4 md:p-5 space-y-3">

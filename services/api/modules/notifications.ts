@@ -13,7 +13,10 @@ export function subscribeToNotificationsViaBackend(
   let initialized = false;
   let timer: any;
   const isProd = Boolean((import.meta as any)?.env?.PROD);
-  const baseIntervalMs = isProd ? 15000 : 5000;
+  const baseIntervalMs = isProd ? 15000 : 15000;
+  const maxBackoffMs = isProd ? 120_000 : 120_000;
+  let consecutiveErrors = 0;
+  let paused = typeof document !== 'undefined' ? document.visibilityState === 'hidden' : false;
 
   const schedule = (ms: number) => {
     if (stopped) return;
@@ -25,12 +28,18 @@ export function subscribeToNotificationsViaBackend(
 
   const poll = async () => {
     if (stopped) return;
+    if (paused) {
+      schedule(baseIntervalMs);
+      return;
+    }
     const sid = String(shopId || '').trim();
     if (!sid) return;
     try {
       const data = await backendGet<any[]>(`/api/v1/notifications/shop/${encodeURIComponent(sid)}?take=1`);
       const first = Array.isArray(data) && data.length > 0 ? data[0] : null;
       const id = first?.id ? String(first.id) : null;
+
+      consecutiveErrors = 0;
 
       if (!initialized) {
         initialized = true;
@@ -60,9 +69,19 @@ export function subscribeToNotificationsViaBackend(
         schedule(Math.max(baseIntervalMs, 60_000));
         return;
       }
-      schedule(baseIntervalMs);
+      consecutiveErrors += 1;
+      const backoff = Math.min(maxBackoffMs, baseIntervalMs * Math.max(1, consecutiveErrors));
+      schedule(backoff);
     }
   };
+
+  const onVisibility = () => {
+    paused = document.visibilityState === 'hidden';
+  };
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibility);
+  }
 
   poll();
 
@@ -70,6 +89,9 @@ export function subscribeToNotificationsViaBackend(
     unsubscribe: () => {
       stopped = true;
       if (timer) clearTimeout(timer);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibility);
+      }
     },
   };
 }

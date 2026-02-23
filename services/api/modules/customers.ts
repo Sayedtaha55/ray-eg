@@ -10,7 +10,9 @@ export async function getShopCustomersViaBackendWithFallback(mockDb: any, shopId
       status: c.status || 'active',
     }));
   } catch (e) {
-    if (e instanceof BackendRequestError && e.status === 404) {
+    const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+    const name = String((e as any)?.name || '');
+    if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
       disablePathPrefix('/api/v1/customers/shop/');
     }
     return mockDb.getShopCustomers(shopId);

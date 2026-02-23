@@ -1,10 +1,19 @@
-import { backendGet, backendPatch, backendPost } from '../httpClient';
+import { BackendRequestError, backendGet, backendPatch, backendPost, disablePathPrefix } from '../httpClient';
 
 export async function getReservationsViaBackend(shopId?: string) {
-  if (shopId) {
-    return backendGet<any[]>(`/api/v1/reservations?shopId=${encodeURIComponent(shopId)}`);
+  try {
+    if (shopId) {
+      return await backendGet<any[]>(`/api/v1/reservations?shopId=${encodeURIComponent(shopId)}`);
+    }
+    return await backendGet<any[]>('/api/v1/reservations/me');
+  } catch (e) {
+    const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+    const name = String((e as any)?.name || '');
+    if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
+      disablePathPrefix('/api/v1/reservations');
+    }
+    return [];
   }
-  return backendGet<any[]>('/api/v1/reservations/me');
 }
 
 export async function addReservationViaBackend(reservation: any) {

@@ -212,6 +212,10 @@ const withRetry = async <T,>(fn: () => Promise<T>, maxAttempts: number) => {
       return await fn();
     } catch (e) {
       lastErr = e;
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      if (status && [400, 401, 403, 404].includes(status)) {
+        break;
+      }
       if (i < attempts) {
         await new Promise((r) => setTimeout(r, 350 * i));
       }
@@ -793,7 +797,20 @@ export const ApiService = {
 
   // Reservations
   getReservations: async (shopId?: string) => {
-    return await getReservationsViaBackend(shopId);
+    const sid = String(shopId || '').trim();
+    const key = sid ? `reservations:${sid}` : 'reservations:me';
+    return await cached(
+      key,
+      30_000,
+      async () => {
+        try {
+          return await getReservationsViaBackend(shopId);
+        } catch {
+          return [];
+        }
+      },
+      2,
+    );
   },
   addReservation: async (reservation: any) => {
     return await addReservationViaBackend(reservation);
@@ -806,7 +823,20 @@ export const ApiService = {
   getAllOrders: async (opts?: { shopId?: string; from?: string; to?: string }) => {
     const localRole = String(getLocalUserRoleFromStorage() || '').toUpperCase();
     const localShopId = getLocalShopIdFromStorage();
-    return await getAllOrdersViaBackend(opts, localRole, localShopId);
+    const sid = String(opts?.shopId || localShopId || '').trim();
+    const key = `orders:${localRole}:${sid}:${String(opts?.from || '')}:${String(opts?.to || '')}`;
+    return await cached(
+      key,
+      30_000,
+      async () => {
+        try {
+          return await getAllOrdersViaBackend(opts, localRole, localShopId);
+        } catch {
+          return [];
+        }
+      },
+      2,
+    );
   },
   addSale: mockDb.addSale.bind(mockDb),
   placeOrder: async (order: { items: any[]; total: number; paymentMethod?: string; shopId?: string; notes?: string }) => {
@@ -857,7 +887,18 @@ export const ApiService = {
     const sid = String(shopId || '').trim();
     if (!sid) throw new Error('Missing shopId');
     const key = `gallery:${sid}`;
-    return await cached(key, 30_000, () => getShopGalleryViaBackend(sid), 2);
+    return await cached(
+      key,
+      30_000,
+      async () => {
+        try {
+          return await getShopGalleryViaBackend(sid);
+        } catch {
+          return [];
+        }
+      },
+      2,
+    );
   },
   addShopGalleryImage: async (shopId: string, image: any) => {
     if (image?.file) {
@@ -946,7 +987,21 @@ export const ApiService = {
 
   // Customer Management
   getShopCustomers: async (shopId: string) => {
-    return await getShopCustomersViaBackendWithFallback(mockDb, shopId);
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    const key = `customers:${sid}`;
+    return await cached(
+      key,
+      30_000,
+      async () => {
+        try {
+          return await getShopCustomersViaBackendWithFallback(mockDb, sid);
+        } catch {
+          return [];
+        }
+      },
+      2,
+    );
   },
 
   convertReservationToCustomer: async (customerData: any) => {

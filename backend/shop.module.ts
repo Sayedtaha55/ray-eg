@@ -12,6 +12,13 @@ import { EmailModule } from './email.module';
 import { EmailService } from './email.service';
 import { AuthModule } from './auth/auth.module';
 import { MediaCompressionService } from './media-compression.service';
+import { ShopModulesService } from './shop-modules.service';
+import { ShopSlugService } from './shop-slug.service';
+import { ShopSitemapService } from './shop-sitemap.service';
+import { ShopMediaService } from './shop-media.service';
+import { ShopSettingsService } from './shop-settings.service';
+import { ShopPublicQueryService } from './shop-public-query.service';
+import { ShopAnalyticsService } from './shop-analytics.service';
 
 const shopImportsRaw = String(process.env.SHOP_IMPORTS || '').trim().toLowerCase();
 const shopImports = new Set(
@@ -35,6 +42,13 @@ const isShopImportsOverride = shopImportsRaw.length > 0;
   controllers: [ShopController],
   providers: [
     ShopService,
+    ShopModulesService,
+    ShopSlugService,
+    ShopSitemapService,
+    ShopMediaService,
+    ShopSettingsService,
+    ShopPublicQueryService,
+    ShopAnalyticsService,
     ...(!includeAllShopImports && isShopImportsOverride && !shopImports.has('monitoring')
       ? [
           {

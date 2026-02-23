@@ -10,4 +10,5 @@ export { default as LayoutSection } from './LayoutSection';
 export { default as TypographySection } from './TypographySection';
 export { default as ButtonsSection } from './ButtonsSection';
 export { default as VisibilitySection } from './VisibilitySection';
+export { default as ImageMapVisibilitySection } from './ImageMapVisibilitySection';
 export { default as CustomCssSection } from './CustomCssSection';

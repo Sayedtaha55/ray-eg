@@ -1,12 +1,80 @@
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, lazy, useEffect, useState, memo } from 'react';
 import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
-import EditProductModal from '../modals/EditProductModal';
-import ProductEditorLegacyModal from '../modals/ProductEditorLegacyModal';
+import { compressImage } from '@/lib/image-utils';
 import { backendPost } from '@/services/api/httpClient';
+
+const EditProductModal = lazy(() => import('../modals/EditProductModal'));
+const ProductEditorLegacyModal = lazy(() => import('../modals/ProductEditorLegacyModal'));
+
+const ProductRow = memo(({ 
+  product, 
+  togglingId, 
+  handleEdit, 
+  handleToggleActive, 
+  onDelete, 
+  setPreviewImageSrc 
+}: any) => {
+  const imgSrc = String(((product as any).imageUrl || (product as any).image_url || '')).trim();
+  const isInactive = (product as any)?.isActive === false;
+  
+  return (
+    <div className={`grid grid-cols-12 px-4 py-3 items-center ${isInactive ? 'opacity-70' : ''}`}>
+      <div className="col-span-2 flex items-center justify-end">
+        <button
+          type="button"
+          onClick={() => {
+            if (!imgSrc) return;
+            setPreviewImageSrc(imgSrc);
+          }}
+          className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 border border-slate-200"
+        >
+          {imgSrc ? (
+            <SmartImage src={imgSrc} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-slate-300">
+              <Plus size={12} />
+            </div>
+          )}
+        </button>
+      </div>
+      <div className="col-span-4 pr-4">
+        <div className="font-black text-slate-900 text-xs sm:text-sm truncate">{product.name}</div>
+        <div className="text-[10px] font-bold text-slate-400">{product.category?.name || 'بدون تصنيف'}</div>
+      </div>
+      <div className="col-span-2 font-black text-slate-900 text-xs sm:text-sm">
+        ج.م {Number(product.price || 0).toLocaleString()}
+      </div>
+      <div className="col-span-2 font-black text-slate-900 text-xs sm:text-sm">
+        {product.stock ?? 0}
+      </div>
+      <div className="col-span-2 flex items-center justify-end gap-1 sm:gap-2">
+        <button
+          onClick={() => handleToggleActive(product)}
+          disabled={togglingId === String(product.id)}
+          className={`p-2 rounded-lg transition-all ${isInactive ? 'bg-slate-100 text-slate-400' : 'bg-emerald-50 text-emerald-600'}`}
+        >
+          {togglingId === String(product.id) ? <Loader2 size={14} className="animate-spin" /> : (isInactive ? <EyeOff size={14} /> : <Eye size={14} />)}
+        </button>
+        <button
+          onClick={() => handleEdit(product)}
+          className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 hover:text-white transition-all"
+        >
+          <Edit size={14} />
+        </button>
+        <button
+          onClick={() => onDelete(String(product.id))}
+          className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-600 hover:text-white transition-all"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+    </div>
+  );
+});
 
 type Props = {
   products: Product[];
@@ -348,8 +416,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           let imageUrl: string | null = a?.imageUrl ? String(a.imageUrl) : null;
           const file = a?.imageUploadFile;
           if (file) {
+            // Compress addon image
+            const compressedFile = await compressImage(file, { maxSizeMB: 0.2, maxWidthOrHeight: 600 });
             const upload = await ApiService.uploadMediaRobust({
-              file,
+              file: compressedFile as File,
               purpose: 'product_image',
               shopId,
             });
@@ -707,7 +777,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           </div>
         )}
 
-        <div className="rounded-3xl border border-slate-100 overflow-hidden">
+        <div className="rounded-3xl border border-slate-100 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
           <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
             <div className="col-span-2 text-right">الصورة</div>
             <div className="col-span-4 text-right">الاسم</div>
@@ -717,93 +787,20 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           </div>
 
           <div className="divide-y divide-slate-100">
-            {filteredProducts.map((p) => {
-              const imgSrc = String(((p as any).imageUrl || (p as any).image_url || '')).trim();
-              const isInactive = (p as any)?.isActive === false;
-              return (
-                <div key={p.id} className={`grid grid-cols-12 px-4 py-3 items-center ${isInactive ? 'opacity-70' : ''}`}>
-                  <div className="col-span-2 flex items-center justify-end">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!imgSrc) return;
-                        setPreviewImageSrc(imgSrc);
-                      }}
-                      className="w-10 h-10 rounded-xl overflow-hidden bg-white border border-slate-100 shrink-0"
-                      aria-label="Open image"
-                      disabled={!imgSrc}
-                    >
-                      {imgSrc ? (
-                        <SmartImage src={imgSrc} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-slate-100">
-                          <ShoppingCart className="w-4 h-4 text-slate-300" />
-                        </div>
-                      )}
-                    </button>
-                  </div>
-
-                  <div className="col-span-4 min-w-0 text-right">
-                    <div className="flex items-center justify-end gap-2 flex-row-reverse">
-                      <p className="font-black text-[12px] md:text-sm text-slate-800 line-clamp-1">{p.name}</p>
-                      {isInactive ? (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black">مقفول</span>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="col-span-2 text-right">
-                    <span className="text-[#00E5FF] font-black text-sm md:text-base">ج.م {p.price}</span>
-                  </div>
-
-                  <div className="col-span-2 text-right">
-                    <span className="bg-slate-100 px-2 py-1 rounded-xl text-[10px] font-black text-slate-500">{(p as any).stock}</span>
-                  </div>
-
-                  <div className="col-span-2 flex items-center justify-end gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleEdit(p)}
-                      className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-blue-600"
-                      aria-label="Edit"
-                    >
-                      <Edit size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleActive(p)}
-                      className={`p-2 bg-white rounded-xl shadow-sm border border-slate-100 ${isInactive ? 'text-slate-900' : 'text-slate-500'}`}
-                      disabled={String(togglingId) === String(p.id)}
-                      aria-label="Toggle"
-                    >
-                      {String(togglingId) === String(p.id)
-                        ? <Loader2 size={14} className="animate-spin" />
-                        : (isInactive ? <Eye size={14} /> : <EyeOff size={14} />)}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDelete(p.id)}
-                      className="p-2 bg-white rounded-xl shadow-sm border border-slate-100 text-red-600"
-                      aria-label="Delete"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredProducts.map((p) => (
+              <ProductRow
+                key={p.id}
+                product={p}
+                togglingId={togglingId}
+                handleEdit={handleEdit}
+                handleToggleActive={handleToggleActive}
+                onDelete={onDelete}
+                setPreviewImageSrc={setPreviewImageSrc}
+              />
+            ))}
           </div>
         </div>
       </div>
-
-      <EditProductModal
-        isOpen={editModalOpen}
-        onClose={handleEditModalClose}
-        shopId={shopId}
-        shopCategory={shopCategory}
-        product={selectedProduct}
-        onUpdate={handleProductUpdate}
-      />
 
       {previewImageSrc ? (
         <div className="fixed inset-0 z-[650]">
@@ -953,7 +950,20 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         </div>
       )}
 
-      <ProductEditorLegacyModal open={imageMapEditorOpen} onClose={() => setImageMapEditorOpen(false)} shopId={shopId} />
+      <Suspense fallback={null}>
+        <EditProductModal
+          isOpen={editModalOpen}
+          onClose={handleEditModalClose}
+          shopId={shopId}
+          shopCategory={shopCategory}
+          product={selectedProduct}
+          onUpdate={handleProductUpdate}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ProductEditorLegacyModal open={imageMapEditorOpen} onClose={() => setImageMapEditorOpen(false)} shopId={shopId} />
+      </Suspense>
     </>
   );
 };

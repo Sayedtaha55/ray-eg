@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { X } from 'lucide-react';
-import ProductEditorLegacyApp from '@/src/features/product-editor/legacy/App';
+
+const ProductEditorLegacyApp = lazy(() => import('@/src/features/product-editor/legacy/App'));
 
 type Props = {
   open: boolean;
@@ -28,7 +29,9 @@ const ProductEditorLegacyModal: React.FC<Props> = ({ open, onClose, shopId }) =>
         </div>
 
         <div className="w-full h-full overflow-auto" dir="rtl">
-          <ProductEditorLegacyApp shopId={shopId} onClose={onClose} />
+          <Suspense fallback={null}>
+            <ProductEditorLegacyApp shopId={shopId} onClose={onClose} />
+          </Suspense>
         </div>
       </div>
     </div>

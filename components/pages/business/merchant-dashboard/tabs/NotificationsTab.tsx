@@ -64,7 +64,6 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
 
   useEffect(() => {
     fetchNotifications();
-    fetchUnreadCount();
   }, [shopId]);
 
   const fetchNotifications = async () => {
@@ -81,19 +80,11 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
         metadata: n.metadata,
       }));
       setNotifications(normalized as any);
+      setUnreadCount(normalized.filter((n: any) => !Boolean(n.isRead)).length);
     } catch (error) {
       console.error('Failed to fetch notifications:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchUnreadCount = async () => {
-    try {
-      const data = await ApiService.getNotifications(shopId);
-      setUnreadCount((data || []).filter((n: any) => !Boolean(n.is_read ?? n.isRead)).length);
-    } catch (error) {
-      console.error('Failed to fetch unread count:', error);
     }
   };
 

@@ -1,10 +1,20 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Loader2, Upload, X } from 'lucide-react';
+import { X, Upload, Video } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
-import SmartImage from '@/components/common/ui/SmartImage';
 import { Category, Product } from '@/types';
+import { compressImage, generateVideoThumbnail } from '@/lib/image-utils';
+
+// Sub-components
+import ImageUploadSection from './EditProduct/ImageUploadSection';
+import BasicInfoSection from './EditProduct/BasicInfoSection';
+import PackOptionsSection from './EditProduct/PackOptionsSection';
+import RestaurantMenuSection from './EditProduct/RestaurantMenuSection';
+import AdditionalImagesSection from './EditProduct/AdditionalImagesSection';
+import FashionOptionsSection from './EditProduct/FashionOptionsSection';
+import FurnitureOptionsSection from './EditProduct/FurnitureOptionsSection';
+import FormFooter from './EditProduct/FormFooter';
 
 type Props = {
   isOpen: boolean;
@@ -59,6 +69,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [imageChanged, setImageChanged] = useState(false);
   const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
   const [extraImageUploadFiles, setExtraImageUploadFiles] = useState<File[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionProgress, setCompressionProgress] = useState(0);
   const [selectedColors, setSelectedColors] = useState<Array<{ name: string; value: string }>>([]);
   const [customColor, setCustomColor] = useState('#000000');
   const [customSize, setCustomSize] = useState('');
@@ -111,6 +123,62 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       .replace(/\s+/g, '');
     const n = Number(cleaned);
     return n;
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const mime = String(file.type || '').toLowerCase().trim();
+      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'video/mp4']);
+      if (!mime || !allowed.has(mime)) {
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF أو MP4', 'error');
+        try {
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        } catch {
+        }
+        return;
+      }
+      try {
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreview);
+        }
+      } catch {
+        // ignore
+      }
+      setImageUploadFile(file);
+      setImagePreview(URL.createObjectURL(file));
+      setImageChanged(true);
+    }
+  };
+
+  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+    const nextFiles: File[] = [];
+    const nextPreviews: string[] = [];
+
+    for (const file of files) {
+      const mime = String(file.type || '').toLowerCase().trim();
+      if (!mime || !allowed.has(mime)) {
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        continue;
+      }
+      nextFiles.push(file);
+      nextPreviews.push(URL.createObjectURL(file));
+    }
+
+    const combinedFiles = [...extraImageUploadFiles, ...nextFiles].slice(0, 5);
+    const combinedPreviews = [...extraImagePreviews, ...nextPreviews].slice(0, 5);
+
+    setExtraImageUploadFiles(combinedFiles);
+    setExtraImagePreviews(combinedPreviews);
+
+    try {
+      if (extraFilesInputRef.current) extraFilesInputRef.current.value = '';
+    } catch {
+    }
   };
 
   // Load product data when modal opens
@@ -255,62 +323,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     }
   }, [isOpen, product]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const mime = String(file.type || '').toLowerCase().trim();
-      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-      if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-        try {
-          if (fileInputRef.current) fileInputRef.current.value = '';
-        } catch {
-        }
-        return;
-      }
-      try {
-        if (imagePreview && imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(imagePreview);
-        }
-      } catch {
-        // ignore
-      }
-      setImageUploadFile(file);
-      setImagePreview(URL.createObjectURL(file));
-      setImageChanged(true);
-    }
-  };
-
-  const handleExtraImagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
-
-    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-    const nextFiles: File[] = [];
-    const nextPreviews: string[] = [];
-
-    for (const file of files) {
-      const mime = String(file.type || '').toLowerCase().trim();
-      if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-        continue;
-      }
-      nextFiles.push(file);
-      nextPreviews.push(URL.createObjectURL(file));
-    }
-
-    const combinedFiles = [...extraImageUploadFiles, ...nextFiles].slice(0, 5);
-    const combinedPreviews = [...extraImagePreviews, ...nextPreviews].slice(0, 5);
-
-    setExtraImageUploadFiles(combinedFiles);
-    setExtraImagePreviews(combinedPreviews);
-
-    try {
-      if (extraFilesInputRef.current) extraFilesInputRef.current.value = '';
-    } catch {
-    }
-  };
-
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!product) return;
@@ -432,29 +444,62 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     }
     
     setLoading(true);
+    setIsCompressing(true);
+    setCompressionProgress(10);
     try {
       let imageUrl = (product as any).imageUrl || (product as any).image_url || '';
+      let videoUrl = (product as any).videoUrl || (product as any).video_url || '';
+      let posterUrl = (product as any).bannerPosterUrl || '';
       
       // Upload new main image if changed
       if (imageChanged && imageUploadFile) {
         const mime = String((imageUploadFile as any)?.type || '').toLowerCase();
-        if (!mime.startsWith('image/') || mime.includes('gif')) {
-          addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-          return;
+        
+        if (mime.startsWith('video/')) {
+          setCompressionProgress(20);
+          // Generate thumbnail for video
+          const thumbnail = await generateVideoThumbnail(imageUploadFile);
+          const thumbUpload = await ApiService.uploadMediaRobust({
+            file: thumbnail,
+            purpose: 'product_video_poster',
+            shopId,
+          });
+          posterUrl = thumbUpload.url;
+          
+          setCompressionProgress(40);
+          // Upload video directly
+          const upload = await ApiService.uploadMediaRobust({
+            file: imageUploadFile,
+            purpose: 'product_video',
+            shopId,
+          });
+          videoUrl = upload.url;
+          imageUrl = posterUrl; // Fallback image is the poster
+        } else if (mime.startsWith('image/')) {
+          setCompressionProgress(30);
+          // Compress image before upload
+          const compressedMain = await compressImage(imageUploadFile);
+          
+          setCompressionProgress(50);
+          const upload = await ApiService.uploadMediaRobust({
+            file: compressedMain,
+            purpose: 'product_image',
+            shopId,
+          });
+          imageUrl = upload.url;
         }
-        const upload = await ApiService.uploadMediaRobust({
-          file: imageUploadFile,
-          purpose: 'product_image',
-          shopId,
-        });
-        imageUrl = upload.url;
       }
 
+      setCompressionProgress(70);
       // Upload extra images if new ones added
       let extraUrls: string[] = [];
       if (!isRestaurant && extraImageUploadFiles.length > 0) {
+        const compressedExtras = await Promise.all(
+          extraImageUploadFiles.map(f => compressImage(f))
+        );
+        
         const uploads = await Promise.all(
-          extraImageUploadFiles.map((f) =>
+          compressedExtras.map((f) =>
             ApiService.uploadMediaRobust({
               file: f,
               purpose: 'product_image',
@@ -464,6 +509,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         );
         extraUrls = uploads.map((u) => String(u?.url || '')).filter(Boolean);
       }
+      
+      setCompressionProgress(90);
 
       const colors = isFashion
         ? (selectedColors || [])
@@ -496,6 +543,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         category: String(cat || '').trim() || 'عام',
         description: description ? description : null,
         imageUrl,
+        videoUrl,
+        bannerPosterUrl: posterUrl,
         trackStock: isRestaurant ? false : true,
         ...(allowPackOptions ? { unit: unit ? String(unit).trim() : null, packOptions } : {}),
         ...(isRestaurant ? { menuVariants } : {}),
@@ -544,6 +593,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       addToast(msg, 'error');
     } finally {
       setLoading(false);
+      setIsCompressing(false);
+      setCompressionProgress(0);
     }
   };
 
@@ -565,755 +616,87 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8 pb-24 sm:pb-0">
-          <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صورة المنتج</label>
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className={`relative aspect-square md:aspect-video rounded-[2.5rem] border-4 border-dashed transition-all flex flex-col items-center justify-center cursor-pointer overflow-hidden group ${
-                imagePreview ? 'border-transparent' : 'border-slate-100 hover:border-[#00E5FF] hover:bg-cyan-50'
-              }`}
-            >
-              {imagePreview ? (
-                <>
-                  <SmartImage
-                    src={imagePreview}
-                    alt="preview"
-                    className="w-full h-full"
-                    imgClassName="object-contain sm:object-cover"
-                    loading="eager"
-                    fetchPriority="high"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <div className="bg-white/90 px-6 py-3 rounded-2xl font-black text-xs flex items-center gap-2">
-                      <Upload size={16} /> تغيير الصورة
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="text-center p-8">
-                  <div className="w-16 h-16 bg-slate-50 rounded-2rem flex items-center justify-center mx-auto mb-4 text-slate-300 group-hover:text-[#00E5FF] transition-colors">
-                    <Upload size={32} />
-                  </div>
-                  <p className="font-black text-slate-900 mb-1">اضغط لرفع صورة</p>
-                  <p className="text-xs text-slate-400 font-bold">JPG, PNG</p>
-                </div>
-              )}
-              <input type="file" hidden accept="image/jpeg,image/png,image/webp,image/avif" ref={fileInputRef} onChange={handleImageChange} />
-            </div>
-          </div>
+          <ImageUploadSection 
+            imagePreview={imagePreview} 
+            fileInputRef={fileInputRef} 
+            handleImageChange={handleImageChange} 
+          />
 
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم الصنف</label>
-              <input
-                required
-                placeholder={isRestaurant ? 'مثلاً: بيتزا مارجريتا' : 'مثلاً: قميص أبيض قطن'}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+          <BasicInfoSection 
+            name={name} setName={setName}
+            price={price} setPrice={setPrice}
+            stock={stock} setStock={setStock}
+            cat={cat} setCat={setCat}
+            description={description} setDescription={setDescription}
+            isRestaurant={isRestaurant}
+            isFashion={isFashion}
+            fashionSizeItems={fashionSizeItems}
+          />
+
+          {isFurnitureActivity && (
+            <FurnitureOptionsSection
+              furnitureUnit={furnitureUnit}
+              setFurnitureUnit={setFurnitureUnit}
+              furnitureLengthCm={furnitureLengthCm}
+              setFurnitureLengthCm={setFurnitureLengthCm}
+              furnitureWidthCm={furnitureWidthCm}
+              setFurnitureWidthCm={setFurnitureWidthCm}
+              furnitureHeightCm={furnitureHeightCm}
+              setFurnitureHeightCm={setFurnitureHeightCm}
+              unit={unit}
+            />
+          )}
+
+          {allowPackOptions && (
+            <PackOptionsSection 
+              packOptionItems={packOptionItems} 
+              setPackOptionItems={setPackOptionItems} 
+              unit={unit} 
+            />
+          )}
+
+          {isRestaurant && (
+            <RestaurantMenuSection
+              menuVariantItems={menuVariantItems}
+              setMenuVariantItems={setMenuVariantItems}
+              parseNumberInput={parseNumberInput}
+            />
+          )}
+
+          {!isRestaurant && (
+            <>
+              <AdditionalImagesSection
+                extraImagePreviews={extraImagePreviews}
+                extraFilesInputRef={extraFilesInputRef}
+                handleExtraImagesChange={handleExtraImagesChange}
+                setExtraImagePreviews={setExtraImagePreviews}
+                setExtraImageUploadFiles={setExtraImageUploadFiles}
               />
-            </div>
 
-            {isFurnitureActivity && (
-              <div className="space-y-6">
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest block pr-4">وحدة البيع (أثاث/معارض)</label>
-                  <select
-                    value={furnitureUnit}
-                    onChange={(e) => setFurnitureUnit(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none appearance-none"
-                  >
-                    <option value="">بدون</option>
-                    <option value="PIECE">قطعة</option>
-                    <option value="M">متر طولي</option>
-                    <option value="M2">متر مربع</option>
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الطول الأفقي (سم)</label>
-                    <input
-                      type="number"
-                      value={furnitureLengthCm}
-                      onChange={(e) => setFurnitureLengthCm(e.target.value)}
-                      placeholder="مثلاً: 200"
-                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">العرض / العمق (سم)</label>
-                    <input
-                      type="number"
-                      value={furnitureWidthCm}
-                      onChange={(e) => setFurnitureWidthCm(e.target.value)}
-                      placeholder="مثلاً: 80"
-                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الارتفاع (من الأرض) (سم)</label>
-                    <input
-                      type="number"
-                      value={furnitureHeightCm}
-                      onChange={(e) => setFurnitureHeightCm(e.target.value)}
-                      placeholder="مثلاً: 75"
-                      className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-6 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className={`grid grid-cols-1 ${isRestaurant ? '' : 'md:grid-cols-2'} gap-6`}>
-              <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">السعر (ج.م)</label>
-                <input
-                  required={!isFashion || fashionSizeItems.length === 0}
-                  type="number"
-                  placeholder="0.00"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+              {isFashion && (
+                <FashionOptionsSection
+                  presetColors={presetColors}
+                  selectedColors={selectedColors}
+                  setSelectedColors={setSelectedColors}
+                  customColor={customColor}
+                  setCustomColor={setCustomColor}
+                  presetSizes={presetSizes}
+                  fashionSizeItems={fashionSizeItems}
+                  setFashionSizeItems={setFashionSizeItems}
+                  customSize={customSize}
+                  setCustomSize={setCustomSize}
                 />
-              </div>
-              {!isRestaurant && (
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية المتوفرة</label>
-                  <input
-                    required
-                    type="number"
-                    placeholder="1"
-                    value={stock}
-                    onChange={(e) => setStock(e.target.value)}
-                    className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
-                  />
-                </div>
               )}
-            </div>
+            </>
+          )}
 
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">القسم</label>
-              <input
-                placeholder={isRestaurant ? 'مثلاً: وجبات - مشروبات - إضافات' : 'مثلاً: ملابس صيفية'}
-                value={cat}
-                onChange={(e) => setCat(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
-              />
-            </div>
-
-            <div className="space-y-3">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الوصف</label>
-              <textarea
-                placeholder={isRestaurant ? 'مثلاً: مكونات الوجبة...' : 'مثلاً: خامات المنتج، طريقة الاستخدام...'}
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-bold text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all min-h-[140px]"
-              />
-            </div>
-
-            {allowPackOptions && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">باقات البيع (اختياري)</label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPackOptionItems((prev) => [
-                        ...(Array.isArray(prev) ? prev : []),
-                        { id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' },
-                      ])
-                    }
-                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
-                  >
-                    + إضافة باقة
-                  </button>
-                </div>
-
-                {packOptionItems.length > 0 && (
-                  <div className="space-y-3">
-                    {packOptionItems.map((p, idx) => (
-                      <div key={p.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
-                        <div className="flex items-center justify-between mb-3">
-                          <p className="text-sm font-black">باقة #{idx + 1}</p>
-                          <button
-                            type="button"
-                            onClick={() => setPackOptionItems((prev) => prev.filter((x) => x.id !== p.id))}
-                            className="text-slate-400 hover:text-red-500"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية داخل الباقة</label>
-                            <input
-                              type="number"
-                              placeholder={unit ? `مثلاً: 5 (${unit})` : 'مثلاً: 5'}
-                              value={p.qty}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setPackOptionItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, qty: v } : x)));
-                              }}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">سعر الباقة (ج.م)</label>
-                            <input
-                              type="number"
-                              placeholder="0"
-                              value={p.price}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setPackOptionItems((prev) => prev.map((x) => (x.id === p.id ? { ...x, price: v } : x)));
-                              }}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isRestaurant && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الأنواع والمقاسات (اختياري)</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuVariantItems((prev) => [
-                        ...prev,
-                        {
-                          id: `type_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-                          name: '',
-                          hasSmall: true,
-                          hasMedium: true,
-                          hasLarge: true,
-                          priceSmall: '',
-                          priceMedium: '',
-                          priceLarge: '',
-                        },
-                      ]);
-                    }}
-                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
-                  >
-                    + إضافة نوع
-                  </button>
-                </div>
-
-                {menuVariantItems.length > 0 && (
-                  <div className="space-y-4">
-                    {menuVariantItems.map((t, idx) => (
-                      <div key={t.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <p className="text-sm font-black">نوع #{idx + 1}</p>
-                          <button
-                            type="button"
-                            onClick={() => setMenuVariantItems((prev) => prev.filter((x) => x.id !== t.id))}
-                            className="text-slate-400 hover:text-red-500"
-                          >
-                            <X size={18} />
-                          </button>
-                        </div>
-
-                        <div className="space-y-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم النوع</label>
-                          <input
-                            value={t.name}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, name: v } : x)));
-                            }}
-                            placeholder="مثلاً: مشكل فراخ"
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                          />
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenuVariantItems((prev) =>
-                                    prev.map((x) =>
-                                      x.id === t.id
-                                        ? { ...x, hasSmall: !x.hasSmall, priceSmall: !x.hasSmall ? x.priceSmall : '' }
-                                        : x,
-                                    ),
-                                  );
-                                }}
-                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                              >
-                                {t.hasSmall ? 'لا يوجد' : 'موجود'}
-                              </button>
-                            </div>
-                            <input
-                              type="number"
-                              disabled={!t.hasSmall}
-                              value={t.hasSmall ? t.priceSmall : ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceSmall: v } : x)));
-                              }}
-                              placeholder={t.hasSmall ? '0' : 'لا يوجد'}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenuVariantItems((prev) =>
-                                    prev.map((x) =>
-                                      x.id === t.id
-                                        ? { ...x, hasMedium: !x.hasMedium, priceMedium: !x.hasMedium ? x.priceMedium : '' }
-                                        : x,
-                                    ),
-                                  );
-                                }}
-                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                              >
-                                {t.hasMedium ? 'لا يوجد' : 'موجود'}
-                              </button>
-                            </div>
-                            <input
-                              type="number"
-                              disabled={!t.hasMedium}
-                              value={t.hasMedium ? t.priceMedium : ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceMedium: v } : x)));
-                              }}
-                              placeholder={t.hasMedium ? '0' : 'لا يوجد'}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMenuVariantItems((prev) =>
-                                    prev.map((x) =>
-                                      x.id === t.id
-                                        ? { ...x, hasLarge: !x.hasLarge, priceLarge: !x.hasLarge ? x.priceLarge : '' }
-                                        : x,
-                                    ),
-                                  );
-                                }}
-                                className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                              >
-                                {t.hasLarge ? 'لا يوجد' : 'موجود'}
-                              </button>
-                            </div>
-                            <input
-                              type="number"
-                              disabled={!t.hasLarge}
-                              value={t.hasLarge ? t.priceLarge : ''}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setMenuVariantItems((prev) => prev.map((x) => (x.id === t.id ? { ...x, priceLarge: v } : x)));
-                              }}
-                              placeholder={t.hasLarge ? '0' : 'لا يوجد'}
-                              className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {isRestaurant && false && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">منتجات إضافية (اختياري)</label>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAddonItems((prev) => [
-                        ...prev,
-                        {
-                          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-                          name: '',
-                          imagePreview: null,
-                          imageUrl: null,
-                          imageUploadFile: null,
-                          priceSmall: '',
-                          priceMedium: '',
-                          priceLarge: '',
-                        },
-                      ]);
-                    }}
-                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
-                  >
-                    + إضافة
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {addonItems.map((a, idx) => (
-                    <div key={a.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-black">إضافة #{idx + 1}</p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            try {
-                              if (a.imagePreview && a.imagePreview.startsWith('blob:')) URL.revokeObjectURL(a.imagePreview);
-                            } catch {
-                            }
-                            setAddonItems((prev) => prev.filter((x) => x.id !== a.id));
-                          }}
-                          className="text-slate-400 hover:text-red-500"
-                        >
-                          <X size={18} />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="md:col-span-2">
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">اسم الإضافة</label>
-                          <input
-                            value={a.name}
-                            onChange={(e) => {
-                              const v = e.target.value;
-                              setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
-                            }}
-                            placeholder="مثلاً: بطاطس"
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
-                              {a.imagePreview ? (
-                                <SmartImage src={a.imagePreview} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
-                              ) : null}
-                            </div>
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp,image/avif"
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (!file) return;
-                                const mime = String(file.type || '').toLowerCase().trim();
-                                const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-                                if (!mime || !allowed.has(mime)) {
-                                  addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-                                  return;
-                                }
-                                setAddonItems((prev) =>
-                                  prev.map((x) => {
-                                    if (x.id !== a.id) return x;
-                                    try {
-                                      if (x.imagePreview && x.imagePreview.startsWith('blob:')) URL.revokeObjectURL(x.imagePreview);
-                                    } catch {
-                                    }
-                                    return { ...x, imageUploadFile: file, imagePreview: URL.createObjectURL(file) };
-                                  }),
-                                );
-                              }}
-                              className="block w-full text-xs font-bold"
-                            />
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
-                          <input
-                            type="number"
-                            value={a.priceSmall}
-                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
-                          <input
-                            type="number"
-                            value={a.priceMedium}
-                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
-                          <input
-                            type="number"
-                            value={a.priceLarge}
-                            onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
-                            className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {!isRestaurant && (
-              <>
-                <div className="space-y-3">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صور إضافية (اختياري)</label>
-                  <div className="flex flex-col gap-4">
-                    <button
-                      type="button"
-                      onClick={() => extraFilesInputRef.current?.click()}
-                      className="w-full py-5 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1.5rem] font-black text-slate-500 hover:border-[#00E5FF]/40 hover:bg-white transition-all"
-                    >
-                      إضافة صور (حد أقصى 5)
-                    </button>
-                    <input
-                      type="file"
-                      hidden
-                      multiple
-                      accept="image/jpeg,image/png,image/webp,image/avif"
-                      ref={extraFilesInputRef}
-                      onChange={handleExtraImagesChange}
-                    />
-
-                    {extraImagePreviews.length > 0 && (
-                      <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-                        {extraImagePreviews.map((p, idx) => (
-                          <div key={idx} className="relative aspect-square rounded-2xl overflow-hidden border border-slate-100">
-                            <SmartImage src={p} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const preview = extraImagePreviews[idx];
-                                const isBlob = typeof preview === 'string' && preview.startsWith('blob:');
-                                if (isBlob) {
-                                  try {
-                                    URL.revokeObjectURL(preview);
-                                  } catch {
-                                  }
-                                }
-
-                                setExtraImagePreviews((prev) => prev.filter((_, i) => i !== idx));
-
-                                if (isBlob) {
-                                  const blobIndex = extraImagePreviews
-                                    .slice(0, idx + 1)
-                                    .filter((x) => typeof x === 'string' && x.startsWith('blob:')).length - 1;
-                                  if (blobIndex >= 0) {
-                                    setExtraImageUploadFiles((prev) => prev.filter((_, i) => i !== blobIndex));
-                                  }
-                                }
-                              }}
-                              className="absolute top-2 left-2 w-8 h-8 rounded-full bg-white/90 border border-slate-100 flex items-center justify-center shadow-sm hover:bg-white"
-                              aria-label="remove"
-                            >
-                              <X size={16} className="text-slate-700" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {isFashion && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الألوان (اختياري)</label>
-                    <div className="bg-slate-50 rounded-[1.5rem] p-4 border-2 border-transparent">
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        {presetColors.map((c) => {
-                          const isActive = selectedColors.some((x) => x.value === c.value);
-                          return (
-                            <button
-                              key={c.value}
-                              type="button"
-                              onClick={() => {
-                                setSelectedColors((prev) => {
-                                  const exists = prev.some((x) => x.value === c.value);
-                                  if (exists) return prev.filter((x) => x.value !== c.value);
-                                  return [...prev, c];
-                                });
-                              }}
-                              className={`flex items-center gap-2 px-3 py-2 rounded-full border font-black text-xs transition-all ${isActive ? 'bg-white border-[#00E5FF]/30' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
-                            >
-                              <span
-                                className="w-4 h-4 rounded-full border border-slate-200"
-                                style={{ background: c.value }}
-                              />
-                              {c.name}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex items-center justify-between mt-4 gap-3 flex-row-reverse">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const hex = String(customColor || '').trim();
-                            if (!hex) return;
-                            setSelectedColors((prev) => {
-                              const exists = prev.some((x) => x.value === hex);
-                              if (exists) return prev;
-                              return [...prev, { name: hex.toUpperCase(), value: hex }];
-                            });
-                          }}
-                          className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
-                        >
-                          إضافة لون
-                        </button>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="color"
-                            value={customColor}
-                            onChange={(e) => setCustomColor(e.target.value)}
-                            className="w-12 h-10 rounded-xl border border-slate-200 bg-white"
-                          />
-                          <div className="text-xs font-black text-slate-500">اختيار لون مخصص</div>
-                        </div>
-                      </div>
-
-                      {selectedColors.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                          {selectedColors.map((c) => (
-                            <span key={c.value} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
-                              <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
-                              {c.name}
-                              <button
-                                type="button"
-                                onClick={() => setSelectedColors((prev) => prev.filter((x) => x.value !== c.value))}
-                                className="p-1 rounded-full hover:bg-slate-50"
-                              >
-                                <X size={14} />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">المقاسات (اختياري)</label>
-                    <div className="bg-slate-50 rounded-[1.5rem] p-4 border-2 border-transparent">
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        {presetSizes.map((s) => {
-                          const isActive = (fashionSizeItems || []).some((x) => String(x?.label || '').trim() === String(s || '').trim());
-                          return (
-                            <button
-                              key={s}
-                              type="button"
-                              onClick={() =>
-                                setFashionSizeItems((prev) => {
-                                  const list = Array.isArray(prev) ? [...prev] : [];
-                                  const label = String(s || '').trim();
-                                  const idx = list.findIndex((x) => String(x?.label || '').trim() === label);
-                                  if (idx >= 0) {
-                                    list.splice(idx, 1);
-                                    return list;
-                                  }
-                                  return [...list, { label, price: '' }];
-                                })
-                              }
-                              className={`px-4 py-2 rounded-full border font-black text-xs transition-all ${isActive ? 'bg-white border-[#00E5FF]/30' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
-                            >
-                              {s}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <div className="flex flex-col md:flex-row-reverse md:items-center md:justify-between mt-4 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const v = String(customSize || '').trim();
-                            if (!v) return;
-                            setFashionSizeItems((prev) => {
-                              const list = Array.isArray(prev) ? [...prev] : [];
-                              const exists = list.some((x) => String(x?.label || '').trim() === v);
-                              if (exists) return list;
-                              return [...list, { label: v, price: '' }];
-                            });
-                            setCustomSize('');
-                          }}
-                          className="w-full md:w-auto px-4 py-3 md:py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
-                        >
-                          إضافة مقاس
-                        </button>
-                        <input
-                          placeholder="مثلاً: 42 أو 38"
-                          value={customSize}
-                          onChange={(e) => setCustomSize(e.target.value)}
-                          className="w-full md:flex-1 bg-white border border-slate-200 rounded-xl py-3 md:py-2 px-4 font-bold text-right outline-none"
-                        />
-                      </div>
-
-                      {fashionSizeItems.length > 0 && (
-                        <div className="mt-4 flex flex-wrap gap-2 justify-end">
-                          {fashionSizeItems.map((row) => (
-                            <span key={String(row.label)} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
-                              <span>{String(row.label)}</span>
-                              <input
-                                type="number"
-                                value={String(row.price ?? '')}
-                                onChange={(e) => {
-                                  const v = String(e.target.value || '');
-                                  setFashionSizeItems((prev) =>
-                                    (Array.isArray(prev) ? prev : []).map((x) =>
-                                      String(x?.label || '').trim() === String(row.label || '').trim() ? { ...x, price: v } : x,
-                                    ),
-                                  );
-                                }}
-                                placeholder="السعر"
-                                className="w-20 bg-slate-50 border border-slate-200 rounded-lg py-1 px-2 font-bold text-right outline-none"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setFashionSizeItems((prev) => (Array.isArray(prev) ? prev : []).filter((x) => String(x?.label || '').trim() !== String(row.label || '').trim()))}
-                                className="p-1 rounded-full hover:bg-slate-50"
-                              >
-                                <X size={14} />
-                              </button>
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                )}
-              </>
-            )}
-
-          </div>
-
-          <div className="sticky bottom-0 left-0 right-0 -mx-4 sm:mx-0 bg-white pt-4 pb-4 sm:pb-0 border-t border-slate-100">
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-2xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-4 disabled:bg-slate-200"
-            >
-              {loading ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle2 size={24} className="text-[#00E5FF]" />}
-              {loading ? 'جاري التحديث...' : 'تأكيد تحديث الصنف'}
-            </button>
-          </div>
+          <FormFooter 
+            loading={loading}
+            isCompressing={isCompressing}
+            compressionProgress={compressionProgress}
+            submitLabel="تأكيد تحديث الصنف"
+            processingLabel="جاري التحديث..."
+          />
         </form>
       </MotionDiv>
     </div>

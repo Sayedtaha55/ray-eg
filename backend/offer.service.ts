@@ -178,7 +178,7 @@ export class OfferService {
     }));
 
     try {
-      await this.redis.set(cacheKey, shaped, 60);
+      await this.redis.set(cacheKey, shaped, 300);
     } catch {
     }
 

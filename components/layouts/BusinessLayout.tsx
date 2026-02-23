@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { useToast } from '@/components/common/feedback/Toaster';
@@ -12,12 +12,18 @@ import {
   getMerchantDashboardTabsForShop,
 } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
 
+// Sub-components
+import NavItem from './business/NavItem';
+const DashboardHeader = lazy(() => import('./business/DashboardHeader'));
+
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
+
 
 const BusinessLayout: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   const isDev = !Boolean((import.meta as any)?.env?.PROD);
   const isDashboard = location.pathname.includes('/dashboard') || location.pathname.includes('/profile');
   const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
@@ -58,6 +64,9 @@ const BusinessLayout: React.FC = () => {
   });
   const [shopForModules, setShopForModules] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const SidebarOverlayWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
+  const NotifOverlayWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
+  const NotifPanelWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
   const effectiveUser = (user?.role === 'admin' && impersonateShopId)
     ? { ...user, role: 'merchant', shopId: impersonateShopId, name: `Admin (${impersonateShopId})` }
     : user;
@@ -468,165 +477,28 @@ const BusinessLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row text-right font-sans" dir="rtl">
-      {/* Mobile Header */}
-      <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[200] border-b border-slate-100">
-        <Link to="/" className="flex items-center gap-2">
-          <BrandLogo variant="business" iconOnly />
-          <span className="font-black tracking-tighter uppercase">من مكانك للأعمال</span>
-        </Link>
-
-        {canUseDevActivitySwitcher && (
-          <div className="relative">
-            <button
-              type="button"
-              disabled={devSwitchLoading}
-              onClick={() => setIsDevActivityMenuOpen((v) => !v)}
-              className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
-              title="تبديل النشاط (تطوير)"
-              aria-label="تبديل النشاط (تطوير)"
-            >
-              <Store className="w-5 h-5" />
-            </button>
-
-            {isDevActivityMenuOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
-                <div className="absolute top-full left-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity(undefined)}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    تاجر (Retail)
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('RESTAURANT')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    مطعم
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('FASHION')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    ملابس / أحذية
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('RETAIL')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    المفروشات والسجاد
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('FOOD')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    سوبر ماركت / بقالة / عطارة
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('ELECTRONICS')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    إلكترونيات
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => switchDevActivity('HEALTH')}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    صيدلية / مستحضرات
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => {
-                      try {
-                        localStorage.removeItem('ray_dev_activity_id');
-                      } catch {
-                      }
-                      switchDevActivity('SERVICE');
-                    }}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    خدمات / ورش / صيانة
-                  </button>
-                  <button
-                    type="button"
-                    disabled={devSwitchLoading}
-                    onClick={() => {
-                      try {
-                        localStorage.setItem('ray_dev_activity_id', 'furniture');
-                      } catch {
-                      }
-                      switchDevActivity('SERVICE');
-                    }}
-                    className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                  >
-                    أثاث / معارض
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        )}
-        <div className="flex items-center gap-4">
-           <button
-             onClick={() => window.location.reload()}
-             aria-label="تحديث"
-             title="تحديث"
-             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
-           >
-             <RefreshCw className="w-6 h-6" />
-           </button>
-           {hasPosTab && (
-             <button
-               onClick={() => navigate(buildDashboardUrl('pos'))}
-               aria-label="نظام الكاشير"
-               title="نظام الكاشير"
-               className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
-             >
-               <Store className="w-6 h-6" />
-             </button>
-           )}
-           <button
-             onClick={() => navigate(buildBuilderIndexUrl())}
-             aria-label="هوية المتجر"
-             title="هوية المتجر"
-             className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
-           >
-             <Palette className="w-6 h-6" />
-           </button>
-           <div className="relative" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
-              <motion.div animate={unreadCount > 0 ? { scale: [1, 1.2, 1] } : {}} transition={{ repeat: Infinity, duration: 1.5 }}>
-                <Bell className={`w-6 h-6 ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-700'}`} />
-              </motion.div>
-              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
-           </div>
-           <button onClick={() => setSidebarOpen(true)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all">
-             <Menu className="w-6 h-6" />
-           </button>
-        </div>
-      </header>
+      <Suspense fallback={<div className="h-20 bg-white border-b border-slate-100 animate-pulse" />}>
+        <DashboardHeader
+          hasPosTab={hasPosTab}
+          unreadCount={unreadCount}
+          isNotifOpen={isNotifOpen}
+          setNotifOpen={setNotifOpen}
+          setSidebarOpen={setSidebarOpen}
+          handleMarkRead={handleMarkRead}
+          buildDashboardUrl={buildDashboardUrl}
+          buildBuilderIndexUrl={buildBuilderIndexUrl}
+          navigate={navigate}
+          notifications={notifications}
+        />
+      </Suspense>
 
       {/* Sidebar Overlay */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <MotionDiv 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <SidebarOverlayWrapper
+            {...(prefersReducedMotion ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } })}
             onClick={() => setSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[300] md:hidden"
+            className={`fixed inset-0 bg-black/60 ${prefersReducedMotion ? '' : 'backdrop-blur-sm'} z-[300] md:hidden`}
           />
         )}
       </AnimatePresence>
@@ -718,7 +590,7 @@ const BusinessLayout: React.FC = () => {
             const activeBuilderId = String(builderTabRaw || '').trim();
             const focusMode = !isMobile && Boolean(activeBuilderId);
             const item = (id: string, label: string, icon: React.ReactNode) => (
-              <>
+              <React.Fragment key={id}>
                 <NavItem
                   to={buildBuilderToggleUrl(id)}
                   onClick={() => setSidebarOpen(false)}
@@ -735,7 +607,7 @@ const BusinessLayout: React.FC = () => {
                 >
                   <div id={`builder-accordion-${id}`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
                 </div>
-              </>
+              </React.Fragment>
             );
 
             if (focusMode) {
@@ -792,8 +664,15 @@ const BusinessLayout: React.FC = () => {
       <AnimatePresence>
         {isNotifOpen && (
           <>
-            <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setNotifOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150]" />
-            <MotionDiv initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-[160] shadow-2xl flex flex-col p-8 text-right">
+            <NotifOverlayWrapper
+              {...(prefersReducedMotion ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } })}
+              onClick={() => setNotifOpen(false)}
+              className={`fixed inset-0 bg-black/40 ${prefersReducedMotion ? '' : 'backdrop-blur-sm'} z-[150]`}
+            />
+            <NotifPanelWrapper
+              {...(prefersReducedMotion ? {} : { initial: { x: '100%' }, animate: { x: 0 }, exit: { x: '100%' } })}
+              className="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-[160] shadow-2xl flex flex-col p-8 text-right"
+            >
                 <div className="flex items-center justify-between mb-8">
                    <h3 className="text-2xl font-black">التنبيهات</h3>
                    <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20} /></button>
@@ -823,7 +702,7 @@ const BusinessLayout: React.FC = () => {
                    )}
                 </div>
                 <button onClick={() => setNotifOpen(false)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">إغلاق القائمة</button>
-            </MotionDiv>
+            </NotifPanelWrapper>
           </>
         )}
       </AnimatePresence>
@@ -1002,7 +881,10 @@ const BusinessLayout: React.FC = () => {
             )}
 
             <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
-               <motion.div animate={unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}} transition={{ repeat: Infinity, duration: 2 }}>
+               <motion.div
+                 animate={!prefersReducedMotion && unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}}
+                 transition={!prefersReducedMotion && unreadCount > 0 ? { repeat: Infinity, duration: 2 } : {}}
+               >
                  <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />
                </motion.div>
                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
@@ -1052,15 +934,5 @@ const BusinessLayout: React.FC = () => {
     </div>
   );
 };
-
-const NavItem: React.FC<{ to: string, icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }> = ({ to, icon, label, active, onClick }) => (
-  <Link to={to} onClick={onClick} className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all group ${
-    active ? 'bg-[#00E5FF] text-slate-900 font-black shadow-lg shadow-cyan-500/20' : 'text-slate-700 hover:text-slate-900 hover:bg-slate-50 font-bold'
-  }`}>
-    <div className={`${active ? 'text-slate-900' : 'text-slate-400 group-hover:text-[#00E5FF]'}`}>{icon}</div>
-    <span className="flex-1 text-sm">{label}</span>
-    {active && <ChevronRight className="w-4 h-4" />}
-  </Link>
-);
 
 export default BusinessLayout;

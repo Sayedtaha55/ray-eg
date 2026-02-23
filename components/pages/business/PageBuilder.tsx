@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Save, Layout, Check, 
@@ -13,29 +13,15 @@ import { useToast } from '@/components/common/feedback/Toaster';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { BUILDER_SECTIONS } from './builder/registry';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { compressImage } from '@/lib/image-utils';
+import { coerceBoolean, coerceNumber, isVideoUrl } from './utils';
 
 const MotionDiv = motion.div as any;
 
-const isVideoUrl = (url: string) => {
-  const u = String(url || '').toLowerCase();
-  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
-};
+// Lazy load heavy components
+const PreviewRenderer = lazy(() => import('./builder/PreviewRenderer'));
+const SectionRenderer = lazy(() => import('./builder/SectionRenderer'));
 
-const coerceBoolean = (value: any, fallback: boolean) => {
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    const v = value.trim().toLowerCase();
-    if (v === 'true') return true;
-    if (v === 'false') return false;
-  }
-  if (typeof value === 'number') return value !== 0;
-  return fallback;
-};
-
-const coerceNumber = (value: any, fallback: number) => {
-  const n = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(n) ? n : fallback;
-};
 
 const DEFAULT_PAGE_DESIGN = {
   primaryColor: '#00E5FF',
@@ -69,6 +55,12 @@ const DEFAULT_PAGE_DESIGN = {
   pagePadding: 'p-6 md:p-12',
   itemGap: 'gap-4 md:gap-6',
   customCss: '',
+  imageMapVisibility: {
+    imageMapCardPrice: true,
+    imageMapCardStock: true,
+    imageMapCardAddToCart: true,
+    imageMapCardDescription: true,
+  },
 };
 
 interface ShopDesign {
@@ -103,6 +95,7 @@ interface ShopDesign {
   itemGap: string;
   elementsVisibility?: Record<string, boolean>;
   productEditorVisibility?: Record<string, boolean>;
+  imageMapVisibility?: Record<string, boolean>;
   customCss?: string;
 }
 
@@ -211,6 +204,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               : undefined;
             const elementsVisibilitySynced = syncVisibilityWithModules(elementsVisibilityNormalized, myShop);
 
+            const imageMapVisibilityRaw = merged?.imageMapVisibility;
+            const imageMapVisibilityNormalized = imageMapVisibilityRaw && typeof imageMapVisibilityRaw === 'object'
+              ? Object.fromEntries(
+                  Object.entries(imageMapVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
+                )
+              : (DEFAULT_PAGE_DESIGN as any).imageMapVisibility;
+
             const productEditorVisibilityRaw = merged?.productEditorVisibility;
             const productEditorVisibilityNormalized = (() => {
               if (productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object') {
@@ -247,6 +247,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               bannerPosY,
               elementsVisibility: elementsVisibilitySynced,
               productEditorVisibility: productEditorVisibilityNormalized,
+              imageMapVisibility: imageMapVisibilityNormalized,
               customCss: customCssNormalized,
             });
           } else {
@@ -316,7 +317,11 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setSaving(true);
     try {
       const uploadMedia = async (file: File, purpose: string) => {
-        const uploaded = await ApiService.uploadMediaRobust({ file, purpose, shopId });
+        // Compress image before upload
+        const isImage = file.type.startsWith('image/') && !file.type.includes('gif');
+        const fileToUpload = isImage ? await compressImage(file, { maxSizeMB: 0.5, maxWidthOrHeight: 1600 }) : file;
+        
+        const uploaded = await ApiService.uploadMediaRobust({ file: fileToUpload as File, purpose, shopId });
         return String(uploaded?.url || '').trim();
       };
 
@@ -410,6 +415,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         return hasAny ? picked : undefined;
       })();
 
+      const imageMapVisibilityRaw = config?.imageMapVisibility;
+      const imageMapVisibilityNormalized = imageMapVisibilityRaw && typeof imageMapVisibilityRaw === 'object'
+        ? Object.fromEntries(
+            Object.entries(imageMapVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
+          )
+        : undefined;
+
       const normalized = {
         ...config,
         ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
@@ -424,6 +436,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         footerOpacity: coerceNumber(config.footerOpacity, Number(DEFAULT_PAGE_DESIGN.footerOpacity)),
         elementsVisibility: elementsVisibilityNormalized,
         productEditorVisibility: productEditorVisibilityNormalized,
+        imageMapVisibility: imageMapVisibilityNormalized,
         customCss: typeof (config as any)?.customCss === 'string' ? (config as any).customCss : undefined,
         pageBackgroundColor: config.pageBackgroundColor || config.backgroundColor,
         backgroundColor: config.backgroundColor || config.pageBackgroundColor,
@@ -573,28 +586,31 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const activeSectionNode = (() => {
     if (!sidebarMode) return null;
-    const s = BUILDER_SECTIONS.find((x) => String(x.id) === String(activeBuilderTab));
-    if (!s) return null;
-    return s.render({
-      config,
-      setConfig: setConfigAny,
-      logoDataUrl,
-      setLogoDataUrl,
-      logoFile,
-      setLogoFile,
-      bannerFile,
-      setBannerFile,
-      bannerPreview,
-      setBannerPreview,
-      backgroundFile,
-      setBackgroundFile,
-      backgroundPreview,
-      setBackgroundPreview,
-      headerBackgroundFile,
-      setHeaderBackgroundFile,
-      headerBackgroundPreview,
-      setHeaderBackgroundPreview,
-    });
+    return (
+      <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#00E5FF]" /></div>}>
+        <SectionRenderer
+          activeBuilderTab={activeBuilderTab}
+          config={config}
+          setConfig={setConfigAny}
+          logoDataUrl={logoDataUrl}
+          setLogoDataUrl={setLogoDataUrl}
+          logoFile={logoFile}
+          setLogoFile={setLogoFile}
+          bannerFile={bannerFile}
+          setBannerFile={setBannerFile}
+          bannerPreview={bannerPreview}
+          setBannerPreview={setBannerPreview}
+          backgroundFile={backgroundFile}
+          setBackgroundFile={setBackgroundFile}
+          backgroundPreview={backgroundPreview}
+          setBackgroundPreview={setBackgroundPreview}
+          headerBackgroundFile={headerBackgroundFile}
+          setHeaderBackgroundFile={setHeaderBackgroundFile}
+          headerBackgroundPreview={headerBackgroundPreview}
+          setHeaderBackgroundPreview={setHeaderBackgroundPreview}
+        />
+      </Suspense>
+    );
   })();
 
   const desktopAccordionSlot = desktopIntegratedAccordionMode && sidebarMode
@@ -683,71 +699,32 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     </div>
                   </div>
                   {sidebarMode ? (
-                    (() => {
-                      const s = BUILDER_SECTIONS.find((x) => String(x.id) === String(activeBuilderTab));
-                      if (!s) return null;
-                      return (
-                        <Section
-                          key={s.id}
-                          id={s.id}
-                          title={s.title}
-                          icon={s.icon}
-                          render={() =>
-                            s.render({
-                              config,
-                              setConfig: setConfigAny,
-                              logoDataUrl,
-                              setLogoDataUrl,
-                              logoFile,
-                              setLogoFile,
-                              bannerFile,
-                              setBannerFile,
-                              bannerPreview,
-                              setBannerPreview,
-                              backgroundFile,
-                              setBackgroundFile,
-                              backgroundPreview,
-                              setBackgroundPreview,
-                              headerBackgroundFile,
-                              setHeaderBackgroundFile,
-                              headerBackgroundPreview,
-                              setHeaderBackgroundPreview,
-                            })
-                          }
-                        />
-                      );
-                    })()
+                    activeSectionNode
                   ) : (
-                    BUILDER_SECTIONS.map((s) => (
-                      <Section
-                        key={s.id}
-                        id={s.id}
-                        title={s.title}
-                        icon={s.icon}
-                        render={() =>
-                          s.render({
-                            config,
-                            setConfig: setConfigAny,
-                            logoDataUrl,
-                            setLogoDataUrl,
-                            logoFile,
-                            setLogoFile,
-                            bannerFile,
-                            setBannerFile,
-                            bannerPreview,
-                            setBannerPreview,
-                            backgroundFile,
-                            setBackgroundFile,
-                            backgroundPreview,
-                            setBackgroundPreview,
-                            headerBackgroundFile,
-                            setHeaderBackgroundFile,
-                            headerBackgroundPreview,
-                            setHeaderBackgroundPreview,
-                          })
-                        }
+                    <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#00E5FF]" /></div>}>
+                      <SectionRenderer
+                        config={config}
+                        setConfig={setConfigAny}
+                        logoDataUrl={logoDataUrl}
+                        setLogoDataUrl={setLogoDataUrl}
+                        logoFile={logoFile}
+                        setLogoFile={setLogoFile}
+                        bannerFile={bannerFile}
+                        setBannerFile={setBannerFile}
+                        bannerPreview={bannerPreview}
+                        setBannerPreview={setBannerPreview}
+                        backgroundFile={backgroundFile}
+                        setBackgroundFile={setBackgroundFile}
+                        backgroundPreview={backgroundPreview}
+                        setBackgroundPreview={setBackgroundPreview}
+                        headerBackgroundFile={headerBackgroundFile}
+                        setHeaderBackgroundFile={setHeaderBackgroundFile}
+                        headerBackgroundPreview={headerBackgroundPreview}
+                        setHeaderBackgroundPreview={setHeaderBackgroundPreview}
+                        toggleSection={toggleSection}
+                        openSection={openSection}
                       />
-                    ))
+                    </Suspense>
                   )}
                 </div>
               </MotionDiv>
@@ -787,460 +764,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               backgroundRepeat: 'no-repeat',
             }}
           >
-            {(() => {
-              const isBold = config.layout === 'bold';
-              const isMinimal = config.layout === 'minimal';
-
-              const headerTextColor = String(config.headerTextColor || '#0F172A');
-              const headerBackgroundColor = String(config.headerBackgroundColor || '#FFFFFF');
-              const headerBackgroundImage = Boolean(config.headerTransparent)
-                ? ''
-                : (headerBackgroundPreview || String((config as any)?.headerBackgroundImageUrl || ''));
-              const headerBg = Boolean(config.headerTransparent)
-                ? 'transparent'
-                : headerBackgroundColor;
-
-              const footerTextColor = String(config.footerTextColor || (isBold ? '#FFFFFF' : '#0F172A'));
-              const footerBackgroundColor = String(
-                config.footerBackgroundColor || (isBold ? '#0F172A' : isMinimal ? '#FFFFFF' : '#F8FAFC')
-              );
-              const footerBg = Boolean(config.footerTransparent)
-                ? 'transparent'
-                : footerBackgroundColor;
-
-              return (
-                <>
-                  <header
-                    className={`sticky top-0 z-[120] backdrop-blur-lg border-b transition-all duration-500 ${
-                      Boolean(config.headerTransparent)
-                        ? 'border-transparent bg-transparent'
-                        : `backdrop-blur-lg ${isBold ? 'border-slate-200 bg-white/95' : isMinimal ? 'bg-white/90 border-slate-100' : 'bg-white/95 border-slate-100'}`
-                    }`}
-                    style={{
-                      backgroundColor: headerBg,
-                      color: headerTextColor,
-                      backgroundImage: headerBackgroundImage ? `url("${headerBackgroundImage}")` : undefined,
-                      backgroundSize: headerBackgroundImage ? 'cover' : undefined,
-                      backgroundPosition: headerBackgroundImage ? 'center' : undefined,
-                      backgroundRepeat: headerBackgroundImage ? 'no-repeat' : undefined,
-                    }}
-                  >
-                    <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-3 md:py-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3 md:gap-4">
-                          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border-2 border-white shadow-md bg-slate-100" />
-                          <div>
-                            <h3 className={`font-black ${isBold ? 'text-lg md:text-2xl' : 'text-sm md:text-lg'}`} style={{ color: config.primaryColor }}>
-                              معاينة المتجر
-                            </h3>
-                            <p className="text-[9px] md:text-xs text-slate-400 font-bold uppercase tracking-wider">
-                              RETAIL • القاهرة
-                            </p>
-                          </div>
-                        </div>
-
-                        {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true)) && previewMode !== 'mobile' && (
-                          <nav className="flex items-center gap-6 md:gap-8">
-                            {isVisible('headerNavHome', true) && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewPage('home')}
-                                style={{ color: headerTextColor, opacity: previewPage === 'home' ? 1 : 0.6 }}
-                                className="text-xs md:text-sm font-black transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
-                              >
-                                المعروضات
-                              </button>
-                            )}
-                            {isVisible('headerNavGallery', true) && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewPage('gallery')}
-                                style={{ color: headerTextColor, opacity: previewPage === 'gallery' ? 1 : 0.6 }}
-                                className="text-xs md:text-sm font-black transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
-                              >
-                                معرض الصور
-                              </button>
-                            )}
-                            {isVisible('headerNavInfo', true) && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewPage('info')}
-                                style={{ color: headerTextColor, opacity: previewPage === 'info' ? 1 : 0.6 }}
-                                className="text-xs md:text-sm font-black transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
-                              >
-                                معلومات المتجر
-                              </button>
-                            )}
-                          </nav>
-                        )}
-
-                        <div className="flex items-center gap-2 md:gap-3">
-                          {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true) || isVisible('headerShareButton', true)) && previewMode === 'mobile' && (
-                            <button
-                              type="button"
-                              onClick={() => setIsPreviewHeaderMenuOpen((v) => !v)}
-                              className="p-2 bg-white/90 backdrop-blur-md rounded-full shadow-sm border active:scale-90 transition-transform"
-                              style={{ borderColor: `${headerTextColor}15` }}
-                              aria-label="القائمة"
-                            >
-                              {isPreviewHeaderMenuOpen ? <X size={16} /> : <Menu size={16} />}
-                            </button>
-                          )}
-                          {previewMode !== 'mobile' && (
-                            <>
-                              <button
-                                type="button"
-                                className="p-2 md:p-2.5 rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm border hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-[0.98]"
-                                style={{ backgroundColor: config.primaryColor, color: '#000', borderColor: `${config.primaryColor}20` }}
-                              />
-                              <button
-                                type="button"
-                                className="p-2 md:p-2.5 bg-slate-900 text-white rounded-full font-black text-[9px] md:text-xs transition-all shadow-sm hover:bg-black hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"
-                              />
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </header>
-
-                  {isVisible('floatingChatButton', true) && previewMode === 'mobile' && (
-                    <div className="absolute bottom-6 right-4 z-40">
-                      <button
-                        type="button"
-                        className="w-12 h-12 sm:w-14 sm:h-14 rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all border-4 border-white"
-                        style={{ backgroundColor: config.primaryColor, color: '#000' }}
-                        aria-label="واتساب"
-                      />
-                    </div>
-                  )}
-
-                  {(isVisible('headerNavHome', true) || isVisible('headerNavGallery', true) || isVisible('headerNavInfo', true) || isVisible('headerShareButton', true)) && previewMode === 'mobile' && isPreviewHeaderMenuOpen && (
-                    <>
-                      <div
-                        className="absolute inset-0 z-[200]"
-                        onClick={() => setIsPreviewHeaderMenuOpen(false)}
-                      />
-                      <div className="absolute top-20 left-0 right-0 z-[210] px-4">
-                        <div className="rounded-2xl border border-slate-100 bg-white/95 backdrop-blur-md shadow-lg overflow-hidden">
-                          {isVisible('headerNavHome', true) && (
-                            <button
-                              type="button"
-                              onClick={() => { setPreviewPage('home'); setIsPreviewHeaderMenuOpen(false); }}
-                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'home' ? 'bg-slate-50' : 'bg-transparent'}`}
-                              style={{ color: headerTextColor }}
-                            >
-                              المعروضات
-                            </button>
-                          )}
-                          {isVisible('headerNavGallery', true) && (
-                            <button
-                              type="button"
-                              onClick={() => { setPreviewPage('gallery'); setIsPreviewHeaderMenuOpen(false); }}
-                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'gallery' ? 'bg-slate-50' : 'bg-transparent'}`}
-                              style={{ color: headerTextColor }}
-                            >
-                              معرض الصور
-                            </button>
-                          )}
-                          {isVisible('headerNavInfo', true) && (
-                            <button
-                              type="button"
-                              onClick={() => { setPreviewPage('info'); setIsPreviewHeaderMenuOpen(false); }}
-                              className={`w-full text-right px-4 py-3 font-black text-sm transition-colors ${previewPage === 'info' ? 'bg-slate-50' : 'bg-transparent'}`}
-                              style={{ color: headerTextColor }}
-                            >
-                              معلومات المتجر
-                            </button>
-                          )}
-                          {isVisible('headerShareButton', true) && (
-                            <button
-                              type="button"
-                              onClick={() => { handlePreviewShare(); setIsPreviewHeaderMenuOpen(false); }}
-                              className="w-full text-right px-4 py-3 font-black text-sm transition-colors bg-transparent"
-                              style={{ color: headerTextColor }}
-                            >
-                              مشاركة
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  )}
-
-                  {previewPage === 'home' ? (
-                    <>
-                      <div className="h-40 md:h-64 relative shrink-0">
-                        {(bannerPreview || config.bannerUrl) ? (
-                          (bannerFile && bannerFile.type.startsWith('video/')) || isVideoUrl(bannerPreview || config.bannerUrl) ? (
-                            <video
-                              src={bannerPreview || config.bannerUrl}
-                              className="w-full h-full object-cover"
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              poster={String((config as any)?.bannerPosterUrl || '') || undefined}
-                            />
-                          ) : (
-                            <SmartImage
-                              src={bannerPreview || config.bannerUrl}
-                              className="w-full h-full"
-                              imgClassName="object-cover"
-                              loading="eager"
-                              fetchPriority="high"
-                              style={{ objectPosition: `${coerceNumber((config as any)?.bannerPosX, 50)}% ${coerceNumber((config as any)?.bannerPosY, 50)}%` }}
-                            />
-                          )
-                        ) : (
-                          <div className="w-full h-full bg-slate-100 flex items-center justify-center">
-                            <p className="text-slate-400 font-black">لا توجد صورة بانر</p>
-                          </div>
-                        )}
-                        <div className="absolute inset-0 z-10 bg-gradient-to-t from-white via-transparent" />
-                      </div>
-
-                      <div className={`p-5 sm:p-8 -mt-16 relative flex flex-col gap-5 sm:gap-6 flex-1 ${String(config.headerType || 'centered') === 'side' ? 'items-end text-right' : 'items-center text-center'}`}>
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-xl p-2 border border-slate-50">
-                          {logoDataUrl ? (
-                            <SmartImage
-                              src={logoDataUrl}
-                              alt="logo"
-                              className="w-full h-full rounded-[1.6rem] sm:rounded-[2rem]"
-                              imgClassName="object-cover rounded-[1.6rem] sm:rounded-[2rem]"
-                              loading="eager"
-                              fetchPriority="high"
-                            />
-                          ) : (
-                            <div className="w-full h-full bg-slate-50 rounded-[1.6rem] sm:rounded-[2rem] flex items-center justify-center font-black text-slate-200 border-2 border-dashed border-slate-100 overflow-hidden text-[8px]">LOGO</div>
-                          )}
-                        </div>
-                        <div className="space-y-2">
-                          <h1 className={`font-black ${config.headingSize || 'text-4xl'}`} style={{ color: config.primaryColor }}>معاينة المتجر</h1>
-                          <p className={`font-bold ${config.textSize || 'text-sm'} text-slate-500`}>وصف بسيط للمتجر يظهر للعملاء</p>
-                        </div>
-                        <button className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`} style={{ backgroundColor: config.primaryColor }}>متابعة</button>
-
-                        <div className={`w-full mt-10 space-y-6 ${config.itemGap || 'gap-4 md:gap-6'}`}>
-                          {(config.productDisplay || (config.productDisplayStyle === 'list' ? 'list' : undefined) || 'cards') === 'cards' ? (
-                            <div className="grid grid-cols-2 gap-4">
-                              {[1, 2].map(i => (
-                                <div key={i} className={`p-3 rounded-2xl border ${config.layout === 'bold' ? 'border-2' : 'border-transparent'}`} style={{ borderColor: config.layout === 'bold' ? config.primaryColor + '22' : 'transparent' }}>
-                                  <div className="aspect-square bg-slate-100 rounded-xl mb-2" />
-                                  <div className="h-3 w-1/2 bg-slate-100 rounded-full mx-auto" />
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-3">
-                              {[1, 2, 3].map(i => (
-                                <div key={i} className={`flex flex-row-reverse items-center gap-3 ${((config.productDisplay || (config.productDisplayStyle === 'list' ? 'list' : undefined) || 'cards') === 'minimal') ? 'border-b border-slate-100 py-3' : 'bg-white border border-slate-100 rounded-2xl p-3'}`}>
-                                  <div className="w-16 h-16 rounded-2xl bg-slate-100" />
-                                  <div className="flex-1 space-y-2">
-                                    <div className="h-3 w-1/2 bg-slate-100 rounded-full" />
-                                    <div className="h-3 w-1/3 bg-slate-100 rounded-full" />
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </>
-                  ) : previewPage === 'product' ? (
-                    <div className="p-6 md:p-10 space-y-6">
-                      {isVisible('productTabs', true) && (
-                        <div className="flex items-center justify-end">
-                          <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                            <button type="button" className="px-4 py-2 rounded-xl text-xs font-black text-white bg-slate-900 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]">التفاصيل</button>
-                            <button type="button" className="px-4 py-2 rounded-xl text-xs font-black text-slate-500 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]">المواصفات</button>
-                            <button type="button" className="px-4 py-2 rounded-xl text-xs font-black text-slate-500 transition-all hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]">الشحن</button>
-                          </div>
-                        </div>
-                      )}
-                      <div className="flex flex-col md:flex-row-reverse gap-6 md:gap-10">
-                        <div className="w-full md:w-[420px]">
-                          <div className="aspect-square rounded-[2rem] bg-slate-100 border border-slate-200 shadow-sm" />
-                          <div className="mt-4 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: config.primaryColor }} />
-                              <span className="text-xs font-black text-slate-600">متوفر</span>
-                            </div>
-                            <span className="text-xs font-black text-slate-400">SKU: 0001</span>
-                          </div>
-                        </div>
-
-                        <div className="flex-1 space-y-4 text-right">
-                          <div className="space-y-2">
-                            <h1 className="text-2xl md:text-3xl font-black" style={{ color: config.primaryColor }}>اسم المنتج</h1>
-                            <p className="text-sm md:text-base font-bold text-slate-500">وصف مختصر للمنتج هنا، وبعد كدا هنضيف تفاصيل أكتر.</p>
-                          </div>
-                          {(config?.productEditorVisibility?.productCardPrice !== false) && (
-                            <div className="flex items-center justify-between flex-row-reverse">
-                              <span className="text-xl md:text-2xl font-black text-slate-900">EGP 249</span>
-                              <span className="text-xs font-black text-slate-400 line-through">EGP 299</span>
-                            </div>
-                          )}
-                          {(config?.productEditorVisibility?.productCardStock !== false) && (
-                            <div className="flex items-center justify-between flex-row-reverse">
-                              <span className="text-xs font-black text-slate-600">المخزون: 222</span>
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            {(config?.productEditorVisibility?.productCardAddToCart !== false) && (
-                              <button
-                                type="button"
-                                className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
-                                style={{ backgroundColor: config.primaryColor }}
-                              >
-                                إضافة للسلة
-                              </button>
-                            )}
-                            {(config?.productEditorVisibility?.productCardReserve !== false) && (
-                              <button
-                                type="button"
-                                className={`${config.buttonPadding || 'px-6 py-3'} ${config.buttonShape || 'rounded-2xl'} text-white font-black text-sm shadow-xl transition-all hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]`}
-                                style={{ backgroundColor: config.secondaryColor || config.primaryColor }}
-                              >
-                                حجز
-                              </button>
-                            )}
-                            {isVisible('productShareButton', true) && (
-                              <button
-                                type="button"
-                                className="px-6 py-3 rounded-2xl font-black text-sm border border-slate-200 bg-white text-slate-900 shadow-sm transition-all hover:bg-slate-50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98]"
-                              >
-                                مشاركة
-                              </button>
-                            )}
-                          </div>
-
-                          {isVisible('productQuickSpecs', true) && (
-                            <div className="border border-slate-100 rounded-[1.5rem] bg-white p-5 space-y-3">
-                              <h3 className="font-black text-sm text-slate-900">مواصفات سريعة</h3>
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between flex-row-reverse text-sm">
-                                  <span className="font-black text-slate-500">الخامة</span>
-                                  <span className="font-bold text-slate-900">قطن</span>
-                                </div>
-                                <div className="flex items-center justify-between flex-row-reverse text-sm">
-                                  <span className="font-black text-slate-500">اللون</span>
-                                  <span className="font-bold text-slate-900">أسود</span>
-                                </div>
-                                <div className="flex items-center justify-between flex-row-reverse text-sm">
-                                  <span className="font-black text-slate-500">المقاس</span>
-                                  <span className="font-bold text-slate-900">M</span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ) : previewPage === 'gallery' ? (
-                    <div className="p-6 md:p-10 space-y-6">
-                      <div className="flex items-center justify-between flex-row-reverse">
-                        <h2 className="text-lg md:text-xl font-black text-slate-900">معرض الصور</h2>
-                        <span className="text-xs font-black text-slate-400">PREVIEW</span>
-                      </div>
-
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {[1, 2, 3, 4, 5, 6].map((i) => (
-                          <div key={i} className="aspect-square rounded-2xl bg-slate-100 border border-slate-200 overflow-hidden relative">
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent" />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-6 md:p-10 space-y-6">
-                      <div className="flex items-center justify-between flex-row-reverse">
-                        <h2 className="text-lg md:text-xl font-black text-slate-900">معلومات المتجر</h2>
-                        <span className="text-xs font-black text-slate-400">PREVIEW</span>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="p-5 rounded-2xl border border-slate-100 bg-white space-y-3 text-right">
-                          <div className="flex items-center justify-between flex-row-reverse">
-                            <span className="font-black text-sm text-slate-900">العنوان</span>
-                            <span className="text-xs font-bold text-slate-500">القاهرة، مصر</span>
-                          </div>
-                          <div className="h-px bg-slate-100" />
-                          <div className="flex items-center justify-between flex-row-reverse">
-                            <span className="font-black text-sm text-slate-900">ساعات العمل</span>
-                            <span className="text-xs font-bold text-slate-500">يوميًا 10ص - 10م</span>
-                          </div>
-                          <div className="h-px bg-slate-100" />
-                          <div className="flex items-center justify-between flex-row-reverse">
-                            <span className="font-black text-sm text-slate-900">التواصل</span>
-                            <span className="text-xs font-bold text-slate-500">0100 000 0000</span>
-                          </div>
-                        </div>
-
-                        <div className="p-5 rounded-2xl border border-slate-100 bg-white">
-                          <div className="aspect-video rounded-2xl bg-slate-100 border border-slate-200" />
-                          <p className="mt-3 text-xs font-bold text-slate-400 text-right">مكان الخريطة هنا (معاينة)</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <footer
-                    className={`mt-16 md:mt-24 border-t transition-all duration-500 ${
-                      Boolean(config.footerTransparent)
-                        ? 'bg-transparent border-transparent'
-                        : isBold ? 'bg-slate-900 border-slate-700' : isMinimal ? 'bg-white border-slate-100' : 'bg-slate-50 border-slate-200'
-                    }`}
-                    style={{ backgroundColor: footerBg, color: footerTextColor }}
-                  >
-                    <div className="max-w-[1400px] mx-auto px-4 md:px-12 py-8 md:py-12">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 mb-8">
-                        <div className="text-center md:text-right">
-                          <div className="flex items-center justify-center md:justify-start gap-3 mb-3">
-                            <div className="w-8 h-8 rounded-full border-2 border-white shadow-md bg-slate-100" />
-                            <h4 className={`font-black ${isBold ? 'text-lg' : 'text-base'}`} style={{ color: footerTextColor }}>معاينة المتجر</h4>
-                          </div>
-                          <p className="text-xs md:text-sm font-bold leading-relaxed" style={{ opacity: 0.8 }}>
-                            منصة متكاملة لتقديم أفضل الخدمات والمنتجات بجودة عالية.
-                          </p>
-                        </div>
-
-                        <div className="text-center md:text-right">
-                          <h5 className="font-black mb-3 text-sm md:text-base" style={{ color: footerTextColor }}>روابط سريعة</h5>
-                          <div className="space-y-2">
-                            <button type="button" className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80" style={{ color: footerTextColor, opacity: 0.8 }}>
-                              المعروضات
-                            </button>
-                            <button type="button" className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80" style={{ color: footerTextColor, opacity: 0.8 }}>
-                              معرض الصور
-                            </button>
-                            <button type="button" className="block text-xs md:text-sm font-bold transition-opacity hover:opacity-80" style={{ color: footerTextColor, opacity: 0.8 }}>
-                              معلومات المتجر
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="text-center md:text-right">
-                          <h5 className="font-black mb-3 text-sm md:text-base" style={{ color: footerTextColor }}>تواصل معنا</h5>
-                          <div className="space-y-2">
-                            <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>01000000000</p>
-                            <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>جاري تحديث البريد الإلكتروني</p>
-                            <p className="text-xs md:text-sm font-bold" style={{ color: footerTextColor, opacity: 0.8 }}>القاهرة, مصر</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={`pt-6 border-t text-center text-xs md:text-sm font-bold ${
-                        isBold ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'
-                      }`} style={{ color: footerTextColor, opacity: 0.75 }}>
-                        <p>جميع الحقوق محفوظة © {new Date().getFullYear()} معاينة المتجر • تطوير بواسطة منصة تست</p>
-                      </div>
-                    </div>
-                  </footer>
-                </>
-              );
-            })()}
+            <PreviewRenderer
+              page={previewPage}
+              config={config}
+              shop={{ id: shopId, name: 'معاينة المتجر' }}
+              logoDataUrl={logoDataUrl}
+              isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
+              setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
+            />
           </MotionDiv>
         </div>
 

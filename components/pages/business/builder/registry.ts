@@ -15,6 +15,7 @@ import {
   ProductsSection,
   TypographySection,
   VisibilitySection,
+  ImageMapVisibilitySection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -30,6 +31,7 @@ export type BuilderSectionId =
   | 'typography'
   | 'buttons'
   | 'visibility'
+  | 'imageMapVisibility'
   | 'customCss';
 
 export type BuilderRenderCtx = {
@@ -164,6 +166,12 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     title: 'إظهار / إخفاء',
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(VisibilitySection as any, { config, setConfig }),
+  },
+  {
+    id: 'imageMapVisibility',
+    title: 'إظهار / إخفاء (خريطة الصور)',
+    icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#00E5FF]' }),
+    render: ({ config, setConfig }) => React.createElement(ImageMapVisibilitySection as any, { config, setConfig }),
   },
   {
     id: 'customCss',

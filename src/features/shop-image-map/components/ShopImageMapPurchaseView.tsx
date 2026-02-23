@@ -1,9 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, memo } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
 import { getActiveShopImageMap } from '../api';
 import { resolveBackendMediaUrl } from '../utils';
 import { CustomerView } from '../../product-editor/legacy/components/CustomerView';
+
+// Sub-components
+import { LoadingState, ErrorState } from './ShopImageMapPurchaseView/States';
+import PurchaseHeader from './ShopImageMapPurchaseView/PurchaseHeader';
 
 const { useParams, useNavigate } = ReactRouterDOM as any;
 
@@ -26,6 +29,8 @@ const ShopImageMapPurchaseView: React.FC = () => {
 
   const map = data?.map;
   const shop = data?.shop;
+
+  const handleBack = () => navigate(`/shop/${slug}`);
 
   useEffect(() => {
     const load = async () => {
@@ -192,53 +197,23 @@ const ShopImageMapPurchaseView: React.FC = () => {
     };
   }, [map, sections, shop?.id, shop?.name, slug]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center">
-        <Loader2 className="animate-spin" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="text-slate-600 font-black">{error}</div>
-        <button onClick={() => navigate(`/shop/${slug}`)} className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black">
-          رجوع للمتجر
-        </button>
-      </div>
-    );
-  }
-
+  if (loading) return <LoadingState />;
+  if (error) return <ErrorState message={error} onBack={handleBack} />;
   if (!map || sections.length === 0 || !hasAnyImage) {
-    return (
-      <div className="min-h-[70vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
-        <div className="text-slate-600 font-black">لا توجد معاينة بالصورة لهذا المتجر حالياً</div>
-        <button onClick={() => navigate(`/shop/${slug}`)} className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black">
-          رجوع للمتجر
-        </button>
-      </div>
-    );
+    return <ErrorState message="لا توجد معاينة بالصورة لهذا المتجر حالياً" onBack={handleBack} />;
   }
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-black">
-      <div className="absolute top-0 left-0 right-0 z-[60] p-3 sm:p-6 flex justify-between pointer-events-none">
-        <button
-          onClick={() => navigate(`/shop/${slug}`)}
-          className="pointer-events-auto bg-black/50 backdrop-blur-md border border-white/10 text-white px-4 py-2 rounded-2xl hover:bg-white/10 transition-colors font-black"
-          type="button"
-        >
-          رجوع
-        </button>
-        <div className="pointer-events-auto bg-black/50 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-white font-black">
-          {shop?.name ? `تسوق من ${shop.name}` : 'وضع الشراء'}
-        </div>
-      </div>
-      <CustomerView shop={legacyShop as any} shopCategory={String(shop?.category || '')} onExit={() => navigate(`/shop/${slug}`)} />
+      <PurchaseHeader shopName={shop?.name} onBack={handleBack} />
+      <CustomerView 
+        shop={legacyShop as any} 
+        shopCategory={String(shop?.category || '')} 
+        onExit={handleBack} 
+        imageMapVisibility={data?.map?.imageMapVisibility || data?.shop?.pageDesign?.imageMapVisibility}
+      />
     </div>
   );
 };
 
-export default ShopImageMapPurchaseView;
+export default memo(ShopImageMapPurchaseView);

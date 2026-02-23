@@ -1,4 +1,4 @@
-import { backendGet, backendPatch, backendPost } from '../httpClient';
+import { BackendRequestError, backendGet, backendPatch, backendPost, disablePathPrefix } from '../httpClient';
 import { normalizeOrderFromBackend } from '../normalizers';
 
 export async function getAllOrdersViaBackend(
@@ -16,8 +16,12 @@ export async function getAllOrdersViaBackend(
     try {
       const data = await backendGet<any[]>(`/api/v1/orders/admin${qs ? `?${qs}` : ''}`);
       return (data || []).map(normalizeOrderFromBackend);
-    } catch {
-      // ignore
+    } catch (e) {
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      const name = String((e as any)?.name || '');
+      if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
+        disablePathPrefix('/api/v1/orders');
+      }
     }
   }
 
@@ -25,8 +29,12 @@ export async function getAllOrdersViaBackend(
     try {
       const data = await backendGet<any[]>(`/api/v1/orders/courier/me`);
       return (data || []).map(normalizeOrderFromBackend);
-    } catch {
-      // ignore
+    } catch (e) {
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      const name = String((e as any)?.name || '');
+      if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
+        disablePathPrefix('/api/v1/orders');
+      }
     }
   }
 
@@ -40,8 +48,12 @@ export async function getAllOrdersViaBackend(
     try {
       const data = await backendGet<any[]>(`/api/v1/orders${qs2 ? `?${qs2}` : ''}`);
       return (data || []).map(normalizeOrderFromBackend);
-    } catch {
-      // ignore
+    } catch (e) {
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      const name = String((e as any)?.name || '');
+      if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
+        disablePathPrefix('/api/v1/orders');
+      }
     }
   }
 

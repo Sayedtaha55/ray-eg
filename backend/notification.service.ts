@@ -169,6 +169,17 @@ export class NotificationService {
     return this.prisma.notification.findMany({
       where: { userId: uid },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        type: true,
+        priority: true,
+        isRead: true,
+        createdAt: true,
+        metadata: true,
+        orderId: true,
+      },
       take,
       skip,
     });
@@ -251,6 +262,17 @@ export class NotificationService {
     return this.prisma.notification.findMany({
       where: { shopId: sid, userId: null },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        type: true,
+        priority: true,
+        isRead: true,
+        createdAt: true,
+        metadata: true,
+        orderId: true,
+      },
       take,
       skip,
     });

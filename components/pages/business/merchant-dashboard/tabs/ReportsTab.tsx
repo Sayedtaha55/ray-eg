@@ -146,7 +146,7 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
     if (!R) return null;
     const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = R;
     return (
-      <ResponsiveContainer width="100%" height="100%" minWidth={300} minHeight={300}>
+      <ResponsiveContainer width="100%" height={420} minWidth={300} minHeight={300}>
         <BarChart data={monthlyData}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
@@ -189,7 +189,7 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
         {range === '30d' ? (
           <div className="py-16 md:py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
         ) : (
-          <div className="h-[300px] md:h-[450px] w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">
+          <div className="w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">
             {chartBody}
           </div>
         )}

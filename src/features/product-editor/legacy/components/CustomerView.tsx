@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, LogOut, ChevronUp, ChevronDown, Plus, Minus, Trash2 } from 'lucide-react';
 import { Shop, Product, CartItem } from '../types';
-import { StoreViewer } from './StoreViewer';
+import { StoreViewer } from './StoreViewer.tsx';
 import { RayDB } from '@/constants';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
@@ -11,10 +11,11 @@ interface CustomerViewProps {
   shop: Shop;
   shopCategory?: string;
   productEditorVisibility?: Record<string, any>;
+  imageMapVisibility?: Record<string, any>;
   onExit: () => void;
 }
 
-export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', productEditorVisibility, onExit }) => {
+export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', productEditorVisibility, imageMapVisibility, onExit }) => {
   const [cart, setCart] = useState<any[]>([]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -219,6 +220,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
           onAddToCart={addToCart}
           onReserve={handleReserve}
           productEditorVisibility={productEditorVisibility}
+          imageMapVisibility={imageMapVisibility}
         />
       </main>
 
