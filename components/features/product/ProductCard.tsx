@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, Badge, Button } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
@@ -21,7 +21,7 @@ interface ProductCardProps {
   isFavorite?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({
+const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   onAddToCart,
   onToggleFavorite,
@@ -38,6 +38,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         <img
           src={product.image}
           alt={product.name}
+          loading="lazy"
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
         />
         
@@ -114,6 +115,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
       </div>
     </Card>
   );
-};
+});
+
+ProductCard.displayName = 'ProductCard';
 
 export default ProductCard;
