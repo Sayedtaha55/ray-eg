@@ -482,6 +482,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         : [];
 
       await ApiService.updateMyShop({ addons });
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+      } catch {
+      }
       addToast('تم حفظ إضافات المطعم', 'success');
     } catch (e: any) {
       try {
