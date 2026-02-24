@@ -13,6 +13,41 @@ export function normalizeShopFromBackend(shop: any) {
   const bannerUrlRaw = shop.bannerUrl ?? shop.banner_url;
   const logoUrl = typeof logoUrlRaw === 'string' ? toBackendUrl(logoUrlRaw) : logoUrlRaw;
   const bannerUrl = typeof bannerUrlRaw === 'string' ? toBackendUrl(bannerUrlRaw) : bannerUrlRaw;
+
+  const rawLayoutConfig =
+    (shop.layoutConfig && typeof shop.layoutConfig === 'object')
+      ? shop.layoutConfig
+      : (shop.layout_config && typeof shop.layout_config === 'object')
+        ? shop.layout_config
+        : null;
+
+  const normalizedLayoutConfig = (() => {
+    if (!rawLayoutConfig || typeof rawLayoutConfig !== 'object') return rawLayoutConfig;
+    const c: any = { ...(rawLayoutConfig as any) };
+    if (typeof c.enabledModules === 'undefined' && typeof c.enabled_modules !== 'undefined') {
+      c.enabledModules = c.enabled_modules;
+    }
+    if (typeof c.enabled_modules === 'undefined' && typeof c.enabledModules !== 'undefined') {
+      c.enabled_modules = c.enabledModules;
+    }
+    if (typeof c.dashboardMode === 'undefined' && typeof c.dashboard_mode !== 'undefined') {
+      c.dashboardMode = c.dashboard_mode;
+    }
+    if (typeof c.dashboard_mode === 'undefined' && typeof c.dashboardMode !== 'undefined') {
+      c.dashboard_mode = c.dashboardMode;
+    }
+    if (typeof c.customDomain === 'undefined' && typeof c.custom_domain !== 'undefined') {
+      c.customDomain = c.custom_domain;
+    }
+    if (typeof c.custom_domain === 'undefined' && typeof c.customDomain !== 'undefined') {
+      c.custom_domain = c.customDomain;
+    }
+    if (typeof c.whatsapp === 'undefined' && typeof c.whatsapp_number !== 'undefined') {
+      c.whatsapp = c.whatsapp_number;
+    }
+    return c;
+  })();
+
   const paymentConfig =
     shop.paymentConfig ??
     shop.payment_config ??
@@ -58,6 +93,8 @@ export function normalizeShopFromBackend(shop: any) {
     logoUrl,
     bannerUrl,
     addons,
+    layoutConfig: normalizedLayoutConfig ?? shop.layoutConfig,
+    layout_config: shop.layout_config ?? normalizedLayoutConfig,
     paymentConfig,
     displayAddress,
     mapLabel,

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone
@@ -24,6 +24,7 @@ interface ProfileHeaderProps {
   headerBg: string;
   headerTextColor: string;
   bannerReady: boolean;
+  purchaseModeButton?: React.ReactNode;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -42,7 +43,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   headerBg,
   headerTextColor,
   bannerReady,
+  purchaseModeButton,
 }) => {
+  const bannerRef = useRef<HTMLDivElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [stuck, setStuck] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
   const showHeaderNavHome = isVisible('headerNavHome', true);
   const showHeaderNavGallery = isVisible('headerNavGallery', true);
   const showHeaderNavInfo = isVisible('headerNavInfo', true);
@@ -71,10 +78,40 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       exit: { opacity: 0, x: '100%' },
     };
 
+  useEffect(() => {
+    const measure = () => {
+      try {
+        const h = headerRef.current ? Number((headerRef.current as any).offsetHeight || 0) : 0;
+        setHeaderHeight(Number.isFinite(h) ? h : 0);
+      } catch {
+        setHeaderHeight(0);
+      }
+    };
+
+    const onScroll = () => {
+      try {
+        if (!bannerRef.current) return;
+        const rect = bannerRef.current.getBoundingClientRect();
+        const next = rect.bottom <= 0;
+        setStuck(next);
+      } catch {
+      }
+    };
+
+    measure();
+    onScroll();
+    window.addEventListener('resize', measure);
+    window.addEventListener('scroll', onScroll, { passive: true } as any);
+    return () => {
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', onScroll as any);
+    };
+  }, []);
+
   return (
     <div className="relative">
       {/* Banner Section */}
-      <div className="relative h-[250px] md:h-[400px] overflow-hidden">
+      <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
         {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
         {isVideoBanner ? (
           isLowEndDevice ? (
@@ -106,11 +143,20 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           />
         )}
         <div className="absolute inset-0 bg-black/20" />
+
+        {purchaseModeButton ? (
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-[50]">
+            {purchaseModeButton}
+          </div>
+        ) : null}
       </div>
+
+      {stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
 
       {/* Header Content */}
       <header 
-        className="sticky top-0 z-[100] transition-all duration-300"
+        ref={headerRef as any}
+        className={`${stuck ? 'fixed top-0 left-0 right-0' : ''} z-[100] transition-all duration-300`}
         style={{ backgroundColor: headerBg, color: headerTextColor }}
       >
         <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between flex-row-reverse">

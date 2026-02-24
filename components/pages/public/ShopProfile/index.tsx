@@ -9,6 +9,8 @@ import {
   AlertCircle,
   Home,
   Menu,
+  ShoppingCart,
+  User,
 } from 'lucide-react';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
@@ -16,6 +18,7 @@ import { Skeleton } from '@/components/common/ui';
 import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl } from './utils';
 import { useCartSound } from '@/hooks/useCartSound';
+import CartDrawer from '@/components/pages/shared/CartDrawer';
 
 // New Sub-components
 import ProfileHeader from './ProfileHeader';
@@ -53,6 +56,23 @@ const ShopProfile: React.FC = () => {
   const navigate = useNavigate();
   const { addToast } = useToast();
   const { playSound } = useCartSound();
+
+  const [isCartOpen, setCartOpen] = useState(false);
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    const syncCart = () => {
+      try {
+        const next = RayDB.getCart();
+        setCartItems(Array.isArray(next) ? next : []);
+      } catch {
+        setCartItems([]);
+      }
+    };
+    syncCart();
+    window.addEventListener('cart-updated', syncCart);
+    return () => window.removeEventListener('cart-updated', syncCart);
+  }, []);
 
   const [hasMoreProducts, setHasMoreProducts] = useState(true);
   const [loadingMoreProducts, setLoadingMoreProducts] = useState(false);
@@ -521,7 +541,7 @@ const ShopProfile: React.FC = () => {
   );
 
   const isBold = currentDesign.layout === 'bold';
-  const pageBgColor = currentDesign.pageBackgroundColor || (currentDesign as any).backgroundColor;
+  const pageBgColor = currentDesign.pageBackgroundColor || (currentDesign as any).backgroundColor || '#FFFFFF';
   const pageBgImage = String((currentDesign as any).backgroundImageUrl || '');
   const headerBackgroundColor = String(currentDesign.headerBackgroundColor || '#FFFFFF');
   const headerOpacity = coerceNumber((currentDesign as any).headerOpacity, 95) / 100;
@@ -535,6 +555,15 @@ const ShopProfile: React.FC = () => {
     if (!(key in elementsVisibility)) return fallback;
     return coerceBoolean(elementsVisibility[key], fallback);
   };
+
+  const showMobileBottomNav = isVisible('mobileBottomNav', true);
+  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
+  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
+  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
+
+  const whatsappFabClassName = showMobileBottomNav
+    ? 'fixed bottom-28 left-6 z-[150] md:bottom-10 md:left-10'
+    : 'fixed bottom-6 left-6 z-[150] md:bottom-10 md:left-10';
 
   const showFloatingChatButton = isVisible('floatingChatButton', true);
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
@@ -569,8 +598,9 @@ const ShopProfile: React.FC = () => {
 
   return (
     <div id="shop-profile-root" className="min-h-screen relative" style={{ backgroundColor: pageBgColor }}>
-      {pageBgImage && !lowEndDevice && (
+      {pageBgImage && (
         <img
+          key={pageBgImage}
           src={pageBgImage}
           alt=""
           className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 w-full h-full object-cover"
@@ -582,7 +612,7 @@ const ShopProfile: React.FC = () => {
         />
       )}
 
-      <ProfileHeader 
+      <ProfileHeader
         shop={shop}
         currentDesign={currentDesign}
         activeTab={activeTab}
@@ -598,9 +628,17 @@ const ShopProfile: React.FC = () => {
         headerBg={headerBg}
         headerTextColor={headerTextColor}
         bannerReady={bannerReady}
+        purchaseModeButton={
+          hasActiveImageMap ? (
+            <PurchaseModeButton
+              onClick={() => navigate(`/shop/${String(slug || '').trim()}/image-map`)}
+              className="shadow-2xl"
+            />
+          ) : null
+        }
       />
 
-      <main className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12" dir="rtl">
+      <main className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''}`} dir="rtl">
         <TabRenderer
           activeTab={activeTab}
           shop={shop}
@@ -638,28 +676,91 @@ const ShopProfile: React.FC = () => {
         isBold={isBold}
       />
 
-      {hasActiveImageMap ? (
-        <div className="fixed bottom-6 right-6 z-[150] md:bottom-10 md:right-10">
-          <PurchaseModeButton
-            onClick={() => navigate(`/shop/${String(slug || '').trim()}/image-map`)}
-            className="shadow-2xl"
-          />
+      <CartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setCartOpen(false)}
+        items={cartItems as any}
+        onRemove={(lineId: string) => {
+          try {
+            RayDB.removeFromCart(lineId);
+          } catch {
+          }
+        }}
+        onUpdateQuantity={(lineId: string, delta: number) => {
+          try {
+            RayDB.updateCartItemQuantity(lineId, delta);
+          } catch {
+          }
+        }}
+      />
+
+      {showMobileBottomNav ? (
+        <div className="fixed bottom-0 left-0 right-0 z-[160] md:hidden">
+          <div className="mx-auto max-w-[1400px] px-4 pb-4">
+            <div className="rounded-[1.8rem] bg-white/95 backdrop-blur border border-slate-100 shadow-2xl overflow-hidden">
+              <div className="grid grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('products')}
+                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} ${activeTab === 'products' ? 'text-slate-900 bg-slate-50' : 'text-slate-500'}`}
+                >
+                  <Home size={18} />
+                  الرئيسية
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(true)}
+                  className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
+                >
+                  <ShoppingCart size={18} />
+                  السلة
+                  {Array.isArray(cartItems) && cartItems.length > 0 ? (
+                    <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
+                      {cartItems.length}
+                    </span>
+                  ) : null}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const raw = localStorage.getItem('ray_user');
+                      const user = raw ? JSON.parse(raw) : null;
+                      if (user) {
+                        navigate('/profile');
+                      } else {
+                        navigate('/login');
+                      }
+                    } catch {
+                      navigate('/login');
+                    }
+                  }}
+                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavAccount ? '' : 'hidden'} text-slate-500`}
+                >
+                  <User size={18} />
+                  حسابي
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       ) : null}
 
-      {/* Floating Action Button - Mobile */}
       <AnimatePresence>
         {showFloatingChatButton && whatsappHref
           ? (disableCardMotion
             ? (
-              <div className="fixed bottom-6 left-6 z-[150] md:bottom-10 md:left-10">
+              <div className={whatsappFabClassName}>
                 <a
                   href={whatsappHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-14 h-14 md:w-16 md:h-16 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95"
                 >
-                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={32} height={32} />
+                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={28} height={28} className="md:hidden" />
+                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={32} height={32} className="hidden md:block" />
                 </a>
               </div>
             )
@@ -668,7 +769,7 @@ const ShopProfile: React.FC = () => {
                 initial={{ scale: 0, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0, opacity: 0 }}
-                className="fixed bottom-6 left-6 z-[150] md:bottom-10 md:left-10"
+                className={whatsappFabClassName}
               >
                 <a
                   href={whatsappHref}
@@ -676,7 +777,8 @@ const ShopProfile: React.FC = () => {
                   rel="noopener noreferrer"
                   className="w-14 h-14 md:w-16 md:h-16 bg-[#25D366] text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform active:scale-95"
                 >
-                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={32} height={32} />
+                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={28} height={28} className="md:hidden" />
+                  <WhatsAppIcon.type {...WhatsAppIcon.props} width={32} height={32} className="hidden md:block" />
                 </a>
               </MotionDiv>
             ))

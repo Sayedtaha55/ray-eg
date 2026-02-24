@@ -480,6 +480,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
             <img src={String(activeSection.image).trim()} alt={activeSection.name} ref={(el) => { imageRef.current = el; }} onLoad={(e) => { const el = e.currentTarget; setImageNatural({ w: el.naturalWidth, h: el.naturalHeight }); }}
               onPointerDown={(e) => {
                 if (e.pointerType === 'mouse') return;
+                try { e.preventDefault(); } catch {}
                 const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
                 if (!overflowX) return;
                 panStateRef.current = { active: true, startX: e.clientX, startOffset: panOffsetPx };
@@ -487,18 +488,15 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
               }}
               onPointerMove={(e) => {
                 if (!panStateRef.current.active || e.pointerType === 'mouse') return;
+                try { e.preventDefault(); } catch {}
                 const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
                 if (!overflowX) return;
                 const dx = e.clientX - panStateRef.current.startX;
                 setPanOffsetPx(Math.max(-(overflowX / 2), Math.min(overflowX / 2, panStateRef.current.startOffset + dx)));
-                if (Math.abs(dx) > 50) {
-                  if (dx < 0) handleNextSection(); else handlePrevSection();
-                  panStateRef.current.active = false;
-                }
               }}
               onPointerUp={() => { panStateRef.current.active = false; }}
               onPointerCancel={() => { panStateRef.current.active = false; }}
-              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'pan-y' }} className="w-full h-full object-cover filter brightness-[0.7] contrast-[1.1]" />
+              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'none' }} className="w-full h-full object-cover filter brightness-[0.7] contrast-[1.1]" />
           ) : <div className="w-full h-full bg-black/20" />}
           <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
         </div>
