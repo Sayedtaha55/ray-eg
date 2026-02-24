@@ -16,14 +16,17 @@ export default defineConfig(({ mode }) => {
         }
       },
       build: {
+        target: 'esnext',
         rollupOptions: {
           output: {
-            manualChunks: {
-              vendor: ['react', 'react-dom'],
-              router: ['react-router-dom'],
-              ui: ['framer-motion', 'lucide-react'],
-              charts: ['recharts'],
-              maps: ['leaflet']
+            manualChunks(id) {
+              if (id.includes('node_modules')) {
+                if (id.includes('lucide-react')) return 'ui-icons';
+                if (id.includes('framer-motion')) return 'ui-anim';
+                if (id.includes('recharts')) return 'charts';
+                if (id.includes('leaflet')) return 'maps';
+                return 'vendor';
+              }
             }
           }
         },
@@ -34,6 +37,7 @@ export default defineConfig(({ mode }) => {
           compress: {
             drop_console: mode === 'production',
             drop_debugger: mode === 'production',
+            pure_funcs: mode === 'production' ? ['console.log'] : [],
           },
         },
         // Enable code splitting

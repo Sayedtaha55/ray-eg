@@ -45,9 +45,9 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
 
   return (
     <MotionDiv 
-      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 15 }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
+      viewport={{ once: true, margin: "50px" }}
       className="group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
     >
       <div 

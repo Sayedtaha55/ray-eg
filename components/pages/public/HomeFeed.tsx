@@ -34,7 +34,7 @@ const HomeFeed: React.FC = () => {
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const loadMoreOffersRef = useRef<(() => void) | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const MAX_RENDERED_OFFERS = 72;
+  const MAX_RENDERED_OFFERS = 48;
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
