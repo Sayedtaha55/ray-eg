@@ -5,6 +5,7 @@ import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { Skeleton } from '@/components/common/ui';
 
 const { Link } = ReactRouterDOM as any;
@@ -84,6 +85,18 @@ const RestaurantsPage: React.FC = () => {
 
   const restaurants = shops;
 
+  const [visibleIdx, setVisibleIdx] = useState(6);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (visibleIdx >= restaurants.length) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        setVisibleIdx(prev => Math.min(restaurants.length, prev + 6));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [restaurants.length, visibleIdx]);
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-12 text-right" dir="rtl">
       <div className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-16">
@@ -154,12 +167,11 @@ const RestaurantsPage: React.FC = () => {
           <div className="text-slate-400 font-bold">لا توجد مطاعم حالياً</div>
         ) : (
           restaurants.map((shop, idx) => (
-          <MotionDiv 
+          <div
             key={shop.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="group relative h-[400px] rounded-[3.5rem] overflow-hidden shadow-xl"
+            className={`cv-auto group relative h-[400px] rounded-[3.5rem] overflow-hidden shadow-xl transition-all duration-700 ${
+              idx < visibleIdx ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
           >
             {(() => {
               const bannerSrc = shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200';
@@ -181,9 +193,13 @@ const RestaurantsPage: React.FC = () => {
               return (
                 <img
                   loading="lazy"
-                  src={bannerSrc}
+                  src={getOptimizedImageUrl(bannerSrc, 'md')}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
                   alt={shop.name}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (bannerSrc && img.src !== bannerSrc) img.src = bannerSrc;
+                  }}
                 />
               );
             })()}
@@ -199,7 +215,17 @@ const RestaurantsPage: React.FC = () => {
             <div className="absolute bottom-6 md:bottom-10 right-6 md:right-10 left-6 md:left-10 flex items-end justify-between flex-row-reverse">
               <div className="text-right flex-1 min-w-0">
                 <div className="flex items-center gap-2 md:gap-3 justify-end mb-2">
-                   <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl border border-white/20" alt={shop.name} />
+                   <img
+                     loading="lazy"
+                     src={getOptimizedImageUrl(shop.logoUrl || shop.logo_url, 'thumb') || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'}
+                     className="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl border border-white/20"
+                     alt={shop.name}
+                     onError={(e) => {
+                        const img = e.currentTarget;
+                        const original = shop.logoUrl || shop.logo_url;
+                        if (original && img.src !== original) img.src = original;
+                     }}
+                   />
                    <h3 className="text-xl md:text-3xl font-black text-white truncate">{shop.name}</h3>
                    <span className={`px-2 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[11px] font-black shrink-0 ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
                      {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
@@ -216,7 +242,7 @@ const RestaurantsPage: React.FC = () => {
                 اطلب الآن
               </Link>
             </div>
-          </MotionDiv>
+          </div>
           ))
         )}
       </div>

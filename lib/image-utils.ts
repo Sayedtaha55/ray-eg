@@ -60,3 +60,22 @@ export const generateVideoThumbnail = (file: File): Promise<File> => {
     video.src = URL.createObjectURL(file);
   });
 };
+
+export const getOptimizedImageUrl = (url: string | null | undefined, variant: 'opt' | 'md' | 'thumb' = 'opt') => {
+  if (!url) return '';
+
+  // If it's already an optimized variant or not a local upload, return as is
+  const isLocalUpload = url.includes('/uploads/') || url.includes('.r2.cloudflarestorage.com');
+  const isAlreadyVariant = url.match(/-(opt|md|thumb)\.webp$/);
+
+  if (isAlreadyVariant || !isLocalUpload) {
+    return url;
+  }
+
+  // Try to find extension and replace with variant
+  const lastDot = url.lastIndexOf('.');
+  if (lastDot <= 0) return url;
+
+  const base = url.substring(0, lastDot);
+  return `${base}-${variant}.webp`;
+};

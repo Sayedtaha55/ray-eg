@@ -5,6 +5,7 @@ import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
 import { TrendingUp, Eye, Loader2, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { Skeleton } from '@/components/common/ui';
 
 const { useNavigate } = ReactRouterDOM as any;
@@ -16,6 +17,18 @@ const OffersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+
+  const [visibleIdx, setVisibleIdx] = useState(8);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (visibleIdx >= offers.length) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        setVisibleIdx(prev => Math.min(offers.length, prev + 8));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [offers.length, visibleIdx]);
 
   const pagingRef = useRef({ take: 16, skip: 0 });
 
@@ -92,11 +105,11 @@ const OffersPage: React.FC = () => {
           <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
         ) : (
           offers.map((offer: any, idx: number) => (
-            <MotionDiv
+            <div
               key={offer.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="group bg-white p-5 rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
+              className={`cv-auto group bg-white p-5 rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-700 ${
+                idx < visibleIdx ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
             >
               <div
                 onClick={() => {
@@ -114,9 +127,13 @@ const OffersPage: React.FC = () => {
                   loading={idx === 0 ? 'eager' : 'lazy'}
                   fetchPriority={idx === 0 ? 'high' : 'auto'}
                   decoding="async"
-                  src={offer.imageUrl}
+                  src={getOptimizedImageUrl(offer.imageUrl, 'md')}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
                   alt={offer.title}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    if (offer.imageUrl && img.src !== offer.imageUrl) img.src = offer.imageUrl;
+                  }}
                 />
                 <div className="absolute top-5 left-5 bg-[#BD00FF] text-white px-4 py-2 rounded-2xl font-black text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -136,7 +153,7 @@ const OffersPage: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </MotionDiv>
+            </div>
           ))
         )}
       </div>

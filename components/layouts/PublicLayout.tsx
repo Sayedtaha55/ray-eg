@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
-import RayAssistant from '@/components/pages/shared/RayAssistant';
-import CartDrawer from '@/components/pages/shared/CartDrawer';
+const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssistant'));
+const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
 import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -316,8 +316,12 @@ const PublicLayout: React.FC = () => {
         </div>
       </div>
 
-      <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
-      <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
+      <React.Suspense fallback={null}>
+        <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
+      </React.Suspense>
+      <React.Suspense fallback={null}>
+        <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
+      </React.Suspense>
 
       <AnimatePresence>
         {authPrompt.open && (

@@ -34,7 +34,7 @@ const HomeFeed: React.FC = () => {
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const loadMoreOffersRef = useRef<(() => void) | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  const MAX_RENDERED_OFFERS = 72;
+  const MAX_RENDERED_OFFERS = 48;
   
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
@@ -232,14 +232,15 @@ const HomeFeed: React.FC = () => {
           {offers.length === 0 ? (
             <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
           ) : offers.map((offer, idx) => (
-            <OfferCard
-              key={offer.id}
+            <div key={offer.id} className="cv-auto">
+              <OfferCard
               offer={offer}
               idx={idx}
               navigate={navigate}
               setSelectedItem={setSelectedItem}
-              playSound={playSound}
-            />
+                playSound={playSound}
+              />
+            </div>
           ))}
         </div>
 

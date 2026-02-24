@@ -1,8 +1,29 @@
 import React from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const MotionDiv = motion.div as any;
+
+// Use a simple IntersectionObserver for reveal to avoid many whileInView listeners
+const useInView = (options?: IntersectionObserverInit) => {
+  const [ref, setRef] = React.useState<HTMLElement | null>(null);
+  const [inView, setInView] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!ref) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        observer.unobserve(ref);
+      }
+    }, options);
+    observer.observe(ref);
+    return () => observer.disconnect();
+  }, [ref, options]);
+
+  return [setRef, inView] as const;
+};
 
 interface OfferCardProps {
   offer: any;
@@ -43,12 +64,14 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
     window.dispatchEvent(event);
   };
 
+  const [setRef, inView] = useInView({ margin: '50px' });
+
   return (
-    <MotionDiv 
-      initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500"
+    <div
+      ref={setRef}
+      className={`group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500 ${
+        !prefersReducedMotion ? 'transform transition-all duration-700' : ''
+      } ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     >
       <div 
         onClick={handleNavigate}
@@ -58,8 +81,15 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
           loading={idx === 0 ? 'eager' : 'lazy'}
           fetchPriority={idx === 0 ? 'high' : 'auto'}
           decoding="async"
-          src={offer.imageUrl}
+          src={getOptimizedImageUrl(offer.imageUrl, 'md')}
           alt={offer.title}
+          onError={(e) => {
+            // Fallback to original URL if optimized variant fails (e.g. old uploads)
+            const img = e.currentTarget;
+            if (img.src !== offer.imageUrl) {
+              img.src = offer.imageUrl;
+            }
+          }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
         />
         <div className="absolute top-3 left-3 md:top-5 md:left-5 bg-[#BD00FF] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
@@ -94,7 +124,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
            </div>
         </div>
       </div>
-    </MotionDiv>
+    </div>
   );
 };
 
