@@ -103,7 +103,8 @@ const MerchantProfilePage: React.FC = () => {
         <ProfileSummary 
           user={user} 
           shopSlug={shopSlug} 
-          buildDashboardUrl={buildDashboardUrl} 
+          buildDashboardUrl={buildDashboardUrl}
+          shop={shop}
         />
       </Suspense>
 
@@ -119,7 +120,8 @@ const MerchantProfilePage: React.FC = () => {
 
         <Suspense fallback={<div className="lg:col-span-5 h-64 bg-white rounded-[3rem] animate-pulse" />}>
           <QuickLinksCard 
-            buildDashboardUrl={buildDashboardUrl} 
+            buildDashboardUrl={buildDashboardUrl}
+            shop={shop}
           />
         </Suspense>
       </div>

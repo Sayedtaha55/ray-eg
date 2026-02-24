@@ -1,15 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
+import { getMerchantDashboardTabsForShop } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 interface QuickLinksCardProps {
   buildDashboardUrl: (tab?: string) => string;
+  shop?: any;
 }
 
-const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl }) => {
+const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl, shop }) => {
+  const allowedTabIds = new Set(getMerchantDashboardTabsForShop(shop).map((t) => t.id));
+  const canOpenBuilder = allowedTabIds.has('builder');
+
   return (
     <MotionDiv
       initial={{ opacity: 0, y: 18 }}
@@ -28,13 +33,15 @@ const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl }) =>
           <span className="text-white/70">→</span>
         </Link>
 
-        <Link
-          to={buildDashboardUrl('builder')}
-          className="w-full flex items-center justify-between flex-row-reverse gap-3 px-6 py-5 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm hover:bg-black group transition-all"
-        >
-          <span className="group-hover:text-white transition-colors">هوية المتجر (Page Builder)</span>
-          <span className="text-slate-500 group-hover:text-white transition-colors">→</span>
-        </Link>
+        {canOpenBuilder ? (
+          <Link
+            to={buildDashboardUrl('builder')}
+            className="w-full flex items-center justify-between flex-row-reverse gap-3 px-6 py-5 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm hover:bg-black group transition-all"
+          >
+            <span className="group-hover:text-white transition-colors">هوية المتجر (Page Builder)</span>
+            <span className="text-slate-500 group-hover:text-white transition-colors">→</span>
+          </Link>
+        ) : null}
       </div>
     </MotionDiv>
   );

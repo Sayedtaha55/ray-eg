@@ -1,6 +1,7 @@
 import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { User, ExternalLink } from 'lucide-react';
+import { getMerchantDashboardTabsForShop } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
 
 const { Link } = ReactRouterDOM as any;
 
@@ -8,9 +9,13 @@ interface ProfileSummaryProps {
   user: any;
   shopSlug: string;
   buildDashboardUrl: (tab?: string) => string;
+  shop?: any;
 }
 
-const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDashboardUrl }) => {
+const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDashboardUrl, shop }) => {
+  const allowedTabIds = new Set(getMerchantDashboardTabsForShop(shop).map((t) => t.id));
+  const canOpenSettings = allowedTabIds.has('settings');
+
   return (
     <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-12">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
@@ -31,12 +36,14 @@ const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDa
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <Link
-            to={buildDashboardUrl('settings')}
-            className="px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-sm text-center hover:bg-black transition-all"
-          >
-            إعدادات المتجر
-          </Link>
+          {canOpenSettings ? (
+            <Link
+              to={buildDashboardUrl('settings')}
+              className="px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-sm text-center hover:bg-black transition-all"
+            >
+              إعدادات المتجر
+            </Link>
+          ) : null}
 
           {shopSlug ? (
             <Link
