@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from './ProductCard';
 import { Input, Loading } from '../../common/ui';
@@ -30,15 +30,30 @@ const ProductList: React.FC<ProductListProps> = ({
   loading = false,
   onAddToCart,
   onToggleFavorite,
-  favoriteProducts = new Set(),
+  favoriteProducts,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    product.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Stabilize the favoriteProducts Set to avoid re-renders if the prop is undefined
+  const safeFavoriteProducts = useMemo(() => favoriteProducts || new Set<string>(), [favoriteProducts]);
+
+  // Memoize event handlers to maintain stable references for memoized child components
+  const handleAddToCart = useCallback((productId: string) => {
+    onAddToCart?.(productId);
+  }, [onAddToCart]);
+
+  const handleToggleFavorite = useCallback((productId: string) => {
+    onToggleFavorite?.(productId);
+  }, [onToggleFavorite]);
+
+  const filteredProducts = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return products.filter(product =>
+      product.name.toLowerCase().includes(query) ||
+      product.category.toLowerCase().includes(query)
+    );
+  }, [products, searchQuery]);
 
   if (loading) {
     return (
@@ -103,14 +118,14 @@ const ProductList: React.FC<ProductListProps> = ({
               key={product.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: Math.min(index * 0.1, 0.5) }}
               layout
             >
               <ProductCard
                 product={product}
-                onAddToCart={onAddToCart}
-                onToggleFavorite={onToggleFavorite}
-                isFavorite={favoriteProducts.has(product.id)}
+                onAddToCart={handleAddToCart}
+                onToggleFavorite={handleToggleFavorite}
+                isFavorite={safeFavoriteProducts.has(product.id)}
               />
             </motion.div>
           ))}
