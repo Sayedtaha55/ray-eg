@@ -248,6 +248,7 @@ model ShopImageHotspot {
   sortOrder   Int      @default(0) @map("sort_order")
   priceOverride Float? @map("price_override")
   isActive    Boolean  @default(true) @map("is_active")
+  itemData    Json?    @map("item_data")
   aiMeta      Json?    @map("ai_meta")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")

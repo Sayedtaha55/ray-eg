@@ -5,43 +5,45 @@ type Props = {
   setConfig: React.Dispatch<React.SetStateAction<any>>;
 };
 
-type ProductEditorVisibilityKey =
-  | 'productCardPrice'
-  | 'productCardStock'
-  | 'productCardAddToCart'
-  | 'productCardReserve';
+type ImageMapCardVisibilityKey =
+  | 'imageMapCardPrice'
+  | 'imageMapCardStock'
+  | 'imageMapCardAddToCart'
+  | 'imageMapCardReserve'
+  | 'imageMapCardDescription';
 
-const ITEMS: { key: ProductEditorVisibilityKey; label: string }[] = [
-  { key: 'productCardPrice', label: 'إظهار السعر في كارت المنتج' },
-  { key: 'productCardStock', label: 'إظهار المخزون في كارت المنتج' },
-  { key: 'productCardAddToCart', label: 'إظهار زر (إضافة للسلة)' },
-  { key: 'productCardReserve', label: 'إظهار زر (حجز)' },
+const IMAGE_MAP_ITEMS: { key: ImageMapCardVisibilityKey; label: string }[] = [
+  { key: 'imageMapCardPrice', label: 'كارت منتج الخريطة: إظهار السعر' },
+  { key: 'imageMapCardStock', label: 'كارت منتج الخريطة: إظهار المخزون' },
+  { key: 'imageMapCardDescription', label: 'كارت منتج الخريطة: إظهار الوصف' },
+  { key: 'imageMapCardAddToCart', label: 'كارت منتج الخريطة: إظهار زر (إضافة للسلة)' },
+  { key: 'imageMapCardReserve', label: 'كارت منتج الخريطة: إظهار زر (حجز)' },
 ];
 
 const ProductEditorSection: React.FC<Props> = ({ config, setConfig }) => {
-  const current = (config?.productEditorVisibility || {}) as Record<string, any>;
+  const imageMapCurrent = (config?.imageMapVisibility || {}) as Record<string, any>;
 
-  const getValue = (key: ProductEditorVisibilityKey) => {
-    if (current[key] === undefined || current[key] === null) return true;
-    return Boolean(current[key]);
+  const getImageMapValue = (key: ImageMapCardVisibilityKey) => {
+    if (imageMapCurrent[key] === undefined || imageMapCurrent[key] === null) return true;
+    return Boolean(imageMapCurrent[key]);
   };
 
-  const setValue = (key: ProductEditorVisibilityKey, value: boolean) => {
+  const setImageMapValue = (key: ImageMapCardVisibilityKey, value: boolean) => {
     setConfig((prev: any) => {
-      const base = (prev?.productEditorVisibility && typeof prev.productEditorVisibility === 'object')
-        ? prev.productEditorVisibility
+      const base = (prev?.imageMapVisibility && typeof prev.imageMapVisibility === 'object')
+        ? prev.imageMapVisibility
         : {};
       const next = { ...base, [key]: value };
-      return { ...prev, productEditorVisibility: next };
+      return { ...prev, imageMapVisibility: next };
     });
   };
 
   return (
     <div className="space-y-3">
-      {ITEMS.map((item) => (
+      {IMAGE_MAP_ITEMS.map((item) => (
         <label key={item.key} className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white">
           <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
-          <input type="checkbox" checked={getValue(item.key)} onChange={(e) => setValue(item.key, e.target.checked)} />
+          <input type="checkbox" checked={getImageMapValue(item.key)} onChange={(e) => setImageMapValue(item.key, e.target.checked)} />
         </label>
       ))}
     </div>

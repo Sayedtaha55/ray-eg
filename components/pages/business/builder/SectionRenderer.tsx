@@ -13,6 +13,8 @@ interface SectionRendererProps {
   setLogoDataUrl: (val: string) => void;
   logoFile: File | null;
   setLogoFile: (val: File | null) => void;
+  logoSaving: boolean;
+  onSaveLogo: () => void;
   bannerFile: File | null;
   setBannerFile: (val: File | null) => void;
   bannerPreview: string;
@@ -21,10 +23,6 @@ interface SectionRendererProps {
   setBackgroundFile: (val: File | null) => void;
   backgroundPreview: string;
   setBackgroundPreview: (val: string) => void;
-  headerBackgroundFile: File | null;
-  setHeaderBackgroundFile: (val: File | null) => void;
-  headerBackgroundPreview: string;
-  setHeaderBackgroundPreview: (val: string) => void;
   toggleSection?: (id: string) => void;
   openSection?: string;
 }

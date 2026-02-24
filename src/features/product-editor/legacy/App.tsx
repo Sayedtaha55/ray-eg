@@ -19,6 +19,7 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
   const [mode, setMode] = useState<'editor' | 'customer'>('editor');
   const [shopCategory, setShopCategory] = useState<string>('');
   const [productEditorVisibility, setProductEditorVisibility] = useState<Record<string, any> | undefined>(undefined);
+  const [imageMapVisibility, setImageMapVisibility] = useState<Record<string, any> | undefined>(undefined);
 
   const { addToast } = useToast();
 
@@ -45,6 +46,8 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
           const pageDesign = (shopData as any)?.pageDesign;
           const vis = pageDesign?.productEditorVisibility;
           setProductEditorVisibility(vis && typeof vis === 'object' ? ({ ...(vis as any) } as any) : undefined);
+          const mapVis = pageDesign?.imageMapVisibility;
+          setImageMapVisibility(mapVis && typeof mapVis === 'object' ? ({ ...(mapVis as any) } as any) : undefined);
         }
       } finally {
         if (mounted) setLoading(false);
@@ -65,6 +68,8 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
         const parsed = JSON.parse(raw);
         const vis = parsed?.productEditorVisibility;
         setProductEditorVisibility(vis && typeof vis === 'object' ? ({ ...(vis as any) } as any) : undefined);
+        const mapVis = parsed?.imageMapVisibility;
+        setImageMapVisibility(mapVis && typeof mapVis === 'object' ? ({ ...(mapVis as any) } as any) : undefined);
       } catch {
       }
     };
@@ -157,7 +162,7 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
   const sections = shop?.sections || [];
 
   if (mode === 'customer' && shop) {
-    return <CustomerView shop={shop} shopCategory={shopCategory} productEditorVisibility={productEditorVisibility} onExit={() => setMode('editor')} />;
+    return <CustomerView shop={shop} shopCategory={shopCategory} productEditorVisibility={productEditorVisibility} imageMapVisibility={imageMapVisibility} onExit={() => setMode('editor')} />;
   }
 
   const handleCancel = () => {

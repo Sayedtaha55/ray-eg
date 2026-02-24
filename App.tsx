@@ -28,6 +28,7 @@ const MerchantDashboard = React.lazy(() => import('./components/pages/business/m
 const MerchantProfilePage = React.lazy(() => import('./components/pages/business/MerchantProfilePage'));
 const BusinessPendingApproval = React.lazy(() => import('./components/pages/business/BusinessPendingApproval'));
 const CourierSignupPage = React.lazy(() => import('./components/pages/business/CourierSignupPage'));
+const BuilderPreviewPage = React.lazy(() => import('./components/pages/business/builder/BuilderPreviewPage'));
 
 const AdminLayout = React.lazy(() => import('./components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('./components/pages/admin/AdminDashboard'));
@@ -203,6 +204,8 @@ const App: React.FC = () => {
         <Route path="/shop/:slug/product/:id" element={suspense(<ProductPage />)} />
 
         <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />
+
+        <Route path="/business/builder/preview" element={suspense(<BuilderPreviewPage />)} />
 
         <Route path="/business/pending" element={suspense(<BusinessLayout />)}>
           <Route index element={suspense(<BusinessPendingApproval />)} />

@@ -60,7 +60,7 @@ import { AccountPurgeService } from './account-purge.service';
     ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
     ...(shouldImportMediaModule ? [MediaModule] : []),
     ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
-    ...(includeAllModules || bootModules.has('image-map') ? [ShopImageMapModule] : []),
+    ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') ? [ShopImageMapModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

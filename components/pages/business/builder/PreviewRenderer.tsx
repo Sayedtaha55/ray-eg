@@ -2,10 +2,7 @@ import React, { lazy, Suspense } from 'react';
 import { Skeleton } from '@/components/common/ui';
 
 // Lazy load actual page previews
-const HomePreview = lazy(() => import('@/components/pages/business/builder/HomePreview'));
-const ProductPreview = lazy(() => import('@/components/pages/business/builder/ProductPreview'));
-const GalleryPreview = lazy(() => import('@/components/pages/business/builder/GalleryPreview'));
-const InfoPreview = lazy(() => import('@/components/pages/business/builder/InfoPreview'));
+const ShopProfilePreview = lazy(() => import('@/components/pages/business/builder/ShopProfilePreview'));
 
 interface PreviewRendererProps {
   page: 'home' | 'product' | 'gallery' | 'info';
@@ -14,6 +11,7 @@ interface PreviewRendererProps {
   logoDataUrl: string;
   isPreviewHeaderMenuOpen: boolean;
   setIsPreviewHeaderMenuOpen: (val: boolean) => void;
+  isMobilePreview?: boolean;
 }
 
 const PreviewFallback = () => (
@@ -30,36 +28,15 @@ const PreviewFallback = () => (
 const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
   return (
     <Suspense fallback={<PreviewFallback />}>
-      {props.page === 'home' && (
-        <HomePreview 
-          config={props.config} 
-          shop={props.shop} 
-          logoDataUrl={props.logoDataUrl}
-          isMenuOpen={props.isPreviewHeaderMenuOpen}
-          setIsMenuOpen={props.setIsPreviewHeaderMenuOpen}
-        />
-      )}
-      {props.page === 'product' && (
-        <ProductPreview 
-          config={props.config} 
-          shop={props.shop} 
-          logoDataUrl={props.logoDataUrl}
-        />
-      )}
-      {props.page === 'gallery' && (
-        <GalleryPreview 
-          config={props.config} 
-          shop={props.shop} 
-          logoDataUrl={props.logoDataUrl}
-        />
-      )}
-      {props.page === 'info' && (
-        <InfoPreview 
-          config={props.config} 
-          shop={props.shop} 
-          logoDataUrl={props.logoDataUrl}
-        />
-      )}
+      <ShopProfilePreview
+        page={props.page}
+        config={props.config}
+        shop={props.shop}
+        logoDataUrl={props.logoDataUrl}
+        isPreviewHeaderMenuOpen={props.isPreviewHeaderMenuOpen}
+        setIsPreviewHeaderMenuOpen={props.setIsPreviewHeaderMenuOpen}
+        isMobilePreview={props.isMobilePreview}
+      />
     </Suspense>
   );
 };

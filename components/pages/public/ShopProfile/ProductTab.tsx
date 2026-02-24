@@ -45,6 +45,10 @@ const ProductTab: React.FC<ProductTabProps> = ({
   handleReserve,
   disableCardMotion,
 }) => {
+  const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
+  const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
+  const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
+
   const filteredProducts = activeCategory === 'الكل' 
     ? products 
     : products.filter(p => String(p?.category || 'عام') === activeCategory);
@@ -67,7 +71,13 @@ const ProductTab: React.FC<ProductTabProps> = ({
     return (
       <div className="py-20 text-center">
         <p className="text-slate-500 mb-4">{productsTabError}</p>
-        <button onClick={retryProductsTab} className="px-6 py-2 bg-black text-white rounded-full font-black">إعادة المحاولة</button>
+        <button
+          onClick={retryProductsTab}
+          className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`}
+          style={{ backgroundColor: primaryColor }}
+        >
+          إعادة المحاولة
+        </button>
       </div>
     );
   }
@@ -81,11 +91,12 @@ const ProductTab: React.FC<ProductTabProps> = ({
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className={`px-6 py-2.5 rounded-full font-black text-xs md:text-sm whitespace-nowrap transition-all ${
+              className={`${buttonPadding} ${buttonShape} font-black text-xs md:text-sm whitespace-nowrap transition-all ${
                 activeCategory === cat 
-                  ? 'bg-black text-white shadow-lg scale-105' 
+                  ? 'text-white shadow-lg scale-105' 
                   : 'bg-white text-slate-600 border border-slate-100 hover:border-slate-200'
               }`}
+              style={activeCategory === cat ? { backgroundColor: primaryColor } : undefined}
             >
               {cat}
             </button>
@@ -123,7 +134,8 @@ const ProductTab: React.FC<ProductTabProps> = ({
           <button
             onClick={loadMoreProducts}
             disabled={loadingMoreProducts}
-            className="px-10 py-4 bg-white border-2 border-black text-black rounded-2xl font-black hover:bg-black hover:text-white transition-all disabled:opacity-50"
+            className={`${buttonPadding} ${buttonShape} bg-white border-2 font-black transition-all disabled:opacity-50`}
+            style={{ borderColor: primaryColor, color: primaryColor }}
           >
             {loadingMoreProducts ? 'جاري التحميل...' : 'عرض المزيد من المنتجات'}
           </button>

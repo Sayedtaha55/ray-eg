@@ -50,6 +50,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const [stuck, setStuck] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
 
+  const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
+  const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
+  const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
+
   const showHeaderNavHome = isVisible('headerNavHome', true);
   const showHeaderNavGallery = isVisible('headerNavGallery', true);
   const showHeaderNavInfo = isVisible('headerNavInfo', true);
@@ -227,11 +231,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               <button
                 onClick={handleFollow}
                 disabled={followLoading || hasFollowed}
-                className={`hidden md:flex items-center gap-2 px-6 py-2.5 rounded-full font-black text-sm transition-all ${
+                className={`hidden md:flex items-center gap-2 ${buttonPadding} ${buttonShape} font-black text-sm transition-all ${
                   hasFollowed 
                     ? 'bg-slate-100 text-slate-400 cursor-default' 
-                    : 'bg-black text-white hover:scale-105 active:scale-95'
+                    : 'text-white hover:scale-105 active:scale-95'
                 }`}
+                style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
               >
                 {hasFollowed ? 'متابع' : 'متابعة'}
               </button>
@@ -292,9 +297,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <button
                   onClick={() => { handleFollow(); setIsHeaderMenuOpen(false); }}
                   disabled={followLoading || hasFollowed}
-                  className={`w-full py-5 rounded-2xl font-black text-lg shadow-xl transition-all ${
-                    hasFollowed ? 'bg-slate-100 text-slate-400' : 'bg-black text-white active:scale-95'
+                  className={`w-full py-5 ${buttonShape} font-black text-lg shadow-xl transition-all ${
+                    hasFollowed ? 'bg-slate-100 text-slate-400' : 'text-white active:scale-95'
                   }`}
+                  style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
                 >
                   {hasFollowed ? 'أنت تتابع هذا المحل' : 'متابعة المحل'}
                 </button>

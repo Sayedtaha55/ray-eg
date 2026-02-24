@@ -93,6 +93,12 @@ const getProductMetaChips = (product: any): MetaChip[] => {
   if (!product || typeof product !== 'object') return [];
 
   const normalized: any = { ...(product as any) };
+
+  const itemDataRaw = (normalized as any)?.itemData;
+  if (itemDataRaw && typeof itemDataRaw === 'object') {
+    delete (normalized as any).itemData;
+    Object.assign(normalized, itemDataRaw);
+  }
   if ((normalized.furnitureMeta == null || typeof normalized.furnitureMeta === 'undefined') && normalized.furniture_meta != null) {
     normalized.furnitureMeta = normalized.furniture_meta;
   }
@@ -120,6 +126,8 @@ const getProductMetaChips = (product: any): MetaChip[] => {
     'id', 'name', 'description', 'price', 'category', 'confidence', 'stockStatus', 'x', 'y',
     'productId', 'backendProductId', 'selectedPackId', 'furniture_meta', 'lengthCm',
     'widthCm', 'heightCm', 'length_cm', 'width_cm', 'height_cm',
+    'itemData',
+    'item_data',
   ]);
 
   const labelMap: Record<string, string> = {
@@ -192,6 +200,25 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
   const showAddToCart = isVisible('productCardAddToCart', true);
   const showDescription = isVisible('productCardDescription', true);
   const showReserve = isVisible('productCardReserve', true);
+
+  const descriptionText = useMemo(() => {
+    const itemData = (product as any)?.itemData ?? (product as any)?.item_data;
+    const candidates = [
+      (product as any)?.description,
+      (product as any)?.descriptionAr,
+      (product as any)?.descriptionAR,
+      (product as any)?.description_ar,
+      (product as any)?.description_arabic,
+      (product as any)?.details,
+      itemData && typeof itemData === 'object' ? (itemData as any)?.description : undefined,
+      itemData && typeof itemData === 'object' ? (itemData as any)?.description_ar : undefined,
+      itemData && typeof itemData === 'object' ? (itemData as any)?.details : undefined,
+    ];
+    for (const c of candidates) {
+      if (typeof c === 'string' && c.trim()) return c.trim();
+    }
+    return '';
+  }, [product]);
 
   const furnitureMeta = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
 
@@ -323,7 +350,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
             <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="absolute top-2 left-2 text-slate-400 hover:text-white z-10 p-1 hover:bg-white/10 rounded-full transition-colors" type="button"><X size={14} /></button>
             <div className="p-4 pt-6 text-center max-h-[75vh] overflow-y-auto">
               <h3 className={`font-bold text-base mb-2 leading-tight ${isGhost ? 'text-slate-400' : 'text-white'}`}>{product.name}</h3>
-              {product.description && showDescription && <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">{product.description}</p>}
+              {descriptionText && showDescription && <p className="text-[11px] text-slate-300 mb-3 leading-relaxed">{descriptionText}</p>}
               {metaChips.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 justify-center mb-2">
                   {metaChips.map((c) => (
@@ -379,17 +406,21 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                       {selectedSize && <span className="text-cyan-400">{selectedSize.label === 'custom' ? selectedSize.customValue : selectedSize.label}</span>}
                     </div>
                   )}
-                  {!isGhost && showAddToCart && (
-                    <button onClick={handleAddToCart} className={`w-full mt-4 py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${justAdded ? 'bg-green-500 text-white scale-95 shadow-green-500/20' : 'bg-[#00E5FF] text-slate-900 hover:bg-cyan-400 active:scale-95 shadow-cyan-500/20'}`} type="button">
-                      {justAdded ? <ShoppingBag size={16} /> : <ShoppingCart size={16} />}
-                      <span>{justAdded ? 'تمت الإضافة' : 'إضافة للسلة'}</span>
-                    </button>
-                  )}
-                  {!isGhost && showReserve && !showAddToCart && (
-                    <button onClick={handleReserve} className="w-full mt-4 py-3.5 rounded-2xl font-black text-xs bg-white text-slate-900 flex items-center justify-center gap-2 hover:bg-slate-100 active:scale-95 transition-all shadow-xl" type="button">
-                      <CalendarCheck size={16} />
-                      <span>حجز المنتج</span>
-                    </button>
+                  {!isGhost && (showAddToCart || showReserve) && (
+                    <div className={`mt-4 grid gap-2 ${showAddToCart && showReserve ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                      {showAddToCart && (
+                        <button onClick={handleAddToCart} className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${justAdded ? 'bg-green-500 text-white scale-95 shadow-green-500/20' : 'bg-[#00E5FF] text-slate-900 hover:bg-cyan-400 active:scale-95 shadow-cyan-500/20'}`} type="button">
+                          {justAdded ? <ShoppingBag size={16} /> : <ShoppingCart size={16} />}
+                          <span>{justAdded ? 'تمت الإضافة' : 'إضافة للسلة'}</span>
+                        </button>
+                      )}
+                      {showReserve && (
+                        <button onClick={handleReserve} className="w-full py-3.5 rounded-2xl font-black text-xs bg-white text-slate-900 flex items-center justify-center gap-2 hover:bg-slate-100 active:scale-95 transition-all shadow-xl" type="button">
+                          <CalendarCheck size={16} />
+                          <span>حجز</span>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

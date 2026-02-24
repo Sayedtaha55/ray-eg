@@ -95,34 +95,38 @@ const ShopImageMapPurchaseView: React.FC = () => {
     for (const h of rawHotspots) {
       const sectionId = String(h?.sectionId || h?.section_id || h?.section?.id || '').trim();
 
-      const p = h?.product;
-      const productId = String(p?.id || h?.productId || h?.product_id || '').trim();
+      const itemData = (h as any)?.itemData;
+      const base = itemData && typeof itemData === 'object' ? itemData : h?.product;
+      if (!base) continue;
+
+      const productId = String((base as any)?.id || (h as any)?.productId || (h as any)?.product_id || (h as any)?.id || '').trim();
       if (!productId) continue;
 
       const priceOverrideRaw = h?.priceOverride ?? h?.price_override;
       const nOverride = typeof priceOverrideRaw === 'number' ? priceOverrideRaw : priceOverrideRaw == null ? NaN : Number(priceOverrideRaw);
-      const resolvedPrice = Number.isFinite(nOverride) ? nOverride : Number(p?.price || 0);
+      const resolvedPrice = Number.isFinite(nOverride) ? nOverride : Number((base as any)?.price || 0);
 
-      const stockRaw = (p as any)?.stock;
+      const stockRaw = (base as any)?.stock;
       const stockNum = typeof stockRaw === 'number' ? stockRaw : stockRaw == null ? NaN : Number(stockRaw);
       const stock = Number.isFinite(stockNum) ? Math.max(0, Math.floor(stockNum)) : 0;
       const stockStatus = stock <= 0 ? 'OUT_OF_STOCK' : stock <= 5 ? 'LOW_STOCK' : 'IN_STOCK';
 
       const node = {
         id: productId,
-        name: String(h?.label || p?.name || 'منتج'),
-        description: String(p?.description || ''),
+        name: String(h?.label || (base as any)?.name || 'منتج'),
+        description: String((base as any)?.description || ''),
         price: resolvedPrice,
-        category: String(p?.category || 'عام'),
+        category: String((base as any)?.category || 'عام'),
         confidence: typeof h?.aiMeta?.confidence === 'number' ? h.aiMeta.confidence : 1,
         stock,
         stockStatus,
         x: typeof h?.x === 'number' ? h.x : Number(h?.x || 0),
         y: typeof h?.y === 'number' ? h.y : Number(h?.y || 0),
-        unit: typeof (p as any)?.unit === 'string' ? (p as any).unit : undefined,
-        packOptions: typeof (p as any)?.packOptions === 'undefined' ? undefined : (p as any).packOptions,
-        colors: Array.isArray(p?.colors) ? p.colors : undefined,
-        sizes: Array.isArray(p?.sizes) ? p.sizes : undefined,
+        unit: typeof (base as any)?.unit === 'string' ? (base as any).unit : undefined,
+        packOptions: typeof (base as any)?.packOptions === 'undefined' ? undefined : (base as any).packOptions,
+        colors: Array.isArray((base as any)?.colors) ? (base as any).colors : undefined,
+        sizes: Array.isArray((base as any)?.sizes) ? (base as any).sizes : undefined,
+        itemData: itemData && typeof itemData === 'object' ? itemData : undefined,
       };
 
       if (!sectionId) {

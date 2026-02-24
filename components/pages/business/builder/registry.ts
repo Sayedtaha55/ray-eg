@@ -41,6 +41,8 @@ export type BuilderRenderCtx = {
   setLogoDataUrl: React.Dispatch<React.SetStateAction<string>>;
   logoFile: File | null;
   setLogoFile: React.Dispatch<React.SetStateAction<File | null>>;
+  logoSaving: boolean;
+  onSaveLogo: () => void;
   bannerFile: File | null;
   setBannerFile: React.Dispatch<React.SetStateAction<File | null>>;
   bannerPreview: string;
@@ -49,10 +51,6 @@ export type BuilderRenderCtx = {
   setBackgroundFile: React.Dispatch<React.SetStateAction<File | null>>;
   backgroundPreview: string;
   setBackgroundPreview: React.Dispatch<React.SetStateAction<string>>;
-  headerBackgroundFile: File | null;
-  setHeaderBackgroundFile: React.Dispatch<React.SetStateAction<File | null>>;
-  headerBackgroundPreview: string;
-  setHeaderBackgroundPreview: React.Dispatch<React.SetStateAction<string>>;
 };
 
 export type BuilderSectionConfig = {
@@ -101,29 +99,32 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     id: 'header',
     title: 'اللوجو',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
-    render: ({ config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile }) =>
-      React.createElement(HeaderTypeSection as any, { config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile }),
+    render: ({
+      config,
+      setConfig,
+      logoDataUrl,
+      setLogoDataUrl,
+      logoFile,
+      setLogoFile,
+      logoSaving,
+      onSaveLogo,
+    }) =>
+      React.createElement(HeaderTypeSection as any, {
+        config,
+        setConfig,
+        logoDataUrl,
+        setLogoDataUrl,
+        logoFile,
+        setLogoFile,
+        logoSaving,
+        onSaveLogo,
+      }),
   },
   {
     id: 'headerFooter',
     title: 'أعلى وأسفل العرض',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
-    render: ({
-      config,
-      setConfig,
-      headerBackgroundFile,
-      setHeaderBackgroundFile,
-      headerBackgroundPreview,
-      setHeaderBackgroundPreview,
-    }) =>
-      React.createElement(HeaderFooterSection as any, {
-        config,
-        setConfig,
-        headerBackgroundFile,
-        setHeaderBackgroundFile,
-        headerBackgroundPreview,
-        setHeaderBackgroundPreview,
-      }),
+    render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }),
   },
   {
     id: 'products',

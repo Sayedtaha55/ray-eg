@@ -56,6 +56,10 @@ const GalleryFallback = () => (
 const TabRenderer: React.FC<TabRendererProps> = (props) => {
   const { activeTab } = props;
 
+  const primaryColor = String(props.currentDesign?.primaryColor || '').trim() || '#00E5FF';
+  const buttonShape = String((props.currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
+  const buttonPadding = String((props.currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
+
   return (
     <Suspense fallback={activeTab === 'gallery' ? <GalleryFallback /> : <TabFallback />}>
       {activeTab === 'products' && (
@@ -87,7 +91,13 @@ const TabRenderer: React.FC<TabRendererProps> = (props) => {
           ) : props.galleryTabError && props.galleryImages.length === 0 ? (
             <div className="py-20 text-center">
               <p className="text-slate-500 mb-4">{props.galleryTabError}</p>
-              <button onClick={props.retryGalleryTab} className="px-6 py-2 bg-black text-white rounded-full font-black">إعادة المحاولة</button>
+              <button
+                onClick={props.retryGalleryTab}
+                className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`}
+                style={{ backgroundColor: primaryColor }}
+              >
+                إعادة المحاولة
+              </button>
             </div>
           ) : (
             <ShopGalleryComponent 
@@ -103,6 +113,7 @@ const TabRenderer: React.FC<TabRendererProps> = (props) => {
       {activeTab === 'info' && (
         <InfoTab 
           shop={props.shop}
+          currentDesign={props.currentDesign}
           isVisible={props.isVisible}
           whatsappHref={props.whatsappHref}
         />

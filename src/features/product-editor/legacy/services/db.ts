@@ -88,18 +88,32 @@ export const db = {
       const list = productsBySectionId.get(String(secId)) || [];
       const overrideRaw = (h as any)?.priceOverride ?? (h as any)?.price_override;
       const overrideNum = typeof overrideRaw === 'number' ? overrideRaw : overrideRaw == null ? NaN : Number(overrideRaw);
-      const productPriceRaw = (h as any)?.product?.price;
+      const itemData = (h as any)?.itemData;
+      const base = itemData && typeof itemData === 'object' ? itemData : (h as any)?.product;
+
+      const productPriceRaw = (base as any)?.price;
       const productPriceNum = typeof productPriceRaw === 'number' ? productPriceRaw : productPriceRaw == null ? NaN : Number(productPriceRaw);
 
-      const stockRaw = (h as any)?.product?.stock;
+      const stockRaw = (base as any)?.stock;
       const stockNum = typeof stockRaw === 'number' ? stockRaw : stockRaw == null ? NaN : Number(stockRaw);
       const stock = Number.isFinite(stockNum) ? Math.max(0, Math.floor(stockNum)) : 0;
       const stockStatus = stock <= 0 ? 'OUT_OF_STOCK' : stock <= 5 ? 'LOW_STOCK' : 'IN_STOCK';
 
+      const descriptionRaw =
+        (base as any)?.description ??
+        (base as any)?.description_ar ??
+        (base as any)?.descriptionAr ??
+        (base as any)?.details;
+      const description = typeof descriptionRaw === 'string' ? descriptionRaw : '';
+
+      const unit = typeof (base as any)?.unit === 'string' ? (base as any).unit : undefined;
+
       list.push({
         id: String(h?.id || ''),
-        name: String(h?.label || h?.product?.name || 'منتج'),
-        description: String(h?.product?.description || ''),
+        productId: typeof (h as any)?.productId === 'string' ? (h as any).productId : (typeof (base as any)?.id === 'string' ? (base as any).id : undefined),
+        itemData: itemData && typeof itemData === 'object' ? itemData : undefined,
+        name: String((h as any)?.label || (base as any)?.name || 'منتج'),
+        description,
         price:
           Number.isFinite(overrideNum)
             ? overrideNum
@@ -107,18 +121,19 @@ export const db = {
               ? productPriceNum
               : 0,
         stock,
-        category: String(h?.product?.category || 'عام'),
-        unit: typeof h?.product?.unit === 'string' ? h.product.unit : undefined,
-        furnitureMeta: typeof (h as any)?.product?.furnitureMeta !== 'undefined'
-          ? (h as any).product.furnitureMeta
-          : (typeof (h as any)?.product?.furniture_meta !== 'undefined' ? (h as any).product.furniture_meta : undefined),
-        packOptions: (h as any)?.product?.packOptions ?? (h as any)?.product?.pack_options,
+        category: String((base as any)?.category || 'عام'),
+        unit,
+        furnitureMeta:
+          typeof (base as any)?.furnitureMeta !== 'undefined'
+            ? (base as any).furnitureMeta
+            : (typeof (base as any)?.furniture_meta !== 'undefined' ? (base as any).furniture_meta : undefined),
+        packOptions: (base as any)?.packOptions ?? (base as any)?.pack_options,
         confidence: typeof h?.aiMeta?.confidence === 'number' ? h.aiMeta.confidence : 1,
         stockStatus,
         x: typeof h?.x === 'number' ? h.x : 0,
         y: typeof h?.y === 'number' ? h.y : 0,
-        colors: Array.isArray(h?.product?.colors) ? h.product.colors : undefined,
-        sizes: Array.isArray(h?.product?.sizes) ? h.product.sizes : undefined,
+        colors: Array.isArray((base as any)?.colors) ? (base as any).colors : undefined,
+        sizes: Array.isArray((base as any)?.sizes) ? (base as any).sizes : undefined,
       });
       productsBySectionId.set(String(secId), list);
     }
@@ -162,44 +177,6 @@ export const db = {
     const coverImageUrl = String(shop?.coverImage || uploadedSections[0]?.image || '').trim();
     const map = await ensureMap(sid, coverImageUrl);
 
-    const draftItems: any[] = [];
-    uploadedSections.forEach((sec) => {
-      const products = Array.isArray(sec?.products) ? sec.products : [];
-      products.forEach((p: any) => {
-        const name = String(p?.name || '').trim();
-        const price = Number(p?.price);
-        if (!name || !Number.isFinite(price)) return;
-        const rawDescription = (p as any)?.description;
-        const description = typeof rawDescription === 'string' ? rawDescription : '';
-        draftItems.push({
-          name,
-          price,
-          stock: typeof p?.stock === 'number' && Number.isFinite(p.stock) ? Math.floor(p.stock) : guessStockFromStatus(p?.stockStatus),
-          category: typeof p?.category === 'string' && p.category.trim() ? p.category.trim() : '__IMAGE_MAP__',
-          description,
-          unit: typeof p?.unit === 'string' && p.unit.trim() ? p.unit.trim() : undefined,
-          furnitureMeta: typeof (p as any)?.furnitureMeta === 'undefined' ? undefined : (p as any).furnitureMeta,
-          packOptions: typeof p?.packOptions === 'undefined' ? undefined : p.packOptions,
-          colors: Array.isArray(p?.colors) ? p.colors : undefined,
-          sizes: Array.isArray(p?.sizes) ? p.sizes : undefined,
-        });
-      });
-    });
-
-    const nameToProductId = new Map<string, string>();
-    if (draftItems.length) {
-      const res = await backendPost<any>(`/api/v1/products/manage/by-shop/${encodeURIComponent(sid)}/import-drafts`, {
-        items: draftItems,
-      });
-      const created = Array.isArray(res?.created) ? res.created : [];
-      const updated = Array.isArray(res?.updated) ? res.updated : [];
-      for (const p of [...created, ...updated]) {
-        const id = String(p?.id || '').trim();
-        const name = String(p?.name || '').trim();
-        if (id && name) nameToProductId.set(name, id);
-      }
-    }
-
     const sectionRows = uploadedSections.map((s, idx) => ({
       name: String(s?.name || '').trim() || `قسم ${idx + 1}`,
       sortOrder: idx,
@@ -212,17 +189,47 @@ export const db = {
       products.forEach((p: any, idx: number) => {
         const priceNum = typeof p?.price === 'number' ? p.price : p?.price == null ? NaN : Number(p.price);
         const priceOverride = Number.isFinite(priceNum) ? priceNum : null;
-        const nameKey = String(p?.name || '').trim();
-        const mappedId = nameKey ? nameToProductId.get(nameKey) : undefined;
-        const productId = mappedId || (p?.productId != null ? String(p.productId).trim() : p?.backendProductId != null ? String(p.backendProductId).trim() : null);
+
+        const rawStock = (p as any)?.stock;
+        const stockParsed = rawStock == null ? NaN : Number(rawStock);
+        const stock =
+          Number.isFinite(stockParsed) && stockParsed >= 0
+            ? Math.floor(stockParsed)
+            : (typeof p?.stock === 'number' && Number.isFinite(p.stock)
+              ? Math.floor(p.stock)
+              : guessStockFromStatus(p?.stockStatus));
+
+        const rawDescription =
+          (p as any)?.description ??
+          (p as any)?.description_ar ??
+          (p as any)?.descriptionAr ??
+          (p as any)?.details;
+        const description = typeof rawDescription === 'string' ? rawDescription : '';
+
+        const existingItemData = (p as any)?.itemData;
+        const baseItemData = existingItemData && typeof existingItemData === 'object' ? existingItemData : {};
+        const itemData = {
+          ...baseItemData,
+          name: String(p?.name || '').trim() || 'منتج',
+          description,
+          price: Number.isFinite(priceNum) ? priceNum : 0,
+          stock,
+          unit: typeof p?.unit === 'string' && p.unit.trim() ? p.unit.trim() : undefined,
+          category: typeof p?.category === 'string' && p.category.trim() ? p.category.trim() : '__IMAGE_MAP__',
+          furnitureMeta: typeof (p as any)?.furnitureMeta === 'undefined' ? undefined : (p as any).furnitureMeta,
+          packOptions: typeof p?.packOptions === 'undefined' ? undefined : p.packOptions,
+          colors: Array.isArray(p?.colors) ? p.colors : undefined,
+          sizes: Array.isArray(p?.sizes) ? p.sizes : undefined,
+        };
         hotspots.push({
           x: typeof p?.x === 'number' ? p.x : 0,
           y: typeof p?.y === 'number' ? p.y : 0,
           label: String(p?.name || '').trim() || 'منتج',
           sortOrder: idx,
           sectionIndex,
-          productId: productId || null,
+          productId: null,
           priceOverride,
+          itemData,
           aiMeta: {
             source: 'legacy-editor',
             confidence: typeof p?.confidence === 'number' ? p.confidence : undefined,

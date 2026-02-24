@@ -9,12 +9,16 @@ const MotionDiv = motion.div as any;
 
 interface InfoTabProps {
   shop: any;
+  currentDesign?: any;
   isVisible: (key: string, fallback?: boolean) => boolean;
   whatsappHref: string;
 }
 
-const InfoTab: React.FC<InfoTabProps> = ({ shop, isVisible, whatsappHref }) => {
+const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whatsappHref }) => {
   const showShopFollowersCount = isVisible('shopFollowersCount', true);
+  const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
+  const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-2xl';
+  const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-8 py-4';
 
   return (
     <MotionDiv
@@ -27,7 +31,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, isVisible, whatsappHref }) => {
           {/* Bio Section */}
           <div className="text-right">
             <h3 className="font-black text-2xl mb-4 flex items-center gap-3 justify-end">
-              عن المحل <Info className="text-[#00E5FF]" />
+              عن المحل <Info style={{ color: primaryColor }} />
             </h3>
             <p className="text-slate-600 leading-relaxed text-lg font-bold">
               {shop?.description || 'لا يوجد وصف متاح حالياً لهذا المحل.'}
@@ -74,7 +78,8 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, isVisible, whatsappHref }) => {
             )}
             <button
               onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${shop?.latitude},${shop?.longitude}`, '_blank')}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl font-black hover:scale-105 transition-all shadow-lg"
+              className={`flex items-center gap-3 ${buttonPadding} text-white ${buttonShape} font-black hover:scale-105 transition-all shadow-lg`}
+              style={{ backgroundColor: primaryColor }}
             >
               فتح الخريطة <MapPin size={20} />
             </button>

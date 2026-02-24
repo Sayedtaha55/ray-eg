@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, BadRequestException, ForbiddenException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { MediaPresignDto } from './media-presign.dto';
@@ -12,7 +12,7 @@ export class MediaPresignService {
     getSignedUrl: any;
   } | null = null;
 
-  constructor(private readonly config: ConfigService) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
     console.log('[MediaPresignService] constructor');
   }
 

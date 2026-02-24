@@ -18,7 +18,7 @@ const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
 @Controller('api/v1/media')
 export class MediaController {
   constructor(
-    private readonly mediaPresign: MediaPresignService,
+    @Inject(MediaPresignService) private readonly mediaPresign: MediaPresignService,
     @Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService,
   ) {}
 
@@ -193,7 +193,7 @@ export class MediaControllerLite {
 @Controller('api/v1/media')
 export class MediaControllerPresignOnly {
   constructor(
-    private readonly mediaPresign: MediaPresignService,
+    @Inject(MediaPresignService) private readonly mediaPresign: MediaPresignService,
     @Optional() private readonly mediaOptimizeQueue?: MediaOptimizeQueue,
   ) {}
 

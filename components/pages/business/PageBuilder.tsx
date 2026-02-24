@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, lazy, Suspense, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Save, Layout, Check, 
@@ -21,6 +21,8 @@ const MotionDiv = motion.div as any;
 // Lazy load heavy components
 const PreviewRenderer = lazy(() => import('./builder/PreviewRenderer'));
 const SectionRenderer = lazy(() => import('./builder/SectionRenderer'));
+
+const PreviewRendererAny = PreviewRenderer as any;
 
 
 const DEFAULT_PAGE_DESIGN = {
@@ -106,6 +108,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [config, setConfig] = useState<ShopDesign>(DEFAULT_PAGE_DESIGN);
   const [logoDataUrl, setLogoDataUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoSaving, setLogoSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
@@ -116,10 +119,12 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [bannerPreview, setBannerPreview] = useState<string>('');
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
   const [backgroundPreview, setBackgroundPreview] = useState<string>('');
-  const [headerBackgroundFile, setHeaderBackgroundFile] = useState<File | null>(null);
-  const [headerBackgroundPreview, setHeaderBackgroundPreview] = useState<string>('');
   const [isDesktop, setIsDesktop] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
+
+  const savingRef = useRef(false);
+  const logoSavingRef = useRef(false);
+  const handleSaveRef = useRef<null | (() => void)>(null);
 
   const syncVisibilityWithModules = (current: any, shop: any) => {
     const next = { ...(current && typeof current === 'object' ? current : {}) } as Record<string, boolean>;
@@ -303,17 +308,28 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   useEffect(() => {
-    const onSave = () => {
+    handleSaveRef.current = () => {
       handleSave();
+    };
+  }, [shopId, config, logoDataUrl, logoFile, bannerFile, bannerPreview, backgroundFile, backgroundPreview]);
+
+  useEffect(() => {
+    const onSave = () => {
+      try {
+        handleSaveRef.current?.();
+      } catch {
+      }
     };
     window.addEventListener('pagebuilder-save', onSave as any);
     return () => {
       window.removeEventListener('pagebuilder-save', onSave as any);
     };
-  }, [shopId, config, logoDataUrl, logoFile, bannerFile, bannerPreview, backgroundFile, backgroundPreview, headerBackgroundFile, headerBackgroundPreview]);
+  }, []);
 
   const handleSave = async () => {
     if (!shopId) return;
+    if (savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     try {
       const uploadMedia = async (file: File, purpose: string) => {
@@ -364,23 +380,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         }
       }
 
-      let uploadedHeaderBackgroundUrl = '';
-      if (headerBackgroundFile) {
-        try {
-          uploadedHeaderBackgroundUrl = await uploadMedia(headerBackgroundFile, 'shop_header_background');
-          try {
-            if (headerBackgroundPreview && headerBackgroundPreview.startsWith('blob:')) {
-              URL.revokeObjectURL(headerBackgroundPreview);
-            }
-          } catch {
-          }
-          setHeaderBackgroundPreview('');
-          setHeaderBackgroundFile(null);
-        } catch {
-          addToast('فشل رفع خلفية الهيدر', 'error');
-        }
-      }
-
       // حفظ دائم في قاعدة البيانات
       const elementsVisibilityRaw = config?.elementsVisibility;
       const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
@@ -427,7 +426,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
         ...(uploadedBanner?.bannerPosterUrl ? { bannerPosterUrl: uploadedBanner.bannerPosterUrl } : {}),
         ...(uploadedBackgroundUrl ? { backgroundImageUrl: uploadedBackgroundUrl } : {}),
-        ...(uploadedHeaderBackgroundUrl ? { headerBackgroundImageUrl: uploadedHeaderBackgroundUrl } : {}),
         bannerPosX: coerceNumber((config as any)?.bannerPosX, Number((DEFAULT_PAGE_DESIGN as any).bannerPosX)),
         bannerPosY: coerceNumber((config as any)?.bannerPosY, Number((DEFAULT_PAGE_DESIGN as any).bannerPosY)),
         headerTransparent: Boolean(config.headerTransparent),
@@ -457,13 +455,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setConfig((prev: any) => ({
           ...prev,
           backgroundImageUrl: uploadedBackgroundUrl,
-        }));
-      }
-
-      if (uploadedHeaderBackgroundUrl) {
-        setConfig((prev: any) => ({
-          ...prev,
-          headerBackgroundImageUrl: uploadedHeaderBackgroundUrl,
         }));
       }
 
@@ -500,13 +491,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setBackgroundFile(null);
         setConfig({ ...config, backgroundImageUrl: uploadedBackgroundUrl || (config as any)?.backgroundImageUrl || '' });
       }
-
-      if (headerBackgroundPreview && headerBackgroundPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(headerBackgroundPreview);
-        setHeaderBackgroundPreview('');
-        setHeaderBackgroundFile(null);
-        setConfig({ ...config, headerBackgroundImageUrl: uploadedHeaderBackgroundUrl || (config as any)?.headerBackgroundImageUrl || '' });
-      }
       
       setSaving(false);
       setSaved(true);
@@ -519,6 +503,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     } catch (e) {
       setSaving(false);
       addToast('فشل حفظ التصميم، حاول مرة أخرى', 'error');
+    } finally {
+      savingRef.current = false;
     }
   };
 
@@ -540,6 +526,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         const computed = next(prev);
         try {
           localStorage.setItem('ray_builder_preview_design', JSON.stringify(computed));
+          localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));
           window.dispatchEvent(new Event('ray-builder-preview-update'));
         } catch {
         }
@@ -551,8 +538,66 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setConfig(next as any);
     try {
       localStorage.setItem('ray_builder_preview_design', JSON.stringify(next));
+      localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));
       window.dispatchEvent(new Event('ray-builder-preview-update'));
     } catch {
+    }
+  };
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ray_builder_preview_design', JSON.stringify(config));
+      localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));
+      window.dispatchEvent(new Event('ray-builder-preview-update'));
+    } catch {
+    }
+  }, [config]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));
+      window.dispatchEvent(new Event('ray-builder-preview-update'));
+    } catch {
+    }
+  }, [logoDataUrl]);
+
+  const handleSaveLogo = async () => {
+    if (!shopId) return;
+    if (!logoFile) return;
+    if (logoSavingRef.current) return;
+    logoSavingRef.current = true;
+    setLogoSaving(true);
+    try {
+      const isImage = logoFile.type.startsWith('image/') && !logoFile.type.includes('gif');
+      const fileToUpload = isImage
+        ? await compressImage(logoFile, { maxSizeMB: 0.5, maxWidthOrHeight: 1600 })
+        : logoFile;
+
+      const uploaded = await ApiService.uploadMediaRobust({ file: fileToUpload as File, purpose: 'shop_logo', shopId });
+      const nextLogoUrl = String(uploaded?.url || '').trim();
+      if (!nextLogoUrl) throw new Error('Upload failed');
+
+      await ApiService.updateMyShop({ logoUrl: nextLogoUrl });
+
+      try {
+        if (logoDataUrl && logoDataUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(logoDataUrl);
+        }
+      } catch {
+      }
+
+      setLogoDataUrl(nextLogoUrl);
+      setLogoFile(null);
+      addToast('تم حفظ اللوجو بنجاح!', 'success');
+      try {
+        window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));
+      } catch {
+      }
+    } catch {
+      addToast('فشل حفظ اللوجو، حاول مرة أخرى', 'error');
+    } finally {
+      setLogoSaving(false);
+      logoSavingRef.current = false;
     }
   };
 
@@ -596,6 +641,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setLogoDataUrl={setLogoDataUrl}
           logoFile={logoFile}
           setLogoFile={setLogoFile}
+          logoSaving={logoSaving}
+          onSaveLogo={handleSaveLogo}
           bannerFile={bannerFile}
           setBannerFile={setBannerFile}
           bannerPreview={bannerPreview}
@@ -604,10 +651,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setBackgroundFile={setBackgroundFile}
           backgroundPreview={backgroundPreview}
           setBackgroundPreview={setBackgroundPreview}
-          headerBackgroundFile={headerBackgroundFile}
-          setHeaderBackgroundFile={setHeaderBackgroundFile}
-          headerBackgroundPreview={headerBackgroundPreview}
-          setHeaderBackgroundPreview={setHeaderBackgroundPreview}
         />
       </Suspense>
     );
@@ -709,6 +752,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         setLogoDataUrl={setLogoDataUrl}
                         logoFile={logoFile}
                         setLogoFile={setLogoFile}
+                        logoSaving={logoSaving}
+                        onSaveLogo={handleSaveLogo}
                         bannerFile={bannerFile}
                         setBannerFile={setBannerFile}
                         bannerPreview={bannerPreview}
@@ -717,10 +762,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         setBackgroundFile={setBackgroundFile}
                         backgroundPreview={backgroundPreview}
                         setBackgroundPreview={setBackgroundPreview}
-                        headerBackgroundFile={headerBackgroundFile}
-                        setHeaderBackgroundFile={setHeaderBackgroundFile}
-                        headerBackgroundPreview={headerBackgroundPreview}
-                        setHeaderBackgroundPreview={setHeaderBackgroundPreview}
                         toggleSection={toggleSection}
                         openSection={openSection}
                       />
@@ -748,7 +789,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
            )}
         </header>
 
-        <div className={`flex-1 overflow-y-auto ${config.pagePadding || 'p-6 md:p-12'} ${integratedMode ? 'flex flex-col items-center gap-8' : 'flex items-start justify-center'}`}>
+        <div className={`flex-1 overflow-y-auto p-6 md:p-12 ${integratedMode ? 'flex flex-col items-center gap-8' : 'flex items-start justify-center'}`}>
           <MotionDiv 
             layout
             className={`shadow-2xl overflow-hidden transition-all duration-700 flex flex-col relative ${
@@ -764,14 +805,17 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               backgroundRepeat: 'no-repeat',
             }}
           >
-            <PreviewRenderer
-              page={previewPage}
-              config={config}
-              shop={{ id: shopId, name: 'معاينة المتجر' }}
-              logoDataUrl={logoDataUrl}
-              isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
-              setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
-            />
+            <div className="w-full">
+              <PreviewRendererAny
+                page={previewPage}
+                config={config}
+                shop={{ id: shopId, name: 'معاينة المتجر' }}
+                logoDataUrl={logoDataUrl}
+                isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
+                setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
+                isMobilePreview={previewMode === 'mobile'}
+              />
+            </div>
           </MotionDiv>
         </div>
 

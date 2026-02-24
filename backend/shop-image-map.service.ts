@@ -115,7 +115,23 @@ export class ShopImageMapService {
         sections: { orderBy: { sortOrder: 'asc' } },
         hotspots: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          include: {
+          select: {
+            id: true,
+            mapId: true,
+            sectionId: true,
+            productId: true,
+            x: true,
+            y: true,
+            width: true,
+            height: true,
+            label: true,
+            sortOrder: true,
+            priceOverride: true,
+            isActive: true,
+            aiMeta: true,
+            createdAt: true,
+            updatedAt: true,
+            itemData: true,
             product: {
               select: {
                 id: true,
@@ -170,7 +186,23 @@ export class ShopImageMapService {
         sections: { orderBy: { sortOrder: 'asc' } },
         hotspots: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          include: {
+          select: {
+            id: true,
+            mapId: true,
+            sectionId: true,
+            productId: true,
+            x: true,
+            y: true,
+            width: true,
+            height: true,
+            label: true,
+            sortOrder: true,
+            priceOverride: true,
+            isActive: true,
+            aiMeta: true,
+            createdAt: true,
+            updatedAt: true,
+            itemData: true,
             product: {
               select: {
                 id: true,
@@ -356,6 +388,7 @@ export class ShopImageMapService {
         const width = typeof h?.width === 'undefined' ? null : normalizeFloat(h.width);
         const height = typeof h?.height === 'undefined' ? null : normalizeFloat(h.height);
         const priceOverride = typeof h?.priceOverride === 'undefined' ? null : normalizeFloat(h.priceOverride);
+        const itemData = typeof h?.itemData === 'undefined' ? undefined : h.itemData;
 
         return {
           x,
@@ -367,6 +400,7 @@ export class ShopImageMapService {
           priceOverride,
           productId: productId || null,
           sectionIndex,
+          itemData,
           aiMeta: typeof h?.aiMeta === 'undefined' ? undefined : h.aiMeta,
         };
       })
@@ -411,6 +445,7 @@ export class ShopImageMapService {
             label: h.label,
             sortOrder: h.sortOrder,
             priceOverride: h.priceOverride,
+            itemData: typeof h.itemData === 'undefined' ? undefined : h.itemData,
             aiMeta: h.aiMeta,
           })),
         });
@@ -435,7 +470,23 @@ export class ShopImageMapService {
           sections: { orderBy: { sortOrder: 'asc' } },
           hotspots: {
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            include: {
+            select: {
+              id: true,
+              mapId: true,
+              sectionId: true,
+              productId: true,
+              x: true,
+              y: true,
+              width: true,
+              height: true,
+              label: true,
+              sortOrder: true,
+              priceOverride: true,
+              isActive: true,
+              aiMeta: true,
+              createdAt: true,
+              updatedAt: true,
+              itemData: true,
               product: {
                 select: {
                   id: true,
@@ -451,11 +502,10 @@ export class ShopImageMapService {
                   images: true,
                   furnitureMeta: {
                     select: {
-                      length: true,
-                      width: true,
-                      height: true,
-                      weight: true,
-                      material: true,
+                      unit: true,
+                      lengthCm: true,
+                      widthCm: true,
+                      heightCm: true,
                     },
                   },
                   isActive: true,
@@ -478,7 +528,7 @@ export class ShopImageMapService {
 
     const shop = await (this.prisma as any).shop.findUnique({
       where: { slug: shopSlug },
-      select: { id: true, slug: true, name: true, category: true, isActive: true },
+      select: { id: true, slug: true, name: true, category: true, isActive: true, pageDesign: true },
     });
 
     if (!shop || !shop.isActive) throw new NotFoundException('المتجر غير موجود');
@@ -490,7 +540,23 @@ export class ShopImageMapService {
         sections: { orderBy: { sortOrder: 'asc' } },
         hotspots: {
           orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-          include: {
+          select: {
+            id: true,
+            mapId: true,
+            sectionId: true,
+            productId: true,
+            x: true,
+            y: true,
+            width: true,
+            height: true,
+            label: true,
+            sortOrder: true,
+            priceOverride: true,
+            isActive: true,
+            aiMeta: true,
+            createdAt: true,
+            updatedAt: true,
+            itemData: true,
             product: {
               select: {
                 id: true,
@@ -546,7 +612,23 @@ export class ShopImageMapService {
           sections: { orderBy: { sortOrder: 'asc' } },
           hotspots: {
             orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-            include: {
+            select: {
+              id: true,
+              mapId: true,
+              sectionId: true,
+              productId: true,
+              x: true,
+              y: true,
+              width: true,
+              height: true,
+              label: true,
+              sortOrder: true,
+              priceOverride: true,
+              isActive: true,
+              aiMeta: true,
+              createdAt: true,
+              updatedAt: true,
+              itemData: true,
               product: {
                 select: {
                   id: true,

@@ -98,6 +98,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   const [imageMapError, setImageMapError] = useState<string>('');
   const [activeMap, setActiveMap] = useState<any | null>(null);
   const [imageMapLinkedProductIds, setImageMapLinkedProductIds] = useState<Set<string>>(new Set());
+  const [imageMapLinksReady, setImageMapLinksReady] = useState(false);
   const [imageMapRows, setImageMapRows] = useState<
     Array<{ key: string; name: string; price: number; stock: number; productId: string | null; linked: boolean; colors?: string[]; sizes?: any[] }>
   >([]);
@@ -236,6 +237,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     if (!shopId) return;
     if (!canUseImageMapEditor) return;
     let mounted = true;
+    setImageMapLinksReady(false);
     (async () => {
       try {
         const maps = await ApiService.listShopImageMapsForManage(shopId);
@@ -245,6 +247,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       } catch {
         if (!mounted) return;
         setImageMapLinkedProductIds(new Set());
+      } finally {
+        if (!mounted) return;
+        setImageMapLinksReady(true);
       }
     })();
     return () => {
@@ -526,13 +531,23 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
   };
 
-  const filteredProducts = (Array.isArray(products) ? products : []).filter((p: any) => {
-    if (!p) return false;
-    if (isImageMapProduct(p)) return false;
-    const id = normalizeText(p?.id);
-    if (id && imageMapLinkedProductIds.has(id)) return false;
-    return true;
-  });
+  const filteredProducts = (() => {
+    const list = Array.isArray(products) ? products : [];
+
+    // When image-map feature is enabled, wait for linked-IDs to load to avoid mixing/duplicating
+    // image-map-linked products in the normal products list.
+    if (canUseImageMapEditor && !imageMapLinksReady) {
+      return [] as any[];
+    }
+
+    return list.filter((p: any) => {
+      if (!p) return false;
+      if (isImageMapProduct(p)) return false;
+      const id = normalizeText(p?.id);
+      if (id && imageMapLinkedProductIds.has(id)) return false;
+      return true;
+    });
+  })();
 
   return (
     <>
@@ -778,26 +793,30 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         )}
 
         <div className="rounded-3xl border border-slate-100 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-          <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
-            <div className="col-span-2 text-right">الصورة</div>
-            <div className="col-span-4 text-right">الاسم</div>
-            <div className="col-span-2 text-right">السعر</div>
-            <div className="col-span-2 text-right">المخزون</div>
-            <div className="col-span-2 text-right">تحكم</div>
-          </div>
+          <div className="overflow-x-auto touch-pan-x">
+            <div className="min-w-[720px]">
+              <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
+                <div className="col-span-2 text-right">الصورة</div>
+                <div className="col-span-4 text-right">الاسم</div>
+                <div className="col-span-2 text-right">السعر</div>
+                <div className="col-span-2 text-right">المخزون</div>
+                <div className="col-span-2 text-right">تحكم</div>
+              </div>
 
-          <div className="divide-y divide-slate-100">
-            {filteredProducts.map((p) => (
-              <ProductRow
-                key={p.id}
-                product={p}
-                togglingId={togglingId}
-                handleEdit={handleEdit}
-                handleToggleActive={handleToggleActive}
-                onDelete={onDelete}
-                setPreviewImageSrc={setPreviewImageSrc}
-              />
-            ))}
+              <div className="divide-y divide-slate-100">
+                {filteredProducts.map((p) => (
+                  <ProductRow
+                    key={p.id}
+                    product={p}
+                    togglingId={togglingId}
+                    handleEdit={handleEdit}
+                    handleToggleActive={handleToggleActive}
+                    onDelete={onDelete}
+                    setPreviewImageSrc={setPreviewImageSrc}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

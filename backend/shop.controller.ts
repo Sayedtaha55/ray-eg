@@ -211,41 +211,58 @@ export class ShopController {
       return v;
     })();
 
-    return this.shopService.updateShopSettings(targetShopId, {
-      name: typeof body?.name === 'string' ? body.name : undefined,
-      description: typeof body?.description === 'string' ? body.description : undefined,
-      category: typeof body?.category === 'string' ? body.category : undefined,
-      governorate: typeof body?.governorate === 'string' ? body.governorate : undefined,
-      city: typeof body?.city === 'string' ? body.city : undefined,
-      addressDetailed: typeof body?.addressDetailed === 'string' ? body.addressDetailed : undefined,
-      displayAddress,
-      mapLabel,
-      latitude,
-      longitude,
-      locationSource,
-      locationAccuracy,
-      locationUpdatedAt,
-      phone: typeof body?.phone === 'string' ? body.phone : undefined,
-      email: typeof body?.email === 'string' ? body.email : undefined,
-      openingHours: typeof body?.openingHours === 'string' ? body.openingHours : undefined,
-      logoUrl: typeof body?.logoUrl === 'string' ? body.logoUrl : undefined,
-      bannerUrl: typeof body?.bannerUrl === 'string' ? body.bannerUrl : undefined,
-      whatsapp: typeof body?.whatsapp === 'string' ? body.whatsapp : undefined,
-      customDomain: typeof body?.customDomain === 'string' ? body.customDomain : undefined,
-      paymentConfig,
-      addons,
-      isActive,
-      enabledModules,
-      dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
-      deliveryFee:
-        userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')
-          ? ((): number | null => {
-              const v = Number(body.deliveryFee);
-              if (Number.isNaN(v) || v < 0) return null;
-              return v;
-            })()
-          : undefined,
-    });
+    try {
+      return await this.shopService.updateShopSettings(targetShopId, {
+        name: typeof body?.name === 'string' ? body.name : undefined,
+        description: typeof body?.description === 'string' ? body.description : undefined,
+        category: typeof body?.category === 'string' ? body.category : undefined,
+        governorate: typeof body?.governorate === 'string' ? body.governorate : undefined,
+        city: typeof body?.city === 'string' ? body.city : undefined,
+        addressDetailed: typeof body?.addressDetailed === 'string' ? body.addressDetailed : undefined,
+        displayAddress,
+        mapLabel,
+        latitude,
+        longitude,
+        locationSource,
+        locationAccuracy,
+        locationUpdatedAt,
+        phone: typeof body?.phone === 'string' ? body.phone : undefined,
+        email: typeof body?.email === 'string' ? body.email : undefined,
+        openingHours: typeof body?.openingHours === 'string' ? body.openingHours : undefined,
+        logoUrl: typeof body?.logoUrl === 'string' ? body.logoUrl : undefined,
+        bannerUrl: typeof body?.bannerUrl === 'string' ? body.bannerUrl : undefined,
+        whatsapp: typeof body?.whatsapp === 'string' ? body.whatsapp : undefined,
+        customDomain: typeof body?.customDomain === 'string' ? body.customDomain : undefined,
+        paymentConfig,
+        addons,
+        isActive,
+        enabledModules,
+        dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
+        deliveryFee:
+          userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')
+            ? ((): number | null => {
+                const v = Number(body.deliveryFee);
+                if (Number.isNaN(v) || v < 0) return null;
+                return v;
+              })()
+            : undefined,
+      });
+    } catch (e: any) {
+      const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
+      const isDev = nodeEnv !== 'production';
+      const host = String(req?.headers?.host || '').toLowerCase();
+      const isLocalHost = host.includes('localhost') || host.startsWith('127.0.0.1') || host.startsWith('0.0.0.0');
+
+      if (isDev || isLocalHost) {
+        const name = e?.name ? String(e.name) : '';
+        const code = e?.code ? String(e.code) : '';
+        const msg = e?.message ? String(e.message) : 'Internal error';
+        const meta = [name, code].filter(Boolean).join(' ');
+        throw new BadRequestException(meta ? `${meta}: ${msg}` : msg);
+      }
+
+      throw e;
+    }
   }
 
   @Post('me/banner')

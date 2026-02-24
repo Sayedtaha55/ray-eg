@@ -78,6 +78,11 @@ const ProductCard = React.memo(function ProductCard({
   const isModern = design.layout === 'modern';
   const isBold = design.layout === 'bold';
 
+  const primaryColor = String((design as any)?.primaryColor || '').trim() || '#00E5FF';
+  const secondaryColor = String((design as any)?.secondaryColor || '').trim() || '#BD00FF';
+  const buttonShape = String((design as any)?.buttonShape || '').trim() || '';
+  const buttonPadding = String((design as any)?.buttonPadding || '').trim() || '';
+
   const toggleFav = (e: React.MouseEvent) => {
     e.stopPropagation();
     const state = RayDB.toggleFavorite(product.id);
@@ -302,7 +307,10 @@ const ProductCard = React.memo(function ProductCard({
         ) : null}
 
         {offer && (
-          <div className="absolute top-2 right-2 bg-[#BD00FF] text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-black text-[8px] md:text-[10px] shadow-lg flex items-center gap-1 z-10">
+          <div
+            className="absolute top-2 right-2 text-white px-2 py-0.5 md:px-2.5 md:py-1 rounded-full font-black text-[8px] md:text-[10px] shadow-lg flex items-center gap-1 z-10"
+            style={{ backgroundColor: secondaryColor }}
+          >
             <Zap size={8} fill="currentColor" className="md:w-[10px] md:h-[10px]" /> {offer.discount}%
           </div>
         )}
@@ -361,7 +369,7 @@ const ProductCard = React.memo(function ProductCard({
                 {offer && <p className="text-slate-300 line-through text-[8px] md:text-[10px] font-bold">ج.م {product.price}</p>}
                 <span
                   className={`font-black tracking-tighter ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`}
-                  style={{ color: offer ? '#BD00FF' : design.primaryColor }}
+                  style={{ color: offer ? secondaryColor : primaryColor }}
                 >
                   {isFashion && typeof fashionMinPrice === 'number' ? `يبدأ من ج.م ${fashionMinPrice}` : `ج.م ${currentPrice}`}
                 </span>
@@ -399,11 +407,10 @@ const ProductCard = React.memo(function ProductCard({
                     e.stopPropagation();
                     onAdd(product, currentPrice);
                   }}
-                  className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 ${
-                    isAdded ? 'bg-green-500' : 'bg-slate-900'
-                  } text-white ${
+                  className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 text-white ${
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
-                  } shadow-md`}
+                  } ${buttonShape} ${isAdded ? 'bg-green-500' : ''} shadow-md`}
+                  style={isAdded ? undefined : { backgroundColor: primaryColor }}
                 >
                   {isAdded ? <Check size={11} className="sm:w-3 sm:h-3" /> : <Plus size={11} className="sm:w-3 sm:h-3" />}
                   <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
@@ -419,8 +426,8 @@ const ProductCard = React.memo(function ProductCard({
                   }}
                   className={`flex-1 py-2 md:py-3 ${reserveTextClass} flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
-                  }`}
-                  style={{ backgroundColor: design.primaryColor }}
+                  } ${buttonShape} ${buttonPadding}`}
+                  style={{ backgroundColor: primaryColor }}
                 >
                   <CalendarCheck size={11} className="sm:w-3 sm:h-3" /> حجز
                 </button>

@@ -165,7 +165,10 @@ export class ShopSettingsService {
         },
       });
 
-      await this.redis.invalidateShopCache(updated.id, updated.slug);
+      try {
+        await this.redis.invalidateShopCache(updated.id, updated.slug);
+      } catch {
+      }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('update', 'shops', duration, true);

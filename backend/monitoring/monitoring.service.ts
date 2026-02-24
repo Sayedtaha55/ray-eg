@@ -9,6 +9,14 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   private healthChecks: Map<string, () => Promise<boolean>> = new Map();
   private metricsInterval: NodeJS.Timeout | null = null;
 
+  private safeCall(fn: () => void) {
+    try {
+      fn();
+    } catch {
+      // Never allow monitoring/logging to break business logic.
+    }
+  }
+
   constructor(
     @Inject(LoggerService) private readonly logger: LoggerService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -62,11 +70,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     current.lastDuration = duration;
 
     this.metrics.set(key, current);
-    this.logger.logPerformance(operation, duration);
+    this.safeCall(() => this.logger.logPerformance(operation, duration));
 
     // Alert if performance is poor
     if (duration > 5000) { // 5 seconds
-      this.createAlert('performance', `Slow operation: ${operation}`);
+      this.safeCall(() => this.createAlert('performance', `Slow operation: ${operation}`));
     }
   }
 
@@ -87,12 +95,12 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     this.metrics.set(key, current);
 
     // Log the request
-    this.logger.logRequest(method, endpoint, statusCode, duration);
+    this.safeCall(() => this.logger.logRequest(method, endpoint, statusCode, duration));
 
     // Alert for high error rates
     const errorRate = current.errors / current.count;
     if (errorRate > 0.1 && current.count > 10) { // 10% error rate
-      this.createAlert('api_error', `High error rate on ${method} ${endpoint}`);
+      this.safeCall(() => this.createAlert('api_error', `High error rate on ${method} ${endpoint}`));
     }
   }
 
@@ -110,11 +118,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     current.avgDuration = Math.round(totalDuration / current.count);
 
     this.metrics.set(key, current);
-    this.logger.logDatabase(operation, table, duration, success);
+    this.safeCall(() => this.logger.logDatabase(operation, table, duration, success));
 
     // Alert for slow database operations
     if (duration > 2000) { // 2 seconds
-      this.createAlert('database', `Slow database operation: ${operation} on ${table}`);
+      this.safeCall(() => this.createAlert('database', `Slow database operation: ${operation} on ${table}`));
     }
   }
 
@@ -133,11 +141,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     current.hitRate = Math.round((current.hits / current.totalRequests) * 100);
     this.metrics.set(cacheKey, current);
 
-    this.logger.logCache(operation, key, hit, duration);
+    this.safeCall(() => this.logger.logCache(operation, key, hit, duration));
 
     // Alert for low cache hit rate
     if (current.totalRequests > 100 && current.hitRate < 50) {
-      this.createAlert('cache', `Low cache hit rate for ${operation}`);
+      this.safeCall(() => this.createAlert('cache', `Low cache hit rate for ${operation}`));
     }
   }
 

@@ -546,19 +546,19 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
       )}
 
       {/* Top Bar */}
-      <div className="h-14 sm:h-16 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-2.5 sm:px-6 z-40 shadow-lg">
+      <div className="h-12 sm:h-16 bg-gradient-to-r from-slate-900/95 via-slate-800/95 to-slate-900/95 backdrop-blur-sm sm:backdrop-blur-xl border-b border-slate-700/50 flex items-center justify-between px-2 sm:px-6 z-40 shadow-sm sm:shadow-lg">
         <div className="flex items-center gap-2 sm:gap-4">
-          <div className="bg-gradient-to-r from-cyan-600/20 to-blue-600/20 p-1.5 sm:p-2 rounded-xl border border-cyan-500/30 shadow-cyan-500/10 shadow-lg">
-            <Edit3 size={16} className="text-cyan-400 sm:hidden" />
+          <div className="bg-gradient-to-r from-cyan-600/20 to-blue-600/20 p-1 sm:p-2 rounded-xl border border-cyan-500/30 shadow-cyan-500/10 shadow-md sm:shadow-lg">
+            <Edit3 size={14} className="text-cyan-400 sm:hidden" />
             <Edit3 size={18} className="text-cyan-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="font-bold text-white text-sm sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر المتجر المتكامل</h2>
-            <p className="text-[10px] sm:text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
+            <h2 className="font-bold text-white text-[12px] sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر المتجر المتكامل</h2>
+            <p className="text-[9px] sm:text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
           </div>
         </div>
         <div className="flex gap-1.5 sm:gap-3">
-          <button onClick={onCancel} className="px-2 sm:px-4 py-2 text-slate-300 hover:text-white transition-all duration-300 text-[11px] sm:text-sm hover:bg-slate-800/50 rounded-lg">
+          <button onClick={onCancel} className="px-2 sm:px-4 py-1.5 sm:py-2 text-slate-300 hover:text-white transition-all duration-300 text-[10px] sm:text-sm hover:bg-slate-800/50 rounded-lg">
             إلغاء
           </button>
           <button
@@ -569,7 +569,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
               setIsMoveMode(false);
             }}
             disabled={!activeSection}
-            className={`px-2 sm:px-4 py-2 rounded-xl border font-bold transition-all duration-300 text-[11px] sm:text-sm transform hover:scale-[1.02]
+            className={`px-2 sm:px-4 py-1.5 sm:py-2 rounded-xl border font-bold transition-all duration-300 text-[10px] sm:text-sm transform hover:scale-[1.02]
               ${
                 !activeSection
                   ? 'bg-slate-800/50 border-slate-700/50 text-slate-500 cursor-not-allowed'
@@ -580,7 +580,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
             `}
           >
             <span className="flex items-center gap-2">
-              <Plus size={12} className="sm:hidden" />
+              <Plus size={11} className="sm:hidden" />
               <Plus size={14} className="hidden sm:block" />
               {isAddingMode ? 'انقر على الصورة لإضافة المنتج' : 'إضافة منتج'}
             </span>
@@ -588,9 +588,19 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
           <button
             onClick={handleSave}
             disabled={isSaving}
-            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-3 sm:px-6 py-2 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 text-xs sm:text-sm shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-[1.02]"
+            className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl font-bold flex items-center gap-2 disabled:opacity-50 text-[11px] sm:text-sm shadow-md sm:shadow-lg hover:shadow-cyan-500/25 transition-all duration-300 transform hover:scale-[1.02]"
           >
-            {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+            {isSaving ? (
+              <>
+                <Loader2 className="animate-spin sm:hidden" size={14} />
+                <Loader2 className="animate-spin hidden sm:block" size={16} />
+              </>
+            ) : (
+              <>
+                <Save className="sm:hidden" size={14} />
+                <Save className="hidden sm:block" size={16} />
+              </>
+            )}
             حفظ التغييرات
           </button>
         </div>
