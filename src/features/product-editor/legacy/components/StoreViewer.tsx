@@ -414,6 +414,22 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
   const [imageNatural, setImageNatural] = useState<{ w: number; h: number } | null>(null);
   const [panOffsetPx, setPanOffsetPx] = useState(0);
   const panStateRef = useRef({ active: false, startX: 0, startOffset: 0 });
+  const panRafRef = useRef<number | null>(null);
+  const panPendingRef = useRef<{ overflowX: number; dx: number; startOffset: number } | null>(null);
+
+  const performanceMode = useMemo(() => {
+    try {
+      const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false;
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      const low = (typeof mem === 'number' && mem > 0 && mem <= 4) || (typeof cores === 'number' && cores > 0 && cores <= 4);
+      return coarse || low;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -426,6 +442,16 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
     const rect = el.getBoundingClientRect();
     setContainerSize({ w: rect.width, h: rect.height });
     return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (panRafRef.current != null) {
+        cancelAnimationFrame(panRafRef.current);
+        panRafRef.current = null;
+      }
+      panPendingRef.current = null;
+    };
   }, []);
 
   const coverMetrics = useMemo(() => {
@@ -473,8 +499,19 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
 
   return (
     <div className="relative w-full h-full flex items-center justify-center bg-black overflow-hidden perspective-container">
-      <div className="absolute inset-0 bg-gradient-to-b from-black via-slate-900/50 to-black z-10 pointer-events-none opacity-50" />
-      <div ref={containerRef} onMouseMove={handleMouseMove} onMouseLeave={() => setRotation({ x: 0, y: 0 })} className="relative w-full h-full preserve-3d transition-transform duration-500 ease-out" style={{ transform: `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) scale(0.9)`, zIndex: openProductId ? 60 : 0 }}>
+      <div className={`absolute inset-0 bg-gradient-to-b from-black via-slate-900/50 to-black z-10 pointer-events-none ${performanceMode ? 'opacity-20' : 'opacity-50'}`} />
+      <div
+        ref={containerRef}
+        onMouseMove={performanceMode ? undefined : handleMouseMove}
+        onMouseLeave={performanceMode ? undefined : () => setRotation({ x: 0, y: 0 })}
+        className={performanceMode ? 'relative w-full h-full preserve-3d ease-out' : 'relative w-full h-full preserve-3d transition-transform duration-500 ease-out'}
+        style={{
+          transform: performanceMode
+            ? 'scale(1)'
+            : `rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) scale(0.9)`,
+          zIndex: openProductId ? 60 : 0,
+        }}
+      >
         <div key={activeSection.id} className="absolute inset-0 z-0 animate-fade-in" onClick={(e) => e.target === e.currentTarget && setOpenProductId(null)}>
           {String(activeSection.image || '').trim() ? (
             <img src={String(activeSection.image).trim()} alt={activeSection.name} ref={(el) => { imageRef.current = el; }} onLoad={(e) => { const el = e.currentTarget; setImageNatural({ w: el.naturalWidth, h: el.naturalHeight }); }}
@@ -492,13 +529,24 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
                 const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
                 if (!overflowX) return;
                 const dx = e.clientX - panStateRef.current.startX;
-                setPanOffsetPx(Math.max(-(overflowX / 2), Math.min(overflowX / 2, panStateRef.current.startOffset + dx)));
+                panPendingRef.current = { overflowX, dx, startOffset: panStateRef.current.startOffset };
+                if (panRafRef.current != null) return;
+                panRafRef.current = requestAnimationFrame(() => {
+                  panRafRef.current = null;
+                  const pending = panPendingRef.current;
+                  panPendingRef.current = null;
+                  if (!pending) return;
+                  const clamped = Math.max(-(pending.overflowX / 2), Math.min(pending.overflowX / 2, pending.startOffset + pending.dx));
+                  setPanOffsetPx(clamped);
+                });
               }}
               onPointerUp={() => { panStateRef.current.active = false; }}
               onPointerCancel={() => { panStateRef.current.active = false; }}
-              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'none' }} className="w-full h-full object-cover filter brightness-[0.7] contrast-[1.1]" />
+              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'none' }} className={`w-full h-full object-cover ${performanceMode ? '' : 'filter brightness-[0.7] contrast-[1.1]'}`} />
           ) : <div className="w-full h-full bg-black/20" />}
-          <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+          {!performanceMode ? (
+            <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+          ) : null}
         </div>
         <div key={`products-${activeSection.id}`} className="absolute inset-0 z-20 pointer-events-none">
           {activeSection.products.map((product) => (

@@ -562,8 +562,8 @@ const ShopProfile: React.FC = () => {
   const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
 
   const whatsappFabClassName = showMobileBottomNav
-    ? 'fixed bottom-28 left-6 z-[150] md:bottom-10 md:left-10'
-    : 'fixed bottom-6 left-6 z-[150] md:bottom-10 md:left-10';
+    ? 'fixed bottom-28 left-6 z-[360] md:bottom-10 md:left-10'
+    : 'fixed bottom-6 left-6 z-[360] md:bottom-10 md:left-10';
 
   const showFloatingChatButton = isVisible('floatingChatButton', true);
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
@@ -695,7 +695,7 @@ const ShopProfile: React.FC = () => {
       />
 
       {showMobileBottomNav ? (
-        <div className="fixed bottom-0 left-0 right-0 z-[160] md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-[350] md:hidden">
           <div className="mx-auto max-w-[1400px] px-4 pb-4">
             <div className="rounded-[1.8rem] bg-white/95 backdrop-blur border border-slate-100 shadow-2xl overflow-hidden">
               <div className="grid grid-cols-3">
