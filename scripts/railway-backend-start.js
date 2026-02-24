@@ -14,6 +14,11 @@ function prismaBin() {
   return process.platform === 'win32' ? 'node_modules\\.bin\\prisma.cmd' : 'node_modules/.bin/prisma';
 }
 
+function generateClient() {
+  const prisma = prismaBin();
+  return run(prisma, ['generate', '--schema', 'prisma/schema.prisma']);
+}
+
 function tryBaselineInit() {
   const prisma = prismaBin();
   const initMigration = '20260124054347_init';
@@ -34,6 +39,11 @@ function resolveRolledBack(migrationName) {
 
 (function main() {
   try {
+    const genStatus = generateClient();
+    if (genStatus !== 0) {
+      process.exit(genStatus);
+    }
+
     tryBaselineInit();
 
     let deployStatus = deployMigrations();
