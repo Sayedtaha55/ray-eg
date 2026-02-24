@@ -1,8 +1,10 @@
 import React from 'react';
+import { useToast } from '@/components/common/feedback/Toaster';
 
 type Props = {
   config: any;
   setConfig: React.Dispatch<React.SetStateAction<any>>;
+  shop?: any;
 };
 
 type VisibilityKey =
@@ -54,8 +56,19 @@ const VISIBILITY_ITEMS: { key: VisibilityKey; label: string }[] = [
   { key: 'footerContact', label: 'إظهار بيانات التواصل في الفوتر' },
 ];
 
-const VisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
+const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
+  const { addToast } = useToast();
   const current = (config?.elementsVisibility || {}) as Record<string, any>;
+
+  const hasSalesModule = (() => {
+    try {
+      const raw = (shop as any)?.layoutConfig?.enabledModules;
+      if (!Array.isArray(raw)) return false;
+      return raw.some((x: any) => String(x || '').trim() === 'sales');
+    } catch {
+      return false;
+    }
+  })();
 
   const getValue = (key: VisibilityKey) => {
     if (current[key] === undefined || current[key] === null) return true;
@@ -63,6 +76,11 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
   };
 
   const setValue = (key: VisibilityKey, value: boolean) => {
+    const isCartToggle = key === 'productCardAddToCart' || key === 'mobileBottomNavCart';
+    if (value && isCartToggle && !hasSalesModule) {
+      addToast('لتفعيل السلة لازم تفعيل (المبيعات) من لوحة التاجر أولاً', 'info');
+      return;
+    }
     setConfig((prev: any) => {
       const base = (prev?.elementsVisibility && typeof prev.elementsVisibility === 'object')
         ? prev.elementsVisibility
@@ -75,9 +93,21 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
   return (
     <div className="space-y-3">
       {VISIBILITY_ITEMS.map((item) => (
-        <label key={item.key} className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white">
+        <label
+          key={item.key}
+          className={`flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white ${
+            (item.key === 'productCardAddToCart' || item.key === 'mobileBottomNavCart') && !hasSalesModule
+              ? 'opacity-60'
+              : ''
+          }`}
+        >
           <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
-          <input type="checkbox" checked={getValue(item.key)} onChange={(e) => setValue(item.key, e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={getValue(item.key)}
+            disabled={(item.key === 'productCardAddToCart' || item.key === 'mobileBottomNavCart') && !hasSalesModule}
+            onChange={(e) => setValue(item.key, e.target.checked)}
+          />
         </label>
       ))}
     </div>

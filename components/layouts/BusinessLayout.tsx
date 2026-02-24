@@ -475,6 +475,17 @@ const BusinessLayout: React.FC = () => {
     );
   }
 
+  const isPosTab = String(activeTab || '').toLowerCase() === 'pos';
+  if (isPosTab) {
+    return (
+      <div className="min-h-screen bg-[#F8F9FA] text-right font-sans" dir="rtl">
+        <main className="w-full">
+          <Outlet />
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row text-right font-sans" dir="rtl">
       <Suspense fallback={<div className="h-20 bg-white border-b border-slate-100 animate-pulse" />}>

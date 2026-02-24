@@ -12,6 +12,7 @@ interface ProductDetailsProps {
   toggleFavorite: () => void;
   handleShare: () => void;
   handleAddToCart: () => void;
+  showAddToCartButton?: boolean;
   setIsResModalOpen: (val: boolean) => void;
   displayedPrice: number;
   hasDiscount: boolean;
@@ -40,7 +41,9 @@ interface ProductDetailsProps {
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
-  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
+  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
+
+  const canShowAddToCart = typeof showAddToCartButton === 'boolean' ? showAddToCartButton : true;
 
   return (
     <MotionDiv
@@ -134,12 +137,82 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
           </>
         )}
 
-        {/* Addons Selection - simplified */}
-        {addonsDef.length > 0 && (
+        {isRestaurant && addonsDef.length > 0 && (
           <div className="space-y-4">
             <p className="font-black text-slate-900">الإضافات</p>
-            <div className="space-y-3">
-              {/* Simplified Addons UI */}
+            <div className="space-y-4">
+              {(addonsDef || []).map((g: any) => {
+                const groupId = String(g?.id || '').trim() || 'addons';
+                const groupTitle = String(g?.title || g?.name || g?.label || '').trim();
+                const options = Array.isArray(g?.options) ? g.options : [];
+                if (options.length === 0) return null;
+
+                return (
+                  <div key={groupId} className="space-y-3">
+                    {groupTitle ? (
+                      <div className="text-xs font-black text-slate-500">{groupTitle}</div>
+                    ) : null}
+
+                    <div className="space-y-3">
+                      {options.map((opt: any) => {
+                        const optId = String(opt?.id || '').trim();
+                        if (!optId) return null;
+                        const optName = String(opt?.name || opt?.title || '').trim() || optId;
+                        const img = typeof opt?.imageUrl === 'string' ? String(opt.imageUrl).trim() : '';
+                        const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                        if (variants.length === 0) return null;
+
+                        const selectedVariantId = (selectedAddons || []).find((x: any) => String(x?.optionId) === optId)?.variantId;
+
+                        return (
+                          <div key={optId} className="p-4 rounded-2xl border-2 border-slate-100 bg-white">
+                            <div className="flex items-center gap-3 flex-row-reverse justify-between">
+                              <div className="flex items-center gap-3 flex-row-reverse">
+                                {img ? (
+                                  <img src={img} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-100" />
+                                ) : null}
+                                <div className="text-right">
+                                  <div className="font-black text-sm text-slate-900">{optName}</div>
+                                  <div className="text-[10px] font-bold text-slate-400">اختر الحجم</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2 justify-end mt-3">
+                              {variants.map((v: any) => {
+                                const vid = String(v?.id || '').trim();
+                                if (!vid) return null;
+                                const vLabel = String(v?.label || v?.name || '').trim() || vid;
+                                const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                                const isSelected = String(selectedVariantId || '') === vid;
+
+                                return (
+                                  <button
+                                    key={vid}
+                                    type="button"
+                                    onClick={() => {
+                                      const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                                      const next = arr.filter((x: any) => String(x?.optionId) !== optId);
+                                      if (isSelected) {
+                                        setSelectedAddons(next);
+                                        return;
+                                      }
+                                      setSelectedAddons([...next, { optionId: optId, variantId: vid }]);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                                  >
+                                    {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -147,12 +220,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
       <div className="flex flex-col gap-4 mt-auto pt-8">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <button
-            onClick={handleAddToCart}
-            className="flex-1 bg-slate-900 text-white h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl"
-          >
-            <ShoppingCart size={24} /> إضافة للسلة
-          </button>
+          {canShowAddToCart ? (
+            <button
+              onClick={handleAddToCart}
+              className="flex-1 bg-slate-900 text-white h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl"
+            >
+              <ShoppingCart size={24} /> إضافة للسلة
+            </button>
+          ) : null}
           <button
             onClick={() => setIsResModalOpen(true)}
             className="flex-1 bg-[#00E5FF] text-slate-900 h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"

@@ -254,6 +254,11 @@ export class ShopController {
       const isLocalHost = host.includes('localhost') || host.startsWith('127.0.0.1') || host.startsWith('0.0.0.0');
 
       if (isDev || isLocalHost) {
+        try {
+          // eslint-disable-next-line no-console
+          console.error('[ShopController.updateMyShop] failed', e?.stack || e);
+        } catch {
+        }
         const name = e?.name ? String(e.name) : '';
         const code = e?.code ? String(e.code) : '';
         const msg = e?.message ? String(e.message) : 'Internal error';

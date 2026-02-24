@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home, ShoppingCart, User } from 'lucide-react';
 import ProfileHeader from '@/components/pages/public/ShopProfile/ProfileHeader';
 import TabRenderer from '@/components/pages/public/ShopProfile/TabRenderer';
 import ProfileFooter from '@/components/pages/public/ShopProfile/ProfileFooter';
@@ -65,11 +64,6 @@ const ShopProfilePreview: React.FC<Props> = ({
       return coerceBoolean((elementsVisibility as any)[key], fallback);
     };
   }, [currentDesign]);
-
-  const showMobileBottomNav = isVisible('mobileBottomNav', true);
-  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
-  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
-  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
 
   const headerBg = (currentDesign as any)?.headerTransparent
     ? `rgba(255,255,255,${Number((currentDesign as any)?.headerOpacity ?? 60) / 100})`
@@ -145,9 +139,7 @@ const ShopProfilePreview: React.FC<Props> = ({
       />
 
       <main
-        className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 ${
-          isMobilePreview && showMobileBottomNav ? 'pb-28 md:pb-10' : ''
-        }`}
+        className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10"
       >
         <TabRenderer
           activeTab={activeTab}
@@ -185,43 +177,6 @@ const ShopProfilePreview: React.FC<Props> = ({
         isVisible={isVisible as any}
         isBold={isBold}
       />
-
-      {isMobilePreview && showMobileBottomNav ? (
-        <div className="fixed bottom-0 left-0 right-0 z-[350] md:hidden">
-          <div className="mx-auto max-w-[1400px] px-4 pb-4">
-            <div className="rounded-[1.8rem] bg-white/95 backdrop-blur border border-slate-100 shadow-2xl overflow-hidden">
-              <div className="grid grid-cols-3">
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('products')}
-                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} ${activeTab === 'products' ? 'text-slate-900 bg-slate-50' : 'text-slate-500'}`}
-                >
-                  <Home size={18} />
-                  الرئيسية
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
-                >
-                  <ShoppingCart size={18} />
-                  السلة
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {}}
-                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavAccount ? '' : 'hidden'} text-slate-500`}
-                >
-                  <User size={18} />
-                  حسابي
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 };

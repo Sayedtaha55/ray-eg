@@ -74,7 +74,7 @@ const AdminAnalytics: React.FC = () => {
     if (!recharts) return null;
     const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = recharts;
     return (
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height={280} minHeight={200}>
         <BarChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.06)" />
           <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 800, fill: '#64748b' }} />
@@ -194,7 +194,7 @@ const AdminAnalytics: React.FC = () => {
                 <h3 className="text-white font-black text-lg">إيرادات آخر {days} يوم</h3>
                 <div className="text-slate-500 text-xs font-black uppercase tracking-widest">Daily</div>
               </div>
-              <div className="h-[280px] w-full">
+              <div className="w-full min-h-[280px]">
                 {chartBody}
               </div>
             </div>

@@ -1,22 +1,9 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaClient } from '@prisma/client';
 
- declare global {
-   // eslint-disable-next-line no-var
-   var __prismaService: PrismaService | undefined;
- }
-
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
   constructor() {
-    const existing = globalThis.__prismaService;
-    if (existing) {
-      if (process.env.NODE_ENV !== 'production') {
-        console.log('[PrismaService] constructor: reusing existing instance');
-      }
-      return existing;
-    }
-
     if (process.env.NODE_ENV !== 'production') {
       console.log('[PrismaService] constructor: creating PrismaClient...');
     }
@@ -26,10 +13,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     if (process.env.NODE_ENV !== 'production') {
       console.log('[PrismaService] constructor: PrismaClient created');
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-      globalThis.__prismaService = this;
     }
   }
 

@@ -9,6 +9,7 @@ interface SectionRendererProps {
   activeBuilderTab?: string;
   config: any;
   setConfig: (next: any) => void;
+  shop?: any;
   logoDataUrl: string;
   setLogoDataUrl: (val: string) => void;
   logoFile: File | null;

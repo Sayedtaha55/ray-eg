@@ -41,12 +41,14 @@ const BACKEND_BASE_URL = resolveBackendBaseUrl();
 export class BackendRequestError extends Error {
   status?: number;
   path?: string;
+  data?: any;
 
-  constructor(message: string, opts?: { status?: number; path?: string }) {
+  constructor(message: string, opts?: { status?: number; path?: string; data?: any }) {
     super(message);
     this.name = 'BackendRequestError';
     this.status = opts?.status;
     this.path = opts?.path;
+    this.data = opts?.data;
   }
 }
 
@@ -279,7 +281,7 @@ export async function backendPostWithOptions<T>(
       }
     }
 
-    throw new BackendRequestError(message, { status: res.status, path });
+    throw new BackendRequestError(message, { status: res.status, path, data });
   }
 
   markBackendSuccess(path);
@@ -315,11 +317,18 @@ export async function backendDelete<T>(path: string): Promise<T> {
 
   if (!res.ok) {
     let message = 'Request failed';
+    let data: any = undefined;
     try {
-      const data = await res.json();
-      message = data?.message || data?.error || message;
+      data = await res.json();
+      message = extractErrorMessage(data, message);
     } catch {
       // ignore
+    }
+
+    try {
+      // eslint-disable-next-line no-console
+      console.error('Backend error', { path, status: res.status, data, message });
+    } catch {
     }
 
     if (res.status === 401) {
@@ -328,7 +337,7 @@ export async function backendDelete<T>(path: string): Promise<T> {
       }
     }
 
-    throw new BackendRequestError(message, { status: res.status, path });
+    throw new BackendRequestError(message, { status: res.status, path, data });
   }
 
   markBackendSuccess(path);
@@ -364,9 +373,10 @@ export async function backendGet<T>(path: string): Promise<T> {
 
   if (!res.ok) {
     let message = 'Request failed';
+    let data: any = undefined;
     try {
-      const data = await res.json();
-      message = data?.message || data?.error || message;
+      data = await res.json();
+      message = extractErrorMessage(data, message);
     } catch {
       // ignore
     }
@@ -377,7 +387,7 @@ export async function backendGet<T>(path: string): Promise<T> {
       }
     }
 
-    throw new BackendRequestError(message, { status: res.status, path });
+    throw new BackendRequestError(message, { status: res.status, path, data });
   }
 
   markBackendSuccess(path);
@@ -414,9 +424,10 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
 
   if (!res.ok) {
     let message = 'Request failed';
+    let data: any = undefined;
     try {
-      const data = await res.json();
-      message = data?.message || data?.error || message;
+      data = await res.json();
+      message = extractErrorMessage(data, message);
     } catch {
       // ignore
     }
@@ -427,7 +438,7 @@ export async function backendPatch<T>(path: string, body: any): Promise<T> {
       }
     }
 
-    throw new BackendRequestError(message, { status: res.status, path });
+    throw new BackendRequestError(message, { status: res.status, path, data });
   }
 
   markBackendSuccess(path);
@@ -464,9 +475,10 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
 
   if (!res.ok) {
     let message = 'Request failed';
+    let data: any = undefined;
     try {
-      const data = await res.json();
-      message = data?.message || data?.error || message;
+      data = await res.json();
+      message = extractErrorMessage(data, message);
     } catch {
       // ignore
     }
@@ -477,7 +489,7 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
       }
     }
 
-    throw new BackendRequestError(message, { status: res.status, path });
+    throw new BackendRequestError(message, { status: res.status, path, data });
   }
 
   markBackendSuccess(path);

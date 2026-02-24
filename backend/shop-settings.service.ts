@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { RedisService } from './redis/redis.service';
 import { MonitoringService } from './monitoring/monitoring.service';
@@ -8,11 +8,11 @@ import { ShopModulesService } from './shop-modules.service';
 @Injectable()
 export class ShopSettingsService {
   constructor(
-    private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
-    private readonly monitoring: MonitoringService,
-    private readonly shopMedia: ShopMediaService,
-    private readonly shopModules: ShopModulesService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(MonitoringService) private readonly monitoring: MonitoringService,
+    @Inject(ShopMediaService) private readonly shopMedia: ShopMediaService,
+    @Inject(ShopModulesService) private readonly shopModules: ShopModulesService,
   ) {}
 
   async updateShopSettings(
@@ -48,8 +48,22 @@ export class ShopSettingsService {
   ) {
     const startTime = Date.now();
 
+    const prismaAny = this.prisma as any;
+    const shopDelegate = prismaAny?.shop ?? prismaAny?.Shop;
+    if (!this.prisma || !shopDelegate) {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[ShopSettingsService.updateShopSettings] prisma missing shop delegate', {
+          hasPrisma: Boolean(this.prisma),
+          keys: prismaAny ? Object.keys(prismaAny).slice(0, 50) : [],
+        });
+      } catch {
+      }
+      throw new BadRequestException('Prisma غير متاح أو shop model غير موجود');
+    }
+
     try {
-      const current = await this.prisma.shop.findUnique({
+      const current = await shopDelegate.findUnique({
         where: { id: shopId },
         select: { id: true, slug: true, layoutConfig: true, category: true },
       });
@@ -134,11 +148,11 @@ export class ShopSettingsService {
         ...(persistedBanner?.mdUrl ? { bannerMediumUrl: persistedBanner.mdUrl } : {}),
       };
 
-      const updated = await this.prisma.shop.update({
+      const updated = await shopDelegate.update({
         where: { id: shopId },
         data: {
           ...(typeof input.name === 'undefined' ? {} : { name: input.name }),
-          ...(typeof input.description === 'undefined' ? {} : { description: input.description }),
+          ...(typeof input.description === 'undefined' ? {} : { description: input.description || null }),
           ...(typeof input.category === 'undefined' ? {} : { category: input.category as any }),
           ...(typeof input.governorate === 'undefined' ? {} : { governorate: input.governorate }),
           ...(typeof input.city === 'undefined' ? {} : { city: input.city }),
@@ -166,18 +180,18 @@ export class ShopSettingsService {
       });
 
       try {
-        await this.redis.invalidateShopCache(updated.id, updated.slug);
+        await this.redis?.invalidateShopCache?.(updated.id, updated.slug);
       } catch {
       }
 
       const duration = Date.now() - startTime;
-      this.monitoring.trackDatabase('update', 'shops', duration, true);
-      this.monitoring.trackPerformance('updateShopSettings_database', duration);
+      this.monitoring?.trackDatabase?.('update', 'shops', duration, true);
+      this.monitoring?.trackPerformance?.('updateShopSettings_database', duration);
 
       return updated;
     } catch (error) {
       const duration = Date.now() - startTime;
-      this.monitoring.trackDatabase('update', 'shops', duration, false);
+      this.monitoring?.trackDatabase?.('update', 'shops', duration, false);
       if (error instanceof BadRequestException) throw error;
       throw error;
     }

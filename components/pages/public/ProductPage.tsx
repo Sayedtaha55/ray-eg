@@ -8,6 +8,7 @@ import { Category } from '@/types';
 import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 import { Skeleton } from '@/components/common/ui';
+import { coerceBoolean } from '@/components/pages/public/ShopProfile/utils';
 
 import ProductTabs from './product/ProductTabs';
 import ProductGallery from './product/ProductGallery';
@@ -42,6 +43,23 @@ const ProductPage: React.FC = () => {
   const isRestaurant = shop?.category === Category.RESTAURANT;
   const isFashion = shop?.category === Category.FASHION;
   const touchStartXRef = useRef<number | null>(null);
+
+  const hasSalesModule = useMemo(() => {
+    const raw = (shop as any)?.layoutConfig?.enabledModules;
+    if (!Array.isArray(raw)) return false;
+    return raw.some((x: any) => String(x || '').trim() === 'sales');
+  }, [shop]);
+
+  const showAddToCartButton = useMemo(() => {
+    const design = (shop as any)?.pageDesign;
+    const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
+    if (!elementsVisibility || typeof elementsVisibility !== 'object') return true;
+    if (!('productCardAddToCart' in elementsVisibility)) return true;
+    return coerceBoolean(elementsVisibility['productCardAddToCart'], true);
+  }, [shop]);
+
+  const canUseCart = hasSalesModule;
+  const canShowAddToCart = canUseCart && showAddToCartButton;
 
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
@@ -221,6 +239,7 @@ const ProductPage: React.FC = () => {
 
   const handleAddToCart = () => {
     if (!product) return;
+    if (!canUseCart) return;
 
     const isFood = shop?.category === Category.FOOD;
     const packDefs = isFood
@@ -595,9 +614,11 @@ const ProductPage: React.FC = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
-      <div className="fixed top-24 right-4 z-[90] lg:hidden">
-        <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
-      </div>
+      {canUseCart ? (
+        <div className="fixed top-24 right-4 z-[90] lg:hidden">
+          <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
+        </div>
+      ) : null}
 
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all">
         <ArrowRight size={20} /> العودة للسابق
@@ -623,6 +644,7 @@ const ProductPage: React.FC = () => {
           toggleFavorite={toggleFavorite}
           handleShare={() => {}} // TODO
           handleAddToCart={handleAddToCart}
+          showAddToCartButton={canShowAddToCart}
           setIsResModalOpen={setIsResModalOpen}
           displayedPrice={displayedPrice}
           hasDiscount={!!offer}
@@ -675,13 +697,15 @@ const ProductPage: React.FC = () => {
             shopName: shop?.name,
           } : null}
         />
-        <CartDrawer
-          isOpen={isCartOpen}
-          onClose={() => setIsCartOpen(false)}
-          items={cartItems}
-          onRemove={removeFromCart}
-          onUpdateQuantity={updateCartItemQuantity}
-        />
+        {canUseCart ? (
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setIsCartOpen(false)}
+            items={cartItems}
+            onRemove={removeFromCart}
+            onUpdateQuantity={updateCartItemQuantity}
+          />
+        ) : null}
       </Suspense>
     </div>
   );

@@ -37,6 +37,7 @@ export type BuilderSectionId =
 export type BuilderRenderCtx = {
   config: any;
   setConfig: React.Dispatch<React.SetStateAction<any>>;
+  shop?: any;
   logoDataUrl: string;
   setLogoDataUrl: React.Dispatch<React.SetStateAction<string>>;
   logoFile: File | null;
@@ -166,7 +167,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     id: 'visibility',
     title: 'إظهار / إخفاء',
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-slate-900' }),
-    render: ({ config, setConfig }) => React.createElement(VisibilitySection as any, { config, setConfig }),
+    render: ({ config, setConfig, shop }) => React.createElement(VisibilitySection as any, { config, setConfig, shop }),
   },
   {
     id: 'imageMapVisibility',

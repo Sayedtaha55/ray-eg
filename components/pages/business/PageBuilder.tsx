@@ -105,6 +105,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addToast } = useToast();
   const location = useLocation();
   const [shopId, setShopId] = useState<string>('');
+  const [shop, setShop] = useState<any>(null);
   const [config, setConfig] = useState<ShopDesign>(DEFAULT_PAGE_DESIGN);
   const [logoDataUrl, setLogoDataUrl] = useState<string>('');
   const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -194,6 +195,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         setShopId(user.shopId);
         try {
           const myShop = await ApiService.getMyShop();
+          setShop(myShop);
           const shopLogoSrc = String(myShop?.logoUrl || myShop?.logo_url || '').trim();
           setLogoDataUrl(shopLogoSrc);
           setLogoFile(null);
@@ -748,6 +750,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <SectionRenderer
                         config={config}
                         setConfig={setConfigAny}
+                        shop={shop}
                         logoDataUrl={logoDataUrl}
                         setLogoDataUrl={setLogoDataUrl}
                         logoFile={logoFile}

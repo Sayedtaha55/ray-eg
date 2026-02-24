@@ -20,7 +20,7 @@ export async function getAllOrdersViaBackend(
       const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
       const name = String((e as any)?.name || '');
       if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
-        disablePathPrefix('/api/v1/orders');
+        disablePathPrefix('/api/v1/orders/admin');
       }
     }
   }
@@ -33,7 +33,24 @@ export async function getAllOrdersViaBackend(
       const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
       const name = String((e as any)?.name || '');
       if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
-        disablePathPrefix('/api/v1/orders');
+        disablePathPrefix('/api/v1/orders/courier');
+      }
+    }
+  }
+
+  if (String(localRole || '').toUpperCase() === 'MERCHANT') {
+    const merchantParams = new URLSearchParams();
+    if (opts?.from) merchantParams.set('from', String(opts.from));
+    if (opts?.to) merchantParams.set('to', String(opts.to));
+    const qs2 = merchantParams.toString();
+    try {
+      const data = await backendGet<any[]>(`/api/v1/orders/me${qs2 ? `?${qs2}` : ''}`);
+      return (data || []).map(normalizeOrderFromBackend);
+    } catch (e) {
+      const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
+      const name = String((e as any)?.name || '');
+      if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
+        disablePathPrefix('/api/v1/orders/me');
       }
     }
   }
@@ -52,7 +69,7 @@ export async function getAllOrdersViaBackend(
       const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
       const name = String((e as any)?.name || '');
       if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
-        disablePathPrefix('/api/v1/orders');
+        disablePathPrefix('/api/v1/orders?');
       }
     }
   }

@@ -60,6 +60,12 @@ const ShopProfile: React.FC = () => {
   const [isCartOpen, setCartOpen] = useState(false);
   const [cartItems, setCartItems] = useState<any[]>([]);
 
+  const hasSalesModule = useMemo(() => {
+    const raw = (shop as any)?.layoutConfig?.enabledModules;
+    if (!Array.isArray(raw)) return false;
+    return raw.some((x: any) => String(x || '').trim() === 'sales');
+  }, [shop]);
+
   useEffect(() => {
     const syncCart = () => {
       try {
@@ -383,6 +389,7 @@ const ShopProfile: React.FC = () => {
   const handleAddToCart = useCallback(
     (prod: Product, price: number) => {
       if (!shop) return;
+      if (!hasSalesModule) return;
       const isRestaurant = shop?.category === Category.RESTAURANT;
       const menuVariants = isRestaurant
         ? (Array.isArray((prod as any)?.menuVariants)
@@ -399,7 +406,7 @@ const ShopProfile: React.FC = () => {
       playSound();
       setTimeout(() => setAddedItemId(null), 1500);
     },
-    [shop, playSound, navigate]
+    [shop, hasSalesModule, playSound, navigate]
   );
 
   const handleReserve = useCallback(
@@ -629,7 +636,7 @@ const ShopProfile: React.FC = () => {
         headerTextColor={headerTextColor}
         bannerReady={bannerReady}
         purchaseModeButton={
-          hasActiveImageMap ? (
+          hasActiveImageMap && String(shop?.category || '').toUpperCase() !== 'RESTAURANT' ? (
             <PurchaseModeButton
               onClick={() => navigate(`/shop/${String(slug || '').trim()}/image-map`)}
               className="shadow-2xl"
@@ -658,6 +665,7 @@ const ShopProfile: React.FC = () => {
           addedItemId={addedItemId}
           handleReserve={handleReserve}
           disableCardMotion={disableCardMotion}
+          allowAddToCart={hasSalesModule}
           galleryTabLoading={galleryTabLoading}
           galleryTabError={galleryTabError}
           galleryImages={galleryImages}
@@ -676,23 +684,25 @@ const ShopProfile: React.FC = () => {
         isBold={isBold}
       />
 
-      <CartDrawer
-        isOpen={isCartOpen}
-        onClose={() => setCartOpen(false)}
-        items={cartItems as any}
-        onRemove={(lineId: string) => {
-          try {
-            RayDB.removeFromCart(lineId);
-          } catch {
-          }
-        }}
-        onUpdateQuantity={(lineId: string, delta: number) => {
-          try {
-            RayDB.updateCartItemQuantity(lineId, delta);
-          } catch {
-          }
-        }}
-      />
+      {hasSalesModule ? (
+        <CartDrawer
+          isOpen={isCartOpen}
+          onClose={() => setCartOpen(false)}
+          items={cartItems as any}
+          onRemove={(lineId: string) => {
+            try {
+              RayDB.removeFromCart(lineId);
+            } catch {
+            }
+          }}
+          onUpdateQuantity={(lineId: string, delta: number) => {
+            try {
+              RayDB.updateCartItemQuantity(lineId, delta);
+            } catch {
+            }
+          }}
+        />
+      ) : null}
 
       {showMobileBottomNav ? (
         <div className="fixed bottom-0 left-0 right-0 z-[350] md:hidden">
@@ -708,19 +718,21 @@ const ShopProfile: React.FC = () => {
                   الرئيسية
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => setCartOpen(true)}
-                  className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
-                >
-                  <ShoppingCart size={18} />
-                  السلة
-                  {Array.isArray(cartItems) && cartItems.length > 0 ? (
-                    <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
-                      {cartItems.length}
-                    </span>
-                  ) : null}
-                </button>
+                {hasSalesModule ? (
+                  <button
+                    type="button"
+                    onClick={() => setCartOpen(true)}
+                    className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
+                  >
+                    <ShoppingCart size={18} />
+                    السلة
+                    {Array.isArray(cartItems) && cartItems.length > 0 ? (
+                      <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
+                        {cartItems.length}
+                      </span>
+                    ) : null}
+                  </button>
+                ) : null}
 
                 <button
                   type="button"

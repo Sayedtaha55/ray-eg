@@ -1,12 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Ruler } from 'lucide-react';
+import { Ruler, SlidersHorizontal } from 'lucide-react';
 
 const MotionDiv = motion.div as any;
 
 interface POSProductCardProps {
   product: any;
   addToCart: (product: any, qty?: number) => void;
+  onConfigure?: (product: any) => void;
+  showConfigureIcon?: boolean;
   isProductHasMenuVariants: (product: any) => boolean;
   isProductHasFashionDifferentSizePrices: (product: any) => boolean;
   getProductEffectivePrice: (product: any) => number;
@@ -17,6 +19,8 @@ interface POSProductCardProps {
 const POSProductCard: React.FC<POSProductCardProps> = ({
   product,
   addToCart,
+  onConfigure,
+  showConfigureIcon,
   isProductHasMenuVariants,
   isProductHasFashionDifferentSizePrices,
   getProductEffectivePrice,
@@ -33,7 +37,7 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
       onClick={() => !isOutOfStock && addToCart(product, 1)}
       className={`relative active:scale-[0.97] ${isOutOfStock ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} aspect-square`}
     >
-      <div className={`w-full h-full rounded-lg md:rounded-[1.8rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative`}>
+      <div className={`w-full h-full rounded-lg md:rounded-[1.4rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-[#BD00FF] transition-all group overflow-hidden relative`}>
         <div className="absolute inset-0">
           {hasVariants && (
             <div className="absolute top-1 right-1 z-10">
@@ -42,6 +46,20 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
               </div>
             </div>
           )}
+
+          {showConfigureIcon && typeof onConfigure === 'function' ? (
+            <button
+              type="button"
+              aria-label="إعدادات المنتج"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConfigure(product);
+              }}
+              className="absolute top-1 left-1 z-10 bg-white/90 backdrop-blur-md p-1.5 rounded-lg shadow-sm border border-slate-100 hover:border-[#BD00FF] hover:text-[#BD00FF] transition-colors"
+            >
+              <SlidersHorizontal size={14} />
+            </button>
+          ) : null}
           
           <img
             src={product.imageUrl || '/brand/logo.png'}
@@ -51,12 +69,12 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
           
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
           
-          <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4 text-right">
-            <h3 className="text-white font-black text-[10px] md:text-sm line-clamp-2 leading-tight mb-1">
+          <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-3 text-right">
+            <h3 className="text-white font-black text-[9px] md:text-sm line-clamp-2 leading-tight mb-0.5">
               {product.name}
             </h3>
             <div className="flex items-center justify-between flex-row-reverse">
-              <span className="text-[#00E5FF] font-black text-[10px] md:text-sm">
+              <span className="text-[#00E5FF] font-black text-[9px] md:text-sm">
                 ج.م {getProductEffectivePrice(product).toFixed(0)}
               </span>
               {isProductTrackStockEnabled(product) && (

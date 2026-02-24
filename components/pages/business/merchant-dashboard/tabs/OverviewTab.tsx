@@ -42,10 +42,10 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
 
     if (mode && mode !== 'manage') return false;
 
-    if (!Array.isArray(enabledRaw)) return true;
+    if (!Array.isArray(enabledRaw)) return false;
 
     const enabled = new Set((enabledRaw || []).map((x: any) => String(x || '').trim()));
-    return enabled.has('sales');
+    return enabled.has('sales') && enabled.has('invoice');
   }, [shop]);
 
   const chartBody = useMemo(() => {

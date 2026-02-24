@@ -473,16 +473,29 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         ? [
             {
               id: 'addons',
+              name: 'منتجات إضافية',
+              label: 'منتجات إضافية',
               title: 'منتجات إضافية',
               options,
             },
           ]
         : [];
 
-      await ApiService.updateMyShop({ shopId, addons });
+      await ApiService.updateMyShop({ addons });
       addToast('تم حفظ إضافات المطعم', 'success');
     } catch (e: any) {
-      const msg = e?.message ? String(e.message) : 'فشل حفظ الإضافات';
+      try {
+        // eslint-disable-next-line no-console
+        console.error('Save shop addons failed', {
+          message: e?.message,
+          status: e?.status,
+          path: e?.path,
+          data: e?.data,
+        });
+      } catch {
+      }
+      const backendMsg = typeof e?.data?.message === 'string' ? e.data.message : undefined;
+      const msg = backendMsg || (e?.message ? String(e.message) : 'فشل حفظ الإضافات');
       addToast(msg, 'error');
     } finally {
       setSavingAddons(false);
