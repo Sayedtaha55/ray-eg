@@ -5,6 +5,7 @@ import { Category } from '@/types';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { Skeleton } from '@/components/common/ui';
 
 const { Link } = ReactRouterDOM as any;
@@ -85,6 +86,19 @@ const ShopsPage: React.FC = () => {
 
   const shops = shopsList;
 
+  // Simple in-view state for reveal
+  const [visibleIdx, setVisibleIdx] = useState<number>(6);
+  useEffect(() => {
+    const handleScroll = () => {
+      if (visibleIdx >= shops.length) return;
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
+        setVisibleIdx(prev => Math.min(shops.length, prev + 6));
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [shops.length, visibleIdx]);
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-12 text-right" dir="rtl">
       {/* Header Section */}
@@ -151,16 +165,25 @@ const ShopsPage: React.FC = () => {
           <div className="text-slate-400 font-bold">لا توجد محلات حالياً</div>
         ) : (
           shops.map((shop, idx) => (
-          <MotionDiv 
+          <div
             key={shop.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1 }}
-            className="group bg-white border border-slate-100 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] hover:shadow-2xl transition-all flex flex-col gap-6 md:gap-8"
+            className={`cv-auto group bg-white border border-slate-100 p-6 md:p-8 rounded-[2rem] md:rounded-[3rem] hover:shadow-2xl transition-all duration-700 flex flex-col gap-6 md:gap-8 ${
+              idx < visibleIdx ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+            }`}
           >
             <div className="flex items-center gap-3 md:gap-4">
               <div className="w-12 h-12 md:w-16 md:h-16 rounded-xl md:rounded-2xl overflow-hidden border border-slate-100 shrink-0">
-                <img loading="lazy" src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-full h-full object-cover" alt={shop.name} />
+                <img
+                  loading="lazy"
+                  src={getOptimizedImageUrl(shop.logoUrl || shop.logo_url, 'thumb') || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'}
+                  className="w-full h-full object-cover"
+                  alt={shop.name}
+                  onError={(e) => {
+                    const img = e.currentTarget;
+                    const original = shop.logoUrl || shop.logo_url;
+                    if (original && img.src !== original) img.src = original;
+                  }}
+                />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-row-reverse justify-end mb-1">
@@ -196,9 +219,13 @@ const ShopsPage: React.FC = () => {
                  return (
                    <img
                      loading="lazy"
-                     src={bannerSrc}
+                     src={getOptimizedImageUrl(bannerSrc, 'md')}
                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                      alt={`${shop.name} banner`}
+                     onError={(e) => {
+                       const img = e.currentTarget;
+                       if (bannerSrc && img.src !== bannerSrc) img.src = bannerSrc;
+                     }}
                    />
                  );
                })()}
@@ -211,7 +238,7 @@ const ShopsPage: React.FC = () => {
             >
               زيارة المتجر <ChevronLeft size={16} />
             </Link>
-          </MotionDiv>
+          </div>
           ))
         )}
       </div>

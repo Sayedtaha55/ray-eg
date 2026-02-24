@@ -93,6 +93,30 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  const url = new URL(event.request.url);
+  const isImageAsset = event.request.destination === 'image' ||
+                    url.pathname.match(/\.(png|jpg|jpeg|webp|avif|svg|gif)$/i) ||
+                    url.pathname.startsWith('/uploads/');
+
+  // Image caching strategy: Cache First, then Network
+  if (isImageAsset) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response && response.status === 200) {
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cached) => {
       const fetchPromise = fetch(event.request)

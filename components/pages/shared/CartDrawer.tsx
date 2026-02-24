@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, CreditCard, Loader2, CheckCircle2, Plus, Minus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { RayDB } from '@/constants';
 
 interface CartItem {
@@ -548,8 +549,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                         key={String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`)}
                         className="flex flex-col gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100"
                       >
-                        <div className="flex items-center justify-between flex-row-reverse">
-                          <div className="text-right">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-row-reverse">
+                          <img
+                            src={getOptimizedImageUrl((item as any)?.imageUrl || (item as any)?.image, 'thumb')}
+                            alt={item.name}
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover bg-white"
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              const original = (item as any)?.imageUrl || (item as any)?.image;
+                              if (img.src !== original) img.src = original;
+                            }}
+                          />
+                          <div className="text-right flex-1">
                             <p className="font-black text-sm">{String(item.name)}</p>
                             <p className="text-[#00E5FF] font-black text-xs">ج.م {Number(item.price)}</p>
                             {(() => {
