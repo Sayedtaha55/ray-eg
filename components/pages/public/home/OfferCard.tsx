@@ -64,7 +64,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
     window.dispatchEvent(event);
   };
 
-  const [setRef, inView] = useInView({ margin: '50px' });
+  const [setRef, inView] = useInView({ rootMargin: '50px' });
 
   return (
     <div

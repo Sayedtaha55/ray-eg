@@ -536,6 +536,62 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       const nextExtraUrls = [...existingExtraUrls, ...extraUrls].filter(Boolean).slice(0, 5);
       const nextImages = [imageUrl, ...nextExtraUrls].filter(Boolean);
 
+      const addons = await (async () => {
+        if (isRestaurant) return undefined;
+        const list = Array.isArray(addonItems) ? addonItems : [];
+
+        const uploaded = await Promise.all(
+          list.map(async (a, idx) => {
+            const optId = String(a?.id || '').trim() || `addon_${idx + 1}_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+            const optName = String(a?.name || '').trim();
+            if (!optName) return null;
+
+            let imageUrl: string | null = a?.imageUrl ? String(a.imageUrl).trim() : null;
+            const file = a?.imageUploadFile;
+            if (file) {
+              const compressedFile = await compressImage(file, { maxSizeMB: 0.2, maxWidthOrHeight: 600 });
+              const upload = await ApiService.uploadMediaRobust({
+                file: compressedFile as File,
+                purpose: 'product_image',
+                shopId,
+              });
+              imageUrl = String(upload?.url || '').trim() || null;
+            }
+
+            const pSmall = parseNumberInput(a?.priceSmall);
+            const pMed = parseNumberInput(a?.priceMedium);
+            const pLarge = parseNumberInput(a?.priceLarge);
+
+            const variants: Array<{ id: string; label: string; price: number }> = [];
+            if (Number.isFinite(pSmall) && pSmall > 0) variants.push({ id: 'small', label: 'صغير', price: Math.round(pSmall * 100) / 100 });
+            if (Number.isFinite(pMed) && pMed > 0) variants.push({ id: 'medium', label: 'وسط', price: Math.round(pMed * 100) / 100 });
+            if (Number.isFinite(pLarge) && pLarge > 0) variants.push({ id: 'large', label: 'كبير', price: Math.round(pLarge * 100) / 100 });
+
+            if (variants.length === 0) return null;
+
+            return {
+              id: optId,
+              name: optName,
+              imageUrl,
+              variants,
+            };
+          }),
+        );
+
+        const options = uploaded.filter(Boolean);
+        return options.length > 0
+          ? [
+              {
+                id: 'addons',
+                name: 'إضافات',
+                label: 'إضافات',
+                title: 'إضافات',
+                options,
+              },
+            ]
+          : [];
+      })();
+
       // Prepare update payload
       const updatePayload: any = {
         name,
@@ -553,6 +609,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           : {
               images: nextImages,
               ...(isFashion ? { colors, sizes } : {}),
+              ...(typeof addons !== 'undefined' ? { addons } : {}),
             }),
       };
 
