@@ -18,9 +18,10 @@ services:
     container_name: ray-marketplace-dev
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "5174:5174"
     environment:
       - NODE_ENV=development
+      - VITE_PORT=5174
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_HOST=redis
       - REDIS_PORT=6379

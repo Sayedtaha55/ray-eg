@@ -6,7 +6,7 @@ export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
       server: {
-        port: Number(env.VITE_PORT || env.PORT || 5173),
+        port: Number(env.VITE_PORT || env.PORT || 5174),
         host: env.VITE_HOST || '0.0.0.0',
       },
       plugins: [react()],

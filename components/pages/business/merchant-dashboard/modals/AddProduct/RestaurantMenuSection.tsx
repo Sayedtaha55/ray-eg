@@ -1,9 +1,20 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { X } from 'lucide-react';
 
-interface RestaurantMenuSectionProps {
-  menuVariantItems: any[];
-  setMenuVariantItems: (v: any) => void;
+export type RestaurantMenuVariantItem = {
+  id: string;
+  name: string;
+  hasSmall: boolean;
+  hasMedium: boolean;
+  hasLarge: boolean;
+  priceSmall: string;
+  priceMedium: string;
+  priceLarge: string;
+};
+
+export interface RestaurantMenuSectionProps {
+  menuVariantItems: RestaurantMenuVariantItem[];
+  setMenuVariantItems: React.Dispatch<React.SetStateAction<RestaurantMenuVariantItem[]>>;
   parseNumberInput: (v: any) => number;
 }
 
@@ -12,27 +23,27 @@ const RestaurantMenuSection: React.FC<RestaurantMenuSectionProps> = ({
   setMenuVariantItems,
   parseNumberInput
 }) => {
+  const handleAddItem = useCallback(() => {
+    const newItem = {
+      id: `type_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+      name: '',
+      hasSmall: true,
+      hasMedium: true,
+      hasLarge: true,
+      priceSmall: '',
+      priceMedium: '',
+      priceLarge: '',
+    };
+    setMenuVariantItems(prev => [...prev, newItem]);
+  }, [setMenuVariantItems]);
+  
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الأنواع والمقاسات (اختياري)</label>
         <button
           type="button"
-          onClick={() => {
-            setMenuVariantItems((prev: any[]) => [
-              ...prev,
-              {
-                id: `type_${Date.now()}_${Math.random().toString(16).slice(2)}`,
-                name: '',
-                hasSmall: true,
-                hasMedium: true,
-                hasLarge: true,
-                priceSmall: '',
-                priceMedium: '',
-                priceLarge: '',
-              },
-            ]);
-          }}
+          onClick={handleAddItem}
           className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
         >
           + إضافة نوع
@@ -55,7 +66,7 @@ const RestaurantMenuSection: React.FC<RestaurantMenuSectionProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم النوع (مثلاً: دجاج، لحم)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم النوع / الحجم (مثلاً: بيتزا - ساندوتش)</label>
                 <input
                   required
                   value={t.name}
@@ -63,6 +74,7 @@ const RestaurantMenuSection: React.FC<RestaurantMenuSectionProps> = ({
                     const v = e.target.value;
                     setMenuVariantItems((prev: any[]) => prev.map((x) => (x.id === t.id ? { ...x, name: v } : x)));
                   }}
+                  placeholder="مثلاً: بيتزا"
                   className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
                 />
               </div>

@@ -38,13 +38,13 @@ export const config = {
 
   // API
   api: {
-    baseUrl: getEnv('API_BASE_URL') || 'http://localhost:3000',
-    frontendUrl: getEnv('FRONTEND_URL') || 'http://localhost:3000',
+    baseUrl: getEnv('API_BASE_URL') || 'http://127.0.0.1:4000',
+    frontendUrl: getEnv('FRONTEND_URL') || 'http://localhost:5174',
   },
 
   // Security
   security: {
-    corsOrigin: getEnv('CORS_ORIGIN') || 'http://localhost:3000',
+    corsOrigin: getEnv('CORS_ORIGIN') || 'http://localhost:5174',
     rateLimitWindowMs: parseInt(getEnv('RATE_LIMIT_WINDOW_MS') || '900000'),
     rateLimitMaxRequests: parseInt(getEnv('RATE_LIMIT_MAX_REQUESTS') || '100'),
   },

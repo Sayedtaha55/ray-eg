@@ -8,6 +8,7 @@ interface AdditionalImagesSectionProps {
   handleExtraImagesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setExtraImagePreviews: React.Dispatch<React.SetStateAction<string[]>>;
   setExtraImageUploadFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  imageUrl?: string;
 }
 
 const AdditionalImagesSection: React.FC<AdditionalImagesSectionProps> = ({

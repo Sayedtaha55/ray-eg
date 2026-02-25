@@ -4,13 +4,14 @@ import { X, Upload, Video } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Category, Product } from '@/types';
-import { generateVideoThumbnail } from '@/lib/image-utils';
+import { compressImage, generateVideoThumbnail } from '@/lib/image-utils';
 
 // Sub-components
 import ImageUploadSection from './EditProduct/ImageUploadSection';
 import BasicInfoSection from './EditProduct/BasicInfoSection';
 import PackOptionsSection from './EditProduct/PackOptionsSection';
 import RestaurantMenuSection from './EditProduct/RestaurantMenuSection';
+import type { RestaurantMenuVariantItem } from './EditProduct/RestaurantMenuSection';
 import AdditionalImagesSection from './EditProduct/AdditionalImagesSection';
 import FashionOptionsSection from './EditProduct/FashionOptionsSection';
 import FurnitureOptionsSection from './EditProduct/FurnitureOptionsSection';
@@ -40,18 +41,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [packOptionItems, setPackOptionItems] = useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [description, setDescription] = useState('');
   const [fashionSizeItems, setFashionSizeItems] = useState<Array<{ label: string; price: string }>>([]);
-  const [menuVariantItems, setMenuVariantItems] = useState<
-    Array<{
-      id: string;
-      name: string;
-      hasSmall: boolean;
-      hasMedium: boolean;
-      hasLarge: boolean;
-      priceSmall: string;
-      priceMedium: string;
-      priceLarge: string;
-    }>
-  >([]);
+  const [menuVariantItems, setMenuVariantItems] = useState<RestaurantMenuVariantItem[]>([]);
   const [addonItems, setAddonItems] = useState<
     Array<{
       id: string;
@@ -85,7 +75,14 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const isFood = shopCategoryUpper === 'FOOD';
   const isService = shopCategoryUpper === 'SERVICE';
   const isRetail = shopCategoryUpper === 'RETAIL';
-  const isFurnitureActivity = !isFood && !isRestaurant;
+  const devActivityId = (() => {
+    try {
+      return String(localStorage.getItem('ray_dev_activity_id') || '').trim();
+    } catch {
+      return '';
+    }
+  })();
+  const isFurniture = shopCategoryUpper === 'FURNITURE';
   const allowPackOptions = isFood || isRetail;
 
   const presetColors: Array<{ name: string; value: string }> = [
@@ -605,7 +602,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             }),
       };
 
-      if (isFurnitureActivity) {
+      if (isFurniture) {
         const u = String((furnitureUnit || unit || '').trim());
         const l = parseNumberInput(furnitureLengthCm);
         const w = parseNumberInput(furnitureWidthCm);
@@ -682,7 +679,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             fashionSizeItems={fashionSizeItems}
           />
 
-          {isFurnitureActivity && (
+          {isFurniture && (
             <FurnitureOptionsSection
               furnitureUnit={furnitureUnit}
               setFurnitureUnit={setFurnitureUnit}
