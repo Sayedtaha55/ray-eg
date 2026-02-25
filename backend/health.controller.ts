@@ -6,6 +6,11 @@ import { PrismaService } from './prisma/prisma.service';
 export class HealthController {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  @Get()
+  async root() {
+    return { status: 'ok' };
+  }
+
   @Get('health')
   async getHealth() {
     const env = String(process.env.NODE_ENV || 'development').toLowerCase();
