@@ -84,8 +84,8 @@ export class MediaOptimizeService {
 
       const img = sharpMod(buffer, { limitInputPixels }).rotate();
 
-      const qRaw = String(process.env.MEDIA_IMAGE_WEBP_QUALITY || '78').trim();
-      const q = Math.max(35, Math.min(95, Number(qRaw) || 78));
+      const qRaw = String(process.env.MEDIA_IMAGE_WEBP_QUALITY || '62').trim();
+      const q = Math.max(30, Math.min(90, Number(qRaw) || 62));
 
       const optKey = this.buildImageVariantKey(key, 'opt');
       const mdKey = this.buildImageVariantKey(key, 'md');

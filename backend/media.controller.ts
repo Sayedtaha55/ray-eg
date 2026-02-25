@@ -22,6 +22,13 @@ export class MediaController {
     @Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService,
   ) {}
 
+  private getMaxUploadBytes() {
+    const raw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 0; // 0 => unlimited
+    return Math.floor(n * 1024 * 1024);
+  }
+
   @Post('presign')
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
@@ -77,7 +84,9 @@ export class MediaController {
             cb(null, name);
           },
         }),
-        limits: { fileSize: 250 * 1024 * 1024 },
+        limits: {
+          ...(this.getMaxUploadBytes() > 0 ? { fileSize: this.getMaxUploadBytes() } : {}),
+        },
       }).single('file');
 
       await new Promise<void>((resolve, reject) => {
@@ -158,26 +167,45 @@ export class MediaController {
     } catch {
     }
 
-    const maxBytes = 250 * 1024 * 1024;
-    const chunks: Buffer[] = [];
+    const maxBytes = this.getMaxUploadBytes();
     let total = 0;
     await new Promise<void>((resolve, reject) => {
+      const writer = fs.createWriteStream(targetPath);
+      let finished = false;
+      const done = (err?: any) => {
+        if (finished) return;
+        finished = true;
+        if (err) return reject(err);
+        resolve();
+      };
+
       req.on('data', (chunk: Buffer) => {
         total += chunk?.length || 0;
-        if (total > maxBytes) {
-          reject(new BadRequestException('File too large'));
-          return;
+        if (maxBytes > 0 && total > maxBytes) {
+          req.destroy();
+          writer.destroy();
+          fs.promises.unlink(targetPath).catch(() => undefined);
+          done(new BadRequestException('File too large'));
         }
-        chunks.push(chunk);
       });
-      req.on('end', () => resolve());
-      req.on('error', (err: any) => reject(err));
+
+      req.on('error', (err: any) => {
+        writer.destroy();
+        fs.promises.unlink(targetPath).catch(() => undefined);
+        done(err);
+      });
+
+      writer.on('error', (err) => {
+        req.destroy();
+        fs.promises.unlink(targetPath).catch(() => undefined);
+        done(err);
+      });
+
+      writer.on('finish', () => done());
+      req.pipe(writer);
     });
 
-    const buf = Buffer.concat(chunks);
-    if (!buf || buf.length === 0) throw new BadRequestException('Empty file');
-
-    await fs.promises.writeFile(targetPath, buf);
+    if (total <= 0) throw new BadRequestException('Empty file');
     return { ok: true, key: keyRaw, publicUrl: `/uploads/${keyRaw}` };
   }
 }

@@ -776,7 +776,7 @@ export const ApiService = {
     const key = `products:${sid}:${page ?? ''}:${limit ?? ''}`;
     return await cached(key, 15_000, () => getProductsViaBackend(sid, opts), 2);
   },
-  getProductsForManage: async (shopId: string, opts?: { page?: number; limit?: number }) => {
+  getProductsForManage: async (shopId: string, opts?: { page?: number; limit?: number; includeImageMap?: boolean }) => {
     return await getProductsForManageViaBackend(shopId, opts);
   },
   getProductById: async (id: string) => {

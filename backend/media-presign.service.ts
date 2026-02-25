@@ -122,14 +122,24 @@ export class MediaPresignService {
     }
 
     const isVideo = mimeType.startsWith('video/');
-    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
-    const maxImageMbRaw = String(this.config.get<string>('MEDIA_IMAGE_MAX_MB') || '25').trim();
-    const maxVideoMbRaw = String(this.config.get<string>('MEDIA_VIDEO_MAX_MB') || (isProd ? '50' : '150')).trim();
-    const maxBytes = Math.floor((isVideo ? Number(maxVideoMbRaw) : Number(maxImageMbRaw)) * 1024 * 1024);
+    const parseMaxBytes = (raw: string, fallbackMb: number) => {
+      const n = Number(String(raw || '').trim());
+      if (!Number.isFinite(n)) return Math.floor(fallbackMb * 1024 * 1024);
+      if (n <= 0) return 0; // 0 => no size validation here
+      return Math.floor(n * 1024 * 1024);
+    };
 
-    if (typeof dto?.size === 'number' && dto.size > maxBytes) {
+    // Keep uploads open for large merchant media by default.
+    // Compression/optimization is handled asynchronously after upload.
+    const maxImageBytes = parseMaxBytes(String(this.config.get<string>('MEDIA_IMAGE_MAX_MB') || '1024'), 1024);
+    const maxVideoBytes = parseMaxBytes(String(this.config.get<string>('MEDIA_VIDEO_MAX_MB') || '4096'), 4096);
+    const maxBytes = isVideo ? maxVideoBytes : maxImageBytes;
+
+    if (maxBytes > 0 && typeof dto?.size === 'number' && dto.size > maxBytes) {
       throw new BadRequestException('File too large');
     }
+
+    const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
 
     const role = String(auth?.role || '').toUpperCase();
     const tokenShopId = String(auth?.shopId || '').trim();

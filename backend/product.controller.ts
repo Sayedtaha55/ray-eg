@@ -51,6 +51,7 @@ export class ProductController {
     @Param('shopId') shopId: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('includeImageMap') includeImageMap?: string,
     @Request() req?: any,
   ) {
     const sid = typeof shopId === 'string' ? String(shopId).trim() : '';
@@ -60,7 +61,8 @@ export class ProductController {
       page: typeof pageNum === 'number' && Number.isFinite(pageNum) ? pageNum : undefined,
       limit: typeof limitNum === 'number' && Number.isFinite(limitNum) ? limitNum : undefined,
     };
-    return this.productService.listByShopForManage(sid, paging, { role: req.user?.role, shopId: req.user?.shopId });
+    const includeMap = String(includeImageMap || '').trim().toLowerCase() === 'true';
+    return this.productService.listByShopForManage(sid, paging, { role: req.user?.role, shopId: req.user?.shopId }, { includeImageMap: includeMap });
   }
 
   @Get(':id')
@@ -193,11 +195,13 @@ export class ProductController {
         const furnitureMetaRaw = typeof it?.furnitureMeta === 'undefined'
           ? (typeof it?.furniture_meta === 'undefined' ? undefined : it.furniture_meta)
           : it.furnitureMeta;
-        return { name, price, stock, category, unit, description, colors, sizes, packOptions, furnitureMeta: furnitureMetaRaw };
+        const productId = typeof it?.productId === 'string' ? String(it.productId).trim() : undefined;
+        return { name, price, stock, category, unit, description, colors, sizes, packOptions, productId, furnitureMeta: furnitureMetaRaw };
       })
       .filter((it: any) => it?.name && Number.isFinite(it?.price));
 
-    return this.productService.importDrafts(targetShopId, items, { role, shopId: shopIdFromToken });
+    const source = typeof body?.source === 'string' ? String(body.source).trim() : undefined;
+    return this.productService.importDrafts(targetShopId, items, { role, shopId: shopIdFromToken, source });
   }
 
   @Patch(':id/stock')

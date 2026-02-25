@@ -203,7 +203,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     try {
       const [maps, manageProducts] = await Promise.all([
         ApiService.listShopImageMapsForManage(shopId),
-        ApiService.getProductsForManage(shopId, { page: 1, limit: 2000 }),
+        ApiService.getProductsForManage(shopId, { page: 1, limit: 2000, includeImageMap: true }),
       ]);
 
       const list = Array.isArray(maps) ? maps : [];
@@ -272,6 +272,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         price: normalizeNumber(r?.price, NaN),
         stock: normalizeNumber(r?.stock, 0),
         category: '__IMAGE_MAP__',
+        productId: normalizeText(r?.productId) || undefined,
         description: null,
       }))
       .filter((r) => r.name && Number.isFinite(r.price) && r.price >= 0);
@@ -285,6 +286,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     setImageMapError('');
     try {
       const res = await backendPost<any>(`/api/v1/products/manage/by-shop/${encodeURIComponent(String(shopId))}/import-drafts`, {
+        source: 'image_map',
         items,
       });
 
@@ -308,7 +310,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         const label = normalizeText(h?.label || h?.product?.name || h?.name);
         const mapped = label ? nameToId.get(label) : undefined;
         const prevPid = normalizeText(h?.productId ?? h?.product_id ?? h?.product?.id) || null;
-        const productId = mapped || prevPid;
+        const prevCategory = normalizeText(h?.product?.category);
+        const canKeepPrev = prevPid && (prevCategory === '__IMAGE_MAP__' || prevCategory.toUpperCase().includes('IMAGE_MAP'));
+        const productId = mapped || (canKeepPrev ? prevPid : null);
         const override = h?.priceOverride ?? h?.price_override;
         const priceOverride = typeof override === 'number' ? override : override == null ? null : Number(override);
         return {

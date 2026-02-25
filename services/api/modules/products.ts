@@ -11,12 +11,13 @@ export async function getProductsViaBackend(shopId?: string, opts?: { page?: num
   return products.map(normalizeProductFromBackend);
 }
 
-export async function getProductsForManageViaBackend(shopId: string, opts?: { page?: number; limit?: number }) {
+export async function getProductsForManageViaBackend(shopId: string, opts?: { page?: number; limit?: number; includeImageMap?: boolean }) {
   const sid = String(shopId || '').trim();
   if (!sid) return [];
   const params = new URLSearchParams();
   if (typeof opts?.page === 'number') params.set('page', String(opts.page));
   if (typeof opts?.limit === 'number') params.set('limit', String(opts.limit));
+  if (opts?.includeImageMap === true) params.set('includeImageMap', 'true');
   const qs = params.toString();
   const products = await backendGet<any[]>(
     `/api/v1/products/manage/by-shop/${encodeURIComponent(sid)}${qs ? `?${qs}` : ''}`,
