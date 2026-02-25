@@ -35,6 +35,7 @@
     "test:watch": "jest --watch",
     "backend:check": "node scripts/check-backend.mjs",
     "backend:smoke:addons": "node scripts/smoke-shop-addons.mjs",
+    "backend:smoke:checkout": "node scripts/smoke-checkout.mjs",
     "checks": "npm run backend:typecheck && npm run backend:build && npm run typecheck && npm run test",
     "preview": "npx vite preview",
     "start": "npm run dev",

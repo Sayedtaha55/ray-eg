@@ -45,6 +45,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
   const canShowAddToCart = typeof showAddToCartButton === 'boolean' ? showAddToCartButton : true;
 
+  const selectedMenuType = isRestaurant
+    ? (Array.isArray(menuVariantsDef) ? menuVariantsDef : []).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim())
+    : null;
+  const selectedMenuSizes = isRestaurant && selectedMenuType && Array.isArray((selectedMenuType as any)?.sizes)
+    ? (selectedMenuType as any).sizes
+    : [];
+
   return (
     <MotionDiv
       initial={{ opacity: 0, x: -50 }}
@@ -82,6 +89,61 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
       {/* Options Selection */}
       <div className="space-y-8">
+        {isRestaurant && Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0 && (
+          <div className="space-y-4" dir="rtl">
+            <div className="text-right">
+              <p className="font-black text-slate-900">الأحجام</p>
+              <p className="text-xs font-bold text-slate-400 mt-1">اختر النوع ثم الحجم</p>
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">النوع</div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {(menuVariantsDef as any[]).map((t: any) => {
+                  const tid = String(t?.id || t?.typeId || t?.variantId || '').trim();
+                  if (!tid) return null;
+                  const tname = String(t?.name || t?.label || '').trim() || tid;
+                  const isSelected = String(selectedMenuTypeId || '').trim() === tid;
+                  return (
+                    <button
+                      key={tid}
+                      type="button"
+                      onClick={() => setSelectedMenuTypeId(tid)}
+                      className={`p-4 rounded-2xl border-2 text-right transition-all ${isSelected ? 'border-[#00E5FF] bg-cyan-50' : 'border-slate-100 hover:border-slate-200'}`}
+                    >
+                      <p className="font-black text-sm text-slate-900">{tname}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الحجم</div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {(selectedMenuSizes as any[]).map((s: any) => {
+                  const sid = String(s?.id || s?.sizeId || '').trim();
+                  if (!sid) return null;
+                  const label = String(s?.label || s?.name || '').trim() || sid;
+                  const priceRaw = typeof s?.price === 'number' ? s.price : Number(s?.price || NaN);
+                  const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
+                  const isSelected = String(selectedMenuSizeId || '').trim() === sid;
+                  return (
+                    <button
+                      key={sid}
+                      type="button"
+                      onClick={() => setSelectedMenuSizeId(sid)}
+                      className={`px-5 py-3 rounded-xl border-2 font-black text-sm transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                    >
+                      {label}{Number.isFinite(price) ? ` (ج.م ${price})` : ''}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
+
         {hasPacks && (
           <div className="space-y-4">
             <p className="font-black text-slate-900">اختر الباقة</p>

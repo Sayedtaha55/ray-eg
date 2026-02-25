@@ -215,6 +215,7 @@ export class ProductService {
           category: true,
           unit: true,
           imageUrl: true,
+          menuVariants: true,
           isActive: true,
           shopId: true,
           furnitureMeta: {

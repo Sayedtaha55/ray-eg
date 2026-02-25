@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Search, ChevronRight, Loader2, Ruler, CheckCircle2 } from 'lucide-react';
+import { Search, ChevronRight, Loader2, Ruler, CheckCircle2, UserPlus, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -26,7 +26,9 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
   const [search, setSearch] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
+  const [isCustomerCardOpen, setIsCustomerCardOpen] = useState(false);
   const [receiptTheme, setReceiptTheme] = useState<any>({});
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [configProduct, setConfigProduct] = useState<any | null>(null);
@@ -323,22 +325,51 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     if (cart.length === 0) return;
     setIsProcessing(true);
     try {
+      const trimmedPhone = String(customerPhone || '').trim();
+      const trimmedName = String(customerName || '').trim();
+      if (trimmedPhone) {
+        try {
+          const firstItemName = String(cart?.[0]?.name || '').trim();
+          await ApiService.convertReservationToCustomer({
+            shopId,
+            customerName: trimmedName,
+            customerPhone: trimmedPhone,
+            customerEmail: '',
+            firstPurchaseAmount: total,
+            firstPurchaseItem: firstItemName || 'POS',
+          });
+        } catch {
+        }
+      }
       await ApiService.placeOrder({
         shopId,
-        items: cart.map(i => ({ id: i.productId, quantity: i.quantity, addons: i.addons, variantSelection: i.variantSelection })),
+        items: cart.map(i => ({ productId: i.productId, quantity: i.quantity, addons: i.addons, variantSelection: i.variantSelection })),
         total,
-        paymentMethod: 'cashier',
+        paymentMethod: 'COD',
       });
       const updated = await ApiService.getProducts(shopId);
       setProducts(updated || []);
       setShowSuccess(true);
       setCart([]);
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+      } catch {
+      }
       setTimeout(() => {
         setShowSuccess(false);
         onClose();
       }, 1500);
-    } catch {
-      // error handling
+    } catch (err: any) {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[POSSystem] placeOrder failed', err);
+      } catch {
+      }
+      const msg = String(err?.message || '').trim() || 'حدث خطأ أثناء إتمام العملية';
+      try {
+        window.alert(msg);
+      } catch {
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -364,13 +395,15 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <input
-            type="tel"
-            value={customerPhone}
-            onChange={(e) => setCustomerPhone(e.target.value)}
-            placeholder="رقم العميل"
-            className="bg-white border rounded-2xl py-3 px-4 w-40 md:w-48 outline-none"
-          />
+          <button
+            type="button"
+            onClick={() => setIsCustomerCardOpen(true)}
+            className="bg-white border rounded-2xl py-3 px-4 w-40 md:w-48 outline-none flex items-center justify-center gap-2 font-black text-sm hover:bg-slate-50"
+            title="إضافة عميل"
+          >
+            <UserPlus size={18} />
+            {String(customerPhone || '').trim() ? 'تعديل عميل' : 'إضافة عميل'}
+          </button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
@@ -613,12 +646,13 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                   const size = sizes.find((s: any) => String(s?.id || '').trim() === String(selectedMenuSizeId || '').trim()) || sizes[0];
                   const sizePrice = Number(size?.price);
                   if (Number.isFinite(sizePrice) && sizePrice > 0) price = sizePrice;
-                  variantSelection = {
-                    menuTypeId: String(type?.id || '').trim(),
-                    menuSizeId: String(size?.id || '').trim(),
-                    menuTypeLabel: String(type?.name || type?.label || '').trim(),
-                    menuSizeLabel: String(size?.label || size?.name || '').trim(),
-                  };
+                  if (type && size) {
+                    variantSelection = {
+                      typeId: String(type?.id || '').trim(),
+                      sizeId: String(size?.id || '').trim(),
+                      menuSizeLabel: String(size?.label || size?.name || '').trim(),
+                    };
+                  }
                 }
 
                 if (isFashion) {
@@ -702,6 +736,78 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             </div>
           </MotionDiv>
         )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCustomerCardOpen ? (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setIsCustomerCardOpen(false)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-[2rem] p-5"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <h3 className="text-lg font-black">بيانات العميل</h3>
+                <button type="button" onClick={() => setIsCustomerCardOpen(false)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-slate-500">الاسم (اختياري)</div>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="اسم العميل"
+                    className="w-full bg-white border rounded-2xl py-3 px-4 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-slate-500">رقم الهاتف</div>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full bg-white border rounded-2xl py-3 px-4 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setIsCustomerCardOpen(false);
+                  }}
+                  className="py-3 rounded-2xl bg-slate-50 text-slate-700 font-black"
+                >
+                  مسح
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerCardOpen(false)}
+                  className="py-3 rounded-2xl bg-slate-900 text-white font-black"
+                >
+                  حفظ
+                </button>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        ) : null}
       </AnimatePresence>
     </div>
   );

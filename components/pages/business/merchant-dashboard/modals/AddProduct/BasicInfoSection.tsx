@@ -13,6 +13,7 @@ interface BasicInfoSectionProps {
   description: string;
   setDescription: (v: string) => void;
   isRestaurant: boolean;
+  hideStock?: boolean;
   isFashion: boolean;
   fashionSizeItems: any[];
 }
@@ -24,6 +25,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   cat, setCat,
   description, setDescription,
   isRestaurant,
+  hideStock = false,
   isFashion,
   fashionSizeItems
 }) => {
@@ -40,7 +42,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
         />
       </div>
 
-      <div className={`grid grid-cols-1 ${isRestaurant ? '' : 'md:grid-cols-2'} gap-6`}>
+      <div className={`grid grid-cols-1 ${isRestaurant || hideStock ? '' : 'md:grid-cols-2'} gap-6`}>
         <div className="space-y-3">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">السعر (ج.م)</label>
           <input
@@ -52,7 +54,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
           />
         </div>
-        {!isRestaurant && (
+        {!isRestaurant && !hideStock && (
           <div className="space-y-3">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية المتوفرة</label>
             <input

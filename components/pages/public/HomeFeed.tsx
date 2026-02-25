@@ -207,7 +207,7 @@ const HomeFeed: React.FC = () => {
             <Sparkles className="w-3 h-3 text-[#00E5FF] fill-current" />
             عروض حصرية
          </MotionDiv>
-         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">من مكانك<br/><span className="text-[#00E5FF]">دليل المحلات والمطاعم.</span></h1>
+         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">من مكانك<br/><span className="text-cyan-700">دليل المحلات والمطاعم.</span></h1>
          <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
             منصة من مكانك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات.
          </p>
@@ -230,7 +230,7 @@ const HomeFeed: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
           {offers.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
+            <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض نشطة حالياً.</div>
           ) : offers.map((offer, idx) => (
             <div key={offer.id} className="cv-auto">
               <OfferCard

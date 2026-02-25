@@ -1,11 +1,13 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { CourierDispatchService } from './courier-dispatch.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
   ) {}
 
@@ -748,11 +750,21 @@ export class OrderService {
 
       const total = computedTotal;
 
+      const isCashierSale = (() => {
+        const role = String(actor?.role || '').toUpperCase();
+        // Merchant/Admin placing an order from POS should count as an immediate sale.
+        return role === 'MERCHANT' || role === 'ADMIN';
+      })();
+
+      const effectiveStatus = isCashierSale ? ('DELIVERED' as any) : status;
+
       const created = await tx.order.create({
         data: {
           total: total,
           user: { connect: { id: userId } },
           shop: { connect: { id: shopId } },
+          status: effectiveStatus,
+          ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
           items: {
             create: normalizedItems.map((item) => {
               const product = byId[item.productId];
@@ -854,8 +866,26 @@ export class OrderService {
         // ignore
       }
 
+      try {
+        await this.createOrderStatusNotifications({
+          tx,
+          shopId: String(shopId),
+          userId: String(userId),
+          orderId: String(created?.id || ''),
+          status: String(effectiveStatus || ''),
+        });
+      } catch {
+        // ignore
+      }
+
       return created;
     });
+
+    try {
+      await this.redis.invalidatePattern(`shop:${shopId}:analytics:*`);
+    } catch {
+      // ignore
+    }
 
     this.courierDispatch.dispatchForOrder(String(created?.id || '')).catch(() => {});
 

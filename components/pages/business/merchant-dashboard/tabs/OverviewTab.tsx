@@ -32,20 +32,17 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
   const safeAnalytics = analytics || {};
   const salesCountToday = safeAnalytics.salesCountToday ?? 0;
   const revenueToday = safeAnalytics.revenueToday ?? 0;
+  const totalOrders = safeAnalytics.totalOrders ?? 0;
+  const totalRevenue = safeAnalytics.totalRevenue ?? 0;
   const chartData = Array.isArray(safeAnalytics.chartData) ? safeAnalytics.chartData : [];
 
   const showSalesAnalytics = useMemo(() => {
     const layoutConfig = (shop?.layoutConfig && typeof shop.layoutConfig === 'object') ? shop.layoutConfig : undefined;
     const enabledRaw = layoutConfig?.enabledModules;
-    const modeRaw = layoutConfig?.dashboardMode;
-    const mode = String(modeRaw || '').trim().toLowerCase();
-
-    if (mode && mode !== 'manage') return false;
-
     if (!Array.isArray(enabledRaw)) return false;
 
     const enabled = new Set((enabledRaw || []).map((x: any) => String(x || '').trim()));
-    return enabled.has('sales') && enabled.has('invoice');
+    return enabled.has('sales');
   }, [shop]);
 
   const chartBody = useMemo(() => {
@@ -91,43 +88,107 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
         ) : null}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
-        {showSalesAnalytics ? (
-          <div className="lg:col-span-2 bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
-            <div className="flex items-center justify-between mb-6 sm:mb-10 md:mb-12 flex-row-reverse">
-              <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">رادار المبيعات</h3>
-              <div className="flex items-center gap-2 text-green-500 font-black text-xs sm:text-sm px-3 sm:px-4 py-1 bg-green-50 rounded-full">
-                <TrendingUp size={16} /> نمو مستمر
+      {showSalesAnalytics ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
+          <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900">الطلبات والإيرادات</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:gap-4">
+              <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">إجمالي الطلبات</div>
+                <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 text-right">{Number(totalOrders || 0).toLocaleString()}</div>
+              </div>
+              <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">إجمالي الإيرادات</div>
+                <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 text-right">ج.م {Number(totalRevenue || 0).toLocaleString()}</div>
               </div>
             </div>
-            <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
-              {chartBody}
-            </div>
-          </div>
-        ) : null}
 
-        <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
-            <h3 className="text-2xl font-black text-slate-900">آخر التنبيهات</h3>
-            <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-[#00E5FF]">
-              <Bell size={20} />
+            <div className="mt-6">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-3">جدول المبيعات اليومي (آخر 7 أيام)</div>
+              <div className="rounded-3xl border border-slate-100 overflow-hidden">
+                <div className="grid grid-cols-2 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
+                  <div className="text-right">اليوم</div>
+                  <div className="text-right">الإيراد</div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {(Array.isArray(chartData) ? chartData : []).map((row: any, idx: number) => (
+                    <div key={`${String(row?.name || '')}:${idx}`} className="grid grid-cols-2 px-4 py-3">
+                      <div className="text-right font-black text-slate-700 text-sm">{String(row?.name || '')}</div>
+                      <div className="text-right font-black text-slate-900 text-sm">ج.م {Number(row?.sales || 0).toLocaleString()}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
-          <div className="space-y-6 sm:space-y-8">
-            {notifications.length === 0 ? (
-              <div className="py-16 sm:py-20 md:py-24 text-center text-slate-200">
-                <Bell size={40} className="mx-auto mb-4 opacity-10 sm:w-12 sm:h-12" />
-                <p className="font-bold">لا توجد عمليات مؤخراً.</p>
+
+          <div className="lg:col-span-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8 md:gap-10">
+              {showSalesAnalytics ? (
+                <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-6 sm:mb-10 md:mb-12 flex-row-reverse">
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">رادار المبيعات</h3>
+                    <div className="flex items-center gap-2 text-green-500 font-black text-xs sm:text-sm px-3 sm:px-4 py-1 bg-green-50 rounded-full">
+                      <TrendingUp size={16} /> نمو مستمر
+                    </div>
+                  </div>
+                  <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
+                    {chartBody}
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+                <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
+                  <h3 className="text-2xl font-black text-slate-900">آخر التنبيهات</h3>
+                  <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-[#00E5FF]">
+                    <Bell size={20} />
+                  </div>
+                </div>
+                <div className="space-y-6 sm:space-y-8">
+                  {notifications.length === 0 ? (
+                    <div className="py-16 sm:py-20 md:py-24 text-center text-slate-200">
+                      <Bell size={40} className="mx-auto mb-4 opacity-10 sm:w-12 sm:h-12" />
+                      <p className="font-bold">لا توجد عمليات مؤخراً.</p>
+                    </div>
+                  ) : (
+                    notifications.map((n) => <ActivityItem key={n.id} n={n} />)
+                  )}
+                </div>
+                <button className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-400 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all">
+                  مشاهدة كافة الإشعارات
+                </button>
               </div>
-            ) : (
-              notifications.map((n) => <ActivityItem key={n.id} n={n} />)
-            )}
+            </div>
           </div>
-          <button className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-400 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all">
-            مشاهدة كافة الإشعارات
-          </button>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
+          <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+            <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
+              <h3 className="text-2xl font-black text-slate-900">آخر التنبيهات</h3>
+              <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-[#00E5FF]">
+                <Bell size={20} />
+              </div>
+            </div>
+            <div className="space-y-6 sm:space-y-8">
+              {notifications.length === 0 ? (
+                <div className="py-16 sm:py-20 md:py-24 text-center text-slate-200">
+                  <Bell size={40} className="mx-auto mb-4 opacity-10 sm:w-12 sm:h-12" />
+                  <p className="font-bold">لا توجد عمليات مؤخراً.</p>
+                </div>
+              ) : (
+                notifications.map((n) => <ActivityItem key={n.id} n={n} />)
+              )}
+            </div>
+            <button className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-400 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all">
+              مشاهدة كافة الإشعارات
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -10,6 +10,7 @@ type Props = {
   showName?: boolean;
   logoSrc?: string;
   iconOnly?: boolean;
+  prioritizeImage?: boolean;
 };
 
 const BrandLogo: React.FC<Props> = ({
@@ -17,8 +18,9 @@ const BrandLogo: React.FC<Props> = ({
   name = 'MNMKNK',
   suffix,
   showName = true,
-  logoSrc = '/icon-192x192.png',
+  logoSrc = '/brand/icon-72.webp',
   iconOnly = false,
+  prioritizeImage = false,
 }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -69,9 +71,10 @@ const BrandLogo: React.FC<Props> = ({
       onError={() => setImgError(true)}
       alt=""
       decoding="async"
-      fetchPriority="high"
-      width={64}
-      height={64}
+      fetchPriority={prioritizeImage ? 'high' : 'auto'}
+      width={72}
+      height={72}
+      loading={prioritizeImage ? 'eager' : 'lazy'}
     />
   ) : (
     <span className={styles.letter}>M</span>

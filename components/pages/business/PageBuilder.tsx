@@ -112,7 +112,15 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [logoSaving, setLogoSaving] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>(() => {
+    try {
+      if (typeof window === 'undefined') return 'desktop';
+      const mql = window.matchMedia('(min-width: 768px)');
+      return mql.matches ? 'desktop' : 'mobile';
+    } catch {
+      return 'desktop';
+    }
+  });
   const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info'>('home');
   const [isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen] = useState(false);
   const [openSection, setOpenSection] = useState('colors');
@@ -289,9 +297,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }, []);
 
   useEffect(() => {
-    if (!isDesktop) {
-      setPreviewMode('mobile');
-    }
+    setPreviewMode(isDesktop ? 'desktop' : 'mobile');
   }, [isDesktop]);
 
   useEffect(() => {

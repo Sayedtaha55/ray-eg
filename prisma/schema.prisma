@@ -97,12 +97,34 @@ model Shop {
   followersList ShopFollower[]
   accountingInvoices AccountingInvoice[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
+  customers     Customer[]
 
   @@index([category])
   @@index([slug])
   @@index([status])
   @@index([isActive])
   @@map("shops")
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  name      String
+  phone     String
+  email     String?
+  status    String   @default("active")
+  orders    Int      @default(0)
+  totalSpent Float   @default(0) @map("total_spent")
+  lastPurchaseAt DateTime? @map("last_purchase_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, phone])
+  @@index([shopId])
+  @@index([phone])
+  @@map("customers")
 }
 
 enum ShopModuleUpgradeRequestStatus {

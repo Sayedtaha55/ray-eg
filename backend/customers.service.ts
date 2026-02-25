@@ -3,9 +3,6 @@ import { PrismaService } from './prisma/prisma.service';
 
 @Injectable()
 export class CustomersService {
-  private readonly statusOverrides = new Map<string, string>();
-  private readonly convertedCustomers = new Map<string, any>();
-
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
@@ -106,7 +103,7 @@ export class CustomersService {
         phone: null,
         orders: 0,
         totalSpent: 0,
-        status: this.statusOverrides.get(userId) || 'active',
+        status: 'active',
       };
 
       base.orders = Number(base.orders || 0) + 1;
@@ -133,7 +130,7 @@ export class CustomersService {
         phone,
         orders: 0,
         totalSpent: 0,
-        status: this.statusOverrides.get(customerId) || 'active',
+        status: 'active',
       };
 
       base.orders = Number(base.orders || 0) + 1;
@@ -142,29 +139,31 @@ export class CustomersService {
       customersById.set(customerId, base);
     }
 
-    for (const c of this.convertedCustomers.values()) {
-      if (String(c?.shopId || '').trim() !== sid) continue;
-      const id = String(c?.id || '').trim();
-      if (!id) continue;
-
-      const existing = customersById.get(id);
-      if (existing) {
-        customersById.set(id, {
-          ...existing,
-          status: this.statusOverrides.get(id) || existing?.status || c?.status || 'active',
-        });
-        continue;
-      }
-
-      customersById.set(id, {
-        id,
-        name: c?.name || 'عميل',
-        email: c?.email || null,
-        phone: c?.phone || null,
-        orders: Number(c?.orders || 0),
-        totalSpent: Number(c?.totalSpent || 0),
-        status: this.statusOverrides.get(id) || c?.status || 'active',
+    // Merge in persisted customers (created via POS / convert endpoint)
+    try {
+      const persisted = await (this.prisma as any).customer?.findMany?.({
+        where: { shopId: sid },
+        orderBy: { totalSpent: 'desc' },
       });
+      const list = Array.isArray(persisted) ? persisted : [];
+      for (const c of list) {
+        const id = String((c as any)?.id || '').trim();
+        if (!id) continue;
+        const phone = (c as any)?.phone ? String((c as any).phone).trim() : null;
+        const existing = customersById.get(id);
+        const merged = {
+          id,
+          name: String((c as any)?.name || '').trim() || existing?.name || 'عميل',
+          email: (c as any)?.email ?? existing?.email ?? null,
+          phone: phone || existing?.phone || null,
+          orders: Number((c as any)?.orders ?? existing?.orders ?? 0),
+          totalSpent: Number((c as any)?.totalSpent ?? existing?.totalSpent ?? 0),
+          status: String((c as any)?.status || existing?.status || 'active'),
+        };
+        customersById.set(id, merged);
+      }
+    } catch {
+      // ignore
     }
 
     return Array.from(customersById.values()).sort((a, b) => Number(b.totalSpent || 0) - Number(a.totalSpent || 0));
@@ -177,11 +176,16 @@ export class CustomersService {
     if (!cid) return { id: cid, status: 'active' };
 
     const normalized = st === 'blocked' ? 'blocked' : 'active';
-    this.statusOverrides.set(cid, normalized);
-
-    const existing = this.convertedCustomers.get(cid);
-    if (existing) {
-      this.convertedCustomers.set(cid, { ...existing, status: normalized });
+    try {
+      const updated = await (this.prisma as any).customer?.update?.({
+        where: { id: cid },
+        data: { status: normalized },
+      });
+      if (updated) {
+        return { id: String((updated as any).id), status: String((updated as any).status || normalized) };
+      }
+    } catch {
+      // ignore
     }
 
     return { id: cid, status: normalized };
@@ -193,25 +197,55 @@ export class CustomersService {
 
   async convertReservationToCustomer(payload: any) {
     const shopId = String(payload?.shopId || '').trim();
-    const name = String(payload?.name || '').trim();
-    const phone = String(payload?.phone || '').trim();
-    const email = String(payload?.email || '').trim();
+    const name = String(payload?.name ?? payload?.customerName ?? '').trim();
+    const phone = String(payload?.phone ?? payload?.customerPhone ?? '').trim();
+    const email = String(payload?.email ?? payload?.customerEmail ?? '').trim();
 
-    const id = (payload?.customerId ? String(payload.customerId) : '') || `${Date.now()}`;
+    const amount = Number(payload?.firstPurchaseAmount || 0);
+    const safeAmount = Number.isFinite(amount) && amount > 0 ? amount : 0;
 
-    const customer = {
-      id,
-      shopId,
-      name: name || 'عميل',
-      phone: phone || null,
-      email: email || null,
-      orders: 1,
-      totalSpent: Number(payload?.firstPurchaseAmount || 0),
-      status: this.statusOverrides.get(id) || 'active',
+    if (!shopId || !phone) {
+      return {
+        id: payload?.customerId ? String(payload.customerId) : `${Date.now()}`,
+        shopId,
+        name: name || 'عميل',
+        phone: phone || null,
+        email: email || null,
+        orders: 1,
+        totalSpent: safeAmount,
+        status: 'active',
+      };
+    }
+
+    const upserted = await (this.prisma as any).customer.upsert({
+      where: { shopId_phone: { shopId, phone } },
+      create: {
+        shopId,
+        name: name || 'عميل',
+        phone,
+        email: email || null,
+        status: 'active',
+        orders: 1,
+        totalSpent: safeAmount,
+        lastPurchaseAt: new Date(),
+      },
+      update: {
+        name: name || undefined,
+        email: email || undefined,
+        orders: { increment: 1 },
+        totalSpent: { increment: safeAmount },
+        lastPurchaseAt: new Date(),
+      },
+    });
+
+    return {
+      id: String((upserted as any).id),
+      name: String((upserted as any).name || 'عميل'),
+      email: (upserted as any).email ?? null,
+      phone: String((upserted as any).phone || ''),
+      orders: Number((upserted as any).orders || 0),
+      totalSpent: Number((upserted as any).totalSpent || 0),
+      status: String((upserted as any).status || 'active'),
     };
-
-    this.convertedCustomers.set(id, customer);
-
-    return customer;
   }
 }

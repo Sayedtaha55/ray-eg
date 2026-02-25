@@ -39,6 +39,7 @@ const ProductPage: React.FC = () => {
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
   const [selectedPackId, setSelectedPackId] = useState('');
   const [activeTab, setActiveTab] = useState<'details' | 'specs' | 'shipping'>('details');
+  const [pageBgReady, setPageBgReady] = useState(false);
 
   const isRestaurant = shop?.category === Category.RESTAURANT;
   const isFashion = shop?.category === Category.FASHION;
@@ -504,8 +505,16 @@ const ProductPage: React.FC = () => {
 
   const displayedPrice = useMemo(() => {
     if (offer) return Number(offer.newPrice) || 0;
+    if (isRestaurant && Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0) {
+      const type = (menuVariantsDef as any[]).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim());
+      const sizes = Array.isArray((type as any)?.sizes) ? (type as any).sizes : [];
+      const size = sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === String(selectedMenuSizeId || '').trim());
+      const priceRaw = typeof (size as any)?.price === 'number' ? (size as any).price : Number((size as any)?.price || NaN);
+      const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
+      if (Number.isFinite(price)) return price;
+    }
     return Number(product?.price) || 0;
-  }, [offer, product]);
+  }, [offer, product, isRestaurant, menuVariantsDef, selectedMenuTypeId, selectedMenuSizeId]);
 
   const productImageSrc = useMemo(
     () => String((product as any)?.imageUrl || (product as any)?.image_url || '').trim(),
@@ -572,10 +581,34 @@ const ProductPage: React.FC = () => {
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
   }, [shop, product]);
 
+  const pageBgColor = useMemo(() => {
+    const design = (shop as any)?.pageDesign || (shop as any)?.page_design;
+    const raw = (design as any)?.pageBackgroundColor || (design as any)?.backgroundColor;
+    return String(raw || '#F8FAFC');
+  }, [shop]);
+
+  const pageBgImage = useMemo(() => {
+    const design = (shop as any)?.pageDesign || (shop as any)?.page_design;
+    return String((design as any)?.backgroundImageUrl || '').trim();
+  }, [shop]);
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-white" dir="rtl">
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-10 md:py-16">
+      <div className="min-h-screen relative" style={{ backgroundColor: pageBgColor }} dir="rtl">
+        {pageBgImage ? (
+          <img
+            key={pageBgImage}
+            src={pageBgImage}
+            alt=""
+            className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 w-full h-full object-cover"
+            style={{ opacity: pageBgReady ? 1 : 0 }}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setPageBgReady(true)}
+            onError={() => setPageBgReady(true)}
+          />
+        ) : null}
+        <div className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-28 md:pb-12">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 md:gap-16">
             <div className="lg:col-span-6">
               <Skeleton className="w-full aspect-[4/5] rounded-[2.5rem]" />
@@ -600,7 +633,20 @@ const ProductPage: React.FC = () => {
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+      <div className="min-h-screen relative flex flex-col items-center justify-center p-6 text-center" style={{ backgroundColor: pageBgColor }} dir="rtl">
+        {pageBgImage ? (
+          <img
+            key={pageBgImage}
+            src={pageBgImage}
+            alt=""
+            className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 w-full h-full object-cover"
+            style={{ opacity: pageBgReady ? 1 : 0 }}
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setPageBgReady(true)}
+            onError={() => setPageBgReady(true)}
+          />
+        ) : null}
         <p className="text-slate-500 font-bold mb-8">ربما تم حذفه أو أن الرابط غير صحيح.</p>
         <button 
           onClick={() => navigate('/')}
@@ -613,75 +659,90 @@ const ProductPage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-12 md:py-20 text-right font-sans" dir="rtl">
-      {canUseCart ? (
-        <div className="fixed top-24 right-4 z-[90] lg:hidden">
-          <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
-        </div>
+    <div className="min-h-screen relative" style={{ backgroundColor: pageBgColor }} dir="rtl">
+      {pageBgImage ? (
+        <img
+          key={pageBgImage}
+          src={pageBgImage}
+          alt=""
+          className="fixed inset-0 z-0 pointer-events-none transition-opacity duration-700 w-full h-full object-cover"
+          style={{ opacity: pageBgReady ? 1 : 0 }}
+          loading="lazy"
+          decoding="async"
+          onLoad={() => setPageBgReady(true)}
+          onError={() => setPageBgReady(true)}
+        />
       ) : null}
+      <div className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-28 md:pb-12 text-right font-sans">
+        {canUseCart ? (
+          <div className="fixed top-24 right-4 z-[90] lg:hidden">
+            <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
+          </div>
+        ) : null}
 
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all">
-        <ArrowRight size={20} /> العودة للسابق
-      </button>
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all">
+          <ArrowRight size={20} /> العودة للسابق
+        </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24" style={{ contentVisibility: 'auto' }}>
-        <ProductGallery
-          galleryImages={galleryImages}
-          activeImageSrc={activeImageSrc}
-          setActiveImageSrc={setActiveImageSrc}
-          productName={product?.name || ''}
-          hasDiscount={!!offer}
-          discount={offer?.discount}
-          onGalleryTouchStart={onGalleryTouchStart}
-          onGalleryTouchEnd={onGalleryTouchEnd}
-        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24" style={{ contentVisibility: 'auto' }}>
+          <ProductGallery
+            galleryImages={galleryImages}
+            activeImageSrc={activeImageSrc}
+            setActiveImageSrc={setActiveImageSrc}
+            productName={product?.name || ''}
+            hasDiscount={!!offer}
+            discount={offer?.discount}
+            onGalleryTouchStart={onGalleryTouchStart}
+            onGalleryTouchEnd={onGalleryTouchEnd}
+          />
 
-        <ProductDetails
-          product={product}
-          shop={shop}
-          offer={offer}
-          isFavorite={isFavorite}
-          toggleFavorite={toggleFavorite}
-          handleShare={() => {}} // TODO
-          handleAddToCart={handleAddToCart}
-          showAddToCartButton={canShowAddToCart}
-          setIsResModalOpen={setIsResModalOpen}
-          displayedPrice={displayedPrice}
-          hasDiscount={!!offer}
-          isRestaurant={isRestaurant}
-          isFashion={isFashion}
-          hasPacks={hasPacks}
-          packDefs={packDefs}
-          selectedPackId={selectedPackId}
-          setSelectedPackId={setSelectedPackId}
-          menuVariantsDef={menuVariantsDef}
-          selectedMenuTypeId={selectedMenuTypeId}
-          setSelectedMenuTypeId={setSelectedMenuTypeId}
-          selectedMenuSizeId={selectedMenuSizeId}
-          setSelectedMenuSizeId={setSelectedMenuSizeId}
-          fashionColors={fashionColors}
-          selectedFashionColorValue={selectedFashionColorValue}
-          setSelectedFashionColorValue={setSelectedFashionColorValue}
-          fashionSizes={fashionSizes}
-          selectedFashionSize={selectedFashionSize}
-          setSelectedFashionSize={setSelectedFashionSize}
-          selectedAddons={selectedAddons}
-          setSelectedAddons={setSelectedAddons}
-          addonsDef={addonsDef}
-          whatsappHref={whatsappHref}
-          primaryColor="#00E5FF"
-        />
+          <ProductDetails
+            product={product}
+            shop={shop}
+            offer={offer}
+            isFavorite={isFavorite}
+            toggleFavorite={toggleFavorite}
+            handleShare={() => {}} // TODO
+            handleAddToCart={handleAddToCart}
+            showAddToCartButton={canShowAddToCart}
+            setIsResModalOpen={setIsResModalOpen}
+            displayedPrice={displayedPrice}
+            hasDiscount={!!offer}
+            isRestaurant={isRestaurant}
+            isFashion={isFashion}
+            hasPacks={hasPacks}
+            packDefs={packDefs}
+            selectedPackId={selectedPackId}
+            setSelectedPackId={setSelectedPackId}
+            menuVariantsDef={menuVariantsDef}
+            selectedMenuTypeId={selectedMenuTypeId}
+            setSelectedMenuTypeId={setSelectedMenuTypeId}
+            selectedMenuSizeId={selectedMenuSizeId}
+            setSelectedMenuSizeId={setSelectedMenuSizeId}
+            fashionColors={fashionColors}
+            selectedFashionColorValue={selectedFashionColorValue}
+            setSelectedFashionColorValue={setSelectedFashionColorValue}
+            fashionSizes={fashionSizes}
+            selectedFashionSize={selectedFashionSize}
+            setSelectedFashionSize={setSelectedFashionSize}
+            selectedAddons={selectedAddons}
+            setSelectedAddons={setSelectedAddons}
+            addonsDef={addonsDef}
+            whatsappHref={whatsappHref}
+            primaryColor="#00E5FF"
+          />
 
-      </div>
+        </div>
 
-      <div className="mt-20">
-        <ProductTabs
-          activeTab={activeTab as any}
-          setActiveTab={setActiveTab as any}
-          productDescription={String((product as any)?.description || '').trim()}
-          product={product}
-          primaryColor="#00E5FF"
-        />
+        <div className="mt-20">
+          <ProductTabs
+            activeTab={activeTab as any}
+            setActiveTab={setActiveTab as any}
+            productDescription={String((product as any)?.description || '').trim()}
+            product={product}
+            primaryColor="#00E5FF"
+          />
+        </div>
       </div>
 
       <Suspense fallback={null}>

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
+import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
 import { coerceBoolean } from './utils';
@@ -42,6 +42,7 @@ const ProductCard = React.memo(function ProductCard({
   }, []);
 
   const [imageReady, setImageReady] = useState(false);
+  const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() => {
     try {
       const favs = RayDB.getFavorites();
@@ -187,6 +188,13 @@ const ProductCard = React.memo(function ProductCard({
     navigate(`/product/${product.id}`);
   };
 
+  const openImagePreview = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const src = String(product.imageUrl || (product as any).image_url || '').trim();
+    if (!src) return;
+    setImagePreviewOpen(true);
+  };
+
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
   const motionProps = disableMotion || isLowEndDevice ? {} : { 
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
@@ -195,11 +203,12 @@ const ProductCard = React.memo(function ProductCard({
 
   if (isCardless) {
     return (
-      <Wrapper
-        {...motionProps}
-        className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
-      >
-        <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
+      <>
+        <Wrapper
+          {...motionProps}
+          className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
+        >
+          <div onClick={openImagePreview} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
           <img
             loading="lazy"
@@ -262,36 +271,90 @@ const ProductCard = React.memo(function ProductCard({
             )}
           </div>
         </div>
-      </Wrapper>
+        </Wrapper>
+
+        {imagePreviewOpen ? (
+          <div className="fixed inset-0 z-[999]" dir="rtl">
+            <button
+              type="button"
+              className="absolute inset-0 bg-black/70"
+              onClick={() => setImagePreviewOpen(false)}
+              aria-label="إغلاق"
+            />
+            <div className="absolute inset-0 flex items-center justify-center p-4">
+              <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
+                  <div className="font-black text-sm">صورة المنتج</div>
+                  <button
+                    type="button"
+                    onClick={() => setImagePreviewOpen(false)}
+                    className="p-2 rounded-2xl bg-slate-100 text-slate-900"
+                    aria-label="إغلاق"
+                  >
+                    <X size={18} />
+                  </button>
+                </div>
+                <div className="p-4 bg-slate-50">
+                  <img
+                    src={String(product.imageUrl || (product as any).image_url || '')}
+                    alt=""
+                    className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                  />
+                  <div className="mt-4 flex items-center justify-between flex-row-reverse gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreviewOpen(false);
+                        goToProduct();
+                      }}
+                      className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm"
+                    >
+                      فتح صفحة المنتج
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setImagePreviewOpen(false)}
+                      className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
+                    >
+                      إغلاق
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </>
     );
   }
 
   return (
-    <Wrapper
-      {...motionProps}
-      className={`group relative transition-all duration-500 overflow-hidden ${
-        isList
-          ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 p-3 md:p-4 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2rem]'
-          : isCardless
-            ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 py-3 md:py-4 border-b border-slate-100 bg-transparent rounded-none'
-            : `bg-white flex flex-col h-full ${
-                isBold
-                  ? 'rounded-[1.8rem] md:rounded-[2.5rem] border-2 shadow-2xl p-2 md:p-2.5'
-                  : isModern
-                    ? 'rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-100 shadow-lg p-1.5'
-                    : 'rounded-none border-b border-slate-100 p-0 shadow-none'
-              }`
-      }`}
-      style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
-    >
-      <div
-        onClick={goToProduct}
-        className={`relative overflow-hidden cursor-pointer ${
-          isList || isCardless
-            ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
-            : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
+    <>
+      <Wrapper
+        {...motionProps}
+        className={`group relative transition-all duration-500 overflow-hidden ${
+          isList
+            ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 p-3 md:p-4 bg-white border border-slate-100 rounded-[1.5rem] md:rounded-[2rem]'
+            : isCardless
+              ? 'flex flex-row-reverse items-stretch gap-3 md:gap-4 py-3 md:py-4 border-b border-slate-100 bg-transparent rounded-none'
+              : `bg-white flex flex-col h-full ${
+                  isBold
+                    ? 'rounded-[1.8rem] md:rounded-[2.5rem] border-2 shadow-2xl p-2 md:p-2.5'
+                    : isModern
+                      ? 'rounded-[1.2rem] md:rounded-[1.5rem] border border-slate-100 shadow-lg p-1.5'
+                      : 'rounded-none border-b border-slate-100 p-0 shadow-none'
+                }`
         }`}
+        style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
       >
+        <div
+          onClick={openImagePreview}
+          className={`relative overflow-hidden cursor-pointer ${
+            isList || isCardless
+              ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
+              : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
+          }`}
+        >
         {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
         {(product.imageUrl || (product as any).image_url) ? (
           <img
@@ -436,7 +499,60 @@ const ProductCard = React.memo(function ProductCard({
           )}
         </div>
       </div>
-    </Wrapper>
+      </Wrapper>
+
+      {imagePreviewOpen ? (
+        <div className="fixed inset-0 z-[999]" dir="rtl">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setImagePreviewOpen(false)}
+            aria-label="إغلاق"
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
+                <div className="font-black text-sm">صورة المنتج</div>
+                <button
+                  type="button"
+                  onClick={() => setImagePreviewOpen(false)}
+                  className="p-2 rounded-2xl bg-slate-100 text-slate-900"
+                  aria-label="إغلاق"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="p-4 bg-slate-50">
+                <img
+                  src={String(product.imageUrl || (product as any).image_url || '')}
+                  alt=""
+                  className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                />
+                <div className="mt-4 flex items-center justify-between flex-row-reverse gap-3">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreviewOpen(false);
+                      goToProduct();
+                    }}
+                    className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm"
+                  >
+                    فتح صفحة المنتج
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setImagePreviewOpen(false)}
+                    className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
+                  >
+                    إغلاق
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 });
 

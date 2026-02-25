@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, memo } from 'react';
-import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart, ChevronDown, Lock, Unlock } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
@@ -121,6 +121,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     }>
   >([]);
   const [savingAddons, setSavingAddons] = useState(false);
+  const [openAddonId, setOpenAddonId] = useState<string>('');
+  const [lockedAddonIds, setLockedAddonIds] = useState<Set<string>>(new Set());
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const canUseImageMapEditor = !isRestaurant && Boolean(String(shopId || '').trim());
@@ -390,7 +392,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         };
       })
       .filter(Boolean);
-    setAddonItems(mapped as any);
+    const list = mapped as any[];
+    setAddonItems(list as any);
+    setOpenAddonId('');
+    setLockedAddonIds(new Set(list.map((x) => String((x as any)?.id || '').trim()).filter(Boolean)));
   }, [isRestaurant, shop]);
 
   const parseNumberInput = (value: any) => {
@@ -412,12 +417,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     return n;
   };
 
-  const saveShopAddons = async () => {
+  const saveShopAddons = async (itemsOverride?: typeof addonItems) => {
     if (!isRestaurant) return;
     setSavingAddons(true);
     try {
+      const sourceItems = typeof itemsOverride === 'undefined' ? addonItems : itemsOverride;
       const uploadedAddonOptions = await Promise.all(
-        (addonItems || []).map(async (a) => {
+        (sourceItems || []).map(async (a) => {
           const optId = String(a?.id || '').trim() || `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           const optName = String(a?.name || '').trim();
           if (!optName) return null;
@@ -491,6 +497,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       } catch {
       }
       addToast('تم حفظ إضافات المطعم', 'success');
+      return true;
     } catch (e: any) {
       try {
         // eslint-disable-next-line no-console
@@ -505,9 +512,27 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       const backendMsg = typeof e?.data?.message === 'string' ? e.data.message : undefined;
       const msg = backendMsg || (e?.message ? String(e.message) : 'فشل حفظ الإضافات');
       addToast(msg, 'error');
+      return false;
     } finally {
       setSavingAddons(false);
     }
+  };
+
+  const getAddonSummary = (a: any) => {
+    const sizes: string[] = [];
+    if (a?.hasSmall) sizes.push('صغير');
+    if (a?.hasMedium) sizes.push('وسط');
+    if (a?.hasLarge) sizes.push('كبير');
+    const label = sizes.length ? sizes.join(' - ') : 'بدون مقاسات';
+    const n = String(a?.name || '').trim();
+    return { name: n, sizesLabel: label };
+  };
+
+  const handleSaveAddonsAndLock = async () => {
+    const ok = await saveShopAddons();
+    if (!ok) return;
+    setLockedAddonIds(new Set((addonItems || []).map((x) => String((x as any)?.id || '').trim()).filter(Boolean)));
+    setOpenAddonId('');
   };
 
   const handleEdit = (product: Product) => {
@@ -608,20 +633,21 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         </div>
 
         {isRestaurant && (
-          <div className="mb-12 p-6 md:p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-6">
-            <div className="flex items-center justify-between flex-row-reverse">
+          <div className="mb-12 p-6 md:p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-6" data-component-name="ProductsTab">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between flex-row-reverse gap-4">
               <div className="text-right">
                 <h4 className="text-xl font-black">إضافات المطعم</h4>
                 <p className="text-xs font-bold text-slate-400">تتضاف مرة واحدة وتظهر تحت كل المنتجات</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => {
+                    const newId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
                     setAddonItems((prev) => [
-                      ...prev,
+                      ...(Array.isArray(prev) ? prev : []),
                       {
-                        id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                        id: newId,
                         name: '',
                         imagePreview: null,
                         imageUrl: null,
@@ -634,180 +660,291 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                         priceLarge: '',
                       },
                     ]);
+                    setLockedAddonIds((prev) => {
+                      const next = new Set(prev);
+                      next.delete(newId);
+                      return next;
+                    });
+                    setOpenAddonId(newId);
                   }}
-                  className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                  className="px-4 py-3 rounded-2xl font-black text-xs bg-slate-900 text-white w-full sm:w-auto"
                 >
-                  + إضافة
-                </button>
-                <button
-                  type="button"
-                  onClick={saveShopAddons}
-                  className="px-4 py-2 rounded-xl font-black text-xs bg-[#00E5FF] text-black"
-                  disabled={savingAddons}
-                >
-                  {savingAddons ? <Loader2 size={16} className="animate-spin" /> : 'حفظ'}
+                  + إضافة صنف
                 </button>
               </div>
             </div>
 
             <div className="space-y-4">
               {addonItems.map((a, idx) => (
-                <div key={a.id} className="p-4 rounded-3xl bg-white border border-slate-100 space-y-4">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-black">إضافة #{idx + 1}</p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        try {
-                          if (a.imagePreview && a.imagePreview.startsWith('blob:')) URL.revokeObjectURL(a.imagePreview);
-                        } catch {
-                        }
-                        setAddonItems((prev) => prev.filter((x) => x.id !== a.id));
-                      }}
-                      className="text-slate-400 hover:text-red-500"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">اسم الإضافة</label>
-                      <input
-                        value={a.name}
-                        onChange={(e) => {
-                          const v = e.target.value;
-                          setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
+                (() => {
+                  const isOpen = openAddonId === a.id;
+                  const isLocked = lockedAddonIds.has(a.id);
+                  const summary = getAddonSummary(a);
+                  return (
+                    <div key={a.id} className="rounded-3xl bg-white border border-slate-100 overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpenAddonId((prev) => (prev === a.id ? '' : a.id));
                         }}
-                        placeholder="مثلاً: بطاطس"
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
-                          {a.imagePreview ? (
-                            <SmartImage src={a.imagePreview} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
-                          ) : null}
+                        className="w-full p-4 flex items-center justify-between flex-row-reverse gap-3 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="text-right min-w-0">
+                          <div className="font-black text-sm truncate">
+                            {summary.name || `إضافة #${idx + 1}`}
+                          </div>
+                          <div className="text-[10px] font-bold text-slate-400 truncate">
+                            {summary.sizesLabel}
+                          </div>
                         </div>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp,image/avif"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            const mime = String(file.type || '').toLowerCase().trim();
-                            const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
-                            if (!mime || !allowed.has(mime)) {
-                              addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
-                              return;
-                            }
-                            setAddonItems((prev) =>
-                              prev.map((x) => {
-                                if (x.id !== a.id) return x;
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${isLocked ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
+                            {isLocked ? 'محفوظ' : 'غير محفوظ'}
+                          </span>
+                          <ChevronDown size={18} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                        </div>
+                      </button>
+
+                      {isOpen ? (
+                        <div className="p-4 space-y-4" dir="rtl">
+                          <div className="flex items-center justify-between flex-row-reverse gap-3">
+                            <div className="text-right">
+                              <div className="text-xs font-black text-slate-500">تفاصيل الإضافة</div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
                                 try {
-                                  if (x.imagePreview && x.imagePreview.startsWith('blob:')) URL.revokeObjectURL(x.imagePreview);
+                                  if (a.imagePreview && a.imagePreview.startsWith('blob:')) URL.revokeObjectURL(a.imagePreview);
                                 } catch {
                                 }
-                                return { ...x, imageUploadFile: file, imagePreview: URL.createObjectURL(file) };
-                              }),
-                            );
-                          }}
-                          className="block w-full text-xs font-bold"
-                        />
-                      </div>
-                    </div>
-                  </div>
+                                setAddonItems((prev) => {
+                                  const nextList = (Array.isArray(prev) ? prev : []).filter((x) => x.id !== a.id);
+                                  (async () => {
+                                    const ok = await saveShopAddons(nextList as any);
+                                    if (!ok) return;
+                                    setLockedAddonIds(new Set(nextList.map((x) => String((x as any)?.id || '').trim()).filter(Boolean)));
+                                    setOpenAddonId('');
+                                  })();
+                                  return nextList as any;
+                                });
+                              }}
+                              className="px-3 py-2 rounded-2xl bg-red-50 text-red-600 font-black text-xs hover:bg-red-600 hover:text-white transition-colors"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddonItems((prev) =>
-                              prev.map((x) =>
-                                x.id === a.id
-                                  ? { ...x, hasSmall: !x.hasSmall, priceSmall: !x.hasSmall ? x.priceSmall : '' }
-                                  : x,
-                              ),
-                            );
-                          }}
-                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                        >
-                          {a.hasSmall ? 'لا يوجد' : 'موجود'}
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        disabled={!a.hasSmall}
-                        value={a.hasSmall ? a.priceSmall : ''}
-                        onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
-                        placeholder={a.hasSmall ? '' : 'لا يوجد'}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                      />
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="md:col-span-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">اسم الإضافة</label>
+                              <input
+                                value={a.name}
+                                onChange={(e) => {
+                                  const v = e.target.value;
+                                  setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
+                                  setLockedAddonIds((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(a.id);
+                                    return next;
+                                  });
+                                }}
+                                placeholder="مثلاً: بطاطس"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
+                                  {a.imagePreview ? (
+                                    <SmartImage src={a.imagePreview} className="w-full h-full" imgClassName="object-cover" loading="lazy" />
+                                  ) : null}
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp,image/avif"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (!file) return;
+                                    const mime = String(file.type || '').toLowerCase().trim();
+                                    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+                                    if (!mime || !allowed.has(mime)) {
+                                      addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+                                      return;
+                                    }
+                                    setAddonItems((prev) =>
+                                      prev.map((x) => {
+                                        if (x.id !== a.id) return x;
+                                        try {
+                                          if (x.imagePreview && x.imagePreview.startsWith('blob:')) URL.revokeObjectURL(x.imagePreview);
+                                        } catch {
+                                        }
+                                        return { ...x, imageUploadFile: file, imagePreview: URL.createObjectURL(file) };
+                                      }),
+                                    );
+                                    setLockedAddonIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(a.id);
+                                      return next;
+                                    });
+                                  }}
+                                  className="block w-full text-xs font-bold"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddonItems((prev) =>
+                                      prev.map((x) =>
+                                        x.id === a.id
+                                          ? { ...x, hasSmall: !x.hasSmall, priceSmall: !x.hasSmall ? x.priceSmall : '' }
+                                          : x,
+                                      ),
+                                    );
+                                    setLockedAddonIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(a.id);
+                                      return next;
+                                    });
+                                  }}
+                                  className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                                >
+                                  {a.hasSmall ? 'لا يوجد' : 'موجود'}
+                                </button>
+                              </div>
+                              <input
+                                type="number"
+                                disabled={!a.hasSmall}
+                                value={a.hasSmall ? a.priceSmall : ''}
+                                onChange={(e) => {
+                                  setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)));
+                                  setLockedAddonIds((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(a.id);
+                                    return next;
+                                  });
+                                }}
+                                placeholder={a.hasSmall ? '' : 'لا يوجد'}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddonItems((prev) =>
+                                      prev.map((x) =>
+                                        x.id === a.id
+                                          ? { ...x, hasMedium: !x.hasMedium, priceMedium: !x.hasMedium ? x.priceMedium : '' }
+                                          : x,
+                                      ),
+                                    );
+                                    setLockedAddonIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(a.id);
+                                      return next;
+                                    });
+                                  }}
+                                  className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                                >
+                                  {a.hasMedium ? 'لا يوجد' : 'موجود'}
+                                </button>
+                              </div>
+                              <input
+                                type="number"
+                                disabled={!a.hasMedium}
+                                value={a.hasMedium ? a.priceMedium : ''}
+                                onChange={(e) => {
+                                  setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)));
+                                  setLockedAddonIds((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(a.id);
+                                    return next;
+                                  });
+                                }}
+                                placeholder={a.hasMedium ? '' : 'لا يوجد'}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
+                              />
+                            </div>
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setAddonItems((prev) =>
+                                      prev.map((x) =>
+                                        x.id === a.id
+                                          ? { ...x, hasLarge: !x.hasLarge, priceLarge: !x.hasLarge ? x.priceLarge : '' }
+                                          : x,
+                                      ),
+                                    );
+                                    setLockedAddonIds((prev) => {
+                                      const next = new Set(prev);
+                                      next.delete(a.id);
+                                      return next;
+                                    });
+                                  }}
+                                  className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                                >
+                                  {a.hasLarge ? 'لا يوجد' : 'موجود'}
+                                </button>
+                              </div>
+                              <input
+                                type="number"
+                                disabled={!a.hasLarge}
+                                value={a.hasLarge ? a.priceLarge : ''}
+                                onChange={(e) => {
+                                  setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)));
+                                  setLockedAddonIds((prev) => {
+                                    const next = new Set(prev);
+                                    next.delete(a.id);
+                                    return next;
+                                  });
+                                }}
+                                placeholder={a.hasLarge ? '' : 'لا يوجد'}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
+                              />
+                            </div>
+                          </div>
+
+                          <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                            <button
+                              type="button"
+                              onClick={handleSaveAddonsAndLock}
+                              className="px-5 py-3 rounded-2xl bg-[#00E5FF] text-black font-black text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                              disabled={savingAddons}
+                            >
+                              {savingAddons ? <Loader2 size={18} className="animate-spin" /> : null}
+                              حفظ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setOpenAddonId('')}
+                              className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
+                            >
+                              إغلاق
+                            </button>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddonItems((prev) =>
-                              prev.map((x) =>
-                                x.id === a.id
-                                  ? { ...x, hasMedium: !x.hasMedium, priceMedium: !x.hasMedium ? x.priceMedium : '' }
-                                  : x,
-                              ),
-                            );
-                          }}
-                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                        >
-                          {a.hasMedium ? 'لا يوجد' : 'موجود'}
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        disabled={!a.hasMedium}
-                        value={a.hasMedium ? a.priceMedium : ''}
-                        onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
-                        placeholder={a.hasMedium ? '' : 'لا يوجد'}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setAddonItems((prev) =>
-                              prev.map((x) =>
-                                x.id === a.id
-                                  ? { ...x, hasLarge: !x.hasLarge, priceLarge: !x.hasLarge ? x.priceLarge : '' }
-                                  : x,
-                              ),
-                            );
-                          }}
-                          className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
-                        >
-                          {a.hasLarge ? 'لا يوجد' : 'موجود'}
-                        </button>
-                      </div>
-                      <input
-                        type="number"
-                        disabled={!a.hasLarge}
-                        value={a.hasLarge ? a.priceLarge : ''}
-                        onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
-                        placeholder={a.hasLarge ? '' : 'لا يوجد'}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
-                      />
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()
               ))}
             </div>
           </div>

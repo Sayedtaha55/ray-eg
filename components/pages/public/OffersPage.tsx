@@ -79,16 +79,17 @@ const OffersPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative" dir="rtl">
-      <div className="flex flex-col items-center text-center mb-10 md:mb-16">
-        <div className="flex items-center gap-3 mb-4">
-          <Sparkles className="w-6 h-6 text-[#BD00FF]" />
-          <h1 className="text-4xl md:text-7xl font-black tracking-tighter">العروض</h1>
+    <div className="min-h-screen bg-slate-50" dir="rtl">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative">
+        <div className="flex flex-col items-center text-center mb-10 md:mb-16">
+          <div className="flex items-center gap-3 mb-4">
+            <Sparkles className="w-6 h-6 text-[#BD00FF]" />
+            <h1 className="text-4xl md:text-7xl font-black tracking-tighter">العروض</h1>
+          </div>
+          <p className="text-slate-400 font-bold">أحدث العروض النشطة — تحميل تدريجي لتخفيف الضغط</p>
         </div>
-        <p className="text-slate-400 font-bold">أحدث العروض النشطة — تحميل تدريجي لتخفيف الضغط</p>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
         {loading ? (
           Array.from({ length: 8 }).map((_, idx) => (
             <div key={`offer-skel-${idx}`} className="bg-white p-5 rounded-[3rem] border border-slate-50">
@@ -102,7 +103,7 @@ const OffersPage: React.FC = () => {
             </div>
           ))
         ) : offers.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-slate-300 font-bold">لا توجد عروض نشطة حالياً.</div>
+          <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض نشطة حالياً.</div>
         ) : (
           offers.map((offer: any, idx: number) => (
             <div
@@ -158,18 +159,19 @@ const OffersPage: React.FC = () => {
         )}
       </div>
 
-      {offers.length > 0 && hasMore && (
-        <div className="mt-10 md:mt-16 flex items-center justify-center">
-          <button
-            onClick={loadMore}
-            className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl disabled:opacity-60"
-            disabled={loadingMore}
-          >
-            {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-            <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
-          </button>
-        </div>
-      )}
+        {offers.length > 0 && hasMore && (
+          <div className="mt-10 md:mt-16 flex items-center justify-center">
+            <button
+              onClick={loadMore}
+              className="px-10 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl disabled:opacity-60"
+              disabled={loadingMore}
+            >
+              {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
+              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
