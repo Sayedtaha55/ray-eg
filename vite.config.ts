@@ -31,18 +31,16 @@ export default defineConfig(({ mode }) => {
           }
         },
         chunkSizeWarningLimit: 600,
-        // Performance optimizations
-        minify: 'terser',
-        terserOptions: {
-          compress: {
-            drop_console: mode === 'production',
-            drop_debugger: mode === 'production',
-            pure_funcs: mode === 'production' ? ['console.log'] : [],
-          },
-        },
+        // Keep default minifier to match Vite 7 typing/runtime expectations
+        minify: 'esbuild',
         // Enable code splitting
         sourcemap: mode !== 'production',
       },
+      esbuild: mode === 'production'
+        ? {
+            drop: ['console', 'debugger'],
+          }
+        : undefined,
       // Performance optimizations
       optimizeDeps: {
         include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],

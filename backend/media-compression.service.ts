@@ -65,6 +65,12 @@ export class MediaCompressionService {
   }
 
   async optimizeVideoMp4(inputPath: string, outputPath: string) {
+    const scaleWidthRaw = String(process.env.MEDIA_VIDEO_TARGET_WIDTH || '1080').trim();
+    const scaleWidth = Number.isFinite(Number(scaleWidthRaw)) && Number(scaleWidthRaw) > 0 ? Math.floor(Number(scaleWidthRaw)) : 1080;
+    const preset = String(process.env.MEDIA_VIDEO_PRESET || 'slow').trim() || 'slow';
+    const crfRaw = String(process.env.MEDIA_VIDEO_CRF || '32').trim();
+    const crf = Number.isFinite(Number(crfRaw)) ? Math.max(20, Math.min(40, Math.floor(Number(crfRaw)))) : 32;
+
     await this.runFfmpeg([
       '-y',
       '-i',
@@ -74,15 +80,15 @@ export class MediaCompressionService {
       '-map',
       '0:a?',
       '-vf',
-      'scale=1280:-2:force_original_aspect_ratio=decrease',
+      `scale=${scaleWidth}:-2:force_original_aspect_ratio=decrease`,
       '-r',
       '30',
       '-c:v',
       'libx264',
       '-preset',
-      'veryfast',
+      preset,
       '-crf',
-      '28',
+      String(crf),
       '-pix_fmt',
       'yuv420p',
       '-movflags',
@@ -90,7 +96,7 @@ export class MediaCompressionService {
       '-c:a',
       'aac',
       '-b:a',
-      '96k',
+      String(process.env.MEDIA_VIDEO_AUDIO_BITRATE || '64k'),
       outputPath,
     ]);
   }

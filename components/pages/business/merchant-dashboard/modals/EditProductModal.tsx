@@ -4,7 +4,7 @@ import { X, Upload, Video } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Category, Product } from '@/types';
-import { compressImage, generateVideoThumbnail } from '@/lib/image-utils';
+import { generateVideoThumbnail } from '@/lib/image-utils';
 
 // Sub-components
 import ImageUploadSection from './EditProduct/ImageUploadSection';
@@ -476,13 +476,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           videoUrl = upload.url;
           imageUrl = posterUrl; // Fallback image is the poster
         } else if (mime.startsWith('image/')) {
-          setCompressionProgress(30);
-          // Compress image before upload
-          const compressedMain = await compressImage(imageUploadFile);
-          
-          setCompressionProgress(50);
+          setCompressionProgress(40);
           const upload = await ApiService.uploadMediaRobust({
-            file: compressedMain,
+            file: imageUploadFile,
             purpose: 'product_image',
             shopId,
           });
@@ -494,12 +490,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       // Upload extra images if new ones added
       let extraUrls: string[] = [];
       if (!isRestaurant && extraImageUploadFiles.length > 0) {
-        const compressedExtras = await Promise.all(
-          extraImageUploadFiles.map(f => compressImage(f))
-        );
-        
         const uploads = await Promise.all(
-          compressedExtras.map((f) =>
+          extraImageUploadFiles.map((f) =>
             ApiService.uploadMediaRobust({
               file: f,
               purpose: 'product_image',

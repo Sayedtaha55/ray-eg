@@ -172,6 +172,7 @@ export class ProductService {
     shopId: string,
     paging: { page?: number; limit?: number } | undefined,
     actor: { role: string; shopId?: string },
+    options?: { includeImageMap?: boolean },
   ) {
     if (!shopId) {
       throw new BadRequestException('shopId مطلوب');
@@ -183,14 +184,19 @@ export class ProductService {
     }
 
     const pagination = this.getPagination(paging);
+    const includeImageMap = Boolean(options?.includeImageMap);
     try {
       return await (this.prisma.product as any).findMany({
         where: {
           shopId,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-          ],
+          ...(includeImageMap
+            ? {}
+            : {
+                NOT: [
+                  { category: '__IMAGE_MAP__' },
+                  { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                ],
+              }),
         },
         orderBy: { createdAt: 'desc' },
         select: {
@@ -408,13 +414,16 @@ export class ProductService {
       description?: string | null;
       colors?: any;
       sizes?: any;
+      productId?: string;
       furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
     }>,
-    actor: { role: string; shopId?: string },
+    actor: { role: string; shopId?: string; source?: string },
   ) {
     if (!shopId) throw new BadRequestException('shopId مطلوب');
 
     const role = String(actor?.role || '').toUpperCase();
+    const source = String(actor?.source || '').trim().toLowerCase();
+    const forceImageMap = source === 'image_map';
     if (role !== 'ADMIN' && actor?.shopId !== shopId) {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
@@ -425,7 +434,9 @@ export class ProductService {
         const price = Number(it?.price);
         const stockRaw = typeof it?.stock === 'undefined' ? undefined : Number(it.stock);
         const stock = typeof stockRaw === 'number' && Number.isFinite(stockRaw) && stockRaw >= 0 ? Math.floor(stockRaw) : 0;
-        const category = typeof it?.category === 'string' && it.category.trim() ? it.category.trim() : 'عام';
+        const categoryRaw = typeof it?.category === 'string' && it.category.trim() ? it.category.trim() : 'عام';
+        const category = forceImageMap ? '__IMAGE_MAP__' : categoryRaw;
+        const productId = typeof (it as any)?.productId === 'string' ? String((it as any).productId).trim() : undefined;
         const unit = typeof it?.unit === 'string' && it.unit.trim() ? it.unit.trim() : undefined;
         const packOptions = typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions;
         const description = typeof it?.description === 'string' ? it.description : null;
@@ -466,9 +477,9 @@ export class ProductService {
         if (!name) return null;
         if (!Number.isFinite(price) || price < 0) return null;
 
-        return { name, price, stock, category, unit, packOptions, description, colors, sizes, furnitureMeta };
+        return { name, price, stock, category, unit, packOptions, description, colors, sizes, productId, furnitureMeta };
       })
-      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any; furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null }>;
+      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any; productId?: string; furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null }>;
 
     if (!normalized.length) {
       throw new BadRequestException('items مطلوبة');
@@ -482,7 +493,11 @@ export class ProductService {
 
         for (const it of normalized) {
           const existing = await tx.product.findFirst({
-            where: { shopId, name: it.name },
+            where: it.productId
+              ? { id: it.productId, shopId }
+              : forceImageMap
+                ? { shopId, name: it.name, category: '__IMAGE_MAP__' }
+                : { shopId, name: it.name },
             select: { id: true, isActive: true },
           });
 
@@ -493,7 +508,7 @@ export class ProductService {
                 name: it.name,
                 price: it.price,
                 stock: it.stock,
-                category: it.category,
+                category: forceImageMap ? '__IMAGE_MAP__' : it.category,
                 unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
                 packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
                 description: it.description,
@@ -559,7 +574,7 @@ export class ProductService {
             data: {
               price: it.price,
               stock: it.stock,
-              category: it.category,
+              category: forceImageMap ? '__IMAGE_MAP__' : it.category,
               unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
               packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
               description: it.description,
