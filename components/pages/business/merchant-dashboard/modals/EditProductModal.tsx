@@ -15,6 +15,7 @@ import AdditionalImagesSection from './EditProduct/AdditionalImagesSection';
 import FashionOptionsSection from './EditProduct/FashionOptionsSection';
 import FurnitureOptionsSection from './EditProduct/FurnitureOptionsSection';
 import FormFooter from './EditProduct/FormFooter';
+import AddonsSection from './EditProduct/AddonsSection';
 
 type Props = {
   isOpen: boolean;
@@ -546,6 +547,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         videoUrl,
         bannerPosterUrl: posterUrl,
         trackStock: isRestaurant ? false : true,
+        addons: addonItems.length > 0 ? [{
+          id: 'product-addons',
+          title: 'إضافات إضافية',
+          options: addonItems.map(a => ({
+            id: a.id || `${Date.now()}-${Math.random()}`,
+            name: a.name,
+            imageUrl: a.imageUrl,
+            variants: [{ id: 'default', label: 'إضافة', price: parseNumberInput(a.priceSmall) || 0 }]
+          }))
+        }] : [],
         ...(allowPackOptions ? { unit: unit ? String(unit).trim() : null, packOptions } : {}),
         ...(isRestaurant ? { menuVariants } : {}),
         ...(isRestaurant
@@ -662,6 +673,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
               parseNumberInput={parseNumberInput}
             />
           )}
+
+          <AddonsSection
+            addonItems={addonItems}
+            setAddonItems={setAddonItems}
+            addToast={addToast}
+          />
 
           {!isRestaurant && (
             <>
