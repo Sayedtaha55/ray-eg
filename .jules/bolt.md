@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2025-05-16 - [Async Image Decoding]
+**Learning:** Standard `<img>` tags can cause main-thread jank when decoding large images during scroll. Using `decoding="async"` helps offload this work. Also, perceived performance is greatly improved by using skeletons and smooth transitions rather than letting images "pop" into the layout.
+**Action:** Prefer `SmartImage` component over native `<img>` for all primary visual content, especially in lists and grids where multiple images load simultaneously.
