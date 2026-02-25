@@ -75,6 +75,18 @@ const POSCart: React.FC<POSCartProps> = ({
                 <div className="flex-1 text-right">
                   <h4 className="font-black text-slate-900 leading-tight mb-1">{item.name}</h4>
                   <p className="text-[#BD00FF] font-black text-sm">ج.م {item.price.toFixed(2)}</p>
+                  {item.variantSelection && (
+                    <div className="text-[10px] font-bold text-slate-400 mt-1">
+                      {item.variantSelection.typeName && `${item.variantSelection.typeName} - `}
+                      {item.variantSelection.sizeLabel || item.variantSelection.size || ''}
+                      {item.variantSelection.colorName && ` (${item.variantSelection.colorName})`}
+                    </div>
+                  )}
+                  {item.addons?.length > 0 && (
+                    <div className="text-[10px] font-bold text-emerald-500 mt-0.5">
+                      + {item.addons.map((a: any) => a.optionName || a.variantLabel).join(', ')}
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => removeFromCart(item.id)}
