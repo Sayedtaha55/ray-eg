@@ -1,9 +1,0 @@
-
-> ray-test-marketplace@1.0.1 dev
-> npx vite --config vite.config.mts
-
-
-  VITE v7.3.1  ready in 250 ms
-
-  ➜  Local:   http://localhost:5174/
-  ➜  Network: http://192.168.0.2:5174/
