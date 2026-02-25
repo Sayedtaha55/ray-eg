@@ -39,9 +39,21 @@ function resolveRolledBack(migrationName) {
 
 (function main() {
   try {
-    const genStatus = generateClient();
-    if (genStatus !== 0) {
-      process.exit(genStatus);
+    const shouldGenerateOnStart = String(process.env.PRISMA_GENERATE_ON_START || '').toLowerCase().trim() === 'true';
+    if (shouldGenerateOnStart) {
+      const genStatus = generateClient();
+      if (genStatus !== 0) {
+        // On some platforms, node_modules can be mounted read-only at runtime.
+        // In that case, Prisma client must be generated during build/install step (postinstall).
+        const env = String(process.env.NODE_ENV || '').toLowerCase();
+        if (env === 'production') {
+          // best-effort: continue so server can boot if client already exists
+          // eslint-disable-next-line no-console
+          console.warn('[railway-backend-start] prisma generate failed; continuing (ensure postinstall runs prisma generate)');
+        } else {
+          process.exit(genStatus);
+        }
+      }
     }
 
     tryBaselineInit();
