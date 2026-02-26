@@ -1,5 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import * as ReactRouterDOM from 'react-router-dom';
+import {
+  HashRouter,
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  useParams,
+  useNavigate,
+  Navigate,
+} from 'react-router-dom';
 
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
 
@@ -46,8 +55,6 @@ const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSet
 
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
 const Page404 = React.lazy(() => import('./components/pages/shared/404'));
-
-const { HashRouter, BrowserRouter, Routes, Route, useLocation, useParams, useNavigate, Navigate } = ReactRouterDOM as any;
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -103,12 +110,12 @@ const AppLoadingFallback: React.FC = () => (
 
 const RedirectSShop: React.FC = () => {
   const { slug } = useParams();
-  return <ReactRouterDOM.Navigate to={`/shop/${slug}`} replace />;
+  return <Navigate to={`/shop/${slug}`} replace />;
 };
 
 const RedirectSShopProduct: React.FC = () => {
   const { slug, id } = useParams();
-  return <ReactRouterDOM.Navigate to={`/shop/${slug}/product/${id}`} replace />;
+  return <Navigate to={`/shop/${slug}/product/${id}`} replace />;
 };
 
 const RedirectShopImageMapToShopProfile: React.FC = () => {
