@@ -73,6 +73,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     return isMobile && (cores <= 4 || memory <= 4);
   }, []);
 
+  const shouldPlayVideoBanner = isVideoBanner && !isLowEndDevice && !prefersReducedMotion;
+
   const MobileMenuWrapper: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
   const mobileMenuMotionProps = prefersReducedMotion || isLowEndDevice
     ? {}
@@ -83,6 +85,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     };
 
   useEffect(() => {
+    let rafId: any = null;
+    let lastStuck: boolean | null = null;
+
     const measure = () => {
       try {
         const h = headerRef.current ? Number((headerRef.current as any).offsetHeight || 0) : 0;
@@ -92,21 +97,36 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }
     };
 
-    const onScroll = () => {
+    const computeStuck = () => {
       try {
         if (!bannerRef.current) return;
         const rect = bannerRef.current.getBoundingClientRect();
         const next = rect.bottom <= 0;
-        setStuck(next);
+        if (lastStuck === null || next !== lastStuck) {
+          lastStuck = next;
+          setStuck(next);
+        }
       } catch {
       }
     };
 
+    const onScroll = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        computeStuck();
+      });
+    };
+
     measure();
-    onScroll();
+    computeStuck();
     window.addEventListener('resize', measure);
     window.addEventListener('scroll', onScroll, { passive: true } as any);
     return () => {
+      try {
+        if (rafId != null) cancelAnimationFrame(rafId);
+      } catch {
+      }
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', onScroll as any);
     };
@@ -118,15 +138,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
         {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
         {isVideoBanner ? (
-          isLowEndDevice ? (
-            <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-              <img 
-                src={currentDesign?.bannerPosterUrl || bannerUrl.replace(/\.(mp4|webm|mov)$/, '.jpg')} 
-                className="w-full h-full object-cover"
-                alt="Banner"
-              />
-            </div>
-          ) : (
+          shouldPlayVideoBanner ? (
             <video
               autoPlay
               loop
@@ -135,7 +147,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               poster={currentDesign?.bannerPosterUrl}
               className="w-full h-full object-cover"
               src={bannerUrl}
+              preload="none"
             />
+          ) : (
+            <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
+              <img 
+                src={currentDesign?.bannerPosterUrl || bannerUrl.replace(/\.(mp4|webm|mov)$/, '.jpg')} 
+                className="w-full h-full object-cover"
+                alt="Banner"
+                loading="lazy"
+                decoding="async"
+              />
+            </div>
           )
         ) : (
           <img
@@ -144,6 +167,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             className="w-full h-full object-cover"
             decoding="async"
             fetchPriority="high"
+            loading="eager"
           />
         )}
         <div className="absolute inset-0 bg-black/20" />

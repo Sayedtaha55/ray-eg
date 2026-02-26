@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import ProductCard from './ProductCard';
@@ -53,9 +53,48 @@ const ProductTab: React.FC<ProductTabProps> = ({
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
 
-  const filteredProducts = activeCategory === 'الكل' 
-    ? products 
-    : products.filter(p => String(p?.category || 'عام') === activeCategory);
+  const filteredProducts = useMemo(() => (
+    activeCategory === 'الكل'
+      ? products
+      : products.filter(p => String(p?.category || 'عام') === activeCategory)
+  ), [activeCategory, products]);
+
+  const isLowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const initialBatch = isLowEndDevice ? 18 : 36;
+  const batchSize = isLowEndDevice ? 12 : 24;
+  const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, filteredProducts.length));
+
+  useEffect(() => {
+    setRenderCount(Math.min(initialBatch, filteredProducts.length));
+  }, [filteredProducts.length, initialBatch]);
+
+  useEffect(() => {
+    if (renderCount >= filteredProducts.length) return;
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      setRenderCount((prev) => {
+        const next = Math.min(prev + batchSize, filteredProducts.length);
+        return next;
+      });
+    };
+    const t = setTimeout(tick, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [batchSize, filteredProducts.length, renderCount]);
 
   if (productsTabLoading && products.length === 0) {
     return (
@@ -116,7 +155,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-10">
-          {filteredProducts.map((prod) => (
+          {filteredProducts.slice(0, renderCount).map((prod) => (
             <ProductCard
               key={prod.id}
               product={prod}

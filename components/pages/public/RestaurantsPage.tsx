@@ -177,22 +177,25 @@ const RestaurantsPage: React.FC = () => {
               const bannerSrc = shop?.pageDesign?.bannerUrl || shop?.bannerUrl || shop?.banner_url || 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1200';
               const poster = shop?.pageDesign?.bannerPosterUrl;
               if (isVideoUrl(bannerSrc)) {
+                const posterSrc = poster || bannerSrc.replace(/\.(mp4|webm|mov)$/, '.jpg');
                 return (
-                  <video
-                    src={bannerSrc}
+                  <img
+                    loading="lazy"
+                    decoding="async"
+                    src={getOptimizedImageUrl(posterSrc, 'md') || posterSrc}
                     className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    preload="metadata"
-                    poster={poster || undefined}
+                    alt={shop.name}
+                    onError={(e) => {
+                      const img = e.currentTarget;
+                      if (posterSrc && img.src !== posterSrc) img.src = posterSrc;
+                    }}
                   />
                 );
               }
               return (
                 <img
                   loading="lazy"
+                  decoding="async"
                   src={getOptimizedImageUrl(bannerSrc, 'md')}
                   className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-[3s]"
                   alt={shop.name}

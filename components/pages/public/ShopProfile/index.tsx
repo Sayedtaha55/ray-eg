@@ -665,7 +665,11 @@ const ShopProfile: React.FC = () => {
         }
       />
 
-      <main className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''}`} dir="rtl">
+      <main
+        className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''}`}
+        style={{ contentVisibility: 'auto', containIntrinsicSize: '0 900px' }}
+        dir="rtl"
+      >
         <TabRenderer
           activeTab={activeTab}
           shop={shop}
@@ -728,7 +732,7 @@ const ShopProfile: React.FC = () => {
       {showMobileBottomNav ? (
         <div className="fixed bottom-0 left-0 right-0 z-[350] md:hidden">
           <div className="mx-auto max-w-[1400px] px-4 pb-4">
-            <div className="rounded-[1.8rem] bg-white/95 backdrop-blur border border-slate-100 shadow-2xl overflow-hidden">
+            <div className={`rounded-[1.8rem] bg-white/95 ${disableCardMotion ? '' : 'backdrop-blur'} border border-slate-100 shadow-2xl overflow-hidden`}>
               <div className="grid grid-cols-3">
                 <button
                   type="button"

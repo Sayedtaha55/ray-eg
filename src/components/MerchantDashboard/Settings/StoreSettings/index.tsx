@@ -427,7 +427,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="displayAddress">العنوان المختصر</Label>
-                <Input id="displayAddress" value={form.displayAddress} onChange={onChange('displayAddress')} placeholder="الرياض - ..." />
+                <Input id="displayAddress" value={form.displayAddress} onChange={onChange('displayAddress')} placeholder="القاهرة - ..." />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mapLabel">اسم الموقع على الخريطة</Label>

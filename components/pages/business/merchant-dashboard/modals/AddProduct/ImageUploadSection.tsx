@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Video } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 
 interface ImageUploadSectionProps {
@@ -45,14 +45,14 @@ const ImageUploadSection: React.FC<ImageUploadSectionProps> = ({
             <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-300 group-hover:text-[#00E5FF] transition-colors">
               <Upload size={32} />
             </div>
-            <p className="font-black text-slate-900 mb-1">اضغط لرفع صورة أو فيديو</p>
-            <p className="text-xs text-slate-400 font-bold">JPG, PNG, WebP, MP4</p>
+            <p className="font-black text-slate-900 mb-1">اضغط لرفع صورة</p>
+            <p className="text-xs text-slate-400 font-bold">JPG, PNG, WebP, AVIF</p>
           </div>
         )}
         <input 
           type="file" 
           hidden 
-          accept="image/jpeg,image/png,image/webp,image/avif,video/mp4" 
+          accept="image/jpeg,image/png,image/webp,image/avif" 
           ref={fileInputRef} 
           onChange={handleImageChange} 
         />

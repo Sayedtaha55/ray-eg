@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion, useReducedMotion } from 'framer-motion';
 
 const MotionDiv = motion.div as any;
 
@@ -27,11 +27,26 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   const safeActiveSrc = String(activeImageSrc || '').trim();
   const safeGalleryImages = (galleryImages || []).map((s) => String(s || '').trim()).filter(Boolean);
 
+  const prefersReducedMotion = useReducedMotion();
+  const isLowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const disableMotion = Boolean(prefersReducedMotion) || isLowEndDevice;
+  const Wrapper: any = disableMotion ? 'div' : MotionDiv;
+
   return (
     <div className="space-y-6">
-      <MotionDiv
-        initial={{ opacity: 0, x: 50 }}
-        animate={{ opacity: 1, x: 0 }}
+      <Wrapper
+        {...(disableMotion ? {} : { initial: { opacity: 0, x: 50 }, animate: { opacity: 1, x: 0 } })}
         className="relative aspect-square rounded-[3rem] md:rounded-[4rem] overflow-hidden bg-slate-50 border border-slate-100 shadow-2xl"
         onTouchStart={onGalleryTouchStart}
         onTouchEnd={onGalleryTouchEnd}
@@ -39,6 +54,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         {safeActiveSrc ? (
           <img
             loading="lazy"
+            decoding="async"
             src={safeActiveSrc}
             className="w-full h-full object-contain"
             alt={productName}
@@ -49,7 +65,7 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
             -{discount}%
           </div>
         )}
-      </MotionDiv>
+      </Wrapper>
 
       {safeGalleryImages.length > 1 && (
         <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar flex-row-reverse">
@@ -61,7 +77,13 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
                 safeActiveSrc === src ? 'border-[#00E5FF] scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
-              <img src={src} className="w-full h-full object-cover" alt={`${productName} ${idx + 1}`} />
+              <img
+                src={src}
+                className={`w-full h-full object-cover ${disableMotion ? '' : 'transition-transform duration-500'}`}
+                alt={`${productName} ${idx + 1}`}
+                loading="lazy"
+                decoding="async"
+              />
             </button>
           ))}
         </div>

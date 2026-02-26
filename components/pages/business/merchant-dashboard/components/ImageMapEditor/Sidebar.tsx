@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 
 interface SidebarProps {
@@ -48,6 +48,22 @@ const Sidebar: React.FC<SidebarProps> = ({
   setAddingMode,
   fileInputRef
 }) => {
+  const [productQuery, setProductQuery] = useState('');
+
+  const filteredProductOptions = useMemo(() => {
+    const list = Array.isArray(productOptions) ? productOptions : [];
+    const q = String(productQuery || '').trim().toLowerCase();
+    if (!q) return list.slice(0, 250);
+    const out: any[] = [];
+    for (const p of list) {
+      const name = String(p?.name || '').toLowerCase();
+      const id = String(p?.id || '').toLowerCase();
+      if (name.includes(q) || id.includes(q)) out.push(p);
+      if (out.length >= 250) break;
+    }
+    return out;
+  }, [productOptions, productQuery]);
+
   return (
     <div className="border-t lg:border-t-0 lg:border-l border-slate-100 p-4 overflow-y-auto bg-white">
       <div className="space-y-4">
@@ -100,6 +116,12 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             <div className="space-y-1">
               <div className="text-[10px] font-black text-slate-500">ربط بمنتج من المخزون</div>
+              <input
+                value={productQuery}
+                onChange={(e) => setProductQuery(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF] bg-white mb-2"
+                placeholder="بحث بالاسم"
+              />
               <select
                 value={selected.productId || ''}
                 onChange={(e) => {
@@ -115,7 +137,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF] bg-white"
               >
                 <option value="">بدون</option>
-                {productOptions.map((p) => (
+                {filteredProductOptions.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>

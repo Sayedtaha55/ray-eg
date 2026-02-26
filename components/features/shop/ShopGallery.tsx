@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Heart, Share2, Eye } from 'lucide-react';
 import { ShopGallery } from '@/types';
+import { useReducedMotion } from 'framer-motion';
 
 interface ShopGalleryProps {
   images: ShopGallery[];
@@ -19,11 +20,27 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const prefersReducedMotion = useReducedMotion();
+  const lowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const disableMotion = Boolean(prefersReducedMotion) || lowEndDevice || images.length > 40;
+
   const isBold = layout === 'bold';
   const isMinimal = layout === 'minimal';
 
   const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
   const selectedIsVideo = Boolean(selectedImage && (selectedImage as any).mediaType === 'VIDEO');
+  const canPlayVideo = !lowEndDevice && !prefersReducedMotion;
 
   const nextImage = () => {
     if (selectedIndex !== null && selectedIndex < images.length - 1) {
@@ -67,23 +84,30 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
         images.length === 3 ? 'grid-cols-3' :
         'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
       }`}>
-        {images.map((image, index) => (
-          <motion.div
+        {images.map((image, index) => {
+          const Wrapper: any = disableMotion ? 'div' : (motion.div as any);
+          const motionProps = disableMotion ? {} : {
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            transition: { delay: Math.min(index * 0.04, 0.25) },
+          };
+          return (
+          <Wrapper
             key={image.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            {...motionProps}
             onClick={() => setSelectedIndex(index)}
             className={`relative aspect-square overflow-hidden cursor-pointer group ${
               isBold ? 'rounded-[1.5rem] md:rounded-[2rem]' : 
               isMinimal ? 'rounded-lg md:rounded-xl' : 
               'rounded-xl md:rounded-2xl'
-            } shadow-lg hover:shadow-2xl transition-all duration-300`}
+            } ${disableMotion ? 'shadow-sm' : 'shadow-lg hover:shadow-2xl transition-all duration-300'}`}
           >
-            <img 
-              src={image.thumbUrl || image.imageUrl} 
+            <img
+              src={image.thumbUrl || image.imageUrl}
               alt={image.caption || `${shopName} - ${index + 1}`}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              className={`w-full h-full object-cover ${disableMotion ? '' : 'group-hover:scale-110 transition-transform duration-500'}`}
+              loading="lazy"
+              decoding="async"
             />
             
             {/* Overlay */}
@@ -99,34 +123,37 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                 e.stopPropagation();
                 setIsFavorite(!isFavorite);
               }}
-              className="absolute top-3 left-3 p-2 bg-white/90 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg"
+              className={`absolute top-3 left-3 p-2 bg-white/90 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg`}
             >
               <Heart 
                 size={16} 
                 className={isFavorite ? 'text-red-500 fill-current' : 'text-slate-600'} 
               />
             </button>
-          </motion.div>
-        ))}
+          </Wrapper>
+          );
+        })}
       </div>
 
       {/* Lightbox Modal */}
       <AnimatePresence>
         {selectedImage && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4"
-            onClick={() => setSelectedIndex(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="relative max-w-5xl max-h-[90vh] w-full"
-              onClick={(e) => e.stopPropagation()}
+          (() => {
+            const Overlay: any = disableMotion ? 'div' : (motion.div as any);
+            const Card: any = disableMotion ? 'div' : (motion.div as any);
+            const overlayMotionProps = disableMotion ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+            const cardMotionProps = disableMotion ? {} : { initial: { scale: 0.9, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.9, opacity: 0 } };
+            return (
+            <Overlay
+              {...overlayMotionProps}
+              className={`fixed inset-0 z-[300] bg-black/95 ${disableMotion ? '' : 'backdrop-blur-xl'} flex items-center justify-center p-4`}
+              onClick={() => setSelectedIndex(null)}
             >
+              <Card
+                {...cardMotionProps}
+                className="relative max-w-5xl max-h-[90vh] w-full"
+                onClick={(e: any) => e.stopPropagation()}
+              >
               {/* Close Button */}
               <button
                 onClick={() => setSelectedIndex(null)}
@@ -138,17 +165,31 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
               {/* Media */}
               <div className="relative bg-black rounded-[2rem] overflow-hidden">
                 {selectedIsVideo ? (
-                  <video
-                    src={selectedImage.imageUrl}
-                    className="w-full h-auto max-h-[70vh] object-contain"
-                    controls
-                    playsInline
-                  />
+                  canPlayVideo ? (
+                    <video
+                      src={selectedImage.imageUrl}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      controls
+                      playsInline
+                      preload="none"
+                      poster={(selectedImage as any)?.thumbUrl || undefined}
+                    />
+                  ) : (
+                    <img 
+                      src={(selectedImage as any)?.thumbUrl || selectedImage.imageUrl} 
+                      alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )
                 ) : (
                   <img 
                     src={selectedImage.imageUrl} 
                     alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
                     className="w-full h-auto max-h-[70vh] object-contain"
+                    loading="lazy"
+                    decoding="async"
                   />
                 )}
 
@@ -158,14 +199,14 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                     <button
                       onClick={prevImage}
                       disabled={selectedIndex === 0}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      className={`absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
                     >
                       <ChevronRight size={24} />
                     </button>
                     <button
                       onClick={nextImage}
                       disabled={selectedIndex === images.length - 1}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                      className={`absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
                     >
                       <ChevronLeft size={24} />
                     </button>
@@ -186,13 +227,13 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                 <div className="flex items-center justify-center gap-4 mt-6">
                   <button
                     onClick={handleShare}
-                    className="p-3 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-all"
+                    className={`p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all`}
                   >
                     <Share2 size={20} />
                   </button>
                   <button
                     onClick={() => setIsFavorite(!isFavorite)}
-                    className="p-3 bg-white/20 backdrop-blur-sm rounded-full text-white hover:bg-white/30 transition-all"
+                    className={`p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all`}
                   >
                     <Heart 
                       size={20} 
@@ -219,13 +260,17 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                         src={img.thumbUrl || img.imageUrl} 
                         alt={`Thumbnail ${index + 1}`}
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </button>
                   ))}
                 </div>
               )}
-            </motion.div>
-          </motion.div>
+              </Card>
+            </Overlay>
+            );
+          })()
         )}
       </AnimatePresence>
     </div>

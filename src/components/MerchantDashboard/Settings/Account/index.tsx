@@ -22,7 +22,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     name: shop?.name || '',
     governorate: shop?.governorate || '',
     city: shop?.city || '',
-    category: shop?.category || 'RETAIL',
     email: shop?.email || '',
     phone: shop?.phone || '',
     address: shop?.addressDetailed || shop?.address_detailed || '',
@@ -47,7 +46,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       name: shop?.name || '',
       governorate: shop?.governorate || '',
       city: shop?.city || '',
-      category: shop?.category || 'RETAIL',
       email: shop?.email || '',
       phone: shop?.phone || '',
       address: shop?.addressDetailed || shop?.address_detailed || '',
@@ -56,7 +54,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     baselineRef.current = initial;
     setFormData(initial);
     emitAccountChanges(0);
-  }, [shop?.name, shop?.governorate, shop?.city, shop?.category, shop?.email, shop?.phone, shop?.addressDetailed, shop?.address_detailed, shop?.description]);
+  }, [shop?.name, shop?.governorate, shop?.city, shop?.email, shop?.phone, shop?.addressDetailed, shop?.address_detailed, shop?.description]);
 
   React.useEffect(() => {
     const base = baselineRef.current;
@@ -65,7 +63,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       (String(next.name) !== String(base.name) ? 1 : 0) +
       (String(next.governorate) !== String(base.governorate) ? 1 : 0) +
       (String(next.city) !== String(base.city) ? 1 : 0) +
-      (String(next.category) !== String(base.category) ? 1 : 0) +
       (String(next.email) !== String(base.email) ? 1 : 0) +
       (String(next.phone) !== String(base.phone) ? 1 : 0) +
       (String(next.address) !== String(base.address) ? 1 : 0) +
@@ -91,7 +88,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
         name: current.name,
         governorate: current.governorate,
         city: current.city,
-        category: current.category,
         email: current.email,
         phone: current.phone,
         addressDetailed: current.address,
@@ -254,20 +250,6 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="category">نوع المتجر</Label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-                >
-                  <option value="RETAIL">محل تجاري</option>
-                  <option value="RESTAURANT">مطعم / كافيه</option>
-                  <option value="SERVICE">خدمات</option>
-                </select>
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="governorate">المحافظة</Label>
                 <Input id="governorate" name="governorate" value={formData.governorate} onChange={handleChange} />
