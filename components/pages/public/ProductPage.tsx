@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { ArrowRight, Home } from 'lucide-react';
+import { ArrowRight, Home, ShoppingCart, User } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { Offer, Product, Shop } from '@/types';
@@ -20,7 +20,7 @@ const CartDrawer = lazy(() => import('../shared/CartDrawer'));
 const { useParams, useNavigate } = ReactRouterDOM as any;
 
 const ProductPage: React.FC = () => {
-  const { id } = useParams();
+  const { id, slug } = useParams();
   const navigate = useNavigate();
   const { playSound } = useCartSound();
   const [product, setProduct] = useState<Product | null>(null);
@@ -51,6 +51,12 @@ const ProductPage: React.FC = () => {
     return raw.some((x: any) => String(x || '').trim() === 'sales');
   }, [shop]);
 
+  const hasReservationsModule = useMemo(() => {
+    const raw = (shop as any)?.layoutConfig?.enabledModules;
+    if (!Array.isArray(raw)) return false;
+    return raw.some((x: any) => String(x || '').trim() === 'reservations');
+  }, [shop]);
+
   const showAddToCartButton = useMemo(() => {
     const design = (shop as any)?.pageDesign;
     const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
@@ -59,8 +65,35 @@ const ProductPage: React.FC = () => {
     return coerceBoolean(elementsVisibility['productCardAddToCart'], true);
   }, [shop]);
 
+  const showReserveButton = useMemo(() => {
+    const design = (shop as any)?.pageDesign;
+    const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
+    if (!elementsVisibility || typeof elementsVisibility !== 'object') return true;
+    if (!('productCardReserve' in elementsVisibility)) return true;
+    return coerceBoolean(elementsVisibility['productCardReserve'], true);
+  }, [shop]);
+
   const canUseCart = hasSalesModule;
   const canShowAddToCart = canUseCart && showAddToCartButton;
+  const canShowReserve = hasReservationsModule && showReserveButton;
+
+  const isVisible = useMemo(() => {
+    const design = (shop as any)?.pageDesign || (shop as any)?.page_design;
+    const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
+    return (key: string, fallback: boolean = true) => {
+      if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
+      if (!(key in elementsVisibility)) return fallback;
+      return coerceBoolean(elementsVisibility[key], fallback);
+    };
+  }, [shop]);
+
+  const showFooter = isVisible('footer', true);
+  const showMobileBottomNav = showFooter && isVisible('mobileBottomNav', true);
+  const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
+  const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
+  const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
+
+  const productShopSlug = String(slug || (shop as any)?.slug || '').trim();
 
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
@@ -673,7 +706,7 @@ const ProductPage: React.FC = () => {
           onError={() => setPageBgReady(true)}
         />
       ) : null}
-      <div className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 pb-28 md:pb-12 text-right font-sans">
+      <div className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''} text-right font-sans`}>
         {canUseCart ? (
           <div className="fixed top-24 right-4 z-[90] lg:hidden">
             <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
@@ -705,6 +738,7 @@ const ProductPage: React.FC = () => {
             handleShare={() => {}} // TODO
             handleAddToCart={handleAddToCart}
             showAddToCartButton={canShowAddToCart}
+            showReserveButton={canShowReserve}
             setIsResModalOpen={setIsResModalOpen}
             displayedPrice={displayedPrice}
             hasDiscount={!!offer}
@@ -768,6 +802,65 @@ const ProductPage: React.FC = () => {
           />
         ) : null}
       </Suspense>
+
+      {showMobileBottomNav ? (
+        <div className="fixed bottom-0 left-0 right-0 z-[350] md:hidden">
+          <div className="mx-auto max-w-[1400px] px-4 pb-4">
+            <div className="rounded-[1.8rem] bg-white/95 backdrop-blur border border-slate-100 shadow-2xl overflow-hidden">
+              <div className="grid grid-cols-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (productShopSlug) navigate(`/shop/${productShopSlug}`);
+                    else navigate('/');
+                  }}
+                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} text-slate-500`}
+                >
+                  <Home size={18} />
+                  الرئيسية
+                </button>
+
+                {canUseCart ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsCartOpen(true)}
+                    className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
+                  >
+                    <ShoppingCart size={18} />
+                    السلة
+                    {Array.isArray(cartItems) && cartItems.length > 0 ? (
+                      <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
+                        {cartItems.length}
+                      </span>
+                    ) : null}
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    try {
+                      const raw = localStorage.getItem('ray_user');
+                      const user = raw ? JSON.parse(raw) : null;
+                      if (user) {
+                        navigate('/profile');
+                      } else {
+                        navigate('/login');
+                      }
+                    } catch {
+                      navigate('/login');
+                    }
+                  }}
+                  className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavAccount ? '' : 'hidden'} text-slate-500`}
+                >
+                  <User size={18} />
+                  حسابي
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

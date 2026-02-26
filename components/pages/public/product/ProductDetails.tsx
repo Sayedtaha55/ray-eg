@@ -13,6 +13,7 @@ interface ProductDetailsProps {
   handleShare: () => void;
   handleAddToCart: () => void;
   showAddToCartButton?: boolean;
+  showReserveButton?: boolean;
   setIsResModalOpen: (val: boolean) => void;
   displayedPrice: number;
   hasDiscount: boolean;
@@ -41,9 +42,10 @@ interface ProductDetailsProps {
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
-  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
+  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, showReserveButton, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
 
   const canShowAddToCart = typeof showAddToCartButton === 'boolean' ? showAddToCartButton : true;
+  const canShowReserve = typeof showReserveButton === 'boolean' ? showReserveButton : true;
 
   const selectedMenuType = isRestaurant
     ? (Array.isArray(menuVariantsDef) ? menuVariantsDef : []).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim())
@@ -290,12 +292,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
               <ShoppingCart size={24} /> إضافة للسلة
             </button>
           ) : null}
-          <button
-            onClick={() => setIsResModalOpen(true)}
-            className="flex-1 bg-[#00E5FF] text-slate-900 h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
-          >
-            <CalendarCheck size={24} /> حجز الآن
-          </button>
+          {canShowReserve ? (
+            <button
+              onClick={() => setIsResModalOpen(true)}
+              className="flex-1 bg-[#00E5FF] text-slate-900 h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
+            >
+              <CalendarCheck size={24} /> حجز الآن
+            </button>
+          ) : null}
         </div>
         {whatsappHref && (
           <a

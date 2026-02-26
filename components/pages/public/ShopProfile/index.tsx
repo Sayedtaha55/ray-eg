@@ -66,6 +66,12 @@ const ShopProfile: React.FC = () => {
     return raw.some((x: any) => String(x || '').trim() === 'sales');
   }, [shop]);
 
+  const hasReservationsModule = useMemo(() => {
+    const raw = (shop as any)?.layoutConfig?.enabledModules;
+    if (!Array.isArray(raw)) return false;
+    return raw.some((x: any) => String(x || '').trim() === 'reservations');
+  }, [shop]);
+
   useEffect(() => {
     const syncCart = () => {
       try {
@@ -110,12 +116,23 @@ const ShopProfile: React.FC = () => {
             secondaryColor: '#BD00FF',
             bannerUrl: '/placeholder-banner.jpg',
           };
+          setBannerReady(false);
+          setPageBgReady(false);
+          const allowBuilderPreview = (() => {
+            try {
+              const params = new URLSearchParams(String(location?.search || ''));
+              return params.get('builderPreview') === '1';
+            } catch {
+              return false;
+            }
+          })();
           const canApplyPreview = (() => {
             try {
               const rawUser = localStorage.getItem('ray_user');
               if (!rawUser) return false;
               const user = JSON.parse(rawUser);
               const userShopId = String(user?.shopId || user?.shop_id || '').trim();
+              if (!allowBuilderPreview) return false;
               return userShopId && userShopId === String(currentShopData?.id || '').trim();
             } catch {
               return false;
@@ -220,6 +237,8 @@ const ShopProfile: React.FC = () => {
       const sid = String(shop?.id || '').trim();
       if (!sid) return;
       try {
+        const params = new URLSearchParams(String(location?.search || ''));
+        if (params.get('builderPreview') !== '1') return;
         const rawUser = localStorage.getItem('ray_user');
         if (!rawUser) return;
         const user = JSON.parse(rawUser);
@@ -237,7 +256,7 @@ const ShopProfile: React.FC = () => {
     applyPreview();
     window.addEventListener('ray-builder-preview-update', applyPreview);
     return () => window.removeEventListener('ray-builder-preview-update', applyPreview);
-  }, [shop?.id]);
+  }, [location?.search, shop?.id]);
 
   const retryProductsTab = async () => {
     const shopId = String(shop?.id || '').trim();
@@ -563,7 +582,8 @@ const ShopProfile: React.FC = () => {
     return coerceBoolean(elementsVisibility[key], fallback);
   };
 
-  const showMobileBottomNav = isVisible('mobileBottomNav', true);
+  const showFooter = isVisible('footer', true);
+  const showMobileBottomNav = showFooter && isVisible('mobileBottomNav', true);
   const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
   const showMobileBottomNavCart = isVisible('mobileBottomNavCart', true);
   const showMobileBottomNavAccount = isVisible('mobileBottomNavAccount', true);
@@ -666,6 +686,7 @@ const ShopProfile: React.FC = () => {
           handleReserve={handleReserve}
           disableCardMotion={disableCardMotion}
           allowAddToCart={hasSalesModule}
+          allowReserve={hasReservationsModule}
           galleryTabLoading={galleryTabLoading}
           galleryTabError={galleryTabError}
           galleryImages={galleryImages}
@@ -711,7 +732,7 @@ const ShopProfile: React.FC = () => {
               <div className="grid grid-cols-3">
                 <button
                   type="button"
-                  onClick={() => setActiveTab('products')}
+                  onClick={() => navigate('/')}
                   className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} ${activeTab === 'products' ? 'text-slate-900 bg-slate-50' : 'text-slate-500'}`}
                 >
                   <Home size={18} />

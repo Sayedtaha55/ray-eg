@@ -70,15 +70,33 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
     }
   })();
 
+  const hasReservationsModule = (() => {
+    try {
+      const raw = (shop as any)?.layoutConfig?.enabledModules;
+      if (!Array.isArray(raw)) return false;
+      return raw.some((x: any) => String(x || '').trim() === 'reservations');
+    } catch {
+      return false;
+    }
+  })();
+
+  const isCartToggle = (key: VisibilityKey) => key === 'productCardAddToCart' || key === 'mobileBottomNavCart';
+  const isReserveToggle = (key: VisibilityKey) => key === 'productCardReserve';
+
   const getValue = (key: VisibilityKey) => {
+    if (isCartToggle(key) && !hasSalesModule) return false;
+    if (isReserveToggle(key) && !hasReservationsModule) return false;
     if (current[key] === undefined || current[key] === null) return true;
     return Boolean(current[key]);
   };
 
   const setValue = (key: VisibilityKey, value: boolean) => {
-    const isCartToggle = key === 'productCardAddToCart' || key === 'mobileBottomNavCart';
-    if (value && isCartToggle && !hasSalesModule) {
+    if (value && isCartToggle(key) && !hasSalesModule) {
       addToast('لتفعيل السلة لازم تفعيل (المبيعات) من لوحة التاجر أولاً', 'info');
+      return;
+    }
+    if (value && isReserveToggle(key) && !hasReservationsModule) {
+      addToast('لتفعيل الحجز لازم تفعيل (الحجوزات) من لوحة التاجر أولاً', 'info');
       return;
     }
     setConfig((prev: any) => {
@@ -96,7 +114,7 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
         <label
           key={item.key}
           className={`flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white ${
-            (item.key === 'productCardAddToCart' || item.key === 'mobileBottomNavCart') && !hasSalesModule
+            (isCartToggle(item.key) && !hasSalesModule) || (isReserveToggle(item.key) && !hasReservationsModule)
               ? 'opacity-60'
               : ''
           }`}
@@ -105,7 +123,7 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
           <input
             type="checkbox"
             checked={getValue(item.key)}
-            disabled={(item.key === 'productCardAddToCart' || item.key === 'mobileBottomNavCart') && !hasSalesModule}
+            disabled={(isCartToggle(item.key) && !hasSalesModule) || (isReserveToggle(item.key) && !hasReservationsModule)}
             onChange={(e) => setValue(item.key, e.target.checked)}
           />
         </label>

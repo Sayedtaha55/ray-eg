@@ -167,12 +167,12 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     // Only force-hide features when their module is not enabled.
     // If a module is enabled, keep the user's visibility toggle as-is.
     if (!hasSales) {
-      next.productCardAddToCart = false;
-      next.mobileBottomNavCart = false;
+      delete (next as any).productCardAddToCart;
+      delete (next as any).mobileBottomNavCart;
     }
 
     if (!hasReservations) {
-      next.productCardReserve = false;
+      delete (next as any).productCardReserve;
     }
 
     if (!hasGallery) {
@@ -645,6 +645,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           activeBuilderTab={activeBuilderTab}
           config={config}
           setConfig={setConfigAny}
+          shop={shop}
           logoDataUrl={logoDataUrl}
           setLogoDataUrl={setLogoDataUrl}
           logoFile={logoFile}

@@ -21,6 +21,7 @@ interface TabRendererProps {
   handleReserve: (data: any) => void;
   disableCardMotion: boolean;
   allowAddToCart?: boolean;
+  allowReserve?: boolean;
   galleryTabLoading: boolean;
   galleryTabError: string | null;
   galleryImages: any[];
@@ -83,6 +84,7 @@ const TabRenderer: React.FC<TabRendererProps> = (props) => {
           handleReserve={props.handleReserve}
           disableCardMotion={props.disableCardMotion}
           allowAddToCart={props.allowAddToCart}
+          allowReserve={props.allowReserve}
         />
       )}
 

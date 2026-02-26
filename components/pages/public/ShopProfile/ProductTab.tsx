@@ -25,6 +25,7 @@ interface ProductTabProps {
   handleReserve: (data: any) => void;
   disableCardMotion: boolean;
   allowAddToCart?: boolean;
+  allowReserve?: boolean;
 }
 
 const ProductTab: React.FC<ProductTabProps> = ({
@@ -46,6 +47,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   handleReserve,
   disableCardMotion,
   allowAddToCart,
+  allowReserve,
 }) => {
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
@@ -126,6 +128,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
               disableMotion={disableCardMotion}
               shopCategory={shop?.category}
               allowAddToCart={allowAddToCart}
+              allowReserve={allowReserve}
             />
           ))}
         </div>
