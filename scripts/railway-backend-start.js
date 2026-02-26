@@ -14,6 +14,21 @@ function prismaBin() {
   return process.platform === 'win32' ? 'node_modules\\.bin\\prisma.cmd' : 'node_modules/.bin/prisma';
 }
 
+function runCapture(cmd, args, opts = {}) {
+  const res = spawnSync(cmd, args, {
+    stdio: 'pipe',
+    encoding: 'utf8',
+    env: process.env,
+    shell: false,
+    ...opts,
+  });
+  return {
+    status: res.status ?? 0,
+    stdout: String(res.stdout || ''),
+    stderr: String(res.stderr || ''),
+  };
+}
+
 function generateClient() {
   const prisma = prismaBin();
   return run(prisma, ['generate', '--schema', 'prisma/schema.prisma']);
@@ -22,8 +37,15 @@ function generateClient() {
 function tryBaselineInit() {
   const prisma = prismaBin();
   const initMigration = '20260124054347_init';
-  const status = run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--applied', initMigration]);
-  return status;
+  const res = runCapture(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--applied', initMigration]);
+  if (res.status === 0) return 0;
+  const combined = `${res.stdout}\n${res.stderr}`;
+  if (combined.includes('P3008') || combined.toLowerCase().includes('already recorded as applied')) {
+    return 0;
+  }
+  process.stdout.write(res.stdout || '');
+  process.stderr.write(res.stderr || '');
+  return res.status;
 }
 
 function deployMigrations() {

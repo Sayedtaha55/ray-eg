@@ -208,7 +208,7 @@ const ProductCard = React.memo(function ProductCard({
           {...motionProps}
           className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
         >
-          <div onClick={openImagePreview} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
+          <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
           <img
             loading="lazy"
@@ -348,7 +348,7 @@ const ProductCard = React.memo(function ProductCard({
         style={{ borderColor: isBold ? design.primaryColor : isModern ? `${design.primaryColor}15` : undefined }}
       >
         <div
-          onClick={openImagePreview}
+          onClick={goToProduct}
           className={`relative overflow-hidden cursor-pointer ${
             isList || isCardless
               ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
