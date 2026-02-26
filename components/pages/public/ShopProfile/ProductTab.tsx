@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShoppingBag } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/common/ui';
+import { IS_LOW_END_DEVICE } from '@/lib/performance';
 
 const MotionDiv = motion.div as any;
 
@@ -59,17 +60,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
       : products.filter(p => String(p?.category || 'عام') === activeCategory)
   ), [activeCategory, products]);
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const isLowEndDevice = IS_LOW_END_DEVICE;
 
   const initialBatch = isLowEndDevice ? 18 : 36;
   const batchSize = isLowEndDevice ? 12 : 24;

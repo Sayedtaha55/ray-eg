@@ -24,6 +24,7 @@ import CartDrawer from '@/components/pages/shared/CartDrawer';
 import ProfileHeader from './ProfileHeader';
 import ProfileFooter from './ProfileFooter';
 import TabRenderer from './TabRenderer';
+import { IS_LOW_END_DEVICE } from '@/lib/performance';
 
 // Lazy load heavy components
 const ReservationModal = lazy(() => import('../../shared/ReservationModal'));
@@ -597,17 +598,7 @@ const ShopProfile: React.FC = () => {
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
   const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop.name}`)}` : '';
 
-  const lowEndDevice = (() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  })();
+  const lowEndDevice = IS_LOW_END_DEVICE;
 
   const disableCardMotion = Boolean(prefersReducedMotion) || lowEndDevice || products.length > 30;
 

@@ -5,6 +5,8 @@ import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
 import { coerceBoolean } from './utils';
+import { IS_LOW_END_DEVICE } from '@/lib/performance';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -33,13 +35,7 @@ const ProductCard = React.memo(function ProductCard({
   allowReserve?: boolean;
 }) {
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const isLowEndDevice = IS_LOW_END_DEVICE;
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -213,12 +209,19 @@ const ProductCard = React.memo(function ProductCard({
           <img
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, isLowEndDevice ? 'thumb' : 'md')}
             className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
             onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
+            onError={(e) => {
+              const img = e.currentTarget;
+              const original = product.imageUrl || (product as any).image_url;
+              if (img.src !== original) {
+                img.src = original;
+              }
+              setImageReady(true);
+            }}
           />
 
           {offer && (
@@ -362,12 +365,19 @@ const ProductCard = React.memo(function ProductCard({
           <img
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, isLowEndDevice ? 'thumb' : 'md')}
             className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
             onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
+            onError={(e) => {
+              const img = e.currentTarget;
+              const original = product.imageUrl || (product as any).image_url;
+              if (img.src !== original) {
+                img.src = original;
+              }
+              setImageReady(true);
+            }}
           />
         ) : null}
 
