@@ -36,16 +36,16 @@ const AddProductModalRouter: React.FC<Props> = ({ isOpen, onClose, shopId, shopC
     return <RestaurantAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
   }
 
-  if (devActivityId === 'furniture') {
-    return <FurnitureAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
-  }
-
   if (shopCategoryUpper === 'FASHION') {
     return <FashionAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
   }
 
   if (shopCategoryUpper === 'FOOD' || shopCategoryUpper === 'RETAIL') {
     return <GroceryRetailAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
+  }
+
+  if (shopCategoryUpper === 'FURNITURE' || (shopCategoryUpper === 'FURNITURE' && devActivityId === 'furniture')) {
+    return <FurnitureAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
   }
 
   return <DefaultAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;

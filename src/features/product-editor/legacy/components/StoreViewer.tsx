@@ -250,6 +250,34 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
     return String(first?.id || '').trim();
   });
 
+  const unitLabel = useCallback((raw: any) => {
+    const u = String(raw || '').trim().toUpperCase();
+    if (!u) return '';
+    const map: Record<string, string> = {
+      PIECE: 'قطعة',
+      CARTON: 'كرتونة',
+      BOX: 'علبة',
+      BOTTLE: 'عبوة',
+      PACK: 'باك',
+      BAG: 'كيس',
+      CAN: 'كانز',
+      G: 'جرام',
+      KG: 'كيلو',
+      ML: 'مل',
+      L: 'لتر',
+    };
+    return map[u] || u;
+  }, []);
+
+  const packLineLabel = useCallback((p: any) => {
+    const qtyRaw = typeof p?.qty === 'number' ? p.qty : Number(p?.qty || NaN);
+    const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
+    const u = unitLabel(p?.unit || unitRaw);
+    if (!Number.isFinite(qty)) return '';
+    if (u) return `${qty} ${u}`;
+    return String(qty);
+  }, [unitLabel, unitRaw]);
+
   useEffect(() => {
     if (!hasPacks) {
       if (selectedPackId) setSelectedPackId('');
@@ -366,9 +394,16 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                     <div className="space-y-2">
                       <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">الباقة</span></div>
                       <select value={selectedPackId} onChange={(e) => setSelectedPackId(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-white text-sm">
-                        {packDefs.map((p: any) => (
-                          <option key={String(p?.id)} value={String(p?.id)}>{(String(p?.label || p?.name) || `${p?.qty} وحدة`)} - {p?.price} ج.م</option>
-                        ))}
+                        {packDefs.map((p: any) => {
+                          const label = packLineLabel(p);
+                          const priceRaw = typeof p?.price === 'number' ? p.price : Number(p?.price || NaN);
+                          const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
+                          return (
+                            <option key={String(p?.id)} value={String(p?.id)}>
+                              {label && Number.isFinite(price) ? `${label} = ${price} ج.م` : (Number.isFinite(price) ? `${price} ج.م` : 'باقة')}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}

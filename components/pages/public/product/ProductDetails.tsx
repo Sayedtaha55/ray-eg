@@ -55,6 +55,34 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
     ? (selectedMenuType as any).sizes
     : [];
 
+  const unitLabel = (raw: any) => {
+    const u = String(raw || '').trim().toUpperCase();
+    if (!u) return '';
+    const map: Record<string, string> = {
+      PIECE: 'قطعة',
+      CARTON: 'كرتونة',
+      BOX: 'علبة',
+      BOTTLE: 'عبوة',
+      PACK: 'باك',
+      BAG: 'كيس',
+      CAN: 'كانز',
+      G: 'جرام',
+      KG: 'كيلو',
+      ML: 'مل',
+      L: 'لتر',
+    };
+    return map[u] || u;
+  };
+
+  const packLineLabel = (p: any) => {
+    const qtyRaw = typeof p?.qty === 'number' ? p.qty : Number(p?.qty || NaN);
+    const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
+    const u = unitLabel(p?.unit || (product as any)?.unit);
+    if (!Number.isFinite(qty)) return '';
+    if (u) return `${qty} ${u}`;
+    return String(qty);
+  };
+
   return (
     <MotionDiv
       initial={{ opacity: 0, x: -50 }}
@@ -153,16 +181,23 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
           <div className="space-y-4">
             <p className="font-black text-slate-900">اختر الباقة</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {packDefs.map((p: any) => (
+              {packDefs.map((p: any) => {
+                const label = packLineLabel(p);
+                const priceRaw = typeof p?.price === 'number' ? p.price : Number(p?.price || NaN);
+                const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
+                return (
                 <button
                   key={p.id}
                   onClick={() => setSelectedPackId(p.id)}
                   className={`p-4 rounded-2xl border-2 text-right transition-all ${selectedPackId === p.id ? 'border-[#00E5FF] bg-cyan-50' : 'border-slate-100 hover:border-slate-200'}`}
                 >
-                  <p className="font-black text-sm">{p.label || p.name}</p>
-                  <p className="font-bold text-[#00E5FF] text-xs mt-1">ج.م {p.price}</p>
+                  <p className="font-black text-sm">{label || p.label || p.name}</p>
+                  <p className="font-bold text-[#00E5FF] text-xs mt-1">
+                    {label && Number.isFinite(price) ? `${label} = ج.م ${price}` : (Number.isFinite(price) ? `ج.م ${price}` : '')}
+                  </p>
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

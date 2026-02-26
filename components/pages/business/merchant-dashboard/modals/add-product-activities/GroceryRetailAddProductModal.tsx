@@ -28,11 +28,12 @@ const GroceryRetailAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId
           packOptionItems={packOptionItems}
           setPackOptionItems={setPackOptionItems}
           unit={unit}
+          setUnit={setUnit}
           parseNumberInput={parseNumberInput}
         />
       )}
       buildExtrasPayload={({ parseNumberInput, basePrice }) => {
-        const { payload } = buildGroceryRetailExtrasPayload({ packOptionItems, parseNumberInput });
+        const { payload } = buildGroceryRetailExtrasPayload({ packOptionItems, unit, parseNumberInput });
         return {
           payload: {
             ...(payload || {}),

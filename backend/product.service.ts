@@ -215,6 +215,7 @@ export class ProductService {
           category: true,
           unit: true,
           imageUrl: true,
+          packOptions: true,
           menuVariants: true,
           isActive: true,
           shopId: true,

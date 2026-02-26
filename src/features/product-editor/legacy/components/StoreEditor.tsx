@@ -928,11 +928,16 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                             >
                               <option value="">بدون وحدة</option>
                               <option value="PIECE">قطعة</option>
+                              <option value="CARTON">كرتونة</option>
+                              <option value="BOX">علبة</option>
+                              <option value="BOTTLE">عبوة</option>
+                              <option value="PACK">باك</option>
+                              <option value="BAG">كيس</option>
+                              <option value="CAN">كانز</option>
                               <option value="KG">كيلو</option>
                               <option value="G">جرام</option>
                               <option value="L">لتر</option>
                               <option value="ML">ملّي</option>
-                              <option value="PACK">عبوة</option>
                             </select>
 
                             <div className="space-y-2">
