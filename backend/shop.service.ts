@@ -63,22 +63,25 @@ export class ShopService {
 
     // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
     if (cat === 'RESTAURANT') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      add('reservations', 'sales', 'customers', 'reports', 'pos', 'invoice');
       return always;
     }
     if (cat === 'SERVICE') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      add('reservations', 'sales', 'customers', 'reports', 'pos', 'invoice');
       return always;
     }
     if (cat === 'FASHION') {
-      add('sales', 'customers', 'reports', 'pos');
+      add('sales', 'customers', 'reports', 'pos', 'invoice');
       return always;
     }
     if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
-      add('sales', 'customers', 'reports', 'pos');
+      add('sales', 'customers', 'reports', 'pos', 'invoice');
       return always;
     }
 
+    // Default: be permissive for unknown/new categories to support future activities.
+    // Keep this aligned with frontend ACTIVITY_CONFIGS, but don't block merchants by default.
+    add('sales', 'customers', 'reports', 'pos', 'invoice');
     return always;
   }
 

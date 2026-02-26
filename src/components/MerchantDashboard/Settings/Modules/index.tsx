@@ -157,16 +157,28 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         return true;
       }
 
-      const activeSet = new Set<ModuleId>(activeEnabled as any);
+      const latestActiveSet = await (async () => {
+        try {
+          const fresh = await ApiService.getMyShop();
+          const raw = (fresh as any)?.layoutConfig?.enabledModules;
+          const next = Array.isArray(raw)
+            ? (raw.map((x: any) => String(x || '').trim()).filter(Boolean) as ModuleId[])
+            : ([] as ModuleId[]);
+          return new Set<ModuleId>(Array.from(new Set([...next, ...CORE_IDS])) as any);
+        } catch {
+          return new Set<ModuleId>(activeEnabled as any);
+        }
+      })();
+
       const requestedModules = list
-        .filter((id) => !activeSet.has(id as any))
+        .filter((id) => !latestActiveSet.has(id as any))
         .filter((id) => !CORE_IDS.includes(id as any));
 
       if (requestedModules.length === 0) {
         toast({ title: 'لا يوجد جديد', description: 'لم يتم اختيار أزرار إضافية جديدة لإرسالها للأدمن' });
-        baselineRef.current = toSortedArray(activeSet as any);
+        baselineRef.current = toSortedArray(latestActiveSet as any);
         emitChanges(0);
-        setEnabled(new Set(activeSet as any));
+        setEnabled(new Set(latestActiveSet as any));
         return true;
       }
 
@@ -179,14 +191,38 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         description: 'جاري معالجة طلبك من الأدمن. ستظهر الأزرار بعد الموافقة.',
       });
 
-      const baseline = toSortedArray(activeSet as any);
+      const baseline = toSortedArray(latestActiveSet as any);
       baselineRef.current = baseline;
       emitChanges(0);
-      setEnabled(new Set(activeSet as any));
+      setEnabled(new Set(latestActiveSet as any));
       onSaved();
       return true;
     } catch (e: any) {
+      const status = typeof e?.status === 'number' ? e.status : undefined;
       const msg = e?.message ? String(e.message) : '';
+
+      if (status === 400 && msg.includes('مفعلة بالفعل')) {
+        toast({
+          title: 'لا يوجد جديد',
+          description: 'الأزرار المختارة مفعلة بالفعل.',
+        });
+        try {
+          const fresh = await ApiService.getMyShop();
+          const raw = (fresh as any)?.layoutConfig?.enabledModules;
+          const next = Array.isArray(raw)
+            ? (raw.map((x: any) => String(x || '').trim()).filter(Boolean) as ModuleId[])
+            : ([] as ModuleId[]);
+          const merged = Array.from(new Set([...next, ...CORE_IDS]));
+          merged.sort();
+          baselineRef.current = merged;
+          emitChanges(0);
+          setEnabled(new Set(merged as any));
+        } catch {
+        }
+        onSaved();
+        return true;
+      }
+
       toast({
         title: 'خطأ',
         description: msg ? `فشل حفظ الأزرار: ${msg}` : 'فشل حفظ الأزرار',

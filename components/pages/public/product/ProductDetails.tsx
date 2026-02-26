@@ -14,6 +14,7 @@ interface ProductDetailsProps {
   handleAddToCart: () => void;
   showAddToCartButton?: boolean;
   showReserveButton?: boolean;
+  showPrice?: boolean;
   setIsResModalOpen: (val: boolean) => void;
   displayedPrice: number;
   hasDiscount: boolean;
@@ -42,11 +43,11 @@ interface ProductDetailsProps {
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
-  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, showReserveButton, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
+  const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, showReserveButton, showPrice, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
 
   const canShowAddToCart = typeof showAddToCartButton === 'boolean' ? showAddToCartButton : true;
   const canShowReserve = typeof showReserveButton === 'boolean' ? showReserveButton : true;
-
+  const canShowPrice = typeof showPrice === 'boolean' ? showPrice : true;
   const selectedMenuType = isRestaurant
     ? (Array.isArray(menuVariantsDef) ? menuVariantsDef : []).find((t: any) => String(t?.id || t?.typeId || t?.variantId || '').trim() === String(selectedMenuTypeId || '').trim())
     : null;
@@ -81,12 +82,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
           </div>
         </div>
 
-        <div className="flex items-baseline gap-4 justify-end flex-row-reverse">
-          <span className="text-4xl font-black text-[#BD00FF]">ج.م {displayedPrice}</span>
-          {hasDiscount && (
-            <span className="text-xl font-bold text-slate-300 line-through">ج.م {offer.oldPrice || product.price}</span>
-          )}
-        </div>
+        {canShowPrice ? (
+          <div className="flex items-baseline gap-4 justify-end flex-row-reverse">
+            <span className="text-4xl font-black text-[#BD00FF]">ج.م {displayedPrice}</span>
+            {hasDiscount && (
+              <span className="text-xl font-bold text-slate-300 line-through">ج.م {offer.oldPrice || product.price}</span>
+            )}
+          </div>
+        ) : null}
       </header>
 
       {/* Options Selection */}

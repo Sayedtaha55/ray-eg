@@ -87,6 +87,8 @@ const ProductPage: React.FC = () => {
     };
   }, [shop]);
 
+  const showProductPagePrice = isVisible('productCardPrice', true);
+
   const showFooter = isVisible('footer', true);
   const showMobileBottomNav = showFooter && isVisible('mobileBottomNav', true);
   const showMobileBottomNavHome = isVisible('mobileBottomNavHome', true);
@@ -739,6 +741,7 @@ const ProductPage: React.FC = () => {
             handleAddToCart={handleAddToCart}
             showAddToCartButton={canShowAddToCart}
             showReserveButton={canShowReserve}
+            showPrice={showProductPagePrice}
             setIsResModalOpen={setIsResModalOpen}
             displayedPrice={displayedPrice}
             hasDiscount={!!offer}
