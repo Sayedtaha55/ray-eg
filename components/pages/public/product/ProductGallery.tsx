@@ -24,6 +24,9 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   onGalleryTouchStart,
   onGalleryTouchEnd,
 }) => {
+  const safeActiveSrc = String(activeImageSrc || '').trim();
+  const safeGalleryImages = (galleryImages || []).map((s) => String(s || '').trim()).filter(Boolean);
+
   return (
     <div className="space-y-6">
       <MotionDiv
@@ -33,12 +36,14 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         onTouchStart={onGalleryTouchStart}
         onTouchEnd={onGalleryTouchEnd}
       >
-        <img
-          loading="lazy"
-          src={activeImageSrc}
-          className="w-full h-full object-contain"
-          alt={productName}
-        />
+        {safeActiveSrc ? (
+          <img
+            loading="lazy"
+            src={safeActiveSrc}
+            className="w-full h-full object-contain"
+            alt={productName}
+          />
+        ) : null}
         {hasDiscount && (
           <div className="absolute top-6 left-6 md:top-10 md:left-10 bg-[#BD00FF] text-white px-4 py-2 md:px-8 md:py-3 rounded-xl md:rounded-2xl font-black text-sm md:text-xl shadow-2xl">
             -{discount}%
@@ -46,14 +51,14 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
         )}
       </MotionDiv>
 
-      {galleryImages.length > 1 && (
+      {safeGalleryImages.length > 1 && (
         <div className="flex items-center gap-3 overflow-x-auto pb-2 no-scrollbar flex-row-reverse">
-          {galleryImages.map((src, idx) => (
+          {safeGalleryImages.map((src, idx) => (
             <button
               key={idx}
               onClick={() => setActiveImageSrc(src)}
               className={`relative w-20 h-20 rounded-2xl overflow-hidden border-2 transition-all shrink-0 ${
-                activeImageSrc === src ? 'border-[#00E5FF] scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
+                safeActiveSrc === src ? 'border-[#00E5FF] scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'
               }`}
             >
               <img src={src} className="w-full h-full object-cover" alt={`${productName} ${idx + 1}`} />

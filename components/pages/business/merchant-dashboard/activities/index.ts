@@ -51,6 +51,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     tabs: [
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'products', label: 'المخزون' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'المبيعات' },
       { id: 'promotions', label: 'العروض' },
       { id: 'customers', label: 'العملاء' },
@@ -79,6 +80,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'products', label: 'المنيو' },
       { id: 'reservations', label: 'الحجوزات' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'المبيعات' },
       { id: 'promotions', label: 'العروض' },
       { id: 'customers', label: 'العملاء' },
@@ -106,6 +108,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     tabs: [
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'products', label: 'المخزون' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'المبيعات' },
       { id: 'promotions', label: 'العروض' },
       { id: 'customers', label: 'العملاء' },
@@ -133,6 +136,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     tabs: [
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'products', label: 'المنتجات' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'المبيعات' },
       { id: 'promotions', label: 'العروض' },
       { id: 'customers', label: 'العملاء' },
@@ -160,6 +164,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     tabs: [
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'products', label: 'الأدوية' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'المبيعات' },
       { id: 'customers', label: 'العملاء' },
       { id: 'gallery', label: 'المعرض' },
@@ -186,6 +191,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     tabs: [
       { id: 'overview', label: 'نظرة عامة' },
       { id: 'reservations', label: 'الحجوزات' },
+      { id: 'invoice', label: 'فاتورة' },
       { id: 'sales', label: 'الفواتير' },
       { id: 'customers', label: 'العملاء' },
       { id: 'gallery', label: 'المعرض' },
