@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useState, memo } from 'react';
+import React, { Suspense, lazy, useEffect, useMemo, useState, memo } from 'react';
 import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart, ChevronDown, Lock, Unlock } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
@@ -595,6 +595,40 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     });
   })();
 
+  const isLowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const initialBatch = isLowEndDevice ? 40 : 80;
+  const batchSize = isLowEndDevice ? 30 : 60;
+  const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, filteredProducts.length));
+
+  useEffect(() => {
+    setRenderCount(Math.min(initialBatch, filteredProducts.length));
+  }, [filteredProducts.length, initialBatch]);
+
+  useEffect(() => {
+    if (renderCount >= filteredProducts.length) return;
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      setRenderCount((prev) => Math.min(prev + batchSize, filteredProducts.length));
+    };
+    const t = setTimeout(tick, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [batchSize, filteredProducts.length, renderCount]);
+
   return (
     <>
       <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2.5rem] sm:rounded-[3.5rem] border border-slate-100 shadow-sm">
@@ -962,7 +996,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
               </div>
 
               <div className="divide-y divide-slate-100">
-                {filteredProducts.map((p) => (
+                {filteredProducts.slice(0, renderCount).map((p) => (
                   <ProductRow
                     key={p.id}
                     product={p}
@@ -1002,6 +1036,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                   src={previewImageSrc}
                   alt=""
                   className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                  loading="lazy"
+                  decoding="async"
                 />
               </div>
             </div>

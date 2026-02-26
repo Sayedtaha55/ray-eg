@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Product } from '@/types';
 import { Plus, Tag, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Package } from 'lucide-react';
@@ -31,10 +31,43 @@ const SharedProductsTab: React.FC<Props> = ({
   const [editModalOpen, setEditModalOpen] = React.useState(false);
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [togglingId, setTogglingId] = React.useState<string>('');
+  const [renderCount, setRenderCount] = React.useState(0);
   const { addToast } = useToast();
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const pageTitle = isRestaurant ? 'المنيو' : 'المخزون';
+
+  const isLowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const initialBatch = isLowEndDevice ? 18 : 30;
+  const batchSize = isLowEndDevice ? 12 : 20;
+
+  useEffect(() => {
+    setRenderCount(Math.min(initialBatch, products.length));
+  }, [initialBatch, products.length]);
+
+  useEffect(() => {
+    if (renderCount >= products.length) return;
+    let cancelled = false;
+    const t = window.setTimeout(() => {
+      if (cancelled) return;
+      setRenderCount((prev) => Math.min(prev + batchSize, products.length));
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [batchSize, products.length, renderCount]);
 
   const handleToggleActive = async (product: Product) => {
     if (!shopId || togglingId) return;
@@ -77,7 +110,7 @@ const SharedProductsTab: React.FC<Props> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {products.map((product) => (
+          {products.slice(0, renderCount).map((product) => (
             <div
               key={product.id}
               className="bg-white border border-slate-100 rounded-2xl p-4 hover:shadow-lg transition-all"

@@ -299,6 +299,8 @@ const ProductCard = React.memo(function ProductCard({
                     src={String(product.imageUrl || (product as any).image_url || '')}
                     alt=""
                     className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                    loading="lazy"
+                    decoding="async"
                   />
                   <div className="mt-4 flex items-center justify-between flex-row-reverse gap-3">
                     <button

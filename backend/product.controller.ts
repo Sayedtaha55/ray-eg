@@ -9,6 +9,32 @@ import { ProductService } from './product.service';
 export class ProductController {
   constructor(@Inject(ProductService) private readonly productService: ProductService) {}
 
+  private looksLikeVideoUrl(input: any) {
+    const s = typeof input === 'string' ? String(input).trim().toLowerCase() : '';
+    if (!s) return false;
+    const noQuery = s.split('?')[0].split('#')[0];
+    return /\.(mp4|webm|mov|m4v|avi|mkv)$/.test(noQuery);
+  }
+
+  private assertProductImagesOnly(payload: { imageUrl?: any; images?: any }) {
+    if (this.looksLikeVideoUrl(payload?.imageUrl)) {
+      throw new BadRequestException('المنتجات لا تدعم الفيديو. يرجى رفع صور فقط');
+    }
+    const rawImages = payload?.images;
+    if (!rawImages) return;
+    if (!Array.isArray(rawImages)) return;
+    for (const it of rawImages) {
+      if (this.looksLikeVideoUrl(it)) {
+        throw new BadRequestException('المنتجات لا تدعم الفيديو. يرجى رفع صور فقط');
+      }
+      if (it && typeof it === 'object') {
+        if (this.looksLikeVideoUrl((it as any)?.url) || this.looksLikeVideoUrl((it as any)?.imageUrl) || this.looksLikeVideoUrl((it as any)?.src)) {
+          throw new BadRequestException('المنتجات لا تدعم الفيديو. يرجى رفع صور فقط');
+        }
+      }
+    }
+  }
+
   private toLatinDigits(input: string) {
     const map: Record<string, string> = {
       '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4', '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9',
@@ -143,6 +169,8 @@ export class ProductController {
 
     if (!name) throw new BadRequestException('name مطلوب');
     if (Number.isNaN(price) || price < 0) throw new BadRequestException('price غير صحيح');
+
+    this.assertProductImagesOnly({ imageUrl, images });
 
     return this.productService.create({
       shopId: targetShopId,
@@ -279,6 +307,8 @@ export class ProductController {
     if (name !== undefined && !name) throw new BadRequestException('name لا يمكن أن يكون فارغاً');
     if (price !== undefined && (Number.isNaN(price) || price < 0)) throw new BadRequestException('price غير صحيح');
     if (stock !== undefined && (Number.isNaN(stock) || stock < 0)) throw new BadRequestException('stock غير صحيح');
+
+    this.assertProductImagesOnly({ imageUrl, images });
 
     return this.productService.update(id, {
       name,

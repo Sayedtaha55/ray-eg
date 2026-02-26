@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { X, Upload, Video } from 'lucide-react';
+import { X, Upload } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Category, Product } from '@/types';
-import { compressImage, generateVideoThumbnail } from '@/lib/image-utils';
+import { compressImage } from '@/lib/image-utils';
 
 // Sub-components
 import ImageUploadSection from './EditProduct/ImageUploadSection';
@@ -126,9 +126,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     const file = e.target.files?.[0];
     if (file) {
       const mime = String(file.type || '').toLowerCase().trim();
-      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif', 'video/mp4']);
+      const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF أو MP4', 'error');
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
         try {
           if (fileInputRef.current) fileInputRef.current.value = '';
         } catch {
@@ -445,34 +445,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     setCompressionProgress(10);
     try {
       let imageUrl = (product as any).imageUrl || (product as any).image_url || '';
-      let videoUrl = (product as any).videoUrl || (product as any).video_url || '';
-      let posterUrl = (product as any).bannerPosterUrl || '';
       
       // Upload new main image if changed
       if (imageChanged && imageUploadFile) {
         const mime = String((imageUploadFile as any)?.type || '').toLowerCase();
         
-        if (mime.startsWith('video/')) {
-          setCompressionProgress(20);
-          // Generate thumbnail for video
-          const thumbnail = await generateVideoThumbnail(imageUploadFile);
-          const thumbUpload = await ApiService.uploadMediaRobust({
-            file: thumbnail,
-            purpose: 'product_video_poster',
-            shopId,
-          });
-          posterUrl = thumbUpload.url;
-          
-          setCompressionProgress(40);
-          // Upload video directly
-          const upload = await ApiService.uploadMediaRobust({
-            file: imageUploadFile,
-            purpose: 'product_video',
-            shopId,
-          });
-          videoUrl = upload.url;
-          imageUrl = posterUrl; // Fallback image is the poster
-        } else if (mime.startsWith('image/')) {
+        if (mime.startsWith('image/')) {
           setCompressionProgress(40);
           const upload = await ApiService.uploadMediaRobust({
             file: imageUploadFile,
@@ -588,8 +566,6 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         category: String(cat || '').trim() || 'عام',
         description: description ? description : null,
         imageUrl,
-        videoUrl,
-        bannerPosterUrl: posterUrl,
         trackStock: isRestaurant ? false : true,
         ...(allowPackOptions ? { unit: unit ? String(unit).trim() : null, packOptions } : {}),
         ...(isRestaurant ? { menuVariants } : {}),
