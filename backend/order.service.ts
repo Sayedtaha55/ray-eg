@@ -765,6 +765,7 @@ export class OrderService {
           shop: { connect: { id: shopId } },
           status: effectiveStatus,
           ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
+          notes: safeNotes,
           items: {
             create: normalizedItems.map((item) => {
               const product = byId[item.productId];
