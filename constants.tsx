@@ -21,6 +21,8 @@ export const MOCK_SHOPS: Shop[] = [
   
 ];
 
+let favoritesCache: string[] | null = null;
+
 export const RayDB = {
   getShops: async () => ApiService.getShops(),
   getOffers: async () => ApiService.getOffers(),
@@ -28,7 +30,16 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  getFavorites: () => {
+    if (favoritesCache) return favoritesCache;
+    try {
+      const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
+      favoritesCache = Array.isArray(favs) ? favs : [];
+    } catch {
+      favoritesCache = [];
+    }
+    return favoritesCache;
+  },
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -227,10 +238,12 @@ export const RayDB = {
     return RayDB.setCart([]);
   },
   toggleFavorite: (id: string) => {
-    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-    const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-    localStorage.setItem('ray_favorites', JSON.stringify(favs));
+    const prev = RayDB.getFavorites();
+    const next = [...prev];
+    const idx = next.indexOf(id);
+    if (idx === -1) next.push(id); else next.splice(idx, 1);
+    favoritesCache = next;
+    localStorage.setItem('ray_favorites', JSON.stringify(favoritesCache));
     window.dispatchEvent(new Event('ray-db-update'));
     return idx === -1;
   },

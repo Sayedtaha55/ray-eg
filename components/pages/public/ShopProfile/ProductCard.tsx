@@ -4,6 +4,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { coerceBoolean } from './utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
@@ -213,7 +214,7 @@ const ProductCard = React.memo(function ProductCard({
           <img
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
             className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
@@ -362,7 +363,7 @@ const ProductCard = React.memo(function ProductCard({
           <img
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
             className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
