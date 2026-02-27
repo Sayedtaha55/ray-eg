@@ -4,7 +4,7 @@ import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
 import { Sparkles, TrendingUp, Loader2, MapPin } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
-import * as ReactRouterDOM from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/common/ui';
 import { useCartSound } from '@/hooks/useCartSound';
 
@@ -15,7 +15,6 @@ import FeedbackWidget from './home/FeedbackWidget';
 // Lazy load heavy global components
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
-const { Link, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 
@@ -34,12 +33,8 @@ const HomeFeed: React.FC = () => {
   const loadMoreSentinelRef = useRef<HTMLDivElement | null>(null);
   const loadMoreOffersRef = useRef<(() => void) | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedSentinelRef = useRef<HTMLDivElement | null>(null);
   const MAX_RENDERED_OFFERS = 48;
-  
-  const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
-  const [feedbackText, setFeedbackText] = useState('');
-  const [feedbackLoading, setFeedbackLoading] = useState(false);
-  const [feedbackResponse, setFeedbackResponse] = useState('');
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -89,7 +84,21 @@ const HomeFeed: React.FC = () => {
       loadMoreOffers();
     };
 
-    loadData();
+    const scheduleInitialLoad = () => {
+      if (typeof window === 'undefined') {
+        loadData();
+        return;
+      }
+
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(loadData, { timeout: 700 });
+        return;
+      }
+
+      setTimeout(loadData, 0);
+    };
+
+    scheduleInitialLoad();
     window.addEventListener('ray-db-update', loadData);
 
     // IntersectionObserver instead of scroll listener
@@ -106,9 +115,6 @@ const HomeFeed: React.FC = () => {
         },
         { root: null, rootMargin: '900px 0px', threshold: 0 },
       );
-      if (loadMoreSentinelRef.current) {
-        observerRef.current.observe(loadMoreSentinelRef.current);
-      }
     } catch {
     }
     return () => {
@@ -121,27 +127,27 @@ const HomeFeed: React.FC = () => {
     };
   }, []);
 
-  const handleSendFeedback = async () => {
-    if (!feedbackText.trim()) return;
-    setFeedbackLoading(true);
+  useEffect(() => {
+    const observer = observerRef.current;
+    const sentinel = loadMoreSentinelRef.current;
+    if (!observer || !sentinel || !hasMoreOffers) return;
+
     try {
-      const userStr = localStorage.getItem('ray_user');
-      const user = userStr ? JSON.parse(userStr) : null;
-
-      await ApiService.saveFeedback({
-        text: feedbackText,
-        userName: user?.name,
-        userEmail: user?.email
-      });
-
-      setFeedbackResponse('شكراً ليك يا بطل، اقتراحك وصل وهنراجعه قريب!');
-    } catch (e) {
-      setFeedbackResponse('حصل مشكلة بسيطة بس اقتراحك وصل لمهندسينا!');
-    } finally {
-      setFeedbackLoading(false);
-      setFeedbackText('');
+      if (observedSentinelRef.current && observedSentinelRef.current !== sentinel) {
+        observer.unobserve(observedSentinelRef.current);
+      }
+      observer.observe(sentinel);
+      observedSentinelRef.current = sentinel;
+    } catch {
     }
-  };
+
+    return () => {
+      try {
+        observer.unobserve(sentinel);
+      } catch {
+      }
+    };
+  }, [hasMoreOffers, offers.length]);
 
   if (loading) return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative">
@@ -178,11 +184,7 @@ const HomeFeed: React.FC = () => {
               type="button"
               aria-label="تحميل المزيد من العروض"
               onClick={() => {
-                try {
-                  const evt = new Event('scroll');
-                  window.dispatchEvent(evt);
-                } catch {
-                }
+                loadMoreOffersRef.current?.();
               }}
               className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
               disabled={loadingMore}
@@ -201,7 +203,7 @@ const HomeFeed: React.FC = () => {
       <div className="flex flex-col items-center text-center mb-8 md:mb-20">
          <MotionDiv 
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
             className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-black text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
          >
             <Sparkles className="w-3 h-3 text-[#00E5FF] fill-current" />
