@@ -42,15 +42,27 @@ export async function getAllOrdersViaBackend(
     const merchantParams = new URLSearchParams();
     if (opts?.from) merchantParams.set('from', String(opts.from));
     if (opts?.to) merchantParams.set('to', String(opts.to));
+    if (localShopId) merchantParams.set('shopId', localShopId);
     const qs2 = merchantParams.toString();
     try {
-      const data = await backendGet<any[]>(`/api/v1/orders/me${qs2 ? `?${qs2}` : ''}`);
+      const data = await backendGet<any[]>(`/api/v1/orders${qs2 ? `?${qs2}` : ''}`);
       return (data || []).map(normalizeOrderFromBackend);
     } catch (e) {
       const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
       const name = String((e as any)?.name || '');
       if ((e instanceof BackendRequestError || name === 'BackendRequestError') && status === 404) {
-        disablePathPrefix('/api/v1/orders/me');
+        disablePathPrefix('/api/v1/orders?');
+      }
+      // Fallback to /api/v1/orders/me if general endpoint fails
+      try {
+        const data = await backendGet<any[]>(`/api/v1/orders/me${qs2 ? `?${qs2}` : ''}`);
+        return (data || []).map(normalizeOrderFromBackend);
+      } catch (e2) {
+        const status2 = typeof (e2 as any)?.status === 'number' ? (e2 as any).status : undefined;
+        const name2 = String((e2 as any)?.name || '');
+        if ((e2 instanceof BackendRequestError || name2 === 'BackendRequestError') && status2 === 404) {
+          disablePathPrefix('/api/v1/orders/me');
+        }
       }
     }
   }
@@ -82,6 +94,7 @@ export async function placeOrderViaBackend(order: {
   total: number;
   paymentMethod?: string;
   shopId?: string;
+  source?: string; // 'customer' or 'pos'
   notes?: string;
 }) {
   const shopId = order.shopId || order.items?.[0]?.shopId;
@@ -90,6 +103,7 @@ export async function placeOrderViaBackend(order: {
     items: order.items,
     total: order.total,
     paymentMethod: order.paymentMethod,
+    source: order.source || 'customer',
     notes: order.notes,
   });
 }

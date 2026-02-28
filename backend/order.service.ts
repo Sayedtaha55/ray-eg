@@ -625,7 +625,9 @@ export class OrderService {
         id: true,
         total: true,
         status: true,
+        source: true,
         paymentMethod: true,
+        notes: true,
         createdAt: true,
         items: {
           select: {
@@ -702,6 +704,7 @@ export class OrderService {
     items: Array<{ productId?: string; id?: string; quantity: number; addons?: any; variantSelection?: any; variant_selection?: any }>;
     total?: number;
     paymentMethod?: string;
+    source?: string;
     notes?: string;
     status?: string;
   }, actor: { role: string; shopId?: string }) {
@@ -715,6 +718,14 @@ export class OrderService {
     if (role === 'MERCHANT' && actor?.shopId !== shopId) {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
+
+    const source = (() => {
+      const raw = String((input as any)?.source || '').trim().toLowerCase();
+      if (raw === 'pos') {
+        return role === 'MERCHANT' || role === 'ADMIN' ? 'pos' : 'customer';
+      }
+      return 'customer';
+    })();
 
     const items = Array.isArray(input?.items) ? input.items : [];
     if (items.length === 0) {
@@ -751,6 +762,9 @@ export class OrderService {
         where: { id: shopId },
         select: { id: true, layoutConfig: true, category: true, addons: true } as any,
       });
+      if (!shop) {
+        throw new BadRequestException('المتجر غير موجود');
+      }
       const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
       const isFashion = String((shop as any)?.category || '').toUpperCase() === 'FASHION';
       const deliveryFee = this.getDeliveryFeeFromShop(shop);
@@ -983,11 +997,13 @@ export class OrderService {
       const effectiveStatus = isCashierSale ? ('DELIVERED' as any) : status;
 
       const created = await tx.order.create({
-        data: {
+        data: ({
           total: total,
           user: { connect: { id: userId } },
           shop: { connect: { id: shopId } },
           status: effectiveStatus,
+          source,
+          notes: safeNotes,
           ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
           items: {
             create: normalizedItems.map((item) => {
@@ -1052,7 +1068,7 @@ export class OrderService {
               return row;
             }),
           },
-        },
+        }) as any,
         include: {
           items: {
             include: {

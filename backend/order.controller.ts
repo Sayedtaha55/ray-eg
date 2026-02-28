@@ -163,6 +163,7 @@ export class OrderController {
     const items = Array.isArray(body?.items) ? body.items : [];
     const total = typeof body?.total === 'number' ? body.total : Number(body?.total);
     const notes = typeof body?.notes === 'string' ? body.notes : undefined;
+    const source = typeof body?.source === 'string' ? body.source : undefined;
 
     return this.orderService.createOrder({
       shopId,
@@ -170,6 +171,7 @@ export class OrderController {
       items,
       total: Number.isNaN(total) ? undefined : total,
       paymentMethod: body?.paymentMethod,
+      source,
       notes,
       status: body?.status,
     }, { role: req.user?.role, shopId: req.user?.shopId });

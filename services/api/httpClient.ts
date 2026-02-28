@@ -14,8 +14,7 @@ function resolveBackendBaseUrl() {
   if (configured) return configured;
 
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const fallbackHost = hostname === 'localhost' ? '127.0.0.1' : hostname;
-  const fallback = `http://${fallbackHost}:4000`;
+  const fallback = `http://${hostname}:4000`;
 
   const prodDefault = 'https://api.mnmknk.com';
 

@@ -299,6 +299,7 @@ model Order {
   status        OrderStatus   @default(PENDING)
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String?
+  source        String?       @default("customer")
   deliveryAddress String?
   userId        String
   shopId        String

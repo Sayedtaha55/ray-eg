@@ -55,7 +55,10 @@ const OrderRow = memo(({
 
         <div className="flex items-center gap-2" data-sales-actions-menu="1">
           <button
-            onClick={() => openDetails(sale)}
+            onClick={(e) => {
+              e.stopPropagation();
+              openDetails(sale);
+            }}
             className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
           >
             <Eye size={18} />
@@ -76,12 +79,13 @@ const OrderRow = memo(({
 
               {openMenuId === id && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-10"
+                  className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-50"
                   data-sales-actions-menu="1"
                 >
                   <button
                     disabled={!canAccept || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'CONFIRMED');
                     }}
@@ -92,7 +96,8 @@ const OrderRow = memo(({
                   </button>
                   <button
                     disabled={!canInProgress || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'PREPARING');
                     }}
@@ -103,7 +108,8 @@ const OrderRow = memo(({
                   </button>
                   <button
                     disabled={!canReject || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'CANCELLED');
                     }}
@@ -172,12 +178,13 @@ const OrderTableRow = memo(({
 
               {openMenuId === id && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-10"
+                  className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-2xl shadow-lg overflow-hidden z-50"
                   data-sales-actions-menu="1"
                 >
                   <button
                     disabled={!canAccept || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'CONFIRMED');
                     }}
@@ -188,7 +195,8 @@ const OrderTableRow = memo(({
                   </button>
                   <button
                     disabled={!canInProgress || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'PREPARING');
                     }}
@@ -199,7 +207,8 @@ const OrderTableRow = memo(({
                   </button>
                   <button
                     disabled={!canReject || busy}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setOpenMenuId('');
                       updateStatus(id, 'CANCELLED');
                     }}
@@ -218,7 +227,10 @@ const OrderTableRow = memo(({
       </td>
       <td className="p-6 text-left">
         <button
-          onClick={() => openDetails(sale)}
+          onClick={(e) => {
+            e.stopPropagation();
+            openDetails(sale);
+          }}
           className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
         >
           <Eye size={18} />
