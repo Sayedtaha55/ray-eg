@@ -218,7 +218,7 @@ export class AuthController {
     const returnTo = this.normalizeReturnTo(state?.returnTo);
     const followShopId = String(state?.followShopId || '').trim() || undefined;
 
-    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5173').trim();
+    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
     const base = appUrl.replace(/\/$/, '');
     const qs = new URLSearchParams();
     if (returnTo) qs.set('returnTo', returnTo);

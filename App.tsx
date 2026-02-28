@@ -10,6 +10,7 @@ import {
   Navigate,
 } from 'react-router-dom';
 
+import RouteSeoManager from './components/seo/RouteSeoManager';
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
 
 const HomeFeed = React.lazy(() => import('./components/pages/public/HomeFeed'));
@@ -25,6 +26,7 @@ const SupportPage = React.lazy(() => import('./components/pages/public/SupportPa
 const TermsPage = React.lazy(() => import('./components/pages/public/TermsPage'));
 const PrivacyPage = React.lazy(() => import('./components/pages/public/PrivacyPage'));
 const ContactPage = React.lazy(() => import('./components/pages/public/ContactPage'));
+const SeoDirectoryPage = React.lazy(() => import('./components/pages/public/SeoDirectoryPage'));
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile'));
 const ShopImageMapPurchaseView = React.lazy(() => import('./src/features/shop-image-map/components/ShopImageMapPurchaseView'));
@@ -182,6 +184,7 @@ const App: React.FC = () => {
       <ScrollToTop />
       <RoleRedirector />
       <OfflineOrBackendDownRedirector />
+      <RouteSeoManager />
       <Routes>
         <Route path="/" element={suspense(<PublicLayout />)}>
           <Route index element={suspense(<HomeFeed />)} />
@@ -199,6 +202,12 @@ const App: React.FC = () => {
           <Route path="terms" element={suspense(<TermsPage />)} />
           <Route path="privacy" element={suspense(<PrivacyPage />)} />
           <Route path="contact" element={suspense(<ContactPage />)} />
+          <Route path="dalil" element={suspense(<SeoDirectoryPage />)} />
+          <Route path="dalil-almahalat" element={<Navigate to="/dalil" replace />} />
+          <Route path="dalil-almat3am" element={<Navigate to="/dalil" replace />} />
+          <Route path="dalil-alanshta" element={<Navigate to="/dalil" replace />} />
+          <Route path="menmakank" element={<Navigate to="/dalil" replace />} />
+          <Route path="mnmknk" element={<Navigate to="/dalil" replace />} />
           <Route path="product/:id" element={suspense(<ProductPage />)} />
           <Route path="delivery" element={<Navigate to="/business/courier-signup" replace />} />
         </Route>

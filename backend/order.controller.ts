@@ -20,6 +20,36 @@ function parseOptionalNumber(value: any) {
 export class OrderController {
   constructor(@Inject(OrderService) private readonly orderService: OrderService) {}
 
+  @Get(':id/returns')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin', 'merchant')
+  async listReturns(@Param('id') id: string, @Request() req?: any) {
+    return this.orderService.listReturnsForOrder(String(id), {
+      role: req?.user?.role,
+      shopId: req?.user?.shopId,
+      userId: req?.user?.id,
+    });
+  }
+
+  @Post(':id/returns')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('merchant', 'admin')
+  async createReturn(@Param('id') id: string, @Body() body: any, @Request() req?: any) {
+    const returnToStock = body?.returnToStock === true;
+    const reason = typeof body?.reason === 'string' ? body.reason : undefined;
+    const items = Array.isArray(body?.items) ? body.items : undefined;
+
+    return this.orderService.createReturnForOrder(
+      String(id),
+      { returnToStock, reason, items },
+      {
+        role: req?.user?.role,
+        shopId: req?.user?.shopId,
+        userId: req?.user?.id,
+      },
+    );
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant')

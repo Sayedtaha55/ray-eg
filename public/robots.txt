@@ -5,6 +5,7 @@ Allow: /offers
 Allow: /restaurants
 Allow: /about
 Allow: /contact
+Allow: /dalil
 
 Disallow: /login
 Disallow: /signup

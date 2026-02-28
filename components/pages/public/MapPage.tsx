@@ -325,6 +325,19 @@ const MapPage: React.FC = () => {
         </Link>
       </div>
 
+      <section className="mb-6 md:mb-10 rounded-2xl border border-slate-200 bg-slate-50 p-4 md:p-6">
+        <h2 className="text-lg md:text-xl font-black mb-2">دليل المحلات والمطاعم على الخريطة</h2>
+        <p className="text-slate-600 text-sm leading-6 mb-3">
+          استخدم خريطة من مكانك لتكتشف دليل المحلات ودليل المطاعم والأنشطة القريبة منك مع إمكانية الحجز والتواصل المباشر.
+        </p>
+        <Link
+          to="/dalil"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all"
+        >
+          افتح الدليل الشامل
+        </Link>
+      </section>
+
       <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
         <div className="w-full h-[70vh] md:h-[78vh]">
           <Suspense fallback={

@@ -83,5 +83,15 @@ The frontend will be available at http://localhost:5174
 - Public listings are paginated (take/skip) and images use native lazy loading.
 - Public offers page is available at `/offers`.
 
+### Load testing and scaling
+- Run baseline load test (k6):
+```bash
+npm run loadtest:k6
+```
+- Optional environment variables:
+  - `BASE_URL` (default `http://localhost:4000`)
+  - `TARGET_SHOP_SLUG` (default `demo-shop`)
+- Full practical 1000+ concurrent users plan is documented in `SCALING_PLAYBOOK.md`.
+
 ---
 *Created with ❤️ by Ray Engineering Team*

@@ -11,6 +11,230 @@ export class OrderService {
     @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
   ) {}
 
+  async listReturnsForOrder(orderId: string, actor: { role?: string; shopId?: string; userId?: string }) {
+    const id = String(orderId || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const role = String(actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && role !== 'MERCHANT') {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      select: { id: true, shopId: true },
+    });
+    if (!order) throw new BadRequestException('الطلب غير موجود');
+
+    if (role === 'MERCHANT') {
+      const actorShopId = actor?.shopId ? String(actor.shopId) : '';
+      if (!actorShopId || actorShopId !== String(order.shopId)) {
+        throw new ForbiddenException('صلاحيات غير كافية');
+      }
+    }
+
+    return (this.prisma as any).orderReturn.findMany({
+      where: { orderId: id },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        items: {
+          include: {
+            product: { select: { id: true, name: true, imageUrl: true } },
+            orderItem: { select: { id: true, quantity: true, price: true } },
+          },
+        },
+        createdBy: { select: { id: true, name: true, email: true } },
+      } as any,
+    } as any);
+  }
+
+  async createReturnForOrder(
+    orderId: string,
+    input: {
+      returnToStock: boolean;
+      reason?: string;
+      items?: Array<{ orderItemId?: string; quantity?: number }>;
+    },
+    actor: { role?: string; shopId?: string; userId?: string },
+  ) {
+    const id = String(orderId || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const role = String(actor?.role || '').toUpperCase();
+    const actorShopId = actor?.shopId ? String(actor.shopId) : undefined;
+    const actorUserId = actor?.userId ? String(actor.userId) : undefined;
+    if (role !== 'ADMIN' && role !== 'MERCHANT') {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+    if (!actorUserId) throw new ForbiddenException('غير مصرح');
+
+    const returnToStock = input?.returnToStock === true;
+    const reason = typeof input?.reason === 'string' ? String(input.reason).trim() : '';
+
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        items: {
+          select: {
+            id: true,
+            quantity: true,
+            price: true,
+            productId: true,
+            product: { select: { id: true, trackStock: true } },
+          },
+        },
+      },
+    } as any);
+    if (!order) throw new BadRequestException('الطلب غير موجود');
+
+    if (role === 'MERCHANT') {
+      if (!actorShopId || actorShopId !== String((order as any).shopId)) {
+        throw new ForbiddenException('صلاحيات غير كافية');
+      }
+    }
+
+    if (String((order as any)?.status || '').toUpperCase() === 'CANCELLED') {
+      throw new ForbiddenException('لا يمكن عمل مرتجع لطلب ملغي');
+    }
+
+    const orderItems = Array.isArray((order as any)?.items) ? ((order as any).items as any[]) : [];
+    if (orderItems.length === 0) throw new BadRequestException('لا توجد أصناف داخل الطلب');
+
+    const requestedItemsRaw = Array.isArray(input?.items) ? input.items : null;
+
+    const requested = (() => {
+      if (!requestedItemsRaw || requestedItemsRaw.length === 0) {
+        return orderItems.map((it) => ({ orderItemId: String(it.id), quantity: Number(it.quantity || 0) }));
+      }
+      return requestedItemsRaw
+        .map((r) => ({
+          orderItemId: String(r?.orderItemId || '').trim(),
+          quantity: Number(r?.quantity),
+        }))
+        .filter((r) => r.orderItemId && Number.isFinite(r.quantity) && r.quantity > 0);
+    })();
+
+    if (requested.length === 0) throw new BadRequestException('items مطلوبة');
+
+    const byOrderItemId = new Map<string, any>();
+    for (const it of orderItems) byOrderItemId.set(String(it.id), it);
+
+    for (const r of requested) {
+      if (!byOrderItemId.has(r.orderItemId)) {
+        throw new BadRequestException('بعض الأصناف غير موجودة في الطلب');
+      }
+    }
+
+    const existingReturnSums = await (this.prisma as any).orderReturnItem.groupBy({
+      by: ['orderItemId'],
+      where: { orderItem: { orderId: id } } as any,
+      _sum: { quantity: true },
+    } as any);
+
+    const returnedQtyByOrderItemId = new Map<string, number>();
+    for (const row of existingReturnSums || []) {
+      const key = String((row as any)?.orderItemId || '').trim();
+      const qty = Number((row as any)?._sum?.quantity || 0);
+      if (!key) continue;
+      returnedQtyByOrderItemId.set(key, Number.isFinite(qty) ? qty : 0);
+    }
+
+    const itemsPayload: Array<{ orderItemId: string; productId: string; quantity: number; unitPrice: number; lineTotal: number; trackStock: boolean }> = [];
+    for (const r of requested) {
+      const it = byOrderItemId.get(r.orderItemId);
+      const soldQty = Number(it?.quantity || 0);
+      const prevReturned = returnedQtyByOrderItemId.get(r.orderItemId) || 0;
+      const remaining = Math.max(0, soldQty - prevReturned);
+      const reqQty = Math.floor(Number(r.quantity || 0));
+      if (reqQty <= 0) continue;
+      if (reqQty > remaining) {
+        throw new BadRequestException('كمية المرتجع أكبر من المتاح للمرتجع');
+      }
+      const unitPrice = Number(it?.price || 0);
+      const lineTotal = (Number.isFinite(unitPrice) ? unitPrice : 0) * reqQty;
+      itemsPayload.push({
+        orderItemId: String(it.id),
+        productId: String(it.productId),
+        quantity: reqQty,
+        unitPrice: Number.isFinite(unitPrice) ? unitPrice : 0,
+        lineTotal,
+        trackStock: Boolean(it?.product?.trackStock),
+      });
+    }
+
+    if (itemsPayload.length === 0) throw new BadRequestException('items مطلوبة');
+
+    const totalAmount = itemsPayload.reduce((sum, it) => sum + (Number(it.lineTotal) || 0), 0);
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      const ret = await (tx as any).orderReturn.create({
+        data: {
+          orderId: String((order as any).id),
+          shopId: String((order as any).shopId),
+          createdById: actorUserId,
+          reason: reason || null,
+          returnToStock,
+          totalAmount,
+          items: {
+            create: itemsPayload.map((it) => ({
+              orderItemId: it.orderItemId,
+              productId: it.productId,
+              quantity: it.quantity,
+              unitPrice: it.unitPrice,
+              lineTotal: it.lineTotal,
+            })),
+          },
+        },
+        include: {
+          items: true,
+        },
+      } as any);
+
+      if (returnToStock) {
+        for (const it of itemsPayload) {
+          if (!it.trackStock) continue;
+          await tx.product.update({
+            where: { id: it.productId },
+            data: { stock: { increment: it.quantity } },
+          });
+        }
+      }
+
+      const afterSums = await (tx as any).orderReturnItem.groupBy({
+        by: ['orderItemId'],
+        where: { orderItem: { orderId: id } } as any,
+        _sum: { quantity: true },
+      } as any);
+
+      let fullyReturned = true;
+      for (const oi of orderItems) {
+        const key = String(oi.id);
+        const soldQty = Number(oi.quantity || 0);
+        const returnedQty = Number((afterSums || []).find((r: any) => String(r?.orderItemId) === key)?._sum?.quantity || 0);
+        if (returnedQty < soldQty) {
+          fullyReturned = false;
+          break;
+        }
+      }
+
+      if (fullyReturned) {
+        await tx.order.update({
+          where: { id },
+          data: { status: 'REFUNDED' as any },
+        });
+      }
+
+      return ret;
+    });
+
+    try {
+      await this.redis.invalidatePattern('orders:*');
+    } catch {
+    }
+
+    return created;
+  }
+
   private normalizeMenuVariantSelection(raw: any): { typeId: string; sizeId: string } | null {
     if (!raw || typeof raw !== 'object') return null;
     const obj: any = raw as any;

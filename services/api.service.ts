@@ -840,7 +840,16 @@ export const ApiService = {
   },
   addSale: mockDb.addSale.bind(mockDb),
   placeOrder: async (order: { items: any[]; total: number; paymentMethod?: string; shopId?: string; notes?: string }) => {
-    return await placeOrderViaBackend(order);
+    const created = await placeOrderViaBackend(order);
+    try {
+      cacheDelByPrefix('orders:');
+    } catch {
+    }
+    try {
+      window.dispatchEvent(new Event('orders-updated'));
+    } catch {
+    }
+    return created;
   },
 
   updateOrder: async (id: string, payload: { status?: string; notes?: string }) => {
