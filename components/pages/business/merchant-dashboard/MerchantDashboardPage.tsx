@@ -107,7 +107,7 @@ const MerchantDashboardPage: React.FC = () => {
   const getDateRanges = () => {
     const now = new Date();
     const salesFrom = new Date(now);
-    salesFrom.setFullYear(salesFrom.getFullYear() - 1);
+    salesFrom.setFullYear(salesFrom.getFullYear() - 2); // Increased from 1 to 2 years
     const analyticsFrom = new Date(now);
     analyticsFrom.setDate(analyticsFrom.getDate() - 30);
     return { now, salesFrom, analyticsFrom };
@@ -237,7 +237,7 @@ const MerchantDashboardPage: React.FC = () => {
         setReservations(list);
       } else if (tab === 'sales') {
         const list = await ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() });
-        setSales(list.filter((s: any) => s.shop_id === shopId || s.shopId === shopId));
+        setSales(list);
       } else if (tab === 'overview') {
         const [notif, analytics] = await Promise.all([
           ApiService.getNotifications(shopId),
@@ -251,7 +251,7 @@ const MerchantDashboardPage: React.FC = () => {
           ApiService.getShopAnalytics(shopId, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
           ApiService.getReservations(shopId),
         ]);
-        setSales((orders || []).filter((s: any) => s.shop_id === shopId || s.shopId === shopId));
+        setSales(orders);
         setAnalytics(analytics);
         setReservations(reservations || []);
       } else if (tab === 'promotions') {
@@ -459,7 +459,7 @@ const MerchantDashboardPage: React.FC = () => {
             case 'invoice':
               return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
             case 'sales':
-              return <SalesTab sales={sales} />;
+              return <SalesTab sales={sales} posEnabled={hasPosTab} />;
             case 'reports':
               return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
             case 'customers':

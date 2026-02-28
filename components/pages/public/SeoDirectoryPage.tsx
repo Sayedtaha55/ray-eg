@@ -25,18 +25,6 @@ const SeoDirectoryPage: React.FC = () => {
         </article>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6 md:p-8 mb-10">
-        <h2 className="text-2xl font-black mb-4">ناس كتير بتبحث بهذه الكلمات</h2>
-        <div className="flex flex-wrap gap-2 text-sm font-bold text-slate-700">
-          <span className="px-3 py-1 rounded-full bg-white border">من مكانك</span>
-          <span className="px-3 py-1 rounded-full bg-white border">منمكانك</span>
-          <span className="px-3 py-1 rounded-full bg-white border">مكانك</span>
-          <span className="px-3 py-1 rounded-full bg-white border">دليل المحلات</span>
-          <span className="px-3 py-1 rounded-full bg-white border">دليل المطاعم</span>
-          <span className="px-3 py-1 rounded-full bg-white border">دليل الأنشطة</span>
-        </div>
-      </section>
-
       <section className="rounded-2xl bg-slate-900 text-white p-6 md:p-8 mb-10">
         <h2 className="text-2xl font-black mb-3">روابط سريعة</h2>
         <div className="flex flex-wrap gap-3 text-sm font-bold">

@@ -323,6 +323,7 @@ model Order {
   status        OrderStatus @default(PENDING)
   paymentMethod String?     @map("payment_method")
   paymentStatus String?     @map("payment_status")
+  source        String?     @default("customer") // 'customer' for online orders, 'pos' for POS system orders
   notes         String?
   userId        String
   shopId        String

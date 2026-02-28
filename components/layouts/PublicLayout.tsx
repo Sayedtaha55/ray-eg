@@ -294,6 +294,14 @@ const PublicLayout: React.FC = () => {
                 <span className="text-[10px] font-black">الرئيسية</span>
               </Link>
 
+              <Link
+                to="/dalil"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/dalil') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+              >
+                <PlusCircle className="w-5 h-5" />
+                <span className="text-[10px] font-black">الدليل الشامل</span>
+              </Link>
+
               {!hideCartButton && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black">
                   <CartIconWithAnimation 
@@ -378,29 +386,66 @@ const PublicLayout: React.FC = () => {
       </AnimatePresence>
 
       <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-20 text-right">
-          <div className="col-span-1 md:col-span-2">
-            <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
-              <BrandLogo variant="business" iconOnly />
-              <span className="text-2xl font-black tracking-tighter uppercase">من مكانك</span>
+        <div className="max-w-7xl mx-auto px-6">
+          {/* Links Section - First on mobile */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 mb-12 md:mb-16 text-right">
+            <div>
+              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
+              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                <Link to="/dalil" className="hover:text-white transition-colors">الدليل الشامل</Link>
+                <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
+              </nav>
             </div>
-            <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
+            <div>
+              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
+              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
+                {String(user?.role || '').toLowerCase() === 'courier' ? (
+                  <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
+                ) : null}
+              </nav>
+            </div>
+            <div>
+              <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
+              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
+                <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
+                <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
+                <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
+              </nav>
+            </div>
+          </div>
 
-            <div className="mt-8 space-y-3">
-              <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
-                <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
-                  <Mail size={16} />
-                </span>
-                <span className="font-bold text-sm md:text-base">mnmknk.eg@gmail.com</span>
-              </a>
-              <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
-                <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
-                  <Phone size={16} />
-                </span>
-                <span className="font-bold text-sm md:text-base">01067461059</span>
-              </a>
+          {/* Brand and Contact Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 text-right">
+            <div>
+              <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
+                <BrandLogo variant="business" iconOnly />
+                <span className="text-2xl font-black tracking-tighter uppercase">من مكانك</span>
+              </div>
+              <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium mb-6">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
+            </div>
 
-              <div className="pt-2 flex items-center gap-3 flex-row-reverse md:justify-end">
+            <div className="space-y-6">
+              {/* Contact Info */}
+              <div className="space-y-3">
+                <h4 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">تواصل معنا</h4>
+                <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                    <Mail size={16} />
+                  </span>
+                  <span className="font-bold text-sm md:text-base">mnmknk.eg@gmail.com</span>
+                </a>
+                <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                    <Phone size={16} />
+                  </span>
+                  <span className="font-bold text-sm md:text-base">01067461059</span>
+                </a>
+              </div>
+
+              {/* Social Links */}
+              <div className="flex items-center gap-3 flex-row-reverse md:justify-end">
                 <a
                   href="mailto:mnmknk.eg@gmail.com"
                   className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-[#00E5FF]/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(0,229,255,0.25)]"
@@ -427,32 +472,6 @@ const PublicLayout: React.FC = () => {
                   <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
                 </a>
               </div>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 md:col-span-2">
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
-              </nav>
-            </div>
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
-                {String(user?.role || '').toLowerCase() === 'courier' ? (
-                  <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
-                ) : null}
-              </nav>
-            </div>
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
-                <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
-                <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
-                <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
-              </nav>
             </div>
           </div>
         </div>

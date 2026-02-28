@@ -19,6 +19,7 @@ import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl } from './utils';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
+import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 
 // New Sub-components
 import ProfileHeader from './ProfileHeader';
@@ -638,6 +639,12 @@ const ShopProfile: React.FC = () => {
           onError={() => setPageBgReady(true)}
         />
       )}
+
+      {hasSalesModule && showFooter ? (
+        <div className="fixed top-24 right-4 z-[320] hidden md:block">
+          <CartIconWithAnimation count={cartItems.length} onClick={() => setCartOpen(true)} />
+        </div>
+      ) : null}
 
       <ProfileHeader
         shop={shop}

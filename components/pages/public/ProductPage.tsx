@@ -464,29 +464,34 @@ const ProductPage: React.FC = () => {
         })());
 
     const unitPrice = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
-    const event = new CustomEvent('add-to-cart', { 
-      detail: { 
-        ...product, 
-        price: unitPrice,
-        quantity: 1, 
-        shopId: shop?.id, 
-        shopName: shop?.name,
-        addons: normalizedAddons,
-        variantSelection: shop?.category === Category.FASHION
+
+    RayDB.addToCart({
+      ...product,
+      price: unitPrice,
+      quantity: 1,
+      shopId: shop?.id,
+      shopName: shop?.name,
+      addons: normalizedAddons,
+      variantSelection:
+        shop?.category === Category.FASHION
           ? {
               kind: 'fashion',
-              colorName: String((fashionColors.find((c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim()) as any)?.name || '').trim(),
+              colorName: String(
+                (fashionColors.find(
+                  (c: any) => String(c?.value || '').trim() === String(selectedFashionColorValue || '').trim(),
+                ) as any)?.name || '',
+              ).trim(),
               colorValue: String(selectedFashionColorValue || '').trim(),
               size: String(selectedFashionSize || '').trim(),
             }
-          : (hasPacks
+          : hasPacks
             ? { kind: 'pack', packId: String(selectedPackId || '').trim() }
-            : selectedMenuVariant),
-        unit: (product as any)?.unit,
-        __skipSound: true,
-      } 
+            : selectedMenuVariant,
+      unit: (product as any)?.unit,
+      __skipSound: true,
     });
-    window.dispatchEvent(event);
+
+    setIsCartOpen(true);
   };
 
   const fashionColors = useMemo(() => {
@@ -709,8 +714,8 @@ const ProductPage: React.FC = () => {
         />
       ) : null}
       <div className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''} text-right font-sans`}>
-        {canUseCart ? (
-          <div className="fixed top-24 right-4 z-[90] lg:hidden">
+        {canUseCart && showFooter ? (
+          <div className="fixed top-24 right-4 z-[90]">
             <CartIconWithAnimation count={cartItems.length} onClick={() => setIsCartOpen(true)} />
           </div>
         ) : null}

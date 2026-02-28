@@ -324,6 +324,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {canShowAddToCart ? (
             <button
+              type="button"
               onClick={handleAddToCart}
               className="flex-1 bg-slate-900 text-white h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl"
             >
@@ -332,6 +333,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
           ) : null}
           {canShowReserve ? (
             <button
+              type="button"
               onClick={() => setIsResModalOpen(true)}
               className="flex-1 bg-[#00E5FF] text-slate-900 h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
             >

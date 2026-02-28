@@ -10,7 +10,6 @@ import { useCartSound } from '@/hooks/useCartSound';
 
 // Sub-components
 import OfferCard from './home/OfferCard';
-import FeedbackWidget from './home/FeedbackWidget';
 
 // Lazy load heavy global components
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
@@ -266,23 +265,6 @@ const HomeFeed: React.FC = () => {
           </div>
         )}
       </section>
-
-      <section className="mb-16 md:mb-24 rounded-3xl border border-slate-200 bg-white p-6 md:p-10">
-        <h2 className="text-2xl md:text-4xl font-black tracking-tight mb-4">
-          من مكانك: دليل المحلات ودليل المطاعم ودليل الأنشطة
-        </h2>
-        <p className="text-slate-600 text-sm md:text-lg leading-8 mb-5">
-          لو بتبحث عن من مكانك أو منمكانك أو دليل المحلات والمطاعم، هتلاقي كل الأماكن القريبة منك في صفحة الدليل الشاملة.
-        </p>
-        <Link
-          to="/dalil"
-          className="inline-flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-sm md:text-base hover:bg-black transition-all"
-        >
-          افتح صفحة الدليل الشامل
-        </Link>
-      </section>
-
-      <FeedbackWidget />
 
       <Suspense fallback={null}>
         <ReservationModal 

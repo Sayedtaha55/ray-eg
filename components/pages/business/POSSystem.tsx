@@ -346,6 +346,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         items: cart.map(i => ({ productId: i.productId, quantity: i.quantity, addons: i.addons, variantSelection: i.variantSelection })),
         total,
         paymentMethod: 'COD',
+        source: 'pos',
       });
       const updated = await ApiService.getProducts(shopId);
       setProducts(updated || []);
