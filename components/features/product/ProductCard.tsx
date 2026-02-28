@@ -1,7 +1,8 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Card, Badge, Button } from '../../common/ui';
+import { Card, Badge, Button, SmartImage } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
+import { getOptimizedImageUrl } from '../../../lib/image-utils';
 
 interface ProductCardProps {
   product: {
@@ -21,6 +22,13 @@ interface ProductCardProps {
   isFavorite?: boolean;
 }
 
+/**
+ * Optimized ProductCard component.
+ * Performance improvements:
+ * ⚡ Uses SmartImage for skeleton loading and smooth transitions
+ * ⚡ Uses getOptimizedImageUrl to serve a medium-sized (md) variant, reducing bandwidth and memory
+ * ⚡ Added decoding="async" via SmartImage to prevent main thread blocking
+ */
 const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   onAddToCart,
@@ -35,11 +43,12 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     <Card hover clickable className="overflow-hidden group">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden">
-        <img
-          src={product.image}
+        <SmartImage
+          src={getOptimizedImageUrl(product.image, 'md')}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          className="w-full h-full"
+          imgClassName="group-hover:scale-110 transition-transform duration-300 object-cover"
         />
         
         {/* Discount Badge */}
