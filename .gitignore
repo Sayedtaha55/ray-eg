@@ -45,3 +45,5 @@ uploads/
 .cursor/
 
 dy
+.vercel
+.env*.local
