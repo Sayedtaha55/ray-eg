@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState, memo } from 'react';
 import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import Modal from '@/components/common/ui/Modal';
-import OrderReturnsPanel from './OrderReturnsPanel';
 
 type Props = {
   sales: any[];
@@ -503,8 +502,6 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات</div>
             <div className="mt-3 text-slate-200 font-bold text-sm whitespace-pre-wrap">{selectedSale?.notes || '-'}</div>
           </div>
-
-          <OrderReturnsPanel order={selectedSale} />
         </div>
       </Modal>
     </>
