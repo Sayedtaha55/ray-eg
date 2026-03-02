@@ -43,14 +43,7 @@ const ProductCard = React.memo(function ProductCard({
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(() => {
-    try {
-      const favs = RayDB.getFavorites();
-      return Array.isArray(favs) ? favs.includes(product.id) : false;
-    } catch {
-      return false;
-    }
-  });
+  const [isFavorite, setIsFavorite] = useState(() => RayDB.isFavorite(product.id));
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
