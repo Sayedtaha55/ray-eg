@@ -6,7 +6,7 @@ import { spawn } from 'child_process';
 function runFfmpeg(args: string[]) {
   const ffmpegExe = typeof ffmpegPath === 'string' && ffmpegPath.trim() ? ffmpegPath : null;
   if (!ffmpegExe) {
-    throw new Error('ffmpeg not found');
+    return Promise.resolve();
   }
 
   return new Promise<void>((resolve, reject) => {
