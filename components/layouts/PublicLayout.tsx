@@ -295,11 +295,11 @@ const PublicLayout: React.FC = () => {
               </Link>
 
               <Link
-                to="/dalil"
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/dalil') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+                to="/profile"
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
               >
-                <PlusCircle className="w-5 h-5" />
-                <span className="text-[10px] font-black">الدليل الشامل</span>
+                <User className="w-5 h-5" />
+                <span className="text-[10px] font-black">حسابي</span>
               </Link>
 
               {!hideCartButton && (
@@ -311,14 +311,6 @@ const PublicLayout: React.FC = () => {
                   <span className="text-[10px] font-black">السلة</span>
                 </div>
               )}
-
-              <Link
-                to="/profile"
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
-              >
-                <User className="w-5 h-5" />
-                <span className="text-[10px] font-black">حسابي</span>
-              </Link>
             </div>
           </div>
         </div>
@@ -392,7 +384,9 @@ const PublicLayout: React.FC = () => {
             <div>
               <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
               <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/dalil" className="hover:text-white transition-colors">الدليل الشامل</Link>
+                <Link to="/offers/restaurants" className="hover:text-white transition-colors">عروض المطاعم</Link>
+                <Link to="/offers/fashion" className="hover:text-white transition-colors">عروض الملابس والأحذية</Link>
+                <Link to="/offers/supermarket" className="hover:text-white transition-colors">عروض السوبر ماركت</Link>
                 <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
               </nav>
             </div>

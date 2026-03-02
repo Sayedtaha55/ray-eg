@@ -76,6 +76,8 @@ import {
 } from './api/modules/products';
 import {
   assignCourierToOrderViaBackend,
+  createOrderReturnViaBackend,
+  listOrderReturnsViaBackend,
   getAllOrdersViaBackend,
   getCourierOrdersViaBackend,
   placeOrderViaBackend,
@@ -724,7 +726,7 @@ export const ApiService = {
   },
 
   // Offers
-  getOffers: async (opts?: { take?: number; skip?: number; shopId?: string }) => {
+  getOffers: async (opts?: { take?: number; skip?: number; shopId?: string; shopCategory?: string }) => {
     try {
       const shopId = String(opts?.shopId || '').trim();
       if (shopId) {
@@ -854,6 +856,17 @@ export const ApiService = {
 
   updateOrder: async (id: string, payload: { status?: string; notes?: string }) => {
     return await updateOrderViaBackend(id, payload);
+  },
+
+  listOrderReturns: async (orderId: string) => {
+    return await listOrderReturnsViaBackend(orderId);
+  },
+
+  createOrderReturn: async (
+    orderId: string,
+    payload: { returnToStock: boolean; reason?: string; items?: Array<{ orderItemId?: string; quantity?: number }> },
+  ) => {
+    return await createOrderReturnViaBackend(orderId, payload);
   },
 
   assignCourierToOrder: async (id: string, courierId: string) => {

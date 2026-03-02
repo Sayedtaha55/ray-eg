@@ -54,10 +54,10 @@ const Modal: React.FC<ModalProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[1000]"
             onClick={closeOnBackdropClick ? onClose : undefined}
           />
-          <div className="fixed inset-0 z-50 p-4 overflow-y-auto">
+          <div className="fixed inset-0 z-[1000] p-4 overflow-y-auto">
             <div className="min-h-full flex items-center justify-center">
               <motion.div
                 initial={{ opacity: 0, scale: 0.9, y: 20 }}

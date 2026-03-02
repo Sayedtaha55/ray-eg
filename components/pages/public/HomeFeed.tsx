@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
-import { Sparkles, TrendingUp, Loader2, MapPin } from 'lucide-react';
+import { Sparkles, TrendingUp, Loader2, MapPin, Utensils, ShoppingBag, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { Skeleton } from '@/components/common/ui';
@@ -23,8 +23,44 @@ const HomeFeed: React.FC = () => {
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
+  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const navigate = useNavigate();
   const { playSound } = useCartSound();
+
+  const categories = [
+    {
+      id: 'restaurants',
+      name: 'عروض المطاعم',
+      desc: 'أفضل عروض المطاعم والمطابخ',
+      icon: Utensils,
+      cardClass: 'bg-orange-500',
+      gradientClass: 'from-orange-400 to-orange-600',
+    },
+    {
+      id: 'fashion',
+      name: 'عروض الأزياء',
+      desc: 'ملابس وأحذية بأسعار مميزة',
+      icon: ShoppingBag,
+      cardClass: 'bg-purple-500',
+      gradientClass: 'from-purple-400 to-purple-600',
+    },
+    {
+      id: 'supermarket',
+      name: 'عروض السوبر ماركت',
+      desc: 'منتجات بقالة ومواد غذائية',
+      icon: ShoppingCart,
+      cardClass: 'bg-green-500',
+      gradientClass: 'from-green-400 to-green-600',
+    },
+  ];
+
+  const nextCategory = () => {
+    setCurrentCategoryIndex((prev) => (prev + 1) % categories.length);
+  };
+
+  const prevCategory = () => {
+    setCurrentCategoryIndex((prev) => (prev - 1 + categories.length) % categories.length);
+  };
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -220,6 +256,88 @@ const HomeFeed: React.FC = () => {
            الخريطة <MapPin className="w-4 h-4" />
          </Link>
       </div>
+
+      {/* Category Buttons */}
+      <section className="mb-16 md:mb-24">
+        <div className="flex flex-col items-center text-center mb-8 md:mb-12">
+          <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">استكشف العروض حسب الفئة</h2>
+          <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
+        </div>
+        <div className="relative max-w-4xl mx-auto">
+          <div className="flex items-center justify-center gap-4">
+            {/* Left Arrow */}
+            <button
+              onClick={prevCategory}
+              className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              aria-label="السابق"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </button>
+
+            {/* Category Card */}
+            <div className="flex-1 max-w-md">
+              <Link
+                to={`/offers/${categories[currentCategoryIndex].id}`}
+                className={`group relative ${categories[currentCategoryIndex].cardClass} text-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 text-center transition-all hover:scale-105 hover:shadow-2xl overflow-hidden block`}
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${categories[currentCategoryIndex].gradientClass} opacity-0 group-hover:opacity-100 transition-opacity`}
+                />
+                <div className="relative z-10">
+                  {React.createElement(categories[currentCategoryIndex].icon, {
+                    className: 'w-16 h-16 md:w-20 md:h-20 mx-auto mb-4',
+                  })}
+                  <h3 className="text-2xl md:text-3xl font-black mb-2">{categories[currentCategoryIndex].name}</h3>
+                  <p className="text-base md:text-lg opacity-90">{categories[currentCategoryIndex].desc}</p>
+                </div>
+              </Link>
+            </div>
+
+            {/* Right Arrow */}
+            <button
+              onClick={nextCategory}
+              className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              aria-label="التالي"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Mobile Arrow Buttons */}
+          <div className="flex justify-center gap-4 mt-6 sm:hidden">
+            <button
+              onClick={prevCategory}
+              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              aria-label="السابق"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button
+              onClick={nextCategory}
+              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              aria-label="التالي"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Category Indicators */}
+          <div className="flex justify-center gap-2 mt-6">
+            {categories.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentCategoryIndex(index)}
+                className={`w-2 h-2 rounded-full transition-all ${
+                  index === currentCategoryIndex
+                    ? 'bg-slate-900 w-8'
+                    : 'bg-slate-300 hover:bg-slate-400'
+                }`}
+                aria-label={`الفئة ${index + 1}`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Offers Grid */}
       <section className="mb-16 md:mb-24">

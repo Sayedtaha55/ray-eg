@@ -124,3 +124,18 @@ export async function getCourierOrdersViaBackend() {
 export async function updateCourierOrderViaBackend(id: string, payload: { status?: string; codCollected?: boolean }) {
   return await backendPatch<any>(`/api/v1/orders/${encodeURIComponent(id)}/courier`, payload);
 }
+
+export async function listOrderReturnsViaBackend(orderId: string) {
+  const id = String(orderId || '').trim();
+  if (!id) throw new Error('Missing orderId');
+  return await backendGet<any[]>(`/api/v1/orders/${encodeURIComponent(id)}/returns`);
+}
+
+export async function createOrderReturnViaBackend(
+  orderId: string,
+  payload: { returnToStock: boolean; reason?: string; items?: Array<{ orderItemId?: string; quantity?: number }> },
+) {
+  const id = String(orderId || '').trim();
+  if (!id) throw new Error('Missing orderId');
+  return await backendPost<any>(`/api/v1/orders/${encodeURIComponent(id)}/returns`, payload);
+}

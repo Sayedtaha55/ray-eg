@@ -509,7 +509,7 @@ const MerchantDashboardPage: React.FC = () => {
     <div className="max-w-[1600px] mx-auto space-y-6 md:space-y-10 text-right pb-32 px-4 md:px-6 font-sans" dir="rtl">
       {effectiveTab !== 'builder' && effectiveTab !== 'settings' && (
         <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8">
-          <div className="flex items-center gap-8 flex-row-reverse">
+          <div className="flex items-center gap-4 sm:gap-6 md:gap-8 flex-row-reverse">
             <div className="relative group">
               <SmartImage
                 src={
@@ -517,39 +517,39 @@ const MerchantDashboardPage: React.FC = () => {
                   currentShop.logo_url ||
                   'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'
                 }
-                className="w-20 h-20 md:w-32 md:h-32 rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
+                className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-[2rem] sm:rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
                 imgClassName="object-cover"
                 alt="logo"
                 loading="eager"
                 fetchPriority="high"
               />
-              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
-                <CheckCircle2 size={20} />
+              <div className="absolute -bottom-1.5 -right-1.5 sm:-bottom-2 sm:-right-2 w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
+                <CheckCircle2 size={16} className="sm:w-5 sm:h-5" />
               </div>
             </div>
             <div className="text-right">
-              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mb-2">{currentShop.name}</h1>
-              <div className="flex items-center gap-3 justify-end">
-                <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
-                <span className="text-slate-400 font-bold text-sm flex items-center justify-end gap-2">
-                  <MapPin size={14} /> {currentShop.city}
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter mb-2">{currentShop.name}</h1>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 justify-end">
+                <span className="bg-slate-100 px-2 sm:px-3 py-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
+                <span className="text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-end gap-1.5 sm:gap-2">
+                  <MapPin size={12} className="sm:w-4 sm:h-4" /> {currentShop.city}
                 </span>
               </div>
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             <button
               onClick={() => navigate(`/shop/${currentShop.slug}`)}
-              className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-[#00E5FF] text-black rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:scale-105 transition-all shadow-md sm:shadow-xl"
+              className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-2.5 sm:py-3 md:py-4 lg:py-5 bg-[#00E5FF] text-black rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-xs md:text-sm flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 hover:scale-105 transition-all shadow-md sm:shadow-xl"
             >
-              <Eye size={14} className="sm:w-5 sm:h-5" /> معاينة المحل
+              <Eye size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">معاينة المحل</span>
             </button>
             {hasPosTab && (
               <button
                 onClick={() => setTab('pos')}
-                className="flex-1 md:flex-none px-3 sm:px-8 md:px-10 py-2 sm:py-4 md:py-5 bg-slate-900 text-white rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-sm flex items-center justify-center gap-1.5 sm:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
+                className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-2.5 sm:py-3 md:py-4 lg:py-5 bg-slate-900 text-white rounded-xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-[11px] sm:text-xs md:text-sm flex items-center justify-center gap-1.5 sm:gap-2 md:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
               >
-                <Smartphone size={14} className="sm:w-5 sm:h-5" /> الكاشير الذكي
+                <Smartphone size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">الكاشير الذكي</span>
               </button>
             )}
           </div>

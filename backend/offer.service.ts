@@ -120,19 +120,34 @@ export class OfferService {
     };
   }
 
-  async listActive(input?: { take?: number; skip?: number; shopId?: string; productId?: string }) {
+  async listActive(input?: { take?: number; skip?: number; shopId?: string; shopCategory?: string; productId?: string }) {
     const now = new Date();
     const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
     const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : undefined;
     const shopId = typeof input?.shopId === 'string' ? input.shopId.trim() : '';
+    const shopCategoryRaw = typeof input?.shopCategory === 'string' ? input.shopCategory.trim() : '';
     const productId = typeof input?.productId === 'string' ? input.productId.trim() : '';
     const take = typeof takeRaw === 'number' ? Math.min(100, Math.max(1, Math.floor(takeRaw))) : undefined;
     const skip = typeof skipRaw === 'number' ? Math.max(0, Math.floor(skipRaw)) : undefined;
+
+    const shopCategoryUpper = shopCategoryRaw ? shopCategoryRaw.toUpperCase() : '';
+    const allowedShopCategories = new Set([
+      'RETAIL',
+      'RESTAURANT',
+      'SERVICE',
+      'ELECTRONICS',
+      'FASHION',
+      'FOOD',
+      'HEALTH',
+      'OTHER',
+    ]);
+    const shopCategory = allowedShopCategories.has(shopCategoryUpper) ? shopCategoryUpper : '';
 
     const cacheKey = this.getListCacheKey('offers:active', {
       take,
       skip,
       shopId: shopId || undefined,
+      shopCategory: shopCategory || undefined,
       productId: productId || undefined,
     });
     try {
@@ -146,13 +161,14 @@ export class OfferService {
         isActive: true,
         expiresAt: { gt: now },
         ...(shopId ? { shopId } : {}),
+        ...(shopCategory ? { shop: { category: shopCategory as any } } : {}),
         ...(productId ? { productId } : {}),
       },
       orderBy: { createdAt: 'desc' },
       ...(typeof take === 'number' ? { take } : {}),
       ...(typeof skip === 'number' ? { skip } : {}),
       include: {
-        shop: { select: { id: true, name: true, logoUrl: true, slug: true } },
+        shop: { select: { id: true, name: true, logoUrl: true, slug: true, category: true } },
         product: { select: { id: true, name: true, price: true, imageUrl: true } },
       },
     });
@@ -165,6 +181,7 @@ export class OfferService {
       shopName: o.shop?.name || '',
       shopLogo: o.shop?.logoUrl || '',
       shopSlug: o.shop?.slug || '',
+      shopCategory: (o.shop as any)?.category || undefined,
       title: o.title,
       description: o.description || '',
       discount: o.discount,
@@ -172,7 +189,7 @@ export class OfferService {
       newPrice: o.newPrice,
       variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
       imageUrl: o.imageUrl || o.product?.imageUrl || '',
-      category: 'RETAIL',
+      category: ((o.shop as any)?.category as any) || 'RETAIL',
       expiresIn: o.expiresAt.toISOString(),
       created_at: o.createdAt.toISOString(),
     }));

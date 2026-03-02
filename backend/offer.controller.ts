@@ -19,14 +19,17 @@ export class OfferController {
     @Query('take') take: string,
     @Query('skip') skip: string,
     @Query('shopId') shopId: string,
+    @Query('shopCategory') shopCategory: string,
     @Query('productId') productId: string,
   ) {
     const shopIdNorm = typeof shopId === 'string' ? String(shopId).trim() : '';
+    const shopCategoryNorm = typeof shopCategory === 'string' ? String(shopCategory).trim() : '';
     const productIdNorm = typeof productId === 'string' ? String(productId).trim() : '';
     return this.offerService.listActive({
       take: parseOptionalInt(take),
       skip: parseOptionalInt(skip),
       shopId: shopIdNorm || undefined,
+      shopCategory: shopCategoryNorm || undefined,
       productId: productIdNorm || undefined,
     });
   }

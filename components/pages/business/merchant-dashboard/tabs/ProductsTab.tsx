@@ -985,11 +985,11 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         )}
 
         <div className="rounded-3xl border border-slate-100 overflow-hidden" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
-          <div className="overflow-x-auto touch-pan-x">
+          <div className="overflow-x-auto touch-auto">
             <div className="min-w-[720px]">
               <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
                 <div className="col-span-2 text-right">الصورة</div>
-                <div className="col-span-4 text-right">الاسم</div>
+                <div className="col-span-4 text-right pr-4">الاسم</div>
                 <div className="col-span-2 text-right">السعر</div>
                 <div className="col-span-2 text-right">المخزون</div>
                 <div className="col-span-2 text-right">تحكم</div>

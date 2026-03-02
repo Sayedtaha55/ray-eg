@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, memo } from 'react';
 import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import Modal from '@/components/common/ui/Modal';
+import OrderReturnsPanel from './OrderReturnsPanel';
 
 type Props = {
   sales: any[];
@@ -22,10 +23,12 @@ const OrderRow = memo(({
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
   const status = String(sale?.status || '').toUpperCase();
+  const isRefunded = status === 'REFUNDED';
   const busy = updatingId === id;
-  const canAccept = status === 'PENDING';
-  const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
-  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const isFinal = status === 'DELIVERED' || status === 'CANCELLED';
+  const canAccept = !isFinal;
+  const canInProgress = !isFinal;
+  const canReject = !isFinal;
 
   return (
     <div className="border border-slate-100 rounded-3xl p-5">
@@ -36,7 +39,14 @@ const OrderRow = memo(({
             {new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}
           </div>
         </div>
-        <span className={`shrink-0 px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+        <div className="shrink-0 flex items-center gap-2">
+          {isRefunded ? (
+            <span className="px-3 py-2 rounded-full text-[10px] font-black bg-fuchsia-50 text-fuchsia-800 border border-fuchsia-200">
+              مرتجع
+            </span>
+          ) : null}
+          <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mt-4">
@@ -83,10 +93,10 @@ const OrderRow = memo(({
                   data-sales-actions-menu="1"
                 >
                   <button
-                    disabled={!canAccept || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canAccept || busy) return;
                       updateStatus(id, 'CONFIRMED');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
@@ -95,10 +105,10 @@ const OrderRow = memo(({
                     {busy && canAccept ? '...' : 'قبول'}
                   </button>
                   <button
-                    disabled={!canInProgress || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canInProgress || busy) return;
                       updateStatus(id, 'PREPARING');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
@@ -107,10 +117,10 @@ const OrderRow = memo(({
                     {busy && canInProgress ? '...' : 'قيد التنفيذ'}
                   </button>
                   <button
-                    disabled={!canReject || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canReject || busy) return;
                       updateStatus(id, 'CANCELLED');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
@@ -142,10 +152,12 @@ const OrderTableRow = memo(({
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
   const status = String(sale?.status || '').toUpperCase();
+  const isRefunded = status === 'REFUNDED';
   const busy = updatingId === id;
-  const canAccept = status === 'PENDING';
-  const canInProgress = status === 'PENDING' || status === 'CONFIRMED';
-  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const isFinal = status === 'DELIVERED' || status === 'CANCELLED';
+  const canAccept = !isFinal;
+  const canInProgress = !isFinal;
+  const canReject = !isFinal;
 
   return (
     <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
@@ -153,7 +165,14 @@ const OrderTableRow = memo(({
       <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
       <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
       <td className="p-6">
-        <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+        <div className="flex items-center justify-end gap-2">
+          {isRefunded ? (
+            <span className="px-3 py-2 rounded-full text-[10px] font-black bg-fuchsia-50 text-fuchsia-800 border border-fuchsia-200">
+              مرتجع
+            </span>
+          ) : null}
+          <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
+        </div>
       </td>
       <td className="p-6 text-slate-500 font-black text-sm">
         {renderDeliveryFee(sale)}
@@ -182,10 +201,10 @@ const OrderTableRow = memo(({
                   data-sales-actions-menu="1"
                 >
                   <button
-                    disabled={!canAccept || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canAccept || busy) return;
                       updateStatus(id, 'CONFIRMED');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
@@ -194,10 +213,10 @@ const OrderTableRow = memo(({
                     {busy && canAccept ? '...' : 'قبول'}
                   </button>
                   <button
-                    disabled={!canInProgress || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canInProgress || busy) return;
                       updateStatus(id, 'PREPARING');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
@@ -206,10 +225,10 @@ const OrderTableRow = memo(({
                     {busy && canInProgress ? '...' : 'قيد التنفيذ'}
                   </button>
                   <button
-                    disabled={!canReject || busy}
                     onClick={(e) => {
                       e.stopPropagation();
                       setOpenMenuId('');
+                      if (!canReject || busy) return;
                       updateStatus(id, 'CANCELLED');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
@@ -253,6 +272,10 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
     const filtered = list.filter((order: any) => {
       const orderSource = String(order?.source || '').toLowerCase();
+      const status = String(order?.status || '').toUpperCase();
+
+      // If an order is rejected, do not show it in any list on the sales screen.
+      if (status === 'CANCELLED') return false;
 
       if (channel === 'pos') {
         return orderSource === 'pos';
@@ -316,7 +339,14 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
     setUpdatingId(orderId);
     try {
       const updated = await ApiService.updateOrder(orderId, { status });
-      setLocalSales((prev) => prev.map((o) => (String(o?.id) === String(updated?.id) ? { ...o, ...updated } : o)));
+      const nextStatus = String(updated?.status || status || '').toUpperCase();
+
+      // When rejecting an order, remove it from the list entirely.
+      if (nextStatus === 'CANCELLED') {
+        setLocalSales((prev) => prev.filter((o) => String(o?.id) !== String(updated?.id)));
+      } else {
+        setLocalSales((prev) => prev.map((o) => (String(o?.id) === String(updated?.id) ? { ...o, ...updated } : o)));
+      }
       try {
         window.dispatchEvent(new Event('orders-updated'));
       } catch {
@@ -350,7 +380,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
     return `ج.م ${n}`;
   };
 
-  const actionsEnabled = channel === 'shop';
+  const actionsEnabled = channel === 'shop' || channel === 'pos';
 
   return (
     <>
@@ -381,24 +411,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
         </button>
       </div>
 
-      <div className="md:hidden space-y-4 mt-10" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 200px' }}>
-        {filteredSales.map((sale) => (
-          <OrderRow
-            key={sale.id}
-            sale={sale}
-            updatingId={updatingId}
-            openMenuId={openMenuId}
-            setOpenMenuId={setOpenMenuId}
-            updateStatus={updateStatus}
-            openDetails={openDetails}
-            actionsEnabled={actionsEnabled}
-            statusMeta={statusMeta}
-            renderDeliveryFee={renderDeliveryFee}
-          />
-        ))}
-      </div>
-
-      <div className="hidden md:block overflow-x-auto no-scrollbar mt-10" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
+      <div className="overflow-x-auto touch-auto no-scrollbar mt-10" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <table className="w-full text-right border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
@@ -490,6 +503,8 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات</div>
             <div className="mt-3 text-slate-200 font-bold text-sm whitespace-pre-wrap">{selectedSale?.notes || '-'}</div>
           </div>
+
+          <OrderReturnsPanel order={selectedSale} />
         </div>
       </Modal>
     </>
