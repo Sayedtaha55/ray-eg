@@ -47,6 +47,10 @@
 
 ---
 
+
+## 📚 Comprehensive Project Documentation
+A detailed, AI-friendly Arabic documentation set is available under [`docs/`](./docs/README.md), with structured references for architecture, setup, backend/frontend workflows, database/Prisma, API endpoints, deployment, and troubleshooting.
+
 ## 🛠 How to run locally / كيف تشغل المشروع محلياً
 
 ### 1) Install
