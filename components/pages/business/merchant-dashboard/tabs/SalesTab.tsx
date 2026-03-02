@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import SalesChannelView from './sales/SalesChannelView';
-import SalesReturnsView from './sales/SalesReturnsView';
 
 type Props = { sales: any[]; posEnabled?: boolean };
 
 const SalesTab: React.FC<Props> = ({ sales, posEnabled = false }) => {
-  const [channel, setChannel] = useState<'shop' | 'pos' | 'returns'>('shop');
+  const [channel, setChannel] = useState<'shop' | 'pos'>('shop');
 
   useEffect(() => {
     if (!posEnabled && channel === 'pos') {
@@ -34,17 +33,11 @@ const SalesTab: React.FC<Props> = ({ sales, posEnabled = false }) => {
                 فواتير الكاشير
               </button>
             ) : null}
-            <button
-              onClick={() => setChannel('returns')}
-              className={`w-full sm:w-auto px-3 sm:px-4 md:px-6 py-2 rounded-full font-black text-[11px] sm:text-xs ${channel === 'returns' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}
-            >
-              المرتجعات
-            </button>
           </div>
         </div>
       </div>
 
-      {channel === 'returns' ? <SalesReturnsView sales={sales} /> : <SalesChannelView sales={sales} channel={channel} />}
+      <SalesChannelView sales={sales} channel={channel} />
     </div>
   );
 };
