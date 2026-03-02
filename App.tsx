@@ -15,9 +15,6 @@ const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'
 
 const HomeFeed = React.lazy(() => import('./components/pages/public/HomeFeed'));
 const OffersPage = React.lazy(() => import('./components/pages/public/OffersPage'));
-const RestaurantsOffersPage = React.lazy(() => import('./components/pages/public/offers/RestaurantsOffersPage'));
-const FashionOffersPage = React.lazy(() => import('./components/pages/public/offers/FashionOffersPage'));
-const SupermarketOffersPage = React.lazy(() => import('./components/pages/public/offers/SupermarketOffersPage'));
 const MapPage = React.lazy(() => import('./components/pages/public/MapPage'));
 const LoginPage = React.lazy(() => import('./components/pages/auth/LoginPage'));
 const SignupPage = React.lazy(() => import('./components/pages/auth/SignupPage'));
@@ -194,9 +191,6 @@ const App: React.FC = () => {
           <Route path="shops" element={<Navigate to="/" replace />} />
           <Route path="restaurants" element={<Navigate to="/" replace />} />
           <Route path="offers" element={suspense(<OffersPage />)} />
-          <Route path="offers/restaurants" element={suspense(<RestaurantsOffersPage />)} />
-          <Route path="offers/fashion" element={suspense(<FashionOffersPage />)} />
-          <Route path="offers/supermarket" element={suspense(<SupermarketOffersPage />)} />
           <Route path="map" element={suspense(<MapPage />)} />
           <Route path="login" element={suspense(<LoginPage />)} />
           <Route path="signup" element={suspense(<SignupPage />)} />
