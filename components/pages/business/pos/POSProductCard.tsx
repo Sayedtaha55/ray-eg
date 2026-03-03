@@ -1,6 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Ruler, SlidersHorizontal } from 'lucide-react';
+import { SmartImage } from '@/components/common/ui';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 
 const MotionDiv = motion.div as any;
 
@@ -61,13 +63,14 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
             </button>
           ) : null}
           
-          <img
-            src={product.imageUrl || '/brand/logo.png'}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          <SmartImage
+            src={getOptimizedImageUrl(product.imageUrl || '/brand/logo.png', 'thumb')}
             alt={product.name}
+            className="w-full h-full"
+            imgClassName="object-cover transition-transform duration-500 group-hover:scale-110"
           />
           
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
           
           <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-3 text-right">
             <h3 className="text-white font-black text-[9px] md:text-sm line-clamp-2 leading-tight mb-0.5">
