@@ -49,6 +49,7 @@ const PublicLayout: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const webPushRegisterAttemptedRef = React.useRef(false);
   const [authPrompt, setAuthPrompt] = useState<{ open: boolean; message: string; returnTo: string }>(() => ({
     open: false,
     message: 'قبل أي عملية لازم تسجل حساب.',
@@ -153,6 +154,77 @@ const PublicLayout: React.FC = () => {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
     };
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    const role = String(user?.role || '').toLowerCase();
+    if (!user || role === 'merchant') return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+
+    const askPermission = () => {
+      try {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().catch(() => {});
+        }
+      } catch {
+      }
+    };
+
+    window.addEventListener('pointerdown', askPermission as any, { once: true } as any);
+    return () => {
+      try {
+        window.removeEventListener('pointerdown', askPermission as any);
+      } catch {
+      }
+    };
+  }, [user?.id, user?.role]);
+
+  useEffect(() => {
+    const role = String(user?.role || '').toLowerCase();
+    if (!user || role === 'merchant') return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+    if (!('serviceWorker' in navigator)) return;
+    const isDev = !Boolean((import.meta as any)?.env?.PROD);
+    if (isDev) return;
+
+    const vapidPublicKey = String(((import.meta as any)?.env?.VITE_VAPID_PUBLIC_KEY as any) || '').trim();
+    if (!vapidPublicKey) return;
+
+    const urlBase64ToUint8Array = (base64String: string) => {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    };
+
+    const run = async () => {
+      try {
+        if (Notification.permission !== 'granted') return;
+        if (webPushRegisterAttemptedRef.current) return;
+        webPushRegisterAttemptedRef.current = true;
+
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        const subscription = existing
+          ? existing
+          : await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+
+        await ApiService.registerCustomerWebPushSubscription(subscription);
+      } catch {
+        webPushRegisterAttemptedRef.current = false;
+      }
+    };
+
+    run();
   }, [user?.id, user?.role]);
 
   const logout = async () => {

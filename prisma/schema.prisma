@@ -40,6 +40,7 @@ model User {
   preferences NotificationPreference[]
   accountingInvoices AccountingInvoice[]
   createdOrderReturns OrderReturn[]
+  pushSubscriptions CustomerPushSubscription[]
 
   @@map("users")
 }
@@ -100,6 +101,7 @@ model Shop {
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
   customers     Customer[]
   orderReturns  OrderReturn[]
+  pushSubscriptions MerchantPushSubscription[]
 
   @@index([category])
   @@index([slug])
@@ -549,6 +551,44 @@ model NotificationPreference {
 
   @@unique([userId])
   @@map("notification_preferences")
+}
+
+model MerchantPushSubscription {
+  id           String   @id @default(cuid())
+  shopId       String   @map("shop_id")
+  endpoint     String
+  subscription Json
+  isActive     Boolean  @default(true) @map("is_active")
+  lastSeenAt   DateTime? @map("last_seen_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, endpoint])
+  @@index([shopId])
+  @@index([endpoint])
+  @@index([isActive])
+  @@map("merchant_push_subscriptions")
+}
+
+model CustomerPushSubscription {
+  id           String   @id @default(cuid())
+  userId       String   @map("user_id")
+  endpoint     String
+  subscription Json
+  isActive     Boolean  @default(true) @map("is_active")
+  lastSeenAt   DateTime? @map("last_seen_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@index([endpoint])
+  @@index([isActive])
+  @@map("customer_push_subscriptions")
 }
 
 // Notification templates table

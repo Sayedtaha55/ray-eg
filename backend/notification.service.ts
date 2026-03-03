@@ -1,10 +1,120 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { NotificationType, NotificationPriority, NotificationChannel, NotificationData } from './types/notifications';
+import { WebPushService } from './web-push.service';
 
 @Injectable()
 export class NotificationService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(WebPushService) private readonly webPushService: WebPushService,
+  ) {}
+
+  private buildMerchantPushUrl(data: NotificationData) {
+    return '/business/dashboard';
+  }
+
+  private buildCustomerPushUrl(data: NotificationData) {
+    return '/profile?tab=notifications';
+  }
+
+  async registerMerchantPushSubscription(params: {
+    actor: { role: string; shopId?: string };
+    shopId: string;
+    subscription: any;
+  }) {
+    const sid = String(params?.shopId || '').trim();
+    if (!sid) throw new BadRequestException('shopId مطلوب');
+    const role = String(params?.actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && String(params?.actor?.shopId || '') !== sid) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const endpoint = String(params?.subscription?.endpoint || '').trim();
+    if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
+
+    await this.prisma.merchantPushSubscription.upsert({
+      where: { shopId_endpoint: { shopId: sid, endpoint } } as any,
+      create: {
+        shopId: sid,
+        endpoint,
+        subscription: params.subscription,
+        isActive: true,
+        lastSeenAt: new Date(),
+      } as any,
+      update: {
+        subscription: params.subscription,
+        isActive: true,
+        lastSeenAt: new Date(),
+      } as any,
+    } as any);
+
+    return { ok: true };
+  }
+
+  async unregisterMerchantPushSubscription(params: {
+    actor: { role: string; shopId?: string };
+    shopId: string;
+    endpoint: string;
+  }) {
+    const sid = String(params?.shopId || '').trim();
+    if (!sid) throw new BadRequestException('shopId مطلوب');
+    const role = String(params?.actor?.role || '').toUpperCase();
+    if (role !== 'ADMIN' && String(params?.actor?.shopId || '') !== sid) {
+      throw new ForbiddenException('صلاحيات غير كافية');
+    }
+
+    const endpoint = String(params?.endpoint || '').trim();
+    if (!endpoint) throw new BadRequestException('endpoint مطلوب');
+
+    await this.prisma.merchantPushSubscription.updateMany({
+      where: { shopId: sid, endpoint },
+      data: { isActive: false } as any,
+    } as any);
+
+    return { ok: true };
+  }
+
+  async registerCustomerPushSubscription(params: { userId: string; subscription: any }) {
+    const uid = String(params?.userId || '').trim();
+    if (!uid) throw new BadRequestException('غير مصرح');
+
+    const endpoint = String(params?.subscription?.endpoint || '').trim();
+    if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
+
+    await this.prisma.customerPushSubscription.upsert({
+      where: { userId_endpoint: { userId: uid, endpoint } } as any,
+      create: {
+        userId: uid,
+        endpoint,
+        subscription: params.subscription,
+        isActive: true,
+        lastSeenAt: new Date(),
+      } as any,
+      update: {
+        subscription: params.subscription,
+        isActive: true,
+        lastSeenAt: new Date(),
+      } as any,
+    } as any);
+
+    return { ok: true };
+  }
+
+  async unregisterCustomerPushSubscription(params: { userId: string; endpoint: string }) {
+    const uid = String(params?.userId || '').trim();
+    if (!uid) throw new BadRequestException('غير مصرح');
+
+    const endpoint = String(params?.endpoint || '').trim();
+    if (!endpoint) throw new BadRequestException('endpoint مطلوب');
+
+    await this.prisma.customerPushSubscription.updateMany({
+      where: { userId: uid, endpoint },
+      data: { isActive: false } as any,
+    } as any);
+
+    return { ok: true };
+  }
 
   async createNotification(data: NotificationData) {
     const notification = await this.prisma.notification.create({
@@ -21,6 +131,31 @@ export class NotificationService {
         sentAt: new Date(),
       } as any,
     });
+
+    try {
+      const title = String(data?.title || '').trim() || 'إشعار جديد';
+      const body = String(data?.content || '').trim();
+      const tag = String((notification as any)?.id || '').trim();
+
+      if (data?.shopId) {
+        await this.webPushService.sendToMerchantShop(String(data.shopId), {
+          title,
+          body,
+          url: this.buildMerchantPushUrl(data),
+          tag: tag ? `merchant-${tag}` : undefined,
+        });
+      }
+
+      if (data?.userId) {
+        await this.webPushService.sendToCustomerUser(String(data.userId), {
+          title,
+          body,
+          url: this.buildCustomerPushUrl(data),
+          tag: tag ? `customer-${tag}` : undefined,
+        });
+      }
+    } catch {
+    }
 
     return notification;
   }

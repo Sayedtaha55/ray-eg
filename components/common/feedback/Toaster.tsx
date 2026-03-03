@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
+import React, { useState, createContext, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle2, AlertCircle, X, Info } from 'lucide-react';
 
@@ -19,13 +19,36 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
+const safeStringify = (value: any) => {
+  try {
+    if (typeof value === 'string') return value;
+    return JSON.stringify(value);
+  } catch {
+    try {
+      return String(value);
+    } catch {
+      return '...';
+    }
+  }
+};
+
+const normalizeToastMessage = (message: any, type: ToastType) => {
+  const trimmed = String(safeStringify(message) || '').trim();
+
+  if (type === 'success' && /(تم\s*حفظ|تم\s*تحديث|تم\s*التحديث|نجاح)/.test(trimmed)) {
+    return 'تم الحفظ';
+  }
+
+  return trimmed || '...';
+};
+
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastSeqRef = React.useRef(0);
   const lastToastRef = React.useRef<{ key: string; at: number } | null>(null);
 
   const addToast = (message: string | any, type: ToastType) => {
-    const msgStr = typeof message === 'string' ? message : JSON.stringify(message);
+    const msgStr = normalizeToastMessage(message, type);
     const key = `${type}:${msgStr}`;
     const now = Date.now();
     if (lastToastRef.current && lastToastRef.current.key === key && now - lastToastRef.current.at < 1200) {
@@ -35,7 +58,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const id = Date.now() * 1000 + ((toastSeqRef.current = (toastSeqRef.current + 1) % 1000) as any);
     // نضمن أننا نخزن الرسالة بشكل آمن
-    setToasts(prev => [...prev, { id, message, type }]);
+    setToasts((prev) => {
+      if (prev.some((t) => `${t.type}:${normalizeToastMessage(t.message, t.type)}` === key)) {
+        return prev;
+      }
+      return [...prev, { id, message: msgStr, type }];
+    });
     setTimeout(() => {
       removeToast(id);
     }, 4000);

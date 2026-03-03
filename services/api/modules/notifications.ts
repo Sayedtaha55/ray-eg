@@ -1,8 +1,48 @@
-import { backendGet, backendPatch } from '../httpClient';
+import { backendGet, backendPatch, backendPost } from '../httpClient';
 
 export type NotificationSubscription = {
   unsubscribe: () => void;
 };
+
+export async function registerWebPushSubscriptionViaBackend(input: {
+  shopId: string;
+  subscription: PushSubscription;
+}) {
+  const sid = String(input?.shopId || '').trim();
+  if (!sid) return { ok: true } as any;
+  const subscription = input?.subscription;
+  if (!subscription) return { ok: true } as any;
+  return await backendPost<any>(`/api/v1/notifications/push/merchant/subscribe`, {
+    shopId: sid,
+    subscription,
+  });
+}
+
+export async function unregisterWebPushSubscriptionViaBackend(input: { shopId: string; endpoint: string }) {
+  const sid = String(input?.shopId || '').trim();
+  const endpoint = String(input?.endpoint || '').trim();
+  if (!sid || !endpoint) return { ok: true } as any;
+  return await backendPost<any>(`/api/v1/notifications/push/merchant/unsubscribe`, {
+    shopId: sid,
+    endpoint,
+  });
+}
+
+export async function registerCustomerWebPushSubscriptionViaBackend(input: { subscription: PushSubscription }) {
+  const subscription = input?.subscription;
+  if (!subscription) return { ok: true } as any;
+  return await backendPost<any>(`/api/v1/notifications/push/customer/subscribe`, {
+    subscription,
+  });
+}
+
+export async function unregisterCustomerWebPushSubscriptionViaBackend(input: { endpoint: string }) {
+  const endpoint = String(input?.endpoint || '').trim();
+  if (!endpoint) return { ok: true } as any;
+  return await backendPost<any>(`/api/v1/notifications/push/customer/unsubscribe`, {
+    endpoint,
+  });
+}
 
 export function subscribeToNotificationsViaBackend(
   shopId: string,
@@ -28,10 +68,7 @@ export function subscribeToNotificationsViaBackend(
 
   const poll = async () => {
     if (stopped) return;
-    if (paused) {
-      schedule(baseIntervalMs);
-      return;
-    }
+    const effectiveIntervalMs = paused ? Math.max(baseIntervalMs, 60_000) : baseIntervalMs;
     const sid = String(shopId || '').trim();
     if (!sid) return;
     try {
@@ -44,7 +81,7 @@ export function subscribeToNotificationsViaBackend(
       if (!initialized) {
         initialized = true;
         lastId = id;
-        schedule(baseIntervalMs);
+        schedule(effectiveIntervalMs);
         return;
       }
 
@@ -57,7 +94,7 @@ export function subscribeToNotificationsViaBackend(
           message: first?.content || first?.message,
         });
       }
-      schedule(baseIntervalMs);
+      schedule(effectiveIntervalMs);
     } catch (e: any) {
       const status = typeof e?.status === 'number' ? e.status : undefined;
       if (status === 401 || status === 403) {
@@ -66,11 +103,11 @@ export function subscribeToNotificationsViaBackend(
         return;
       }
       if (status === 429) {
-        schedule(Math.max(baseIntervalMs, 60_000));
+        schedule(Math.max(effectiveIntervalMs, 60_000));
         return;
       }
       consecutiveErrors += 1;
-      const backoff = Math.min(maxBackoffMs, baseIntervalMs * Math.max(1, consecutiveErrors));
+      const backoff = Math.min(maxBackoffMs, effectiveIntervalMs * Math.max(1, consecutiveErrors));
       schedule(backoff);
     }
   };

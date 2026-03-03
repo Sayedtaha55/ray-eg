@@ -29,6 +29,10 @@ import {
   getMyNotificationsViaBackend,
   getMyUnreadNotificationsCountViaBackend,
   getShopNotificationsViaBackend,
+  registerWebPushSubscriptionViaBackend,
+  registerCustomerWebPushSubscriptionViaBackend,
+  unregisterCustomerWebPushSubscriptionViaBackend,
+  unregisterWebPushSubscriptionViaBackend,
   markMyNotificationReadViaBackend,
   markMyNotificationsReadViaBackend,
   markShopNotificationReadViaBackend,
@@ -591,6 +595,18 @@ export const ApiService = {
   // Notifications
   subscribeToNotifications: (shopId: string, callback: (payload: any) => void) => {
     return subscribeToNotificationsViaBackend(shopId, callback);
+  },
+  registerWebPushSubscription: async (shopId: string, subscription: PushSubscription) => {
+    return await registerWebPushSubscriptionViaBackend({ shopId, subscription });
+  },
+  unregisterWebPushSubscription: async (shopId: string, endpoint: string) => {
+    return await unregisterWebPushSubscriptionViaBackend({ shopId, endpoint });
+  },
+  registerCustomerWebPushSubscription: async (subscription: PushSubscription) => {
+    return await registerCustomerWebPushSubscriptionViaBackend({ subscription });
+  },
+  unregisterCustomerWebPushSubscription: async (endpoint: string) => {
+    return await unregisterCustomerWebPushSubscriptionViaBackend({ endpoint });
   },
   getNotifications: async (shopId: string) => {
     const sid = String(shopId || '').trim();

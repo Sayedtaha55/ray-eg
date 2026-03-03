@@ -13,6 +13,59 @@ const urlsToCache = [
   '/brand/logo.png'
 ];
 
+function safeParseJson(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function normalizePushPayload(payload) {
+  const p = payload && typeof payload === 'object' ? payload : {};
+  const title = String(p.title || p.notification?.title || 'إشعار جديد').trim() || 'إشعار جديد';
+  const body = String(p.body || p.message || p.notification?.body || '').trim();
+  const url = String(p.url || p.data?.url || p.notification?.data?.url || '/business/dashboard').trim() || '/business/dashboard';
+  const tag = String(p.tag || p.notification?.tag || '').trim();
+  return { title, body, url, tag };
+}
+
+async function showPushNotification(payload) {
+  try {
+    const { title, body, url, tag } = normalizePushPayload(payload);
+    await self.registration.showNotification(title, {
+      body,
+      icon: '/favicon-32x32.png',
+      badge: '/favicon-32x32.png',
+      ...(tag ? { tag } : {}),
+      data: { url },
+    });
+  } catch {
+  }
+}
+
+async function focusOrOpenUrl(url) {
+  try {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of allClients) {
+      try {
+        const clientUrl = new URL(client.url);
+        if (clientUrl.origin === self.location.origin) {
+          await client.focus();
+          try {
+            await client.navigate(url);
+          } catch {
+          }
+          return;
+        }
+      } catch {
+      }
+    }
+    await self.clients.openWindow(url);
+  } catch {
+  }
+}
+
 const DEV_HOST = (() => {
   try {
     const host = String(self?.location?.hostname || '').toLowerCase();
@@ -50,6 +103,35 @@ if (DEV_HOST) {
     return;
   });
 } else {
+
+self.addEventListener('push', (event) => {
+  event.waitUntil((async () => {
+    let payload = null;
+    try {
+      if (event?.data) {
+        try {
+          payload = event.data.json();
+        } catch {
+          const text = event.data.text();
+          payload = safeParseJson(text) || { body: text };
+        }
+      }
+    } catch {
+    }
+    await showPushNotification(payload);
+  })());
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.waitUntil((async () => {
+    try {
+      event.notification?.close?.();
+    } catch {
+    }
+    const url = String(event?.notification?.data?.url || '/business/dashboard');
+    await focusOrOpenUrl(url);
+  })());
+});
 
 // Install event
 self.addEventListener('install', event => {

@@ -34,6 +34,8 @@ const BusinessLayout: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { addToast } = useToast();
   const audioUnlockedRef = useRef(false);
+  const shownBrowserNotificationIdsRef = useRef<Set<string>>(new Set());
+  const webPushRegisterAttemptedRef = useRef(false);
 
   const userStr = localStorage.getItem('ray_user');
   const user = userStr ? JSON.parse(userStr) : null;
@@ -216,6 +218,77 @@ const BusinessLayout: React.FC = () => {
     };
   }, [isDashboard]);
 
+  useEffect(() => {
+    if (!canUseShopNotifications) return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+
+    const askPermission = () => {
+      try {
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().catch(() => {});
+        }
+      } catch {
+      }
+    };
+
+    window.addEventListener('pointerdown', askPermission as any, { once: true } as any);
+    return () => {
+      try {
+        window.removeEventListener('pointerdown', askPermission as any);
+      } catch {
+      }
+    };
+  }, [canUseShopNotifications]);
+
+  useEffect(() => {
+    if (!canUseShopNotifications) return;
+    if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
+    if (!('serviceWorker' in navigator)) return;
+    if (isDev) return;
+
+    const shopId = String((effectiveUser as any)?.shopId || '').trim();
+    if (!shopId) return;
+
+    const vapidPublicKey = String(((import.meta as any)?.env?.VITE_VAPID_PUBLIC_KEY as any) || '').trim();
+    if (!vapidPublicKey) return;
+
+    const urlBase64ToUint8Array = (base64String: string) => {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    };
+
+    const run = async () => {
+      try {
+        if (Notification.permission !== 'granted') return;
+        if (webPushRegisterAttemptedRef.current) return;
+        webPushRegisterAttemptedRef.current = true;
+
+        const registration = await navigator.serviceWorker.ready;
+        const existing = await registration.pushManager.getSubscription();
+        const subscription = existing
+          ? existing
+          : await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+            });
+
+        await ApiService.registerWebPushSubscription(shopId, subscription);
+      } catch {
+        webPushRegisterAttemptedRef.current = false;
+      }
+    };
+
+    run();
+  }, [canUseShopNotifications, (effectiveUser as any)?.shopId, isDev]);
+
   const buildDashboardUrl = (tab?: string) => {
     const params = new URLSearchParams(location.search);
     if (!tab) {
@@ -310,6 +383,47 @@ const BusinessLayout: React.FC = () => {
         });
 
         if (!isNew) return;
+
+        try {
+          if (!Boolean((normalized as any)?.is_read)) {
+            setUnreadCount((prev) => prev + 1);
+          }
+        } catch {
+        }
+
+        try {
+          const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+          const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
+          addToast([title, body].filter(Boolean).join(' - ') || 'إشعار جديد', 'info');
+        } catch {
+        }
+
+        try {
+          if (
+            typeof window !== 'undefined' &&
+            'Notification' in window &&
+            Notification.permission === 'granted'
+          ) {
+            const key = String((normalized as any)?.id || '').trim();
+            if (key && !shownBrowserNotificationIdsRef.current.has(key)) {
+              shownBrowserNotificationIdsRef.current.add(key);
+              const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+              const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
+              const n = new Notification(title, {
+                body,
+                tag: `shop-notification-${key}`,
+                icon: '/favicon.ico',
+              });
+              n.onclick = () => {
+                try {
+                  window.focus();
+                } catch {
+                }
+              };
+            }
+          }
+        } catch {
+        }
 
         const t = String((normalized as any)?.type || '').trim().toUpperCase();
         const shouldRing =
