@@ -54,7 +54,7 @@ const BusinessLanding: React.FC = () => {
     <>
     <div className="text-right" dir="rtl">
       {/* Hero Section */}
-      <div className="relative min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
+      <div className="relative min-h-[86vh] md:min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
         <video
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
@@ -70,26 +70,26 @@ const BusinessLanding: React.FC = () => {
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/80" />
 
-        <div aria-hidden className="absolute inset-0 pointer-events-none">
+        <div aria-hidden className="absolute inset-0 pointer-events-none hidden md:block">
           <div className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full bg-[#00E5FF]/18 blur-[90px] opacity-90" />
           <div className="absolute -bottom-32 -right-24 w-[620px] h-[620px] rounded-full bg-[#BD00FF]/18 blur-[100px] opacity-80" />
           <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[540px] h-[540px] rounded-full bg-white/6 blur-[120px] opacity-60" />
         </div>
 
         <div className="relative z-10 w-full">
-          <div className="max-w-7xl mx-auto px-6 pt-36 pb-20 md:pt-44 md:pb-28">
+          <div className="max-w-7xl mx-auto px-5 sm:px-6 pt-24 pb-16 md:pt-44 md:pb-28">
             <div className="text-center max-w-4xl mx-auto">
               <div>
-                <div className="inline-flex items-center gap-2 px-5 py-2 bg-white/5 rounded-full text-[#00E5FF] font-black text-xs uppercase tracking-widest mb-10 border border-white/10">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-[#00E5FF] font-black text-xs uppercase tracking-widest mb-8 md:mb-10 border border-white/10">
                   <TrendingUp className="w-4 h-4" />
                   انضم لنكون من الأوائل — التسجيل مجاني
                 </div>
 
-                <h1 className="text-6xl md:text-9xl font-black tracking-tighter mb-10 leading-[0.9] text-white">
+                <h1 className="text-5xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-8 md:mb-10 leading-[0.95] md:leading-[0.9] text-white">
                   قم ببناء <br /> <span className="text-[#00E5FF]">علامتك التجارية.</span>
                 </h1>
 
-                <p className="text-xl md:text-2xl text-slate-200/80 mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
+                <p className="text-lg sm:text-xl md:text-2xl text-slate-200/80 mb-10 md:mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
                   منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
                 </p>
 
@@ -97,14 +97,14 @@ const BusinessLanding: React.FC = () => {
                   <div className="w-full md:w-auto">
                     <Link
                       to="/business/onboarding"
-                      className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-14 py-6 rounded-[2rem] font-black text-xl transition-all shadow-2xl shadow-cyan-500/20 hover:shadow-cyan-500/30 hover:scale-[1.02] active:scale-[0.99]"
+                      className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-[2rem] font-black text-lg md:text-xl shadow-lg md:shadow-2xl shadow-cyan-500/15 md:shadow-cyan-500/20"
                     >
                       ابدأ تجربتك المجانية
                     </Link>
                   </div>
                   <button
                     type="button"
-                    className="w-full md:w-auto border border-slate-200/30 text-white px-14 py-6 rounded-[2rem] font-black text-xl hover:bg-white hover:text-slate-900 transition-all backdrop-blur hover:scale-[1.01] active:scale-[0.99]"
+                    className="w-full md:w-auto border border-slate-200/30 text-white px-10 md:px-14 py-5 md:py-6 rounded-[2rem] font-black text-lg md:text-xl md:backdrop-blur"
                   >
                     شاهد العرض التوضيحي
                   </button>
@@ -130,12 +130,12 @@ const BusinessLanding: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-20">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20">
 
         <div className="relative h-12" />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-40 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/5 via-transparent to-[#BD00FF]/5 rounded-[4rem] blur-3xl -z-10" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 mb-24 md:mb-40 relative">
+          <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/5 via-transparent to-[#BD00FF]/5 rounded-[3rem] md:rounded-[4rem] blur-2xl md:blur-3xl -z-10" />
           <FeatureCard
             icon={<Store className="w-10 h-10 text-[#00E5FF]" />}
             title="مصمم الصفحات الذكي"
@@ -153,15 +153,15 @@ const BusinessLanding: React.FC = () => {
           />
         </div>
 
-        <section className="bg-white rounded-[4rem] p-12 md:p-24 text-slate-900 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#BD00FF]/10 to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#00E5FF]/10 to-transparent rounded-full blur-3xl" />
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
+        <section className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 sm:p-10 md:p-24 text-slate-900 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#BD00FF]/10 to-transparent rounded-full blur-3xl hidden md:block" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#00E5FF]/10 to-transparent rounded-full blur-3xl hidden md:block" />
+           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20 items-center">
               <div>
-                <h2 className="text-5xl md:text-7xl font-black tracking-tighter mb-8">
+                <h2 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter mb-6 md:mb-8">
                   كل اللي تحتاجه لإدارة <span className="text-[#BD00FF]">متجرك.</span>
                 </h2>
-                <div className="space-y-10">
+                <div className="space-y-8 md:space-y-10">
                    <BenefitItem
                       icon={<Store className="w-6 h-6" />}
                       title="لوحة تحكم واضحة للتاجر"
@@ -178,16 +178,16 @@ const BusinessLanding: React.FC = () => {
                       description="رنّة إشعار للتاجر عند وصول طلب أو حجز جديد حتى لا يفوتك أي عميل."
                    />
                 </div>
-                <div className="mt-16">
-                  <Link to="/business/dashboard" className="inline-flex items-center gap-3 font-black text-2xl text-[#BD00FF] hover:gap-6 transition-all group">
-                     سجل متجرك الآن <ArrowLeft className="w-8 h-8 group-hover:scale-110 transition-transform" />
+                <div className="mt-12 md:mt-16">
+                  <Link to="/business/dashboard" className="inline-flex items-center gap-3 font-black text-xl md:text-2xl text-[#BD00FF]">
+                     سجل متجرك الآن <ArrowLeft className="w-7 h-7 md:w-8 md:h-8" />
                   </Link>
                 </div>
               </div>
               <div className="relative">
-                <div className="absolute -inset-12 bg-gradient-to-br from-[#BD00FF]/15 via-[#00E5FF]/10 to-[#BD00FF]/15 blur-[120px] rounded-full" />
+                <div className="absolute -inset-12 bg-gradient-to-br from-[#BD00FF]/15 via-[#00E5FF]/10 to-[#BD00FF]/15 blur-[120px] rounded-full hidden md:block" />
                 <div className="relative">
-                  <img src="/images/business/dashboard-hero.png" className="relative rounded-[3rem] shadow-2xl border border-slate-100" alt="dashboard" />
+                  <img src="/images/business/dashboard-hero.png" className="relative rounded-[2rem] md:rounded-[3rem] shadow-xl md:shadow-2xl border border-slate-100" alt="dashboard" />
                 </div>
               </div>
            </div>
@@ -209,8 +209,8 @@ const BusinessLanding: React.FC = () => {
         </div>
       </section>
 
-      <div className="fixed bottom-6 left-6 right-6 md:left-auto md:right-6 md:w-auto z-50">
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-700 rounded-2xl p-4 shadow-2xl flex items-center justify-between gap-4 relative overflow-hidden">
+      <div className="fixed bottom-4 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-auto z-50">
+        <div className="bg-slate-900/92 md:bg-slate-900/90 md:backdrop-blur-xl border border-slate-700 rounded-2xl p-4 shadow-xl md:shadow-2xl flex items-center justify-between gap-4 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-[#00E5FF]/10 to-[#BD00FF]/10 rounded-2xl opacity-70" />
           <div className="hidden md:block relative z-10">
             <p className="text-white font-black text-sm">ابدأ الآن مجاناً</p>
@@ -219,7 +219,7 @@ const BusinessLanding: React.FC = () => {
           <div className="relative z-10">
             <Link 
               to="/business/onboarding"
-              className="bg-[#00E5FF] text-slate-900 px-6 py-3 rounded-xl font-black text-sm hover:bg-[#00d4e8] transition-colors whitespace-nowrap block shadow-lg shadow-[#00E5FF]/25 hover:scale-[1.03] active:scale-[0.99]"
+              className="bg-[#00E5FF] text-slate-900 px-6 py-3 rounded-xl font-black text-sm whitespace-nowrap block shadow-md md:shadow-lg shadow-[#00E5FF]/20 md:shadow-[#00E5FF]/25"
             >
               ابدأ تجربتك
             </Link>
@@ -271,23 +271,16 @@ const BusinessLanding: React.FC = () => {
 };
 
 const FeatureCard: React.FC<{ icon: React.ReactNode, title: string, description: string, index?: number }> = ({ icon, title, description, index = 0 }) => (
-  <div className="relative group hover:-translate-y-2 transition-transform">
-    {/* Animated gradient border */}
-    <div className="absolute -inset-[1px] rounded-[3rem] bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] opacity-0 group-hover:opacity-100 blur-sm transition-opacity duration-500" />
-    <div className="absolute -inset-[1px] rounded-[3rem] bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] opacity-0 group-hover:opacity-60 transition-opacity duration-500" />
-    
-    <div className="relative p-12 rounded-[3rem] bg-slate-800/40 border border-slate-700 group-hover:border-transparent transition-all">
-      {/* Glow effect */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-[#00E5FF]/20 blur-[80px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-      
-      <div className="mb-8 p-5 bg-slate-900 rounded-2xl inline-block shadow-xl shadow-black/20 relative group-hover:scale-110 transition-transform">
+  <div className="relative">
+    <div className="relative p-8 sm:p-10 md:p-12 rounded-[2.5rem] md:rounded-[3rem] bg-slate-800/40 border border-slate-700">
+      <div className="mb-6 md:mb-8 p-4 md:p-5 bg-slate-900 rounded-2xl inline-block shadow-lg md:shadow-xl shadow-black/20 relative">
         {icon}
       </div>
       
-      <h3 className="text-3xl font-black mb-6 uppercase tracking-tight group-hover:text-white transition-colors">
+      <h3 className="text-2xl md:text-3xl font-black mb-4 md:mb-6 uppercase tracking-tight">
         {title}
       </h3>
-      <p className="text-slate-400 text-lg leading-relaxed font-medium group-hover:text-slate-300 transition-colors">
+      <p className="text-slate-400 text-base md:text-lg leading-relaxed font-medium">
         {description}
       </p>
     </div>
@@ -295,13 +288,13 @@ const FeatureCard: React.FC<{ icon: React.ReactNode, title: string, description:
 );
 
 const BenefitItem: React.FC<{ icon: React.ReactNode, title: string, description: string }> = ({ icon, title, description }) => (
-  <div className="flex gap-6 flex-row-reverse group cursor-pointer hover:-translate-x-2 transition-transform">
-     <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 group-hover:bg-[#00E5FF] group-hover:text-slate-900 transition-colors duration-300 shadow-lg shadow-slate-200/50 group-hover:scale-110 group-hover:rotate-3">
+  <div className="flex gap-5 md:gap-6 flex-row-reverse">
+     <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 shadow-md md:shadow-lg shadow-slate-200/40 md:shadow-slate-200/50">
        {icon}
      </div>
      <div className="text-right">
-        <h4 className="text-2xl font-black mb-2 group-hover:text-[#BD00FF] transition-colors duration-300">{title}</h4>
-        <p className="text-slate-500 font-medium leading-relaxed group-hover:text-slate-700 transition-colors duration-300">{description}</p>
+        <h4 className="text-xl md:text-2xl font-black mb-2">{title}</h4>
+        <p className="text-slate-500 text-sm sm:text-base font-medium leading-relaxed">{description}</p>
      </div>
   </div>
 );

@@ -253,7 +253,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   const isRestaurant = shopCategoryUpper === 'RESTAURANT';
   const isService = shopCategoryUpper === 'SERVICE';
   const isRetail = shopCategoryUpper === 'RETAIL';
-  const isFurnitureActivity = !isFood && !isRestaurant;
+  const isFurnitureActivity = shopCategoryUpper === 'FURNITURE';
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);
@@ -493,6 +493,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   const shouldShowFurniture =
     Boolean(isFurnitureActivity) ||
     Boolean((selectedProduct as any)?.furnitureMeta);
+
+  const shouldShowHomeTextiles = Boolean(isRetail);
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -853,6 +855,22 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                               placeholder="السعر"
                             />
+
+                            {shouldShowHomeTextiles && (
+                              <div className="space-y-2 pt-2 border-t border-slate-700">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">المفروشات والسجاد</div>
+
+                                <select
+                                  value={String((selectedProduct as any)?.unit || '')}
+                                  onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                                >
+                                  <option value="">بدون وحدة</option>
+                                  <option value="PIECE">قطعة</option>
+                                  <option value="M2">متر مربع</option>
+                                </select>
+                              </div>
+                            )}
 
                             {shouldShowFurniture && (
                               <div className="space-y-2 pt-2 border-t border-slate-700">

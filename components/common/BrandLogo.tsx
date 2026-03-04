@@ -40,9 +40,9 @@ const BrandLogo: React.FC<Props> = ({
       return {
         container: 'flex items-center gap-2 md:gap-3',
         iconWrap:
-          'w-8 h-8 md:w-10 md:h-10 bg-[#00E5FF] flex items-center justify-center rounded-xl shadow-lg shadow-cyan-500/20 overflow-hidden',
+          'w-6 h-6 sm:w-7 sm:h-7 md:w-10 md:h-10 bg-[#00E5FF] flex items-center justify-center rounded-xl shadow-lg shadow-cyan-500/20 overflow-hidden',
         text: 'text-xl md:text-2xl font-black tracking-tighter uppercase',
-        letter: 'text-slate-900 font-black text-xl md:text-2xl leading-none',
+        letter: 'text-slate-900 font-black text-sm sm:text-lg md:text-2xl leading-none',
         image: 'w-full h-full object-contain',
       };
     }

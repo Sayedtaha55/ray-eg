@@ -34,7 +34,7 @@ import { AccountPurgeService } from './account-purge.service';
  );
  const includeAllModules = bootModules.size === 0;
 
- const shouldImportMediaModule = (includeAllModules || bootModules.has('media')) && !(includeAllModules || bootModules.has('shop'));
+ const shouldImportMediaModule = includeAllModules || bootModules.has('media') || bootModules.has('shop');
 
 @Module({
   imports: [

@@ -562,10 +562,10 @@ const BusinessLayout: React.FC = () => {
       <>
         <Link to="/" className="flex items-center gap-2 md:gap-3">
           <BrandLogo variant="business" iconOnly />
-          <span className="text-xl md:text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
+          <span className="text-lg md:text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
         </Link>
         <div className="flex items-center gap-4 md:gap-8">
-          <Link to="/business/login" className="text-xs md:text-sm font-bold hover:text-[#00E5FF] transition-colors">دخول التجار</Link>
+          <Link to="/business/login" className="text-xs md:text-sm font-bold bg-white text-slate-900 px-3 py-1.5 rounded-lg hover:bg-[#00E5FF] transition-all">دخول التجار</Link>
           <Link to="/signup?role=merchant" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
         </div>
       </>
