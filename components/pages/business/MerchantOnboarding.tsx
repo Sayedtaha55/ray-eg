@@ -111,11 +111,6 @@ const ACTIVITIES: ActivityDef[] = [
     category: Category.RETAIL,
   },
   {
-    id: 'reservations',
-    label: 'حجوزات',
-    category: Category.SERVICE,
-  },
-  {
     id: 'other',
     label: 'أخرى',
     category: Category.OTHER,

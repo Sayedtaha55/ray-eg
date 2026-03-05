@@ -11,6 +11,18 @@ export class ShopPublicQueryService {
     @Inject(MonitoringService) private readonly monitoring: MonitoringService,
   ) {}
 
+  private stripPublicDisabledShop(shop: any) {
+    if (!shop || typeof shop !== 'object') return shop;
+    if ((shop as any)?.publicDisabled !== true) return shop;
+
+    return {
+      ...(shop as any),
+      products: [],
+      offers: [],
+      gallery: [],
+    };
+  }
+
   async getShopBySlug(slug: string) {
     const startTime = Date.now();
 
@@ -26,6 +38,8 @@ export class ShopPublicQueryService {
           if ((cachedShop as any)?.isActive === false) {
             return null;
           }
+
+          const normalizedCached = this.stripPublicDisabledShop(cachedShop);
           const owner = (cachedShop as any)?.owner;
           if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
             return null;
@@ -33,7 +47,7 @@ export class ShopPublicQueryService {
           const duration = Date.now() - startTime;
           this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
           this.monitoring.trackPerformance('getShopBySlug_cached', duration);
-          return cachedShop;
+          return normalizedCached;
         }
         this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, false, Date.now() - startTime);
       } catch {
@@ -80,14 +94,16 @@ export class ShopPublicQueryService {
         return null;
       }
 
+      const normalizedShop = this.stripPublicDisabledShop(shop);
+
       const owner = (shop as any)?.owner;
       if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
         return null;
       }
 
-      if (shop) {
+      if (normalizedShop) {
         try {
-          await this.redis.cacheShop((shop as any).id, shop as any, 3600);
+          await this.redis.cacheShop((normalizedShop as any).id, normalizedShop as any, 3600);
         } catch {
         }
       }
@@ -96,7 +112,7 @@ export class ShopPublicQueryService {
       this.monitoring.trackDatabase('findUnique', 'shops', duration, true);
       this.monitoring.trackPerformance('getShopBySlug_database', duration);
 
-      return shop;
+      return normalizedShop;
     } catch (error) {
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findUnique', 'shops', duration, false);

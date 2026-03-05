@@ -24,9 +24,16 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const [togglingActive, setTogglingActive] = useState(false);
   const [isActive, setIsActive] = useState<boolean>(Boolean(shop?.isActive));
 
+  const [togglingPublicDisabled, setTogglingPublicDisabled] = useState(false);
+  const [publicDisabled, setPublicDisabled] = useState<boolean>(Boolean((shop as any)?.publicDisabled ?? (shop as any)?.public_disabled));
+
   useEffect(() => {
     setIsActive(Boolean(shop?.isActive));
   }, [shop?.isActive]);
+
+  useEffect(() => {
+    setPublicDisabled(Boolean((shop as any)?.publicDisabled ?? (shop as any)?.public_disabled));
+  }, [shop?.publicDisabled, (shop as any)?.public_disabled]);
 
   const initial = useMemo(
     () => ({
@@ -303,6 +310,32 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
     }
   };
 
+  const handleTogglePublicDisabled = async () => {
+    setTogglingPublicDisabled(true);
+    const next = !publicDisabled;
+    try {
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        publicDisabled: next,
+      });
+      setPublicDisabled(next);
+      toast({
+        title: 'تم التحديث',
+        description: next ? 'تم تعطيل صفحة العرض والخريطة' : 'تم تفعيل صفحة العرض والخريطة',
+      });
+      onSaved();
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : '';
+      toast({
+        title: 'خطأ',
+        description: msg ? `فشل تحديث تعطيل صفحة العرض: ${msg}` : 'فشل تحديث تعطيل صفحة العرض',
+        variant: 'destructive',
+      });
+    } finally {
+      setTogglingPublicDisabled(false);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   };
@@ -387,6 +420,27 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
         <CardFooter className="flex justify-end border-t px-6 py-4">
           <Button type="button" onClick={handleToggleActive} disabled={togglingActive} variant={isActive ? 'destructive' : 'default'}>
             {togglingActive ? 'جارٍ التحديث...' : isActive ? 'قفل المتجر' : 'فتح المتجر'}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>صفحة العرض والخريطة</CardTitle>
+          <CardDescription>
+            {publicDisabled
+              ? 'صفحة العرض والخريطة متعطلة (لوحة التحكم تظل تعمل)'
+              : 'صفحة العرض والخريطة تعمل بشكل طبيعي'}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex justify-end border-t px-6 py-4">
+          <Button
+            type="button"
+            onClick={handleTogglePublicDisabled}
+            disabled={togglingPublicDisabled}
+            variant={publicDisabled ? 'default' : 'destructive'}
+          >
+            {togglingPublicDisabled ? 'جارٍ التحديث...' : publicDisabled ? 'تفعيل صفحة العرض' : 'تعطيل صفحة العرض'}
           </Button>
         </CardFooter>
       </Card>

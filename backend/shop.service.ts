@@ -537,7 +537,7 @@ export class ShopService {
             const duration = Date.now() - startTime;
             this.monitoring.trackCache('getShopsList', cacheKey, true, duration);
             this.monitoring.trackPerformance('getAllShops_cached', duration);
-            return (Array.isArray(cached) ? cached : []).filter((s: any) => (s as any)?.isActive !== false);
+            return (Array.isArray(cached) ? cached : []).filter((s: any) => (s as any)?.isActive !== false && (s as any)?.publicDisabled !== true);
           }
           this.monitoring.trackCache('getShopsList', cacheKey, false, Date.now() - startTime);
         } catch {
@@ -545,8 +545,9 @@ export class ShopService {
       }
 
       const shops = await this.prisma.shop.findMany({
-        where: {
+        where: ({
           isActive: true,
+          publicDisabled: false,
           status: 'APPROVED',
           owner: {
             isActive: true,
@@ -561,7 +562,7 @@ export class ShopService {
                 },
               }
             : {}),
-        },
+        } as any),
         select: {
           id: true,
           slug: true,

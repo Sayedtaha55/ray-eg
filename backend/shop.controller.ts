@@ -128,6 +128,16 @@ export class ShopController {
       return undefined;
     })();
 
+    const publicDisabled = (() => {
+      if (typeof body?.publicDisabled === 'undefined' && typeof body?.public_disabled === 'undefined') return undefined;
+      const v = typeof body?.publicDisabled !== 'undefined' ? body.publicDisabled : body.public_disabled;
+      if (typeof v === 'boolean') return v;
+      const raw = String(v).trim().toLowerCase();
+      if (raw === 'true') return true;
+      if (raw === 'false') return false;
+      return undefined;
+    })();
+
     const locationAccuracy = (() => {
       if (typeof body?.locationAccuracy === 'undefined') return undefined;
       if (body.locationAccuracy === null) return null;
@@ -236,6 +246,7 @@ export class ShopController {
         paymentConfig,
         addons,
         isActive,
+        publicDisabled,
         enabledModules,
         dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
         deliveryFee:
@@ -246,7 +257,7 @@ export class ShopController {
                 return v;
               })()
             : undefined,
-      });
+      } as any);
     } catch (e: any) {
       const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
       const isDev = nodeEnv !== 'production';

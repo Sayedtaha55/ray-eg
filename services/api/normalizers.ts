@@ -57,6 +57,11 @@ export function normalizeShopFromBackend(shop: any) {
   const locationSource = shop.locationSource ?? shop.location_source;
   const locationAccuracy = shop.locationAccuracy ?? shop.location_accuracy;
   const locationUpdatedAt = shop.locationUpdatedAt ?? shop.location_updated_at;
+  const publicDisabled = typeof shop.publicDisabled !== 'undefined'
+    ? shop.publicDisabled
+    : typeof shop.public_disabled !== 'undefined'
+      ? shop.public_disabled
+      : undefined;
   const status = String(shop.status || '').toLowerCase();
   const rawPageDesign = shop.pageDesign || shop.page_design || shop.pageDesign || null;
   const normalizedPageDesign = (() => {
@@ -92,6 +97,7 @@ export function normalizeShopFromBackend(shop: any) {
     status,
     logoUrl,
     bannerUrl,
+    publicDisabled,
     addons,
     layoutConfig: normalizedLayoutConfig ?? shop.layoutConfig,
     layout_config: shop.layout_config ?? normalizedLayoutConfig,
@@ -109,6 +115,7 @@ export function normalizeShopFromBackend(shop: any) {
     location_source: shop.location_source ?? locationSource,
     location_accuracy: shop.location_accuracy ?? locationAccuracy,
     location_updated_at: shop.location_updated_at ?? locationUpdatedAt,
+    public_disabled: shop.public_disabled ?? publicDisabled,
     pageDesign: normalizedPageDesign,
   };
 }

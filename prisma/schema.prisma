@@ -79,6 +79,7 @@ model Shop {
   visitors      Int        @default(0)
   rating        Float      @default(0)
   isActive      Boolean    @default(true)
+  publicDisabled Boolean   @default(false) @map("public_disabled")
   ownerId       String?    @unique
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -102,11 +103,14 @@ model Shop {
   customers     Customer[]
   orderReturns  OrderReturn[]
   pushSubscriptions MerchantPushSubscription[]
+  bookingResources BookingResource[]
+  bookings      Booking[]
 
   @@index([category])
   @@index([slug])
   @@index([status])
   @@index([isActive])
+  @@index([publicDisabled])
   @@map("shops")
 }
 
@@ -641,13 +645,67 @@ model Reservation {
   customerPhone String           @map("customer_phone")
   status        ReservationStatus @default(PENDING)
   createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt
+  updatedAt     DateTime         @updatedAt @map("updated_at")
 
   // Relations
   shop          Shop             @relation(fields: [shopId], references: [id])
   customer      User             @relation(fields: [customerPhone], references: [phone])
 
   @@map("reservations")
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model BookingResource {
+  id        String   @id @default(cuid())
+  shopId    String   @map("shop_id")
+  name      String
+  type      String
+  isActive  Boolean  @default(true) @map("is_active")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  shop      Shop     @relation(fields: [shopId], references: [id])
+  bookings  Booking[]
+
+  @@index([shopId])
+  @@map("booking_resources")
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  shopId        String        @map("shop_id")
+  customerName  String        @map("customer_name")
+  customerPhone String        @map("customer_phone")
+  status        BookingStatus @default(PENDING)
+
+  startAt       DateTime?     @map("start_at")
+  endAt         DateTime?     @map("end_at")
+
+  resourceId    String?       @map("resource_id")
+
+  itemId        String?       @map("item_id")
+  itemName      String?       @map("item_name")
+  itemImage     String?       @map("item_image")
+  itemPrice     Float?        @map("item_price")
+
+  notes         String?
+  metadata      Json?
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  shop          Shop          @relation(fields: [shopId], references: [id])
+  resource      BookingResource? @relation(fields: [resourceId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@index([resourceId])
+  @@map("bookings")
 }
 
 // Feedback table

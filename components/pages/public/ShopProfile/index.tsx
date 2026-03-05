@@ -557,6 +557,32 @@ const ShopProfile: React.FC = () => {
     </div>
   );
 
+  if (shop && (shop as any)?.publicDisabled === true) return (
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
+      <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />
+      <h2 className="text-2xl md:text-3xl font-black mb-4">المحل متوقف مؤقتًا</h2>
+      <p className="text-sm md:text-base font-bold text-slate-500 max-w-xl mb-8 leading-relaxed">
+        تم تعطيل صفحة العرض مؤقتًا بواسطة صاحب المحل. يمكنك المحاولة لاحقًا.
+      </p>
+      <div className="flex items-center gap-3 flex-wrap justify-center">
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-sm"
+        >
+          تحديث
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="px-6 py-4 rounded-2xl bg-white border border-slate-200 text-slate-800 font-black text-sm"
+        >
+          الصفحة الرئيسية
+        </button>
+      </div>
+    </div>
+  );
+
   if (error || !shop || !currentDesign) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
       <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />

@@ -50,6 +50,7 @@ export interface Shop {
   visitors: number;
   status: 'approved' | 'pending' | 'rejected' | 'suspended';
   isActive?: boolean;
+  publicDisabled?: boolean;
   // تفاصيل إضافية للتواصل والمواعيد
   phone?: string;
   openingHours?: string;

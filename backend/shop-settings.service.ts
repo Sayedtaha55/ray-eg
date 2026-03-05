@@ -42,6 +42,7 @@ export class ShopSettingsService {
       addons?: any[] | null;
       deliveryFee?: number | null;
       isActive?: boolean;
+      publicDisabled?: boolean;
       dashboardMode?: string;
       enabledModules?: any;
     },
@@ -174,6 +175,7 @@ export class ShopSettingsService {
             ? {}
             : { bannerUrl: persistedBanner?.optUrl ? persistedBanner.optUrl : input.bannerUrl }),
           ...(typeof input.isActive === 'undefined' ? {} : { isActive: input.isActive }),
+          ...(typeof input.publicDisabled === 'undefined' ? {} : { publicDisabled: input.publicDisabled }),
           ...(typeof input.addons === 'undefined' ? {} : { addons: input.addons as any }),
           layoutConfig: nextLayout as any,
         },
