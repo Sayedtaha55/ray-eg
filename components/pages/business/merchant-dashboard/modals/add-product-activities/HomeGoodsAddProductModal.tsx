@@ -9,7 +9,7 @@ type Props = {
   shopCategory?: Category | string;
 };
 
-const DefaultAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+const HomeGoodsAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
   return (
     <AddProductModalShell
       isOpen={isOpen}
@@ -18,10 +18,10 @@ const DefaultAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shop
       isRestaurant={false}
       isFashion={false}
       allowExtraImages={true}
-      title="إضافة صنف (عام)"
+      title="إضافة صنف (مستلزمات المنزل)"
       shopCategory={shopCategory}
     />
   );
 };
 
-export default DefaultAddProductModal;
+export default HomeGoodsAddProductModal;

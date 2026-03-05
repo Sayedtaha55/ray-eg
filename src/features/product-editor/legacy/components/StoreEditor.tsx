@@ -254,6 +254,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   const isService = shopCategoryUpper === 'SERVICE';
   const isRetail = shopCategoryUpper === 'RETAIL';
   const isFurnitureActivity = shopCategoryUpper === 'FURNITURE';
+  const devActivityId = (() => {
+    try {
+      return String(localStorage.getItem('ray_dev_activity_id') || '').trim();
+    } catch {
+      return '';
+    }
+  })();
   // Store Metadata
   const [storeName] = useState(initialStoreName);
   const [storeType] = useState(initialStoreType);
@@ -494,7 +501,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
     Boolean(isFurnitureActivity) ||
     Boolean((selectedProduct as any)?.furnitureMeta);
 
-  const shouldShowHomeTextiles = Boolean(isRetail);
+  const shouldShowHomeGoods = Boolean(isRetail) && devActivityId === 'home-goods';
+  const shouldShowHomeTextiles = Boolean(isRetail) && !shouldShowHomeGoods;
 
   useEffect(() => {
     if (!selectedProduct) return;
@@ -848,6 +856,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               </div>
                             )}
 
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
                             <input
                               type="number"
                               value={selectedProduct.price}
@@ -868,6 +877,23 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                   <option value="">بدون وحدة</option>
                                   <option value="PIECE">قطعة</option>
                                   <option value="M2">متر مربع</option>
+                                </select>
+                              </div>
+                            )}
+
+                            {shouldShowHomeGoods && (
+                              <div className="space-y-2 pt-2 border-t border-slate-700">
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">مستلزمات المنزل</div>
+
+                                <select
+                                  value={String((selectedProduct as any)?.unit || '')}
+                                  onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
+                                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                                >
+                                  <option value="">بدون وحدة</option>
+                                  <option value="PIECE">قطعة</option>
+                                  <option value="SET">طقم</option>
+                                  <option value="PACK">باك</option>
                                 </select>
                               </div>
                             )}
@@ -1037,6 +1063,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                           </div>
                         )}
 
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">المخزون</div>
                         <input
                           type="number"
                           inputMode="numeric"

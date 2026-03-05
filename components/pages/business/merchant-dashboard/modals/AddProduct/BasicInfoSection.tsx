@@ -16,6 +16,9 @@ interface BasicInfoSectionProps {
   hideStock?: boolean;
   isFashion: boolean;
   fashionSizeItems: any[];
+  namePlaceholder?: string;
+  categoryPlaceholder?: string;
+  descriptionPlaceholder?: string;
 }
 
 const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
@@ -27,15 +30,25 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   isRestaurant,
   hideStock = false,
   isFashion,
-  fashionSizeItems
+  fashionSizeItems,
+  namePlaceholder,
+  categoryPlaceholder,
+  descriptionPlaceholder,
 }) => {
+  const resolvedNamePlaceholder =
+    String(namePlaceholder || '').trim() || (isRestaurant ? 'مثلاً: بيتزا مارجريتا' : isFashion ? 'مثلاً: قميص أبيض قطن' : 'مثلاً: منتج جديد');
+  const resolvedCategoryPlaceholder =
+    String(categoryPlaceholder || '').trim() || (isRestaurant ? 'مثلاً: وجبات - مشروبات - إضافات' : isFashion ? 'مثلاً: ملابس صيفية' : 'مثلاً: منتجات منزلية');
+  const resolvedDescriptionPlaceholder =
+    String(descriptionPlaceholder || '').trim() || (isRestaurant ? 'مثلاً: مكونات الوجبة...' : 'مثلاً: تفاصيل المنتج، طريقة الاستخدام...');
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم الصنف</label>
         <input
           required
-          placeholder={isRestaurant ? 'مثلاً: بيتزا مارجريتا' : 'مثلاً: قميص أبيض قطن'}
+          placeholder={resolvedNamePlaceholder}
           value={name}
           onChange={(e) => setName(e.target.value)}
           className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
@@ -72,7 +85,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       <div className="space-y-3">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">القسم</label>
         <input
-          placeholder={isRestaurant ? 'مثلاً: وجبات - مشروبات - إضافات' : 'مثلاً: ملابس صيفية'}
+          placeholder={resolvedCategoryPlaceholder}
           value={cat}
           onChange={(e) => setCat(e.target.value)}
           className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
@@ -82,7 +95,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       <div className="space-y-3">
         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الوصف</label>
         <textarea
-          placeholder={isRestaurant ? 'مثلاً: مكونات الوجبة...' : 'مثلاً: خامات المنتج، طريقة الاستخدام...'}
+          placeholder={resolvedDescriptionPlaceholder}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-bold text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all min-h-[140px]"

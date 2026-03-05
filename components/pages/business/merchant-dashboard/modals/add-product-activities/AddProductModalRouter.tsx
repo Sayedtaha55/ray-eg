@@ -5,6 +5,7 @@ import DefaultAddProductModal from './DefaultAddProductModal';
 import FashionAddProductModal from './FashionAddProductModal';
 import FurnitureAddProductModal from './FurnitureAddProductModal';
 import GroceryRetailAddProductModal from './GroceryRetailAddProductModal';
+import HomeGoodsAddProductModal from './HomeGoodsAddProductModal';
 import HomeTextilesAddProductModal from './HomeTextilesAddProductModal';
 import RestaurantAddProductModal from './RestaurantAddProductModal';
 
@@ -42,6 +43,9 @@ const AddProductModalRouter: React.FC<Props> = ({ isOpen, onClose, shopId, shopC
   }
 
   if (shopCategoryUpper === 'RETAIL') {
+    if (devActivityId === 'home-goods') {
+      return <HomeGoodsAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
+    }
     return <HomeTextilesAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
   }
 

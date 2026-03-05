@@ -102,7 +102,6 @@ const SignupPage: React.FC = () => {
     [Category.FASHION]: 'ملابس وأزياء',
     [Category.ELECTRONICS]: 'إلكترونيات وموبايلات',
     [Category.HEALTH]: 'صيدلية / مستحضرات تجميل',
-    [Category.SERVICE]: 'خدمات / صيانة / ورش',
     [Category.FOOD]: 'سوبر ماركت / بقالة / عطارة',
     [Category.OTHER]: 'أخرى',
   };

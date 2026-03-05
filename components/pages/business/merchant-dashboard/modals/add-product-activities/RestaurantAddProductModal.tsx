@@ -25,6 +25,7 @@ const RestaurantAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, s
       isFashion={false}
       allowExtraImages={false}
       title="إضافة صنف (مطعم)"
+      shopCategory={shopCategory}
       renderExtras={({ parseNumberInput }) => (
         <RestaurantExtras
           menuVariantItems={menuVariantItems}

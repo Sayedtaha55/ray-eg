@@ -942,34 +942,16 @@ const BusinessLayout: React.FC = () => {
                       <button
                         type="button"
                         disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('RETAIL')}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'home-textiles');
+                          } catch {
+                          }
+                          switchDevActivity('RETAIL');
+                        }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
                         المفروشات والسجاد
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('FOOD')}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        سوبر ماركت / بقالة / عطارة
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('ELECTRONICS')}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        إلكترونيات
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('HEALTH')}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        صيدلية / مستحضرات
                       </button>
                       <button
                         type="button"
@@ -979,11 +961,39 @@ const BusinessLayout: React.FC = () => {
                             localStorage.removeItem('ray_dev_activity_id');
                           } catch {
                           }
-                          switchDevActivity('SERVICE');
+                          switchDevActivity('FOOD');
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        خدمات / ورش / صيانة
+                        سوبر ماركت / بقالة / عطارة
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          switchDevActivity('ELECTRONICS');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        كمبيوترات وموبايلات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          switchDevActivity('HEALTH');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        صيدلية / مستحضرات
                       </button>
                       <button
                         type="button"
@@ -998,6 +1008,48 @@ const BusinessLayout: React.FC = () => {
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
                         أثاث / معارض
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'home-goods');
+                          } catch {
+                          }
+                          switchDevActivity('RETAIL');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        مستلزمات المنزل
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          switchDevActivity('SERVICE');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        حجوزات
+                      </button>
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          switchDevActivity('OTHER');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        أخرى
                       </button>
                     </div>
                   </>

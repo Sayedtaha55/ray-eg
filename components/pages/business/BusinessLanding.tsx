@@ -209,24 +209,6 @@ const BusinessLanding: React.FC = () => {
         </div>
       </section>
 
-      <div className="fixed bottom-4 left-4 right-4 md:bottom-6 md:left-auto md:right-6 md:w-auto z-50">
-        <div className="bg-slate-900/92 md:bg-slate-900/90 md:backdrop-blur-xl border border-slate-700 rounded-2xl p-4 shadow-xl md:shadow-2xl flex items-center justify-between gap-4 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#00E5FF]/10 to-[#BD00FF]/10 rounded-2xl opacity-70" />
-          <div className="hidden md:block relative z-10">
-            <p className="text-white font-black text-sm">ابدأ الآن مجاناً</p>
-            <p className="text-slate-400 text-xs">لا تحتاج بطاقة ائتمان</p>
-          </div>
-          <div className="relative z-10">
-            <Link 
-              to="/business/onboarding"
-              className="bg-[#00E5FF] text-slate-900 px-6 py-3 rounded-xl font-black text-sm whitespace-nowrap block shadow-md md:shadow-lg shadow-[#00E5FF]/20 md:shadow-[#00E5FF]/25"
-            >
-              ابدأ تجربتك
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Business Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-300">
         <div className="max-w-7xl mx-auto px-6 py-16">

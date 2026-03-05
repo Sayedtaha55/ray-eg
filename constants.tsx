@@ -253,19 +253,14 @@ export const RayDB = {
     const vatRatePercent = (() => {
       const raw = (safe as any)?.vatRatePercent;
       const n = typeof raw === 'number' ? raw : Number(raw);
-      if (!Number.isFinite(n)) return 14;
+      if (!Number.isFinite(n)) return 0;
       return Math.min(100, Math.max(0, n));
     })();
     localStorage.setItem(`ray_receipt_theme:${sid}`,
       JSON.stringify({
-        shopName: safe.shopName || '',
-        phone: safe.phone || '',
-        city: safe.city || '',
-        address: safe.address || '',
-        logoDataUrl: safe.logoDataUrl || '',
-        footerNote: safe.footerNote || '',
+        ...safe,
         vatRatePercent,
-      })
+      }),
     );
     window.dispatchEvent(new Event('receipt-theme-update'));
   },

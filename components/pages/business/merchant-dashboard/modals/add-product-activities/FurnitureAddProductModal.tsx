@@ -26,6 +26,7 @@ const FurnitureAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, sh
       isFashion={false}
       allowExtraImages={true}
       title="إضافة صنف (أثاث)"
+      shopCategory={shopCategory}
       renderExtras={({ parseNumberInput }) => (
         <FurnitureExtras
           furnitureUnit={furnitureUnit}

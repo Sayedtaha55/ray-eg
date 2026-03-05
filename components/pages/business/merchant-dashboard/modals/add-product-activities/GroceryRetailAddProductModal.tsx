@@ -23,6 +23,7 @@ const GroceryRetailAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId
       isFashion={false}
       allowExtraImages={true}
       title="إضافة صنف (سوبرماركت/تجزئة)"
+      shopCategory={shopCategory}
       renderExtras={({ parseNumberInput }) => (
         <GroceryRetailExtras
           packOptionItems={packOptionItems}

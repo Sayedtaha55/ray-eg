@@ -10,7 +10,7 @@ type Props = {
   shopCategory?: Category | string;
 };
 
-const HomeTextilesAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId }) => {
+const HomeTextilesAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
   const [unit, setUnit] = React.useState('');
 
   return (
@@ -22,6 +22,7 @@ const HomeTextilesAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId 
       isFashion={false}
       allowExtraImages={true}
       title="إضافة صنف (مفروشات/سجاد)"
+      shopCategory={shopCategory}
       renderExtras={() => <HomeTextilesExtras unit={unit} setUnit={setUnit} />}
       buildExtrasPayload={() => {
         const { payload } = buildHomeTextilesExtrasPayload({ unit });

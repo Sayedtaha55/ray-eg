@@ -233,7 +233,14 @@ const AdminLogin: React.FC = () => {
                       <button
                         type="button"
                         disabled={loading}
-                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('RETAIL'); }}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'home-textiles');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('RETAIL');
+                        }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
                         المفروشات والسجاد
@@ -241,7 +248,14 @@ const AdminLogin: React.FC = () => {
                       <button
                         type="button"
                         disabled={loading}
-                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('FOOD'); }}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('FOOD');
+                        }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
                         سوبر ماركت / بقالة / عطارة
@@ -249,18 +263,62 @@ const AdminLogin: React.FC = () => {
                       <button
                         type="button"
                         disabled={loading}
-                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('ELECTRONICS'); }}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('ELECTRONICS');
+                        }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        إلكترونيات
+                        كمبيوترات وموبايلات
                       </button>
                       <button
                         type="button"
                         disabled={loading}
-                        onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('HEALTH'); }}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.removeItem('ray_dev_activity_id');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('HEALTH');
+                        }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
                         صيدلية / مستحضرات
+                      </button>
+                                            <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'furniture');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('SERVICE');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        أثاث / معارض
+                      </button>
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'home-goods');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('RETAIL');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        مستلزمات المنزل
                       </button>
                       <button
                         type="button"
@@ -275,7 +333,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        خدمات / ورش / صيانة
+                        حجوزات
                       </button>
                       <button
                         type="button"
@@ -283,14 +341,14 @@ const AdminLogin: React.FC = () => {
                         onClick={() => {
                           setIsDevActivityMenuOpen(false);
                           try {
-                            localStorage.setItem('ray_dev_activity_id', 'furniture');
+                            localStorage.removeItem('ray_dev_activity_id');
                           } catch {
                           }
-                          handleDevMerchantLoginWithCategory('SERVICE');
+                          handleDevMerchantLoginWithCategory('OTHER');
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        أثاث / معارض
+                        أخرى
                       </button>
                     </div>
                   </>

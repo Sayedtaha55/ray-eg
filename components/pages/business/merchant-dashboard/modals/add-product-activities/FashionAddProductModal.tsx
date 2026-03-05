@@ -25,6 +25,7 @@ const FashionAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shop
       isFashion={true}
       allowExtraImages={true}
       title="إضافة صنف (ملابس)"
+      shopCategory={shopCategory}
       fashionSizeItems={fashionSizeItems}
       renderExtras={() => (
         <FashionExtras

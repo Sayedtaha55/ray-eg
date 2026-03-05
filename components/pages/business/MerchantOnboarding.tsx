@@ -97,7 +97,7 @@ const ACTIVITIES: ActivityDef[] = [
   },
   {
     id: 'electronics',
-    label: 'إلكترونيات',
+    label: 'كمبيوترات وموبايلات',
     category: Category.ELECTRONICS,
   },
   {
@@ -106,9 +106,19 @@ const ACTIVITIES: ActivityDef[] = [
     category: Category.HEALTH,
   },
   {
-    id: 'service',
-    label: 'خدمات / ورش / صيانة',
+    id: 'home-goods',
+    label: 'مستلزمات المنزل',
+    category: Category.RETAIL,
+  },
+  {
+    id: 'reservations',
+    label: 'حجوزات',
     category: Category.SERVICE,
+  },
+  {
+    id: 'other',
+    label: 'أخرى',
+    category: Category.OTHER,
   },
 ];
 

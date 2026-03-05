@@ -21,6 +21,7 @@ type Props = {
   title: string;
   renderExtras?: (ctx: { parseNumberInput: (v: any) => number }) => React.ReactNode;
   buildExtrasPayload?: (ctx: { parseNumberInput: (v: any) => number; basePrice: number }) => { payload?: any; resolvedBasePrice?: number };
+  shopCategory?: Category | string;
 };
 
 const MotionDiv = motion.div as any;
@@ -36,6 +37,7 @@ const AddProductModalShell: React.FC<Props> = ({
   title,
   renderExtras,
   buildExtrasPayload,
+  shopCategory,
 }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -53,6 +55,87 @@ const AddProductModalShell: React.FC<Props> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const extraFilesInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
+
+  const shopCategoryUpper = (() => {
+    const raw: any = shopCategory;
+    if (typeof raw === 'string') return raw.trim().toUpperCase();
+    if (raw && typeof raw === 'object') {
+      const v = raw.name ?? raw.slug ?? raw.id ?? raw.value;
+      return String(v || '').trim().toUpperCase();
+    }
+    return String(raw || '').trim().toUpperCase();
+  })();
+  const devActivityId = (() => {
+    try {
+      return String(localStorage.getItem('ray_dev_activity_id') || '').trim();
+    } catch {
+      return '';
+    }
+  })();
+
+  const basicPlaceholders = (() => {
+    if (shopCategoryUpper === 'RESTAURANT') {
+      return {
+        name: 'مثلاً: بيتزا مارجريتا',
+        cat: 'مثلاً: وجبات - مشروبات - إضافات',
+        desc: 'مثلاً: مكونات الوجبة...',
+      };
+    }
+
+    if (shopCategoryUpper === 'FASHION') {
+      return {
+        name: 'مثلاً: قميص أبيض قطن',
+        cat: 'مثلاً: ملابس صيفية',
+        desc: 'مثلاً: خامات المنتج، المقاس، طريقة الغسيل...',
+      };
+    }
+
+    if (shopCategoryUpper === 'HEALTH') {
+      return {
+        name: 'مثلاً: كريم مرطب / فيتامين سي',
+        cat: 'مثلاً: مستحضرات - فيتامينات - أدوية',
+        desc: 'مثلاً: طريقة الاستخدام، التحذيرات، العمر المناسب...',
+      };
+    }
+
+    if (shopCategoryUpper === 'ELECTRONICS') {
+      return {
+        name: 'مثلاً: جراب موبايل / سماعات',
+        cat: 'مثلاً: موبايلات - إكسسوارات - كمبيوتر',
+        desc: 'مثلاً: المواصفات، الضمان، التوافق...',
+      };
+    }
+
+    if (shopCategoryUpper === 'FOOD') {
+      return {
+        name: 'مثلاً: زيت 1 لتر / أرز 5 كيلو',
+        cat: 'مثلاً: بقالة - منظفات - عطارة',
+        desc: 'مثلاً: الوزن/الحجم، المكونات، ملاحظات...',
+      };
+    }
+
+    if (shopCategoryUpper === 'RETAIL') {
+      if (devActivityId === 'home-goods') {
+        return {
+          name: 'مثلاً: سلة غسيل / أدوات مطبخ',
+          cat: 'مثلاً: مطبخ - تنظيف - تنظيم',
+          desc: 'مثلاً: الخامة، المقاس، الاستخدام...',
+        };
+      }
+
+      return {
+        name: 'مثلاً: سجادة 2×3 / مفرش سرير',
+        cat: 'مثلاً: سجاد - مفروشات - ستائر',
+        desc: 'مثلاً: المقاس، الخامة، تعليمات الغسيل...',
+      };
+    }
+
+    return {
+      name: 'مثلاً: منتج جديد',
+      cat: 'مثلاً: قسم المنتجات',
+      desc: 'مثلاً: تفاصيل المنتج، طريقة الاستخدام...',
+    };
+  })();
 
   function toLatinDigits(input: string) {
     const map: Record<string, string> = {
@@ -268,6 +351,9 @@ const AddProductModalShell: React.FC<Props> = ({
             isRestaurant={isRestaurant}
             isFashion={isFashion}
             fashionSizeItems={Array.isArray(fashionSizeItems) ? fashionSizeItems : []}
+            namePlaceholder={basicPlaceholders.name}
+            categoryPlaceholder={basicPlaceholders.cat}
+            descriptionPlaceholder={basicPlaceholders.desc}
           />
 
           {typeof renderExtras === 'function' ? renderExtras({ parseNumberInput }) : null}

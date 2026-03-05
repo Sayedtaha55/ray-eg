@@ -50,12 +50,13 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
   const [receiptAddress, setReceiptAddress] = useState('');
   const [receiptLogoDataUrl, setReceiptLogoDataUrl] = useState('');
   const [receiptFooterNote, setReceiptFooterNote] = useState('');
-  const [receiptVatRatePercent, setReceiptVatRatePercent] = useState('14');
+  const [receiptVatRatePercent, setReceiptVatRatePercent] = useState('0');
   const [savingReceiptTheme, setSavingReceiptTheme] = useState(false);
+  const [didLoadReceiptTheme, setDidLoadReceiptTheme] = useState(false);
 
   const resolvedVatRatePercent = (() => {
     const n = Number(receiptVatRatePercent);
-    if (!Number.isFinite(n)) return 14;
+    if (!Number.isFinite(n)) return 0;
     return Math.min(100, Math.max(0, n));
   })();
 
@@ -66,10 +67,11 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     address: '',
     logoDataUrl: '',
     footerNote: '',
-    vatRatePercent: '14',
+    vatRatePercent: '0',
   });
 
   useEffect(() => {
+    setDidLoadReceiptTheme(false);
     const theme = RayDB.getReceiptTheme(receiptShopId);
     setReceiptShopName(String((theme as any)?.shopName || shop?.name || ''));
     setReceiptPhone(String((theme as any)?.phone || shop?.phone || ''));
@@ -77,7 +79,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     setReceiptAddress(String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
     setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
     setReceiptFooterNote(String((theme as any)?.footerNote || ''));
-    setReceiptVatRatePercent(String((theme as any)?.vatRatePercent ?? 14));
+    setReceiptVatRatePercent(String((theme as any)?.vatRatePercent ?? 0));
 
     lastSavedRef.current = {
       shopName: String((theme as any)?.shopName || shop?.name || ''),
@@ -86,8 +88,10 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
       address: String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''),
       logoDataUrl: String((theme as any)?.logoDataUrl || ''),
       footerNote: String((theme as any)?.footerNote || ''),
-      vatRatePercent: String((theme as any)?.vatRatePercent ?? 14),
+      vatRatePercent: String((theme as any)?.vatRatePercent ?? 0),
     };
+
+    setDidLoadReceiptTheme(true);
   }, [receiptShopId, shop?.name, shop?.phone, shop?.city, shop?.addressDetailed, shop?.address_detailed]);
 
   const emitReceiptChanges = (count: number) => {
@@ -102,6 +106,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
   };
 
   useEffect(() => {
+    if (!didLoadReceiptTheme) return;
     const baseline = lastSavedRef.current;
     const count =
       (String(receiptShopName) !== String(baseline.shopName) ? 1 : 0) +
@@ -112,11 +117,12 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
       (String(receiptFooterNote) !== String(baseline.footerNote) ? 1 : 0) +
       (String(receiptVatRatePercent) !== String(baseline.vatRatePercent) ? 1 : 0);
     emitReceiptChanges(count);
-  }, [receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent]);
+  }, [didLoadReceiptTheme, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent]);
 
   useEffect(() => {
     if (!receiptShopId) return;
     if (savingReceiptTheme) return;
+    if (!didLoadReceiptTheme) return;
 
     const t = window.setTimeout(() => {
       try {
@@ -139,7 +145,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
       } catch {
       }
     };
-  }, [receiptShopId, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent, resolvedVatRatePercent, savingReceiptTheme]);
+  }, [receiptShopId, didLoadReceiptTheme, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent, resolvedVatRatePercent, savingReceiptTheme]);
 
   const handlePickReceiptLogo = () => {
     receiptLogoInputRef.current?.click();
@@ -244,7 +250,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
               max={100}
               value={receiptVatRatePercent}
               onChange={(e) => setReceiptVatRatePercent(e.target.value)}
-              placeholder="14"
+              placeholder="0"
             />
           </div>
 
