@@ -53,6 +53,11 @@ function deployMigrations() {
   return run(prisma, ['migrate', 'deploy', '--schema', 'prisma/schema.prisma']);
 }
 
+function dbPush() {
+  const prisma = prismaBin();
+  return run(prisma, ['db', 'push', '--schema', 'prisma/schema.prisma']);
+}
+
 function resolveRolledBack(migrationName) {
   const prisma = prismaBin();
   if (!migrationName) return 0;
@@ -92,6 +97,21 @@ function resolveRolledBack(migrationName) {
 
     if (deployStatus !== 0) {
       process.exit(deployStatus);
+    }
+
+    const isRailway = Boolean(process.env.RAILWAY_ENVIRONMENT || process.env.RAILWAY_PROJECT_ID || process.env.RAILWAY_SERVICE_ID);
+    const shouldDbPushOnStart = String(process.env.PRISMA_DB_PUSH_ON_START || '').toLowerCase().trim() === 'true' || isRailway;
+    if (shouldDbPushOnStart) {
+      const pushStatus = dbPush();
+      if (pushStatus !== 0) {
+        const env = String(process.env.NODE_ENV || '').toLowerCase();
+        if (env === 'production') {
+          // eslint-disable-next-line no-console
+          console.warn('[railway-backend-start] prisma db push failed; continuing');
+        } else {
+          process.exit(pushStatus);
+        }
+      }
     }
 
     const serverStatus = run('node', ['dist/main.js']);
