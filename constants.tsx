@@ -128,6 +128,14 @@ export const RayDB = {
     const safe = Array.isArray(items) ? items : [];
     localStorage.setItem('ray_cart', JSON.stringify(safe));
     window.dispatchEvent(new Event('cart-updated'));
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('ray-cart');
+        bc.postMessage({ ts: Date.now() });
+        bc.close();
+      }
+    } catch {
+    }
     return safe;
   },
   addToCart: (input: any) => {

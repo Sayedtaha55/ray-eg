@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -70,7 +70,7 @@ const MapPage: React.FC = () => {
   const markersLayerRef = useRef<any>(null);
   const userMarkerRef = useRef<any>(null);
 
-  const loadShops = async () => {
+  const loadShops = useCallback(async () => {
     setLoading(true);
     try {
       const data = await ApiService.getShops('approved');
@@ -80,13 +80,48 @@ const MapPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadShops();
-    window.addEventListener('ray-db-update', loadShops);
-    return () => window.removeEventListener('ray-db-update', loadShops);
-  }, []);
+    const onRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadShops();
+    };
+
+    onRefresh();
+    window.addEventListener('ray-db-update', onRefresh);
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('ray-db');
+        bc.onmessage = () => {
+          onRefresh();
+        };
+      }
+    } catch {
+      bc = null;
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e && e.key && e.key !== 'ray_db_update_ts') return;
+      onRefresh();
+    };
+    window.addEventListener('storage', onStorage);
+
+    const timer = window.setInterval(() => {
+      onRefresh();
+    }, 20_000);
+
+    return () => {
+      window.removeEventListener('ray-db-update', onRefresh);
+      window.removeEventListener('storage', onStorage);
+      window.clearInterval(timer);
+      try { bc?.close(); } catch { }
+    };
+  }, [loadShops]);
 
   useEffect(() => {
     if (!mapContainerRef.current) return;

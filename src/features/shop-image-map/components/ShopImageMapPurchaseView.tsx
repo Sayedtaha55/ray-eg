@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, memo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, memo } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { getActiveShopImageMap } from '../api';
 import { resolveBackendMediaUrl } from '../utils';
@@ -6,13 +6,14 @@ import { CustomerView } from '../../product-editor/legacy/components/CustomerVie
 
 // Sub-components
 import { LoadingState, ErrorState } from './ShopImageMapPurchaseView/States';
-import PurchaseHeader from './ShopImageMapPurchaseView/PurchaseHeader';
 
 const { useParams, useNavigate } = ReactRouterDOM as any;
 
 const ShopImageMapPurchaseView: React.FC = () => {
   const { slug } = useParams();
   const navigate = useNavigate();
+
+  const reloadSeqRef = useRef(0);
 
   const withCacheBust = (url: string, v: string) => {
     const raw = String(url || '').trim();
@@ -32,22 +33,87 @@ const ShopImageMapPurchaseView: React.FC = () => {
 
   const handleBack = () => navigate(`/shop/${slug}`);
 
-  useEffect(() => {
-    const load = async () => {
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    const seq = ++reloadSeqRef.current;
+    if (!silent) {
       setLoading(true);
       setError(null);
-      try {
-        if (!slug) throw new Error('Missing slug');
-        const res = await getActiveShopImageMap(String(slug));
-        setData(res);
-      } catch (e: any) {
+    }
+    try {
+      if (!slug) throw new Error('Missing slug');
+      const res = await getActiveShopImageMap(String(slug));
+      if (reloadSeqRef.current !== seq) return;
+      setData(res);
+    } catch (e: any) {
+      if (!silent) {
         setError(e?.message ? String(e.message) : 'حدث خطأ أثناء تحميل المعاينة');
-      } finally {
-        setLoading(false);
       }
-    };
-    load();
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, [slug]);
+
+  useEffect(() => {
+    load({ silent: false });
+  }, [load]);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    const onExternalRefresh = () => {
+      load({ silent: true });
+    };
+
+    const onWindowEvent = (e: Event) => {
+      const ce = e as CustomEvent;
+      const detail = (ce as any)?.detail;
+      const targetSlug = detail && typeof detail === 'object' ? String((detail as any)?.slug || '').trim() : '';
+      const targetShopId = detail && typeof detail === 'object' ? String((detail as any)?.shopId || (detail as any)?.shop_id || '').trim() : '';
+      if (targetSlug && targetSlug !== String(slug)) return;
+      const currentShopId = String((shop as any)?.id || '').trim();
+      if (targetShopId && currentShopId && targetShopId !== currentShopId) return;
+      onExternalRefresh();
+    };
+
+    window.addEventListener('ray-image-map:refresh', onWindowEvent as any);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('ray-image-map');
+        bc.onmessage = (msg) => {
+          try {
+            const data = (msg as any)?.data;
+            const targetSlug = data && typeof data === 'object' ? String(data?.slug || '').trim() : '';
+            const targetShopId = data && typeof data === 'object' ? String(data?.shopId || data?.shop_id || '').trim() : '';
+            if (targetSlug && targetSlug !== String(slug)) return;
+            const currentShopId = String((shop as any)?.id || '').trim();
+            if (targetShopId && currentShopId && targetShopId !== currentShopId) return;
+          } catch {
+          }
+          onExternalRefresh();
+        };
+      }
+    } catch {
+      bc = null;
+    }
+
+    const intervalMs = 5000;
+    const timer = window.setInterval(() => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      onExternalRefresh();
+    }, intervalMs);
+
+    return () => {
+      window.removeEventListener('ray-image-map:refresh', onWindowEvent as any);
+      window.clearInterval(timer);
+      try { bc?.close(); } catch { }
+    };
+  }, [slug, load, shop]);
 
   const sections = useMemo(() => {
     if (!map) return [];
@@ -209,7 +275,6 @@ const ShopImageMapPurchaseView: React.FC = () => {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-black">
-      <PurchaseHeader shopName={shop?.name} onBack={handleBack} />
       <CustomerView 
         shop={legacyShop as any} 
         shopCategory={String(shop?.category || '')} 

@@ -245,6 +245,19 @@ const ShopImageMapEditorModal: React.FC<Props> = ({ open, onClose, shopId, produ
         })),
       });
 
+      try {
+        window.dispatchEvent(new CustomEvent('ray-image-map:refresh', { detail: { shopId } }));
+      } catch {
+      }
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('ray-image-map');
+          bc.postMessage({ shopId });
+          bc.close();
+        }
+      } catch {
+      }
+
       const list = await listShopImageMapsForManage(shopId);
       setMaps(Array.isArray(list) ? list : []);
     } finally {

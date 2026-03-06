@@ -159,6 +159,18 @@ function dispatchRayDbUpdateDebounced() {
     rayDbUpdateTimer = setTimeout(() => {
       try {
         window.dispatchEvent(new Event('ray-db-update'));
+        try {
+          localStorage.setItem('ray_db_update_ts', String(Date.now()));
+        } catch {
+        }
+        try {
+          if (typeof BroadcastChannel !== 'undefined') {
+            const bc = new BroadcastChannel('ray-db');
+            bc.postMessage({ ts: Date.now() });
+            bc.close();
+          }
+        } catch {
+        }
       } catch {
         // ignore
       }
@@ -252,6 +264,15 @@ const cached = async <T,>(key: string, ttlMs: number, fetcher: () => Promise<T>,
 
 if (typeof window !== 'undefined') {
   try {
+    window.addEventListener('ray-db-update', () => {
+      try {
+        cacheDelByPrefix('shop:');
+        cacheDelByPrefix('products:');
+        cacheDelByPrefix('gallery:');
+        cacheDelByPrefix('offers:');
+      } catch {
+      }
+    });
     window.addEventListener('ray-products-updated', (ev: any) => {
       const sid = String(ev?.detail?.shopId || '').trim();
       if (!sid) return;
@@ -801,16 +822,45 @@ export const ApiService = {
     return await getProductByIdViaBackend(id);
   },
   addProduct: async (product: any) => {
-    return await addProductViaBackend(product);
+    const created = await addProductViaBackend(product);
+    try {
+      const sid = String((created as any)?.shopId || (created as any)?.shop_id || (product as any)?.shopId || (product as any)?.shop_id || '').trim();
+      if (sid) {
+        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      }
+    } catch {
+    }
+    dispatchRayDbUpdateDebounced();
+    return created;
   },
   updateProduct: async (id: string, data: any) => {
-    return await updateProductViaBackend(id, data);
+    const updated = await updateProductViaBackend(id, data);
+    try {
+      const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || (data as any)?.shopId || (data as any)?.shop_id || '').trim();
+      if (sid) {
+        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      }
+    } catch {
+    }
+    dispatchRayDbUpdateDebounced();
+    return updated;
   },
   updateProductStock: async (id: string, stock: number) => {
-    return await updateProductStockViaBackend(id, stock);
+    const updated = await updateProductStockViaBackend(id, stock);
+    try {
+      const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || '').trim();
+      if (sid) {
+        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      }
+    } catch {
+    }
+    dispatchRayDbUpdateDebounced();
+    return updated;
   },
   deleteProduct: async (id: string) => {
-    return await deleteProductViaBackend(id);
+    const deleted = await deleteProductViaBackend(id);
+    dispatchRayDbUpdateDebounced();
+    return deleted;
   },
 
   // Reservations
@@ -835,6 +885,30 @@ export const ApiService = {
   },
   updateReservationStatus: async (id: string, status: string) => {
     return await updateReservationStatusViaBackend(id, status);
+  },
+
+  // Bookings (clinic / service bookings)
+  getBookings: async (shopId?: string) => {
+    const sid = String(shopId || '').trim();
+    const key = sid ? `bookings:${sid}` : 'bookings:me';
+    return await cached(
+      key,
+      30_000,
+      async () => {
+        try {
+          const qs = sid ? `?shopId=${encodeURIComponent(sid)}` : '';
+          return await backendGet<any[]>(`/api/v1/bookings${qs}`);
+        } catch {
+          return [];
+        }
+      },
+      2,
+    );
+  },
+  updateBookingStatus: async (id: string, status: string) => {
+    const bid = String(id || '').trim();
+    if (!bid) throw new Error('Missing booking id');
+    return await backendPatch<any>(`/api/v1/bookings/${encodeURIComponent(bid)}/status`, { status });
   },
 
   // Orders / Sales

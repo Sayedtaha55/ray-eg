@@ -98,17 +98,23 @@ const ShopProfile: React.FC = () => {
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
 
-  useEffect(() => {
-    const syncData = async () => {
+  const reloadSeqRef = useRef(0);
+
+  const syncData = useCallback(async (opts?: { silent?: boolean }) => {
+      const silent = Boolean(opts?.silent);
+      const seq = ++reloadSeqRef.current;
       if (!slug) {
         setError(true);
         setLoading(false);
         return;
       }
-      setLoading(true);
-      setError(false);
+      if (!silent) {
+        setLoading(true);
+        setError(false);
+      }
       try {
         const currentShopData = await ApiService.getShopBySlug(slug);
+        if (reloadSeqRef.current !== seq) return;
         if (currentShopData) {
           setShop(JSON.parse(JSON.stringify(currentShopData)));
           const design = currentShopData.pageDesign || {
@@ -175,12 +181,90 @@ const ShopProfile: React.FC = () => {
         console.error('ShopProfile syncData error:', err);
         setError(true);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
-    };
-    syncData();
+    }, [slug, location?.search]);
+
+  useEffect(() => {
+    syncData({ silent: false });
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [slug]);
+  }, [syncData]);
+
+  useEffect(() => {
+    if (!slug) return;
+
+    const onRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      syncData({ silent: true });
+    };
+
+    window.addEventListener('ray-db-update', onRefresh);
+
+    const onStorage = (e: StorageEvent) => {
+      if (e && e.key && e.key !== 'ray_db_update_ts') return;
+      onRefresh();
+    };
+    window.addEventListener('storage', onStorage);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('ray-db');
+        bc.onmessage = () => onRefresh();
+      }
+    } catch {
+      bc = null;
+    }
+
+    const onImageMapEvent = (e: Event) => {
+      const ce = e as CustomEvent;
+      const detail = (ce as any)?.detail;
+      const targetSlug = detail && typeof detail === 'object' ? String((detail as any)?.slug || '').trim() : '';
+      const targetShopId = detail && typeof detail === 'object' ? String((detail as any)?.shopId || (detail as any)?.shop_id || '').trim() : '';
+      if (targetSlug && targetSlug !== String(slug)) return;
+      const currentShopId = String((shop as any)?.id || '').trim();
+      if (targetShopId && currentShopId && targetShopId !== currentShopId) return;
+      onRefresh();
+    };
+    window.addEventListener('ray-image-map:refresh', onImageMapEvent as any);
+
+    let bcImageMap: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bcImageMap = new BroadcastChannel('ray-image-map');
+        bcImageMap.onmessage = (msg) => {
+          try {
+            const data = (msg as any)?.data;
+            const targetSlug = data && typeof data === 'object' ? String(data?.slug || '').trim() : '';
+            const targetShopId = data && typeof data === 'object' ? String(data?.shopId || data?.shop_id || '').trim() : '';
+            if (targetSlug && targetSlug !== String(slug)) return;
+            const currentShopId = String((shop as any)?.id || '').trim();
+            if (targetShopId && currentShopId && targetShopId !== currentShopId) return;
+          } catch {
+          }
+          onRefresh();
+        };
+      }
+    } catch {
+      bcImageMap = null;
+    }
+
+    const timer = window.setInterval(() => {
+      onRefresh();
+    }, 12_000);
+
+    return () => {
+      window.removeEventListener('ray-db-update', onRefresh);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('ray-image-map:refresh', onImageMapEvent as any);
+      window.clearInterval(timer);
+      try { bc?.close(); } catch { }
+      try { bcImageMap?.close(); } catch { }
+    };
+  }, [slug, syncData, shop]);
 
   const normalizeText = (v: any) => {
     const s = typeof v === 'string' ? v : v == null ? '' : String(v);

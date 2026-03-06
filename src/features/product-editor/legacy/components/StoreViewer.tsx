@@ -10,6 +10,7 @@ interface StoreViewerProps {
   shopCategory?: string;
   productEditorVisibility?: Record<string, any>;
   imageMapVisibility?: Record<string, any>;
+  activeSectionIndex: number;
 }
 
 type MetaChip = { label: string; value: string };
@@ -171,10 +172,11 @@ interface ProductNodeProps {
   isFood: boolean;
   productEditorVisibility?: Record<string, any>;
   imageMapVisibility?: Record<string, any>;
+  performanceMode?: boolean;
 }
 
 const ProductNode: React.FC<ProductNodeProps> = React.memo(({
-  product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, onReserve, isFood, productEditorVisibility, imageMapVisibility
+  product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, onReserve, isFood, productEditorVisibility, imageMapVisibility, performanceMode = false
 }) => {
   const isGhost = product.stockStatus === 'OUT_OF_STOCK';
   const isLowStock = product.stockStatus === 'LOW_STOCK';
@@ -357,11 +359,12 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
 
   return (
     <div
-      className="absolute transition-all duration-500 transform preserve-3d pointer-events-auto"
+      className={`absolute transform preserve-3d pointer-events-auto transition-transform ${performanceMode ? 'duration-75' : 'duration-200'}`}
       style={{ top, left, zIndex: isOpen ? 100 : 10, transform: isOpen ? 'translateZ(50px)' : 'translateZ(0px)' }}
     >
       <div onClick={onToggle} className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 group ${isOpen ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}`}>
         <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
+        <div className={`absolute inset-0 rounded-full opacity-75 ${performanceMode ? '' : 'animate-ping'} ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
         <div className={`relative w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-transform group-hover:scale-125 ${isGhost ? 'bg-red-500/80 border-red-300' : 'bg-cyan-500/80 border-white backdrop-blur-sm'}`}>
           <div className="w-1 h-1 bg-white rounded-full"></div>
         </div>
@@ -468,8 +471,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
   );
 });
 
-export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, onAddToCart, onReserve, shopCategory = '', productEditorVisibility, imageMapVisibility }) => {
-  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, onAddToCart, onReserve, shopCategory = '', productEditorVisibility, imageMapVisibility, activeSectionIndex }) => {
   const activeSection = sections[activeSectionIndex];
   const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
   const [openProductId, setOpenProductId] = useState<string | null>(null);
@@ -545,20 +547,6 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
     setRotation({ x: -y * 2, y: x * 2 });
   };
 
-  const handleNextSection = useCallback(() => {
-    setActiveSectionIndex((prev) => (prev + 1) % sections.length);
-    setOpenProductId(null);
-    setPanOffsetPx(0);
-    setImageNatural(null);
-  }, [sections.length]);
-
-  const handlePrevSection = useCallback(() => {
-    setActiveSectionIndex((prev) => (prev - 1 + sections.length) % sections.length);
-    setOpenProductId(null);
-    setPanOffsetPx(0);
-    setImageNatural(null);
-  }, [sections.length]);
-
   useEffect(() => { setPanOffsetPx(0); }, [activeSectionIndex]);
 
   if (!activeSection) return <div>Loading...</div>;
@@ -595,7 +583,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
                 const overflowX = Math.max(0, coverMetrics.scaledW - containerSize.w);
                 if (!overflowX) return;
                 const dx = e.clientX - panStateRef.current.startX;
-                panPendingRef.current = { overflowX, dx, startOffset: panStateRef.current.startOffset };
+                panPendingRef.current = { overflowX, dx: -dx, startOffset: panStateRef.current.startOffset };
                 if (panRafRef.current != null) return;
                 panRafRef.current = requestAnimationFrame(() => {
                   panRafRef.current = null;
@@ -608,7 +596,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
               }}
               onPointerUp={() => { panStateRef.current.active = false; }}
               onPointerCancel={() => { panStateRef.current.active = false; }}
-              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'none' }} className={`w-full h-full object-cover ${performanceMode ? '' : 'filter brightness-[0.7] contrast-[1.1]'}`} />
+              style={{ objectPosition: `${coverMetrics.objectPosXPercent}% 50%`, touchAction: 'none', willChange: 'object-position' }} className={`w-full h-full object-cover ${performanceMode ? '' : 'filter brightness-[0.7] contrast-[1.1]'}`} />
           ) : <div className="w-full h-full bg-black/20" />}
           {!performanceMode ? (
             <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
@@ -616,17 +604,10 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
         </div>
         <div key={`products-${activeSection.id}`} className="absolute inset-0 z-20 pointer-events-none">
           {activeSection.products.map((product) => (
-            <ProductNode key={product.id} product={product} coverMetrics={coverMetrics} containerSize={containerSize} isOpen={openProductId === product.id} onToggle={() => setOpenProductId(openProductId === product.id ? null : product.id)} onAddToCart={onAddToCart} onReserve={onReserve} isFood={isFood} productEditorVisibility={productEditorVisibility} imageMapVisibility={imageMapVisibility} />
+            <ProductNode key={product.id} product={product} coverMetrics={coverMetrics} containerSize={containerSize} isOpen={openProductId === product.id} onToggle={() => setOpenProductId(openProductId === product.id ? null : product.id)} onAddToCart={onAddToCart} onReserve={onReserve} isFood={isFood} productEditorVisibility={productEditorVisibility} imageMapVisibility={imageMapVisibility} performanceMode={performanceMode} />
           ))}
         </div>
       </div>
-      {sections.length > 1 && (
-        <div className="absolute top-20 sm:top-28 inset-x-0 flex items-center justify-center gap-3 sm:gap-4 z-40 pointer-events-auto">
-          <button onClick={handlePrevSection} className="p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur border border-white/10 hover:border-cyan-500 text-white transition-all hover:scale-110"><ChevronRight size={24} /></button>
-          <div className="bg-black/60 backdrop-blur px-4 sm:px-6 py-2 rounded-xl border border-white/10 flex items-center gap-2 sm:gap-3"><Map size={16} className="text-cyan-400" /><span className="text-white font-bold">{activeSection.name}</span><span className="text-xs text-slate-500">({activeSectionIndex + 1}/{sections.length})</span></div>
-          <button onClick={handleNextSection} className="p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur border border-white/10 hover:border-cyan-500 text-white transition-all hover:scale-110"><ChevronLeft size={24} /></button>
-        </div>
-      )}
     </div>
   );
 });

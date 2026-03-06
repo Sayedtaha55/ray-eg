@@ -344,6 +344,19 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         hotspots: nextHotspots,
       });
 
+      try {
+        window.dispatchEvent(new CustomEvent('ray-image-map:refresh', { detail: { shopId } }));
+      } catch {
+      }
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('ray-image-map');
+          bc.postMessage({ shopId });
+          bc.close();
+        }
+      } catch {
+      }
+
       addToast('تم اعتماد وربط منتجات الصورة', 'success');
       await loadImageMapProducts();
     } catch (e: any) {
