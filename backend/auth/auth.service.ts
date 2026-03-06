@@ -1000,19 +1000,10 @@ export class AuthService implements OnModuleInit {
     if (role === 'MERCHANT') {
       const shop = await this.prisma.shop.findFirst({
         where: { ownerId: user.id },
-        select: { id: true, status: true, isActive: true },
+        select: { id: true, status: true },
       });
       if (!shop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
-      }
-      if ((shop as any)?.isActive === false) {
-        // If the user was just restored, the shop might still be inactive; try restore path.
-        const restored = await this.maybeRestoreWithinGrace(user);
-        if (restored) {
-          user = restored;
-        } else {
-          throw new ForbiddenException('الحساب معطل');
-        }
       }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
@@ -1088,13 +1079,10 @@ export class AuthService implements OnModuleInit {
     if (role === 'MERCHANT') {
       const shop = await this.prisma.shop.findFirst({
         where: { ownerId: user.id },
-        select: { id: true, status: true, isActive: true },
+        select: { id: true, status: true },
       });
       if (!shop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
-      }
-      if ((shop as any)?.isActive === false) {
-        throw new ForbiddenException('الحساب معطل');
       }
       const status = String((shop as any)?.status || '').toUpperCase();
       if (status !== 'APPROVED') {
