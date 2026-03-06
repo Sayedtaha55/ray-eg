@@ -1,6 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Skeleton from './Skeleton';
 
+/**
+ * SmartImage Component
+ * ⚡ Performance Optimized:
+ * - Uses native lazy loading by default
+ * - Decodes images asynchronously to prevent main-thread blocking
+ * - Displays a Skeleton placeholder until the image is fully loaded
+ */
 type Props = {
   src?: string | null;
   alt?: string;

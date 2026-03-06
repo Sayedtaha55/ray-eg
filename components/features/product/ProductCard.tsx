@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Card, Badge, Button } from '../../common/ui';
+import { Card, Badge, Button, SmartImage } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 
 interface ProductCardProps {
@@ -35,11 +35,19 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     <Card hover clickable className="overflow-hidden group">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden">
-        <img
+        {/*
+          ⚡ Bolt Optimization: Using SmartImage instead of native <img> tag.
+          - Improved Perceived Performance: Displays a Skeleton placeholder while loading.
+          - Actual Performance: Uses decoding="async" (default in SmartImage) to offload
+            image decoding from the main thread, preventing UI jank.
+          - Consistency: Utilizes optimized project-wide component for image handling.
+        */}
+        <SmartImage
           src={product.image}
           alt={product.name}
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          imgClassName="object-cover group-hover:scale-110 transition-transform duration-300"
+          className="w-full h-full"
         />
         
         {/* Discount Badge */}
