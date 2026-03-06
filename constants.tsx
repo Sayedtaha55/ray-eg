@@ -28,7 +28,24 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  favoritesCache: null as Set<string> | null,
+  getFavorites: () => {
+    if (RayDB.favoritesCache) return Array.from(RayDB.favoritesCache);
+    try {
+      const raw = localStorage.getItem('ray_favorites');
+      const parsed = raw ? JSON.parse(raw) : [];
+      const arr = Array.isArray(parsed) ? parsed : [];
+      RayDB.favoritesCache = new Set(arr);
+      return arr;
+    } catch {
+      RayDB.favoritesCache = new Set();
+      return [];
+    }
+  },
+  isFavorite: (id: string) => {
+    if (!RayDB.favoritesCache) RayDB.getFavorites();
+    return RayDB.favoritesCache?.has(id) ?? false;
+  },
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -235,12 +252,13 @@ export const RayDB = {
     return RayDB.setCart([]);
   },
   toggleFavorite: (id: string) => {
-    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-    const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-    localStorage.setItem('ray_favorites', JSON.stringify(favs));
+    if (!RayDB.favoritesCache) RayDB.getFavorites();
+    const set = RayDB.favoritesCache!;
+    const isFav = set.has(id);
+    if (isFav) set.delete(id); else set.add(id);
+    localStorage.setItem('ray_favorites', JSON.stringify(Array.from(set)));
     window.dispatchEvent(new Event('ray-db-update'));
-    return idx === -1;
+    return !isFav;
   },
   getReceiptTheme: (shopId: string): ReceiptTheme => {
     try {
@@ -298,3 +316,12 @@ export const RayDB = {
      await ApiService.incrementVisitors(sid);
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ray_favorites') {
+      RayDB.favoritesCache = null;
+      window.dispatchEvent(new Event('ray-db-update'));
+    }
+  });
+}
