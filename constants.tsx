@@ -21,6 +21,37 @@ export const MOCK_SHOPS: Shop[] = [
   
 ];
 
+// In-memory cache for favorites to avoid frequent localStorage access and JSON.parse
+const favoritesCache = new Set<string>();
+
+// Initialize cache from localStorage
+if (typeof window !== 'undefined') {
+  try {
+    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
+    if (Array.isArray(favs)) {
+      favs.forEach(id => favoritesCache.add(id));
+    }
+  } catch {
+    // Ignore initialization errors
+  }
+
+  // Sync cache across tabs
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ray_favorites') {
+      favoritesCache.clear();
+      try {
+        const favs = JSON.parse(e.newValue || '[]');
+        if (Array.isArray(favs)) {
+          favs.forEach(id => favoritesCache.add(id));
+        }
+      } catch {
+        // Ignore sync errors
+      }
+      window.dispatchEvent(new Event('ray-db-update'));
+    }
+  });
+}
+
 export const RayDB = {
   getShops: async () => ApiService.getShops(),
   getOffers: async () => ApiService.getOffers(),
@@ -28,7 +59,8 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  getFavorites: () => Array.from(favoritesCache),
+  isFavorite: (id: string) => favoritesCache.has(id),
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -235,12 +267,15 @@ export const RayDB = {
     return RayDB.setCart([]);
   },
   toggleFavorite: (id: string) => {
-    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-    const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-    localStorage.setItem('ray_favorites', JSON.stringify(favs));
+    const isFav = favoritesCache.has(id);
+    if (isFav) {
+      favoritesCache.delete(id);
+    } else {
+      favoritesCache.add(id);
+    }
+    localStorage.setItem('ray_favorites', JSON.stringify(Array.from(favoritesCache)));
     window.dispatchEvent(new Event('ray-db-update'));
-    return idx === -1;
+    return !isFav;
   },
   getReceiptTheme: (shopId: string): ReceiptTheme => {
     try {
