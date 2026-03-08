@@ -20,6 +20,8 @@ function haversineMeters(a: { lat: number; lng: number }, b: { lat: number; lng:
 export class CourierDispatchService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  private readonly NEVER_EXPIRES_AT = new Date('2999-01-01T00:00:00.000Z');
+
   async dispatchForOrder(orderId: string) {
     const id = String(orderId || '').trim();
     if (!id) return null;
@@ -27,7 +29,7 @@ export class CourierDispatchService {
     const now = new Date();
 
     const existingPending = await (this.prisma as any).orderCourierOffer.count({
-      where: { orderId: id, status: 'PENDING' as any, expiresAt: { gt: now } as any } as any,
+      where: { orderId: id, status: 'PENDING' as any } as any,
     });
     if (existingPending > 0) return null;
 
@@ -88,14 +90,7 @@ export class CourierDispatchService {
     const top = ranked.slice(0, 3);
     if (top.length === 0) return null;
 
-    const expiresAt = new Date(now.getTime() + 60 * 1000);
-
     await this.prisma.$transaction(async (tx) => {
-      await (tx as any).orderCourierOffer.updateMany({
-        where: { orderId: id, status: 'PENDING' as any, expiresAt: { lt: now } as any } as any,
-        data: { status: 'EXPIRED' as any },
-      });
-
       for (const [idx, t] of top.entries()) {
         await (tx as any).orderCourierOffer.upsert({
           where: { orderId_courierId: { orderId: id, courierId: t.courierId } } as any,
@@ -104,12 +99,12 @@ export class CourierDispatchService {
             courierId: t.courierId,
             rank: idx + 1,
             status: 'PENDING' as any,
-            expiresAt,
+            expiresAt: this.NEVER_EXPIRES_AT,
           },
           update: {
             rank: idx + 1,
             status: 'PENDING' as any,
-            expiresAt,
+            expiresAt: this.NEVER_EXPIRES_AT,
             respondedAt: null,
           },
         });
@@ -121,10 +116,6 @@ export class CourierDispatchService {
 
   async dispatchUnassignedOrders(limit = 20) {
     const now = new Date();
-    await (this.prisma as any).orderCourierOffer.updateMany({
-      where: { status: 'PENDING' as any, expiresAt: { lt: now } as any } as any,
-      data: { status: 'EXPIRED' as any },
-    });
 
     const orders = await this.prisma.order.findMany({
       where: {

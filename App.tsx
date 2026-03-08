@@ -34,6 +34,7 @@ const SeoDirectoryPage = React.lazy(() => import('./components/pages/public/SeoD
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile'));
 const ShopImageMapPurchaseView = React.lazy(() => import('./src/features/shop-image-map/components/ShopImageMapPurchaseView'));
+const CourierIntroPage = React.lazy(() => import('./components/pages/public/CourierIntroPage'));
 
 const BusinessLayout = React.lazy(() => import('./components/layouts/BusinessLayout'));
 const BusinessLanding = React.lazy(() => import('./components/pages/business/BusinessLanding'));
@@ -217,7 +218,8 @@ const App: React.FC = () => {
           <Route path="menmakank" element={<Navigate to="/dalil" replace />} />
           <Route path="mnmknk" element={<Navigate to="/dalil" replace />} />
           <Route path="product/:id" element={suspense(<ProductPage />)} />
-          <Route path="delivery" element={<Navigate to="/business/courier-signup" replace />} />
+          <Route path="courier" element={suspense(<CourierIntroPage />)} />
+          <Route path="delivery" element={<Navigate to="/courier" replace />} />
         </Route>
         
         <Route path="/s/:slug" element={<RedirectSShop />} />

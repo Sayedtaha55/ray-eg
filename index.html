@@ -37,6 +37,19 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="icon" type="image/png" href="/favicon-32x32.png" />
+
+    <script>
+      (function () {
+        try {
+          var hash = String(window.location.hash || '');
+          var isCourier = hash === '#/courier' || hash.indexOf('#/courier/') === 0;
+          var href = isCourier ? '/courier-manifest.json' : '/manifest.json';
+          var link = document.querySelector('link[rel="manifest"]');
+          if (link) link.setAttribute('href', href);
+        } catch (e) {
+        }
+      })();
+    </script>
     
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />

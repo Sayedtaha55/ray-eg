@@ -1,7 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { MapPin, Loader2, CheckCircle, Banknote, RefreshCw, LogOut, Menu, X, Settings, ClipboardList, Bell, Phone, Copy, Navigation } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import CourierOffersTab from './CourierOffersTab';
+import CourierOrdersTab from './CourierOrdersTab';
+import CourierSettingsTab from './CourierSettingsTab';
 
 const { useNavigate } = ReactRouterDOM as any;
 
@@ -57,6 +60,22 @@ const COURIER_REFRESH_SECONDS_KEY = 'ray_courier_refresh_seconds';
 const COURIER_SHARE_LOCATION_KEY = 'ray_courier_share_location';
 const COURIER_AVAILABLE_KEY = 'ray_courier_available';
 
+const buildGoogleMapsLink = (payload: { lat: number; lng: number; originLat?: number; originLng?: number }) => {
+  const lat = Number(payload?.lat);
+  const lng = Number(payload?.lng);
+  const originLat = Number(payload?.originLat);
+  const originLng = Number(payload?.originLng);
+  const hasOrigin = Number.isFinite(originLat) && Number.isFinite(originLng);
+
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return '#';
+
+  if (hasOrigin) {
+    return `https://www.google.com/maps/dir/?api=1&origin=${originLat},${originLng}&destination=${lat},${lng}&travelmode=driving`;
+  }
+
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+};
+
 function readBoolFromStorage(key: string, fallback: boolean) {
   try {
     const raw = localStorage.getItem(key);
@@ -92,6 +111,7 @@ const CourierOrders: React.FC = () => {
   const [offers, setOffers] = useState<any[]>([]);
   const [offersLoading, setOffersLoading] = useState(false);
   const [offersRefreshing, setOffersRefreshing] = useState(false);
+  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
   const [stateLoading, setStateLoading] = useState(false);
   const [lastState, setLastState] = useState<any>(null);
   const [geoStatus, setGeoStatus] = useState<'unknown' | 'ok' | 'blocked' | 'unsupported'>('unknown');
@@ -278,6 +298,80 @@ const CourierOrders: React.FC = () => {
     }
   }, [isAvailable, syncCourierStateFromBackend]);
 
+  const locationWatchIdRef = useRef<number | null>(null);
+  const lastLocationCommitAtRef = useRef<number>(0);
+
+  const commitLocation = useCallback(async (payload: { lat: number; lng: number; accuracy?: number }) => {
+    const now = Date.now();
+    const minIntervalMs = 20000;
+    if (now - lastLocationCommitAtRef.current < minIntervalMs) return;
+    lastLocationCommitAtRef.current = now;
+
+    try {
+      await ApiService.updateCourierState({
+        ...(typeof isAvailable === 'boolean' ? { isAvailable } : {}),
+        lat: payload.lat,
+        lng: payload.lng,
+        ...(Number.isFinite(Number(payload.accuracy)) ? { accuracy: Number(payload.accuracy) } : {}),
+      });
+      setGeoStatus('ok');
+      setGeoLastFixAt(Date.now());
+      syncCourierStateFromBackend();
+    } catch {
+    }
+  }, [isAvailable, syncCourierStateFromBackend]);
+
+  useEffect(() => {
+    if (!shareLocation) {
+      try {
+        if (locationWatchIdRef.current != null && typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(locationWatchIdRef.current);
+        }
+      } catch {
+      }
+      locationWatchIdRef.current = null;
+      return;
+    }
+
+    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+      setGeoStatus('unsupported');
+      return;
+    }
+
+    // Trigger an immediate update so the courier doesn't miss offers on enable.
+    updateLocationOnce();
+
+    try {
+      setGeoStatus('unknown');
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          const lat = Number(pos?.coords?.latitude);
+          const lng = Number(pos?.coords?.longitude);
+          const accuracy = Number(pos?.coords?.accuracy);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+          commitLocation({ lat, lng, ...(Number.isFinite(accuracy) ? { accuracy } : {}) });
+        },
+        () => {
+          setGeoStatus('blocked');
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 } as any,
+      );
+      locationWatchIdRef.current = Number(watchId);
+    } catch {
+      setGeoStatus('blocked');
+    }
+
+    return () => {
+      try {
+        if (locationWatchIdRef.current != null && typeof navigator !== 'undefined' && navigator.geolocation) {
+          navigator.geolocation.clearWatch(locationWatchIdRef.current);
+        }
+      } catch {
+      }
+      locationWatchIdRef.current = null;
+    };
+  }, [shareLocation, updateLocationOnce, commitLocation]);
+
   const handleLogout = async () => {
     try {
       await ApiService.logout();
@@ -415,13 +509,8 @@ const CourierOrders: React.FC = () => {
   }, [orders]);
 
   const offersSummary = useMemo(() => {
-    const now = Date.now();
     const pending = (offers || []).filter((o) => String(o?.status || '').toUpperCase() === 'PENDING');
-    const active = pending.filter((o) => {
-      const exp = o?.expiresAt ? new Date(o.expiresAt).getTime() : NaN;
-      return !Number.isFinite(exp) || exp > now;
-    });
-    return { pending: active.length };
+    return { pending: pending.length };
   }, [offers]);
 
   const deliveredOrders = useMemo(
@@ -436,12 +525,22 @@ const CourierOrders: React.FC = () => {
   }, [activeTab, deliveredOrders, orders]);
 
   const handleAcceptOffer = async (id: string) => {
+    const offerId = String(id || '').trim();
+    if (!offerId || acceptingOfferId) return;
+    setAcceptingOfferId(offerId);
     try {
-      await ApiService.acceptCourierOffer(id);
+      await ApiService.acceptCourierOffer(offerId);
       await loadOrders(true);
       await loadOffers(true);
       setActiveTab('orders');
-    } catch {
+      setDrawerOpen(false);
+    } catch (e: any) {
+      try {
+        window.alert(String(e?.message || 'فشل قبول الطلب'));
+      } catch {
+      }
+    } finally {
+      setAcceptingOfferId(null);
     }
   };
 
@@ -465,7 +564,7 @@ const CourierOrders: React.FC = () => {
             aria-label="close"
           />
           <div
-            className="absolute top-0 bottom-0 right-0 w-[85%] max-w-sm bg-slate-900 border-l border-white/10 p-6 overflow-y-auto"
+            className="absolute top-0 bottom-0 right-0 w-[85%] max-w-sm bg-slate-900 border-l border-white/10 p-6 flex flex-col"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1.5rem)' }}
           >
             <div className="flex items-center justify-between mb-6">
@@ -482,7 +581,7 @@ const CourierOrders: React.FC = () => {
               </button>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 flex-1 overflow-y-auto">
               <button
                 onClick={() => {
                   setActiveTab('orders');
@@ -503,16 +602,6 @@ const CourierOrders: React.FC = () => {
               >
                 <span>عروض جديدة</span>
                 <Bell size={18} />
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('delivered');
-                  closeDrawer();
-                }}
-                className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm ${activeTab === 'delivered' ? 'bg-emerald-400 text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
-              >
-                <span>تم التوصيل</span>
-                <CheckCircle size={18} />
               </button>
               <button
                 onClick={() => {
@@ -539,15 +628,15 @@ const CourierOrders: React.FC = () => {
         </div>
       )}
 
-      <div className="flex min-h-[100dvh] overflow-hidden">
-        <aside className="hidden md:flex md:w-80 bg-slate-900 border-l border-white/10 p-8 flex-col overflow-y-auto">
+      <div className="flex min-h-[100dvh]">
+        <aside className="hidden md:flex md:w-80 bg-slate-900 border-l border-white/10 p-8 flex-col">
           <div className="mb-8">
             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">لوحة المندوب</p>
             <p className="text-xl font-black mt-2">{String(courierUser?.name || 'مندوب')}</p>
             <p className="text-xs text-slate-500 font-bold mt-1 break-all">{String(courierUser?.email || '')}</p>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2 flex-1 overflow-y-auto">
             <button
               onClick={() => setActiveTab('orders')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'orders' ? 'bg-[#00E5FF] text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
@@ -566,13 +655,6 @@ const CourierOrders: React.FC = () => {
               <Bell size={18} />
             </button>
             <button
-              onClick={() => setActiveTab('delivered')}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'delivered' ? 'bg-emerald-400 text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
-            >
-              <span>تم التوصيل</span>
-              <CheckCircle size={18} />
-            </button>
-            <button
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'settings' ? 'bg-white text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
             >
@@ -581,7 +663,7 @@ const CourierOrders: React.FC = () => {
             </button>
           </div>
 
-          <div className="mt-auto pt-8">
+          <div className="pt-6 border-t border-white/10 mt-6">
             <button
               onClick={handleLogout}
               className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm bg-red-500/10 text-red-300 hover:bg-red-500/15"
@@ -592,7 +674,7 @@ const CourierOrders: React.FC = () => {
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0 overflow-x-hidden overflow-y-auto overscroll-contain">
+        <main className="flex-1 min-w-0 overflow-x-hidden">
           <div
             className="max-w-6xl mx-auto px-4 md:px-8 py-6 md:py-10 space-y-6 md:space-y-10"
             style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 6rem)' }}
@@ -658,434 +740,65 @@ const CourierOrders: React.FC = () => {
             </div>
 
             {activeTab === 'settings' ? (
-              <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 space-y-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl md:text-2xl font-black">إعدادات المندوب</h3>
-                    <p className="text-slate-400 text-xs md:text-sm font-bold mt-1">تحكم في تفضيلات التحديث وبيانات الحساب.</p>
-                  </div>
-                  <Settings size={20} className="text-slate-400" />
-                </div>
-
-                <div className="grid lg:grid-cols-2 gap-4">
-                  <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
-                    <p className="text-xs text-slate-500 font-black">بيانات الحساب</p>
-                    <form onSubmit={handleSaveProfile} className="space-y-3">
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الاسم</label>
-                        <input
-                          value={profileName}
-                          onChange={(e) => setProfileName(e.target.value)}
-                          disabled={profileSaving}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                          placeholder="اسم المندوب"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الهاتف</label>
-                        <input
-                          value={profilePhone}
-                          onChange={(e) => setProfilePhone(e.target.value)}
-                          disabled={profileSaving}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                          placeholder="01xxxxxxxxx"
-                        />
-                      </div>
-
-                      <div className="text-[11px] text-slate-500 font-bold">البريد: {String((courierUser as any)?.email || '')}</div>
-
-                      <button
-                        type="submit"
-                        disabled={profileSaving}
-                        className="w-full py-3 rounded-2xl bg-[#00E5FF] text-slate-900 font-black text-sm disabled:opacity-60"
-                      >
-                        {profileSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
-                      </button>
-                    </form>
-
-                    <div className="pt-3 border-t border-white/10 space-y-2">
-                      <p className="text-xs text-slate-500 font-black">الحالة من السيرفر</p>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-xs font-bold text-slate-300">
-                          {stateLoading ? 'جاري المزامنة...' : `متاح: ${typeof lastState?.isAvailable === 'boolean' ? (lastState.isAvailable ? 'نعم' : 'لا') : 'غير معروف'}`}
-                        </div>
-                        <button
-                          onClick={syncCourierStateFromBackend}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-black"
-                        >
-                          <RefreshCw size={14} className={stateLoading ? 'animate-spin' : ''} />
-                          مزامنة
-                        </button>
-                      </div>
-                      {lastState?.lastSeenAt ? (
-                        <div className="text-[11px] text-slate-500 font-bold">آخر ظهور: {new Date(lastState.lastSeenAt).toLocaleString('ar-EG')}</div>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
-                    <p className="text-xs text-slate-500 font-black">التحديث التلقائي</p>
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-black">متاح لاستلام الطلبات</span>
-                      <input
-                        type="checkbox"
-                        checked={isAvailable}
-                        onChange={(e) => setIsAvailable(Boolean(e.target.checked))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-black">مشاركة الموقع</span>
-                      <input
-                        type="checkbox"
-                        checked={shareLocation}
-                        onChange={(e) => setShareLocation(Boolean(e.target.checked))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-xs font-black text-slate-200">حالة GPS</p>
-                          <p className="text-[11px] font-bold text-slate-500 mt-1">
-                            {geoStatus === 'unsupported'
-                              ? 'غير مدعوم'
-                              : geoStatus === 'blocked'
-                                ? 'مرفوض'
-                                : geoStatus === 'ok'
-                                  ? 'شغال'
-                                  : 'غير معروف'}
-                            {geoLastFixAt ? ` • آخر تحديث: ${new Date(geoLastFixAt).toLocaleTimeString('ar-EG')}` : ''}
-                          </p>
-                        </div>
-                        <button
-                          onClick={updateLocationOnce}
-                          className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 text-xs font-black"
-                        >
-                          <Navigation size={14} />
-                          تحديث الموقع
-                        </button>
-                      </div>
-                    </div>
-
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-black">تفعيل التحديث التلقائي</span>
-                      <input
-                        type="checkbox"
-                        checked={autoRefresh}
-                        onChange={(e) => setAutoRefresh(Boolean(e.target.checked))}
-                        className="w-5 h-5"
-                      />
-                    </label>
-
-                    <label className="flex items-center justify-between gap-3">
-                      <span className="text-sm font-black">كل (ثانية)</span>
-                      <select
-                        value={String(refreshSeconds)}
-                        disabled={!autoRefresh}
-                        onChange={(e) => setRefreshSeconds(Number(e.target.value))}
-                        className="bg-slate-900 border border-white/10 rounded-xl px-3 py-2 text-sm font-black disabled:opacity-50"
-                      >
-                        <option value="10">10</option>
-                        <option value="15">15</option>
-                        <option value="30">30</option>
-                        <option value="60">60</option>
-                        <option value="120">120</option>
-                      </select>
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTab('orders');
-                        loadOrders(true);
-                      }}
-                      className="w-full mt-2 py-3 rounded-2xl bg-[#00E5FF] text-slate-900 font-black text-sm"
-                    >
-                      فتح الطلبات الآن
-                    </button>
-
-                    <div className="pt-4 border-t border-white/10">
-                      <p className="text-xs text-slate-500 font-black mb-3">تغيير كلمة المرور</p>
-                      <form onSubmit={handleChangePassword} className="space-y-3">
-                        <input
-                          type="password"
-                          value={currentPassword}
-                          onChange={(e) => setCurrentPassword(e.target.value)}
-                          disabled={passwordSaving}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                          placeholder="كلمة المرور الحالية"
-                        />
-                        <input
-                          type="password"
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          disabled={passwordSaving}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                          placeholder="كلمة المرور الجديدة"
-                        />
-                        <input
-                          type="password"
-                          value={confirmNewPassword}
-                          onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          disabled={passwordSaving}
-                          className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                          placeholder="تأكيد كلمة المرور الجديدة"
-                        />
-                        <button
-                          type="submit"
-                          disabled={passwordSaving}
-                          className="w-full py-3 rounded-2xl bg-white text-slate-900 font-black text-sm disabled:opacity-60"
-                        >
-                          {passwordSaving ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <CourierSettingsTab
+                courierUser={courierUser}
+                profileName={profileName}
+                profilePhone={profilePhone}
+                profileSaving={profileSaving}
+                onProfileNameChange={setProfileName}
+                onProfilePhoneChange={setProfilePhone}
+                onSaveProfile={handleSaveProfile}
+                stateLoading={stateLoading}
+                lastState={lastState}
+                onSyncState={syncCourierStateFromBackend}
+                isAvailable={isAvailable}
+                shareLocation={shareLocation}
+                autoRefresh={autoRefresh}
+                refreshSeconds={refreshSeconds}
+                onIsAvailableChange={setIsAvailable}
+                onShareLocationChange={setShareLocation}
+                onAutoRefreshChange={setAutoRefresh}
+                onRefreshSecondsChange={setRefreshSeconds}
+                geoStatus={geoStatus}
+                geoLastFixAt={geoLastFixAt}
+                onUpdateLocationOnce={updateLocationOnce}
+                currentPassword={currentPassword}
+                newPassword={newPassword}
+                confirmNewPassword={confirmNewPassword}
+                passwordSaving={passwordSaving}
+                onCurrentPasswordChange={setCurrentPassword}
+                onNewPasswordChange={setNewPassword}
+                onConfirmNewPasswordChange={setConfirmNewPassword}
+                onChangePassword={handleChangePassword}
+                onOpenOrdersNow={() => {
+                  setActiveTab('orders');
+                  loadOrders(true);
+                }}
+              />
             ) : activeTab === 'offers' ? (
-              offersLoading ? (
-                <div className="flex justify-center py-20"><Loader2 className="animate-spin text-amber-300" /></div>
-              ) : (offers || []).length === 0 ? (
-                <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-10 md:p-12 text-center text-slate-400 font-bold">
-                  لا توجد عروض جديدة حالياً.
-                </div>
-              ) : (
-                <div className="space-y-3 md:space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-lg md:text-xl font-black">عروض جديدة</h3>
-                    <button
-                      onClick={() => loadOffers(true)}
-                      className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-black"
-                    >
-                      <RefreshCw size={14} className={offersRefreshing ? 'animate-spin' : ''} />
-                      تحديث
-                    </button>
-                  </div>
-
-                  {(offers || [])
-                    .filter((o) => String(o?.status || '').toUpperCase() === 'PENDING')
-                    .map((offer) => {
-                      const order = offer?.order;
-                      const fee = getDeliveryFeeFromNotes(order?.notes) || 0;
-                      const grandTotal = Number(order?.total || 0) + fee;
-                      const location = parseCodLocation(order?.notes);
-                      const shopLat = Number((order as any)?.shop?.latitude);
-                      const shopLng = Number((order as any)?.shop?.longitude);
-                      const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
-                      const expiresAtMs = offer?.expiresAt ? new Date(offer.expiresAt).getTime() : NaN;
-                      const secondsLeft = Number.isFinite(expiresAtMs) ? Math.max(0, Math.floor((expiresAtMs - Date.now()) / 1000)) : null;
-
-                      return (
-                        <div key={String(offer.id)} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6">
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div className="space-y-1">
-                              <p className="text-xs text-slate-500 font-black uppercase">عرض طلب</p>
-                              <h3 className="text-lg font-black">{order?.shop?.name || 'متجر غير معروف'}</h3>
-                              <p className="text-xs text-slate-400 font-bold">
-                                العميل: {order?.user?.name || 'غير معروف'} {order?.user?.phone ? `• ${order.user.phone}` : ''}
-                              </p>
-                              <div className="flex flex-wrap gap-2 pt-1">
-                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
-                                  الإجمالي: ج.م {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
-                                </span>
-                                {secondsLeft != null && (
-                                  <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/10 text-amber-300 font-black text-xs">
-                                    متبقي: {secondsLeft}s
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex flex-wrap gap-2">
-                              {location && (
-                                <a
-                                  href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
-                                >
-                                  <MapPin size={12} /> العميل
-                                </a>
-                              )}
-                              {location && hasShopCoords && (
-                                <a
-                                  href={`https://www.google.com/maps/dir/?api=1&origin=${shopLat},${shopLng}&destination=${location.lat},${location.lng}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-emerald-500/10 text-emerald-300 font-black text-xs"
-                                >
-                                  <MapPin size={12} /> مسار
-                                </a>
-                              )}
-                              <button
-                                onClick={() => handleAcceptOffer(String(offer.id))}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25 font-black text-xs"
-                              >
-                                <CheckCircle size={12} /> قبول
-                              </button>
-                              <button
-                                onClick={() => handleRejectOffer(String(offer.id))}
-                                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-500/10 text-red-300 hover:bg-red-500/15 font-black text-xs"
-                              >
-                                <X size={12} /> رفض
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                </div>
-              )
-            ) : loading ? (
-              <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
-            ) : visibleOrders.length === 0 ? (
-              <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-10 md:p-12 text-center text-slate-400 font-bold">
-                {activeTab === 'delivered' ? 'لا توجد طلبات تم توصيلها بعد.' : 'لا توجد طلبات مخصصة لك حالياً.'}
-              </div>
+              <CourierOffersTab
+                offers={offers}
+                offersLoading={offersLoading}
+                offersRefreshing={offersRefreshing}
+                acceptingOfferId={acceptingOfferId}
+                onRefresh={() => loadOffers(true)}
+                onAccept={handleAcceptOffer}
+                onReject={handleRejectOffer}
+                parseCodLocation={parseCodLocation}
+                getDeliveryFeeFromNotes={getDeliveryFeeFromNotes}
+                buildGoogleMapsLink={buildGoogleMapsLink}
+              />
             ) : (
-              <div className="space-y-3 md:space-y-6">
-                {visibleOrders.map((order) => {
-                  const fee = getDeliveryFeeFromNotes(order.notes) || 0;
-                  const grandTotal = Number(order.total || 0) + fee;
-                  const delivered = String(order.status || '').toUpperCase() === 'DELIVERED';
-                  const codCollected = !!order.codCollectedAt;
-                  const location = parseCodLocation(order.notes);
-                  const shopLat = Number((order as any)?.shop?.latitude);
-                  const shopLng = Number((order as any)?.shop?.longitude);
-                  const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
-                  const customerPhone = String(order?.user?.phone || '').trim();
-                  const customerName = String(order?.user?.name || 'غير معروف');
-                  const shopName = String(order?.shop?.name || 'متجر غير معروف');
-
-                  return (
-                    <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 lg:p-8">
-                      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
-                        <div className="space-y-1 md:space-y-2">
-                          <p className="text-xs text-slate-500 font-black uppercase">طلب #{String(order.id).slice(0, 8)}</p>
-                          <h3 className="text-lg md:text-xl font-black">{shopName}</h3>
-                          <p className="text-xs md:text-sm text-slate-400 font-bold">
-                            العميل: {customerName} {customerPhone ? `• ${customerPhone}` : ''}
-                          </p>
-                          <p className="text-xs text-slate-500">{new Date(order.created_at || order.createdAt).toLocaleString('ar-EG')}</p>
-                        </div>
-                        <div className="flex flex-wrap gap-2 md:gap-3">
-                          {location && (
-                            <a
-                              href={`https://www.google.com/maps?q=${location.lat},${location.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
-                            >
-                              <MapPin size={12} /> فتح الخريطة
-                            </a>
-                          )}
-                          {location && hasShopCoords && (
-                            <a
-                              href={`https://www.google.com/maps/dir/?api=1&origin=${shopLat},${shopLng}&destination=${location.lat},${location.lng}`}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-emerald-500/10 text-emerald-300 font-black text-xs"
-                            >
-                              <MapPin size={12} /> مسار من المتجر
-                            </a>
-                          )}
-                          {customerPhone ? (
-                            <a
-                              href={`tel:${customerPhone}`}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
-                            >
-                              <Phone size={12} /> اتصال
-                            </a>
-                          ) : null}
-                          {customerPhone ? (
-                            <button
-                              type="button"
-                              onClick={() => copyText(customerPhone, 'انسخ رقم العميل')}
-                              className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
-                            >
-                              <Copy size={12} /> نسخ الرقم
-                            </button>
-                          ) : null}
-                          <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
-                            الإجمالي: ج.م {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
-                          </span>
-                          {fee > 0 && (
-                            <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-amber-500/10 text-amber-300 font-black text-xs">
-                              رسوم التوصيل: ج.م {fee}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="mt-4 md:mt-6 grid md:grid-cols-2 gap-4 md:gap-6">
-                        <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
-                          <p className="text-xs text-slate-500 font-black mb-2 md:mb-3">الأصناف</p>
-                          <ul className="space-y-1 md:space-y-2 text-xs md:text-sm text-slate-300">
-                            {(order.items || []).map((item: OrderItem) => (
-                              <li key={item.id} className="flex items-center justify-between">
-                                <span>{item.product?.name || 'منتج'}</span>
-                                <span className="text-slate-400">× {item.quantity}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                        <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
-                          <div>
-                            <p className="text-xs text-slate-500 font-black">الحالة الحالية</p>
-                            <p className="text-xs md:text-sm font-black text-white">{String(order.status || 'PENDING')}</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2 md:gap-3">
-                            <button
-                              disabled={delivered}
-                              onClick={async () => {
-                                if (delivered) return;
-                                const ok = window.confirm('تأكيد: تم تسليم الطلب للعميل؟');
-                                if (!ok) return;
-                                await updateOrder(String(order.id), { status: 'DELIVERED' });
-                              }}
-                              className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${delivered ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'}`}
-                            >
-                              <CheckCircle size={12} /> تم التوصيل
-                            </button>
-                            <button
-                              disabled={codCollected}
-                              onClick={async () => {
-                                if (codCollected) return;
-                                const ok = window.confirm('تأكيد: تم تحصيل الكاش من العميل؟');
-                                if (!ok) return;
-                                await updateOrder(String(order.id), { codCollected: true });
-                              }}
-                              className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${codCollected ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}
-                            >
-                              <Banknote size={12} /> {codCollected ? 'تم تحصيل الكاش' : 'تحصيل الكاش'}
-                            </button>
-                            {location?.address ? (
-                              <button
-                                type="button"
-                                onClick={() => copyText(String(location.address), 'انسخ العنوان')}
-                                className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black bg-white/5 text-slate-200 hover:bg-white/10"
-                              >
-                                <Copy size={12} /> نسخ العنوان
-                              </button>
-                            ) : null}
-                          </div>
-                          {(location?.address || location?.note) && (
-                            <div className="text-xs text-slate-400">
-                              {location?.address && <p>العنوان: {location.address}</p>}
-                              {location?.note && <p>ملاحظات: {location.note}</p>}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <CourierOrdersTab
+                activeTab={activeTab}
+                loading={loading}
+                visibleOrders={visibleOrders}
+                buildGoogleMapsLink={buildGoogleMapsLink}
+                parseCodLocation={parseCodLocation}
+                getDeliveryFeeFromNotes={getDeliveryFeeFromNotes}
+                copyText={copyText}
+                updateOrder={updateOrder}
+              />
             )}
           </div>
         </main>

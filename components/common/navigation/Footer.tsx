@@ -47,7 +47,7 @@ const Footer: React.FC = () => {
       links: [
         { name: 'إنشاء متجر', href: '/business/register' },
         { name: 'تسجيل الدخول', href: '/business/login' },
-        { name: 'تسجيل مندوب توصيل', href: '/business/courier-signup' },
+        { name: 'تسجيل مندوب توصيل', href: '/courier' },
         { name: 'الأسعار', href: '/pricing' },
         { name: 'الدعم', href: '/support' },
       ],

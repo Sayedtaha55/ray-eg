@@ -1,10 +1,11 @@
-const CACHE_NAME = 'mnmknk-v3';
+const CACHE_NAME = 'mnmknk-v4';
 const urlsToCache = [
   '/',
   '/shops',
   '/restaurants',
   '/map',
   '/manifest.json',
+  '/courier-manifest.json',
   '/icon-192x192.png',
   '/icon-512x512.png',
   '/apple-touch-icon.png',
