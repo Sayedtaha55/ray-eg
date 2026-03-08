@@ -248,7 +248,7 @@ const PublicLayout: React.FC = () => {
   };
 
   const pathname = String(location?.pathname || '');
-  const hideCartButton = pathname.startsWith('/shop/') || pathname.startsWith('/s/');
+  const hideCartButton = pathname === '/shop' || pathname.startsWith('/shop/') || pathname === '/s' || pathname.startsWith('/s/');
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] selection:bg-[#00E5FF] selection:text-black font-sans">

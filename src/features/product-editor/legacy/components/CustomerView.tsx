@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { ShoppingCart, LogOut, ChevronUp, ChevronDown, Plus, Minus, Trash2, ChevronLeft, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { Shop, Product, CartItem } from '../types';
 import { StoreViewer } from './StoreViewer.tsx';
@@ -23,6 +23,20 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
   const [selectedProductForReservation, setSelectedProductForReservation] = useState<Product | null>(null);
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const { playSound } = useCartSound();
+
+  const performanceMode = useMemo(() => {
+    try {
+      const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false;
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      const low = (typeof mem === 'number' && mem > 0 && mem <= 4) || (typeof cores === 'number' && cores > 0 && cores <= 4);
+      return coarse || low;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -92,6 +106,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
   }, [shop, shopCategory]);
 
   useEffect(() => {
+    if (performanceMode) return;
     const handleMove = (e: MouseEvent) => {
       setMousePos({
         x: (e.clientX / window.innerWidth - 0.5) * 20,
@@ -100,7 +115,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
     };
     window.addEventListener('mousemove', handleMove);
     return () => window.removeEventListener('mousemove', handleMove);
-  }, []);
+  }, [performanceMode]);
 
   useEffect(() => {
     const sync = () => {
@@ -290,9 +305,11 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
 
       {/* Holographic Cart */}
       <div
-        className="fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-auto z-[100] preserve-3d transition-transform duration-100 ease-out"
+        className={`fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-auto z-[100] ${performanceMode ? '' : 'preserve-3d transition-transform duration-100 ease-out'}`}
         style={{
-          transform: `perspective(1000px) rotateX(${mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg) translateZ(50px)`,
+          transform: performanceMode
+            ? 'translateZ(0)'
+            : `perspective(1000px) rotateX(${mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg) translateZ(50px)`,
         }}
       >
         {/* Mobile: Icon only with badge */}

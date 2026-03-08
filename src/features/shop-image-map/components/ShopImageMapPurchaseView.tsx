@@ -99,7 +99,18 @@ const ShopImageMapPurchaseView: React.FC = () => {
       bc = null;
     }
 
-    const intervalMs = 5000;
+    const isLikelyMobile = (() => {
+      try {
+        return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+          ? window.matchMedia('(pointer: coarse)').matches
+          : false;
+      } catch {
+        return false;
+      }
+    })();
+
+    const intervalMs = isLikelyMobile ? 20_000 : 10_000;
+
     const timer = window.setInterval(() => {
       try {
         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;

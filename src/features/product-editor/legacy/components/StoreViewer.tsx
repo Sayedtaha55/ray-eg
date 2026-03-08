@@ -363,12 +363,16 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
       style={{ top, left, zIndex: isOpen ? 100 : 10, transform: isOpen ? 'translateZ(50px)' : 'translateZ(0px)' }}
     >
       <div onClick={onToggle} className={`absolute -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all duration-300 group ${isOpen ? 'opacity-0 scale-0 pointer-events-none' : 'opacity-100 scale-100'}`}>
-        <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
-        <div className={`absolute inset-0 rounded-full opacity-75 ${performanceMode ? '' : 'animate-ping'} ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
-        <div className={`relative w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-transform group-hover:scale-125 ${isGhost ? 'bg-red-500/80 border-red-300' : 'bg-cyan-500/80 border-white backdrop-blur-sm'}`}>
+        {!performanceMode ? (
+          <div className={`absolute inset-0 rounded-full animate-ping opacity-75 ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
+        ) : null}
+        {!performanceMode ? (
+          <div className={`absolute inset-0 rounded-full opacity-75 animate-ping ${isGhost ? 'bg-red-500' : 'bg-cyan-500'}`} style={{ width: '100%', height: '100%' }}></div>
+        ) : null}
+        <div className={`relative w-4 h-4 md:w-6 md:h-6 rounded-full border-2 flex items-center justify-center shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-transform group-hover:scale-125 ${isGhost ? 'bg-red-500/80 border-red-300' : `bg-cyan-500/80 border-white ${performanceMode ? '' : 'backdrop-blur-sm'}`}`}>
           <div className="w-1 h-1 bg-white rounded-full"></div>
         </div>
-        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/70 backdrop-blur rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+        <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/70 ${performanceMode ? '' : 'backdrop-blur'} rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
           {showPrice && <div className="leading-tight">{product.price} ج.م</div>}
           {compactDimsLabel && <div className="leading-tight text-slate-200">{compactDimsLabel}</div>}
         </div>
@@ -376,8 +380,8 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
 
       {isOpen && (typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6" onClick={(e) => e.target === e.currentTarget && onToggle()}>
-          <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
-          <div className={`relative w-full max-w-sm sm:max-w-md bg-gradient-to-br from-slate-900/98 to-slate-800/98 backdrop-blur-2xl border border-cyan-500/30 rounded-3xl shadow-2xl transition-all duration-500 flex flex-col overflow-hidden ${justAdded ? 'scale-95 opacity-0 translate-y-8' : 'scale-100 opacity-100 translate-y-0'}`} onClick={(e) => e.stopPropagation()}>
+          <div className={`absolute inset-0 bg-black/70 ${performanceMode ? '' : 'backdrop-blur-md'}`} />
+          <div className={`relative w-full max-w-sm sm:max-w-md bg-gradient-to-br from-slate-900/98 to-slate-800/98 ${performanceMode ? '' : 'backdrop-blur-2xl'} border border-cyan-500/30 rounded-3xl shadow-2xl transition-all duration-500 flex flex-col overflow-hidden ${justAdded ? 'scale-95 opacity-0 translate-y-8' : 'scale-100 opacity-100 translate-y-0'}`} onClick={(e) => e.stopPropagation()}>
             <button onClick={(e) => { e.stopPropagation(); onToggle(); }} className="absolute top-2 left-2 text-slate-400 hover:text-white z-10 p-1 hover:bg-white/10 rounded-full transition-colors" type="button"><X size={14} /></button>
             <div className="p-4 pt-6 text-center max-h-[75vh] overflow-y-auto">
               <h3 className={`font-bold text-base mb-2 leading-tight ${isGhost ? 'text-slate-400' : 'text-white'}`}>{product.name}</h3>
@@ -477,6 +481,8 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
   const [openProductId, setOpenProductId] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const rotationRafRef = useRef<number | null>(null);
+  const rotationPendingRef = useRef<{ x: number; y: number } | null>(null);
   const [containerSize, setContainerSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageNatural, setImageNatural] = useState<{ w: number; h: number } | null>(null);
@@ -484,6 +490,7 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
   const panStateRef = useRef({ active: false, startX: 0, startOffset: 0 });
   const panRafRef = useRef<number | null>(null);
   const panPendingRef = useRef<{ overflowX: number; dx: number; startOffset: number } | null>(null);
+  const lastPanCommitRef = useRef<number>(0);
 
   const performanceMode = useMemo(() => {
     try {
@@ -519,6 +526,12 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
         panRafRef.current = null;
       }
       panPendingRef.current = null;
+
+      if (rotationRafRef.current != null) {
+        cancelAnimationFrame(rotationRafRef.current);
+        rotationRafRef.current = null;
+      }
+      rotationPendingRef.current = null;
     };
   }, []);
 
@@ -544,10 +557,21 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
     const { left, top, width, height } = containerRef.current.getBoundingClientRect();
     const x = ((e.clientX - left) / width) * 2 - 1;
     const y = ((e.clientY - top) / height) * 2 - 1;
-    setRotation({ x: -y * 2, y: x * 2 });
+    rotationPendingRef.current = { x: -y * 2, y: x * 2 };
+    if (rotationRafRef.current != null) return;
+    rotationRafRef.current = requestAnimationFrame(() => {
+      rotationRafRef.current = null;
+      const next = rotationPendingRef.current;
+      rotationPendingRef.current = null;
+      if (!next) return;
+      setRotation(next);
+    });
   };
 
-  useEffect(() => { setPanOffsetPx(0); }, [activeSectionIndex]);
+  useEffect(() => {
+    lastPanCommitRef.current = 0;
+    setPanOffsetPx(0);
+  }, [activeSectionIndex]);
 
   if (!activeSection) return <div>Loading...</div>;
 
@@ -591,6 +615,8 @@ export const StoreViewer: React.FC<StoreViewerProps> = React.memo(({ sections, o
                   panPendingRef.current = null;
                   if (!pending) return;
                   const clamped = Math.max(-(pending.overflowX / 2), Math.min(pending.overflowX / 2, pending.startOffset + pending.dx));
+                  if (Math.abs(clamped - lastPanCommitRef.current) < 1.5) return;
+                  lastPanCommitRef.current = clamped;
                   setPanOffsetPx(clamped);
                 });
               }}

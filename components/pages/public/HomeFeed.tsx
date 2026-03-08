@@ -307,14 +307,14 @@ const HomeFeed: React.FC = () => {
           <div className="flex justify-center gap-4 mt-6 sm:hidden">
             <button
               onClick={prevCategory}
-              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
               aria-label="السابق"
             >
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
               onClick={nextCategory}
-              className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+              className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
               aria-label="التالي"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -322,18 +322,23 @@ const HomeFeed: React.FC = () => {
           </div>
 
           {/* Category Indicators */}
-          <div className="flex justify-center gap-2 mt-6">
+          <div className="flex justify-center gap-1 mt-6">
             {categories.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setCurrentCategoryIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  index === currentCategoryIndex
-                    ? 'bg-slate-900 w-8'
-                    : 'bg-slate-300 hover:bg-slate-400'
+                className={`h-11 min-w-11 px-2 flex items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00E5FF] ${
+                  index === currentCategoryIndex ? 'bg-slate-900/10' : 'bg-transparent hover:bg-slate-100'
                 }`}
                 aria-label={`الفئة ${index + 1}`}
-              />
+                aria-current={index === currentCategoryIndex ? 'true' : undefined}
+              >
+                <span
+                  className={`block h-3 rounded-full transition-all ${
+                    index === currentCategoryIndex ? 'bg-slate-900 w-8' : 'bg-slate-400 w-3'
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </div>
