@@ -40,12 +40,27 @@
 
     <script>
       (function () {
+        function setManifestForCurrentRoute() {
+          try {
+            var hash = String(window.location.hash || '');
+            var isCourier = hash === '#/courier' || hash.indexOf('#/courier/') === 0;
+            var href = isCourier ? '/courier-manifest.json' : '/manifest.json';
+            var link = document.querySelector('link[rel="manifest"]');
+            if (link && String(link.getAttribute('href') || '') !== href) {
+              link.setAttribute('href', href);
+            }
+          } catch (e) {
+          }
+        }
+
         try {
-          var hash = String(window.location.hash || '');
-          var isCourier = hash === '#/courier' || hash.indexOf('#/courier/') === 0;
-          var href = isCourier ? '/courier-manifest.json' : '/manifest.json';
-          var link = document.querySelector('link[rel="manifest"]');
-          if (link) link.setAttribute('href', href);
+          setManifestForCurrentRoute();
+        } catch (e) {
+        }
+
+        try {
+          window.addEventListener('hashchange', setManifestForCurrentRoute);
+          window.addEventListener('popstate', setManifestForCurrentRoute);
         } catch (e) {
         }
       })();
