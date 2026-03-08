@@ -257,13 +257,13 @@ const HomeFeed: React.FC = () => {
          </Link>
       </div>
 
-      {/* Category Buttons */}
-      <section className="mb-16 md:mb-24">
-        <div className="flex flex-col items-center text-center mb-8 md:mb-12">
-          <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">استكشف العروض حسب الفئة</h2>
-          <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
-        </div>
-        <div className="relative max-w-4xl mx-auto">
+      {import.meta.env.DEV && (
+        <section className="mb-16 md:mb-24">
+          <div className="flex flex-col items-center text-center mb-8 md:mb-12">
+            <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">استكشف العروض حسب الفئة</h2>
+            <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
+          </div>
+          <div className="relative max-w-4xl mx-auto">
           <div className="flex items-center justify-center gap-4">
             {/* Left Arrow */}
             <button
@@ -341,8 +341,9 @@ const HomeFeed: React.FC = () => {
               </button>
             ))}
           </div>
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       {/* Offers Grid */}
       <section className="mb-16 md:mb-24">
