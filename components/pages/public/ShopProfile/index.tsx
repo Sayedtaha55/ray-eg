@@ -11,6 +11,7 @@ import {
   Menu,
   ShoppingCart,
   User,
+  FilePlus,
 } from 'lucide-react';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
@@ -708,6 +709,19 @@ const ShopProfile: React.FC = () => {
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
   const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop.name}`)}` : '';
 
+  const isPharmacy = String((shop as any)?.category || '').trim().toUpperCase() === 'HEALTH';
+  const prescriptionHref = (() => {
+    const base = String(whatsappHref || '').trim();
+    if (!base) return '';
+    try {
+      const u = new URL(base);
+      u.searchParams.set('text', `مرحبا ${shop?.name || ''}، عايز أضيف روشتة`);
+      return u.toString();
+    } catch {
+      return base;
+    }
+  })();
+
   const lowEndDevice = (() => {
     try {
       const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
@@ -781,6 +795,22 @@ const ShopProfile: React.FC = () => {
           ) : null
         }
       />
+
+      {isPharmacy && prescriptionHref ? (
+        <div className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8" dir="rtl">
+          <div className="flex justify-center pt-6 md:pt-8">
+            <a
+              href={prescriptionHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm md:text-base text-white shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              style={{ backgroundColor: String(currentDesign?.primaryColor || '').trim() || '#00E5FF' }}
+            >
+              <FilePlus size={18} /> إضافة روشتة
+            </a>
+          </div>
+        </div>
+      ) : null}
 
       <main
         className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${showMobileBottomNav ? 'pb-28 md:pb-12' : ''}`}

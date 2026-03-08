@@ -61,6 +61,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const showHeaderShareButton = isVisible('headerShareButton', true);
   const showShopFollowersCount = isVisible('shopFollowersCount', true);
   const showShopFollowButton = isVisible('shopFollowButton', true);
+  const showProfileBanner = isVisible('profileBanner', true);
 
   const bannerUrl = String(currentDesign?.bannerUrl || '').trim();
   const isVideoBanner = isVideoUrl(bannerUrl);
@@ -97,6 +98,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }
     };
 
+    if (!showProfileBanner) {
+      setStuck(true);
+      measure();
+      window.addEventListener('resize', measure);
+      return () => {
+        window.removeEventListener('resize', measure);
+      };
+    }
+
     const computeStuck = () => {
       try {
         if (!bannerRef.current) return;
@@ -130,54 +140,56 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       window.removeEventListener('resize', measure);
       window.removeEventListener('scroll', onScroll as any);
     };
-  }, []);
+  }, [showProfileBanner]);
 
   return (
     <div className="relative">
       {/* Banner Section */}
-      <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
-        {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
-        {isVideoBanner ? (
-          shouldPlayVideoBanner ? (
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              poster={currentDesign?.bannerPosterUrl}
-              className="w-full h-full object-cover"
-              src={bannerUrl}
-              preload="none"
-            />
-          ) : (
-            <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-              <img 
-                src={currentDesign?.bannerPosterUrl || bannerUrl.replace(/\.(mp4|webm|mov)$/, '.jpg')} 
+      {showProfileBanner ? (
+        <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
+          {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
+          {isVideoBanner ? (
+            shouldPlayVideoBanner ? (
+              <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                poster={currentDesign?.bannerPosterUrl}
                 className="w-full h-full object-cover"
-                alt="Banner"
-                loading="lazy"
-                decoding="async"
+                src={bannerUrl}
+                preload="none"
               />
-            </div>
-          )
-        ) : (
-          <img
-            src={bannerUrl || '/placeholder-banner.jpg'}
-            alt={shop?.name}
-            className="w-full h-full object-cover"
-            decoding="async"
-            fetchPriority="high"
-            loading="eager"
-          />
-        )}
-        <div className="absolute inset-0 bg-black/20" />
+            ) : (
+              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
+                <img 
+                  src={currentDesign?.bannerPosterUrl || bannerUrl.replace(/\.(mp4|webm|mov)$/, '.jpg')} 
+                  className="w-full h-full object-cover"
+                  alt="Banner"
+                  loading="lazy"
+                  decoding="async"
+                />
+              </div>
+            )
+          ) : (
+            <img
+              src={bannerUrl || '/placeholder-banner.jpg'}
+              alt={shop?.name}
+              className="w-full h-full object-cover"
+              decoding="async"
+              fetchPriority="high"
+              loading="eager"
+            />
+          )}
+          <div className="absolute inset-0 bg-black/20" />
 
-        {purchaseModeButton ? (
-          <div className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-[50]">
-            {purchaseModeButton}
-          </div>
-        ) : null}
-      </div>
+          {purchaseModeButton ? (
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-6 md:bottom-8 z-[50]">
+              {purchaseModeButton}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       {stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
 
