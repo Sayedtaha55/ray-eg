@@ -451,40 +451,41 @@ const PublicLayout: React.FC = () => {
 
       <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto px-6">
-          {/* Links Section - First on mobile */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 mb-12 md:mb-16 text-right">
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/offers/restaurants" className="hover:text-white transition-colors">عروض المطاعم</Link>
-                <Link to="/offers/fashion" className="hover:text-white transition-colors">عروض الملابس والأحذية</Link>
-                <Link to="/offers/supermarket" className="hover:text-white transition-colors">عروض السوبر ماركت</Link>
-                <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
-              </nav>
+          <div className="flex flex-col gap-12 md:gap-16 md:grid md:grid-cols-2">
+            <div className="order-2 md:order-1 md:col-span-2">
+              {/* Links Section - First on mobile */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 text-right">
+                <div>
+                  <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
+                  <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                    <Link to="/offers/restaurants" className="hover:text-white transition-colors">عروض المطاعم</Link>
+                    <Link to="/offers/fashion" className="hover:text-white transition-colors">عروض الملابس والأحذية</Link>
+                    <Link to="/offers/supermarket" className="hover:text-white transition-colors">عروض السوبر ماركت</Link>
+                    <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
+                  </nav>
+                </div>
+                <div>
+                  <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
+                  <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                    <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
+                    {String(user?.role || '').toLowerCase() === 'courier' ? (
+                      <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
+                    ) : null}
+                  </nav>
+                </div>
+                <div>
+                  <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
+                  <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
+                    <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
+                    <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
+                    <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
+                    <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
+                  </nav>
+                </div>
+              </div>
             </div>
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
-                {String(user?.role || '').toLowerCase() === 'courier' ? (
-                  <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
-                ) : null}
-              </nav>
-            </div>
-            <div>
-              <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
-              <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
-                <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
-                <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
-                <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
-              </nav>
-            </div>
-          </div>
 
-          {/* Brand and Contact Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-20 text-right">
-            <div>
+            <div className="order-1 md:order-2">
               <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
                 <BrandLogo variant="business" iconOnly />
                 <span className="text-2xl font-black tracking-tighter uppercase">من مكانك</span>
@@ -492,7 +493,7 @@ const PublicLayout: React.FC = () => {
               <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium mb-6">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
             </div>
 
-            <div className="space-y-6">
+            <div className="order-3 md:order-3 space-y-6 text-right">
               {/* Contact Info */}
               <div className="space-y-3">
                 <h4 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">تواصل معنا</h4>
