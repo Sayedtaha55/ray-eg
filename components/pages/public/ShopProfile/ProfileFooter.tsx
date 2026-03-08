@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Info, Users, Clock, ShoppingBag } from 'lucide-react';
 
@@ -67,8 +68,8 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
               <ul className="space-y-4 font-bold opacity-70 text-sm">
                 <li><a href="#" className="hover:opacity-100 transition-opacity">الرئيسية</a></li>
                 <li><a href="#" className="hover:opacity-100 transition-opacity">العروض</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">سياسة الاسترجاع</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">الشروط والأحكام</a></li>
+                <li><Link to="/return-policy" className="hover:opacity-100 transition-opacity">سياسة الاسترجاع</Link></li>
+                <li><Link to="/terms" className="hover:opacity-100 transition-opacity">الشروط والأحكام</Link></li>
               </ul>
             </div>
           )}

@@ -29,6 +29,7 @@ const SupportPage = React.lazy(() => import('./components/pages/public/SupportPa
 const TermsPage = React.lazy(() => import('./components/pages/public/TermsPage'));
 const PrivacyPage = React.lazy(() => import('./components/pages/public/PrivacyPage'));
 const ContactPage = React.lazy(() => import('./components/pages/public/ContactPage'));
+const ReturnPolicyPage = React.lazy(() => import('./components/pages/public/ReturnPolicyPage'));
 const SeoDirectoryPage = React.lazy(() => import('./components/pages/public/SeoDirectoryPage'));
 const ProductPage = React.lazy(() => import('./components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('./components/pages/public/ShopProfile'));
@@ -206,6 +207,7 @@ const App: React.FC = () => {
           <Route path="about" element={suspense(<AboutPage />)} />
           <Route path="support" element={suspense(<SupportPage />)} />
           <Route path="terms" element={suspense(<TermsPage />)} />
+          <Route path="return-policy" element={suspense(<ReturnPolicyPage />)} />
           <Route path="privacy" element={suspense(<PrivacyPage />)} />
           <Route path="contact" element={suspense(<ContactPage />)} />
           <Route path="dalil" element={suspense(<SeoDirectoryPage />)} />
