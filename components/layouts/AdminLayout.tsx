@@ -60,17 +60,17 @@ const AdminLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto no-scrollbar">
-           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname.startsWith('/admin/dashboard')} />
-           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname.startsWith('/admin/approvals')} />
-           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname.startsWith('/admin/shops')} />
-           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname.startsWith('/admin/users')} />
-           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname.startsWith('/admin/orders')} />
-           <AdminNavItem to="/admin/delivery" icon={<Truck size={20} />} label="إدارة التوصيل" active={location.pathname.startsWith('/admin/delivery')} />
-           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname.startsWith('/admin/feedback')} />
-           <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label="التحليلات" active={location.pathname.startsWith('/admin/analytics')} />
-           <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label="الإشعارات" active={location.pathname.startsWith('/admin/notifications')} />
-           <AdminNavItem to="/admin/content" icon={<FileText size={20} />} label="إدارة المحتوى" active={location.pathname.startsWith('/admin/content')} />
-           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label="إعدادات النظام" active={location.pathname.startsWith('/admin/settings')} />
+           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname.startsWith('/admin/dashboard')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname.startsWith('/admin/approvals')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname.startsWith('/admin/shops')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname.startsWith('/admin/users')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname.startsWith('/admin/orders')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/delivery" icon={<Truck size={20} />} label="إدارة التوصيل" active={location.pathname.startsWith('/admin/delivery')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname.startsWith('/admin/feedback')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label="التحليلات" active={location.pathname.startsWith('/admin/analytics')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label="الإشعارات" active={location.pathname.startsWith('/admin/notifications')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/content" icon={<FileText size={20} />} label="إدارة المحتوى" active={location.pathname.startsWith('/admin/content')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label="إعدادات النظام" active={location.pathname.startsWith('/admin/settings')} onNavigate={() => setSidebarOpen(false)} />
         </nav>
 
         <div className="p-8 border-t border-white/5">
@@ -104,8 +104,8 @@ const AdminLayout: React.FC = () => {
   );
 };
 
-const AdminNavItem = ({to, icon, label, active}: any) => (
-  <Link to={to} className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-bold ${active ? 'bg-[#00E5FF] text-black shadow-[0_10px_30px_rgba(0,229,255,0.2)]' : 'text-slate-400 hover:bg-white/5'}`}>
+const AdminNavItem = ({to, icon, label, active, onNavigate}: any) => (
+  <Link to={to} onClick={onNavigate} className={`flex items-center gap-4 px-6 py-4 rounded-2xl transition-all font-bold ${active ? 'bg-[#00E5FF] text-black shadow-[0_10px_30px_rgba(0,229,255,0.2)]' : 'text-slate-400 hover:bg-white/5'}`}>
      {icon}
      <span className="text-sm">{label}</span>
   </Link>

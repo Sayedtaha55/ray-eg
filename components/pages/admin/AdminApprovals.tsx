@@ -17,34 +17,36 @@ const AdminApprovals: React.FC = () => {
   const [moduleLoading, setModuleLoading] = useState(false);
   const { addToast } = useToast();
 
-  const loadShops = async () => {
-    setLoading(true);
+  const loadShops = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const [data] = await Promise.all([
         ApiService.getPendingShops(),
       ]);
       setShops(data);
-    } catch (e) {
-      addToast('فشل تحميل الطلبات', 'error');
+    } catch {
+      if (!silent) addToast('فشل تحميل الطلبات', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
-  const loadModuleRequests = async () => {
-    setModuleLoading(true);
+  const loadModuleRequests = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setModuleLoading(true);
     try {
       const res = await (ApiService as any).adminListModuleUpgradeRequests?.({ status: 'PENDING', take: 100 });
       setModuleRequests(Array.isArray(res) ? res : []);
     } catch (e) {
-      const status = e instanceof BackendRequestError ? e.status : undefined;
-      if (status === 401 || status === 403) {
-        addToast('لا تملك صلاحية عرض طلبات ترقية الأزرار', 'error');
-      } else {
-        addToast('فشل تحميل طلبات ترقية الأزرار', 'error');
+      if (!silent) {
+        const status = e instanceof BackendRequestError ? e.status : undefined;
+        if (status === 401 || status === 403) {
+          addToast('لا تملك صلاحية عرض طلبات ترقية الأزرار', 'error');
+        } else {
+          addToast('فشل تحميل طلبات ترقية الأزرار', 'error');
+        }
       }
     } finally {
-      setModuleLoading(false);
+      if (!silent) setModuleLoading(false);
     }
   };
 

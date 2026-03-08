@@ -14,8 +14,8 @@ const AdminShops: React.FC = () => {
   const [shopStatusFilter, setShopStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>('all');
   const { addToast } = useToast();
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoading(true);
     try {
       const [allS, p] = await Promise.all([
         ApiService.getShops('all'),
@@ -24,11 +24,13 @@ const AdminShops: React.FC = () => {
       setShops(Array.isArray(allS) ? allS : []);
       setPendingShops(Array.isArray(p) ? p : []);
     } catch {
-      addToast('فشل تحميل المتاجر', 'error');
-      setShops([]);
-      setPendingShops([]);
+      if (!silent) {
+        addToast('فشل تحميل المتاجر', 'error');
+        setShops([]);
+        setPendingShops([]);
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
