@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, Badge, Button } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
+import { RayDB } from '@/constants';
 
 interface ProductCardProps {
   product: {
@@ -25,8 +26,10 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   product,
   onAddToCart,
   onToggleFavorite,
-  isFavorite = false,
+  isFavorite: isFavoriteProp,
 }) => {
+  const isFavorite = isFavoriteProp ?? (product?.id ? RayDB.isFavorite(product.id) : false);
+
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : product.discount || 0;
