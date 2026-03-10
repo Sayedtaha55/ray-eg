@@ -158,8 +158,7 @@ const ProductPage: React.FC = () => {
             }
           }
 
-          const favs = RayDB.getFavorites();
-          setIsFavorite(favs.includes(String(p.id)));
+          setIsFavorite(RayDB.isFavorite(String(p.id)));
           return;
         }
 
@@ -179,8 +178,7 @@ const ProductPage: React.FC = () => {
           }
           if (prodResolved?.id) {
             setProduct(prodResolved);
-            const favs = RayDB.getFavorites();
-            setIsFavorite(favs.includes(String(prodResolved.id)));
+            setIsFavorite(RayDB.isFavorite(String(prodResolved.id)));
           } else {
             setError(true);
           }

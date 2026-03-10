@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2025-05-15 - [Synchronous Storage Bottleneck]
+**Learning:** Repeatedly calling `localStorage.getItem()` and `JSON.parse()` within a render loop or for every item in a large list (e.g., checking "isFavorite" status) creates an $O(N^2)$ performance bottleneck and causes dropped frames during scroll or navigation.
+**Action:** Implement an in-memory cache (like a `Set`) for frequently accessed storage items and use a `storage` event listener to keep it synchronized across tabs.
