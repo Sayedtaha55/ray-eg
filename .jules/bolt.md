@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2026-03-11 - [Type Safety in LocalStorage]
+**Learning:** `localStorage` data can persist legacy types (e.g., numeric IDs) even after the schema or logic moves to strings. Using `Array.indexOf` or `Set.has` without explicit string normalization can lead to duplicate entries and broken "un-favorite" logic.
+**Action:** Always normalize keys/IDs to strings when reading from or writing to `localStorage` collections, and use `Set` for O(1) in-memory lookups to avoid O(N) overhead in render loops.

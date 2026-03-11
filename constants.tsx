@@ -21,6 +21,44 @@ export const MOCK_SHOPS: Shop[] = [
   
 ];
 
+// In-memory cache for favorites to avoid redundant localStorage access and JSON parsing.
+const favoritesSet = new Set<string>();
+let favoritesInitialized = false;
+
+const initFavorites = () => {
+  if (favoritesInitialized) return;
+  if (typeof window === 'undefined') {
+    // Avoid marking as initialized on server to ensure it runs on client,
+    // but don't block subsequent calls in the same server render if any.
+    return;
+  }
+  try {
+    const raw = localStorage.getItem('ray_favorites');
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) {
+      // Normalize all IDs to strings to ensure consistent lookups
+      parsed.forEach(id => {
+        if (id !== null && id !== undefined) {
+          favoritesSet.add(String(id));
+        }
+      });
+    }
+  } catch (e) {
+    console.error('Failed to initialize favorites cache:', e);
+  }
+  favoritesInitialized = true;
+};
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ray_favorites') {
+      favoritesSet.clear();
+      favoritesInitialized = false;
+      initFavorites();
+    }
+  });
+}
+
 export const RayDB = {
   getShops: async () => ApiService.getShops(),
   getOffers: async () => ApiService.getOffers(),
@@ -28,7 +66,14 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  getFavorites: (): string[] => {
+    if (!favoritesInitialized) initFavorites();
+    return Array.from(favoritesSet);
+  },
+  isFavorite: (id: string | number) => {
+    if (!favoritesInitialized) initFavorites();
+    return id !== null && id !== undefined && favoritesSet.has(String(id));
+  },
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -234,13 +279,23 @@ export const RayDB = {
   clearCart: () => {
     return RayDB.setCart([]);
   },
-  toggleFavorite: (id: string) => {
-    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-    const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-    localStorage.setItem('ray_favorites', JSON.stringify(favs));
+  toggleFavorite: (id: string | number) => {
+    if (!favoritesInitialized) initFavorites();
+    const sid = String(id);
+
+    // Toggle in memory Set
+    const isNowFavorite = !favoritesSet.has(sid);
+    if (isNowFavorite) {
+      favoritesSet.add(sid);
+    } else {
+      favoritesSet.delete(sid);
+    }
+
+    // Sync back to localStorage as a plain array
+    localStorage.setItem('ray_favorites', JSON.stringify(Array.from(favoritesSet)));
+
     window.dispatchEvent(new Event('ray-db-update'));
-    return idx === -1;
+    return isNowFavorite;
   },
   getReceiptTheme: (shopId: string): ReceiptTheme => {
     try {
