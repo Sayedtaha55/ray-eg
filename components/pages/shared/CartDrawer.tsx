@@ -582,6 +582,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 const label = String(sel?.label || '').trim();
                                 const qtyRaw = typeof sel?.qty === 'number' ? sel.qty : Number(sel?.qty || NaN);
                                 const unit = String(sel?.unit || '').trim();
+                                const priceRaw = typeof sel?.price === 'number' ? sel.price : Number(sel?.price ?? NaN);
 
                                 const packId = String(sel?.packId || sel?.id || '').trim();
                                 const defs = Array.isArray((item as any)?.packOptions) ? (item as any).packOptions : [];
@@ -590,18 +591,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                   : null;
                                 const defLabel = String(def?.label || def?.name || '').trim();
                                 const defQtyRaw = typeof def?.qty === 'number' ? def.qty : Number(def?.qty || NaN);
+                                const defPriceRaw = typeof def?.price === 'number' ? def.price : Number(def?.price ?? NaN);
                                 const defUnit = String(def?.unit || (item as any)?.unit || '').trim();
 
-                                const fallback = Number.isFinite(qtyRaw) && qtyRaw > 0
-                                  ? `${qtyRaw}${unit ? ` ${unit}` : ''}`
-                                  : (Number.isFinite(defQtyRaw) && defQtyRaw > 0
-                                    ? `${defQtyRaw}${defUnit ? ` ${defUnit}` : ''}`
-                                    : '');
-                                const text = label || defLabel || fallback;
-                                if (!text) return null;
+                                const qtyText = Number.isFinite(qtyRaw) && qtyRaw > 0
+                                  ? qtyRaw
+                                  : (Number.isFinite(defQtyRaw) && defQtyRaw > 0 ? defQtyRaw : NaN);
+                                const unitText = unit || defUnit;
+                                const priceText = Number.isFinite(priceRaw) && priceRaw >= 0
+                                  ? priceRaw
+                                  : (Number.isFinite(defPriceRaw) && defPriceRaw >= 0 ? defPriceRaw : NaN);
+                                const left = (label || defLabel)
+                                  ? String(label || defLabel)
+                                  : (Number.isFinite(qtyText) ? `${qtyText}${unitText ? ` ${unitText}` : ''}` : '');
+                                if (!left) return null;
+                                const full = Number.isFinite(priceText) ? `${left} = ج.م ${Math.round(priceText * 100) / 100}` : left;
                                 return (
                                   <p className="mt-1 text-[10px] font-bold text-slate-500">
-                                    {text}
+                                    {full}
                                   </p>
                                 );
                               }

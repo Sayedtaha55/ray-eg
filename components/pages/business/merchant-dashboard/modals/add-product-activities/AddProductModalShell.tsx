@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -19,9 +19,17 @@ type Props = {
   fashionSizeItems?: any[];
   allowExtraImages: boolean;
   title: string;
-  renderExtras?: (ctx: { parseNumberInput: (v: any) => number }) => React.ReactNode;
+  renderExtras?: (ctx: { parseNumberInput: (v: any) => number; groceryPackEnabled: boolean }) => React.ReactNode;
   buildExtrasPayload?: (ctx: { parseNumberInput: (v: any) => number; basePrice: number }) => { payload?: any; resolvedBasePrice?: number };
   shopCategory?: Category | string;
+  restaurantBaseSizesEnabled?: boolean;
+  setRestaurantBaseSizesEnabled?: (v: boolean) => void;
+  restaurantPriceSmall?: string;
+  setRestaurantPriceSmall?: (v: string) => void;
+  restaurantPriceMedium?: string;
+  setRestaurantPriceMedium?: (v: string) => void;
+  restaurantPriceLarge?: string;
+  setRestaurantPriceLarge?: (v: string) => void;
 };
 
 const MotionDiv = motion.div as any;
@@ -38,23 +46,60 @@ const AddProductModalShell: React.FC<Props> = ({
   renderExtras,
   buildExtrasPayload,
   shopCategory,
+  restaurantBaseSizesEnabled: externalRestaurantBaseSizesEnabled,
+  setRestaurantBaseSizesEnabled: externalSetRestaurantBaseSizesEnabled,
+  restaurantPriceSmall: externalRestaurantPriceSmall,
+  setRestaurantPriceSmall: externalSetRestaurantPriceSmall,
+  restaurantPriceMedium: externalRestaurantPriceMedium,
+  setRestaurantPriceMedium: externalSetRestaurantPriceMedium,
+  restaurantPriceLarge: externalRestaurantPriceLarge,
+  setRestaurantPriceLarge: externalSetRestaurantPriceLarge,
 }) => {
-  const [name, setName] = useState('');
-  const [price, setPrice] = useState('');
-  const [stock, setStock] = useState('');
-  const [cat, setCat] = useState('عام');
-  const [description, setDescription] = useState('');
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [imageUploadFile, setImageUploadFile] = useState<File | null>(null);
-  const [extraImagePreviews, setExtraImagePreviews] = useState<string[]>([]);
-  const [extraImageUploadFiles, setExtraImageUploadFiles] = useState<File[]>([]);
-  const [isCompressing, setIsCompressing] = useState(false);
-  const [compressionProgress, setCompressionProgress] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [name, setName] = React.useState('');
+  const [price, setPrice] = React.useState('');
+  const [groceryPackEnabled, setGroceryPackEnabled] = React.useState(false);
+  const [restaurantBaseSizesEnabled, setRestaurantBaseSizesEnabled] = React.useState(externalRestaurantBaseSizesEnabled || false);
+  const [restaurantPriceSmall, setRestaurantPriceSmall] = React.useState(externalRestaurantPriceSmall || '');
+  const [restaurantPriceMedium, setRestaurantPriceMedium] = React.useState(externalRestaurantPriceMedium || '');
+  const [restaurantPriceLarge, setRestaurantPriceLarge] = React.useState(externalRestaurantPriceLarge || '');
+  const [stock, setStock] = React.useState('');
+  const [cat, setCat] = React.useState('عام');
+  const [description, setDescription] = React.useState('');
+  const [imagePreview, setImagePreview] = React.useState<string | null>(null);
+  const [imageUploadFile, setImageUploadFile] = React.useState<File | null>(null);
+  const [extraImagePreviews, setExtraImagePreviews] = React.useState<string[]>([]);
+  const [extraImageUploadFiles, setExtraImageUploadFiles] = React.useState<File[]>([]);
+  const [isCompressing, setIsCompressing] = React.useState(false);
+  const [compressionProgress, setCompressionProgress] = React.useState(0);
+  const [loading, setLoading] = React.useState(false);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const extraFilesInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const extraFilesInputRef = React.useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
+
+  React.useEffect(() => {
+    if (typeof externalSetRestaurantBaseSizesEnabled === 'function') {
+      externalSetRestaurantBaseSizesEnabled(restaurantBaseSizesEnabled);
+    }
+  }, [restaurantBaseSizesEnabled, externalSetRestaurantBaseSizesEnabled]);
+
+  React.useEffect(() => {
+    if (typeof externalSetRestaurantPriceSmall === 'function') {
+      externalSetRestaurantPriceSmall(restaurantPriceSmall);
+    }
+  }, [restaurantPriceSmall, externalSetRestaurantPriceSmall]);
+
+  React.useEffect(() => {
+    if (typeof externalSetRestaurantPriceMedium === 'function') {
+      externalSetRestaurantPriceMedium(restaurantPriceMedium);
+    }
+  }, [restaurantPriceMedium, externalSetRestaurantPriceMedium]);
+
+  React.useEffect(() => {
+    if (typeof externalSetRestaurantPriceLarge === 'function') {
+      externalSetRestaurantPriceLarge(restaurantPriceLarge);
+    }
+  }, [restaurantPriceLarge, externalSetRestaurantPriceLarge]);
 
   const shopCategoryUpper = (() => {
     const raw: any = shopCategory;
@@ -65,6 +110,8 @@ const AddProductModalShell: React.FC<Props> = ({
     }
     return String(raw || '').trim().toUpperCase();
   })();
+
+  const allowGroceryPackToggle = !isRestaurant && shopCategoryUpper === 'FOOD';
   const devActivityId = (() => {
     try {
       return String(localStorage.getItem('ray_dev_activity_id') || '').trim();
@@ -227,11 +274,34 @@ const AddProductModalShell: React.FC<Props> = ({
     }
 
     const parsedPrice = parseNumberInput(price);
-    const basePrice = parsedPrice;
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-      addToast('السعر غير صحيح', 'error');
+    const baseSizes = (() => {
+      if (!isRestaurant) return null;
+      if (!restaurantBaseSizesEnabled) return null;
+      const ps = parseNumberInput(restaurantPriceSmall);
+      const pm = parseNumberInput(restaurantPriceMedium);
+      const pl = parseNumberInput(restaurantPriceLarge);
+      if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
+      if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
+      if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
+      return [
+        { id: 'small', label: 'صغير', price: ps },
+        { id: 'medium', label: 'وسط', price: pm },
+        { id: 'large', label: 'كبير', price: pl },
+      ];
+    })();
+
+    if (baseSizes === '__INVALID__') {
+      addToast('يرجى إدخال سعر صحيح للأحجام (صغير/وسط/كبير)', 'error');
       return;
     }
+
+    const basePrice = (() => {
+      if (Array.isArray(baseSizes) && baseSizes.length > 0) {
+        const min = Math.min(...baseSizes.map((s: any) => Number(s?.price || 0)).filter((n: any) => Number.isFinite(n) && n > 0));
+        return Number.isFinite(min) ? min : parsedPrice;
+      }
+      return parsedPrice;
+    })();
 
     const parsedStock = isRestaurant ? 0 : parseNumberInput(stock);
     if (!isRestaurant && (!Number.isFinite(parsedStock) || parsedStock < 0)) {
@@ -242,7 +312,22 @@ const AddProductModalShell: React.FC<Props> = ({
     const extras = (() => {
       if (!buildExtrasPayload) return { payload: undefined as any, resolvedBasePrice: undefined as any };
       try {
-        return buildExtrasPayload({ parseNumberInput, basePrice });
+        const res = buildExtrasPayload({ parseNumberInput, basePrice });
+        const payload = (res && typeof res === 'object') ? (res as any).payload : undefined;
+        const merged = {
+          ...(payload && typeof payload === 'object' ? payload : {}),
+        } as any;
+
+        if (Array.isArray(baseSizes) && baseSizes.length > 0) {
+          const existing = merged?.menuVariants;
+          const list = Array.isArray(existing) ? existing : [];
+          merged.menuVariants = [
+            { id: 'base', name: String(name || '').trim() || 'المنتج', sizes: baseSizes },
+            ...list,
+          ];
+        }
+
+        return { ...res, payload: merged };
       } catch (e: any) {
         const msg = e?.message ? String(e.message) : 'بيانات النشاط غير صحيحة';
         addToast(msg, 'error');
@@ -254,10 +339,34 @@ const AddProductModalShell: React.FC<Props> = ({
       return;
     }
 
-    const resolvedBasePrice = typeof extras?.resolvedBasePrice === 'number' ? extras.resolvedBasePrice : basePrice;
-    if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
-      addToast('السعر غير صحيح', 'error');
-      return;
+    const isPackEnabledByExtras = (() => {
+      const packOptions = (extras as any)?.payload?.packOptions;
+      return Array.isArray(packOptions) && packOptions.length > 0;
+    })();
+
+    const resolvedBasePrice = (() => {
+      if (typeof (extras as any)?.resolvedBasePrice === 'number') return (extras as any).resolvedBasePrice;
+      if (isPackEnabledByExtras) {
+        const packOptions = (extras as any)?.payload?.packOptions;
+        const first = Array.isArray(packOptions) ? packOptions[0] : null;
+        const p = first ? parseNumberInput((first as any)?.price) : NaN;
+        return Number.isFinite(p) ? p : basePrice;
+      }
+      return basePrice;
+    })();
+
+    if (!isPackEnabledByExtras) {
+      if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
+        addToast('السعر غير صحيح', 'error');
+        return;
+      }
+    }
+
+    if (isPackEnabledByExtras) {
+      if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice <= 0) {
+        addToast('يرجى إدخال سعر صحيح للباقة', 'error');
+        return;
+      }
     }
 
     setLoading(true);
@@ -342,6 +451,16 @@ const AddProductModalShell: React.FC<Props> = ({
             setName={setName}
             price={price}
             setPrice={setPrice}
+            groceryPackEnabled={groceryPackEnabled}
+            setGroceryPackEnabled={allowGroceryPackToggle ? setGroceryPackEnabled : undefined}
+            restaurantBaseSizesEnabled={restaurantBaseSizesEnabled}
+            setRestaurantBaseSizesEnabled={setRestaurantBaseSizesEnabled}
+            restaurantPriceSmall={restaurantPriceSmall}
+            setRestaurantPriceSmall={setRestaurantPriceSmall}
+            restaurantPriceMedium={restaurantPriceMedium}
+            setRestaurantPriceMedium={setRestaurantPriceMedium}
+            restaurantPriceLarge={restaurantPriceLarge}
+            setRestaurantPriceLarge={setRestaurantPriceLarge}
             stock={stock}
             setStock={setStock}
             cat={cat}
@@ -356,7 +475,7 @@ const AddProductModalShell: React.FC<Props> = ({
             descriptionPlaceholder={basicPlaceholders.desc}
           />
 
-          {typeof renderExtras === 'function' ? renderExtras({ parseNumberInput }) : null}
+          {typeof renderExtras === 'function' ? renderExtras({ parseNumberInput, groceryPackEnabled }) : null}
 
           {allowExtraImages && (
             <>

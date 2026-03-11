@@ -184,11 +184,17 @@ export function normalizeProductFromBackend(product: any) {
 export function normalizeOrderFromBackend(order: any) {
   if (!order) return order;
   const createdAt = order.createdAt ?? order.created_at;
+  const codCollectedAt = order.codCollectedAt ?? order.cod_collected_at;
+  const handedToCourierAt = order.handedToCourierAt ?? order.handed_to_courier_at;
   const shopId = order.shopId ?? order.shop_id;
   return {
     ...order,
     createdAt,
     created_at: order.created_at ?? createdAt,
+    codCollectedAt,
+    cod_collected_at: order.cod_collected_at ?? codCollectedAt,
+    handedToCourierAt,
+    handed_to_courier_at: order.handed_to_courier_at ?? handedToCourierAt,
     shopId,
     shop_id: order.shop_id ?? shopId,
     total: typeof order.total === 'number' ? order.total : Number(order.total || 0),

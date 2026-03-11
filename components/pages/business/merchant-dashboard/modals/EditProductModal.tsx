@@ -31,6 +31,11 @@ const MotionDiv = motion.div as any;
 const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory, product, onUpdate }) => {
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
+  const [groceryPackEnabled, setGroceryPackEnabled] = useState(false);
+  const [restaurantBaseSizesEnabled, setRestaurantBaseSizesEnabled] = useState(false);
+  const [restaurantPriceSmall, setRestaurantPriceSmall] = useState('');
+  const [restaurantPriceMedium, setRestaurantPriceMedium] = useState('');
+  const [restaurantPriceLarge, setRestaurantPriceLarge] = useState('');
   const [stock, setStock] = useState('');
   const [cat, setCat] = useState('عام');
   const [unit, setUnit] = useState('');
@@ -84,6 +89,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   })();
   const isFurniture = shopCategoryUpper === 'FURNITURE';
   const allowPackOptions = isFood || isRetail;
+  const allowGroceryPackToggle = isFood;
 
   const presetColors: Array<{ name: string; value: string }> = [
     { name: 'أسود', value: '#111827' },
@@ -210,6 +216,25 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       setFurnitureLengthCm(typeof fm?.lengthCm === 'number' ? String(fm.lengthCm) : (fm?.lengthCm != null ? String(fm.lengthCm) : ''));
       setFurnitureWidthCm(typeof fm?.widthCm === 'number' ? String(fm.widthCm) : (fm?.widthCm != null ? String(fm.widthCm) : ''));
       setFurnitureHeightCm(typeof fm?.heightCm === 'number' ? String(fm.heightCm) : (fm?.heightCm != null ? String(fm.heightCm) : ''));
+      
+      const menuVariantsRaw = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+      const baseVariant = Array.isArray(menuVariantsRaw) ? menuVariantsRaw.find((v: any) => String(v?.id || '').trim() === 'base') : null;
+      const hasBaseSizes = baseVariant && Array.isArray(baseVariant.sizes) && baseVariant.sizes.length > 0;
+      
+      setRestaurantBaseSizesEnabled(hasBaseSizes);
+      if (hasBaseSizes && baseVariant.sizes.length >= 3) {
+        const small = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'small');
+        const medium = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'medium');
+        const large = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'large');
+        setRestaurantPriceSmall(typeof small?.price === 'number' ? String(small.price) : '');
+        setRestaurantPriceMedium(typeof medium?.price === 'number' ? String(medium.price) : '');
+        setRestaurantPriceLarge(typeof large?.price === 'number' ? String(large.price) : '');
+      } else {
+        setRestaurantPriceSmall('');
+        setRestaurantPriceMedium('');
+        setRestaurantPriceLarge('');
+      }
+      
       setPackOptionItems(() => {
         const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
         const list = Array.isArray(raw) ? raw : [];
@@ -220,9 +245,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           return { id, qty, price };
         });
       });
+
+      setGroceryPackEnabled(() => {
+        if (!allowGroceryPackToggle) return false;
+        const raw = (product as any)?.packOptions ?? (product as any)?.pack_options;
+        const list = Array.isArray(raw) ? raw : [];
+        return list.length > 0;
+      });
       setImagePreview((product as any).imageUrl || (product as any).image_url || null);
       setMenuVariantItems(() => {
-        const raw = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+        const raw = menuVariantsRaw;
         const list = Array.isArray(raw) ? raw : [];
         const getSizePrice = (type: any, sizeId: string) => {
           const sizes = Array.isArray(type?.sizes) ? type.sizes : [];
@@ -235,6 +267,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           return Boolean(sizes.find((s: any) => String(s?.id || s?.sizeId || '').trim() === sizeId));
         };
         return list
+          .filter((t: any) => String(t?.id || '').trim() !== 'base')
           .map((t: any) => {
             const id = String(t?.id || t?.typeId || t?.variantId || '').trim();
             const name = String(t?.name || t?.label || '').trim();
@@ -320,9 +353,18 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     }
   }, [isOpen, product]);
 
+  useEffect(() => {
+    if (!allowGroceryPackToggle) return;
+    if (!groceryPackEnabled) return;
+    if (Array.isArray(packOptionItems) && packOptionItems.length > 0) return;
+    setPackOptionItems([{ id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' }]);
+  }, [allowGroceryPackToggle, groceryPackEnabled]);
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!product) return;
+
+    const packModeEnabled = Boolean(allowGroceryPackToggle && groceryPackEnabled);
 
     const packOptions = (() => {
       if (!allowPackOptions) return undefined;
@@ -351,6 +393,11 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       return;
     }
 
+    if (packModeEnabled && Array.isArray(packOptions) && packOptions.length === 0) {
+      addToast('يرجى إضافة باقة واحدة على الأقل', 'error');
+      return;
+    }
+
     const sizes = (() => {
       if (!isFashion) return undefined;
       const list = Array.isArray(fashionSizeItems) ? fashionSizeItems : [];
@@ -375,8 +422,28 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
     const menuVariants = (() => {
       if (!isRestaurant) return undefined;
-      const list = Array.isArray(menuVariantItems) ? menuVariantItems : [];
-      if (list.length === 0) return undefined;
+      let list = Array.isArray(menuVariantItems) ? menuVariantItems : [];
+      if (list.length === 0 && !restaurantBaseSizesEnabled) return undefined;
+
+      const baseSizes = (() => {
+        if (!restaurantBaseSizesEnabled) return null;
+        const ps = parseNumberInput(restaurantPriceSmall);
+        const pm = parseNumberInput(restaurantPriceMedium);
+        const pl = parseNumberInput(restaurantPriceLarge);
+        if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
+        if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
+        if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
+        return [
+          { id: 'small', label: 'صغير', price: ps },
+          { id: 'medium', label: 'وسط', price: pm },
+          { id: 'large', label: 'كبير', price: pl },
+        ];
+      })();
+
+      if (baseSizes === '__INVALID__') {
+        return '__INVALID__' as const;
+      }
+
       const mapped = list
         .map((t) => {
           const tid = String(t?.id || '').trim();
@@ -412,7 +479,13 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       if (mapped.length !== list.length) {
         return '__INVALID__';
       }
-      return mapped;
+
+      const final = Array.isArray(baseSizes) ? [
+        { id: 'base', name: String(name || '').trim() || 'المنتج', sizes: baseSizes },
+        ...mapped,
+      ] : mapped;
+
+      return final;
     })();
 
     if (menuVariants === '__INVALID__') {
@@ -422,16 +495,36 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
     const parsedPrice = parseNumberInput(price);
     const resolvedBasePrice = (() => {
+      if (packModeEnabled && Array.isArray(packOptions) && packOptions.length > 0) {
+        const first = (packOptions as any[])[0];
+        const p = typeof (first as any)?.price === 'number' ? (first as any).price : Number((first as any)?.price || NaN);
+        return Number.isFinite(p) ? p : parsedPrice;
+      }
       if (isFashion && Array.isArray(sizes) && sizes.length > 0) {
         const min = Math.min(...sizes.map((t: any) => Number(t?.price || 0)).filter((n: any) => Number.isFinite(n) && n >= 0));
+        return Number.isFinite(min) ? min : parsedPrice;
+      }
+      if (isRestaurant && restaurantBaseSizesEnabled) {
+        const ps = parseNumberInput(restaurantPriceSmall);
+        const pm = parseNumberInput(restaurantPriceMedium);
+        const pl = parseNumberInput(restaurantPriceLarge);
+        const prices = [ps, pm, pl].filter((n) => Number.isFinite(n) && n > 0);
+        const min = prices.length > 0 ? Math.min(...prices) : NaN;
         return Number.isFinite(min) ? min : parsedPrice;
       }
       return parsedPrice;
     })();
 
-    if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
-      addToast('السعر غير صحيح', 'error');
-      return;
+    if (!packModeEnabled) {
+      if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
+        addToast('السعر غير صحيح', 'error');
+        return;
+      }
+    } else {
+      if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice <= 0) {
+        addToast('يرجى إدخال سعر صحيح للباقة', 'error');
+        return;
+      }
     }
 
     const parsedStock = isRestaurant ? 0 : parseNumberInput(stock);
@@ -647,6 +740,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           <BasicInfoSection 
             name={name} setName={setName}
             price={price} setPrice={setPrice}
+            groceryPackEnabled={groceryPackEnabled}
+            setGroceryPackEnabled={allowGroceryPackToggle ? setGroceryPackEnabled : undefined}
+            restaurantBaseSizesEnabled={restaurantBaseSizesEnabled}
+            setRestaurantBaseSizesEnabled={setRestaurantBaseSizesEnabled}
+            restaurantPriceSmall={restaurantPriceSmall}
+            setRestaurantPriceSmall={setRestaurantPriceSmall}
+            restaurantPriceMedium={restaurantPriceMedium}
+            setRestaurantPriceMedium={setRestaurantPriceMedium}
+            restaurantPriceLarge={restaurantPriceLarge}
+            setRestaurantPriceLarge={setRestaurantPriceLarge}
             stock={stock} setStock={setStock}
             cat={cat} setCat={setCat}
             description={description} setDescription={setDescription}
@@ -669,7 +772,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             />
           )}
 
-          {allowPackOptions && (
+          {allowPackOptions && (!allowGroceryPackToggle || groceryPackEnabled) && (
             <PackOptionsSection 
               packOptionItems={packOptionItems} 
               setPackOptionItems={setPackOptionItems} 

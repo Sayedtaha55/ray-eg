@@ -108,7 +108,7 @@ export async function placeOrderViaBackend(order: {
   });
 }
 
-export async function updateOrderViaBackend(id: string, payload: { status?: string; notes?: string }) {
+export async function updateOrderViaBackend(id: string, payload: { status?: string; notes?: string; codCollected?: boolean; handedToCourier?: boolean }) {
   return await backendPatch<any>(`/api/v1/orders/${encodeURIComponent(id)}`, payload);
 }
 

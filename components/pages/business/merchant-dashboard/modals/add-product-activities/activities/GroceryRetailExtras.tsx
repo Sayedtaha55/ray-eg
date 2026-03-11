@@ -9,9 +9,16 @@ type Props = {
   unit: string;
   setUnit: (v: string) => void;
   parseNumberInput: (v: any) => number;
+  packEnabled: boolean;
 };
 
-const GroceryRetailExtras: React.FC<Props> = ({ packOptionItems, setPackOptionItems, unit, setUnit }) => {
+const GroceryRetailExtras: React.FC<Props> = ({ packOptionItems, setPackOptionItems, unit, setUnit, packEnabled }) => {
+  React.useEffect(() => {
+    if (!packEnabled) return;
+    if (Array.isArray(packOptionItems) && packOptionItems.length > 0) return;
+    setPackOptionItems([{ id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`, qty: '', price: '' }]);
+  }, [packEnabled]);
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
@@ -36,7 +43,9 @@ const GroceryRetailExtras: React.FC<Props> = ({ packOptionItems, setPackOptionIt
         </select>
       </div>
 
-      <PackOptionsSection packOptionItems={packOptionItems} setPackOptionItems={setPackOptionItems} unit={unit} />
+      {packEnabled ? (
+        <PackOptionsSection packOptionItems={packOptionItems} setPackOptionItems={setPackOptionItems} unit={unit} />
+      ) : null}
     </div>
   );
 };

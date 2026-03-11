@@ -2,6 +2,8 @@ import { Injectable, Inject, BadRequestException, ForbiddenException } from '@ne
 import { PrismaService } from './prisma/prisma.service';
 import { CourierDispatchService } from './courier-dispatch.service';
 import { RedisService } from './redis/redis.service';
+import { NotificationService } from './notification.service';
+import { NotificationPriority, NotificationType } from './types/notifications';
 
 @Injectable()
 export class OrderService {
@@ -9,7 +11,26 @@ export class OrderService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RedisService) private readonly redis: RedisService,
     @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
+    @Inject(NotificationService) private readonly notificationService: NotificationService,
   ) {}
+
+  private mapDbErrorToBadRequest(e: any) {
+    const msg = e?.message ? String(e.message) : '';
+    const lowered = msg.toLowerCase();
+    if (
+      lowered.includes('does not exist') ||
+      lowered.includes('no such column') ||
+      lowered.includes('no such table') ||
+      lowered.includes('unknown column') ||
+      (lowered.includes('column') && lowered.includes('not') && lowered.includes('exist'))
+    ) {
+      return new BadRequestException('قاعدة البيانات غير محدثة. شغّل migrations ثم أعد تشغيل السيرفر');
+    }
+    if (msg) {
+      return new BadRequestException(msg);
+    }
+    return new BadRequestException('Database error');
+  }
 
   async listReturnsForOrder(orderId: string, actor: { role?: string; shopId?: string; userId?: string }) {
     const id = String(orderId || '').trim();
@@ -397,20 +418,52 @@ export class OrderService {
     status: string;
   }) {
     const status = String(params.status || '').toUpperCase();
+    const statusLabel = (() => {
+      if (status === 'PENDING') return 'قيد المراجعة';
+      if (status === 'CONFIRMED') return 'تم قبول الطلب';
+      if (status === 'PREPARING') return 'قيد التنفيذ';
+      if (status === 'READY') return 'الطلب جاهز';
+      if (status === 'DELIVERED') return 'تم توصيل الطلب';
+      if (status === 'CANCELLED') return 'تم رفض الطلب';
+      return status;
+    })();
     const title = 'تحديث حالة الطلب';
-    const content = `تم تحديث حالة طلبك إلى: ${status}`;
+    const content = `تم تحديث حالة طلبك: ${statusLabel}`;
 
     try {
-      await this.prisma.notification.create({
-        data: {
-          shopId: params.shopId,
-          userId: params.userId,
-          orderId: params.orderId,
-          title,
-          content,
-          type: 'ORDER' as any,
-          isRead: false,
-        },
+      await this.notificationService.createNotification({
+        type: NotificationType.ORDER_STATUS_CHANGED,
+        title,
+        content,
+        userId: params.userId,
+        orderId: params.orderId,
+        priority: NotificationPriority.HIGH,
+        metadata: { status },
+      });
+    } catch {
+      // ignore
+    }
+  }
+
+  private async createOrderCodCollectedNotification(params: {
+    tx: any;
+    shopId: string;
+    userId: string;
+    orderId: string;
+    codCollected: boolean;
+  }) {
+    const title = 'تحديث الطلب';
+    const content = params.codCollected ? 'تم استلام قيمة الطلب.' : 'تم إلغاء استلام قيمة الطلب.';
+
+    try {
+      await this.notificationService.createNotification({
+        type: NotificationType.PAYMENT_RECEIVED,
+        title,
+        content,
+        userId: params.userId,
+        orderId: params.orderId,
+        priority: NotificationPriority.HIGH,
+        metadata: { codCollected: params.codCollected },
       });
     } catch {
       // ignore
@@ -455,7 +508,7 @@ export class OrderService {
 
   async updateOrder(
     orderId: string,
-    input: { status?: string; notes?: string },
+    input: { status?: string; notes?: string; codCollected?: boolean; handedToCourier?: boolean },
     actor?: { role?: string; shopId?: string },
   ) {
     const id = String(orderId || '').trim();
@@ -478,13 +531,25 @@ export class OrderService {
       data.notes = String(input.notes);
     }
 
+    const codCollected = input?.codCollected === true;
+    const hasCodCollectedUpdate = typeof input?.codCollected === 'boolean';
+    if (hasCodCollectedUpdate) {
+      data.codCollectedAt = codCollected ? new Date() : null;
+    }
+
+    const handedToCourier = input?.handedToCourier === true;
+    const hasHandedToCourierUpdate = typeof input?.handedToCourier === 'boolean';
+    if (hasHandedToCourierUpdate) {
+      data.handedToCourierAt = handedToCourier ? new Date() : null;
+    }
+
     if (Object.keys(data).length === 0) {
       throw new BadRequestException('لا توجد بيانات للتحديث');
     }
 
     const before = await this.prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, userId: true, shopId: true },
+      select: { id: true, status: true, userId: true, shopId: true, codCollectedAt: true, handedToCourierAt: true, courierId: true },
     });
     if (!before) {
       throw new BadRequestException('الطلب غير موجود');
@@ -507,7 +572,7 @@ export class OrderService {
       }
 
       if (nextStatus) {
-        const allowed = new Set(['CONFIRMED', 'PREPARING', 'CANCELLED']);
+        const allowed = new Set(['CONFIRMED', 'PREPARING', 'READY', 'CANCELLED']);
         if (!allowed.has(String(nextStatus).toUpperCase())) {
           throw new ForbiddenException('لا يمكن تحديث هذه الحالة');
         }
@@ -550,15 +615,15 @@ export class OrderService {
 
         const found = await tx.order.findUnique({
           where: { id },
-          include: {
+          include: ({
             items: {
               include: {
                 product: true,
               },
             },
-            shop: true,
-            user: true,
-          },
+            shops: true,
+            users_orders_userIdTousers: true,
+          } as any),
         });
         if (!found) throw new BadRequestException('الطلب غير موجود');
         return found;
@@ -567,15 +632,15 @@ export class OrderService {
       return tx.order.update({
         where: { id },
         data,
-        include: {
+        include: ({
           items: {
             include: {
               product: true,
             },
           },
-          shop: true,
-          user: true,
-        },
+          shops: true,
+          users_orders_userIdTousers: true,
+        } as any),
       });
     });
 
@@ -588,6 +653,53 @@ export class OrderService {
           orderId: String(before.id),
           status: String(updated.status),
         });
+      }
+
+      const beforeCod = Boolean((before as any)?.codCollectedAt);
+      const afterCod = Boolean((updated as any)?.codCollectedAt);
+      if (before?.userId && before?.shopId && beforeCod !== afterCod) {
+        await this.createOrderCodCollectedNotification({
+          tx: this.prisma,
+          shopId: String(before.shopId),
+          userId: String(before.userId),
+          orderId: String(before.id),
+          codCollected: afterCod,
+        });
+      }
+
+      const beforeHanded = Boolean((before as any)?.handedToCourierAt);
+      const afterHanded = Boolean((updated as any)?.handedToCourierAt);
+      if (before?.userId && beforeHanded !== afterHanded) {
+        const title = 'تحديث حالة الطلب';
+        const content = afterHanded ? 'تم تسليم الطلب للمندوب.' : 'تم إلغاء تسليم الطلب للمندوب.';
+        try {
+          await this.notificationService.createNotification({
+            type: NotificationType.ORDER_STATUS_CHANGED,
+            title,
+            content,
+            userId: String(before.userId),
+            orderId: String(before.id),
+            priority: NotificationPriority.HIGH,
+            metadata: { handedToCourier: afterHanded },
+          });
+        } catch {
+        }
+
+        const courierId = String((before as any)?.courierId || (updated as any)?.courierId || '').trim();
+        if (courierId) {
+          try {
+            await this.notificationService.createNotification({
+              type: NotificationType.ORDER_STATUS_CHANGED,
+              title,
+              content,
+              userId: courierId,
+              orderId: String(before.id),
+              priority: NotificationPriority.HIGH,
+              metadata: { handedToCourier: afterHanded },
+            });
+          } catch {
+          }
+        }
       }
     } catch {
       // ignore
@@ -621,32 +733,15 @@ export class OrderService {
         ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      select: {
-        id: true,
-        total: true,
-        status: true,
-        source: true,
-        paymentMethod: true,
-        notes: true,
-        createdAt: true,
+      include: ({
         items: {
-          select: {
-            id: true,
-            quantity: true,
-            price: true,
-            addons: true,
-            variantSelection: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                imageUrl: true,
-              },
-            },
+          include: {
+            product: true,
           },
         },
-        user: { select: { id: true, name: true, email: true, phone: true } },
-      },
+        shops: true,
+        users_orders_userIdTousers: true,
+      } as any),
       ...(pagination ? pagination : {}),
     });
 
@@ -665,15 +760,15 @@ export class OrderService {
         ...(from || to ? { createdAt: { ...(from ? { gte: from } : {}), ...(to ? { lte: to } : {}) } } : {}),
       },
       orderBy: { createdAt: 'desc' },
-      include: {
+      include: ({
         items: {
           include: {
             product: true,
           },
         },
-        shop: true,
-        user: true,
-      },
+        shops: true,
+        users_orders_userIdTousers: true,
+      } as any),
       ...(pagination ? pagination : {}),
     });
 
@@ -684,15 +779,15 @@ export class OrderService {
     if (!id) throw new BadRequestException('id مطلوب');
     const found = await this.prisma.order.findUnique({
       where: { id },
-      include: {
+      include: ({
         items: {
           include: {
             product: true,
           },
         },
-        shop: true,
-        user: true,
-      },
+        shops: true,
+        users_orders_userIdTousers: true,
+      } as any),
     });
     if (!found) throw new BadRequestException('الطلب غير موجود');
     return found;
@@ -757,101 +852,105 @@ export class OrderService {
 
     const productIds = Array.from(new Set(normalizedItems.map((i) => i.productId)));
 
-    const created = await this.prisma.$transaction(async (tx) => {
-      const shop = await tx.shop.findUnique({
-        where: { id: shopId },
-        select: { id: true, layoutConfig: true, category: true, addons: true } as any,
-      });
-      if (!shop) {
-        throw new BadRequestException('المتجر غير موجود');
-      }
-      const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
-      const isFashion = String((shop as any)?.category || '').toUpperCase() === 'FASHION';
-      const deliveryFee = this.getDeliveryFeeFromShop(shop);
-      const safeNotes = this.withDeliveryFee(input?.notes, deliveryFee);
+    let created: any;
+    try {
+      created = await this.prisma.$transaction(async (tx) => {
+        const shop = await tx.shop.findUnique({
+          where: { id: shopId },
+          select: { id: true, layoutConfig: true, category: true, addons: true } as any,
+        });
+        if (!shop) {
+          throw new BadRequestException('المتجر غير موجود');
+        }
+        const isRestaurant = String((shop as any)?.category || '').toUpperCase() === 'RESTAURANT';
+        const isFashion = String((shop as any)?.category || '').toUpperCase() === 'FASHION';
+        const deliveryFee = this.getDeliveryFeeFromShop(shop);
+        const safeNotes = this.withDeliveryFee(input?.notes, deliveryFee);
 
-      const products = await tx.product.findMany({
-        where: { id: { in: productIds }, shopId, isActive: true },
-      });
+        const products = await tx.product.findMany({
+          where: { id: { in: productIds }, shopId, isActive: true },
+        });
 
-      const offers = await tx.offer.findMany({
-        where: {
-          shopId,
-          isActive: true,
-          productId: { in: productIds } as any,
-          expiresAt: { gt: new Date() } as any,
-        } as any,
-        select: { productId: true, newPrice: true, discount: true, variantPricing: true } as any,
-      });
+        const offers = await tx.offer.findMany({
+          where: {
+            shopId,
+            isActive: true,
+            productId: { in: productIds } as any,
+            expiresAt: { gt: new Date() } as any,
+          } as any,
+          select: { productId: true, newPrice: true, discount: true, variantPricing: true } as any,
+        });
 
-      if (products.length !== productIds.length) {
-        throw new BadRequestException('بعض المنتجات غير متاحة');
-      }
+        if (products.length !== productIds.length) {
+          throw new BadRequestException('بعض المنتجات غير متاحة');
+        }
 
-      const byId: Record<string, any> = {};
-      for (const p of products) byId[p.id] = p;
+        const byId: Record<string, any> = {};
+        for (const p of products) byId[p.id] = p;
 
-      const offersByProductId: Record<string, { newPrice: number; discount: number; variantPricing?: any }> = {};
-      for (const o of offers || []) {
-        const pid = String((o as any)?.productId || '').trim();
-        const n = typeof (o as any)?.newPrice === 'number' ? (o as any).newPrice : Number((o as any)?.newPrice || 0);
-        const disc = typeof (o as any)?.discount === 'number' ? (o as any).discount : Number((o as any)?.discount);
-        if (!pid) continue;
-        if (!Number.isFinite(n) || n < 0) continue;
-        offersByProductId[pid] = {
-          newPrice: n,
-          discount: Number.isFinite(disc) ? disc : 0,
-          variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
+        const offersByProductId: Record<string, { newPrice: number; discount: number; variantPricing?: any }> = {};
+        for (const o of offers || []) {
+          const pid = String((o as any)?.productId || '').trim();
+          const n = typeof (o as any)?.newPrice === 'number' ? (o as any).newPrice : Number((o as any)?.newPrice || 0);
+          const disc = typeof (o as any)?.discount === 'number' ? (o as any).discount : Number((o as any)?.discount);
+          if (!pid) continue;
+          if (!Number.isFinite(n) || n < 0) continue;
+          offersByProductId[pid] = {
+            newPrice: n,
+            discount: Number.isFinite(disc) ? disc : 0,
+            variantPricing: (o as any)?.variantPricing ?? (o as any)?.variant_pricing,
+          };
+        }
+
+        const resolveVariantOfferPrice = (offerRaw: any, selection: any) => {
+          const rows = Array.isArray(offerRaw?.variantPricing) ? offerRaw.variantPricing : [];
+          if (rows.length === 0) return null;
+          const typeId = String(selection?.typeId || selection?.variantId || selection?.type || selection?.variant || '').trim();
+          const sizeId = String(selection?.sizeId || selection?.size || '').trim();
+          if (!typeId || !sizeId) return null;
+          const found = rows.find((r: any) =>
+            String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId &&
+            String(r?.sizeId || r?.size || '').trim() === sizeId,
+          );
+          const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
+          if (!Number.isFinite(priceRaw) || priceRaw < 0) return null;
+          return priceRaw;
         };
-      }
 
-      const resolveVariantOfferPrice = (offerRaw: any, selection: any) => {
-        const rows = Array.isArray(offerRaw?.variantPricing) ? offerRaw.variantPricing : [];
-        if (rows.length === 0) return null;
-        const typeId = String(selection?.typeId || selection?.variantId || selection?.type || selection?.variant || '').trim();
-        const sizeId = String(selection?.sizeId || selection?.size || '').trim();
-        if (!typeId || !sizeId) return null;
-        const found = rows.find((r: any) => String(r?.typeId || r?.variantId || r?.type || r?.variant || '').trim() === typeId
-          && String(r?.sizeId || r?.size || '').trim() === sizeId);
-        const priceRaw = typeof found?.newPrice === 'number' ? found.newPrice : Number(found?.newPrice || NaN);
-        if (!Number.isFinite(priceRaw) || priceRaw < 0) return null;
-        return priceRaw;
-      };
+        if (isFashion) {
+          for (const item of normalizedItems) {
+            const product = byId[(item as any).productId];
+            const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
+            const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
 
-      if (isFashion) {
-        for (const item of normalizedItems) {
-          const product = byId[(item as any).productId];
-          const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
-          const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
-
-          const needsSelection = allowedColors.length > 0 && allowedSizes.length > 0;
-          if (!needsSelection) {
-            continue;
-          }
-
-          const sel = (item as any).fashionSelection;
-          if (!sel) {
-            throw new BadRequestException('يرجى اختيار اللون والمقاس');
-          }
-
-          const selectedColorValue = String(sel?.colorValue || '').trim();
-          const selectedSize = String(sel?.size || '').trim();
-          const hasColor = allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue);
-          const hasSize = allowedSizes.some((s: any) => {
-            if (typeof s === 'string') return String(s || '').trim() === selectedSize;
-            if (s && typeof s === 'object') {
-              const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
-              return label === selectedSize;
+            const needsSelection = allowedColors.length > 0 && allowedSizes.length > 0;
+            if (!needsSelection) {
+              continue;
             }
-            return false;
-          });
-          if (!hasColor || !hasSize) {
-            throw new BadRequestException('اللون أو المقاس غير متاح');
+
+            const sel = (item as any).fashionSelection;
+            if (!sel) {
+              throw new BadRequestException('يرجى اختيار اللون والمقاس');
+            }
+
+            const selectedColorValue = String(sel?.colorValue || '').trim();
+            const selectedSize = String(sel?.size || '').trim();
+            const hasColor = allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue);
+            const hasSize = allowedSizes.some((s: any) => {
+              if (typeof s === 'string') return String(s || '').trim() === selectedSize;
+              if (s && typeof s === 'object') {
+                const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+                return label === selectedSize;
+              }
+              return false;
+            });
+            if (!hasColor || !hasSize) {
+              throw new BadRequestException('اللون أو المقاس غير متاح');
+            }
           }
         }
-      }
 
-      const resolveFashionSizePrice = (product: any, fashionSelection: any) => {
+        const resolveFashionSizePrice = (product: any, fashionSelection: any) => {
         const selectedSize = String(fashionSelection?.size || '').trim();
         const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
         const found = allowedSizes.find((s: any) => {
@@ -980,7 +1079,13 @@ export class OrderService {
                   ? offerForProduct.newPrice
                   : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
               })()));
-        const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
+        const addonsSource = (() => {
+          const fromProduct = (product as any)?.addons;
+          if (Array.isArray(fromProduct) && fromProduct.length > 0) return fromProduct;
+          const fromShop = (shop as any)?.addons;
+          if (Array.isArray(fromShop) && fromShop.length > 0) return fromShop;
+          return fromProduct ?? fromShop;
+        })();
         const { total: addonsTotal } = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
         const unit = (Number(basePrice) || 0) + (Number(addonsTotal) || 0);
         return sum + unit * item.quantity;
@@ -999,11 +1104,12 @@ export class OrderService {
       const created = await tx.order.create({
         data: ({
           total: total,
-          user: { connect: { id: userId } },
-          shop: { connect: { id: shopId } },
+          userId,
+          shopId,
           status: effectiveStatus,
           source,
           notes: safeNotes,
+          updatedAt: new Date(),
           ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
           items: {
             create: normalizedItems.map((item) => {
@@ -1054,7 +1160,13 @@ export class OrderService {
                         ? offerForProduct.newPrice
                         : (typeof product?.price === 'number' ? product.price : Number(product?.price || 0));
                     })()));
-              const addonsSource = isRestaurant ? (shop as any)?.addons : (product as any)?.addons;
+              const addonsSource = (() => {
+                const fromProduct = (product as any)?.addons;
+                if (Array.isArray(fromProduct) && fromProduct.length > 0) return fromProduct;
+                const fromShop = (shop as any)?.addons;
+                if (Array.isArray(fromShop) && fromShop.length > 0) return fromShop;
+                return fromProduct ?? fromShop;
+              })();
               const addons = this.computeAddonsForDefinition(addonsSource, (item as any).addons || []);
               const row: any = {
                 productId: item.productId,
@@ -1118,8 +1230,21 @@ export class OrderService {
         // ignore
       }
 
-      return created;
-    });
+        return created;
+      });
+    } catch (e: any) {
+      if (e instanceof BadRequestException || e instanceof ForbiddenException) {
+        throw e;
+      }
+      // eslint-disable-next-line no-console
+      console.error('[OrderService.createOrder] failed', {
+        shopId,
+        userId,
+        itemsCount: normalizedItems.length,
+        error: e,
+      });
+      throw this.mapDbErrorToBadRequest(e);
+    }
 
     try {
       await this.redis.invalidatePattern(`shop:${shopId}:analytics:*`);
@@ -1152,11 +1277,11 @@ export class OrderService {
     const updated = await this.prisma.order.update({
       where: { id },
       data: { courierId: courier.id } as any,
-      include: {
+      include: ({
         items: { include: { product: true } },
-        shop: true,
-        user: true,
-      },
+        shops: true,
+        users_orders_userIdTousers: true,
+      } as any),
     });
 
     try {
@@ -1178,11 +1303,11 @@ export class OrderService {
     return this.prisma.order.findMany({
       where: { courierId: cId },
       orderBy: { createdAt: 'desc' },
-      include: {
+      include: ({
         items: { include: { product: true } },
-        shop: true,
-        user: true,
-      },
+        shops: true,
+        users_orders_userIdTousers: true,
+      } as any),
       ...(pagination ? pagination : {}),
     });
   }

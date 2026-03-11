@@ -149,8 +149,30 @@ const getProductMetaChips = (product: any): MetaChip[] => {
   const ordered = [...preferred.filter((k) => keys.includes(k)), ...keys.filter((k) => !preferred.includes(k)).sort()];
 
   const out: MetaChip[] = [];
+
+  const furnitureMeta = (normalized as any)?.furnitureMeta;
+  const furnitureMetaObj = furnitureMeta && typeof furnitureMeta === 'object' ? furnitureMeta : null;
+  const fmLength = (furnitureMetaObj as any)?.lengthCm ?? (furnitureMetaObj as any)?.length_cm;
+  const fmWidth = (furnitureMetaObj as any)?.widthCm ?? (furnitureMetaObj as any)?.width_cm;
+  const fmHeight = (furnitureMetaObj as any)?.heightCm ?? (furnitureMetaObj as any)?.height_cm;
+  const hasFurnitureDims =
+    (typeof fmLength !== 'undefined' && fmLength !== null && String(fmLength).trim() !== '') ||
+    (typeof fmWidth !== 'undefined' && fmWidth !== null && String(fmWidth).trim() !== '') ||
+    (typeof fmHeight !== 'undefined' && fmHeight !== null && String(fmHeight).trim() !== '');
+
   for (const key of ordered) {
     if (hiddenKeys.has(key)) continue;
+
+    if (key === 'furnitureMeta' && hasFurnitureDims) {
+      const l = fmLength == null ? NaN : Number(fmLength);
+      const w = fmWidth == null ? NaN : Number(fmWidth);
+      const h = fmHeight == null ? NaN : Number(fmHeight);
+
+      if (Number.isFinite(l)) out.push({ label: 'الطول', value: `${l} سم` });
+      if (Number.isFinite(w)) out.push({ label: 'العرض', value: `${w} سم` });
+      if (Number.isFinite(h)) out.push({ label: 'الارتفاع', value: `${h} سم` });
+      continue;
+    }
     const val = normalized[key];
     const formatted = key === 'unit' && typeof val === 'string' ? formatUnitLabel(val) : formatMetaValue(val);
     if (!formatted) continue;

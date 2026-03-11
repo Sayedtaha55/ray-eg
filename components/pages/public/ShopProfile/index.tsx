@@ -100,6 +100,7 @@ const ShopProfile: React.FC = () => {
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
 
   const reloadSeqRef = useRef(0);
+  const lastShopIdRef = useRef<string>('');
 
   const syncData = useCallback(async (opts?: { silent?: boolean }) => {
       const silent = Boolean(opts?.silent);
@@ -117,6 +118,11 @@ const ShopProfile: React.FC = () => {
         const currentShopData = await ApiService.getShopBySlug(slug);
         if (reloadSeqRef.current !== seq) return;
         if (currentShopData) {
+          const nextShopId = String((currentShopData as any)?.id || '').trim();
+          const prevShopId = String(lastShopIdRef.current || '').trim();
+          const shopChanged = Boolean(prevShopId && nextShopId && prevShopId !== nextShopId);
+          if (nextShopId) lastShopIdRef.current = nextShopId;
+
           setShop(JSON.parse(JSON.stringify(currentShopData)));
           const design = currentShopData.pageDesign || {
             layout: 'modern',
@@ -124,8 +130,6 @@ const ShopProfile: React.FC = () => {
             secondaryColor: '#BD00FF',
             bannerUrl: '/placeholder-banner.jpg',
           };
-          setBannerReady(false);
-          setPageBgReady(false);
           const allowBuilderPreview = (() => {
             try {
               const params = new URLSearchParams(String(location?.search || ''));
@@ -164,17 +168,19 @@ const ShopProfile: React.FC = () => {
             setCurrentDesign(design);
           }
 
-          productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
-          tabLoadStateRef.current = {};
-          setProducts([]);
-          setOffers([]);
-          setGalleryImages([]);
-          setHasMoreProducts(true);
-          setLoadingMoreProducts(false);
-          setProductsTabLoading(false);
-          setProductsTabError(null);
-          setGalleryTabLoading(false);
-          setGalleryTabError(null);
+          if (!silent || shopChanged) {
+            productsPagingRef.current = { page: 1, limit: 24, hasMore: true, loadingMore: false };
+            tabLoadStateRef.current = {};
+            setProducts([]);
+            setOffers([]);
+            setGalleryImages([]);
+            setHasMoreProducts(true);
+            setLoadingMoreProducts(false);
+            setProductsTabLoading(false);
+            setProductsTabError(null);
+            setGalleryTabLoading(false);
+            setGalleryTabError(null);
+          }
         } else {
           setError(true);
         }

@@ -68,18 +68,31 @@ export class CourierService {
     if (!id) throw new BadRequestException('غير مصرح');
 
     const now = new Date();
-    return (this.prisma as any).orderCourierOffer.findMany({
+    const offers = await (this.prisma as any).orderCourierOffer.findMany({
       where: { courierId: id, status: 'PENDING' as any, expiresAt: { gt: now } as any } as any,
       orderBy: [{ rank: 'asc' }, { createdAt: 'desc' }],
       include: {
         order: {
           include: {
             items: { include: { product: true } },
-            shop: true,
-            user: true,
+            shops: true,
+            users_orders_userIdTousers: true,
           },
         },
       },
+    });
+
+    return (offers || []).map((o: any) => {
+      const order = o?.order;
+      if (!order) return o;
+      return {
+        ...o,
+        order: {
+          ...order,
+          shop: (order as any)?.shop ?? (order as any)?.shops,
+          user: (order as any)?.user ?? (order as any)?.users_orders_userIdTousers,
+        },
+      };
     });
   }
 
@@ -161,12 +174,17 @@ export class CourierService {
         where: { id: String(order.id) },
         include: {
           items: { include: { product: true } },
-          shop: true,
-          user: true,
+          shops: true,
+          users_orders_userIdTousers: true,
         } as any,
       });
 
-      return updated;
+      if (!updated) return updated;
+      return {
+        ...updated,
+        shop: (updated as any)?.shop ?? (updated as any)?.shops,
+        user: (updated as any)?.user ?? (updated as any)?.users_orders_userIdTousers,
+      };
     });
   }
 

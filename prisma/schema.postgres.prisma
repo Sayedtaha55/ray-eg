@@ -166,12 +166,12 @@ model Order {
   status        OrderStatus @default(PENDING)
   paymentMethod String?     @map("payment_method")
   paymentStatus String?     @map("payment_status")
+  handedToCourierAt DateTime? @map("handed_to_courier_at")
   notes         String?
-  userId        String
-  shopId        String
-  courierId     String?     @map("courier_id")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  deliveredAt   DateTime?    @map("delivered_at")
+  codCollectedAt DateTime?   @map("cod_collected_at")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
 
   // Relations
   user          User        @relation(fields: [userId], references: [id])

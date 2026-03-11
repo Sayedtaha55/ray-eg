@@ -563,8 +563,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
             <Edit3 size={18} className="text-cyan-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="font-bold text-white text-[12px] sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر المتجر المتكامل</h2>
-            <p className="text-[9px] sm:text-xs text-slate-400">إدارة الأقسام والمنتجات</p>
+            <h2 className="font-bold text-white text-[12px] sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر الصور</h2>
           </div>
         </div>
         <div className="flex gap-1.5 sm:gap-3">
@@ -734,7 +733,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                 {(isAddingMode || (selectedProduct && !isMoveMode)) && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className={`fixed bottom-0 left-0 right-0 z-[120] bg-slate-900/90 backdrop-blur border-t border-slate-700 transition-all ${
+                    className={`fixed bottom-0 left-0 right-0 z-[120] bg-slate-900/90 backdrop-blur border-t border-slate-700 transition-all md:hidden ${
                       isProductSheetCollapsed ? 'p-2' : 'p-3 sm:p-4'
                     }`}
                     style={{
@@ -843,7 +842,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               rows={3}
                             />
 
-                            {selectedMetaChips.length > 0 && (
+                            {false && selectedMetaChips.length > 0 && (
                               <div className="flex flex-wrap gap-1.5 justify-center">
                                 {selectedMetaChips.map((c) => (
                                   <span
@@ -856,14 +855,59 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               </div>
                             )}
 
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
-                            <input
-                              type="number"
-                              value={selectedProduct.price}
-                              onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
-                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                              placeholder="السعر"
-                            />
+                            {(() => {
+                              const packDefs = Array.isArray((selectedProduct as any)?.packOptions)
+                                ? ((selectedProduct as any).packOptions as any[])
+                                : [];
+                              const packEnabled = isFood && packDefs.length > 0;
+                              return (
+                                <>
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
+                                    {isFood && (
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          const current = Array.isArray((selectedProduct as any)?.packOptions)
+                                            ? (selectedProduct as any).packOptions
+                                            : [];
+                                          if (current.length > 0) {
+                                            updateProductDetails(selectedProduct.id, { packOptions: [] } as any);
+                                            return;
+                                          }
+                                          const next = [
+                                            {
+                                              id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                                              qty: 1,
+                                              unit: String((selectedProduct as any)?.unit || '').trim() || null,
+                                              price: 0,
+                                            },
+                                          ];
+                                          updateProductDetails(selectedProduct.id, { price: 0, packOptions: next } as any);
+                                        }}
+                                        className={`px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold ${packEnabled ? 'opacity-80' : ''}`}
+                                      >
+                                        باقة
+                                      </button>
+                                    )}
+                                  </div>
+
+                                  {packEnabled ? (
+                                    <div className="w-full bg-slate-900/40 border border-slate-700 rounded px-2 py-2 text-slate-300 text-xs">
+                                      تم تفعيل الباقة
+                                    </div>
+                                  ) : (
+                                    <input
+                                      type="number"
+                                      value={selectedProduct.price}
+                                      onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
+                                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                                      placeholder="السعر"
+                                    />
+                                  )}
+                                </>
+                              );
+                            })()}
 
                             {shouldShowHomeTextiles && (
                               <div className="space-y-2 pt-2 border-t border-slate-700">
@@ -1212,7 +1256,360 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
           {/* Product List / Editor */}
           <div className="flex-1 overflow-y-auto p-2 sm:p-4">
-            {selectedProduct && <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>}
+            <div className="hidden md:block">
+              {isAddingMode && !selectedProduct && (
+                <div className="text-center text-slate-600 text-xs mt-2">انقر على الصورة لإضافة المنتج</div>
+              )}
+
+              {!isAddingMode && !selectedProduct && (
+                <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>
+              )}
+
+              {selectedProduct && !isMoveMode && (
+                <div className="bg-slate-800/70 rounded-xl border border-slate-700 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="text-xs font-bold text-slate-300 uppercase">تعديل المنتج</h3>
+                    <div className="flex items-center gap-1 sm:gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!selectedProductId) return;
+                          setIsMoveMode(true);
+                          setIsAddingMode(false);
+                        }}
+                        className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold"
+                      >
+                        <span className="flex items-center gap-1">
+                          <Move size={11} />
+                          تحريك
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold disabled:opacity-60"
+                      >
+                        حفظ
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedProductId(null);
+                          setIsMoveMode(false);
+                        }}
+                        className="text-slate-400 hover:text-white text-[11px] sm:text-xs"
+                      >
+                        إغلاق
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3 mt-3">
+                    <input
+                      type="text"
+                      value={selectedProduct.name}
+                      onChange={(e) => updateProductDetails(selectedProduct.id, { name: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                      placeholder="اسم المنتج"
+                    />
+                    <textarea
+                      value={selectedProduct.description || ''}
+                      onChange={(e) => updateProductDetails(selectedProduct.id, { description: e.target.value })}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm resize-none"
+                      placeholder="وصف المنتج"
+                      rows={3}
+                    />
+
+                    {(() => {
+                      const packDefs = Array.isArray((selectedProduct as any)?.packOptions)
+                        ? ((selectedProduct as any).packOptions as any[])
+                        : [];
+                      const packEnabled = isFood && packDefs.length > 0;
+                      return (
+                        <>
+                          <div className="flex items-center justify-between">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
+                            {isFood && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const current = Array.isArray((selectedProduct as any)?.packOptions)
+                                    ? (selectedProduct as any).packOptions
+                                    : [];
+                                  if (current.length > 0) {
+                                    updateProductDetails(selectedProduct.id, { packOptions: [] } as any);
+                                    return;
+                                  }
+                                  const next = [
+                                    {
+                                      id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                                      qty: 1,
+                                      unit: String((selectedProduct as any)?.unit || '').trim() || null,
+                                      price: 0,
+                                    },
+                                  ];
+                                  updateProductDetails(selectedProduct.id, { price: 0, packOptions: next } as any);
+                                }}
+                                className={`px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold ${packEnabled ? 'opacity-80' : ''}`}
+                              >
+                                باقة
+                              </button>
+                            )}
+                          </div>
+
+                          {packEnabled ? (
+                            <div className="w-full bg-slate-900/40 border border-slate-700 rounded px-2 py-2 text-slate-300 text-xs">
+                              تم تفعيل الباقة
+                            </div>
+                          ) : (
+                            <input
+                              type="number"
+                              value={selectedProduct.price}
+                              onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
+                              className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                              placeholder="السعر"
+                            />
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {shouldShowHomeTextiles && (
+                      <div className="space-y-2 pt-2 border-t border-slate-700">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">المفروشات والسجاد</div>
+
+                        <select
+                          value={String((selectedProduct as any)?.unit || '')}
+                          onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        >
+                          <option value="">بدون وحدة</option>
+                          <option value="PIECE">قطعة</option>
+                          <option value="M2">متر مربع</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {shouldShowHomeGoods && (
+                      <div className="space-y-2 pt-2 border-t border-slate-700">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">مستلزمات المنزل</div>
+
+                        <select
+                          value={String((selectedProduct as any)?.unit || '')}
+                          onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        >
+                          <option value="">بدون وحدة</option>
+                          <option value="PIECE">قطعة</option>
+                          <option value="SET">طقم</option>
+                          <option value="PACK">باك</option>
+                        </select>
+                      </div>
+                    )}
+
+                    {shouldShowFurniture && (
+                      <div className="space-y-2 pt-2 border-t border-slate-700">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">الأثاث</div>
+
+                        <input
+                          type="text"
+                          value={String((selectedProduct as any)?.furnitureMeta?.unit || (selectedProduct as any)?.unit || '')}
+                          onChange={(e) => {
+                            const u = String(e.target.value || '').trim();
+                            const prev = (selectedProduct as any)?.furnitureMeta;
+                            const nextMeta = prev && typeof prev === 'object' ? { ...prev, unit: u || undefined } : { unit: u || undefined };
+                            updateProductDetails(selectedProduct.id, { unit: u || undefined, furnitureMeta: nextMeta } as any);
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                          placeholder="الوحدة (مثال: قطعة)"
+                        />
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="number"
+                            value={String((selectedProduct as any)?.furnitureMeta?.lengthCm ?? '')}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const n = v === '' ? undefined : Number(v);
+                              const prev = (selectedProduct as any)?.furnitureMeta;
+                              const nextMeta = prev && typeof prev === 'object'
+                                ? { ...prev, lengthCm: Number.isFinite(n as any) ? n : undefined }
+                                : { lengthCm: Number.isFinite(n as any) ? n : undefined };
+                              updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                            }}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                            placeholder="الطول (سم)"
+                          />
+                          <input
+                            type="number"
+                            value={String((selectedProduct as any)?.furnitureMeta?.widthCm ?? '')}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const n = v === '' ? undefined : Number(v);
+                              const prev = (selectedProduct as any)?.furnitureMeta;
+                              const nextMeta = prev && typeof prev === 'object'
+                                ? { ...prev, widthCm: Number.isFinite(n as any) ? n : undefined }
+                                : { widthCm: Number.isFinite(n as any) ? n : undefined };
+                              updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                            }}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                            placeholder="العرض (سم)"
+                          />
+                          <input
+                            type="number"
+                            value={String((selectedProduct as any)?.furnitureMeta?.heightCm ?? '')}
+                            onChange={(e) => {
+                              const v = e.target.value;
+                              const n = v === '' ? undefined : Number(v);
+                              const prev = (selectedProduct as any)?.furnitureMeta;
+                              const nextMeta = prev && typeof prev === 'object'
+                                ? { ...prev, heightCm: Number.isFinite(n as any) ? n : undefined }
+                                : { heightCm: Number.isFinite(n as any) ? n : undefined };
+                              updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
+                            }}
+                            className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
+                            placeholder="الارتفاع (سم)"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {isFood && (
+                      <div className="space-y-2 pt-2 border-t border-slate-700">
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">سوبر ماركت</div>
+
+                        <select
+                          value={String((selectedProduct as any)?.unit || '')}
+                          onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
+                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        >
+                          <option value="">بدون وحدة</option>
+                          <option value="PIECE">قطعة</option>
+                          <option value="CARTON">كرتونة</option>
+                          <option value="BOX">علبة</option>
+                          <option value="BOTTLE">عبوة</option>
+                          <option value="PACK">باك</option>
+                          <option value="BAG">كيس</option>
+                          <option value="CAN">كانز</option>
+                          <option value="KG">كيلو</option>
+                          <option value="G">جرام</option>
+                          <option value="L">لتر</option>
+                          <option value="ML">ملّي</option>
+                        </select>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">باقات البيع</div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : [];
+                                const next = [
+                                  ...current,
+                                  {
+                                    id: `pack_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                                    qty: 1,
+                                    unit: String((selectedProduct as any)?.unit || '').trim() || null,
+                                    price: 0,
+                                  },
+                                ];
+                                updateProductDetails(selectedProduct.id, { packOptions: next } as any);
+                              }}
+                              className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold"
+                            >
+                              + إضافة باقة
+                            </button>
+                          </div>
+
+                          {(Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : []).map((p: any, idx: number) => (
+                            <div key={String(p?.id || idx)} className="p-2 rounded border border-slate-700 bg-slate-900/40">
+                              <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-bold text-slate-300">باقة #{idx + 1}</div>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const current = Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : [];
+                                    const next = current.filter((x: any) => String(x?.id || '') !== String(p?.id || ''));
+                                    updateProductDetails(selectedProduct.id, { packOptions: next } as any);
+                                  }}
+                                  className="text-slate-400 hover:text-red-400"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-2">
+                                <input
+                                  type="number"
+                                  value={Number.isFinite(Number(p?.qty)) ? String(p.qty) : ''}
+                                  onChange={(e) => {
+                                    const current = Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : [];
+                                    const next = current.map((x: any) =>
+                                      String(x?.id || '') === String(p?.id || '')
+                                        ? { ...x, qty: Number(e.target.value) }
+                                        : x,
+                                    );
+                                    updateProductDetails(selectedProduct.id, { packOptions: next } as any);
+                                  }}
+                                  placeholder="الكمية"
+                                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                />
+                                <input
+                                  type="number"
+                                  value={Number.isFinite(Number(p?.price)) ? String(p.price) : ''}
+                                  onChange={(e) => {
+                                    const current = Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : [];
+                                    const next = current.map((x: any) =>
+                                      String(x?.id || '') === String(p?.id || '')
+                                        ? { ...x, price: Number(e.target.value) }
+                                        : x,
+                                    );
+                                    updateProductDetails(selectedProduct.id, { packOptions: next } as any);
+                                  }}
+                                  placeholder="السعر"
+                                  className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">المخزون</div>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={Number.isFinite(Number((selectedProduct as any)?.stock)) ? String(Math.max(0, Math.floor(Number((selectedProduct as any).stock)))) : '0'}
+                      onChange={(e) => {
+                        const raw = Number((e.target as any).value);
+                        const nextStock = Number.isFinite(raw) ? Math.max(0, Math.floor(raw)) : 0;
+                        const nextStatus: StockStatus = nextStock <= 0 ? 'OUT_OF_STOCK' : nextStock <= 5 ? 'LOW_STOCK' : 'IN_STOCK';
+                        updateProductDetails(selectedProduct.id, { stock: nextStock, stockStatus: nextStatus } as any);
+                      }}
+                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                      placeholder="المخزون"
+                    />
+
+                    <button
+                      onClick={() => deleteProduct(selectedProduct.id)}
+                      className="w-full py-1.5 bg-red-900/20 text-red-400 border border-red-900/50 rounded text-xs hover:bg-red-900/40"
+                    >
+                      حذف المنتج
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {selectedProduct && isMoveMode && (
+                <div className="text-center text-slate-600 text-xs mt-2">وضع التحريك مفعل - انقر على الصورة لتحديد مكان المنتج</div>
+              )}
+            </div>
+
+            <div className="md:hidden">
+              {selectedProduct && <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>}
+            </div>
           </div>
         </div>
       </div>

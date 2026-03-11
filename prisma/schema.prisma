@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,101 +7,95 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Users table - Main user accounts
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  phone       String?  @unique
-  password    String
-  role        UserRole @default(CUSTOMER)
-  shopId      String?  @unique
-  isActive    Boolean  @default(true)
-  deactivatedAt DateTime? @map("deactivated_at")
-  scheduledPurgeAt DateTime? @map("scheduled_purge_at")
-  lastLogin   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  shop        Shop?    @relation("ShopOwner")
-  orders      Order[]
-  courierOrders Order[] @relation("CourierOrders")
-  courierState CourierState?
-  courierOrderOffers OrderCourierOffer[] @relation("CourierOrderOffers")
-  messages    Message[]
-  reservations Reservation[]
-  feedback    Feedback[]
-  shopFollows ShopFollower[]
-  notifications Notification[]
-  preferences NotificationPreference[]
-  accountingInvoices AccountingInvoice[]
-  createdOrderReturns OrderReturn[]
-  pushSubscriptions CustomerPushSubscription[]
+  id                          String                     @id @default(cuid())
+  email                       String                     @unique
+  name                        String
+  phone                       String?                    @unique
+  password                    String
+  role                        UserRole                   @default(CUSTOMER)
+  shopId                      String?                    @unique
+  isActive                    Boolean                    @default(true)
+  lastLogin                   DateTime?
+  createdAt                   DateTime                   @default(now())
+  updatedAt                   DateTime                   @updatedAt
+  deactivatedAt               DateTime?                  @map("deactivated_at")
+  scheduledPurgeAt            DateTime?                  @map("scheduled_purge_at")
+  accountingInvoices          AccountingInvoice[]
+  courierState                CourierState?
+  pushSubscriptions           CustomerPushSubscription[]
+  feedback                    Feedback[]
+  messages                    Message[]
+  preferences                 NotificationPreference?
+  notifications               Notification[]
+  courierOrderOffers          OrderCourierOffer[]        @relation("CourierOrderOffers")
+  createdOrderReturns         OrderReturn[]
+  courierOrders               Order[]                    @relation("CourierOrders")
+  orders_orders_userIdTousers Order[]                    @relation("orders_userIdTousers")
+  reservations                Reservation[]
+  shopFollows                 ShopFollower[]
+  shop                        Shop?                      @relation("ShopOwner")
 
   @@map("users")
 }
 
-// Shops table - Merchant shops
 model Shop {
-  id            String     @id @default(cuid())
-  name          String
-  slug          String     @unique
-  description   String?
-  category      ShopCategory
-  governorate   String
-  city          String
-  address       String?
-  addressDetailed String?  @map("address_detailed")
-  displayAddress String?   @map("display_address")
-  mapLabel       String?   @map("map_label")
-  latitude      Float?
-  longitude     Float?
-  locationSource String?   @map("location_source")
-  locationAccuracy Float?  @map("location_accuracy")
-  locationUpdatedAt DateTime? @map("location_updated_at")
-  phone         String
-  email         String?
-  openingHours  String?    @map("opening_hours")
-  logoUrl       String?    @map("logo_url")
-  bannerUrl     String?    @map("banner_url")
-  status        ShopStatus @default(PENDING)
-  pageDesign    Json?      @map("page_design")
-  theme         String?    @default("default") // Theme selection
-  customColors  Json?      @map("custom_colors") // Custom color scheme
-  customFonts   Json?      @map("custom_fonts")  // Custom font settings
-  layoutConfig  Json?      @map("layout_config") // Layout preferences
-  addons        Json?
-  followers     Int        @default(0)
-  visitors      Int        @default(0)
-  rating        Float      @default(0)
-  isActive      Boolean    @default(true)
-  publicDisabled Boolean   @default(false) @map("public_disabled")
-  ownerId       String?    @unique
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-
-  // Relations
-  owner         User?      @relation("ShopOwner", fields: [ownerId], references: [id])
-  products      Product[]
-  offers        Offer[]
-  orders        Order[]
-  messages      Message[]
-  notifications Notification[]
-  gallery       ShopGallery[]
-  analytics     ShopAnalytics[]
-  reservations  Reservation[]
-  feedback      Feedback[]
-  imageMaps     ShopImageMap[]
-  themeSettings ShopTheme[] // Theme settings
-  followersList ShopFollower[]
-  accountingInvoices AccountingInvoice[]
+  id                    String                     @id @default(cuid())
+  name                  String
+  slug                  String                     @unique
+  description           String?
+  category              ShopCategory
+  governorate           String
+  city                  String
+  address               String?
+  addressDetailed       String?                    @map("address_detailed")
+  displayAddress        String?                    @map("display_address")
+  mapLabel              String?                    @map("map_label")
+  latitude              Float?
+  longitude             Float?
+  locationSource        String?                    @map("location_source")
+  locationAccuracy      Float?                     @map("location_accuracy")
+  locationUpdatedAt     DateTime?                  @map("location_updated_at")
+  phone                 String
+  email                 String?
+  openingHours          String?                    @map("opening_hours")
+  logoUrl               String?                    @map("logo_url")
+  bannerUrl             String?                    @map("banner_url")
+  status                ShopStatus                 @default(PENDING)
+  pageDesign            Json?                      @map("page_design")
+  theme                 String?                    @default("default")
+  customColors          Json?                      @map("custom_colors")
+  customFonts           Json?                      @map("custom_fonts")
+  layoutConfig          Json?                      @map("layout_config")
+  followers             Int                        @default(0)
+  visitors              Int                        @default(0)
+  rating                Float                      @default(0)
+  isActive              Boolean                    @default(true)
+  ownerId               String?                    @unique
+  createdAt             DateTime                   @default(now())
+  updatedAt             DateTime                   @updatedAt
+  addons                Json?
+  publicDisabled        Boolean                    @default(false) @map("public_disabled")
+  accountingInvoices    AccountingInvoice[]
+  bookingResources      BookingResource[]
+  bookings              Booking[]
+  customers             Customer[]
+  feedback              Feedback[]
+  pushSubscriptions     MerchantPushSubscription[]
+  messages              Message[]
+  notifications         Notification[]
+  offers                Offer[]
+  orderReturns          OrderReturn[]
+  orders                Order[]
+  products              Product[]
+  reservations          Reservation[]
+  analytics             ShopAnalytics[]
+  followersList         ShopFollower[]
+  gallery               ShopGallery[]
+  imageMaps             ShopImageMap[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
-  customers     Customer[]
-  orderReturns  OrderReturn[]
-  pushSubscriptions MerchantPushSubscription[]
-  bookingResources BookingResource[]
-  bookings      Booking[]
+  themeSettings         ShopTheme[]
+  owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id])
 
   @@index([category])
   @@index([slug])
@@ -115,19 +106,18 @@ model Shop {
 }
 
 model Customer {
-  id        String   @id @default(cuid())
-  shopId    String   @map("shop_id")
-  name      String
-  phone     String
-  email     String?
-  status    String   @default("active")
-  orders    Int      @default(0)
-  totalSpent Float   @default(0) @map("total_spent")
+  id             String    @id @default(cuid())
+  shopId         String    @map("shop_id")
+  name           String
+  phone          String
+  email          String?
+  status         String    @default("active")
+  orders         Int       @default(0)
+  totalSpent     Float     @default(0) @map("total_spent")
   lastPurchaseAt DateTime? @map("last_purchase_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  shop           Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, phone])
   @@index([shopId])
@@ -135,37 +125,29 @@ model Customer {
   @@map("customers")
 }
 
-enum ShopModuleUpgradeRequestStatus {
-  PENDING
-  APPROVED
-  REJECTED
-  CANCELED
-}
-
 model ShopModuleUpgradeRequest {
-  id                 String                        @id @default(cuid())
-  shopId             String                        @map("shop_id")
-  status             ShopModuleUpgradeRequestStatus @default(PENDING)
-  requestedModules   Json                          @map("requested_modules")
-  note               String?
-  requestedByUserId  String?                       @map("requested_by_user_id")
-  reviewedByAdminId  String?                       @map("reviewed_by_admin_id")
-  reviewedAt         DateTime?                     @map("reviewed_at")
-  createdAt          DateTime                      @default(now()) @map("created_at")
-  updatedAt          DateTime                      @updatedAt @map("updated_at")
-
-  shop               Shop                          @relation(fields: [shopId], references: [id])
+  id                String                         @id @default(cuid())
+  shopId            String                         @map("shop_id")
+  status            ShopModuleUpgradeRequestStatus @default(PENDING)
+  requestedModules  Json                           @map("requested_modules")
+  note              String?
+  requestedByUserId String?                        @map("requested_by_user_id")
+  reviewedByAdminId String?                        @map("reviewed_by_admin_id")
+  reviewedAt        DateTime?                      @map("reviewed_at")
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+  shop              Shop                           @relation(fields: [shopId], references: [id])
 
   @@index([shopId])
   @@index([status])
   @@map("shop_module_upgrade_requests")
 }
+
 model ShopFollower {
   id        String   @id @default(cuid())
   shopId    String   @map("shop_id")
   userId    String   @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
-
   shop      Shop     @relation(fields: [shopId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
 
@@ -175,36 +157,33 @@ model ShopFollower {
   @@map("shop_followers")
 }
 
-// Products table
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  stock       Int      @default(0)
-  trackStock  Boolean  @default(true) @map("track_stock")
-  category    String   @default("عام")
-  unit        String?
-  packOptions Json?    @map("pack_options")
-  imageUrl    String?  @map("image_url")
-  images      Json?
-  colors      Json?
-  sizes       Json?
-  addons      Json?
-  menuVariants Json?   @map("menu_variants")
-  isActive    Boolean  @default(true)
-  shopId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  offers      Offer[]
-  orderItems  OrderItem[]
-  returnItems OrderReturnItem[]
-  feedback    Feedback[]
-  imageHotspots ShopImageHotspot[]
+  id            String                @id @default(cuid())
+  name          String
+  description   String?
+  price         Float
+  stock         Int                   @default(0)
+  category      String                @default("عام")
+  imageUrl      String?               @map("image_url")
+  isActive      Boolean               @default(true)
+  shopId        String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  addons        Json?
+  menuVariants  Json?                 @map("menu_variants")
+  colors        Json?
+  images        Json?
+  sizes         Json?
+  trackStock    Boolean               @default(true) @map("track_stock")
+  unit          String?
+  packOptions   Json?                 @map("pack_options")
+  feedback      Feedback[]
+  offers        Offer[]
+  orderItems    OrderItem[]
+  returnItems   OrderReturnItem[]
   furnitureMeta ProductFurnitureMeta?
+  shop          Shop                  @relation(fields: [shopId], references: [id])
+  imageHotspots ShopImageHotspot[]
 
   @@index([shopId])
   @@index([category])
@@ -221,7 +200,6 @@ model ProductFurnitureMeta {
   heightCm  Float?   @map("height_cm")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
-
   product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
@@ -229,64 +207,61 @@ model ProductFurnitureMeta {
 }
 
 model ShopImageMap {
-  id        String   @id @default(cuid())
-  shopId    String   @map("shop_id")
+  id        String             @id @default(cuid())
+  shopId    String             @map("shop_id")
   title     String?
-  imageUrl  String   @map("image_url")
+  imageUrl  String             @map("image_url")
   width     Int?
   height    Int?
-  isActive  Boolean  @default(true) @map("is_active")
-  aiMeta    Json?    @map("ai_meta")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  shop      Shop     @relation(fields: [shopId], references: [id])
-  sections  ShopImageSection[]
+  isActive  Boolean            @default(true) @map("is_active")
+  aiMeta    Json?              @map("ai_meta")
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
   hotspots  ShopImageHotspot[]
+  shop      Shop               @relation(fields: [shopId], references: [id])
+  sections  ShopImageSection[]
 
   @@index([shopId])
   @@map("shop_image_maps")
 }
 
 model ShopImageSection {
-  id        String   @id @default(cuid())
-  mapId     String   @map("map_id")
+  id        String             @id @default(cuid())
+  mapId     String             @map("map_id")
   name      String
-  imageUrl  String?  @map("image_url")
-  width     Int?
+  sortOrder Int                @default(0) @map("sort_order")
+  createdAt DateTime           @default(now()) @map("created_at")
+  updatedAt DateTime           @updatedAt @map("updated_at")
   height    Int?
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  map       ShopImageMap @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  imageUrl  String?            @map("image_url")
+  width     Int?
   hotspots  ShopImageHotspot[]
+  map       ShopImageMap       @relation(fields: [mapId], references: [id], onDelete: Cascade)
 
   @@index([mapId])
   @@map("shop_image_sections")
 }
 
 model ShopImageHotspot {
-  id          String   @id @default(cuid())
-  mapId       String   @map("map_id")
-  sectionId   String?  @map("section_id")
-  productId   String?  @map("product_id")
-  x           Float
-  y           Float
-  width       Float?   @map("width")
-  height      Float?   @map("height")
-  label       String?
-  sortOrder   Int      @default(0) @map("sort_order")
-  priceOverride Float? @map("price_override")
-  isActive    Boolean  @default(true) @map("is_active")
-  itemData    Json?    @map("item_data")
-  aiMeta      Json?    @map("ai_meta")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  map       ShopImageMap     @relation(fields: [mapId], references: [id], onDelete: Cascade)
-  section   ShopImageSection? @relation(fields: [sectionId], references: [id], onDelete: SetNull)
-  product   Product?         @relation(fields: [productId], references: [id], onDelete: SetNull)
+  id            String            @id @default(cuid())
+  mapId         String            @map("map_id")
+  sectionId     String?           @map("section_id")
+  productId     String?           @map("product_id")
+  x             Float
+  y             Float
+  width         Float?            @map("width")
+  height        Float?            @map("height")
+  label         String?
+  sortOrder     Int               @default(0) @map("sort_order")
+  priceOverride Float?            @map("price_override")
+  isActive      Boolean           @default(true) @map("is_active")
+  aiMeta        Json?             @map("ai_meta")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  itemData      Json?             @map("item_data")
+  map           ShopImageMap      @relation(fields: [mapId], references: [id], onDelete: Cascade)
+  product       Product?          @relation(fields: [productId], references: [id])
+  section       ShopImageSection? @relation(fields: [sectionId], references: [id])
 
   @@index([mapId])
   @@index([sectionId])
@@ -294,26 +269,23 @@ model ShopImageHotspot {
   @@map("shop_image_hotspots")
 }
 
-// Offers table
 model Offer {
-  id          String   @id @default(cuid())
-  title       String
-  description String?
-  discount    Float    @default(0)
-  oldPrice    Float    @map("old_price")
-  newPrice    Float    @map("new_price")
-  variantPricing Json? @map("variant_pricing")
-  imageUrl    String?  @map("image_url")
-  expiresAt   DateTime @map("expires_at")
-  isActive    Boolean  @default(true)
-  productId   String?  @map("product_id")
-  shopId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  product     Product? @relation(fields: [productId], references: [id])
-  shop        Shop     @relation(fields: [shopId], references: [id])
+  id             String   @id @default(cuid())
+  title          String
+  description    String?
+  discount       Float    @default(0)
+  oldPrice       Float    @map("old_price")
+  newPrice       Float    @map("new_price")
+  imageUrl       String?  @map("image_url")
+  expiresAt      DateTime @map("expires_at")
+  isActive       Boolean  @default(true)
+  productId      String?  @map("product_id")
+  shopId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  variantPricing Json?    @map("variant_pricing")
+  product        Product? @relation(fields: [productId], references: [id])
+  shop           Shop     @relation(fields: [shopId], references: [id])
 
   @@index([shopId])
   @@index([productId])
@@ -322,65 +294,61 @@ model Offer {
   @@map("offers")
 }
 
-// Orders table
 model Order {
-  id            String      @id @default(cuid())
-  total         Float
-  status        OrderStatus @default(PENDING)
-  paymentMethod String?     @map("payment_method")
-  paymentStatus String?     @map("payment_status")
-  source        String?     @default("customer") // 'customer' for online orders, 'pos' for POS system orders
-  notes         String?
-  userId        String
-  shopId        String
-  courierId     String?     @map("courier_id")
-  codCollectedAt DateTime?  @map("cod_collected_at")
-  deliveredAt   DateTime?   @map("delivered_at")
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  // Relations
-  user          User        @relation(fields: [userId], references: [id])
-  shop          Shop        @relation(fields: [shopId], references: [id])
-  courier       User?       @relation("CourierOrders", fields: [courierId], references: [id])
-  courierOffers OrderCourierOffer[]
-  items         OrderItem[]
-  notifications Notification[]
-  returns       OrderReturn[]
+  id                         String              @id @default(cuid())
+  total                      Float
+  status                     OrderStatus         @default(PENDING)
+  paymentMethod              String?             @map("payment_method")
+  paymentStatus              String?             @map("payment_status")
+  notes                      String?
+  userId                     String
+  shopId                     String
+  courierId                  String?             @map("courier_id")
+  handedToCourierAt           DateTime?           @map("handed_to_courier_at")
+  codCollectedAt             DateTime?           @map("cod_collected_at")
+  deliveredAt                DateTime?           @map("delivered_at")
+  createdAt                  DateTime            @default(now())
+  updatedAt                  DateTime
+  source                     String?             @default("customer")
+  notifications              Notification[]
+  courierOffers              OrderCourierOffer[]
+  items                      OrderItem[]
+  returns                    OrderReturn[]
+  courier                    User?               @relation("CourierOrders", fields: [courierId], references: [id])
+  shops                      Shop                @relation(fields: [shopId], references: [id])
+  users_orders_userIdTousers User                @relation("orders_userIdTousers", fields: [userId], references: [id])
 
   @@map("orders")
 }
 
 model CourierState {
-  id          String   @id @default(cuid())
-  userId      String   @unique @map("user_id")
-  isAvailable Boolean  @default(false) @map("is_available")
-  lastLat     Float?   @map("last_lat")
-  lastLng     Float?   @map("last_lng")
-  accuracy    Float?   @map("accuracy")
+  id          String    @id @default(cuid())
+  userId      String    @unique @map("user_id")
+  isAvailable Boolean   @default(false) @map("is_available")
+  lastLat     Float?    @map("last_lat")
+  lastLng     Float?    @map("last_lng")
+  accuracy    Float?    @map("accuracy")
   lastSeenAt  DateTime? @map("last_seen_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@map("courier_states")
 }
 
 model OrderCourierOffer {
-  id          String   @id @default(cuid())
-  orderId     String   @map("order_id")
-  courierId   String   @map("courier_id")
-  rank        Int      @default(0)
+  id          String                  @id @default(cuid())
+  orderId     String                  @map("order_id")
+  courierId   String                  @map("courier_id")
+  rank        Int                     @default(0)
   status      OrderCourierOfferStatus @default(PENDING)
-  expiresAt   DateTime @map("expires_at")
-  respondedAt DateTime? @map("responded_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  order       Order    @relation(fields: [orderId], references: [id])
-  courier     User     @relation("CourierOrderOffers", fields: [courierId], references: [id])
+  expiresAt   DateTime                @map("expires_at")
+  respondedAt DateTime?               @map("responded_at")
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  courier     User                    @relation("CourierOrderOffers", fields: [courierId], references: [id])
+  order       Order                   @relation(fields: [orderId], references: [id])
 
   @@unique([orderId, courierId])
   @@index([courierId, status])
@@ -388,38 +356,34 @@ model OrderCourierOffer {
   @@map("order_courier_offers")
 }
 
-// Order items table
 model OrderItem {
-  id        String @id @default(cuid())
-  orderId   String @map("order_id")
-  productId String @map("product_id")
-  quantity  Int
-  price     Float
-  addons    Json?
-  variantSelection Json? @map("variant_selection")
-
-  // Relations
-  order     Order   @relation(fields: [orderId], references: [id])
-  product   Product @relation(fields: [productId], references: [id])
-  returnItems OrderReturnItem[]
+  id               String            @id @default(cuid())
+  orderId          String            @map("order_id")
+  productId        String            @map("product_id")
+  quantity         Int
+  price            Float
+  addons           Json?
+  variantSelection Json?             @map("variant_selection")
+  order            Order             @relation(fields: [orderId], references: [id])
+  product          Product           @relation(fields: [productId], references: [id])
+  returnItems      OrderReturnItem[]
 
   @@map("order_items")
 }
 
 model OrderReturn {
-  id            String   @id @default(cuid())
-  orderId       String   @map("order_id")
-  shopId        String   @map("shop_id")
-  createdById   String   @map("created_by_id")
+  id            String            @id @default(cuid())
+  orderId       String            @map("order_id")
+  shopId        String            @map("shop_id")
+  createdById   String            @map("created_by_id")
   reason        String?
-  returnToStock Boolean  @default(false) @map("return_to_stock")
-  totalAmount   Float    @default(0) @map("total_amount")
-  createdAt     DateTime @default(now()) @map("created_at")
-
-  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  shop        Shop    @relation(fields: [shopId], references: [id], onDelete: Cascade)
-  createdBy   User    @relation(fields: [createdById], references: [id], onDelete: Cascade)
-  items       OrderReturnItem[]
+  returnToStock Boolean           @default(false) @map("return_to_stock")
+  totalAmount   Float             @default(0) @map("total_amount")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  items         OrderReturnItem[]
+  createdBy     User              @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  order         Order             @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop          Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([shopId, createdAt])
@@ -428,17 +392,16 @@ model OrderReturn {
 }
 
 model OrderReturnItem {
-  id          String @id @default(cuid())
-  returnId    String @map("return_id")
-  orderItemId String @map("order_item_id")
-  productId   String @map("product_id")
+  id          String      @id @default(cuid())
+  returnId    String      @map("return_id")
+  orderItemId String      @map("order_item_id")
+  productId   String      @map("product_id")
   quantity    Int
-  unitPrice   Float  @default(0) @map("unit_price")
-  lineTotal   Float  @default(0) @map("line_total")
-
-  return     OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
-  orderItem  OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  unitPrice   Float       @default(0) @map("unit_price")
+  lineTotal   Float       @default(0) @map("line_total")
+  orderItem   OrderItem   @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  return      OrderReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
 
   @@unique([returnId, orderItemId])
   @@index([orderItemId])
@@ -447,25 +410,24 @@ model OrderReturnItem {
 }
 
 model AccountingInvoice {
-  id            String   @id @default(cuid())
-  sequence      Int
-  shopId        String   @map("shop_id")
-  createdById   String   @map("created_by_id")
-  invoiceDate   DateTime @default(now()) @map("invoice_date")
-  notes         String?
-  discount      Float    @default(0)
-  vatRate       Float    @default(0) @map("vat_rate")
-  subtotal      Float    @default(0)
-  vatAmount     Float    @default(0) @map("vat_amount")
-  total         Float    @default(0)
-  currency      String?  @default("EGP")
-  meta          Json?
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-
-  shop          Shop     @relation(fields: [shopId], references: [id])
-  createdBy     User     @relation(fields: [createdById], references: [id])
-  items         AccountingInvoiceItem[]
+  id          String                  @id @default(cuid())
+  sequence    Int
+  shopId      String                  @map("shop_id")
+  createdById String                  @map("created_by_id")
+  invoiceDate DateTime                @default(now()) @map("invoice_date")
+  notes       String?
+  discount    Float                   @default(0)
+  vatRate     Float                   @default(0) @map("vat_rate")
+  subtotal    Float                   @default(0)
+  vatAmount   Float                   @default(0) @map("vat_amount")
+  total       Float                   @default(0)
+  currency    String?                 @default("EGP")
+  meta        Json?
+  createdAt   DateTime                @default(now()) @map("created_at")
+  updatedAt   DateTime                @updatedAt @map("updated_at")
+  items       AccountingInvoiceItem[]
+  createdBy   User                    @relation(fields: [createdById], references: [id])
+  shop        Shop                    @relation(fields: [shopId], references: [id])
 
   @@unique([shopId, sequence])
   @@index([shopId, invoiceDate])
@@ -473,23 +435,21 @@ model AccountingInvoice {
 }
 
 model AccountingInvoiceItem {
-  id          String   @id @default(cuid())
-  invoiceId   String   @map("invoice_id")
-  name        String
-  quantity    Int      @default(1)
-  unitPrice   Float    @default(0) @map("unit_price")
-  lineTotal   Float    @default(0) @map("line_total")
-  meta        Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  invoice     AccountingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  id        String            @id @default(cuid())
+  invoiceId String            @map("invoice_id")
+  name      String
+  quantity  Int               @default(1)
+  unitPrice Float             @default(0) @map("unit_price")
+  lineTotal Float             @default(0) @map("line_total")
+  meta      Json?
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+  invoice   AccountingInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@index([invoiceId])
   @@map("accounting_invoice_items")
 }
 
-// Messages table - Chat system
 model Message {
   id         String      @id @default(cuid())
   content    String
@@ -499,37 +459,32 @@ model Message {
   shopId     String      @map("shop_id")
   isRead     Boolean     @default(false) @map("is_read")
   createdAt  DateTime    @default(now()) @map("created_at")
-
-  // Relations
-  shop       Shop        @relation(fields: [shopId], references: [id])
   sender     User        @relation(fields: [senderId], references: [id])
+  shop       Shop        @relation(fields: [shopId], references: [id])
 
   @@map("messages")
 }
 
-// Notifications table
 model Notification {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   content     String
   type        String
-  priority    String?  @default("MEDIUM")
-  shopId      String?  @map("shop_id")
-  userId      String?  @map("user_id")
-  orderId     String?  @map("order_id")
-  isRead      Boolean  @default(false) @map("is_read")
-  channels    Json?    @map("channels")
+  priority    String?   @default("MEDIUM")
+  shopId      String?   @map("shop_id")
+  userId      String?   @map("user_id")
+  orderId     String?   @map("order_id")
+  isRead      Boolean   @default(false) @map("is_read")
+  channels    Json?     @map("channels")
   metadata    Json?
   scheduledAt DateTime? @map("scheduled_at")
   sentAt      DateTime? @map("sent_at")
   expiresAt   DateTime? @map("expires_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  shop        Shop?               @relation(fields: [shopId], references: [id])
-  user        User?               @relation(fields: [userId], references: [id])
-  order       Order?              @relation(fields: [orderId], references: [id])
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  order       Order?    @relation(fields: [orderId], references: [id])
+  shop        Shop?     @relation(fields: [shopId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([shopId])
@@ -539,35 +494,31 @@ model Notification {
   @@map("notifications")
 }
 
-// Notification preferences table
 model NotificationPreference {
-  id            String   @id @default(cuid())
-  userId        String   @map("user_id")
-  emailEnabled  Boolean  @default(true) @map("email_enabled")
-  smsEnabled    Boolean  @default(false) @map("sms_enabled")
-  pushEnabled   Boolean  @default(true) @map("push_enabled")
-  inAppEnabled  Boolean  @default(true) @map("in_app_enabled")
-  typeSettings  Json?    @map("type_settings") // NotificationType -> preferences
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  emailEnabled Boolean  @default(true) @map("email_enabled")
+  smsEnabled   Boolean  @default(false) @map("sms_enabled")
+  pushEnabled  Boolean  @default(true) @map("push_enabled")
+  inAppEnabled Boolean  @default(true) @map("in_app_enabled")
+  typeSettings Json?    @map("type_settings")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  user         User     @relation(fields: [userId], references: [id])
 
-  user          User     @relation(fields: [userId], references: [id])
-
-  @@unique([userId])
   @@map("notification_preferences")
 }
 
 model MerchantPushSubscription {
-  id           String   @id @default(cuid())
-  shopId       String   @map("shop_id")
+  id           String    @id @default(cuid())
+  shopId       String    @map("shop_id")
   endpoint     String
   subscription Json
-  isActive     Boolean  @default(true) @map("is_active")
+  isActive     Boolean   @default(true) @map("is_active")
   lastSeenAt   DateTime? @map("last_seen_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  shop         Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, endpoint])
   @@index([shopId])
@@ -577,15 +528,14 @@ model MerchantPushSubscription {
 }
 
 model CustomerPushSubscription {
-  id           String   @id @default(cuid())
-  userId       String   @map("user_id")
+  id           String    @id @default(cuid())
+  userId       String    @map("user_id")
   endpoint     String
   subscription Json
-  isActive     Boolean  @default(true) @map("is_active")
+  isActive     Boolean   @default(true) @map("is_active")
   lastSeenAt   DateTime? @map("last_seen_at")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, endpoint])
@@ -595,63 +545,194 @@ model CustomerPushSubscription {
   @@map("customer_push_subscriptions")
 }
 
-// Notification templates table
 model NotificationTemplate {
-  id          String                @id @default(cuid())
-  type        String                @unique
-  title       String
-  content     String
-  priority    String?               @default("MEDIUM")
-  channels    Json?                 @map("channels")
-  variables   Json?                 // Template variables
-  isActive    Boolean               @default(true)
-  createdAt   DateTime              @default(now()) @map("created_at")
-  updatedAt   DateTime              @updatedAt @map("updated_at")
+  id        String   @id @default(cuid())
+  type      String   @unique
+  title     String
+  content   String
+  priority  String?  @default("MEDIUM")
+  channels  Json?    @map("channels")
+  variables Json?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("notification_templates")
 }
 
-// Notification rules table
 model NotificationRule {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  triggerEvent    String   @map("trigger_event")
-  triggerConditions Json?  @map("trigger_conditions")
-  actionType      String   @map("action_type")
-  templateId      String   @map("template_id")
-  channels        Json?    @map("channels")
-  delayMinutes    Int?    @map("delay_minutes")
-  targetAudience  Json?   @map("target_audience")
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  triggerEvent      String   @map("trigger_event")
+  triggerConditions Json?    @map("trigger_conditions")
+  actionType        String   @map("action_type")
+  templateId        String   @map("template_id")
+  channels          Json?    @map("channels")
+  delayMinutes      Int?     @map("delay_minutes")
+  targetAudience    Json?    @map("target_audience")
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
 
   @@map("notification_rules")
 }
 
-// Reservations table
 model Reservation {
-  id            String           @id @default(cuid())
-  itemId        String           @map("item_id")
-  itemName      String           @map("item_name")
-  itemImage     String?          @map("item_image")
-  itemPrice     Float            @map("item_price")
-  extras        Json?
-  variantSelection Json?          @map("variant_selection")
-  shopId        String           @map("shop_id")
-  shopName      String           @map("shop_name")
-  customerName  String           @map("customer_name")
-  customerPhone String           @map("customer_phone")
-  status        ReservationStatus @default(PENDING)
-  createdAt     DateTime         @default(now()) @map("created_at")
-  updatedAt     DateTime         @updatedAt @map("updated_at")
-
-  // Relations
-  shop          Shop             @relation(fields: [shopId], references: [id])
-  customer      User             @relation(fields: [customerPhone], references: [phone])
+  id               String            @id @default(cuid())
+  itemId           String            @map("item_id")
+  itemName         String            @map("item_name")
+  itemImage        String?           @map("item_image")
+  itemPrice        Float             @map("item_price")
+  shopId           String            @map("shop_id")
+  shopName         String            @map("shop_name")
+  customerName     String            @map("customer_name")
+  customerPhone    String            @map("customer_phone")
+  status           ReservationStatus @default(PENDING)
+  createdAt        DateTime          @default(now()) @map("created_at")
+  extras           Json?
+  variantSelection Json?             @map("variant_selection")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
+  customer         User              @relation(fields: [customerPhone], references: [phone])
+  shop             Shop              @relation(fields: [shopId], references: [id])
 
   @@map("reservations")
+}
+
+model BookingResource {
+  id        String    @id @default(cuid())
+  shopId    String    @map("shop_id")
+  name      String
+  type      String
+  isActive  Boolean   @default(true) @map("is_active")
+  metadata  Json?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  shop      Shop      @relation(fields: [shopId], references: [id])
+  bookings  Booking[]
+
+  @@index([shopId])
+  @@map("booking_resources")
+}
+
+model Booking {
+  id            String           @id @default(cuid())
+  shopId        String           @map("shop_id")
+  customerName  String           @map("customer_name")
+  customerPhone String           @map("customer_phone")
+  status        BookingStatus    @default(PENDING)
+  startAt       DateTime?        @map("start_at")
+  endAt         DateTime?        @map("end_at")
+  resourceId    String?          @map("resource_id")
+  itemId        String?          @map("item_id")
+  itemName      String?          @map("item_name")
+  itemImage     String?          @map("item_image")
+  itemPrice     Float?           @map("item_price")
+  notes         String?
+  metadata      Json?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  resource      BookingResource? @relation(fields: [resourceId], references: [id])
+  shop          Shop             @relation(fields: [shopId], references: [id])
+
+  @@index([shopId, createdAt])
+  @@index([resourceId])
+  @@map("bookings")
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  comment   String   @map("content")
+  userName  String?  @map("user_name")
+  userEmail String?  @map("user_email")
+  rating    Int?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now()) @map("created_at")
+  userId    String?  @map("user_id")
+  shopId    String?  @map("shop_id")
+  productId String?  @map("product_id")
+  product   Product? @relation(fields: [productId], references: [id])
+  shop      Shop?    @relation(fields: [shopId], references: [id])
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("feedback")
+}
+
+model ShopGallery {
+  id        String    @id @default(cuid())
+  shopId    String    @map("shop_id")
+  imageUrl  String    @map("image_url")
+  mediaType MediaType @default(IMAGE) @map("media_type")
+  thumbUrl  String?   @map("thumb_url")
+  mediumUrl String?   @map("medium_url")
+  caption   String?
+  duration  Int?      @map("duration")
+  fileSize  BigInt?   @map("file_size")
+  isHero    Boolean   @default(false) @map("is_hero")
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now()) @map("created_at")
+  shop      Shop      @relation(fields: [shopId], references: [id])
+
+  @@map("shop_gallery")
+}
+
+model ShopAnalytics {
+  id             String   @id @default(cuid())
+  shopId         String   @map("shop_id")
+  date           DateTime @default(now())
+  revenue        Float    @default(0)
+  ordersCount    Int      @default(0) @map("orders_count")
+  visitorsCount  Int      @default(0) @map("visitors_count")
+  followersCount Int      @default(0) @map("followers_count")
+  shop           Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_analytics")
+}
+
+model ShopTheme {
+  id           String   @id @default(cuid())
+  shopId       String   @map("shop_id")
+  name         String
+  primary      String   @default("#00E5FF")
+  secondary    String   @default("#BD00FF")
+  accent       String   @default("#000000")
+  background   String   @default("#FFFFFF")
+  text         String   @default("#000000")
+  fontFamily   String   @default("Inter")
+  borderRadius String   @default("1rem")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  shop         Shop     @relation(fields: [shopId], references: [id])
+
+  @@map("shop_themes")
+}
+
+model ThemeTemplate {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  displayName  String   @map("display_name")
+  description  String?
+  category     String
+  primary      String   @default("#00E5FF")
+  secondary    String   @default("#BD00FF")
+  accent       String   @default("#000000")
+  background   String   @default("#FFFFFF")
+  text         String   @default("#000000")
+  fontFamily   String   @default("Inter")
+  borderRadius String   @default("1rem")
+  preview      String?  @map("preview")
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  @@map("theme_templates")
+}
+
+enum ShopModuleUpgradeRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELED
 }
 
 enum BookingStatus {
@@ -661,155 +742,6 @@ enum BookingStatus {
   CANCELLED
 }
 
-model BookingResource {
-  id        String   @id @default(cuid())
-  shopId    String   @map("shop_id")
-  name      String
-  type      String
-  isActive  Boolean  @default(true) @map("is_active")
-  metadata  Json?
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  shop      Shop     @relation(fields: [shopId], references: [id])
-  bookings  Booking[]
-
-  @@index([shopId])
-  @@map("booking_resources")
-}
-
-model Booking {
-  id            String        @id @default(cuid())
-  shopId        String        @map("shop_id")
-  customerName  String        @map("customer_name")
-  customerPhone String        @map("customer_phone")
-  status        BookingStatus @default(PENDING)
-
-  startAt       DateTime?     @map("start_at")
-  endAt         DateTime?     @map("end_at")
-
-  resourceId    String?       @map("resource_id")
-
-  itemId        String?       @map("item_id")
-  itemName      String?       @map("item_name")
-  itemImage     String?       @map("item_image")
-  itemPrice     Float?        @map("item_price")
-
-  notes         String?
-  metadata      Json?
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  shop          Shop          @relation(fields: [shopId], references: [id])
-  resource      BookingResource? @relation(fields: [resourceId], references: [id])
-
-  @@index([shopId, createdAt])
-  @@index([resourceId])
-  @@map("bookings")
-}
-
-// Feedback table
-model Feedback {
-  id        String   @id @default(cuid())
-  comment   String   @map("content")
-  rating    Int?
-  userId    String?  @map("user_id")
-  userName  String?  @map("user_name")
-  userEmail String?  @map("user_email")
-  shopId    String?  @map("shop_id")
-  productId String?  @map("product_id")
-  status    String   @default("PENDING")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  user      User?    @relation(fields: [userId], references: [id])
-  shop      Shop?    @relation(fields: [shopId], references: [id])
-  product   Product? @relation(fields: [productId], references: [id])
-
-  @@map("feedback")
-}
-
-// Shop gallery table
-model ShopGallery {
-  id        String   @id @default(cuid())
-  shopId    String   @map("shop_id")
-  imageUrl  String   @map("image_url")
-  mediaType MediaType @default(IMAGE) @map("media_type")
-  thumbUrl  String?  @map("thumb_url")
-  mediumUrl String?  @map("medium_url")
-  caption   String?
-  duration  Int?     @map("duration") // Video duration in seconds
-  fileSize  BigInt?  @map("file_size") // File size in bytes
-  isHero    Boolean  @default(false) @map("is_hero") // Is this the hero video?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now()) @map("created_at")
-
-  // Relations
-  shop      Shop     @relation(fields: [shopId], references: [id])
-
-  @@map("shop_gallery")
-}
-
-// Shop analytics table
-model ShopAnalytics {
-  id            String   @id @default(cuid())
-  shopId        String   @map("shop_id")
-  date          DateTime @default(now())
-  revenue       Float    @default(0)
-  ordersCount   Int      @default(0) @map("orders_count")
-  visitorsCount Int      @default(0) @map("visitors_count")
-  followersCount Int     @default(0) @map("followers_count")
-
-  // Relations
-  shop          Shop     @relation(fields: [shopId], references: [id])
-
-  @@map("shop_analytics")
-}
-
-// Shop themes table
-model ShopTheme {
-  id          String   @id @default(cuid())
-  shopId      String   @map("shop_id")
-  name        String   // Theme name
-  primary     String   @default("#00E5FF") // Primary color
-  secondary   String   @default("#BD00FF") // Secondary color
-  accent      String   @default("#000000") // Accent color
-  background  String   @default("#FFFFFF") // Background color
-  text        String   @default("#000000") // Text color
-  fontFamily  String   @default("Inter") // Font family
-  borderRadius String  @default("1rem") // Border radius
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  shop        Shop     @relation(fields: [shopId], references: [id])
-
-  @@map("shop_themes")
-}
-
-// Theme templates table (predefined themes)
-model ThemeTemplate {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  displayName String  @map("display_name")
-  description String?
-  category    String   // modern, classic, minimal, etc.
-  primary     String   @default("#00E5FF")
-  secondary   String   @default("#BD00FF")
-  accent      String   @default("#000000")
-  background  String   @default("#FFFFFF")
-  text        String   @default("#000000")
-  fontFamily  String   @default("Inter")
-  borderRadius String  @default("1rem")
-  preview     String?  @map("preview") // Preview image URL
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-
-  @@map("theme_templates")
-}
-
-// Enums
 enum UserRole {
   CUSTOMER
   MERCHANT

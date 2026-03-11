@@ -300,12 +300,12 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String?
   source        String?       @default("customer")
-  deliveryAddress String?
-  userId        String
-  shopId        String
-  courierId     String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  handedToCourierAt DateTime?  @map("handed_to_courier_at")
+  notes         String?
+  deliveredAt   DateTime?      @map("delivered_at")
+  codCollectedAt DateTime?     @map("cod_collected_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
 
   // Relations
   user          User          @relation(fields: [userId], references: [id])

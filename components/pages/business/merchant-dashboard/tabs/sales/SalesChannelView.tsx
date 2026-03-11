@@ -9,6 +9,154 @@ type Props = {
   channel: 'shop' | 'pos';
 };
 
+const asCleanText = (v: any) => {
+  const s = typeof v === 'string' ? v : (v == null ? '' : String(v));
+  const t = s.trim();
+  return t ? t : '';
+};
+
+const formatVariantSelection = (raw: any) => {
+  if (!raw || typeof raw !== 'object') return '';
+  const kind = asCleanText((raw as any)?.kind).toLowerCase();
+
+  if (kind === 'pack') {
+    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+    const qty = (raw as any)?.qty;
+    const unit = asCleanText((raw as any)?.unit);
+    const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
+    const fallback = [qtyText, unit].filter(Boolean).join(' ');
+    return label || fallback ? `باقة: ${label || fallback}` : '';
+  }
+
+  if (kind === 'fashion') {
+    const color = asCleanText((raw as any)?.colorName || (raw as any)?.color || (raw as any)?.colorValue);
+    const size = asCleanText((raw as any)?.size);
+    const parts = [color ? `لون: ${color}` : '', size ? `مقاس: ${size}` : ''].filter(Boolean);
+    return parts.join(' - ');
+  }
+
+  const size = asCleanText((raw as any)?.sizeLabel || (raw as any)?.sizeName || (raw as any)?.size);
+  const type = asCleanText((raw as any)?.typeLabel || (raw as any)?.typeName || (raw as any)?.type);
+  const parts = [type, size].filter(Boolean);
+  if (parts.length) return `اختيار: ${parts.join(' - ')}`;
+
+  const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+  return label ? `اختيار: ${label}` : '';
+};
+
+const formatAddons = (raw: any) => {
+  if (!raw) return '';
+
+  const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
+  if (Array.isArray(list)) {
+    const out = list
+      .map((a: any) => {
+        if (typeof a === 'string') return asCleanText(a);
+        if (a && typeof a === 'object') {
+          const name = asCleanText(a?.name || a?.title || a?.label);
+          const qty = a?.qty ?? a?.quantity;
+          const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
+          return qtyText && name ? `${name} × ${qtyText}` : name;
+        }
+        return '';
+      })
+      .filter(Boolean);
+    return out.length ? `إضافات: ${out.join('، ')}` : '';
+  }
+
+  if (raw && typeof raw === 'object') {
+    const labels = Object.entries(raw)
+      .map(([k, v]) => {
+        const key = asCleanText(k);
+        if (!key) return '';
+        if (v === true) return key;
+        if (typeof v === 'number' && Number.isFinite(v) && v > 0) return `${key} × ${v}`;
+        const val = asCleanText(v);
+        return val ? `${key}: ${val}` : '';
+      })
+      .filter(Boolean);
+    return labels.length ? `إضافات: ${labels.join('، ')}` : '';
+  }
+
+  const s = asCleanText(raw);
+  return s ? `إضافات: ${s}` : '';
+};
+
+const formatAddonsCompactParts = (raw: any): string[] => {
+  if (!raw) return [];
+
+  const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
+  if (Array.isArray(list)) {
+    const out = list
+      .map((a: any) => {
+        if (typeof a === 'string') return asCleanText(a);
+        if (!a || typeof a !== 'object') return '';
+
+        const name = asCleanText(a?.optionName || a?.name || a?.title || a?.label);
+        const size = asCleanText(a?.variantLabel || a?.variant || a?.size || a?.sizeLabel || a?.sizeName);
+        const priceRaw = typeof a?.price === 'number' ? a.price : Number(a?.price ?? NaN);
+        const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ج.م ${Math.round(priceRaw * 100) / 100}` : '';
+        const core = [name, size].filter(Boolean).join(' ');
+        if (!core) return '';
+        return `${core}${priceText}`.trim();
+      })
+      .filter(Boolean);
+    return out;
+  }
+
+  const s = asCleanText(raw);
+  return s ? [s] : [];
+};
+
+const formatVariantSelectionCompact = (raw: any) => {
+  if (!raw || typeof raw !== 'object') return '';
+  const kind = asCleanText((raw as any)?.kind).toLowerCase();
+
+  if (kind === 'pack') {
+    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+    return label || '';
+  }
+
+  if (kind === 'fashion') {
+    const color = asCleanText((raw as any)?.colorName || (raw as any)?.color || (raw as any)?.colorValue);
+    const size = asCleanText((raw as any)?.size);
+    return [color, size].filter(Boolean).join(' ');
+  }
+
+  const size = asCleanText((raw as any)?.sizeLabel || (raw as any)?.sizeName || (raw as any)?.size);
+  const type = asCleanText((raw as any)?.typeLabel || (raw as any)?.typeName || (raw as any)?.type);
+  return [type, size].filter(Boolean).join(' ');
+};
+
+const formatOrderItemsSummary = (sale: any) => {
+  const items = Array.isArray(sale?.items) ? sale.items : [];
+  if (items.length === 0) return '';
+
+  const parts = items.slice(0, 3).map((it: any) => {
+    const name = asCleanText(it?.product?.name || it?.name || it?.title);
+    const qty = Number(it?.quantity || it?.qty || 1);
+    const qtyText = Number.isFinite(qty) && qty > 1 ? ` × ${qty}` : '';
+    const unitPrice = Number(it?.price ?? it?.unitPrice ?? it?.unit_price ?? 0);
+    const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+    const lineTotal = Number.isFinite(unitPrice) ? unitPrice * safeQty : NaN;
+    const priceText = (() => {
+      if (!Number.isFinite(unitPrice) || unitPrice < 0) return '';
+      const useTotal = Number.isFinite(lineTotal) && safeQty > 1;
+      const n = useTotal ? lineTotal : unitPrice;
+      return ` ج.م ${Math.round(n * 100) / 100}`;
+    })();
+    const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection);
+    const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns);
+    const core = [name, variantText].filter(Boolean).join(' ');
+    const base = [core ? `${core}${qtyText}` : '', priceText].filter(Boolean).join('');
+    const addons = addonsParts.length ? ` + ${addonsParts.join(' + ')}` : '';
+    return `${base}${addons}`.trim();
+  }).filter(Boolean);
+
+  const more = items.length > 3 ? ` +${items.length - 3}` : '';
+  return `${parts.join(' + ')}${more}`;
+};
+
 const OrderRow = memo(({ 
   sale, 
   updatingId, 
@@ -26,15 +174,18 @@ const OrderRow = memo(({
   const isRefunded = status === 'REFUNDED';
   const busy = updatingId === id;
   const isFinal = status === 'DELIVERED' || status === 'CANCELLED';
-  const canAccept = !isFinal;
-  const canInProgress = !isFinal;
-  const canReject = !isFinal;
+  const canAccept = status === 'PENDING';
+  const canInProgress = status === 'CONFIRMED';
+  const canReady = status === 'PREPARING';
+  const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
+  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const itemsSummary = formatOrderItemsSummary(sale);
 
   return (
     <div className="border border-slate-100 rounded-3xl p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</div>
+          <div className="font-black text-slate-900 whitespace-normal break-words">{itemsSummary || '-'}</div>
           <div className="text-slate-500 font-bold text-xs mt-1">
             {new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}
           </div>
@@ -81,8 +232,9 @@ const OrderRow = memo(({
                   e.stopPropagation();
                   setOpenMenuId(openMenuId === id ? '' : id);
                 }}
-                className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
+                className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
                 data-sales-actions-menu="1"
+                disabled={busy}
               >
                 <MoreVertical size={18} />
               </button>
@@ -115,6 +267,30 @@ const OrderRow = memo(({
                     data-sales-actions-menu="1"
                   >
                     {busy && canInProgress ? '...' : 'قيد التنفيذ'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId('');
+                      if (!canReady || busy) return;
+                      updateStatus(id, 'READY');
+                    }}
+                    className={`w-full text-right px-4 py-3 font-black text-xs ${!canReady || busy ? 'text-slate-300 cursor-not-allowed' : 'text-blue-700 hover:bg-blue-50'}`}
+                    data-sales-actions-menu="1"
+                  >
+                    {busy && canReady ? '...' : 'جاهز'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId('');
+                      if (!canHandToCourier || busy) return;
+                      updateStatus(id, 'HANDED_TO_COURIER');
+                    }}
+                    className={`w-full text-right px-4 py-3 font-black text-xs ${!canHandToCourier || busy ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-700 hover:bg-indigo-50'}`}
+                    data-sales-actions-menu="1"
+                  >
+                    {busy && canHandToCourier ? '...' : 'تم تسليمه للتوصيل'}
                   </button>
                   <button
                     onClick={(e) => {
@@ -155,13 +331,18 @@ const OrderTableRow = memo(({
   const isRefunded = status === 'REFUNDED';
   const busy = updatingId === id;
   const isFinal = status === 'DELIVERED' || status === 'CANCELLED';
-  const canAccept = !isFinal;
-  const canInProgress = !isFinal;
-  const canReject = !isFinal;
+  const canAccept = status === 'PENDING';
+  const canInProgress = status === 'CONFIRMED';
+  const canReady = status === 'PREPARING';
+  const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
+  const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const itemsSummary = formatOrderItemsSummary(sale);
 
   return (
     <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-      <td className="p-6 font-black text-slate-900">#{String(sale.id).slice(0, 8).toUpperCase()}</td>
+      <td className="p-6 font-black text-slate-900 max-w-[360px]">
+        <div className="whitespace-normal break-words" title={itemsSummary || ''}>{itemsSummary || '-'}</div>
+      </td>
       <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
       <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
       <td className="p-6">
@@ -189,8 +370,9 @@ const OrderTableRow = memo(({
                   e.stopPropagation();
                   setOpenMenuId(openMenuId === id ? '' : id);
                 }}
-                className="p-3 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
+                className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
                 data-sales-actions-menu="1"
+                disabled={busy}
               >
                 <MoreVertical size={18} />
               </button>
@@ -223,6 +405,30 @@ const OrderTableRow = memo(({
                     data-sales-actions-menu="1"
                   >
                     {busy && canInProgress ? '...' : 'قيد التنفيذ'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId('');
+                      if (!canReady || busy) return;
+                      updateStatus(id, 'READY');
+                    }}
+                    className={`w-full text-right px-4 py-3 font-black text-xs ${!canReady || busy ? 'text-slate-300 cursor-not-allowed' : 'text-blue-700 hover:bg-blue-50'}`}
+                    data-sales-actions-menu="1"
+                  >
+                    {busy && canReady ? '...' : 'جاهز'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId('');
+                      if (!canHandToCourier || busy) return;
+                      updateStatus(id, 'HANDED_TO_COURIER');
+                    }}
+                    className={`w-full text-right px-4 py-3 font-black text-xs ${!canHandToCourier || busy ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-700 hover:bg-indigo-50'}`}
+                    data-sales-actions-menu="1"
+                  >
+                    {busy && canHandToCourier ? '...' : 'تم تسليمه للتوصيل'}
                   </button>
                   <button
                     onClick={(e) => {
@@ -338,7 +544,9 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
     if (!orderId) return;
     setUpdatingId(orderId);
     try {
-      const updated = await ApiService.updateOrder(orderId, { status });
+      const upper = String(status || '').toUpperCase();
+      const payload = upper === 'HANDED_TO_COURIER' ? ({ handedToCourier: true } as any) : ({ status } as any);
+      const updated = await ApiService.updateOrder(orderId, payload);
       const nextStatus = String(updated?.status || status || '').toUpperCase();
 
       // When rejecting an order, remove it from the list entirely.
@@ -415,11 +623,11 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
         <table className="w-full text-right border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الفاتورة</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">المنتجات</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ والوقت</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الحالة</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">رسوم التوصيل</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التوصيل</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجراءات</th>
               <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">التفاصيل</th>
@@ -484,9 +692,19 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 const qty = Number(it?.quantity || it?.qty || 1);
                 const price = Number(it?.price || it?.unitPrice || 0);
                 const lineTotal = Number.isFinite(price) ? price * (Number.isFinite(qty) ? qty : 1) : 0;
+                const variantText = formatVariantSelection(it?.variantSelection ?? it?.variant_selection);
+                const addonsText = formatAddons(it?.addons ?? it?.extras ?? it?.addOns);
                 return (
                   <div key={idx} className="flex items-center justify-between gap-3 bg-black/20 border border-white/10 rounded-xl p-3">
-                    <div className="text-white font-bold text-sm truncate">{name}</div>
+                    <div className="min-w-0">
+                      <div className="text-white font-bold text-sm truncate">{name}</div>
+                      {(variantText || addonsText) ? (
+                        <div className="mt-1 space-y-1">
+                          {variantText ? <div className="text-[11px] text-slate-300 font-bold">{variantText}</div> : null}
+                          {addonsText ? <div className="text-[11px] text-slate-300 font-bold">{addonsText}</div> : null}
+                        </div>
+                      ) : null}
+                    </div>
                     <div className="text-slate-200 font-black text-xs shrink-0">
                       {qty} x ج.م {price} = ج.م {Number(lineTotal || 0).toLocaleString()}
                     </div>

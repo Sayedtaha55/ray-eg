@@ -183,7 +183,13 @@ export class OrderController {
   async update(@Param('id') id: string, @Body() body: any, @Request() req?: any) {
     const status = typeof body?.status === 'string' ? body.status : undefined;
     const notes = typeof body?.notes === 'string' ? body.notes : undefined;
-    return this.orderService.updateOrder(id, { status, notes }, { role: req?.user?.role, shopId: req?.user?.shopId });
+    const codCollected = body?.codCollected === true;
+    const handedToCourier = body?.handedToCourier === true;
+    return this.orderService.updateOrder(
+      id,
+      { status, notes, codCollected, handedToCourier },
+      { role: req?.user?.role, shopId: req?.user?.shopId },
+    );
   }
 
   @Patch(':id/assign-courier')

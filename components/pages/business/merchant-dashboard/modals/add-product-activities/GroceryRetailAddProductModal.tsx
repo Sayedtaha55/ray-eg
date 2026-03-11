@@ -24,23 +24,27 @@ const GroceryRetailAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId
       allowExtraImages={true}
       title="إضافة صنف (سوبرماركت/تجزئة)"
       shopCategory={shopCategory}
-      renderExtras={({ parseNumberInput }) => (
+      renderExtras={({ parseNumberInput, groceryPackEnabled }) => (
         <GroceryRetailExtras
           packOptionItems={packOptionItems}
           setPackOptionItems={setPackOptionItems}
           unit={unit}
           setUnit={setUnit}
           parseNumberInput={parseNumberInput}
+          packEnabled={Boolean(groceryPackEnabled)}
         />
       )}
       buildExtrasPayload={({ parseNumberInput, basePrice }) => {
         const { payload } = buildGroceryRetailExtrasPayload({ packOptionItems, unit, parseNumberInput });
+        const packList = Array.isArray((payload as any)?.packOptions) ? ((payload as any).packOptions as any[]) : [];
+        const firstPack = packList.length > 0 ? packList[0] : null;
+        const firstPackPrice = firstPack ? parseNumberInput((firstPack as any)?.price) : NaN;
         return {
           payload: {
             ...(payload || {}),
             unit: unit ? String(unit).trim() : null,
           },
-          resolvedBasePrice: basePrice,
+          resolvedBasePrice: Number.isFinite(firstPackPrice) && firstPackPrice > 0 ? firstPackPrice : basePrice,
         };
       }}
     />

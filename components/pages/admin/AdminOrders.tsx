@@ -5,6 +5,84 @@ import * as ReactRouterDOM from 'react-router-dom';
 
 const { useNavigate } = ReactRouterDOM as any;
 
+const asCleanText = (v: any) => {
+  const s = typeof v === 'string' ? v : (v == null ? '' : String(v));
+  const t = s.trim();
+  return t ? t : '';
+};
+
+const formatVariantSelectionCompact = (raw: any) => {
+  if (!raw || typeof raw !== 'object') return '';
+  const kind = asCleanText((raw as any)?.kind).toLowerCase();
+
+  if (kind === 'pack') {
+    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+    return label || '';
+  }
+
+  if (kind === 'fashion') {
+    const color = asCleanText((raw as any)?.colorName || (raw as any)?.color || (raw as any)?.colorValue);
+    const size = asCleanText((raw as any)?.size);
+    return [color, size].filter(Boolean).join(' ');
+  }
+
+  const size = asCleanText((raw as any)?.sizeLabel || (raw as any)?.sizeName || (raw as any)?.size);
+  const type = asCleanText((raw as any)?.typeLabel || (raw as any)?.typeName || (raw as any)?.type);
+  return [type, size].filter(Boolean).join(' ');
+};
+
+const formatAddonsCompactParts = (raw: any): string[] => {
+  if (!raw) return [];
+  const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
+  if (!Array.isArray(list) || list.length === 0) return [];
+
+  const out = list
+    .map((a: any) => {
+      if (typeof a === 'string') return asCleanText(a);
+      if (!a || typeof a !== 'object') return '';
+      const name = asCleanText(a?.optionName || a?.name || a?.title || a?.label);
+      const size = asCleanText(a?.variantLabel || a?.variant || a?.size || a?.sizeLabel || a?.sizeName);
+      const priceRaw = typeof a?.price === 'number' ? a.price : Number(a?.price ?? NaN);
+      const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ج.م ${Math.round(priceRaw * 100) / 100}` : '';
+      const core = [name, size].filter(Boolean).join(' ');
+      if (!core) return '';
+      return `${core}${priceText}`.trim();
+    })
+    .filter(Boolean);
+
+  return out;
+};
+
+const formatOrderItemsFull = (order: any) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (items.length === 0) return '';
+
+  const parts = items
+    .map((it: any) => {
+      const name = asCleanText(it?.product?.name || it?.name || it?.title);
+      const qty = Number(it?.quantity || it?.qty || 1);
+      const qtyText = Number.isFinite(qty) && qty > 1 ? ` × ${qty}` : '';
+      const unitPrice = Number(it?.price ?? it?.unitPrice ?? it?.unit_price ?? 0);
+      const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
+      const lineTotal = Number.isFinite(unitPrice) ? unitPrice * safeQty : NaN;
+      const priceText = (() => {
+        if (!Number.isFinite(unitPrice) || unitPrice < 0) return '';
+        const useTotal = Number.isFinite(lineTotal) && safeQty > 1;
+        const n = useTotal ? lineTotal : unitPrice;
+        return ` ج.م ${Math.round(n * 100) / 100}`;
+      })();
+      const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection);
+      const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns);
+      const core = [name, variantText].filter(Boolean).join(' ');
+      const base = [core ? `${core}${qtyText}` : '', priceText].filter(Boolean).join('');
+      const addons = addonsParts.length ? ` + ${addonsParts.join(' + ')}` : '';
+      return `${base}${addons}`.trim();
+    })
+    .filter(Boolean);
+
+  return parts.join(' + ');
+};
+
 const AdminOrders: React.FC = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
@@ -187,6 +265,7 @@ const AdminOrders: React.FC = () => {
                   <tr className="border-b border-white/5 bg-white/5">
                     <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رقم العملية</th>
                     <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التاريخ</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الأصناف</th>
                     <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المبلغ</th>
                     <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رسوم التوصيل</th>
                     <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدفع</th>
@@ -200,6 +279,16 @@ const AdminOrders: React.FC = () => {
                     <tr key={order.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
                       <td className="p-6 font-black text-white">#{order.id.slice(0, 8)}</td>
                       <td className="p-6 text-slate-500 text-sm">{new Date(order.created_at).toLocaleString('ar-EG')}</td>
+                      <td className="p-6 text-slate-200 font-black text-xs max-w-[520px]">
+                        {(() => {
+                          const itemsText = formatOrderItemsFull(order);
+                          return (
+                            <div className="whitespace-normal break-words" title={itemsText || ''}>
+                              {itemsText || '-'}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="p-6">
                         <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
                       </td>
@@ -267,6 +356,7 @@ const AdminOrders: React.FC = () => {
                 const fee = getDeliveryFeeFromNotes(order.notes);
                 const loc = parseCodLocation(order.notes);
                 const meta = formatStatus(order.status);
+                const itemsText = formatOrderItemsFull(order);
                 return (
                   <div key={order.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -276,6 +366,11 @@ const AdminOrders: React.FC = () => {
                       </span>
                     </div>
                     <div className="text-xs text-slate-400">{new Date(order.created_at).toLocaleString('ar-EG')}</div>
+                    {itemsText ? (
+                      <div className="text-xs text-slate-200 font-black whitespace-normal break-words">
+                        {itemsText}
+                      </div>
+                    ) : null}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                       <div className="flex justify-between">
                         <span className="text-slate-400">المبلغ:</span>

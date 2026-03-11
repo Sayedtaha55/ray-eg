@@ -184,16 +184,18 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
         onSave={handleSave}
         onCancel={handleCancel}
       />
-      <div className="px-6 pb-10">
-        <PurchaseModeButton onClick={openCustomerMode} className="mt-4" />
-        <button
-          type="button"
-          onClick={handleReset}
-          className="mt-4 mr-3 px-5 py-3 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/15"
-        >
-          Reset
-        </button>
-      </div>
+      {false && (
+        <div className="px-6 pb-10">
+          <PurchaseModeButton onClick={openCustomerMode} className="mt-4" />
+          <button
+            type="button"
+            onClick={handleReset}
+            className="mt-4 mr-3 px-5 py-3 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/15"
+          >
+            Reset
+          </button>
+        </div>
+      )}
     </div>
   );
 };

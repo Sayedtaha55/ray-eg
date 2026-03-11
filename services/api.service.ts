@@ -944,7 +944,7 @@ export const ApiService = {
     return created;
   },
 
-  updateOrder: async (id: string, payload: { status?: string; notes?: string }) => {
+  updateOrder: async (id: string, payload: { status?: string; notes?: string; codCollected?: boolean; handedToCourier?: boolean }) => {
     return await updateOrderViaBackend(id, payload);
   },
 

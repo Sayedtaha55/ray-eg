@@ -39,7 +39,7 @@ export class CourierDispatchService {
         id: true,
         courierId: true,
         status: true,
-        shop: { select: { id: true, latitude: true, longitude: true } },
+        shops: { select: { id: true, latitude: true, longitude: true } },
       } as any,
     });
 
@@ -49,8 +49,8 @@ export class CourierDispatchService {
     const status = String(order.status || '').toUpperCase();
     if (status === 'DELIVERED' || status === 'CANCELLED' || status === 'REFUNDED') return null;
 
-    const shopLat = Number((order as any)?.shop?.latitude);
-    const shopLng = Number((order as any)?.shop?.longitude);
+    const shopLat = Number((order as any)?.shops?.latitude);
+    const shopLng = Number((order as any)?.shops?.longitude);
     const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
     if (!hasShopCoords) return null;
 
