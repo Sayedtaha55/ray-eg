@@ -99,6 +99,32 @@ const ShopProfile: React.FC = () => {
   const productsPagingRef = useRef({ page: 1, limit: 24, hasMore: true, loadingMore: false });
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
 
+  const dedupeProductsById = useCallback((items: any[]) => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const p of Array.isArray(items) ? items : []) {
+      const id = String((p as any)?.id || '').trim();
+      if (!id) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(p);
+    }
+    return out as any[];
+  }, []);
+
+  const mergeDedupeProductsById = useCallback((prev: any[], next: any[]) => {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const p of [...(Array.isArray(prev) ? prev : []), ...(Array.isArray(next) ? next : [])]) {
+      const id = String((p as any)?.id || '').trim();
+      if (!id) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(p);
+    }
+    return out as any[];
+  }, []);
+
   const reloadSeqRef = useRef(0);
   const lastShopIdRef = useRef<string>('');
 
@@ -374,7 +400,7 @@ const ShopProfile: React.FC = () => {
         if (id && imageMapLinkedProductIds.has(id)) return false;
         return true;
       });
-      setProducts(list);
+      setProducts(dedupeProductsById(list));
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
       setOffers(Array.isArray(shopOffers) ? shopOffers : []);
@@ -452,7 +478,7 @@ const ShopProfile: React.FC = () => {
         if (id && imageMapLinkedProductIds.has(id)) return false;
         return true;
       });
-      setProducts((prev) => [...prev, ...list]);
+      setProducts((prev) => mergeDedupeProductsById(prev as any[], list));
       productsPagingRef.current.page = nextPage;
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);

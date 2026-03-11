@@ -1,6 +1,19 @@
 import { backendDelete, backendGet, backendPatch, backendPost } from '../httpClient';
 import { normalizeProductFromBackend } from '../normalizers';
 
+const dedupeProductsById = (items: any[]) => {
+  const seen = new Set<string>();
+  const out: any[] = [];
+  for (const p of Array.isArray(items) ? items : []) {
+    const id = String((p as any)?.id || '').trim();
+    if (!id) continue;
+    if (seen.has(id)) continue;
+    seen.add(id);
+    out.push(p);
+  }
+  return out;
+};
+
 export async function getProductsViaBackend(shopId?: string, opts?: { page?: number; limit?: number }) {
   const params = new URLSearchParams();
   if (shopId) params.set('shopId', String(shopId));
@@ -8,7 +21,7 @@ export async function getProductsViaBackend(shopId?: string, opts?: { page?: num
   if (typeof opts?.limit === 'number') params.set('limit', String(opts.limit));
   const qs = params.toString();
   const products = await backendGet<any[]>(`/api/v1/products${qs ? `?${qs}` : ''}`);
-  return products.map(normalizeProductFromBackend);
+  return dedupeProductsById(products.map(normalizeProductFromBackend));
 }
 
 export async function getProductsForManageViaBackend(shopId: string, opts?: { page?: number; limit?: number; includeImageMap?: boolean }) {
@@ -22,7 +35,7 @@ export async function getProductsForManageViaBackend(shopId: string, opts?: { pa
   const products = await backendGet<any[]>(
     `/api/v1/products/manage/by-shop/${encodeURIComponent(sid)}${qs ? `?${qs}` : ''}`,
   );
-  return products.map(normalizeProductFromBackend);
+  return dedupeProductsById(products.map(normalizeProductFromBackend));
 }
 
 export async function getProductByIdViaBackend(id: string) {

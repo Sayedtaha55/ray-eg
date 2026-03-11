@@ -11,6 +11,19 @@ export class ShopPublicQueryService {
     @Inject(MonitoringService) private readonly monitoring: MonitoringService,
   ) {}
 
+  private dedupeProductsById(items: any[]) {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const p of Array.isArray(items) ? items : []) {
+      const id = p?.id != null ? String(p.id).trim() : '';
+      if (!id) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(p);
+    }
+    return out;
+  }
+
   private stripPublicDisabledShop(shop: any) {
     if (!shop || typeof shop !== 'object') return shop;
     if ((shop as any)?.publicDisabled !== true) return shop;
@@ -66,6 +79,16 @@ export class ShopPublicQueryService {
         products: {
           where: { isActive: true },
           take: 10,
+          include: {
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              },
+            },
+          },
         },
         offers: {
           where: { isActive: true },
@@ -95,6 +118,10 @@ export class ShopPublicQueryService {
       }
 
       const normalizedShop = this.stripPublicDisabledShop(shop);
+
+      if (normalizedShop && Array.isArray((normalizedShop as any).products)) {
+        (normalizedShop as any).products = this.dedupeProductsById((normalizedShop as any).products);
+      }
 
       const owner = (shop as any)?.owner;
       if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {

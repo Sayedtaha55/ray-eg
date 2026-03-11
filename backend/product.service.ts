@@ -9,6 +9,19 @@ export class ProductService {
     @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+  private dedupeById(items: any[]) {
+    const seen = new Set<string>();
+    const out: any[] = [];
+    for (const p of Array.isArray(items) ? items : []) {
+      const id = p?.id != null ? String(p.id).trim() : '';
+      if (!id) continue;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(p);
+    }
+    return out;
+  }
+
   private mapDbErrorToBadRequest(e: any) {
     const msg = e?.message ? String(e.message) : '';
     const lowered = msg.toLowerCase();
@@ -167,12 +180,14 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
+    const deduped = this.dedupeById(products);
+
     try {
-      await this.redis.set(cacheKey, products, 600);
+      await this.redis.set(cacheKey, deduped, 600);
     } catch {
     }
 
-    return products;
+    return deduped;
   }
 
   async listByShopForManage(
@@ -193,7 +208,7 @@ export class ProductService {
     const pagination = this.getPagination(paging);
     const includeImageMap = Boolean(options?.includeImageMap);
     try {
-      return await (this.prisma.product as any).findMany({
+      const products = await (this.prisma.product as any).findMany({
         where: {
           shopId,
           ...(includeImageMap
@@ -230,6 +245,7 @@ export class ProductService {
         },
         ...(pagination ? pagination : {}),
       });
+      return this.dedupeById(products);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listByShopForManage] Prisma query failed', { shopId, error: e });

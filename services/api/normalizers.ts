@@ -134,6 +134,99 @@ export function normalizeProductFromBackend(product: any) {
     ? product.trackStock
     : (typeof product?.track_stock === 'boolean' ? product.track_stock : undefined);
 
+  const normalizeMenuVariants = (raw: any) => {
+    if (typeof raw === 'undefined') return undefined;
+    if (raw === null) return null;
+
+    const normalizeSizeId = (id: any) => {
+      const s = String(id || '').trim();
+      return s;
+    };
+
+    const normalizeSizeLabel = (id: string, label: any) => {
+      const l = String(label || '').trim();
+      if (l) return l;
+      const key = String(id || '').trim().toLowerCase();
+      if (key === 'small') return 'صغير';
+      if (key === 'medium') return 'وسط';
+      if (key === 'large') return 'كبير';
+      return id;
+    };
+
+    const normalizePrice = (p: any) => {
+      const n = typeof p === 'number' ? p : Number(p);
+      return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+    };
+
+    const normalizeSizesArray = (sizes: any) => {
+      if (Array.isArray(sizes)) {
+        return sizes
+          .map((s: any) => {
+            if (!s || typeof s !== 'object') return null;
+            const id = normalizeSizeId((s as any).id ?? (s as any).sizeId ?? (s as any).key);
+            if (!id) return null;
+            const price = normalizePrice((s as any).price);
+            if (!Number.isFinite(price) || price <= 0) return null;
+            const label = normalizeSizeLabel(id, (s as any).label ?? (s as any).name);
+            return { id, label, price };
+          })
+          .filter(Boolean);
+      }
+
+      if (sizes && typeof sizes === 'object') {
+        // Legacy shape: { small: 10, medium: 20, large: 30 } or { small: {price, label}, ... }
+        const entries = Object.entries(sizes as any);
+        return entries
+          .map(([k, v]) => {
+            const id = normalizeSizeId(k);
+            if (!id) return null;
+            const valueObj = v && typeof v === 'object' ? (v as any) : null;
+            const price = normalizePrice(valueObj ? valueObj.price : v);
+            if (!Number.isFinite(price) || price <= 0) return null;
+            const label = normalizeSizeLabel(id, valueObj ? valueObj.label ?? valueObj.name : undefined);
+            return { id, label, price };
+          })
+          .filter(Boolean);
+      }
+
+      return [];
+    };
+
+    const normalizeType = (t: any, fallbackId?: string) => {
+      if (!t || typeof t !== 'object') return null;
+      const id = String((t as any).id ?? (t as any).typeId ?? (t as any).variantId ?? fallbackId ?? '').trim();
+      if (!id) return null;
+      const name = String((t as any).name ?? (t as any).label ?? (t as any).title ?? '').trim() || id;
+      const sizes = normalizeSizesArray((t as any).sizes ?? (t as any).options ?? (t as any).prices);
+      return sizes.length > 0 ? { id, name, sizes } : null;
+    };
+
+    if (Array.isArray(raw)) {
+      const mapped = raw
+        .map((t: any) => normalizeType(t))
+        .filter(Boolean) as any[];
+      return mapped;
+    }
+
+    if (raw && typeof raw === 'object') {
+      // Legacy map: { base: {...}, type_1: {...} } or { typeName: {sizes...} }
+      const entries = Object.entries(raw as any);
+      const mapped = entries
+        .map(([k, v]) => {
+          // If v is a primitive, treat it as price map not a type.
+          if (!v) return null;
+          if (typeof v !== 'object') return null;
+          const next = normalizeType({ ...(v as any), id: (v as any).id ?? k, name: (v as any).name ?? k }, k);
+          return next;
+        })
+        .filter(Boolean) as any[];
+
+      return mapped;
+    }
+
+    return undefined;
+  };
+
   const imagesRaw = product.images;
   const images = Array.isArray(imagesRaw)
     ? imagesRaw.map((u: any) => (typeof u === 'string' ? toBackendUrl(u) : u)).filter(Boolean)
@@ -157,7 +250,8 @@ export function normalizeProductFromBackend(product: any) {
       })
     : addonsRaw;
 
-  const menuVariants = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+  const menuVariantsRaw = (product as any)?.menuVariants ?? (product as any)?.menu_variants;
+  const menuVariants = normalizeMenuVariants(menuVariantsRaw);
   return {
     ...product,
     imageUrl,

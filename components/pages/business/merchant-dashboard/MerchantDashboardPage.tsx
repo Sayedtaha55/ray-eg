@@ -229,9 +229,22 @@ const MerchantDashboardPage: React.FC = () => {
     try {
       const { now, salesFrom, analyticsFrom } = getDateRanges();
 
+      const dedupeProductsById = (items: any[]) => {
+        const seen = new Set<string>();
+        const out: any[] = [];
+        for (const p of Array.isArray(items) ? items : []) {
+          const id = p?.id != null ? String(p.id).trim() : '';
+          if (!id) continue;
+          if (seen.has(id)) continue;
+          seen.add(id);
+          out.push(p);
+        }
+        return out;
+      };
+
       if (tab === 'products') {
         const list = await (ApiService as any).getProductsForManage(shopId);
-        setProducts(list);
+        setProducts(dedupeProductsById(list));
       } else if (tab === 'reservations') {
         const list = await ApiService.getReservations(shopId);
         setReservations(list);
@@ -372,7 +385,16 @@ const MerchantDashboardPage: React.FC = () => {
       // Refresh products list
       if (currentShop?.id) {
         const list = await (ApiService as any).getProductsForManage(currentShop.id);
-        setProducts(list);
+        const seen = new Set<string>();
+        const out: any[] = [];
+        for (const p of Array.isArray(list) ? list : []) {
+          const id = p?.id != null ? String(p.id).trim() : '';
+          if (!id) continue;
+          if (seen.has(id)) continue;
+          seen.add(id);
+          out.push(p);
+        }
+        setProducts(out);
       }
     } catch (err: any) {
       const msg = err?.message ? String(err.message) : 'فشل في تحديث المنتج';
