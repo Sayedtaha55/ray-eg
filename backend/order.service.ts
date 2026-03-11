@@ -1353,8 +1353,8 @@ export class OrderService {
       data,
       include: {
         items: { include: { product: true } },
-        shop: true,
-        user: true,
+        shops: true,
+        users_orders_userIdTousers: true,
       },
     });
 

@@ -25,8 +25,8 @@ export class NotificationEventsService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: { select: { name: true } },
-        shop: { select: { id: true } }
+        users_orders_userIdTousers: { select: { name: true } },
+        shops: { select: { id: true } }
       }
     });
 
@@ -34,7 +34,7 @@ export class NotificationEventsService {
       await this.notificationService.notifyNewOrder(
         order.shopId,
         order.id,
-        order.user.name,
+        order.users_orders_userIdTousers.name,
         (order as any).total
       );
 
