@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { SmartImage } from '@/components/common/ui';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { coerceBoolean } from './utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
@@ -45,8 +47,7 @@ const ProductCard = React.memo(function ProductCard({
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() => {
     try {
-      const favs = RayDB.getFavorites();
-      return Array.isArray(favs) ? favs.includes(product.id) : false;
+      return RayDB.isFavorite(product.id);
     } catch {
       return false;
     }
@@ -209,16 +210,12 @@ const ProductCard = React.memo(function ProductCard({
           className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
         >
           <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
-          {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-          <img
-            loading="lazy"
-            decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
-            style={{ transitionProperty: 'opacity, transform' }}
+          <SmartImage
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
             alt={product.name}
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
+            className="w-full h-full"
+            imgClassName={`${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''}`}
+            style={{ transitionProperty: 'opacity, transform' }}
           />
 
           {offer && (
@@ -357,19 +354,13 @@ const ProductCard = React.memo(function ProductCard({
               : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
           }`}
         >
-        {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-        {(product.imageUrl || (product as any).image_url) ? (
-          <img
-            loading="lazy"
-            decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
-            style={{ transitionProperty: 'opacity, transform' }}
-            alt={product.name}
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
-          />
-        ) : null}
+        <SmartImage
+          src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
+          alt={product.name}
+          className="w-full h-full"
+          imgClassName={`${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''}`}
+          style={{ transitionProperty: 'opacity, transform' }}
+        />
 
         {offer && (
           <div
