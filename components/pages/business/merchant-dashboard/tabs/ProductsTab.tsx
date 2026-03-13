@@ -5,7 +5,7 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
-import { backendPost } from '@/services/api/httpClient';
+import { backendPostWithOptions } from '@/services/api/httpClient';
 
 const EditProductModal = lazy(() => import('../modals/EditProductModal'));
 const ProductEditorLegacyModal = lazy(() => import('../modals/ProductEditorLegacyModal'));
@@ -287,10 +287,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     setImageMapSyncing(true);
     setImageMapError('');
     try {
-      const res = await backendPost<any>(`/api/v1/products/manage/by-shop/${encodeURIComponent(String(shopId))}/import-drafts`, {
-        source: 'image_map',
-        items,
-      });
+      const res = await backendPostWithOptions<any>(
+        `/api/v1/products/manage/by-shop/${encodeURIComponent(String(shopId))}/import-drafts`,
+        {
+          source: 'image_map',
+          items,
+        },
+        { timeoutMs: 180_000 },
+      );
 
       const created = Array.isArray(res?.created) ? res.created : [];
       const updated = Array.isArray(res?.updated) ? res.updated : [];

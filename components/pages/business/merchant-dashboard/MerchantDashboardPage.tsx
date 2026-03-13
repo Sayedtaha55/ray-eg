@@ -102,6 +102,7 @@ const MerchantDashboardPage: React.FC = () => {
   }, [addToast]);
 
   const syncInFlightRef = useRef(false);
+  const loadRequestIdRef = useRef(0);
 
   const tabLoadStateRef = useRef<Record<string, { loaded: boolean; inFlight: boolean }>>({});
   const getDateRanges = () => {
@@ -158,6 +159,8 @@ const MerchantDashboardPage: React.FC = () => {
   const loadShop = useCallback(async () => {
     if (syncInFlightRef.current) return;
     syncInFlightRef.current = true;
+    const requestId = ++loadRequestIdRef.current;
+    const isStale = () => requestId !== loadRequestIdRef.current;
     let redirected = false;
     setLoading(true);
 
@@ -180,6 +183,8 @@ const MerchantDashboardPage: React.FC = () => {
         savedUser?.role === 'admin' && impersonateShopId
           ? await ApiService.getShopAdminById(String(impersonateShopId))
           : await ApiService.getMyShop();
+
+      if (isStale()) return null;
 
       setCurrentShop(effectiveShop);
 
@@ -208,7 +213,7 @@ const MerchantDashboardPage: React.FC = () => {
       const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
       addToastRef.current(message, 'error');
     } finally {
-      if (!redirected) {
+      if (!redirected && !isStale()) {
         setLoading(false);
       }
       syncInFlightRef.current = false;
