@@ -1,4 +1,4 @@
-import { backendDelete, backendGet, backendPatch, backendPost } from '../httpClient';
+import { backendDelete, backendGet, backendPatch, backendPostWithOptions } from '../httpClient';
 import { normalizeProductFromBackend } from '../normalizers';
 
 const dedupeProductsById = (items: any[]) => {
@@ -43,18 +43,18 @@ export async function getProductByIdViaBackend(id: string) {
   return normalizeProductFromBackend(product);
 }
 
-export async function addProductViaBackend(product: any) {
-  const created = await backendPost<any>('/api/v1/products', product);
+export async function addProductViaBackend(product: any, opts?: { timeoutMs?: number; signal?: AbortSignal }) {
+  const created = await backendPostWithOptions<any>('/api/v1/products', product, opts);
   return normalizeProductFromBackend(created);
 }
 
-export async function updateProductStockViaBackend(id: string, stock: number) {
-  const updated = await backendPatch<any>(`/api/v1/products/${encodeURIComponent(id)}/stock`, { stock });
+export async function updateProductStockViaBackend(id: string, stock: number, opts?: { timeoutMs?: number; signal?: AbortSignal }) {
+  const updated = await backendPatch<any>(`/api/v1/products/${encodeURIComponent(id)}/stock`, { stock }, opts);
   return normalizeProductFromBackend(updated);
 }
 
-export async function updateProductViaBackend(id: string, data: any) {
-  const updated = await backendPatch<any>(`/api/v1/products/${encodeURIComponent(id)}`, data);
+export async function updateProductViaBackend(id: string, data: any, opts?: { timeoutMs?: number; signal?: AbortSignal }) {
+  const updated = await backendPatch<any>(`/api/v1/products/${encodeURIComponent(id)}`, data, opts);
   return normalizeProductFromBackend(updated);
 }
 
