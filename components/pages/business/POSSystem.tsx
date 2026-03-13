@@ -46,23 +46,43 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     return Array.isArray(raw) ? raw : [];
   }, [shop]);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const data = await ApiService.getProducts(shopId);
-        setProducts(data || []);
-        setUsingOfflineData(false);
-        localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(data || []));
-      } catch {
-        const cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
-        if (cached.length > 0) {
-          setProducts(cached);
-          setUsingOfflineData(true);
-        }
+  const loadProducts = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    try {
+      const data = await ApiService.getProducts(shopId);
+      setProducts(data || []);
+      setUsingOfflineData(false);
+      localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(data || []));
+    } catch {
+      const cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
+      if (cached.length > 0) {
+        setProducts(cached);
+        setUsingOfflineData(true);
+      } else if (!silent) {
+        setProducts([]);
+        setUsingOfflineData(true);
       }
-    };
-    loadProducts();
+    }
   }, [shopId]);
+
+  useEffect(() => {
+    loadProducts({ silent: false });
+
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadProducts({ silent: true });
+    };
+
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    window.addEventListener('ray-db-update', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+      window.removeEventListener('ray-db-update', onAutoRefresh as any);
+    };
+  }, [loadProducts]);
 
   useEffect(() => {
     const loadTheme = () => {

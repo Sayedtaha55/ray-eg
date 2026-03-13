@@ -55,6 +55,17 @@ const AdminApprovals: React.FC = () => {
     loadModuleRequests();
   }, []);
 
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      loadShops({ silent: true });
+      loadModuleRequests({ silent: true });
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, []);
+
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     try {
       await ApiService.updateShopStatus(id, action);
@@ -179,7 +190,7 @@ const AdminApprovals: React.FC = () => {
                     className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
                   >
                     <div className="flex items-center gap-6 flex-row-reverse">
-                      <img src={shop.logo_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-800" />
+                      <img src={shop.logo_url} className="w-20 h-20 rounded-2xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
                       <div className="text-right">
                         <h4 className="text-xl font-black text-white">{shop.name}</h4>
                         <div className="flex items-center gap-4 text-slate-500 text-xs font-bold mt-1">

@@ -195,89 +195,94 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     setOpenSection(activeBuilderTab);
   }, [activeBuilderTab, sidebarMode]);
 
-  useEffect(() => {
-    const loadCurrentDesign = async () => {
-      const savedUser = localStorage.getItem('ray_user');
-      if (savedUser) {
-        const user = JSON.parse(savedUser);
-        setShopId(user.shopId);
-        try {
-          const myShop = await ApiService.getMyShop();
-          setShop(myShop);
-          const shopLogoSrc = String(myShop?.logoUrl || myShop?.logo_url || '').trim();
-          setLogoDataUrl(shopLogoSrc);
-          setLogoFile(null);
-          if (myShop && myShop.pageDesign) {
-            const merged = { ...DEFAULT_PAGE_DESIGN, ...myShop.pageDesign } as any;
-            const bannerPosX = coerceNumber(merged?.bannerPosX, Number((DEFAULT_PAGE_DESIGN as any).bannerPosX));
-            const bannerPosY = coerceNumber(merged?.bannerPosY, Number((DEFAULT_PAGE_DESIGN as any).bannerPosY));
-            const elementsVisibilityRaw = merged?.elementsVisibility;
-            const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
-              ? Object.fromEntries(
-                  Object.entries(elementsVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
-                )
-              : undefined;
-            const elementsVisibilitySynced = syncVisibilityWithModules(elementsVisibilityNormalized, myShop);
+  const loadCurrentDesign = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    const savedUser = localStorage.getItem('ray_user');
+    if (!savedUser) return;
 
-            const imageMapVisibilityRaw = merged?.imageMapVisibility;
-            const imageMapVisibilityNormalized = imageMapVisibilityRaw && typeof imageMapVisibilityRaw === 'object'
-              ? Object.fromEntries(
-                  Object.entries(imageMapVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
-                )
-              : (DEFAULT_PAGE_DESIGN as any).imageMapVisibility;
+    try {
+      const user = JSON.parse(savedUser);
+      if (user?.shopId != null) setShopId(String(user.shopId));
+    } catch {
+    }
 
-            const productEditorVisibilityRaw = merged?.productEditorVisibility;
-            const productEditorVisibilityNormalized = (() => {
-              if (productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object') {
-                return Object.fromEntries(
-                  Object.entries(productEditorVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)])
-                );
-              }
+    try {
+      const myShop = await ApiService.getMyShop();
+      setShop(myShop);
+      const shopLogoSrc = String(myShop?.logoUrl || myShop?.logo_url || '').trim();
+      setLogoDataUrl(shopLogoSrc);
+      setLogoFile(null);
 
-              // Migration: older builds stored editor-related toggles inside elementsVisibility.
-              // We copy only the productCard* keys once to keep the settings independent going forward.
-              const base = elementsVisibilityNormalized && typeof elementsVisibilityNormalized === 'object'
-                ? (elementsVisibilityNormalized as Record<string, any>)
-                : ({} as Record<string, any>);
+      const baseDesign = myShop && (myShop as any).pageDesign ? (myShop as any).pageDesign : {};
+      const merged = { ...DEFAULT_PAGE_DESIGN, ...(baseDesign || {}) } as any;
 
-              const keys = ['productCardPrice', 'productCardStock', 'productCardAddToCart', 'productCardReserve'];
-              const picked: Record<string, any> = {};
-              let hasAny = false;
-              for (const k of keys) {
-                if (base[k] !== undefined && base[k] !== null) {
-                  picked[k] = coerceBoolean(base[k], true);
-                  hasAny = true;
-                }
-              }
-              return hasAny ? picked : undefined;
-            })();
-            const customCssNormalized = typeof merged?.customCss === 'string' ? merged.customCss : '';
-            setConfig({
-              ...merged,
-              headerTransparent: coerceBoolean(merged.headerTransparent, Boolean(DEFAULT_PAGE_DESIGN.headerTransparent)),
-              footerTransparent: coerceBoolean(merged.footerTransparent, Boolean(DEFAULT_PAGE_DESIGN.footerTransparent)),
-              headerOpacity: coerceNumber(merged.headerOpacity, Number(DEFAULT_PAGE_DESIGN.headerOpacity)),
-              footerOpacity: coerceNumber(merged.footerOpacity, Number(DEFAULT_PAGE_DESIGN.footerOpacity)),
-              bannerPosX,
-              bannerPosY,
-              elementsVisibility: elementsVisibilitySynced,
-              productEditorVisibility: productEditorVisibilityNormalized,
-              imageMapVisibility: imageMapVisibilityNormalized,
-              customCss: customCssNormalized,
-            });
-          } else {
-            setConfig({
-              ...DEFAULT_PAGE_DESIGN,
-              elementsVisibility: syncVisibilityWithModules((DEFAULT_PAGE_DESIGN as any).elementsVisibility, myShop),
-            } as any);
-          }
-        } catch {
-          setConfig(DEFAULT_PAGE_DESIGN);
+      const elementsVisibilityRaw = merged?.elementsVisibility;
+      const elementsVisibilityNormalized = elementsVisibilityRaw && typeof elementsVisibilityRaw === 'object'
+        ? Object.fromEntries(Object.entries(elementsVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)]))
+        : undefined;
+      const elementsVisibilitySynced = syncVisibilityWithModules(elementsVisibilityNormalized, myShop);
+
+      const imageMapVisibilityRaw = merged?.imageMapVisibility;
+      const imageMapVisibilityNormalized = imageMapVisibilityRaw && typeof imageMapVisibilityRaw === 'object'
+        ? Object.fromEntries(Object.entries(imageMapVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)]))
+        : (DEFAULT_PAGE_DESIGN as any).imageMapVisibility;
+
+      const productEditorVisibilityRaw = merged?.productEditorVisibility;
+      const productEditorVisibilityNormalized = (() => {
+        if (productEditorVisibilityRaw && typeof productEditorVisibilityRaw === 'object') {
+          return Object.fromEntries(Object.entries(productEditorVisibilityRaw).map(([k, v]) => [k, coerceBoolean(v, true)]));
         }
+
+        const base = elementsVisibilityNormalized && typeof elementsVisibilityNormalized === 'object'
+          ? (elementsVisibilityNormalized as Record<string, any>)
+          : ({} as Record<string, any>);
+
+        const keys = ['productCardPrice', 'productCardStock', 'productCardAddToCart', 'productCardReserve'];
+        const picked: Record<string, any> = {};
+        let hasAny = false;
+        for (const k of keys) {
+          if (base[k] !== undefined && base[k] !== null) {
+            picked[k] = coerceBoolean(base[k], true);
+            hasAny = true;
+          }
+        }
+        return hasAny ? picked : undefined;
+      })();
+
+      const customCssNormalized = typeof merged?.customCss === 'string' ? merged.customCss : '';
+
+      setConfig({
+        ...merged,
+        elementsVisibility: elementsVisibilitySynced,
+        productEditorVisibility: productEditorVisibilityNormalized,
+        imageMapVisibility: imageMapVisibilityNormalized,
+        customCss: customCssNormalized,
+      } as any);
+    } catch {
+      if (!silent) {
+        // ignore
       }
+    }
+  }, [syncVisibilityWithModules]);
+
+  useEffect(() => {
+    loadCurrentDesign({ silent: false });
+  }, [loadCurrentDesign]);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      if (savingRef.current || logoSavingRef.current) return;
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadCurrentDesign({ silent: true });
     };
-    loadCurrentDesign();
-  }, []);
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, [loadCurrentDesign]);
 
   useEffect(() => {
     const mql = window.matchMedia('(min-width: 768px)');

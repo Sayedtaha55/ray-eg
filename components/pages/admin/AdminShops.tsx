@@ -38,6 +38,16 @@ const AdminShops: React.FC = () => {
     loadData();
   }, []);
 
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      loadData({ silent: true });
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, []);
+
   const getShopDeliveryFee = (shop: any): number | null => {
     const raw = (shop?.layoutConfig as any)?.deliveryFee;
     const n = typeof raw === 'number' ? raw : raw == null ? NaN : Number(raw);
@@ -107,7 +117,7 @@ const AdminShops: React.FC = () => {
             {pendingShops.slice(0, 6).map((shop: any) => (
               <div key={shop.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="flex items-center gap-4 flex-row-reverse">
-                  <img src={shop.logo_url} className="w-12 h-12 rounded-xl object-cover bg-slate-800" />
+                  <img src={shop.logo_url} className="w-12 h-12 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
                   <div className="text-right">
                     <div className="text-white font-black">{shop.name}</div>
                     <div className="text-slate-500 text-xs font-bold">{shop.governorate} • {shop.city} • {shop.category}</div>
@@ -166,7 +176,7 @@ const AdminShops: React.FC = () => {
                 <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
-                      <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-10 h-10 rounded-xl object-cover bg-slate-800" />
+                      <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-10 h-10 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
                       <div className="min-w-0">
                         <div className="text-white font-black truncate">{shop.name}</div>
                         <div className="text-slate-500 text-xs font-bold truncate">{shop.phone || shop.email || ''}</div>

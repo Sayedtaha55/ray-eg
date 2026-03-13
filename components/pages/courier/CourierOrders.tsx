@@ -418,6 +418,25 @@ const CourierOrders: React.FC = () => {
   }, [loadOrders, loadOffers, syncCourierStateFromBackend]);
 
   useEffect(() => {
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadOrders(true);
+      loadOffers(true);
+      syncCourierStateFromBackend();
+    };
+
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    window.addEventListener('ray-db-update', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+      window.removeEventListener('ray-db-update', onAutoRefresh as any);
+    };
+  }, [loadOrders, loadOffers, syncCourierStateFromBackend]);
+
+  useEffect(() => {
     try {
       localStorage.setItem(COURIER_AUTO_REFRESH_KEY, autoRefresh ? 'true' : 'false');
       localStorage.setItem(COURIER_REFRESH_SECONDS_KEY, String(refreshSeconds));

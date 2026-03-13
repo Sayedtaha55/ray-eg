@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ArrowRight, Home, ShoppingCart, User } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -97,6 +97,95 @@ const ProductPage: React.FC = () => {
 
   const productShopSlug = String(slug || (shop as any)?.slug || '').trim();
 
+  const loadData = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    if (!silent) {
+      setLoading(true);
+      setError(false);
+    }
+    try {
+      if (!id) {
+        setError(true);
+        return;
+      }
+
+      setSelectedAddons([]);
+      setSelectedMenuTypeId('');
+      setSelectedMenuSizeId('');
+
+      let p: any = null;
+      try {
+        p = await ApiService.getProductById(String(id));
+      } catch {
+        p = null;
+      }
+
+      let o: any = null;
+      if (p?.id) {
+        setProduct(p);
+
+        const shopId = (p as any).shopId || (p as any).shop_id;
+        const [offerRes, shopRes] = await Promise.allSettled([
+          ApiService.getOfferByProductId(String(p.id)),
+          shopId ? ApiService.getShopBySlugOrId(String(shopId)) : Promise.resolve(null),
+        ]);
+
+        if (offerRes.status === 'fulfilled') {
+          o = offerRes.value;
+          if (o) setOffer(o);
+        }
+
+        if (shopRes.status === 'fulfilled') {
+          const s = shopRes.value as any;
+          if (s) {
+            setShop(s);
+          }
+        }
+
+        const favs = RayDB.getFavorites();
+        setIsFavorite(favs.includes(String(p.id)));
+        return;
+      }
+
+      const found = await ApiService.getOfferById(String(id));
+      if (found) {
+        setOffer(found as any);
+
+        const productId = (found as any)?.productId;
+        let prodResolved: any = null;
+        if (productId) {
+          try {
+            prodResolved = await ApiService.getProductById(String(productId));
+          } catch {
+            prodResolved = null;
+          }
+        }
+        if (prodResolved?.id) {
+          setProduct(prodResolved);
+          const favs = RayDB.getFavorites();
+          setIsFavorite(favs.includes(String(prodResolved.id)));
+        } else {
+          setError(true);
+        }
+
+        const shopId = (found as any)?.shopId;
+        if (shopId) {
+          try {
+            const s = await ApiService.getShopBySlugOrId(String(shopId));
+            setShop(s);
+          } catch {
+          }
+        }
+      } else {
+        setError(true);
+      }
+    } catch {
+      setError(true);
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [id]);
+
   useEffect(() => {
     const syncCart = () => setCartItems(RayDB.getCart());
     syncCart();
@@ -114,100 +203,25 @@ const ProductPage: React.FC = () => {
   const updateCartItemQuantity = (lineId: string, delta: number) => RayDB.updateCartItemQuantity(lineId, delta);
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError(false);
-      try {
-        if (!id) {
-          setError(true);
-          return;
-        }
-
-        setSelectedAddons([]);
-        setSelectedMenuTypeId('');
-        setSelectedMenuSizeId('');
-
-        let p: any = null;
-        try {
-          p = await ApiService.getProductById(String(id));
-        } catch {
-          p = null;
-        }
-
-        let o: any = null;
-        if (p?.id) {
-          setProduct(p);
-
-          const shopId = (p as any).shopId || (p as any).shop_id;
-          const [offerRes, shopRes] = await Promise.allSettled([
-            ApiService.getOfferByProductId(String(p.id)),
-            shopId ? ApiService.getShopBySlugOrId(String(shopId)) : Promise.resolve(null),
-          ]);
-
-          if (offerRes.status === 'fulfilled') {
-            o = offerRes.value;
-            if (o) setOffer(o);
-          }
-
-          if (shopRes.status === 'fulfilled') {
-            const s = shopRes.value as any;
-            if (s) {
-              setShop(s);
-              // Note: Don't track visit here - only track on shop page, not product page
-              // to prevent inflated visit numbers
-            }
-          }
-
-          const favs = RayDB.getFavorites();
-          setIsFavorite(favs.includes(String(p.id)));
-          return;
-        }
-
-        // Fallback: treat id as offerId
-        const found = await ApiService.getOfferById(String(id));
-        if (found) {
-          setOffer(found as any);
-
-          const productId = (found as any)?.productId;
-          let prodResolved: any = null;
-          if (productId) {
-            try {
-              prodResolved = await ApiService.getProductById(String(productId));
-            } catch {
-              prodResolved = null;
-            }
-          }
-          if (prodResolved?.id) {
-            setProduct(prodResolved);
-            const favs = RayDB.getFavorites();
-            setIsFavorite(favs.includes(String(prodResolved.id)));
-          } else {
-            setError(true);
-          }
-
-          const shopId = (found as any)?.shopId;
-          if (shopId) {
-            try {
-              const s = await ApiService.getShopBySlugOrId(String(shopId));
-              setShop(s);
-              // Note: Don't track visit here - only track on shop page, not product page
-              // to prevent inflated visit numbers
-            } catch {
-            }
-          }
-        } else {
-          setError(true);
-        }
-      } catch (err) {
-        // Error loading product - handled silently
-        setError(true);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    loadData({ silent: false });
     window.scrollTo(0, 0);
-  }, [id, navigate]);
+  }, [loadData]);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadData({ silent: true });
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    window.addEventListener('ray-db-update', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+      window.removeEventListener('ray-db-update', onAutoRefresh as any);
+    };
+  }, [loadData]);
 
   useEffect(() => {
     const isRestaurant = shop?.category === Category.RESTAURANT;

@@ -32,33 +32,44 @@ const AdminDelivery: React.FC = () => {
   const [createPassword, setCreatePassword] = useState('');
   const [creating, setCreating] = useState(false);
 
-  const loadCouriers = async () => {
-    setLoadingCouriers(true);
+  const loadCouriers = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoadingCouriers(true);
     try {
       const data = await ApiService.getCouriers();
       setCouriers(Array.isArray(data) ? data : []);
     } catch {
       setCouriers([]);
     } finally {
-      setLoadingCouriers(false);
+      if (!silent) setLoadingCouriers(false);
     }
   };
 
-  const loadPendingCouriers = async () => {
-    setLoadingPending(true);
+  const loadPendingCouriers = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setLoadingPending(true);
     try {
       const data = await ApiService.getPendingCouriers();
       setPendingCouriers(Array.isArray(data) ? data : []);
     } catch {
       setPendingCouriers([]);
     } finally {
-      setLoadingPending(false);
+      if (!silent) setLoadingPending(false);
     }
   };
 
   useEffect(() => {
     loadCouriers();
     loadPendingCouriers();
+  }, []);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      loadCouriers({ silent: true });
+      loadPendingCouriers({ silent: true });
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
   }, []);
 
   useEffect(() => {
@@ -87,7 +98,7 @@ const AdminDelivery: React.FC = () => {
     try {
       await ApiService.approveCourier(id);
       addToast('تم قبول المندوب وتفعيله', 'success');
-      await Promise.all([loadCouriers(), loadPendingCouriers()]);
+      await Promise.all([loadCouriers({ silent: true }), loadPendingCouriers({ silent: true })]);
     } catch {
       addToast('حدث خطأ في العملية', 'error');
     }
@@ -97,7 +108,7 @@ const AdminDelivery: React.FC = () => {
     try {
       await ApiService.rejectCourier(id);
       addToast('تم رفض طلب المندوب', 'success');
-      await loadPendingCouriers();
+      await loadPendingCouriers({ silent: true });
     } catch {
       addToast('حدث خطأ في العملية', 'error');
     }
@@ -123,7 +134,7 @@ const AdminDelivery: React.FC = () => {
 
       addToast('تم إنشاء المندوب بنجاح', 'success');
       setTab('couriers');
-      await loadCouriers();
+      await loadCouriers({ silent: true });
     } catch (e: any) {
       addToast(String(e?.message || 'فشل إنشاء المندوب'), 'error');
     } finally {

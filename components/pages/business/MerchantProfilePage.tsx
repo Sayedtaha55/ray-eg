@@ -1,5 +1,5 @@
 
-import React, { useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
@@ -21,6 +21,7 @@ const MerchantProfilePage: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const loadSeqRef = useRef(0);
 
   const impersonateShopId = useMemo(() => new URLSearchParams(String(location?.search || '')).get('impersonateShopId'), [location?.search]);
 
@@ -35,50 +36,61 @@ const MerchantProfilePage: React.FC = () => {
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   };
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setLoading(true);
-      try {
-        const savedUserStr = localStorage.getItem('ray_user');
-        if (!savedUserStr) {
-          navigate('/login');
-          return;
-        }
-
-        const savedUser = JSON.parse(savedUserStr);
-        setUser(savedUser);
-
-        const role = String(savedUser?.role || '').toLowerCase();
-        if (role !== 'merchant' && !(role === 'admin' && impersonateShopId)) {
-          addToast('هذه الصفحة للتجار فقط', 'error');
-          navigate('/login');
-          return;
-        }
-
-        const effectiveShop =
-          savedUser?.role === 'admin' && impersonateShopId
-            ? await ApiService.getShopAdminById(String(impersonateShopId))
-            : await ApiService.getMyShop();
-
-        if (!cancelled) {
-          setShop(effectiveShop);
-        }
-      } catch (e) {
-        const message = (e as any)?.message || 'حدث خطأ أثناء تحميل بيانات البروفايل';
-        addToast(message, 'error');
-      } finally {
-        if (!cancelled) setLoading(false);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    const seq = ++loadSeqRef.current;
+    if (!silent) setLoading(true);
+    try {
+      const savedUserStr = localStorage.getItem('ray_user');
+      if (!savedUserStr) {
+        navigate('/login');
+        return;
       }
-    };
 
-    load();
+      const savedUser = JSON.parse(savedUserStr);
+      if (loadSeqRef.current !== seq) return;
+      setUser(savedUser);
 
-    return () => {
-      cancelled = true;
-    };
+      const role = String(savedUser?.role || '').toLowerCase();
+      if (role !== 'merchant' && !(role === 'admin' && impersonateShopId)) {
+        addToast('هذه الصفحة للتجار فقط', 'error');
+        navigate('/login');
+        return;
+      }
+
+      const effectiveShop =
+        savedUser?.role === 'admin' && impersonateShopId
+          ? await ApiService.getShopAdminById(String(impersonateShopId))
+          : await ApiService.getMyShop();
+
+      if (loadSeqRef.current !== seq) return;
+      setShop(effectiveShop);
+    } catch (e) {
+      if (loadSeqRef.current !== seq) return;
+      const message = (e as any)?.message || 'حدث خطأ أثناء تحميل بيانات البروفايل';
+      addToast(message, 'error');
+    } finally {
+      if (!silent && loadSeqRef.current === seq) setLoading(false);
+    }
   }, [addToast, impersonateShopId, navigate]);
+
+  useEffect(() => {
+    load({ silent: false });
+  }, [load]);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      load({ silent: true });
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, [load]);
 
   if (loading) {
     return (

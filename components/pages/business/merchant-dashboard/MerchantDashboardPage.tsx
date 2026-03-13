@@ -303,6 +303,23 @@ const MerchantDashboardPage: React.FC = () => {
   }, [currentShop, ensureTabData, tabParam]);
 
   useEffect(() => {
+    if (!currentShop) return;
+
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      ensureTabData(resolveMerchantDashboardTabForShop(tabParam, currentShop), currentShop, true);
+    };
+
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, [currentShop, ensureTabData, tabParam]);
+
+  useEffect(() => {
     if (loading) return;
 
     const ids = new Set(

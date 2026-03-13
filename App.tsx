@@ -63,10 +63,31 @@ const AdminSettings = React.lazy(() => import('./components/pages/admin/AdminSet
 const CourierOrders = React.lazy(() => import('./components/pages/courier/CourierOrders'));
 const Page404 = React.lazy(() => import('./components/pages/shared/404'));
 
+
+const warmupRouteChunks = () => {
+  const loaders = [
+    () => import('./components/pages/public/HomeFeed'),
+    () => import('./components/pages/public/OffersPage'),
+    () => import('./components/pages/public/offers/RestaurantsOffersPage'),
+    () => import('./components/pages/public/ShopProfile'),
+    () => import('./components/pages/public/ProductPage'),
+    () => import('./components/pages/public/ProfilePage'),
+    () => import('./components/pages/public/MapPage'),
+    () => import('./components/pages/business/merchant-dashboard'),
+    () => import('./components/pages/admin/AdminDashboard'),
+    () => import('./components/pages/admin/AdminDelivery'),
+  ];
+
+  loaders.forEach((load) => {
+    void load();
+  });
+};
+
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }, [pathname]);
   return null;
 };
@@ -183,6 +204,47 @@ const OfflineOrBackendDownRedirector: React.FC = () => {
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
+
+  useEffect(() => {
+    const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
+    const cancelIdle = (window as any)?.cancelIdleCallback as undefined | ((id: number) => void);
+
+    if (typeof idle === 'function') {
+      const id = idle(() => warmupRouteChunks(), { timeout: 1200 });
+      return () => {
+        if (typeof cancelIdle === 'function') cancelIdle(id);
+      };
+    }
+
+    const timeoutId = window.setTimeout(() => warmupRouteChunks(), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    const dispatchRefresh = () => {
+      window.dispatchEvent(new Event('ray-db-update'));
+      window.dispatchEvent(new Event('ray-auto-refresh'));
+    };
+
+    const onFocus = () => dispatchRefresh();
+    const onVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) dispatchRefresh();
+    };
+
+    const timer = window.setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      dispatchRefresh();
+    }, 30000);
+
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, []);
 
   return (
     <Router>

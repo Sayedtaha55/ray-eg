@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Upload, X, Plus, Trash2, Image as ImageIcon, 
@@ -27,6 +27,29 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
+
+  const refreshFromBackend = useCallback(async () => {
+    try {
+      const next = await ApiService.getShopGallery(shopId);
+      onImagesChange(next || []);
+    } catch {
+    }
+  }, [onImagesChange, shopId]);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      if (uploading) return;
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      refreshFromBackend();
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, [refreshFromBackend, uploading]);
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

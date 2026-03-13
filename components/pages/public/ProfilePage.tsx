@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Settings, ShoppingBag, Heart, MapPin, Bell, LogOut, ChevronLeft, Star, CalendarCheck, Clock, CheckCircle2, AlertCircle, Zap, ArrowLeft, Sparkles } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -57,23 +57,40 @@ const ProfilePage: React.FC = () => {
     return () => window.removeEventListener('ray-db-update', loadData);
   }, [navigate, location?.search]);
 
-  const loadNotifications = async () => {
-    setNotifLoading(true);
+  const loadNotifications = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    if (!silent) setNotifLoading(true);
     try {
       const data = await ApiService.getMyNotifications({ take: 100 });
       setNotifications(Array.isArray(data) ? data : []);
     } catch {
       setNotifications([]);
     } finally {
-      setNotifLoading(false);
+      if (!silent) setNotifLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (activeTab === 'notifications') {
       loadNotifications();
     }
-  }, [activeTab]);
+  }, [activeTab, loadNotifications]);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      if (activeTab === 'notifications') {
+        loadNotifications({ silent: true });
+      }
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
+  }, [activeTab, loadNotifications]);
 
   const logout = async () => {
     try {
@@ -141,7 +158,7 @@ const ProfilePage: React.FC = () => {
                     reservations.map(res => (
                       <div key={res.id} className="bg-white border border-slate-100 p-6 md:p-8 rounded-[2.5rem] flex items-center justify-between gap-6 group">
                          <div className="flex items-center gap-6 flex-row-reverse">
-                            <img src={res.itemImage} className="w-20 h-20 rounded-2xl object-cover shrink-0" />
+                            <img src={res.itemImage} className="w-20 h-20 rounded-2xl object-cover shrink-0" loading="lazy" decoding="async" fetchPriority="low" />
                             <div className="text-right">
                                <p className="font-black text-xl">{res.itemName}</p>
                                <p className="text-slate-400 font-bold text-sm">متجر {res.shopName}</p>
@@ -175,8 +192,8 @@ const ProfilePage: React.FC = () => {
                      favorites.map(product => (
                       <div key={product.id} className="bg-white border border-slate-100 p-6 rounded-[2.5rem] flex items-center gap-6 group hover:shadow-xl transition-all">
                          <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden shrink-0">
-                            <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                         </div>
+                            <img src={product.imageUrl} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" loading="lazy" decoding="async" fetchPriority="low" />
+                          </div>
                          <div className="flex-1 text-right">
                             <h4 className="font-black mb-1">{product.name}</h4>
                             <p className="text-[#00E5FF] font-black text-xl">ج.م {product.price}</p>

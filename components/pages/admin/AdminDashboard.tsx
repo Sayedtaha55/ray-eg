@@ -45,8 +45,8 @@ const AdminDashboard: React.FC = () => {
     return `منذ ${day} يوم`;
   };
 
-  const loadData = async () => {
-    setLoading(true);
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [s, ts, acts] = await Promise.all([
         ApiService.getSystemAnalytics(),
@@ -75,12 +75,22 @@ const AdminDashboard: React.FC = () => {
     } catch (e) {
       addToast('خطأ في جلب البيانات السحابية', 'error');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  useEffect(() => {
+    const onAutoRefresh = () => {
+      loadData(true);
+    };
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+    };
   }, []);
 
   if (loading && !stats) return <div className="h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" /></div>;
@@ -94,7 +104,7 @@ const AdminDashboard: React.FC = () => {
           <p className="text-slate-400 font-bold mt-2 text-sm md:text-base">تحكم كامل في المنصة والتجار والمستخدمين.</p>
         </div>
         <div className="flex items-center justify-between w-full">
-           <button onClick={loadData} className="px-4 py-2 md:px-6 md:py-3 bg-white/5 text-white rounded-xl md:rounded-2xl hover:bg-white/10 transition-all font-bold text-sm md:text-base flex items-center gap-2">تحديث البيانات</button>
+           <button onClick={() => loadData()} className="px-4 py-2 md:px-6 md:py-3 bg-white/5 text-white rounded-xl md:rounded-2xl hover:bg-white/10 transition-all font-bold text-sm md:text-base flex items-center gap-2">تحديث البيانات</button>
            <div className="relative">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#00E5FF] text-black font-black flex items-center justify-center text-sm md:text-base">A</div>
               <span className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-slate-900" />

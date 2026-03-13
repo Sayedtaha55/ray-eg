@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Search, MapPin, Grid, List, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -15,25 +15,37 @@ const FilterPage: React.FC = () => {
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-    ApiService.getShops('approved')
-      .then((data: any[]) => {
-        if (!mounted) return;
-        setShops(Array.isArray(data) ? data : []);
-      })
-      .catch(() => {
-        if (!mounted) return;
-        setShops([]);
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
-      });
-    return () => {
-      mounted = false;
-    };
+  const loadData = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    if (!silent) setLoading(true);
+    try {
+      const data = await ApiService.getShops('approved');
+      setShops(Array.isArray(data) ? data : []);
+    } catch {
+      setShops([]);
+    } finally {
+      if (!silent) setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadData({ silent: false });
+
+    const onAutoRefresh = () => {
+      try {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      } catch {
+      }
+      loadData({ silent: true });
+    };
+
+    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
+    window.addEventListener('ray-db-update', onAutoRefresh as any);
+    return () => {
+      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
+      window.removeEventListener('ray-db-update', onAutoRefresh as any);
+    };
+  }, [loadData]);
 
   const filteredShops = shops
     .filter((s) => String(s?.status || '').toLowerCase() === 'approved')
