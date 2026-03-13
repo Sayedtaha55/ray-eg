@@ -822,7 +822,7 @@ export const ApiService = {
     return await getProductByIdViaBackend(id);
   },
   addProduct: async (product: any) => {
-    const created = await addProductViaBackend(product);
+    const created = await addProductViaBackend(product, { timeoutMs: 120_000 });
     try {
       const sid = String((created as any)?.shopId || (created as any)?.shop_id || (product as any)?.shopId || (product as any)?.shop_id || '').trim();
       if (sid) {
@@ -834,7 +834,7 @@ export const ApiService = {
     return created;
   },
   updateProduct: async (id: string, data: any) => {
-    const updated = await updateProductViaBackend(id, data);
+    const updated = await updateProductViaBackend(id, data, { timeoutMs: 120_000 });
     try {
       const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || (data as any)?.shopId || (data as any)?.shop_id || '').trim();
       if (sid) {
@@ -846,7 +846,7 @@ export const ApiService = {
     return updated;
   },
   updateProductStock: async (id: string, stock: number) => {
-    const updated = await updateProductStockViaBackend(id, stock);
+    const updated = await updateProductStockViaBackend(id, stock, { timeoutMs: 120_000 });
     try {
       const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || '').trim();
       if (sid) {

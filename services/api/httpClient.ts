@@ -175,6 +175,19 @@ if (typeof window !== 'undefined') {
   }
 }
 
+
+function shouldRetryMutationStatus(status: number) {
+  return status === 408 || status === 409 || status === 425 || status === 429 || status >= 500;
+}
+
+function getMutationRetryDelayMs(attempt: number) {
+  return Math.min(2500, 400 * Math.pow(2, Math.max(0, attempt - 1)));
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 function isPathPrefixDisabled(path: string) {
   for (const prefix of disabledBackendPathPrefixes) {
     if (path.startsWith(prefix)) return true;
@@ -233,60 +246,83 @@ export async function backendPostWithOptions<T>(
 ): Promise<T> {
   const token = getAuthToken();
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
-  let res: Response;
   if (isBackendTemporarilyDown()) {
     throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
-  try {
-    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
-      method: 'POST',
-      credentials: 'include',
-      ...(opts?.signal ? { signal: opts.signal } : {}),
-      headers: {
-        ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: isFormData ? body : JSON.stringify(body),
-    }, opts?.timeoutMs);
-  } catch (err) {
-    if (isAbortError(err)) {
-      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
-    }
-    markBackendFailure(path);
-    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
-  }
 
-  if (!res.ok) {
-    let message = 'Request failed';
-    let data: any = undefined;
+  const maxAttempts = 3;
+  let lastTransientError: any = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let res: Response;
     try {
-      data = await res.json();
-      message = extractErrorMessage(data, message);
-    } catch {
-      // ignore
-    }
-
-    try {
-      // eslint-disable-next-line no-console
-      console.error('Backend error', { path, status: res.status, data, message });
-    } catch {
-    }
-
-    if (res.status === 401) {
-      if (handleUnauthorized(path, token)) {
-        throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+      res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        ...(opts?.signal ? { signal: opts.signal } : {}),
+        headers: {
+          ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: isFormData ? body : JSON.stringify(body),
+      }, opts?.timeoutMs);
+    } catch (err) {
+      if (isAbortError(err)) {
+        lastTransientError = new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. جاري إعادة المحاولة...', { path });
+      } else {
+        lastTransientError = new BackendRequestError('تعذر إتمام العملية الآن. جاري إعادة المحاولة...', { path });
       }
+      if (attempt < maxAttempts) {
+        await sleep(getMutationRetryDelayMs(attempt));
+        continue;
+      }
+      markBackendFailure(path);
+      if (isAbortError(err)) {
+        throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+      }
+      throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
     }
 
-    throw new BackendRequestError(message, { status: res.status, path, data });
+    if (!res.ok) {
+      let message = 'Request failed';
+      let data: any = undefined;
+      try {
+        data = await res.json();
+        message = extractErrorMessage(data, message);
+      } catch {
+        // ignore
+      }
+
+      try {
+        // eslint-disable-next-line no-console
+        console.error('Backend error', { path, status: res.status, data, message });
+      } catch {
+      }
+
+      if (res.status === 401) {
+        if (handleUnauthorized(path, token)) {
+          throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
+      if (attempt < maxAttempts && shouldRetryMutationStatus(res.status)) {
+        lastTransientError = new BackendRequestError(message, { status: res.status, path, data });
+        await sleep(getMutationRetryDelayMs(attempt));
+        continue;
+      }
+
+      throw new BackendRequestError(message, { status: res.status, path, data });
+    }
+
+    markBackendSuccess(path);
+    return res.json() as Promise<T>;
   }
 
-  markBackendSuccess(path);
-
-  return res.json() as Promise<T>;
+  markBackendFailure(path);
+  throw lastTransientError || new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
 }
 
 export async function backendDelete<T>(path: string): Promise<T> {
@@ -395,58 +431,77 @@ export async function backendGet<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function backendPatch<T>(path: string, body: any): Promise<T> {
+export async function backendPatch<T>(path: string, body: any, opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
   const token = getAuthToken();
-  let res: Response;
   if (isBackendTemporarilyDown()) {
     throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   }
   if (isPathPrefixDisabled(path)) {
     throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });
   }
-  try {
-    res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
-      method: 'PATCH',
-      credentials: 'include',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    if (isAbortError(err)) {
-      throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
-    }
-    markBackendFailure(path);
-    throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
-  }
 
-  if (!res.ok) {
-    let message = 'Request failed';
-    let data: any = undefined;
+  const maxAttempts = 3;
+  let lastTransientError: any = null;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let res: Response;
     try {
-      data = await res.json();
-      message = extractErrorMessage(data, message);
-    } catch {
-      // ignore
-    }
-
-    if (res.status === 401) {
-      if (handleUnauthorized(path, token)) {
-        throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+      res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        ...(opts?.signal ? { signal: opts.signal } : {}),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(body),
+      }, opts?.timeoutMs);
+    } catch (err) {
+      if (attempt < maxAttempts) {
+        await sleep(getMutationRetryDelayMs(attempt));
+        continue;
       }
+      markBackendFailure(path);
+      if (isAbortError(err)) {
+        throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });
+      }
+      throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
     }
 
-    throw new BackendRequestError(message, { status: res.status, path, data });
+    if (!res.ok) {
+      let message = 'Request failed';
+      let data: any = undefined;
+      try {
+        data = await res.json();
+        message = extractErrorMessage(data, message);
+      } catch {
+        // ignore
+      }
+
+      if (res.status === 401) {
+        if (handleUnauthorized(path, token)) {
+          throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
+        }
+      }
+
+      if (attempt < maxAttempts && shouldRetryMutationStatus(res.status)) {
+        lastTransientError = new BackendRequestError(message, { status: res.status, path, data });
+        await sleep(getMutationRetryDelayMs(attempt));
+        continue;
+      }
+
+      throw new BackendRequestError(message, { status: res.status, path, data });
+    }
+
+    markBackendSuccess(path);
+    return res.json() as Promise<T>;
   }
 
-  markBackendSuccess(path);
-
-  return res.json() as Promise<T>;
+  markBackendFailure(path);
+  throw lastTransientError || new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
 }
 
-export async function backendPut<T>(path: string, body: any): Promise<T> {
+export async function backendPut<T>(path: string, body: any, opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
   const token = getAuthToken();
   let res: Response;
   if (isBackendTemporarilyDown()) {
@@ -459,12 +514,13 @@ export async function backendPut<T>(path: string, body: any): Promise<T> {
     res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'PUT',
       credentials: 'include',
+      ...(opts?.signal ? { signal: opts.signal } : {}),
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify(body),
-    });
+    }, opts?.timeoutMs);
   } catch (err) {
     if (isAbortError(err)) {
       throw new BackendRequestError('انتهت مهلة الاتصال بالسيرفر. حاول مرة أخرى.', { path });

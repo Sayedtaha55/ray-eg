@@ -9,6 +9,71 @@ export class ProductService {
     @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
+
+  private readonly autoDuplicateCategory = '__DUPLICATE__AUTO__';
+
+  private normalizeProductNameKey(value: any) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  private async tryAcquireProductLock(tx: any, shopId: string, name: string, category?: string) {
+    const lockKey = `${String(shopId || '').trim()}::${this.normalizeProductNameKey(name)}::${String(category || '').trim().toLowerCase()}`;
+    try {
+      if (tx?.$queryRaw) {
+        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtext(${lockKey}))`;
+      }
+    } catch {
+      // Non-Postgres databases do not support advisory locks.
+    }
+  }
+
+  private chooseCanonicalProduct(candidates: any[]) {
+    const list = Array.isArray(candidates) ? candidates : [];
+    if (!list.length) return null;
+    const score = (p: any) => {
+      const activeScore = p?.isActive === true ? 100 : 0;
+      const priceScore = Number(p?.price || 0) > 0 ? 20 : 0;
+      const stockScore = Number(p?.stock || 0) > 0 ? 10 : 0;
+      const updatedAt = new Date(p?.updatedAt || p?.createdAt || 0).getTime() || 0;
+      return activeScore + priceScore + stockScore + updatedAt / 1_000_000_000_000;
+    };
+    return list
+      .slice()
+      .sort((a, b) => score(b) - score(a))[0];
+  }
+
+  private isImageMapCategory(value: any) {
+    const normalized = String(value || '').trim().toUpperCase();
+    return normalized === '__IMAGE_MAP__' || normalized.includes('IMAGE_MAP');
+  }
+
+  private isImageMapSource(value: any) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (!normalized) return false;
+    if (normalized === 'image_map' || normalized === 'image-map') return true;
+    return normalized.includes('image') && normalized.includes('map');
+  }
+
+  private async getLinkedImageMapProductIds(shopId?: string) {
+    try {
+      const where = shopId
+        ? { productId: { not: null }, map: { shopId } }
+        : { productId: { not: null } };
+      const rows = await (this.prisma as any).shopImageHotspot.findMany({
+        where,
+        select: { productId: true },
+      });
+      const ids = new Set<string>();
+      for (const row of Array.isArray(rows) ? rows : []) {
+        const id = String((row as any)?.productId || '').trim();
+        if (id) ids.add(id);
+      }
+      return ids;
+    } catch {
+      return new Set<string>();
+    }
+  }
+
   private dedupeById(items: any[]) {
     const seen = new Set<string>();
     const out: any[] = [];
@@ -122,16 +187,6 @@ export class ProductService {
       throw new BadRequestException('shopId مطلوب');
     }
     const pagination = this.getPagination(paging);
-    const cacheKey = this.getListCacheKey('products:shop', {
-      shopId,
-      page: paging?.page,
-      limit: paging?.limit,
-    });
-    try {
-      const cached = await this.redis.get<any[]>(cacheKey);
-      if (cached) return cached;
-    } catch {
-    }
 
     let products: any[];
     try {
@@ -142,6 +197,7 @@ export class ProductService {
           NOT: [
             { category: '__IMAGE_MAP__' },
             { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+            { category: '__DUPLICATE__AUTO__' },
           ],
         },
         orderBy: { createdAt: 'desc' },
@@ -181,13 +237,12 @@ export class ProductService {
     }
 
     const deduped = this.dedupeById(products);
-
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
-    return deduped;
+    const linkedIds = await this.getLinkedImageMapProductIds(shopId);
+    return deduped.filter((p: any) => {
+      const id = String((p as any)?.id || '').trim();
+      if (id && linkedIds.has(id)) return false;
+      return true;
+    });
   }
 
   async listByShopForManage(
@@ -212,11 +267,16 @@ export class ProductService {
         where: {
           shopId,
           ...(includeImageMap
-            ? {}
+            ? {
+                NOT: [
+                  { category: '__DUPLICATE__AUTO__' },
+                ],
+              }
             : {
                 NOT: [
                   { category: '__IMAGE_MAP__' },
                   { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                  { category: '__DUPLICATE__AUTO__' },
                 ],
               }),
         },
@@ -245,7 +305,21 @@ export class ProductService {
         },
         ...(pagination ? pagination : {}),
       });
-      return this.dedupeById(products);
+      const deduped = this.dedupeById(products);
+      const linkedIds = await this.getLinkedImageMapProductIds(shopId);
+      if (includeImageMap) {
+        return deduped.filter((p: any) => {
+          const id = String((p as any)?.id || '').trim();
+          const cat = (p as any)?.category;
+          if (id && linkedIds.has(id)) return true;
+          return this.isImageMapCategory(cat);
+        });
+      }
+      return deduped.filter((p: any) => {
+        const id = String((p as any)?.id || '').trim();
+        if (id && linkedIds.has(id)) return false;
+        return true;
+      });
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listByShopForManage] Prisma query failed', { shopId, error: e });
@@ -255,15 +329,6 @@ export class ProductService {
 
   async listAllActive(paging?: { page?: number; limit?: number }) {
     const pagination = this.getPagination(paging);
-    const cacheKey = this.getListCacheKey('products:all', {
-      page: paging?.page,
-      limit: paging?.limit,
-    });
-    try {
-      const cached = await this.redis.get<any[]>(cacheKey);
-      if (cached) return cached;
-    } catch {
-    }
 
     let products: any[];
     try {
@@ -273,6 +338,7 @@ export class ProductService {
           NOT: [
             { category: '__IMAGE_MAP__' },
             { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+            { category: '__DUPLICATE__AUTO__' },
           ],
         },
         orderBy: { createdAt: 'desc' },
@@ -304,12 +370,13 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
 
-    return products;
+    const linkedIds = await this.getLinkedImageMapProductIds();
+    return products.filter((p: any) => {
+      const id = String((p as any)?.id || '').trim();
+      if (id && linkedIds.has(id)) return false;
+      return true;
+    });
   }
 
   async create(input: {
@@ -448,7 +515,7 @@ export class ProductService {
 
     const role = String(actor?.role || '').toUpperCase();
     const source = String(actor?.source || '').trim().toLowerCase();
-    const forceImageMap = source === 'image_map';
+    const forceImageMap = this.isImageMapSource(source);
     if (role !== 'ADMIN' && actor?.shopId !== shopId) {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
@@ -460,7 +527,7 @@ export class ProductService {
         const stockRaw = typeof it?.stock === 'undefined' ? undefined : Number(it.stock);
         const stock = typeof stockRaw === 'number' && Number.isFinite(stockRaw) && stockRaw >= 0 ? Math.floor(stockRaw) : 0;
         const categoryRaw = typeof it?.category === 'string' && it.category.trim() ? it.category.trim() : 'عام';
-        const category = forceImageMap ? '__IMAGE_MAP__' : categoryRaw;
+        const category = (forceImageMap || this.isImageMapCategory(categoryRaw)) ? '__IMAGE_MAP__' : categoryRaw;
         const productId = typeof (it as any)?.productId === 'string' ? String((it as any).productId).trim() : undefined;
         const unit = typeof it?.unit === 'string' && it.unit.trim() ? it.unit.trim() : undefined;
         const packOptions = typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions;
@@ -510,21 +577,54 @@ export class ProductService {
       throw new BadRequestException('items مطلوبة');
     }
 
+    const dedupedInputMap = new Map<string, (typeof normalized)[number]>();
+    for (const it of normalized) {
+      const key = it.productId
+        ? `id:${String(it.productId).trim()}`
+        : `name:${this.normalizeProductNameKey(it.name)}::${String(forceImageMap ? '__IMAGE_MAP__' : it.category || '').trim().toLowerCase()}`;
+      dedupedInputMap.set(key, it);
+    }
+    const dedupedNormalized = Array.from(dedupedInputMap.values());
+
     let res: any;
     try {
       res = await (this.prisma as any).$transaction(async (tx: any) => {
         const created: any[] = [];
         const updated: any[] = [];
 
-        for (const it of normalized) {
-          const existing = await tx.product.findFirst({
+        for (const it of dedupedNormalized) {
+          const useImageMapCategory = this.isImageMapCategory(it.category);
+          await this.tryAcquireProductLock(tx, shopId, it.name, useImageMapCategory ? '__IMAGE_MAP__' : it.category);
+
+          const candidates = await tx.product.findMany({
             where: it.productId
               ? { id: it.productId, shopId }
-              : forceImageMap
-                ? { shopId, name: it.name, category: '__IMAGE_MAP__' }
-                : { shopId, name: it.name },
-            select: { id: true, isActive: true },
+              : useImageMapCategory
+                ? {
+                    shopId,
+                    name: it.name,
+                    category: '__IMAGE_MAP__',
+                    NOT: [{ category: this.autoDuplicateCategory }],
+                  }
+                : {
+                    shopId,
+                    name: it.name,
+                    NOT: [{ category: this.autoDuplicateCategory }],
+                  },
+            select: { id: true, isActive: true, price: true, stock: true, updatedAt: true, createdAt: true },
           });
+
+          const existing = this.chooseCanonicalProduct(candidates);
+          const duplicateIds = (Array.isArray(candidates) ? candidates : [])
+            .map((x: any) => String(x?.id || '').trim())
+            .filter((id: string) => id && id !== String((existing as any)?.id || '').trim());
+
+          if (duplicateIds.length > 0) {
+            await tx.product.updateMany({
+              where: { id: { in: duplicateIds } },
+              data: { isActive: false, category: this.autoDuplicateCategory },
+            });
+          }
 
           if (!existing) {
             const c = await tx.product.create({
@@ -533,7 +633,7 @@ export class ProductService {
                 name: it.name,
                 price: it.price,
                 stock: it.stock,
-                category: forceImageMap ? '__IMAGE_MAP__' : it.category,
+                category: useImageMapCategory ? '__IMAGE_MAP__' : it.category,
                 unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
                 packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
                 description: it.description,
@@ -599,7 +699,7 @@ export class ProductService {
             data: {
               price: it.price,
               stock: it.stock,
-              category: forceImageMap ? '__IMAGE_MAP__' : it.category,
+              category: useImageMapCategory ? '__IMAGE_MAP__' : it.category,
               unit: typeof (it as any)?.unit === 'string' ? (it as any).unit : undefined,
               packOptions: typeof (it as any)?.packOptions === 'undefined' ? undefined : (it as any).packOptions,
               description: it.description,

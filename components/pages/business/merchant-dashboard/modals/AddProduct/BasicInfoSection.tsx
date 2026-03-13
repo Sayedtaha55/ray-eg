@@ -134,10 +134,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
                 <input
                   required
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
                   value={String(restaurantPriceSmall ?? '')}
                   onChange={(e) => setRestaurantPriceSmall?.(e.target.value)}
+                  onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
                 />
               </div>
@@ -145,10 +147,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
                 <input
                   required
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
                   value={String(restaurantPriceMedium ?? '')}
                   onChange={(e) => setRestaurantPriceMedium?.(e.target.value)}
+                  onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
                 />
               </div>
@@ -156,10 +160,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
                 <input
                   required
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   placeholder="0"
                   value={String(restaurantPriceLarge ?? '')}
                   onChange={(e) => setRestaurantPriceLarge?.(e.target.value)}
+                  onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
                 />
               </div>
@@ -171,10 +177,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           ) : (
             <input
               required={!isRestaurant && (!isFashion || fashionSizeItems.length === 0)}
-              type="number"
+              type="text"
+              inputMode="decimal"
               placeholder="0.00"
               value={price}
               onChange={(e) => setPrice(e.target.value)}
+              onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
               className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
             />
           )}
@@ -188,10 +196,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية المتوفرة</label>
             <input
               required
-              type="number"
+              type="text"
+              inputMode="numeric"
               placeholder="1"
               value={stock}
               onChange={(e) => setStock(e.target.value)}
+              onWheel={(e) => (e.currentTarget as HTMLInputElement).blur()}
               className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
             />
           </div>
