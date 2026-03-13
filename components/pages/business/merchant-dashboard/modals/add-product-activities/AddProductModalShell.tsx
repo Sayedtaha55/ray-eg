@@ -55,6 +55,7 @@ const AddProductModalShell: React.FC<Props> = ({
   restaurantPriceLarge: externalRestaurantPriceLarge,
   setRestaurantPriceLarge: externalSetRestaurantPriceLarge,
 }) => {
+  const RESTAURANT_SIZE_NONE = '__NONE__';
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
   const [groceryPackEnabled, setGroceryPackEnabled] = React.useState(false);
@@ -277,21 +278,36 @@ const AddProductModalShell: React.FC<Props> = ({
     const baseSizes = (() => {
       if (!isRestaurant) return null;
       if (!restaurantBaseSizesEnabled) return null;
-      const ps = parseNumberInput(restaurantPriceSmall);
-      const pm = parseNumberInput(restaurantPriceMedium);
-      const pl = parseNumberInput(restaurantPriceLarge);
-      if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
-      if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
-      if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
-      return [
-        { id: 'small', label: 'صغير', price: ps },
-        { id: 'medium', label: 'وسط', price: pm },
-        { id: 'large', label: 'كبير', price: pl },
-      ];
+      const sizes: Array<{ id: string; label: string; price: number }> = [];
+
+      const smallEnabled = String(restaurantPriceSmall ?? '') !== RESTAURANT_SIZE_NONE;
+      const mediumEnabled = String(restaurantPriceMedium ?? '') !== RESTAURANT_SIZE_NONE;
+      const largeEnabled = String(restaurantPriceLarge ?? '') !== RESTAURANT_SIZE_NONE;
+
+      if (smallEnabled) {
+        const ps = parseNumberInput(restaurantPriceSmall);
+        if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
+        sizes.push({ id: 'small', label: 'صغير', price: ps });
+      }
+
+      if (mediumEnabled) {
+        const pm = parseNumberInput(restaurantPriceMedium);
+        if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
+        sizes.push({ id: 'medium', label: 'وسط', price: pm });
+      }
+
+      if (largeEnabled) {
+        const pl = parseNumberInput(restaurantPriceLarge);
+        if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
+        sizes.push({ id: 'large', label: 'كبير', price: pl });
+      }
+
+      if (sizes.length === 0) return '__INVALID__' as const;
+      return sizes;
     })();
 
     if (baseSizes === '__INVALID__') {
-      addToast('يرجى إدخال سعر صحيح للأحجام (صغير/وسط/كبير)', 'error');
+      addToast('يرجى إدخال سعر صحيح للأحجام المتاحة (واختر "لا يوجد" للأحجام غير المتوفرة)', 'error');
       return;
     }
 

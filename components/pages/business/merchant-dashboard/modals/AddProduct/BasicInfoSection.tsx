@@ -2,6 +2,8 @@ import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Ruler } from 'lucide-react';
 
+const RESTAURANT_SIZE_NONE = '__NONE__';
+
 interface BasicInfoSectionProps {
   name: string;
   setName: (v: string) => void;
@@ -72,6 +74,14 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   );
   const baseSizesEnabled = Boolean(restaurantBaseSizesEnabled);
 
+  const smallDisabled = String(restaurantPriceSmall ?? '') === RESTAURANT_SIZE_NONE;
+  const mediumDisabled = String(restaurantPriceMedium ?? '') === RESTAURANT_SIZE_NONE;
+  const largeDisabled = String(restaurantPriceLarge ?? '') === RESTAURANT_SIZE_NONE;
+
+  const hasSmall = baseSizesEnabled && !smallDisabled;
+  const hasMedium = baseSizesEnabled && !mediumDisabled;
+  const hasLarge = baseSizesEnabled && !largeDisabled;
+
   const canToggleGroceryPack = Boolean(!isRestaurant && typeof setGroceryPackEnabled === 'function');
   const packEnabled = Boolean(groceryPackEnabled);
 
@@ -109,7 +119,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 className={`flex items-center gap-2 text-[10px] font-black px-3 py-2 rounded-xl border transition-colors ${baseSizesEnabled ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-900 border-slate-200'}`}
               >
                 <Ruler size={14} />
-                أحجام
+                {baseSizesEnabled ? 'لا يوجد' : 'أحجام'}
               </button>
             ) : canToggleGroceryPack ? (
               <button
@@ -131,36 +141,72 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           {isRestaurant && baseSizesEnabled ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentlyDisabled = String(restaurantPriceSmall ?? '') === RESTAURANT_SIZE_NONE;
+                      setRestaurantPriceSmall?.(currentlyDisabled ? '' : RESTAURANT_SIZE_NONE);
+                    }}
+                    className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                  >
+                    {hasSmall ? 'لا يوجد' : 'موجود'}
+                  </button>
+                </div>
                 <input
-                  required
                   type="number"
-                  placeholder="0"
-                  value={String(restaurantPriceSmall ?? '')}
+                  disabled={!hasSmall}
+                  placeholder={hasSmall ? '0' : 'لا يوجد'}
+                  value={hasSmall ? String(restaurantPriceSmall ?? '') : ''}
                   onChange={(e) => setRestaurantPriceSmall?.(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentlyDisabled = String(restaurantPriceMedium ?? '') === RESTAURANT_SIZE_NONE;
+                      setRestaurantPriceMedium?.(currentlyDisabled ? '' : RESTAURANT_SIZE_NONE);
+                    }}
+                    className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                  >
+                    {hasMedium ? 'لا يوجد' : 'موجود'}
+                  </button>
+                </div>
                 <input
-                  required
                   type="number"
-                  placeholder="0"
-                  value={String(restaurantPriceMedium ?? '')}
+                  disabled={!hasMedium}
+                  placeholder={hasMedium ? '0' : 'لا يوجد'}
+                  value={hasMedium ? String(restaurantPriceMedium ?? '') : ''}
                   onChange={(e) => setRestaurantPriceMedium?.(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const currentlyDisabled = String(restaurantPriceLarge ?? '') === RESTAURANT_SIZE_NONE;
+                      setRestaurantPriceLarge?.(currentlyDisabled ? '' : RESTAURANT_SIZE_NONE);
+                    }}
+                    className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
+                  >
+                    {hasLarge ? 'لا يوجد' : 'موجود'}
+                  </button>
+                </div>
                 <input
-                  required
                   type="number"
-                  placeholder="0"
-                  value={String(restaurantPriceLarge ?? '')}
+                  disabled={!hasLarge}
+                  placeholder={hasLarge ? '0' : 'لا يوجد'}
+                  value={hasLarge ? String(restaurantPriceLarge ?? '') : ''}
                   onChange={(e) => setRestaurantPriceLarge?.(e.target.value)}
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all"
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
                 />
               </div>
             </div>

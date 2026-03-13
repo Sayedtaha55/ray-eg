@@ -29,6 +29,7 @@ type Props = {
 const MotionDiv = motion.div as any;
 
 const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory, product, onUpdate }) => {
+  const RESTAURANT_SIZE_NONE = '__NONE__';
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [groceryPackEnabled, setGroceryPackEnabled] = useState(false);
@@ -222,13 +223,14 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       const hasBaseSizes = baseVariant && Array.isArray(baseVariant.sizes) && baseVariant.sizes.length > 0;
       
       setRestaurantBaseSizesEnabled(hasBaseSizes);
-      if (hasBaseSizes && baseVariant.sizes.length >= 3) {
-        const small = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'small');
-        const medium = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'medium');
-        const large = baseVariant.sizes.find((s: any) => String(s?.id || '').trim() === 'large');
-        setRestaurantPriceSmall(typeof small?.price === 'number' ? String(small.price) : '');
-        setRestaurantPriceMedium(typeof medium?.price === 'number' ? String(medium.price) : '');
-        setRestaurantPriceLarge(typeof large?.price === 'number' ? String(large.price) : '');
+      if (hasBaseSizes) {
+        const small = baseVariant?.sizes?.find((s: any) => String(s?.id || '').trim() === 'small');
+        const medium = baseVariant?.sizes?.find((s: any) => String(s?.id || '').trim() === 'medium');
+        const large = baseVariant?.sizes?.find((s: any) => String(s?.id || '').trim() === 'large');
+
+        setRestaurantPriceSmall(typeof small?.price === 'number' ? String(small.price) : RESTAURANT_SIZE_NONE);
+        setRestaurantPriceMedium(typeof medium?.price === 'number' ? String(medium.price) : RESTAURANT_SIZE_NONE);
+        setRestaurantPriceLarge(typeof large?.price === 'number' ? String(large.price) : RESTAURANT_SIZE_NONE);
       } else {
         setRestaurantPriceSmall('');
         setRestaurantPriceMedium('');
@@ -427,17 +429,32 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
       const baseSizes = (() => {
         if (!restaurantBaseSizesEnabled) return null;
-        const ps = parseNumberInput(restaurantPriceSmall);
-        const pm = parseNumberInput(restaurantPriceMedium);
-        const pl = parseNumberInput(restaurantPriceLarge);
-        if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
-        if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
-        if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
-        return [
-          { id: 'small', label: 'صغير', price: ps },
-          { id: 'medium', label: 'وسط', price: pm },
-          { id: 'large', label: 'كبير', price: pl },
-        ];
+        const sizes: Array<{ id: string; label: string; price: number }> = [];
+
+        const smallEnabled = String(restaurantPriceSmall ?? '') !== RESTAURANT_SIZE_NONE;
+        const mediumEnabled = String(restaurantPriceMedium ?? '') !== RESTAURANT_SIZE_NONE;
+        const largeEnabled = String(restaurantPriceLarge ?? '') !== RESTAURANT_SIZE_NONE;
+
+        if (smallEnabled) {
+          const ps = parseNumberInput(restaurantPriceSmall);
+          if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
+          sizes.push({ id: 'small', label: 'صغير', price: ps });
+        }
+
+        if (mediumEnabled) {
+          const pm = parseNumberInput(restaurantPriceMedium);
+          if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
+          sizes.push({ id: 'medium', label: 'وسط', price: pm });
+        }
+
+        if (largeEnabled) {
+          const pl = parseNumberInput(restaurantPriceLarge);
+          if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
+          sizes.push({ id: 'large', label: 'كبير', price: pl });
+        }
+
+        if (sizes.length === 0) return '__INVALID__' as const;
+        return sizes;
       })();
 
       if (baseSizes === '__INVALID__') {
