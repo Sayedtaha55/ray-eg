@@ -36,8 +36,19 @@ const SignupPage: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const roleParam = params.get('role');
   const categoryParam = params.get('category');
-  const returnTo = params.get('returnTo');
+  const normalizeReturnTo = (value: any) => {
+    const rt = String(value || '').trim();
+    if (!rt) return undefined;
+    if (!rt.startsWith('/')) return undefined;
+    if (rt.startsWith('//')) return undefined;
+    return rt;
+  };
+
+  const returnTo = normalizeReturnTo(params.get('returnTo'));
   const followShopId = params.get('followShopId');
+
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
 
   const allowMerchantSignup =
     String(location?.pathname || '').startsWith('/business') ||
@@ -194,7 +205,9 @@ const SignupPage: React.FC = () => {
 
       localStorage.setItem('ray_user', JSON.stringify((response as any).user));
       // Accessing the token correctly from session
-      localStorage.setItem('ray_token', (response as any).session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', (response as any).session?.access_token || '');
+      }
       window.dispatchEvent(new Event('auth-change'));
 
       if (returnTo) {

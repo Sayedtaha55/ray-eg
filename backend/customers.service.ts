@@ -169,13 +169,33 @@ export class CustomersService {
     return Array.from(customersById.values()).sort((a, b) => Number(b.totalSpent || 0) - Number(a.totalSpent || 0));
   }
 
-  async updateCustomerStatus(customerId: string, status: string) {
+  async updateCustomerStatus(customerId: string, status: string, actor?: { role?: string; shopId?: string }) {
     const cid = String(customerId || '').trim();
     const st = String(status || '').trim().toLowerCase();
 
     if (!cid) return { id: cid, status: 'active' };
 
     const normalized = st === 'blocked' ? 'blocked' : 'active';
+
+    const role = String(actor?.role || '').toUpperCase();
+    const actorShopId = actor?.shopId ? String(actor.shopId).trim() : '';
+
+    let existing: any = null;
+    try {
+      existing = await (this.prisma as any).customer?.findUnique?.({ where: { id: cid } });
+    } catch {
+      existing = null;
+    }
+
+    if (existing) {
+      const ownerShopId = String((existing as any)?.shopId || '').trim();
+      if (role !== 'ADMIN') {
+        if (!actorShopId || !ownerShopId || actorShopId !== ownerShopId) {
+          return { id: cid, status: String((existing as any)?.status || 'active') };
+        }
+      }
+    }
+
     try {
       const updated = await (this.prisma as any).customer?.update?.({
         where: { id: cid },

@@ -36,10 +36,16 @@ export class CourierService {
     const latRaw = typeof input?.lat === 'number' ? input.lat : Number((input as any)?.lat);
     const lngRaw = typeof input?.lng === 'number' ? input.lng : Number((input as any)?.lng);
     if (Number.isFinite(latRaw) && Number.isFinite(lngRaw)) {
+      if (latRaw < -90 || latRaw > 90 || lngRaw < -180 || lngRaw > 180) {
+        throw new BadRequestException('الموقع غير صحيح');
+      }
       data.lastLat = latRaw;
       data.lastLng = lngRaw;
       const accRaw = typeof input?.accuracy === 'number' ? input.accuracy : Number((input as any)?.accuracy);
-      if (Number.isFinite(accRaw) && accRaw >= 0) {
+      if (Number.isFinite(accRaw)) {
+        if (accRaw < 0 || accRaw > 5000) {
+          throw new BadRequestException('accuracy غير صحيح');
+        }
         data.accuracy = accRaw;
       }
       data.lastSeenAt = new Date();
@@ -71,12 +77,60 @@ export class CourierService {
     const offers = await (this.prisma as any).orderCourierOffer.findMany({
       where: { courierId: id, status: 'PENDING' as any, expiresAt: { gt: now } as any } as any,
       orderBy: [{ rank: 'asc' }, { createdAt: 'desc' }],
-      include: {
+      select: {
+        id: true,
+        orderId: true,
+        courierId: true,
+        rank: true,
+        status: true,
+        expiresAt: true,
+        createdAt: true,
         order: {
-          include: {
-            items: { include: { product: true } },
-            shops: true,
-            users_orders_userIdTousers: true,
+          select: {
+            id: true,
+            total: true,
+            status: true,
+            createdAt: true,
+            shopId: true,
+            userId: true,
+            notes: true,
+            items: {
+              select: {
+                id: true,
+                quantity: true,
+                price: true,
+                addons: true,
+                variantSelection: true,
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    imageUrl: true,
+                    unit: true,
+                  },
+                },
+              },
+            },
+            shops: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+                governorate: true,
+                city: true,
+                displayAddress: true,
+                mapLabel: true,
+                latitude: true,
+                longitude: true,
+              },
+            },
+            users_orders_userIdTousers: {
+              select: {
+                id: true,
+                name: true,
+                phone: true,
+              },
+            },
           },
         },
       },

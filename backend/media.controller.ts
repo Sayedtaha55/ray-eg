@@ -10,8 +10,10 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 
-const disableGuards = String(process.env.MEDIA_DISABLE_GUARDS || '').toLowerCase() === 'true';
-const disableRoles = String(process.env.MEDIA_DISABLE_ROLES || '').toLowerCase() === 'true';
+const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase().trim();
+const isProd = nodeEnv === 'production';
+const disableGuards = !isProd && String(process.env.MEDIA_DISABLE_GUARDS || '').toLowerCase() === 'true';
+const disableRoles = !isProd && String(process.env.MEDIA_DISABLE_ROLES || '').toLowerCase() === 'true';
 const guards: any[] = disableGuards ? [] : [JwtAuthGuard, RolesGuard];
 const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
 

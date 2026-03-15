@@ -5,6 +5,7 @@ import { X, ShoppingBag, Trash2, CreditCard, Loader2, CheckCircle2, Plus, Minus 
 import { ApiService } from '@/services/api.service';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { RayDB } from '@/constants';
+import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
 
 interface CartItem {
   id: string;
@@ -579,9 +580,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 );
                               }
                               if (kind === 'pack') {
-                                const label = String(sel?.label || '').trim();
                                 const qtyRaw = typeof sel?.qty === 'number' ? sel.qty : Number(sel?.qty || NaN);
-                                const unit = String(sel?.unit || '').trim();
                                 const priceRaw = typeof sel?.price === 'number' ? sel.price : Number(sel?.price ?? NaN);
 
                                 const packId = String(sel?.packId || sel?.id || '').trim();
@@ -597,13 +596,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 const qtyText = Number.isFinite(qtyRaw) && qtyRaw > 0
                                   ? qtyRaw
                                   : (Number.isFinite(defQtyRaw) && defQtyRaw > 0 ? defQtyRaw : NaN);
-                                const unitText = unit || defUnit;
+                                const unitText = toArabicUnitLabel(String(sel?.unit || defUnit || ''));
                                 const priceText = Number.isFinite(priceRaw) && priceRaw >= 0
                                   ? priceRaw
                                   : (Number.isFinite(defPriceRaw) && defPriceRaw >= 0 ? defPriceRaw : NaN);
-                                const left = (label || defLabel)
-                                  ? String(label || defLabel)
-                                  : (Number.isFinite(qtyText) ? `${qtyText}${unitText ? ` ${unitText}` : ''}` : '');
+                                const left = (() => {
+                                  const selLabel = formatPackLabelArabic(sel, (item as any)?.unit);
+                                  if (selLabel) return selLabel;
+                                  const defFmt = formatPackLabelArabic(def, (item as any)?.unit);
+                                  if (defFmt) return defFmt;
+                                  if (defLabel) return defLabel;
+                                  return Number.isFinite(qtyText) ? `${qtyText}${unitText ? ` ${unitText}` : ''}` : '';
+                                })();
                                 if (!left) return null;
                                 const full = Number.isFinite(priceText) ? `${left} = ج.م ${Math.round(priceText * 100) / 100}` : left;
                                 return (

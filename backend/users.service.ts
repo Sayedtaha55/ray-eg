@@ -16,6 +16,7 @@ export class UsersService {
     const data: any = {};
     if (name != null) {
       if (!name) throw new BadRequestException('الاسم مطلوب');
+      if (name.length > 80) throw new BadRequestException('الاسم طويل جداً');
       data.name = name;
     }
 
@@ -23,11 +24,15 @@ export class UsersService {
       if (!phone) {
         data.phone = null;
       } else {
-        const existingPhone = await this.prisma.user.findUnique({ where: { phone } });
+        const normalizedPhone = phone.replace(/\s+/g, '');
+        if (normalizedPhone.length > 32) throw new BadRequestException('رقم الهاتف غير صحيح');
+        if (!/^\+?[0-9]{6,32}$/.test(normalizedPhone)) throw new BadRequestException('رقم الهاتف غير صحيح');
+
+        const existingPhone = await this.prisma.user.findUnique({ where: { phone: normalizedPhone } });
         if (existingPhone && String(existingPhone.id) !== String(userId)) {
           throw new ConflictException('رقم الهاتف مستخدم بالفعل في نظامنا');
         }
-        data.phone = phone;
+        data.phone = normalizedPhone;
       }
     }
 
@@ -72,17 +77,21 @@ export class UsersService {
     const email = String(input?.email || '').toLowerCase().trim();
     const password = String(input?.password || '');
     const name = String(input?.name || '').trim();
-    const phone = input?.phone ? String(input.phone).trim() : null;
+    const phoneRaw = input?.phone ? String(input.phone).trim() : null;
+    const phone = phoneRaw ? phoneRaw.replace(/\s+/g, '') : null;
 
     if (!email) throw new BadRequestException('البريد الإلكتروني مطلوب');
     if (!password) throw new BadRequestException('كلمة المرور مطلوبة');
     if (password.length < 8) throw new BadRequestException('كلمة المرور ضعيفة جداً');
     if (!name) throw new BadRequestException('الاسم مطلوب');
+    if (name.length > 80) throw new BadRequestException('الاسم طويل جداً');
 
     const existing = await this.prisma.user.findUnique({ where: { email } });
     if (existing) throw new ConflictException('البريد الإلكتروني مستخدم بالفعل في نظامنا');
 
     if (phone) {
+      if (phone.length > 32) throw new BadRequestException('رقم الهاتف غير صحيح');
+      if (!/^\+?[0-9]{6,32}$/.test(phone)) throw new BadRequestException('رقم الهاتف غير صحيح');
       const existingPhone = await this.prisma.user.findUnique({ where: { phone } });
       if (existingPhone) throw new ConflictException('رقم الهاتف مستخدم بالفعل في نظامنا');
     }

@@ -9,16 +9,29 @@ const GoogleCallbackPage: React.FC = () => {
   const location = useLocation();
   const [error, setError] = useState<string>('');
 
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
+
+  const normalizeReturnTo = (value: any) => {
+    const rt = String(value || '').trim();
+    if (!rt) return undefined;
+    if (!rt.startsWith('/')) return undefined;
+    if (rt.startsWith('//')) return undefined;
+    return rt;
+  };
+
   useEffect(() => {
     const run = async () => {
       try {
         const params = new URLSearchParams(location.search);
-        const returnTo = params.get('returnTo');
+        const returnTo = normalizeReturnTo(params.get('returnTo'));
         const followShopId = params.get('followShopId');
 
         const response = await ApiService.session();
         localStorage.setItem('ray_user', JSON.stringify(response.user));
-        localStorage.setItem('ray_token', response.session?.access_token || '');
+        if (shouldStoreBearerToken) {
+          localStorage.setItem('ray_token', response.session?.access_token || '');
+        }
         window.dispatchEvent(new Event('auth-change'));
 
         if (returnTo) {

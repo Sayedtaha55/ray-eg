@@ -46,9 +46,23 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: any) {
-    const role = String(payload?.role || '').toUpperCase();
+    const userId = String(payload?.sub || '').trim();
+    if (!userId) {
+      throw new ForbiddenException('غير مصرح');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, role: true, shopId: true, isActive: true },
+    });
+
+    if (!user || user.isActive === false) {
+      throw new ForbiddenException('غير مصرح');
+    }
+
+    const role = String((user as any)?.role || '').toUpperCase();
     if (role === 'MERCHANT') {
-      const shopId = String(payload?.shopId || '').trim();
+      const shopId = String((user as any)?.shopId || '').trim();
       if (!shopId) {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
       }
@@ -65,10 +79,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     return {
-      id: payload.sub,
-      email: payload.email,
-      role: payload.role,
-      shopId: payload.shopId,
+      id: String((user as any).id),
+      email: String((user as any).email),
+      role: (user as any).role,
+      shopId: (user as any).shopId,
     };
   }
 }

@@ -54,7 +54,12 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       setUsingOfflineData(false);
       localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(data || []));
     } catch {
-      const cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
+      let cached: any[] = [];
+      try {
+        cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
+      } catch {
+        cached = [];
+      }
       if (cached.length > 0) {
         setProducts(cached);
         setUsingOfflineData(true);
@@ -188,12 +193,22 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     if (!shopId) return;
     if (!cart || cart.length === 0) return;
 
+    const escapeHtml = (value: any) => {
+      const s = String(value ?? '');
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
     const theme = effectiveReceiptTheme || {};
-    const shopName = String((theme as any)?.shopName || '').trim();
-    const phone = String((theme as any)?.phone || '').trim();
-    const city = String((theme as any)?.city || '').trim();
-    const address = String((theme as any)?.address || '').trim();
-    const footerNote = String((theme as any)?.footerNote || '').trim();
+    const shopName = escapeHtml(String((theme as any)?.shopName || '').trim());
+    const phone = escapeHtml(String((theme as any)?.phone || '').trim());
+    const city = escapeHtml(String((theme as any)?.city || '').trim());
+    const address = escapeHtml(String((theme as any)?.address || '').trim());
+    const footerNote = escapeHtml(String((theme as any)?.footerNote || '').trim());
 
     const fmt = (n: any) => {
       const v = typeof n === 'number' ? n : Number(n);
@@ -206,7 +221,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
     const linesHtml = cart
       .map((i) => {
-        const name = String(i?.name || '').trim();
+        const name = escapeHtml(String(i?.name || '').trim());
         const qty = Number(i?.quantity || 0);
         const price = Number(i?.price || 0);
         const lineTotal = qty * price;

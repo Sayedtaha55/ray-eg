@@ -264,6 +264,13 @@ export class AuthController {
 
   @Post('dev-merchant-login')
   async devMerchantLogin(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const env = String(process.env.NODE_ENV || '').toLowerCase().trim();
+    if (env === 'production') {
+      const allow = String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP || '').toLowerCase().trim() === 'true';
+      if (!allow) {
+        return { ok: false } as any;
+      }
+    }
     const result = await this.authService.devMerchantLogin({
       shopCategory: body?.shopCategory,
     });
@@ -275,6 +282,13 @@ export class AuthController {
 
   @Post('dev-courier-login')
   async devCourierLogin(@Res({ passthrough: true }) res: Response) {
+    const env = String(process.env.NODE_ENV || '').toLowerCase().trim();
+    if (env === 'production') {
+      const allow = String(process.env.ALLOW_DEV_COURIER_BOOTSTRAP || '').toLowerCase().trim() === 'true';
+      if (!allow) {
+        return { ok: false } as any;
+      }
+    }
     const result = await this.authService.devCourierLogin();
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));

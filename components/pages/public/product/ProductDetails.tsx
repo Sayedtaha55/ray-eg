@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Share2, ShoppingCart, CalendarCheck, MessageCircle, Store, ShieldCheck, Truck, Package } from 'lucide-react';
+import { formatPackLabelArabic } from '@/lib/utils';
 
 const MotionDiv = motion.div as any;
 
@@ -55,33 +56,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
     ? (selectedMenuType as any).sizes
     : [];
 
-  const unitLabel = (raw: any) => {
-    const u = String(raw || '').trim().toUpperCase();
-    if (!u) return '';
-    const map: Record<string, string> = {
-      PIECE: 'قطعة',
-      CARTON: 'كرتونة',
-      BOX: 'علبة',
-      BOTTLE: 'عبوة',
-      PACK: 'باك',
-      BAG: 'كيس',
-      CAN: 'كانز',
-      G: 'جرام',
-      KG: 'كيلو',
-      ML: 'مل',
-      L: 'لتر',
-    };
-    return map[u] || u;
-  };
-
-  const packLineLabel = (p: any) => {
-    const qtyRaw = typeof p?.qty === 'number' ? p.qty : Number(p?.qty || NaN);
-    const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
-    const u = unitLabel(p?.unit || (product as any)?.unit);
-    if (!Number.isFinite(qty)) return '';
-    if (u) return `${qty} ${u}`;
-    return String(qty);
-  };
+  const packLineLabel = (p: any) => formatPackLabelArabic(p, (product as any)?.unit);
 
   return (
     <MotionDiv

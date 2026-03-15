@@ -14,7 +14,7 @@ function resolveBackendBaseUrl() {
   if (configured) return configured;
 
   const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const fallbackHost = isLocalHostname(hostname) ? '127.0.0.1' : hostname;
+  const fallbackHost = isLocalHostname(hostname) ? 'localhost' : hostname;
   const fallback = `http://${fallbackHost}:4000`;
 
   const prodDefault = 'https://api.mnmknk.com';
@@ -204,6 +204,11 @@ export function toBackendUrl(url: string) {
 }
 
 function getAuthToken() {
+  const enableBearer = String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
+  const isProdBuild = Boolean((import.meta as any)?.env?.PROD);
+  if (isProdBuild && !enableBearer) {
+    return '';
+  }
   try {
     return localStorage.getItem('ray_token') || '';
   } catch {

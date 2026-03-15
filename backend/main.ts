@@ -7,9 +7,86 @@ import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
 import * as path from 'path';
+import * as fs from 'fs';
 import { createSlowDown } from './middleware/slow-down.middleware';
 
 console.log('[main.ts] File loaded');
+
+function loadDotEnvFile(filePath: string) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const raw = fs.readFileSync(filePath, 'utf8');
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = String(line || '').trim();
+      if (!trimmed || trimmed.startsWith('#')) continue;
+      const eq = trimmed.indexOf('=');
+      if (eq <= 0) continue;
+      const key = trimmed.slice(0, eq).trim();
+      let value = trimmed.slice(eq + 1).trim();
+
+      if (!key) continue;
+      if (typeof process.env[key] !== 'undefined') continue;
+
+      if (
+        (value.startsWith('"') && value.endsWith('"') && value.length >= 2) ||
+        (value.startsWith("'") && value.endsWith("'") && value.length >= 2)
+      ) {
+        value = value.slice(1, -1);
+      }
+
+      process.env[key] = value;
+    }
+  } catch {
+    // ignore
+  }
+}
+
+try {
+  const root = process.cwd();
+  const envPath = path.resolve(root, '.env');
+  loadDotEnvFile(envPath);
+
+  const nodeEnv = String(process.env.NODE_ENV || 'development').trim() || 'development';
+  const envLocalPath = path.resolve(root, '.env.local');
+  const envNodePath = path.resolve(root, `.env.${nodeEnv}`);
+  const envNodeLocalPath = path.resolve(root, `.env.${nodeEnv}.local`);
+
+  loadDotEnvFile(envLocalPath);
+  loadDotEnvFile(envNodePath);
+  loadDotEnvFile(envNodeLocalPath);
+
+  const envLower = String(process.env.NODE_ENV || '').toLowerCase();
+  if (envLower !== 'production') {
+    try {
+      // eslint-disable-next-line no-console
+      console.log('[env] NODE_ENV=', process.env.NODE_ENV);
+      // eslint-disable-next-line no-console
+      console.log('[env] ALLOW_DEV_MERCHANT_BOOTSTRAP=', process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP);
+      // eslint-disable-next-line no-console
+      console.log('[env] ALLOW_DEV_COURIER_BOOTSTRAP=', process.env.ALLOW_DEV_COURIER_BOOTSTRAP);
+      try {
+        const dbUrl = String(process.env.DATABASE_URL || '').trim();
+        if (dbUrl) {
+          const u = new URL(dbUrl);
+          const dbName = String(u.pathname || '').replace(/^\//, '');
+          // eslint-disable-next-line no-console
+          console.log('[env] DATABASE_URL=', `${u.protocol}//${u.host}/${dbName}`);
+        } else {
+          // eslint-disable-next-line no-console
+          console.log('[env] DATABASE_URL=', '(empty)');
+        }
+      } catch {
+        // eslint-disable-next-line no-console
+        console.log('[env] DATABASE_URL=', '(unparseable)');
+      }
+    } catch {
+      // ignore
+    }
+  }
+} catch {
+  // ignore
+}
 
 process.on('uncaughtException', (err) => {
   try {
@@ -342,16 +419,35 @@ async function bootstrap() {
     maxAge: '365d',
     setHeaders: (res, pathName) => {
       res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+
+      const lower = String(pathName || '').toLowerCase();
       if (
-        pathName.endsWith('.webp') ||
-        pathName.endsWith('.png') ||
-        pathName.endsWith('.jpg') ||
-        pathName.endsWith('.jpeg') ||
-        pathName.endsWith('.avif') ||
-        pathName.endsWith('.mp4') ||
-        pathName.endsWith('.webm')
+        lower.endsWith('.html') ||
+        lower.endsWith('.htm') ||
+        lower.endsWith('.svg') ||
+        lower.endsWith('.xml') ||
+        lower.endsWith('.json') ||
+        lower.endsWith('.js') ||
+        lower.endsWith('.mjs') ||
+        lower.endsWith('.css') ||
+        lower.endsWith('.pdf')
       ) {
-        if (pathName.endsWith('.mp4') || pathName.endsWith('.webm')) {
+        res.setHeader('Content-Disposition', 'attachment');
+        res.setHeader('Cache-Control', 'private, no-store');
+        return;
+      }
+      if (
+        lower.endsWith('.webp') ||
+        lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.avif') ||
+        lower.endsWith('.mp4') ||
+        lower.endsWith('.webm')
+      ) {
+        if (lower.endsWith('.mp4') || lower.endsWith('.webm')) {
           res.setHeader('Cache-Control', 'public, max-age=604800');
         } else {
           res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -385,6 +481,17 @@ async function bootstrap() {
   app.use('/api/v1/auth/login', authLimiter);
   app.use('/api/v1/auth/signup', authLimiter);
 
+  const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 200 : 20,
+    message: 'Too many requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
+  });
+
+  app.use('/api/v1/auth/password/forgot', forgotPasswordLimiter);
+
   const galleryUploadLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: isDev ? 600 : 60,
@@ -396,16 +503,16 @@ async function bootstrap() {
 
   app.use('/api/v1/gallery/upload', galleryUploadLimiter);
 
-  const mediaPresignLimiter = rateLimit({
+  const publicFeedbackLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
-    max: isDev ? 1200 : 120,
-    message: 'Too many upload requests, please try again later.',
+    max: isDev ? 120 : 20,
+    message: 'Too many requests, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
     skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   });
 
-  app.use('/api/v1/media/presign', mediaPresignLimiter);
+  app.use('/api/v1/feedback/public', publicFeedbackLimiter);
 
   const reservationCreateLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,

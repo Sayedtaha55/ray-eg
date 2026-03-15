@@ -173,7 +173,6 @@ export class OrderController {
       paymentMethod: body?.paymentMethod,
       source,
       notes,
-      status: body?.status,
     }, { role: req.user?.role, shopId: req.user?.shopId });
   }
 

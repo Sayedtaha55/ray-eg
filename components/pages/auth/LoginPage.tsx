@@ -68,10 +68,21 @@ const LoginPage: React.FC = () => {
   const isBusinessLogin = String(location?.pathname || '').startsWith('/business/login');
 
   const params = new URLSearchParams(location.search);
-  const returnTo = params.get('returnTo');
+  const normalizeReturnTo = (value: any) => {
+    const rt = String(value || '').trim();
+    if (!rt) return undefined;
+    if (!rt.startsWith('/')) return undefined;
+    if (rt.startsWith('//')) return undefined;
+    return rt;
+  };
+
+  const returnTo = normalizeReturnTo(params.get('returnTo'));
   const followShopId = params.get('followShopId');
 
   const showDevCourierLogin = !Boolean((import.meta as any)?.env?.PROD) && isBusinessLogin;
+
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
 
   const backendBaseUrl =
     ((import.meta as any)?.env?.VITE_BACKEND_URL as string) ||
@@ -92,16 +103,17 @@ const LoginPage: React.FC = () => {
   };
 
   const handleDevCourierLogin = async () => {
-    setLoading(true);
-    setError('');
     try {
+      setLoading(true);
       const res = await ApiService.devCourierLogin();
       localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', res.session?.access_token || '');
+      }
       window.dispatchEvent(new Event('auth-change'));
       navigate('/courier/orders');
     } catch (err: any) {
-      setError(err?.message || 'تعذر دخول المندوب (تطوير)');
+      setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');
     } finally {
       setLoading(false);
     }
@@ -123,7 +135,9 @@ const LoginPage: React.FC = () => {
     try {
       const response = await ApiService.login(email, password);
       localStorage.setItem('ray_user', JSON.stringify(response.user));
-      localStorage.setItem('ray_token', response.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', response.session?.access_token || '');
+      }
       window.dispatchEvent(new Event('auth-change'));
       
       addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
@@ -246,41 +260,11 @@ const LoginPage: React.FC = () => {
                   />
                 </div>
 
-                {forgotResult?.resetUrlHash && (
-                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-3">
-                    <div className="text-sm font-black text-slate-700">رابط إعادة تعيين</div>
-                    <div className="text-[11px] font-bold text-slate-500 break-all bg-white border border-slate-100 rounded-xl p-3">
-                      {String(forgotResult.resetUrlHash)}
-                    </div>
-                    <div className="flex gap-3">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          try {
-                            navigator.clipboard.writeText(String(forgotResult.resetUrlHash));
-                            addToast('تم نسخ الرابط', 'success');
-                          } catch {
-                            addToast('تعذر نسخ الرابط', 'error');
-                          }
-                        }}
-                        className="flex-1 py-3 bg-slate-900 text-white rounded-xl font-black text-xs hover:bg-black transition-all"
-                      >
-                        نسخ الرابط
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const url = String(forgotResult.resetUrlHash);
-                          const tokenParam = url.split('token=')[1] || '';
-                          const token = decodeURIComponent(tokenParam.split('&')[0] || '').trim();
-                          navigate(`/reset-password?token=${encodeURIComponent(token)}`);
-                          setForgotModalOpen(false);
-                          setForgotResult(null);
-                        }}
-                        className="flex-1 py-3 bg-[#00E5FF] text-slate-900 rounded-xl font-black text-xs hover:brightness-95 transition-all"
-                      >
-                        فتح الصفحة
-                      </button>
+                {forgotResult?.ok && (
+                  <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                    <div className="text-sm font-black text-slate-700">تم إرسال الطلب</div>
+                    <div className="text-[12px] font-bold text-slate-500 mt-2">
+                      إذا كان البريد الإلكتروني مسجل لدينا، ستصلك خطوات إعادة التعيين على بريدك.
                     </div>
                   </div>
                 )}

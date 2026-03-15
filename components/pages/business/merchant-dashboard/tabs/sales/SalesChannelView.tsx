@@ -3,6 +3,7 @@ import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical } from 'lucide
 import { ApiService } from '@/services/api.service';
 import Modal from '@/components/common/ui/Modal';
 import OrderReturnsPanel from './OrderReturnsPanel';
+import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
 
 type Props = {
   sales: any[];
@@ -20,9 +21,9 @@ const formatVariantSelection = (raw: any) => {
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
   if (kind === 'pack') {
-    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+    const label = asCleanText(formatPackLabelArabic(raw));
     const qty = (raw as any)?.qty;
-    const unit = asCleanText((raw as any)?.unit);
+    const unit = toArabicUnitLabel(asCleanText((raw as any)?.unit));
     const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
     const fallback = [qtyText, unit].filter(Boolean).join(' ');
     return label || fallback ? `باقة: ${label || fallback}` : '';
@@ -113,7 +114,7 @@ const formatVariantSelectionCompact = (raw: any) => {
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
   if (kind === 'pack') {
-    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
+    const label = asCleanText(formatPackLabelArabic(raw));
     return label || '';
   }
 

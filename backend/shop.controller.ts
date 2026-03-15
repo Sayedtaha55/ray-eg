@@ -8,7 +8,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { CreateShopDto } from './create-shop.dto';
 
  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
@@ -456,7 +456,11 @@ export class ShopController {
 
   @Get(':slug')
   async findOne(@Param('slug') slug: string) {
-    const shop = await this.shopService.getShopBySlug(slug);
+    const key = String(slug || '').trim();
+    let shop = await this.shopService.getShopBySlug(key);
+    if (!shop) {
+      shop = await this.shopService.getShopById(key);
+    }
     if (!shop) {
       throw new NotFoundException('لم يتم العثور على المتجر');
     }
@@ -471,7 +475,7 @@ export class ShopController {
     return shop;
   }
 
-  @Get(':id')
+  @Get('id/:id')
   async findById(@Param('id') id: string) {
     const shop = await this.shopService.getShopById(id);
     if (!shop) {
@@ -495,8 +499,8 @@ export class ShopController {
     }
     
     // Get IP hash and user agent for unique visit tracking
-    const ip = req.ip || req.connection?.remoteAddress || req.headers['x-forwarded-for'] || 'unknown';
-    const ipHash = Buffer.from(ip).toString('base64'); // Simple hash for privacy
+    const ip = String(req.headers['x-forwarded-for'] || req.ip || req.connection?.remoteAddress || 'unknown');
+    const ipHash = createHash('sha256').update(ip).digest('hex').slice(0, 32);
     const userAgent = req.headers['user-agent'] || null;
     const referer = req.headers['referer'] || null;
     

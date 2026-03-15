@@ -10,7 +10,7 @@
     "backend:start": "node scripts/railway-backend-start.js",
     "backend:render:start": "prisma generate --schema prisma/schema.prisma && prisma migrate deploy --schema prisma/schema.prisma && tsx --tsconfig backend/tsconfig.json backend/main.ts",
     "backend:kill": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} } }\"",
-    "backend:dev:stable": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback'; $env:MEDIA_DISABLE_CONTROLLER='true'; $env:MEDIA_OPT_ENABLE_WORKER='false'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts }\"",
+    "backend:dev:stable": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\\\.ts') -or ($_.CommandLine -match 'backend/main\\\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback'; $env:MEDIA_DISABLE_CONTROLLER='true'; $env:MEDIA_OPT_ENABLE_WORKER='false'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:ALLOW_DEV_ADMIN_BOOTSTRAP='true'; $env:ALLOW_DEV_MERCHANT_BOOTSTRAP='true'; $env:ALLOW_DEV_COURIER_BOOTSTRAP='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts }\"",
     "backend:dev:minimal": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='none'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:MINIMAL_BOOT='true'; Remove-Item Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts }\"",
     "backend:dev:auth": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts }\"",
     "backend:dev:auth-media": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,media'; $env:MEDIA_OPT_ENABLE_WORKER='false'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:SHOP_IMPORTS -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts }\"",
@@ -90,7 +90,7 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.400.0",
     "morgan": "^1.10.1",
-    "nodemailer": "^6.9.8",
+    "nodemailer": "^7.0.13",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-jwt": "^4.0.1",
@@ -118,13 +118,16 @@
     "@types/react-dom": "^19.2.3",
     "@types/react-virtualized-auto-sizer": "^1.0.4",
     "@types/react-window": "^1.8.8",
-    "@types/web-push": "^3.6.4",
     "@types/supertest": "^6.0.3",
+    "@types/web-push": "^3.6.4",
     "jest": "^30.2.0",
     "postcss": "^8.5.6",
     "supertest": "^7.2.2",
     "tailwindcss": "^4.1.18",
     "ts-jest": "^29.4.6",
     "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "file-type": "21.3.2"
   }
 }

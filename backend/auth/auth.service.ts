@@ -180,16 +180,11 @@ export class AuthService implements OnModuleInit {
       } as any,
     );
 
-    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.APP_URL || 'http://localhost:5174').trim();
-    const resetUrlBrowser = `${appUrl.replace(/\/$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-    const resetUrlHash = `${appUrl.replace(/\/$/, '')}/#/reset-password?token=${encodeURIComponent(token)}`;
+    // Intentionally do not return the token (or reset URL) to the client.
+    // The token must be delivered out-of-band (e.g. email/SMS) to avoid account takeover.
+    void token;
 
-    return {
-      ok: true,
-      token,
-      resetUrl: resetUrlBrowser,
-      resetUrlHash,
-    };
+    return { ok: true };
   }
 
   async resetPassword(token: string, newPassword: string) {
@@ -727,7 +722,9 @@ export class AuthService implements OnModuleInit {
       env !== 'production' &&
       String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP ?? 'false').toLowerCase() === 'true';
     if (!allowBootstrap) {
-      throw new ForbiddenException('Forbidden');
+      throw new ForbiddenException(
+        'Dev merchant login is disabled. Set ALLOW_DEV_MERCHANT_BOOTSTRAP=true and ensure NODE_ENV is not production.',
+      );
     }
 
     const requestedCategory = opts?.shopCategory ? this.normalizeShopCategory(opts.shopCategory) : undefined;
@@ -835,6 +832,14 @@ export class AuthService implements OnModuleInit {
         }
       }
 
+      const currentShopId = String((user as any)?.shopId || '').trim();
+      if (shop?.id && currentShopId !== String(shop.id)) {
+        user = await tx.user.update({
+          where: { id: user.id },
+          data: { shopId: shop.id },
+        });
+      }
+
         return user;
       },
       {
@@ -854,7 +859,9 @@ export class AuthService implements OnModuleInit {
         String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP ?? 'false').toLowerCase() === 'true'
       );
     if (!allowBootstrap) {
-      throw new ForbiddenException('Forbidden');
+      throw new ForbiddenException(
+        'Dev courier login is disabled. Set ALLOW_DEV_COURIER_BOOTSTRAP=true (or ALLOW_DEV_MERCHANT_BOOTSTRAP=true) and ensure NODE_ENV is not production.',
+      );
     }
 
     const devEmail = (String(process.env.DEV_COURIER_EMAIL || '').trim().toLowerCase() || '') || 'dev-courier@ray.local';

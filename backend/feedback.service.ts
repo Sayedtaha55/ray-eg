@@ -20,11 +20,12 @@ export class FeedbackService {
     const rating = typeof ratingRaw === 'number' && Number.isFinite(ratingRaw) ? Math.floor(ratingRaw) : undefined;
 
     if (!comment) throw new BadRequestException('المحتوى مطلوب');
+    if (comment.length > 2000) throw new BadRequestException('المحتوى طويل جداً');
 
     const data: any = {
       userId: uid,
       comment,
-      ...(typeof rating === 'number' ? { rating } : { rating: 5 }),
+      ...(typeof rating === 'number' ? { rating: Math.min(Math.max(rating, 1), 5) } : { rating: 5 }),
       ...(payload?.shopId ? { shopId: String(payload.shopId) } : {}),
       ...(payload?.productId ? { productId: String(payload.productId) } : {}),
       status: 'PENDING',
@@ -44,6 +45,12 @@ export class FeedbackService {
     const rating = typeof ratingRaw === 'number' && Number.isFinite(ratingRaw) ? Math.floor(ratingRaw) : undefined;
 
     if (!comment) throw new BadRequestException('المحتوى مطلوب');
+    if (comment.length > 2000) throw new BadRequestException('المحتوى طويل جداً');
+    if (userName && userName.length > 80) throw new BadRequestException('الاسم طويل جداً');
+    if (userEmail) {
+      if (userEmail.length > 254) throw new BadRequestException('البريد الإلكتروني غير صحيح');
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userEmail)) throw new BadRequestException('البريد الإلكتروني غير صحيح');
+    }
 
     return (this.prisma as any).feedback.create({
       data: {

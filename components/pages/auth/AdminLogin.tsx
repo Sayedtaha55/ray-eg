@@ -12,6 +12,8 @@ const AdminLogin: React.FC = () => {
     !Boolean((import.meta as any)?.env?.PROD) &&
     String(((import.meta as any)?.env?.VITE_SHOW_ADMIN_BOOTSTRAP_UI as string) || '').toLowerCase() === 'true';
   const showDevMerchantLogin = !Boolean((import.meta as any)?.env?.PROD);
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
   const [email, setEmail] = useState('admin@mnmknk.com');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +36,9 @@ const AdminLogin: React.FC = () => {
       // سيتم التعرف على admin / 1234 عبر ApiService.login
       const res = await ApiService.login(email, password);
       localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', res.session?.access_token || '');
+      }
       window.dispatchEvent(new Event('auth-change'));
       const role = String(res.user?.role || '').toLowerCase();
       if (role === 'admin') {
@@ -61,7 +65,9 @@ const AdminLogin: React.FC = () => {
     try {
       const res = await ApiService.devMerchantLogin();
       localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', res.session?.access_token || '');
+      }
       try {
         localStorage.removeItem('ray_dev_shop_category');
       } catch {
@@ -81,7 +87,9 @@ const AdminLogin: React.FC = () => {
     try {
       const res = await ApiService.devMerchantLogin(shopCategory ? { shopCategory } : undefined);
       localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', res.session?.access_token || '');
+      }
       try {
         if (shopCategory) {
           localStorage.setItem('ray_dev_shop_category', String(shopCategory).toUpperCase());
@@ -105,7 +113,9 @@ const AdminLogin: React.FC = () => {
     try {
       const res = await ApiService.devCourierLogin();
       localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      if (shouldStoreBearerToken) {
+        localStorage.setItem('ray_token', res.session?.access_token || '');
+      }
       window.dispatchEvent(new Event('auth-change'));
       navigate('/courier/orders');
     } catch (err: any) {

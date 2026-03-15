@@ -41,8 +41,11 @@ export class CustomersController {
   @Put(':customerId/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async updateCustomerStatus(@Param('customerId') customerId: string, @Body() body: any) {
-    return this.customersService.updateCustomerStatus(customerId, body?.status);
+  async updateCustomerStatus(@Param('customerId') customerId: string, @Body() body: any, @Request() req: any) {
+    return this.customersService.updateCustomerStatus(customerId, body?.status, {
+      role: req?.user?.role,
+      shopId: req?.user?.shopId,
+    });
   }
 
   @Post('send-promotion')

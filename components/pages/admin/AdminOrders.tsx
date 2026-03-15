@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { CreditCard, Search, MoreVertical, DollarSign, Loader2, Filter, ShoppingBag, UserPlus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
+import { formatPackLabelArabic } from '@/lib/utils';
 
 const { useNavigate } = ReactRouterDOM as any;
 
@@ -16,8 +17,8 @@ const formatVariantSelectionCompact = (raw: any) => {
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
   if (kind === 'pack') {
-    const label = asCleanText((raw as any)?.label || (raw as any)?.name);
-    return label || '';
+    const label = formatPackLabelArabic(raw);
+    return asCleanText(label);
   }
 
   if (kind === 'fashion') {

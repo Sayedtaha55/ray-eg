@@ -37,8 +37,14 @@ const BusinessLayout: React.FC = () => {
   const shownBrowserNotificationIdsRef = useRef<Set<string>>(new Set());
   const webPushRegisterAttemptedRef = useRef(false);
 
-  const userStr = localStorage.getItem('ray_user');
-  const user = userStr ? JSON.parse(userStr) : null;
+  const user = (() => {
+    try {
+      const userStr = localStorage.getItem('ray_user');
+      return userStr ? JSON.parse(userStr) : null;
+    } catch {
+      return null;
+    }
+  })();
   const impersonateShopId = new URLSearchParams(location.search).get('impersonateShopId');
   const activeTab = new URLSearchParams(location.search).get('tab') || 'overview';
   const settingsTab = new URLSearchParams(location.search).get('settingsTab') || 'overview';

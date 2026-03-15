@@ -10,6 +10,37 @@ export class NotificationService {
     @Inject(WebPushService) private readonly webPushService: WebPushService,
   ) {}
 
+  private normalizeWebPushSubscription(raw: any) {
+    if (!raw || typeof raw !== 'object') throw new BadRequestException('subscription غير صحيحة');
+    const endpoint = String((raw as any)?.endpoint || '').trim();
+    if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
+    if (endpoint.length > 2048) throw new BadRequestException('subscription.endpoint غير صحيح');
+    try {
+      const url = new URL(endpoint);
+      const proto = String(url.protocol || '').toLowerCase();
+      if (proto !== 'https:') throw new BadRequestException('subscription.endpoint غير صحيح');
+    } catch {
+      throw new BadRequestException('subscription.endpoint غير صحيح');
+    }
+
+    const keys = (raw as any)?.keys;
+    if (!keys || typeof keys !== 'object') throw new BadRequestException('subscription.keys مطلوبة');
+    const p256dh = String((keys as any)?.p256dh || '').trim();
+    const auth = String((keys as any)?.auth || '').trim();
+    if (!p256dh || !auth) throw new BadRequestException('subscription.keys غير صحيحة');
+    if (p256dh.length > 256 || auth.length > 256) throw new BadRequestException('subscription.keys غير صحيحة');
+
+    return {
+      ...raw,
+      endpoint,
+      keys: {
+        ...(keys as any),
+        p256dh,
+        auth,
+      },
+    };
+  }
+
   private buildMerchantPushUrl(data: NotificationData) {
     return '/business/dashboard';
   }
@@ -30,20 +61,20 @@ export class NotificationService {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    const endpoint = String(params?.subscription?.endpoint || '').trim();
-    if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
+    const subscription = this.normalizeWebPushSubscription(params?.subscription);
+    const endpoint = String(subscription.endpoint);
 
     await this.prisma.merchantPushSubscription.upsert({
       where: { shopId_endpoint: { shopId: sid, endpoint } } as any,
       create: {
         shopId: sid,
         endpoint,
-        subscription: params.subscription,
+        subscription,
         isActive: true,
         lastSeenAt: new Date(),
       } as any,
       update: {
-        subscription: params.subscription,
+        subscription,
         isActive: true,
         lastSeenAt: new Date(),
       } as any,
@@ -79,20 +110,20 @@ export class NotificationService {
     const uid = String(params?.userId || '').trim();
     if (!uid) throw new BadRequestException('غير مصرح');
 
-    const endpoint = String(params?.subscription?.endpoint || '').trim();
-    if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
+    const subscription = this.normalizeWebPushSubscription(params?.subscription);
+    const endpoint = String(subscription.endpoint);
 
     await this.prisma.customerPushSubscription.upsert({
       where: { userId_endpoint: { userId: uid, endpoint } } as any,
       create: {
         userId: uid,
         endpoint,
-        subscription: params.subscription,
+        subscription,
         isActive: true,
         lastSeenAt: new Date(),
       } as any,
       update: {
-        subscription: params.subscription,
+        subscription,
         isActive: true,
         lastSeenAt: new Date(),
       } as any,
