@@ -4,6 +4,8 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { SmartImage } from '@/components/common/ui';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { coerceBoolean } from './utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
@@ -41,7 +43,6 @@ const ProductCard = React.memo(function ProductCard({
     return isMobile && (cores <= 4 || memory <= 4);
   }, []);
 
-  const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() => {
     try {
@@ -209,16 +210,13 @@ const ProductCard = React.memo(function ProductCard({
           className="group relative transition-all duration-500 overflow-hidden bg-white rounded-[1.5rem] md:rounded-[2rem] border border-slate-100"
         >
           <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
-          {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-          <img
+          <SmartImage
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
+            imgClassName={`object-cover ${!isLowEndDevice ? 'group-hover:scale-110 duration-[1s]' : ''}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
           />
 
           {offer && (
@@ -357,17 +355,14 @@ const ProductCard = React.memo(function ProductCard({
               : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
           }`}
         >
-        {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
         {(product.imageUrl || (product as any).image_url) ? (
-          <img
+          <SmartImage
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            src={getOptimizedImageUrl(product.imageUrl || (product as any).image_url, 'md')}
+            imgClassName={`object-cover ${!isLowEndDevice ? 'group-hover:scale-110 duration-[1s]' : ''}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
           />
         ) : null}
 

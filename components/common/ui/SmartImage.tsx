@@ -80,7 +80,7 @@ const SmartImage: React.FC<Props> = ({
         fetchPriority={fetchPriority as any}
         {...(imgProps as any)}
         className={`w-full h-full ${imgClassName} ${ready ? 'opacity-100' : 'opacity-0'}`}
-        style={{ ...style, transitionProperty: 'opacity', transitionDuration: '350ms' }}
+        style={{ transitionProperty: 'opacity, transform', transitionDuration: '350ms', ...style }}
         onLoad={(e) => {
           (imgProps as any)?.onLoad?.(e);
           setReady(true);
