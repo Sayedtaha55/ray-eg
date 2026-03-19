@@ -15,6 +15,7 @@ import {
   Truck
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { clearSession } from '@/services/authStorage';
 
 interface SidebarProps {
   isOpen: boolean;
@@ -69,9 +70,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
       await ApiService.logout();
     } catch {
     }
-    localStorage.removeItem('ray_user');
-    localStorage.removeItem('ray_token');
-    window.dispatchEvent(new Event('auth-change'));
+    clearSession('sidebar-logout');
     navigate('/login');
   };
 

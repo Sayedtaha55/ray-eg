@@ -9,6 +9,7 @@ import {
   useNavigate,
   Navigate,
 } from 'react-router-dom';
+import { bootstrapSessionFromBackend, startAuthSync } from './services/authStorage';
 
 import RouteSeoManager from './components/seo/RouteSeoManager';
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
@@ -204,6 +205,13 @@ const OfflineOrBackendDownRedirector: React.FC = () => {
 const App: React.FC = () => {
   const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
+
+  useEffect(() => {
+    startAuthSync();
+    void bootstrapSessionFromBackend({ persistBearer: shouldStoreBearerToken });
+  }, [shouldStoreBearerToken]);
 
   useEffect(() => {
     const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
@@ -237,11 +245,13 @@ const App: React.FC = () => {
     }, 30000);
 
     window.addEventListener('focus', onFocus);
+    window.addEventListener('online', onFocus);
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
       window.clearInterval(timer);
       window.removeEventListener('focus', onFocus);
+      window.removeEventListener('online', onFocus);
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, []);

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { persistSession } from '@/services/authStorage';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 
@@ -28,11 +29,11 @@ const GoogleCallbackPage: React.FC = () => {
         const followShopId = params.get('followShopId');
 
         const response = await ApiService.session();
-        localStorage.setItem('ray_user', JSON.stringify(response.user));
-        if (shouldStoreBearerToken) {
-          localStorage.setItem('ray_token', response.session?.access_token || '');
-        }
-        window.dispatchEvent(new Event('auth-change'));
+        persistSession({
+          user: response.user,
+          accessToken: response.session?.access_token,
+          persistBearer: shouldStoreBearerToken,
+        }, 'google-callback');
 
         if (returnTo) {
           try {

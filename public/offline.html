@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>غير متصل بالإنترنت</title>
+    <style>
+      body { font-family: Alexandria, system-ui, sans-serif; margin: 0; background: #0f172a; color: #fff; }
+      main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+      section { max-width: 560px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; padding: 32px; text-align: center; }
+      h1 { margin: 0 0 12px; font-size: 28px; }
+      p { margin: 0 0 20px; color: #cbd5e1; line-height: 1.8; }
+      button { border: 0; border-radius: 999px; padding: 14px 24px; font-size: 16px; font-weight: 700; cursor: pointer; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>يبدو أن الشبكة ضعيفة أو منقطعة</h1>
+        <p>حاول إعادة الاتصال بالإنترنت ثم أعد تحميل الصفحة. التطبيق سيستخدم آخر نسخة متاحة محليًا فقط للملفات الثابتة بدون تخزين بيانات API القديمة.</p>
+        <button onclick="window.location.reload()">إعادة المحاولة</button>
+      </section>
+    </main>
+  </body>
+</html>

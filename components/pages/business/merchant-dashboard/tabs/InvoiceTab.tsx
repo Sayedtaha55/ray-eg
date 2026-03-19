@@ -74,7 +74,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
       vatRatePercent: (() => {
         const v = raw?.vatRatePercent;
         const n = typeof v === 'number' ? v : Number(v);
-        if (!Number.isFinite(n)) return 14;
+        if (!Number.isFinite(n)) return 0;
         return Math.min(100, Math.max(0, n));
       })(),
     };
@@ -93,7 +93,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
   const netBeforeVat = Math.max(0, subtotal - discount);
 
   const vatRate = Number((effectiveReceiptTheme as any)?.vatRatePercent);
-  const vatRatePct = Number.isFinite(vatRate) ? vatRate : 14;
+  const vatRatePct = Number.isFinite(vatRate) ? vatRate : 0;
   const vatAmount = netBeforeVat * (vatRatePct / 100);
   const total = netBeforeVat + vatAmount;
   const showVat = vatRatePct > 0;

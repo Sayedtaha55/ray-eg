@@ -1,9 +1,11 @@
 {
   "name": "من مكانك - MNMKNK",
   "short_name": "من مكانك",
+  "id": "/app",
   "description": "منصة لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
   "background_color": "#ffffff",
   "theme_color": "#00E5FF",
   "orientation": "portrait-primary",
@@ -11,6 +13,7 @@
   "lang": "ar",
   "dir": "rtl",
   "categories": ["shopping", "food", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icon-192x192.png",

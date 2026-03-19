@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
+import { clearSession, getStoredUser } from '@/services/authStorage';
+import PwaInstallPrompt from '@/components/common/feedback/PwaInstallPrompt';
 import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 
@@ -63,9 +65,7 @@ const PublicLayout: React.FC = () => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     const checkAuth = () => {
-      const savedUser = localStorage.getItem('ray_user');
-      if (savedUser) setUser(JSON.parse(savedUser));
-      else setUser(null);
+      setUser(getStoredUser());
     };
     checkAuth();
     const handleAddToCart = (e: any) => {
@@ -232,10 +232,8 @@ const PublicLayout: React.FC = () => {
       await ApiService.logout();
     } catch {
     }
-    localStorage.removeItem('ray_user');
-    localStorage.removeItem('ray_token');
+    clearSession('public-layout-logout');
     setUser(null);
-    window.dispatchEvent(new Event('auth-change'));
     navigate('/');
   };
 
@@ -350,6 +348,8 @@ const PublicLayout: React.FC = () => {
       <main className="pt-20 md:pt-32 pb-24 lg:pb-0 min-h-screen">
         <Outlet />
       </main>
+
+      <PwaInstallPrompt />
 
       <div
         className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 lg:hidden"

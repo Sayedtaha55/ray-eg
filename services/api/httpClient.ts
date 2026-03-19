@@ -2,6 +2,22 @@ function normalizeBaseUrl(input: string) {
   return String(input || '').trim().replace(/\/+$/, '');
 }
 
+function clearStoredAuth(reason: string) {
+  try {
+    localStorage.removeItem('ray_token');
+    localStorage.removeItem('ray_user');
+    localStorage.setItem('ray_auth_sync', JSON.stringify({ type: 'clear', reason, ts: Date.now() }));
+  } catch {
+    // ignore
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { reason, ts: Date.now() } }));
+    } catch {
+    }
+  }
+}
+
 function isLocalHostname(hostname: string) {
   const h = String(hostname || '').toLowerCase().trim();
   return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0';
@@ -227,12 +243,7 @@ function isAuthPublicEndpoint(path: string) {
 
 function handleUnauthorized(path: string, token: string) {
   if (!token || isAuthPublicEndpoint(path)) return false;
-  try {
-    localStorage.removeItem('ray_token');
-    localStorage.removeItem('ray_user');
-  } catch {
-    // ignore
-  }
+  clearStoredAuth('unauthorized');
   if (typeof window !== 'undefined') {
     window.location.href = '/login';
   }

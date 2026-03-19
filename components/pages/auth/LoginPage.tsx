@@ -4,6 +4,7 @@ import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, S
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { persistSession } from '@/services/authStorage';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -106,11 +107,11 @@ const LoginPage: React.FC = () => {
     try {
       setLoading(true);
       const res = await ApiService.devCourierLogin();
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', res.session?.access_token || '');
-      }
-      window.dispatchEvent(new Event('auth-change'));
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'dev-courier-login');
       navigate('/courier/orders');
     } catch (err: any) {
       setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');
@@ -134,11 +135,11 @@ const LoginPage: React.FC = () => {
     
     try {
       const response = await ApiService.login(email, password);
-      localStorage.setItem('ray_user', JSON.stringify(response.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', response.session?.access_token || '');
-      }
-      window.dispatchEvent(new Event('auth-change'));
+      persistSession({
+        user: response.user,
+        accessToken: response.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'login');
       
       addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
 

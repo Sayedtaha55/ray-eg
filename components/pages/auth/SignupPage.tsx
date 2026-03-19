@@ -5,6 +5,7 @@ import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapP
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
+import { clearSession, persistSession } from '@/services/authStorage';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -186,12 +187,7 @@ const SignupPage: React.FC = () => {
       const response = await ApiService.signup(payload);
       const isPending = Boolean((response as any)?.pending);
       if (isPending) {
-        try {
-          localStorage.removeItem('ray_user');
-          localStorage.removeItem('ray_token');
-        } catch {
-        }
-        window.dispatchEvent(new Event('auth-change'));
+        clearSession('signup-pending');
         navigate('/business/pending');
         return;
       }
@@ -203,12 +199,11 @@ const SignupPage: React.FC = () => {
         }
       }
 
-      localStorage.setItem('ray_user', JSON.stringify((response as any).user));
-      // Accessing the token correctly from session
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', (response as any).session?.access_token || '');
-      }
-      window.dispatchEvent(new Event('auth-change'));
+      persistSession({
+        user: (response as any).user,
+        accessToken: (response as any).session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'signup');
 
       if (returnTo) {
         try {

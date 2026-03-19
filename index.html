@@ -87,38 +87,32 @@
             navigator.serviceWorker.register('/sw.js')
               .then(async (registration) => {
                 console.log('SW registered: ', registration);
+                let refreshing = false;
 
-                try {
-                  await registration.update();
-                } catch {
-                }
-
-                const reloadOnUpdate = () => {
-                  try {
-                    if (navigator.serviceWorker.controller) {
-                      window.location.reload();
-                    }
-                  } catch {
+                const activateWaitingWorker = () => {
+                  if (registration.waiting) {
+                    registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                   }
                 };
 
-                const watchInstalling = (worker) => {
-                  if (!worker) return;
-                  worker.addEventListener('statechange', () => {
-                    if (worker.state === 'activated') {
-                      reloadOnUpdate();
+                registration.addEventListener('updatefound', () => {
+                  const installingWorker = registration.installing;
+                  if (!installingWorker) return;
+                  installingWorker.addEventListener('statechange', () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                      activateWaitingWorker();
                     }
                   });
-                };
-
-                registration.addEventListener('updatefound', () => {
-                  watchInstalling(registration.installing);
                 });
 
-                watchInstalling(registration.installing);
+                if (registration.waiting) {
+                  activateWaitingWorker();
+                }
 
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  reloadOnUpdate();
+                  if (refreshing) return;
+                  refreshing = true;
+                  window.location.reload();
                 });
               })
               .catch(registrationError => {

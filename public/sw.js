@@ -1,9 +1,6 @@
-const CACHE_NAME = 'mnmknk-v4';
-const urlsToCache = [
+const CACHE_NAME = 'mnmknk-v5';
+const APP_SHELL_CACHE = [
   '/',
-  '/shops',
-  '/restaurants',
-  '/map',
   '/manifest.json',
   '/courier-manifest.json',
   '/icon-192x192.png',
@@ -11,7 +8,8 @@ const urlsToCache = [
   '/apple-touch-icon.png',
   '/favicon-32x32.png',
   '/favicon-16x16.png',
-  '/brand/logo.png'
+  '/brand/logo.png',
+  '/offline.html'
 ];
 
 function safeParseJson(text) {
@@ -67,21 +65,68 @@ async function focusOrOpenUrl(url) {
   }
 }
 
-const DEV_HOST = (() => {
+function isLocalDevHost() {
   try {
     const host = String(self?.location?.hostname || '').toLowerCase();
     return host === 'localhost' || host === '127.0.0.1';
   } catch {
     return false;
   }
-})();
+}
 
-if (DEV_HOST) {
-  self.addEventListener('install', event => {
+function isApiRequest(requestUrl) {
+  return requestUrl.pathname.startsWith('/api/') || requestUrl.hostname === 'api.mnmknk.com';
+}
+
+function isStaticAsset(request) {
+  const url = new URL(request.url);
+  return (
+    request.destination === 'style' ||
+    request.destination === 'script' ||
+    request.destination === 'worker' ||
+    request.destination === 'font' ||
+    request.destination === 'image' ||
+    /\.(?:css|js|mjs|woff2?|ttf|png|jpg|jpeg|webp|avif|svg|gif|ico)$/i.test(url.pathname)
+  );
+}
+
+async function networkFirst(request, fallbackUrl = '/offline.html') {
+  try {
+    const response = await fetch(request, { cache: 'no-store' });
+    if (response && response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    return (await caches.match(fallbackUrl)) || Response.error();
+  }
+}
+
+async function staleWhileRevalidate(request) {
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+
+  const networkFetch = fetch(request)
+    .then((response) => {
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  return cached || networkFetch;
+}
+
+if (isLocalDevHost()) {
+  self.addEventListener('install', () => {
     self.skipWaiting();
   });
 
-  self.addEventListener('activate', event => {
+  self.addEventListener('activate', (event) => {
     event.waitUntil((async () => {
       try {
         const keys = await caches.keys();
@@ -92,137 +137,73 @@ if (DEV_HOST) {
         await self.registration.unregister();
       } catch {
       }
+    })());
+  });
+} else {
+  self.addEventListener('push', (event) => {
+    event.waitUntil((async () => {
+      let payload = null;
       try {
-        const clients = await self.clients.matchAll({ type: 'window' });
-        await Promise.all(clients.map((c) => c.navigate(c.url)));
+        if (event?.data) {
+          try {
+            payload = event.data.json();
+          } catch {
+            const text = event.data.text();
+            payload = safeParseJson(text) || { body: text };
+          }
+        }
       } catch {
       }
+      await showPushNotification(payload);
     })());
   });
 
-  self.addEventListener('fetch', event => {
-    return;
-  });
-} else {
-
-self.addEventListener('push', (event) => {
-  event.waitUntil((async () => {
-    let payload = null;
-    try {
-      if (event?.data) {
-        try {
-          payload = event.data.json();
-        } catch {
-          const text = event.data.text();
-          payload = safeParseJson(text) || { body: text };
-        }
+  self.addEventListener('notificationclick', (event) => {
+    event.waitUntil((async () => {
+      try {
+        event.notification?.close?.();
+      } catch {
       }
-    } catch {
+      const url = String(event?.notification?.data?.url || '/business/dashboard');
+      await focusOrOpenUrl(url);
+    })());
+  });
+
+  self.addEventListener('install', (event) => {
+    self.skipWaiting();
+    event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL_CACHE)));
+  });
+
+  self.addEventListener('message', (event) => {
+    if (event?.data?.type === 'SKIP_WAITING') {
+      try {
+        self.skipWaiting();
+      } catch {
+      }
     }
-    await showPushNotification(payload);
-  })());
-});
+  });
 
-self.addEventListener('notificationclick', (event) => {
-  event.waitUntil((async () => {
-    try {
-      event.notification?.close?.();
-    } catch {
+  self.addEventListener('fetch', (event) => {
+    const { request } = event;
+    if (request.method !== 'GET') return;
+
+    const url = new URL(request.url);
+    if (url.origin !== self.location.origin && request.mode !== 'navigate') return;
+    if (isApiRequest(url)) return;
+
+    const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+    if (isNavigation) {
+      event.respondWith(networkFirst(request));
+      return;
     }
-    const url = String(event?.notification?.data?.url || '/business/dashboard');
-    await focusOrOpenUrl(url);
-  })());
-});
 
-// Install event
-self.addEventListener('install', event => {
-  self.skipWaiting();
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-  );
-});
-
-self.addEventListener('message', (event) => {
-  if (event?.data?.type === 'SKIP_WAITING') {
-    try {
-      self.skipWaiting();
-    } catch {
+    if (isStaticAsset(request)) {
+      event.respondWith(staleWhileRevalidate(request));
     }
-  }
-});
+  });
 
-// Fetch event
-self.addEventListener('fetch', event => {
-  if (event.request.method !== 'GET') return;
-
-  const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document';
-
-  if (isNavigation) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          return response;
-        })
-        .catch(async () => {
-          const cached = await caches.match(event.request);
-          return cached || (await caches.match('/'));
-        }),
-    );
-    return;
-  }
-
-  const url = new URL(event.request.url);
-  const isImageAsset = event.request.destination === 'image' ||
-                    url.pathname.match(/\.(png|jpg|jpeg|webp|avif|svg|gif)$/i) ||
-                    url.pathname.startsWith('/uploads/');
-
-  // Image caching strategy: Cache First, then Network
-  if (isImageAsset) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        if (cached) return cached;
-        return fetch(event.request).then((response) => {
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
-        });
-      })
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      const fetchPromise = fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200) {
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-          }
-          return response;
-        })
-        .catch(() => cached);
-
-      return cached || fetchPromise;
-    }),
-  );
-});
-
-// Activate event
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    (async () => {
+  self.addEventListener('activate', (event) => {
+    event.waitUntil((async () => {
       try {
         const cacheNames = await caches.keys();
         await Promise.all(
@@ -230,6 +211,7 @@ self.addEventListener('activate', event => {
             if (cacheName !== CACHE_NAME) {
               return caches.delete(cacheName);
             }
+            return Promise.resolve(false);
           }),
         );
       } catch {
@@ -239,7 +221,6 @@ self.addEventListener('activate', event => {
         await self.clients.claim();
       } catch {
       }
-    })()
-  );
-});
+    })());
+  });
 }

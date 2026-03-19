@@ -4,6 +4,7 @@ import { Search, MapPin, Grid, List, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -118,7 +119,16 @@ const FilterPage: React.FC = () => {
                 className="group bg-white border border-slate-100 p-6 rounded-[2rem] hover:shadow-2xl hover:shadow-cyan-50 transition-all flex gap-6"
               >
                 <div className="w-32 h-32 rounded-2xl overflow-hidden flex-shrink-0">
-                  <img src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={shop.name} />
+                  <SmartImage
+                    src={shop.logoUrl || shop.logo_url || 'https://images.unsplash.com/photo-1544441893-675973e31985?w=200'}
+                    alt={shop.name}
+                    className="w-full h-full"
+                    imgClassName="object-cover group-hover:scale-110 transition-transform duration-500"
+                    optimizeVariant="thumb"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                  />
                 </div>
                 <div className="flex-1 flex flex-col justify-between py-2">
                   <div>

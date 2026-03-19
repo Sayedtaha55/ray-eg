@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone
 } from 'lucide-react';
+import SmartImage from '@/components/common/ui/SmartImage';
 import NavTab from './NavTab';
 import { hexToRgba, isVideoUrl } from './utils';
 
@@ -203,10 +204,13 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           {/* Logo & Name */}
           <div className="flex items-center gap-3 md:gap-4 flex-row-reverse">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-white">
-              <img
+              <SmartImage
                 src={shop?.logoUrl || '/brand/logo.png'}
                 alt={shop?.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full"
+                imgClassName="object-cover"
+                optimizeVariant="thumb"
+                fallbackSrc="/brand/logo.png"
                 loading="lazy"
                 decoding="async"
                 fetchPriority="low"

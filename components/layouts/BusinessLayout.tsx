@@ -3,6 +3,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
+import { clearSession, getStoredUser, persistSession } from '@/services/authStorage';
 import { RayDB } from '@/constants';
 import { useToast } from '@/components/common/feedback/Toaster';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -36,11 +37,12 @@ const BusinessLayout: React.FC = () => {
   const audioUnlockedRef = useRef(false);
   const shownBrowserNotificationIdsRef = useRef<Set<string>>(new Set());
   const webPushRegisterAttemptedRef = useRef(false);
+  const shouldStoreBearerToken =
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
 
   const user = (() => {
     try {
-      const userStr = localStorage.getItem('ray_user');
-      return userStr ? JSON.parse(userStr) : null;
+      return getStoredUser();
     } catch {
       return null;
     }
@@ -58,8 +60,7 @@ const BusinessLayout: React.FC = () => {
   const [devSwitchLoading, setDevSwitchLoading] = useState(false);
   const [shopCategory, setShopCategory] = useState<Category | undefined>(() => {
     try {
-      const rawUser = localStorage.getItem('ray_user');
-      const u = rawUser ? JSON.parse(rawUser) : null;
+      const u = getStoredUser();
       const role = String(u?.role || '').toLowerCase();
       if (!isDev || role !== 'merchant') return undefined;
       const raw = String(localStorage.getItem('ray_dev_shop_category') || '').trim().toUpperCase();
@@ -93,8 +94,11 @@ const BusinessLayout: React.FC = () => {
     setDevSwitchLoading(true);
     try {
       const res = await ApiService.devMerchantLogin(category ? { shopCategory: category } : undefined);
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      localStorage.setItem('ray_token', res.session?.access_token || '');
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'business-dev-merchant-switch');
       try {
         if (category) {
           localStorage.setItem('ray_dev_shop_category', String(category).toUpperCase());
@@ -103,7 +107,6 @@ const BusinessLayout: React.FC = () => {
         }
       } catch {
       }
-      window.dispatchEvent(new Event('auth-change'));
       setShopCategory(undefined);
       setShopForModules(null);
       navigate('/business/dashboard', { replace: true });
@@ -557,9 +560,7 @@ const BusinessLayout: React.FC = () => {
       } catch {
       }
     })();
-    localStorage.removeItem('ray_user');
-    localStorage.removeItem('ray_token');
-    window.dispatchEvent(new Event('auth-change'));
+    clearSession('business-layout-logout');
     navigate('/');
   };
 

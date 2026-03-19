@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { getOptimizedImageUrl } from '@/lib/image-utils';
 import Skeleton from './Skeleton';
 
 type Props = {
@@ -10,6 +11,8 @@ type Props = {
   loading?: 'eager' | 'lazy';
   decoding?: 'async' | 'sync' | 'auto';
   fetchPriority?: 'high' | 'low' | 'auto';
+  optimizeVariant?: 'opt' | 'md' | 'thumb';
+  fallbackSrc?: string;
   onClick?: React.MouseEventHandler<HTMLImageElement>;
   imgProps?: Omit<React.ImgHTMLAttributes<HTMLImageElement>, 'src' | 'alt' | 'loading' | 'decoding' | 'fetchPriority' | 'style' | 'onClick' | 'className'>;
 };
@@ -23,17 +26,26 @@ const SmartImage: React.FC<Props> = ({
   loading = 'lazy',
   decoding = 'async',
   fetchPriority = 'auto',
+  optimizeVariant = 'opt',
+  fallbackSrc,
   onClick,
   imgProps,
 }) => {
   const normalizedSrc = useMemo(() => String(src || '').trim(), [src]);
+  const normalizedFallbackSrc = useMemo(() => String(fallbackSrc || '').trim(), [fallbackSrc]);
+  const optimizedSrc = useMemo(
+    () => getOptimizedImageUrl(normalizedSrc, optimizeVariant) || normalizedSrc,
+    [normalizedSrc, optimizeVariant],
+  );
   const holderRef = useRef<HTMLDivElement | null>(null);
   const [isInView, setIsInView] = useState(loading === 'eager');
   const [ready, setReady] = useState(false);
+  const [currentSrc, setCurrentSrc] = useState(optimizedSrc);
 
   useEffect(() => {
     setReady(false);
-  }, [normalizedSrc]);
+    setCurrentSrc(optimizedSrc);
+  }, [optimizedSrc]);
 
   useEffect(() => {
     if (loading === 'eager') {
@@ -73,7 +85,7 @@ const SmartImage: React.FC<Props> = ({
     <div ref={holderRef} className={`relative overflow-hidden ${className}`}>
       {!ready && <Skeleton className="absolute inset-0 rounded-none bg-slate-100" />}
       <img
-        src={isInView ? normalizedSrc : undefined}
+        src={isInView ? currentSrc : undefined}
         alt={alt}
         loading={loading}
         decoding={decoding}
@@ -87,6 +99,14 @@ const SmartImage: React.FC<Props> = ({
         }}
         onError={(e) => {
           (imgProps as any)?.onError?.(e);
+          if (currentSrc !== normalizedSrc && normalizedSrc) {
+            setCurrentSrc(normalizedSrc);
+            return;
+          }
+          if (normalizedFallbackSrc && currentSrc !== normalizedFallbackSrc) {
+            setCurrentSrc(normalizedFallbackSrc);
+            return;
+          }
           setReady(true);
         }}
         onClick={(e) => {
