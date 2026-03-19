@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 // Lazy load sub-components
 const ProfileSummary = lazy(() => import('./merchant-profile/ProfileSummary'));
@@ -78,19 +79,11 @@ const MerchantProfilePage: React.FC = () => {
     load({ silent: false });
   }, [load]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      load({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, [load]);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    load({ silent: true });
+  });
 
   if (loading) {
     return (

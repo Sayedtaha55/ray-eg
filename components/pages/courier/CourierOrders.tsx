@@ -6,6 +6,7 @@ import { clearSession, getStoredUser, persistSession } from '@/services/authStor
 import CourierOffersTab from './CourierOffersTab';
 import CourierOrdersTab from './CourierOrdersTab';
 import CourierSettingsTab from './CourierSettingsTab';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const { useNavigate } = ReactRouterDOM as any;
 
@@ -401,24 +402,13 @@ const CourierOrders: React.FC = () => {
     syncCourierStateFromBackend();
   }, [loadOrders, loadOffers, syncCourierStateFromBackend]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      loadOrders(true);
-      loadOffers(true);
-      syncCourierStateFromBackend();
-    };
-
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    window.addEventListener('ray-db-update', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-      window.removeEventListener('ray-db-update', onAutoRefresh as any);
-    };
-  }, [loadOrders, loadOffers, syncCourierStateFromBackend]);
+  // Smart event-driven refresh - replaces the old timer-based auto-refresh
+  useSmartRefreshListener(['orders', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadOrders(true);
+    loadOffers(true);
+    syncCourierStateFromBackend();
+  });
 
   useEffect(() => {
     try {

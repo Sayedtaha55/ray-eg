@@ -15,6 +15,7 @@ import { BUILDER_SECTIONS } from './builder/registry';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
 import { coerceBoolean, coerceNumber, isVideoUrl } from './utils';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const MotionDiv = motion.div as any;
 
@@ -269,20 +270,12 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     loadCurrentDesign({ silent: false });
   }, [loadCurrentDesign]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      if (savingRef.current || logoSavingRef.current) return;
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      loadCurrentDesign({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, [loadCurrentDesign]);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (savingRef.current || logoSavingRef.current) return;
+    loadCurrentDesign({ silent: true });
+  });
 
   useEffect(() => {
     const mql = window.matchMedia('(min-width: 768px)');

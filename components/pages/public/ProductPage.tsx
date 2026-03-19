@@ -9,6 +9,7 @@ import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 import { Skeleton } from '@/components/common/ui';
 import { coerceBoolean } from '@/components/pages/public/ShopProfile/utils';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 import ProductTabs from './product/ProductTabs';
 import ProductGallery from './product/ProductGallery';
@@ -207,21 +208,11 @@ const ProductPage: React.FC = () => {
     window.scrollTo(0, 0);
   }, [loadData]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      loadData({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    window.addEventListener('ray-db-update', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-      window.removeEventListener('ray-db-update', onAutoRefresh as any);
-    };
-  }, [loadData]);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['products', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadData({ silent: true });
+  });
 
   useEffect(() => {
     const isRestaurant = shop?.category === Category.RESTAURANT;

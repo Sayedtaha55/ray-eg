@@ -1,0 +1,394 @@
+import React, { useMemo, useState } from 'react';
+import {
+  Calendar,
+  CheckCircle2,
+  Clock,
+  MapPin,
+  Phone,
+  Search,
+  Shield,
+  Star,
+  Stethoscope,
+  User2,
+} from 'lucide-react';
+
+type Props = {
+  config: any;
+  logoDataUrl?: string;
+};
+
+const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
+  const primary = String((config as any)?.primaryColor || '#00E5FF');
+  const secondary = String((config as any)?.secondaryColor || '#BD00FF');
+  const pageBg = String((config as any)?.pageBackgroundColor || '#FFFFFF');
+
+  const [query, setQuery] = useState('');
+
+  const specialties = useMemo(
+    () => [
+      { id: 'dentistry', name: 'أسنان', icon: <Stethoscope size={18} /> },
+      { id: 'dermatology', name: 'جلدية', icon: <Shield size={18} /> },
+      { id: 'pediatrics', name: 'أطفال', icon: <User2 size={18} /> },
+      { id: 'orthopedics', name: 'عظام', icon: <CheckCircle2 size={18} /> },
+    ],
+    []
+  );
+
+  const doctors = useMemo(
+    () => [
+      {
+        id: 'd1',
+        name: 'د. أحمد علي',
+        title: 'أخصائي أسنان',
+        rating: 4.9,
+        reviews: 320,
+        next: 'اليوم 6:30 م',
+      },
+      {
+        id: 'd2',
+        name: 'د. منى إبراهيم',
+        title: 'أخصائية جلدية',
+        rating: 4.8,
+        reviews: 210,
+        next: 'غداً 11:00 ص',
+      },
+      {
+        id: 'd3',
+        name: 'د. يوسف حسن',
+        title: 'أخصائي أطفال',
+        rating: 4.7,
+        reviews: 185,
+        next: 'اليوم 8:15 م',
+      },
+    ],
+    []
+  );
+
+  const slots = useMemo(
+    () => [
+      { time: '05:30', label: '5:30 م', available: true },
+      { time: '06:00', label: '6:00 م', available: true },
+      { time: '06:30', label: '6:30 م', available: false },
+      { time: '07:00', label: '7:00 م', available: true },
+      { time: '07:30', label: '7:30 م', available: true },
+      { time: '08:00', label: '8:00 م', available: true },
+    ],
+    []
+  );
+
+  const testimonials = useMemo(
+    () => [
+      { id: 't1', name: 'مريم', rating: 5, text: 'حجز سريع وتعامل ممتاز. التجربة كانت مريحة جداً.' },
+      { id: 't2', name: 'أحمد', rating: 5, text: 'مواعيد دقيقة وخدمة محترفة. أنصح بها.' },
+      { id: 't3', name: 'سارة', rating: 4, text: 'التنظيم رائع وسهولة في اختيار الموعد.' },
+    ],
+    []
+  );
+
+  const filteredDoctors = useMemo(() => {
+    const q = String(query || '').trim().toLowerCase();
+    if (!q) return doctors;
+    return doctors.filter((d) => String(d.name).toLowerCase().includes(q) || String(d.title).toLowerCase().includes(q));
+  }, [doctors, query]);
+
+  return (
+    <div dir="rtl" className="min-h-screen" style={{ backgroundColor: pageBg }}>
+      <header className="sticky top-0 z-40 border-b border-slate-100 bg-white/80 backdrop-blur-xl">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-slate-900 flex items-center justify-center overflow-hidden">
+              {logoDataUrl ? (
+                <img src={logoDataUrl} alt="logo" className="w-full h-full object-cover" />
+              ) : (
+                <Stethoscope className="text-white" size={18} />
+              )}
+            </div>
+            <div>
+              <div className="text-sm md:text-base font-black text-slate-900">مركز طبي (معاينة)</div>
+              <div className="text-[11px] font-bold text-slate-400">حجز مواعيد الأطباء أونلاين</div>
+            </div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-2">
+            <button
+              type="button"
+              className="px-5 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-black transition-all"
+            >
+              احجز الآن
+            </button>
+            <button
+              type="button"
+              className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
+            >
+              تواصل معنا
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 md:py-12">
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10 items-start">
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
+            <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2 text-xs font-black text-slate-600">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primary }} />
+              منصة حجوزات للعيادات
+            </div>
+
+            <div className="mt-5 text-2xl md:text-4xl font-black leading-tight text-slate-900">
+              احجز موعدك مع الطبيب المناسب
+              <span className="block" style={{ color: secondary }}>بخطوات بسيطة</span>
+            </div>
+            <div className="mt-4 text-sm md:text-base font-bold text-slate-500 leading-relaxed">
+              ابحث عن التخصص أو الطبيب، اختر الموعد المتاح، ثم أكد الحجز. تجربة تصميم شبيهة بالتطبيقات العالمية.
+            </div>
+
+            <div className="mt-6 flex items-center gap-3 flex-wrap">
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                <CheckCircle2 size={16} style={{ color: primary }} />
+                تأكيد فوري
+              </div>
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                <Clock size={16} style={{ color: primary }} />
+                مواعيد دقيقة
+              </div>
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                <Shield size={16} style={{ color: primary }} />
+                بيانات آمنة
+              </div>
+            </div>
+
+            <div className="mt-7 bg-slate-50 border border-slate-100 rounded-[2rem] p-4 md:p-5">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="ابحث باسم الطبيب أو التخصص"
+                    className="w-full pr-10 pl-4 py-3 rounded-2xl border border-slate-200 bg-white font-bold text-sm outline-none focus:border-slate-900"
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
+                  style={{ backgroundColor: primary }}
+                >
+                  بحث
+                </button>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                {specialties.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="flex items-center justify-between gap-2 px-4 py-3 rounded-2xl bg-white border border-slate-200 hover:bg-slate-50 transition-all"
+                  >
+                    <span className="text-xs font-black text-slate-700">{s.name}</span>
+                    <span className="text-slate-500">{s.icon}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-black text-slate-900">حجز سريع</div>
+                <div className="mt-1 text-xs font-bold text-slate-400">اختر أقرب موعد متاح</div>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                <MapPin size={16} />
+                القاهرة
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-[2rem] bg-slate-50 border border-slate-100 p-5">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="text-sm font-black text-slate-900">اليوم</div>
+                  <div className="mt-1 text-xs font-bold text-slate-400">الأقرب</div>
+                </div>
+                <div className="flex items-center gap-2 text-xs font-black text-slate-500">
+                  <Calendar size={16} />
+                  مواعيد
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {slots.map((s) => (
+                  <button
+                    key={s.time}
+                    type="button"
+                    disabled={!s.available}
+                    className={`px-4 py-3 rounded-2xl border text-xs font-black transition-all ${
+                      s.available
+                        ? 'bg-white border-slate-200 text-slate-700 hover:border-slate-900'
+                        : 'bg-slate-100 border-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4 flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  className="px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
+                  style={{ backgroundColor: primary }}
+                >
+                  تأكيد الموعد
+                </button>
+                <button
+                  type="button"
+                  className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
+                >
+                  اختر طبيب
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-3xl border border-slate-100 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-black text-slate-400">رقم الهاتف</div>
+                  <Phone size={16} className="text-slate-400" />
+                </div>
+                <div className="mt-2 text-sm font-black text-slate-900">+20 10 0000 0000</div>
+              </div>
+              <div className="rounded-3xl border border-slate-100 p-5">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs font-black text-slate-400">متوسط التقييم</div>
+                  <Star size={16} className="text-slate-400" />
+                </div>
+                <div className="mt-2 text-sm font-black text-slate-900">4.8 / 5</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-8 md:mt-12">
+          <div className="flex items-end justify-between gap-3 flex-wrap">
+            <div>
+              <div className="text-lg md:text-xl font-black text-slate-900">الأطباء المتاحون</div>
+              <div className="mt-1 text-sm font-bold text-slate-500">اختر طبيبًا واستعرض أقرب موعد</div>
+            </div>
+            <div className="text-xs font-black text-slate-400">{filteredDoctors.length} نتيجة</div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredDoctors.map((d) => (
+              <div key={d.id} className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-black text-slate-900">{d.name}</div>
+                    <div className="mt-1 text-xs font-bold text-slate-400">{d.title}</div>
+                  </div>
+                  <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center">
+                    <User2 size={18} className="text-slate-500" />
+                  </div>
+                </div>
+
+                <div className="mt-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2 text-xs font-black">
+                    <Star size={16} style={{ color: primary }} />
+                    <span className="text-slate-900">{d.rating}</span>
+                    <span className="text-slate-400">({d.reviews})</span>
+                  </div>
+                  <div className="text-xs font-black text-slate-500">أقرب: {d.next}</div>
+                </div>
+
+                <div className="mt-4 flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    className="flex-1 px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
+                    style={{ backgroundColor: primary }}
+                  >
+                    حجز
+                  </button>
+                  <button
+                    type="button"
+                    className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
+                  >
+                    الملف
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8 md:mt-12 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
+          <div className="flex items-end justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-lg md:text-xl font-black text-slate-900">آراء العملاء</div>
+              <div className="mt-1 text-sm font-bold text-slate-500">تجربة شبيهة بالتطبيقات العالمية</div>
+            </div>
+            <div className="flex items-center gap-2 text-sm font-black" style={{ color: primary }}>
+              <Star size={18} />
+              4.8
+              <span className="text-xs font-bold text-slate-400">(1,250)</span>
+            </div>
+          </div>
+
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {testimonials.map((t) => (
+              <div key={t.id} className="rounded-[2rem] border border-slate-100 bg-slate-50 p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-black text-slate-900">{t.name}</div>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star
+                        key={i}
+                        size={14}
+                        className={i < t.rating ? 'text-slate-900' : 'text-slate-300'}
+                        style={i < t.rating ? { color: primary } : undefined}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="mt-3 text-sm font-bold text-slate-600 leading-relaxed">{t.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8 md:mt-12">
+          <div className="rounded-[2.5rem] p-7 md:p-10 text-slate-900 border border-slate-100" style={{ background: `linear-gradient(135deg, ${primary}20, ${secondary}20)` }}>
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <div className="text-lg md:text-2xl font-black">ابدأ الحجز الآن</div>
+                <div className="mt-2 text-sm font-bold text-slate-600">اختر الطبيب والموعد المناسبين، ثم أكد الحجز.</div>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  className="px-6 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-black transition-all"
+                >
+                  احجز موعد
+                </button>
+                <button
+                  type="button"
+                  className="px-6 py-3 rounded-2xl font-black text-sm bg-white/70 border border-slate-100 text-slate-800 hover:bg-white transition-all"
+                >
+                  استفسار
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-slate-100 bg-white">
+        <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex items-center justify-between gap-4 flex-wrap">
+          <div className="text-xs font-bold text-slate-500">© معاينة صفحة عرض العيادة</div>
+          <div className="text-xs font-black text-slate-400">مواعيد - أطباء - حجوزات</div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default React.memo(ClinicPublicPreview);

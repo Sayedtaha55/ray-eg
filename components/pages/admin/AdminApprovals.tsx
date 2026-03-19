@@ -5,6 +5,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { BackendRequestError } from '@/services/api/httpClient';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const MotionDiv = motion.div as any;
 
@@ -55,16 +56,12 @@ const AdminApprovals: React.FC = () => {
     loadModuleRequests();
   }, []);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      loadShops({ silent: true });
-      loadModuleRequests({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, []);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadShops({ silent: true });
+    loadModuleRequests({ silent: true });
+  });
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     try {

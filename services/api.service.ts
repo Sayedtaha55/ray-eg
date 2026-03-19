@@ -153,12 +153,33 @@ import {
 import { mockDb } from './api/mockDb';
 
 let rayDbUpdateTimer: any;
-function dispatchRayDbUpdateDebounced() {
+
+export type RefreshScope = 'orders' | 'products' | 'shop' | 'analytics' | 'notifications' | 'reservations' | 'messages' | 'all';
+
+function dispatchSmartRefresh(scope: RefreshScope, context?: { shopId?: string }) {
+  try {
+    window.dispatchEvent(new CustomEvent('ray-smart-refresh', {
+      detail: { scope, shopId: context?.shopId, timestamp: Date.now() }
+    }));
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('ray-db');
+        bc.postMessage({ ts: Date.now(), scope, shopId: context?.shopId });
+        bc.close();
+      }
+    } catch {}
+  } catch {}
+}
+
+function dispatchRayDbUpdateDebounced(scope?: RefreshScope, context?: { shopId?: string }) {
   try {
     if (rayDbUpdateTimer) clearTimeout(rayDbUpdateTimer);
     rayDbUpdateTimer = setTimeout(() => {
       try {
         window.dispatchEvent(new Event('ray-db-update'));
+        if (scope) {
+          dispatchSmartRefresh(scope, context);
+        }
         try {
           localStorage.setItem('ray_db_update_ts', String(Date.now()));
         } catch {
@@ -166,7 +187,7 @@ function dispatchRayDbUpdateDebounced() {
         try {
           if (typeof BroadcastChannel !== 'undefined') {
             const bc = new BroadcastChannel('ray-db');
-            bc.postMessage({ ts: Date.now() });
+            bc.postMessage({ ts: Date.now(), scope, shopId: context?.shopId });
             bc.close();
           }
         } catch {
@@ -713,7 +734,7 @@ export const ApiService = {
   updateMyShop: async (payload: any) => {
     const shop = await updateMyShopViaBackend(payload);
     try {
-      dispatchRayDbUpdateDebounced();
+      dispatchRayDbUpdateDebounced('shop', { shopId: shop?.id });
     } catch {
       // ignore
     }
@@ -782,12 +803,12 @@ export const ApiService = {
   },
   createOffer: async (offer: any) => {
     const created = await createOfferViaBackend(offer);
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products', { shopId: offer?.shopId });
     return created;
   },
   deleteOffer: async (offerId: string) => {
     const deleted = await deleteOfferViaBackend(offerId);
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products');
     return deleted;
   },
   getOfferByProductId: async (productId: string) => {
@@ -830,7 +851,7 @@ export const ApiService = {
       }
     } catch {
     }
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products', { shopId: (created as any)?.shopId || product?.shopId });
     return created;
   },
   updateProduct: async (id: string, data: any) => {
@@ -842,7 +863,7 @@ export const ApiService = {
       }
     } catch {
     }
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId || data?.shopId });
     return updated;
   },
   updateProductStock: async (id: string, stock: number) => {
@@ -854,12 +875,12 @@ export const ApiService = {
       }
     } catch {
     }
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId });
     return updated;
   },
   deleteProduct: async (id: string) => {
     const deleted = await deleteProductViaBackend(id);
-    dispatchRayDbUpdateDebounced();
+    dispatchRayDbUpdateDebounced('products');
     return deleted;
   },
 
@@ -939,13 +960,18 @@ export const ApiService = {
     }
     try {
       window.dispatchEvent(new Event('orders-updated'));
+      dispatchSmartRefresh('orders', { shopId: order?.shopId });
     } catch {
     }
     return created;
   },
 
   updateOrder: async (id: string, payload: { status?: string; notes?: string; codCollected?: boolean; handedToCourier?: boolean }) => {
-    return await updateOrderViaBackend(id, payload);
+    const updated = await updateOrderViaBackend(id, payload);
+    try {
+      dispatchSmartRefresh('orders');
+    } catch {}
+    return updated;
   },
 
   listOrderReturns: async (orderId: string) => {

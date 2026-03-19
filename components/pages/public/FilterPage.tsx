@@ -4,7 +4,11 @@ import { Search, MapPin, Grid, List, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+<<<<<<< Updated upstream
 import SmartImage from '@/components/common/ui/SmartImage';
+=======
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+>>>>>>> Stashed changes
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -31,22 +35,13 @@ const FilterPage: React.FC = () => {
 
   useEffect(() => {
     loadData({ silent: false });
-
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      loadData({ silent: true });
-    };
-
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    window.addEventListener('ray-db-update', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-      window.removeEventListener('ray-db-update', onAutoRefresh as any);
-    };
   }, [loadData]);
+
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadData({ silent: true });
+  });
 
   const filteredShops = shops
     .filter((s) => String(s?.status || '').toLowerCase() === 'approved')

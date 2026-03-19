@@ -228,6 +228,7 @@ const App: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
+<<<<<<< Updated upstream
   useEffect(() => {
     const dispatchRefresh = () => {
       window.dispatchEvent(new Event('ray-db-update'));
@@ -256,6 +257,8 @@ const App: React.FC = () => {
     };
   }, []);
 
+=======
+>>>>>>> Stashed changes
   return (
     <Router>
       <ScrollToTop />

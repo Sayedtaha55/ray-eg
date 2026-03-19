@@ -25,6 +25,7 @@ import { RayDB } from '@/constants';
 import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useSmartRefresh } from '@/hooks/useSmartRefresh';
 
 // Lazy load components
 const MerchantSettings = lazy(() => import('@/src/components/MerchantDashboard/Settings'));
@@ -297,22 +298,27 @@ const MerchantDashboardPage: React.FC = () => {
     ensureTabData(resolveMerchantDashboardTabForShop(tabParam, currentShop), currentShop);
   }, [currentShop, ensureTabData, tabParam]);
 
-  useEffect(() => {
-    if (!currentShop) return;
-
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
+  // Smart event-driven refresh - replaces the old timer-based auto-refresh
+  useSmartRefresh({
+    shopId: currentShop?.id,
+    role: 'merchant',
+    scopes: ['orders', 'products', 'shop', 'reservations'],
+    enabled: !!currentShop,
+    onRefresh: (scope) => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+      
+      // Refresh based on scope
+      if (scope === 'orders' || scope === 'all') {
+        refreshShopAndActiveTab(true);
+      } else if (scope === 'products') {
+        ensureTabData('products', currentShop, true);
+      } else if (scope === 'reservations') {
+        ensureTabData('reservations', currentShop, true);
+      } else {
+        refreshShopAndActiveTab(true);
       }
-      ensureTabData(resolveMerchantDashboardTabForShop(tabParam, currentShop), currentShop, true);
-    };
-
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, [currentShop, ensureTabData, tabParam]);
+    },
+  });
 
   useEffect(() => {
     if (loading) return;
@@ -348,40 +354,6 @@ const MerchantDashboardPage: React.FC = () => {
       setTab('overview');
     }
   }, [currentShop, searchParams, setTab]);
-
-  useEffect(() => {
-    const onOrdersUpdated = () => {
-      const t = setTimeout(() => {
-        refreshShopAndActiveTab(true);
-      }, 150);
-      return () => clearTimeout(t);
-    };
-    const handler = () => {
-      const cleanup = onOrdersUpdated();
-      if (typeof cleanup === 'function') {
-        // ignore
-      }
-    };
-    window.addEventListener('orders-updated', handler);
-    return () => {
-      window.removeEventListener('orders-updated', handler);
-    };
-  }, [refreshShopAndActiveTab]);
-
-  useEffect(() => {
-    let timer: any;
-    const onDbUpdate = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => {
-        refreshShopAndActiveTab(true);
-      }, 200);
-    };
-    window.addEventListener('ray-db-update', onDbUpdate);
-    return () => {
-      if (timer) clearTimeout(timer);
-      window.removeEventListener('ray-db-update', onDbUpdate);
-    };
-  }, [refreshShopAndActiveTab]);
 
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;

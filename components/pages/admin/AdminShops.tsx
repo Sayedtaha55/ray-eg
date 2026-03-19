@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Store, Search, Plus, Eye, Edit, Check, X, Loader2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const MotionDiv = motion.div as any;
 
@@ -38,15 +39,11 @@ const AdminShops: React.FC = () => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      loadData({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, []);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadData({ silent: true });
+  });
 
   const getShopDeliveryFee = (shop: any): number | null => {
     const raw = (shop?.layoutConfig as any)?.deliveryFee;

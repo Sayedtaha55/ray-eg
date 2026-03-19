@@ -7,6 +7,7 @@ import {
 import { ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 interface GalleryManagerProps {
   shopId: string;
@@ -36,20 +37,12 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
     }
   }, [onImagesChange, shopId]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      if (uploading) return;
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      refreshFromBackend();
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, [refreshFromBackend, uploading]);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (uploading) return;
+    refreshFromBackend();
+  });
 
   const handleFileUpload = async (files: FileList | null) => {
     if (!files || files.length === 0) return;

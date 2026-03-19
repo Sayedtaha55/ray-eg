@@ -6,7 +6,11 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
 import { ApiService } from '@/services/api.service';
+<<<<<<< Updated upstream
 import { clearSession, getStoredUser } from '@/services/authStorage';
+=======
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+>>>>>>> Stashed changes
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -77,21 +81,13 @@ const ProfilePage: React.FC = () => {
     }
   }, [activeTab, loadNotifications]);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      if (activeTab === 'notifications') {
-        loadNotifications({ silent: true });
-      }
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, [activeTab, loadNotifications]);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['notifications', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    if (activeTab === 'notifications') {
+      loadNotifications({ silent: true });
+    }
+  });
 
   const logout = async () => {
     try {

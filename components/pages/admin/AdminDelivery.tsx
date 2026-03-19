@@ -4,6 +4,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Loader2, Truck, Users, UserPlus, Search, Check, X } from 'lucide-react';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const MotionDiv = motion.div as any;
 
@@ -61,16 +62,12 @@ const AdminDelivery: React.FC = () => {
     loadPendingCouriers();
   }, []);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      loadCouriers({ silent: true });
-      loadPendingCouriers({ silent: true });
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, []);
+  // Smart event-driven refresh
+  useSmartRefreshListener(['all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadCouriers({ silent: true });
+    loadPendingCouriers({ silent: true });
+  });
 
   useEffect(() => {
     try {

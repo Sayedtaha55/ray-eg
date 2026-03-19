@@ -19,6 +19,7 @@ import { MediaModule } from './media.module';
 import { CourierModule } from './courier.module';
 import { FeedbackModule } from './feedback.module';
 import { ShopImageMapModule } from './shop-image-map.module';
+import { RealtimeModule } from './realtime/realtime.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -61,6 +62,7 @@ import { AccountPurgeService } from './account-purge.service';
     ...(shouldImportMediaModule ? [MediaModule] : []),
     ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
     ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') ? [ShopImageMapModule] : []),
+    ...(includeAllModules || bootModules.has('realtime') ? [RealtimeModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

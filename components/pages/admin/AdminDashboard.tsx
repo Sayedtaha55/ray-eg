@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Store, ShoppingCart, DollarSign, Loader2, Eye } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 const MotionDiv = motion.div as any;
 
@@ -83,15 +84,11 @@ const AdminDashboard: React.FC = () => {
     loadData();
   }, []);
 
-  useEffect(() => {
-    const onAutoRefresh = () => {
-      loadData(true);
-    };
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-    };
-  }, []);
+  // Smart event-driven refresh - replaces the old timer-based auto-refresh
+  useSmartRefreshListener(['orders', 'shop', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadData(true);
+  });
 
   if (loading && !stats) return <div className="h-screen flex items-center justify-center bg-slate-950"><Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" /></div>;
 

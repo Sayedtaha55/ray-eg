@@ -3,6 +3,7 @@ import { Search, ChevronRight, Loader2, Ruler, CheckCircle2, UserPlus, X } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 // Sub-components
 import POSCart from './pos/POSCart';
@@ -72,22 +73,13 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
   useEffect(() => {
     loadProducts({ silent: false });
-
-    const onAutoRefresh = () => {
-      try {
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      } catch {
-      }
-      loadProducts({ silent: true });
-    };
-
-    window.addEventListener('ray-auto-refresh', onAutoRefresh as any);
-    window.addEventListener('ray-db-update', onAutoRefresh as any);
-    return () => {
-      window.removeEventListener('ray-auto-refresh', onAutoRefresh as any);
-      window.removeEventListener('ray-db-update', onAutoRefresh as any);
-    };
   }, [loadProducts]);
+
+  // Smart event-driven refresh - replaces the old timer-based auto-refresh
+  useSmartRefreshListener(['products', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadProducts({ silent: true });
+  }, { enabled: !!shopId, shopId });
 
   useEffect(() => {
     const loadTheme = () => {
@@ -214,6 +206,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     const city = escapeHtml(String((theme as any)?.city || '').trim());
     const address = escapeHtml(String((theme as any)?.address || '').trim());
     const footerNote = escapeHtml(String((theme as any)?.footerNote || '').trim());
+    const customerNameEsc = escapeHtml(String(customerName || '').trim());
+    const customerPhoneEsc = escapeHtml(String(customerPhone || '').trim());
 
     const fmt = (n: any) => {
       const v = typeof n === 'number' ? n : Number(n);
@@ -266,6 +260,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
               ${phone ? `<div>${phone}</div>` : ''}
               ${city ? `<div>${city}</div>` : ''}
               ${address ? `<div>${address}</div>` : ''}
+              ${(customerNameEsc || customerPhoneEsc) ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${customerNameEsc || '-'} ${customerPhoneEsc ? `- ${customerPhoneEsc}` : ''}</div>` : ''}
               <div>${dateLabel}</div>
             </div>
             <div class="sep"></div>

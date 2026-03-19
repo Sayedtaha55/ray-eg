@@ -29,7 +29,7 @@ services:
       - ALLOW_DEV_ADMIN_BOOTSTRAP=${ALLOW_DEV_ADMIN_BOOTSTRAP:-false}
       - ALLOW_DEV_MERCHANT_BOOTSTRAP=${ALLOW_DEV_MERCHANT_BOOTSTRAP:-false}
       - ALLOW_DEV_COURIER_BOOTSTRAP=${ALLOW_DEV_COURIER_BOOTSTRAP:-false}
-      - DATABASE_URL=${DATABASE_URL:-postgresql://ray_user:ray_password@postgres:5432/ray_marketplace?schema=public}
+      - DATABASE_URL=postgresql://ray_user:ray_password@postgres:5432/ray_marketplace?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
