@@ -5,6 +5,7 @@ import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, Mess
 import { motion, AnimatePresence } from 'framer-motion';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
+import { clearSession, getStoredUser } from '@/services/authStorage';
 
 const { Link, Outlet, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -15,14 +16,8 @@ const AdminLayout: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const userStr = localStorage.getItem('ray_user');
-    let role = '';
-    try {
-      const user = userStr ? JSON.parse(userStr) : {};
-      role = String(user?.role || '');
-    } catch {
-      role = '';
-    }
+    const user = getStoredUser();
+    const role = String((user as any)?.role || '');
     if (role.toLowerCase() !== 'admin') {
       const returnTo = `${location.pathname}${location.search || ''}`;
       navigate(`/admin/gate?returnTo=${encodeURIComponent(returnTo)}`, { replace: true });
@@ -34,8 +29,7 @@ const AdminLayout: React.FC = () => {
       await ApiService.logout();
     } catch {
     }
-    localStorage.clear();
-    window.dispatchEvent(new Event('auth-change'));
+    clearSession('admin-layout-logout');
     navigate('/login');
   };
 

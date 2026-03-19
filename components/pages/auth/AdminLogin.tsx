@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
+import { persistSession } from '@/services/authStorage';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -35,11 +36,11 @@ const AdminLogin: React.FC = () => {
     try {
       // سيتم التعرف على admin / 1234 عبر ApiService.login
       const res = await ApiService.login(email, password);
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', res.session?.access_token || '');
-      }
-      window.dispatchEvent(new Event('auth-change'));
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'admin-login');
       const role = String(res.user?.role || '').toLowerCase();
       if (role === 'admin') {
         const params = new URLSearchParams(location.search);
@@ -64,15 +65,15 @@ const AdminLogin: React.FC = () => {
     setError('');
     try {
       const res = await ApiService.devMerchantLogin();
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', res.session?.access_token || '');
-      }
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'dev-merchant-login');
       try {
         localStorage.removeItem('ray_dev_shop_category');
       } catch {
       }
-      window.dispatchEvent(new Event('auth-change'));
       navigate('/business/dashboard');
     } catch (err: any) {
       setError(err?.message || 'تعذر تسجيل دخول المطور');
@@ -86,10 +87,11 @@ const AdminLogin: React.FC = () => {
     setError('');
     try {
       const res = await ApiService.devMerchantLogin(shopCategory ? { shopCategory } : undefined);
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', res.session?.access_token || '');
-      }
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'dev-merchant-login-category');
       try {
         if (shopCategory) {
           localStorage.setItem('ray_dev_shop_category', String(shopCategory).toUpperCase());
@@ -98,7 +100,6 @@ const AdminLogin: React.FC = () => {
         }
       } catch {
       }
-      window.dispatchEvent(new Event('auth-change'));
       navigate('/business/dashboard');
     } catch (err: any) {
       setError(err?.message || 'تعذر تسجيل دخول المطور');
@@ -112,11 +113,11 @@ const AdminLogin: React.FC = () => {
     setError('');
     try {
       const res = await ApiService.devCourierLogin();
-      localStorage.setItem('ray_user', JSON.stringify(res.user));
-      if (shouldStoreBearerToken) {
-        localStorage.setItem('ray_token', res.session?.access_token || '');
-      }
-      window.dispatchEvent(new Event('auth-change'));
+      persistSession({
+        user: res.user,
+        accessToken: res.session?.access_token,
+        persistBearer: shouldStoreBearerToken,
+      }, 'dev-courier-login');
       navigate('/courier/orders');
     } catch (err: any) {
       setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');

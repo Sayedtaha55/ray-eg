@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState, useMemo, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { clearSession } from '@/services/authStorage';
 import {
   BarChart3,
   CalendarCheck,
@@ -199,13 +200,7 @@ const MerchantDashboardPage: React.FC = () => {
     } catch (e) {
       const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
       if (status === 404) {
-        try {
-          localStorage.removeItem('ray_user');
-          localStorage.removeItem('ray_token');
-          window.dispatchEvent(new Event('auth-change'));
-        } catch {
-          // ignore
-        }
+        clearSession('merchant-dashboard-missing-shop');
         redirected = true;
         navigate('/login');
         return;
@@ -533,12 +528,7 @@ const MerchantDashboardPage: React.FC = () => {
         <p className="font-black text-slate-600">لم يتم العثور على متجر مرتبط بهذا الحساب.</p>
         <button
           onClick={() => {
-            try {
-              localStorage.removeItem('ray_user');
-              localStorage.removeItem('ray_token');
-              window.dispatchEvent(new Event('auth-change'));
-            } catch {
-            }
+            clearSession('merchant-dashboard-empty-shop');
             navigate('/login');
           }}
           className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black"

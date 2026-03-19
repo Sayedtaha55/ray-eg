@@ -1,5 +1,6 @@
 import { BackendRequestError, backendDelete, backendGet, backendPatch, backendPost, disablePathPrefix, toBackendUrl } from '../httpClient';
 import { normalizeShopFromBackend } from '../normalizers';
+import { clearSession } from '@/services/authStorage';
 
 export async function getShopsViaBackend(
   filterStatus: 'approved' | 'pending' | 'rejected' | 'all' | '' = 'approved',
@@ -76,13 +77,7 @@ export async function getMyShopViaBackend() {
   } catch (e: any) {
     const status = typeof e?.status === 'number' ? e.status : undefined;
     if (status === 404) {
-      try {
-        localStorage.removeItem('ray_user');
-        localStorage.removeItem('ray_token');
-        window.dispatchEvent(new Event('auth-change'));
-      } catch {
-        // ignore
-      }
+      clearSession('missing-shop');
     }
     throw e;
   }

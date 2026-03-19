@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { motion } from 'framer-motion';
 import { Card, Badge, Button } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
+import SmartImage from '@/components/common/ui/SmartImage';
 
 interface ProductCardProps {
   product: {
@@ -35,11 +36,15 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
     <Card hover clickable className="overflow-hidden group">
       {/* Product Image */}
       <div className="relative aspect-square overflow-hidden">
-        <img
+        <SmartImage
           src={product.image}
           alt={product.name}
+          className="w-full h-full"
+          imgClassName="object-cover group-hover:scale-110 transition-transform duration-300"
+          optimizeVariant="md"
           loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+          decoding="async"
+          fetchPriority="low"
         />
         
         {/* Discount Badge */}

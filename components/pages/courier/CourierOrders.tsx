@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as ReactRouterDOM from 'react-router-dom';
 import { MapPin, Loader2, CheckCircle, Banknote, RefreshCw, LogOut, Menu, X, Settings, ClipboardList, Bell, Phone, Copy, Navigation } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { clearSession, getStoredUser, persistSession } from '@/services/authStorage';
 import CourierOffersTab from './CourierOffersTab';
 import CourierOrdersTab from './CourierOrdersTab';
 import CourierSettingsTab from './CourierSettingsTab';
@@ -128,8 +129,7 @@ const CourierOrders: React.FC = () => {
 
   const courierUser = useMemo(() => {
     try {
-      const userStr = localStorage.getItem('ray_user');
-      return userStr ? JSON.parse(userStr) : {};
+      return getStoredUser() || {};
     } catch {
       return {};
     }
@@ -141,14 +141,7 @@ const CourierOrders: React.FC = () => {
   }, [courierUser]);
 
   const persistLocalUser = (updatedUser: any) => {
-    try {
-      localStorage.setItem('ray_user', JSON.stringify(updatedUser || {}));
-    } catch {
-    }
-    try {
-      window.dispatchEvent(new Event('auth-change'));
-    } catch {
-    }
+    persistSession({ user: updatedUser || {} }, 'courier-profile-update');
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -377,21 +370,12 @@ const CourierOrders: React.FC = () => {
       await ApiService.logout();
     } catch {
     }
-    try {
-      localStorage.removeItem('ray_token');
-      localStorage.removeItem('ray_user');
-    } catch {
-    }
-    try {
-      window.dispatchEvent(new Event('auth-change'));
-    } catch {
-    }
+    clearSession('courier-logout');
     navigate('/login');
   };
 
   useEffect(() => {
-    const userStr = localStorage.getItem('ray_user');
-    const user = userStr ? JSON.parse(userStr) : {};
+    const user = getStoredUser() || {};
     if (String(user?.role || '').toLowerCase() !== 'courier') {
       navigate('/login');
     }

@@ -6,6 +6,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
 import { ApiService } from '@/services/api.service';
+import { clearSession, getStoredUser } from '@/services/authStorage';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -28,9 +29,9 @@ const ProfilePage: React.FC = () => {
       setActiveTab(tab as any);
     }
 
-    const savedUser = localStorage.getItem('ray_user');
+    const savedUser = getStoredUser();
     if (!savedUser) navigate('/login');
-    else setUser(JSON.parse(savedUser));
+    else setUser(savedUser);
 
     // Fix: Await asynchronous RayDB calls
     const loadData = async () => {
@@ -97,9 +98,7 @@ const ProfilePage: React.FC = () => {
       await ApiService.logout();
     } catch {
     }
-    localStorage.removeItem('ray_user');
-    localStorage.removeItem('ray_token');
-    window.dispatchEvent(new Event('auth-change'));
+    clearSession('profile-logout');
     navigate('/');
   };
 

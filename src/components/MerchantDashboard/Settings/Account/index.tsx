@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
+import { clearSession } from '@/services/authStorage';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -155,12 +156,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
     setIsDeleting(true);
     try {
       const result = await ApiService.deactivateMyAccount();
-      try {
-        localStorage.removeItem('ray_user');
-        localStorage.removeItem('ray_token');
-        window.dispatchEvent(new Event('auth-change'));
-      } catch {
-      }
+      clearSession('account-deactivated');
 
       const scheduled = (result as any)?.scheduledPurgeAt;
       const scheduledText = (() => {

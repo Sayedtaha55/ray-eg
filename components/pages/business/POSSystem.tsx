@@ -102,13 +102,18 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       });
     };
     loadTheme();
+
+    window.addEventListener('receipt-theme-update', loadTheme);
+    return () => {
+      window.removeEventListener('receipt-theme-update', loadTheme);
+    };
   }, [shopId, shop]);
 
   const effectiveReceiptTheme = useMemo(() => {
     const raw = receiptTheme || {};
     return {
       ...raw,
-      vatRatePercent: Number.isFinite(Number(raw?.vatRatePercent)) ? Math.min(100, Math.max(0, Number(raw.vatRatePercent))) : 14,
+      vatRatePercent: Number.isFinite(Number(raw?.vatRatePercent)) ? Math.min(100, Math.max(0, Number(raw.vatRatePercent))) : 0,
     };
   }, [receiptTheme]);
 

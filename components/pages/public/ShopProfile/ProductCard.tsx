@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
+import SmartImage from '@/components/common/ui/SmartImage';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
 import { coerceBoolean } from './utils';
@@ -210,15 +211,21 @@ const ProductCard = React.memo(function ProductCard({
         >
           <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-          <img
+          <SmartImage
+            src={product.imageUrl || (product as any).image_url}
+            alt={product.name}
+            className="w-full h-full"
+            imgClassName={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            optimizeVariant="md"
+            fallbackSrc="/brand/logo.png"
             loading="lazy"
             decoding="async"
-            src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            fetchPriority="low"
             style={{ transitionProperty: 'opacity, transform' }}
-            alt={product.name}
-            onLoad={() => setImageReady(true)}
-            onError={() => setImageReady(true)}
+            imgProps={{
+              onLoad: () => setImageReady(true),
+              onError: () => setImageReady(true),
+            }}
           />
 
           {offer && (
