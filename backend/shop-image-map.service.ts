@@ -1,12 +1,14 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { GeminiVisionService } from './gemini-vision.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   private normalizeId(value: any) {
@@ -277,7 +279,7 @@ export class ShopImageMapService {
 
     const existing = await (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, shop: { select: { slug: true } } },
     });
 
     if (!existing || existing.shopId !== sid) throw new NotFoundException('الخريطة غير موجودة');
@@ -292,6 +294,13 @@ export class ShopImageMapService {
         data: { isActive: true },
       }),
     ]);
+
+    try {
+      await this.redis.invalidateShopCache(sid, (existing as any)?.shop?.slug);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+      // ignore cache errors
+    }
 
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
@@ -342,7 +351,7 @@ export class ShopImageMapService {
 
     const map = await (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, shop: { select: { slug: true } } },
     });
     if (!map || map.shopId !== sid) throw new NotFoundException('الخريطة غير موجودة');
 
@@ -517,6 +526,13 @@ export class ShopImageMapService {
           },
         },
       });
+
+      try {
+        await this.redis.invalidateShopCache(sid, (map as any)?.shop?.slug);
+        await this.redis.invalidatePattern('products:*');
+      } catch {
+        // ignore cache errors
+      }
 
       return { ...updated, createdSections };
     });
