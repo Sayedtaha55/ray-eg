@@ -6,11 +6,8 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Reservation, Product } from '@/types';
 import { ApiService } from '@/services/api.service';
-<<<<<<< Updated upstream
 import { clearSession, getStoredUser } from '@/services/authStorage';
-=======
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
->>>>>>> Stashed changes
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;

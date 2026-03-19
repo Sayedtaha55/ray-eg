@@ -228,37 +228,6 @@ const App: React.FC = () => {
     return () => window.clearTimeout(timeoutId);
   }, []);
 
-<<<<<<< Updated upstream
-  useEffect(() => {
-    const dispatchRefresh = () => {
-      window.dispatchEvent(new Event('ray-db-update'));
-      window.dispatchEvent(new Event('ray-auto-refresh'));
-    };
-
-    const onFocus = () => dispatchRefresh();
-    const onVisible = () => {
-      if (typeof document !== 'undefined' && !document.hidden) dispatchRefresh();
-    };
-
-    const timer = window.setInterval(() => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      dispatchRefresh();
-    }, 30000);
-
-    window.addEventListener('focus', onFocus);
-    window.addEventListener('online', onFocus);
-    document.addEventListener('visibilitychange', onVisible);
-
-    return () => {
-      window.clearInterval(timer);
-      window.removeEventListener('focus', onFocus);
-      window.removeEventListener('online', onFocus);
-      document.removeEventListener('visibilitychange', onVisible);
-    };
-  }, []);
-
-=======
->>>>>>> Stashed changes
   return (
     <Router>
       <ScrollToTop />

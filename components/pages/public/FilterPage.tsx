@@ -4,11 +4,8 @@ import { Search, MapPin, Grid, List, Filter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
-<<<<<<< Updated upstream
 import SmartImage from '@/components/common/ui/SmartImage';
-=======
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
->>>>>>> Stashed changes
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
