@@ -324,6 +324,11 @@ model Order {
   shops                      Shop                @relation(fields: [shopId], references: [id])
   users_orders_userIdTousers User                @relation("orders_userIdTousers", fields: [userId], references: [id])
 
+  // Performance Optimization: Indexes for frequently queried/sorted fields
+  @@index([shopId])
+  @@index([userId])
+  @@index([courierId])
+  @@index([createdAt])
   @@map("orders")
 }
 
@@ -374,6 +379,9 @@ model OrderItem {
   product          Product           @relation(fields: [productId], references: [id])
   returnItems      OrderReturnItem[]
 
+  // Performance Optimization: Indexes for foreign keys to speed up joins and filtered lookups
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
