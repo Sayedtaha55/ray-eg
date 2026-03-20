@@ -801,6 +801,12 @@ export class OrderService {
     paymentMethod?: string;
     source?: string;
     notes?: string;
+    customerPhone?: string;
+    deliveryAddressManual?: string;
+    deliveryLat?: number;
+    deliveryLng?: number;
+    deliveryNote?: string;
+    customerNote?: string;
     status?: string;
   }, actor: { role: string; shopId?: string }) {
     const shopId = String(input?.shopId || '').trim();
@@ -821,6 +827,26 @@ export class OrderService {
       }
       return 'customer';
     })();
+
+    const customerPhone = typeof (input as any)?.customerPhone === 'string' ? String((input as any).customerPhone).trim() : '';
+    const deliveryAddressManual = typeof (input as any)?.deliveryAddressManual === 'string' ? String((input as any).deliveryAddressManual).trim() : '';
+    const deliveryNote = typeof (input as any)?.deliveryNote === 'string' ? String((input as any).deliveryNote).trim() : '';
+    const customerNote = typeof (input as any)?.customerNote === 'string' ? String((input as any).customerNote).trim() : '';
+    const deliveryLat = typeof (input as any)?.deliveryLat === 'number' ? (input as any).deliveryLat : Number((input as any)?.deliveryLat);
+    const deliveryLng = typeof (input as any)?.deliveryLng === 'number' ? (input as any).deliveryLng : Number((input as any)?.deliveryLng);
+    const hasCoords = Number.isFinite(deliveryLat) && Number.isFinite(deliveryLng);
+    const hasManual = Boolean(deliveryAddressManual);
+
+    const requiresDeliveryDetails = source !== 'pos';
+
+    if (requiresDeliveryDetails) {
+      if (!customerPhone) {
+        throw new BadRequestException('رقم الهاتف مطلوب');
+      }
+      if (!hasCoords && !hasManual) {
+        throw new BadRequestException('حدد موقعك على الخريطة أو اكتب العنوان');
+      }
+    }
 
     const items = Array.isArray(input?.items) ? input.items : [];
     if (items.length === 0) {
@@ -1109,6 +1135,12 @@ export class OrderService {
           status: effectiveStatus,
           source,
           notes: safeNotes,
+          customerPhone: customerPhone || null,
+          deliveryAddressManual: deliveryAddressManual || null,
+          deliveryLat: hasCoords ? deliveryLat : null,
+          deliveryLng: hasCoords ? deliveryLng : null,
+          deliveryNote: deliveryNote || null,
+          customerNote: customerNote || null,
           updatedAt: new Date(),
           ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
           items: {

@@ -311,19 +311,48 @@ const AdminOrders: React.FC = () => {
                       </td>
                       <td className="p-6">
                         {(() => {
-                          const loc = parseCodLocation(order.notes);
-                          if (!loc) return <span className="text-slate-500 text-xs font-bold">-</span>;
-                          const href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
-                          return (
-                            <a
-                              href={href}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[#00E5FF] font-black text-xs hover:underline"
-                            >
-                              فتح الخريطة
-                            </a>
-                          );
+                          const lat = Number((order as any)?.deliveryLat ?? (order as any)?.delivery_lat);
+                          const lng = Number((order as any)?.deliveryLng ?? (order as any)?.delivery_lng);
+                          const manual = String(((order as any)?.deliveryAddressManual ?? (order as any)?.delivery_address_manual ?? '')).trim();
+                          const note = String(((order as any)?.deliveryNote ?? (order as any)?.delivery_note ?? '')).trim();
+                          const customerPhone = String(((order as any)?.customerPhone ?? (order as any)?.customer_phone ?? ''))
+                            .trim();
+                          const customerNote = String(((order as any)?.customerNote ?? (order as any)?.customer_note ?? ''))
+                            .trim();
+
+                          const loc = (Number.isFinite(lat) && Number.isFinite(lng)) ? ({ lat, lng, note: note || undefined, address: manual || undefined }) : parseCodLocation(order.notes);
+                          if (loc) {
+                            const href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
+                            const title = [
+                              customerPhone ? `هاتف: ${customerPhone}` : '',
+                              (manual || loc.address) ? `عنوان: ${manual || loc.address}` : '',
+                              (note || loc.note) ? `ملاحظة توصيل: ${note || loc.note}` : '',
+                              customerNote ? `ملاحظة الطلب: ${customerNote}` : '',
+                            ].filter(Boolean).join('\n');
+                            return (
+                              <a
+                                href={href}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-[#00E5FF] font-black text-xs hover:underline"
+                                title={title}
+                              >
+                                فتح الخريطة
+                              </a>
+                            );
+                          }
+
+                          const title = [
+                            customerPhone ? `هاتف: ${customerPhone}` : '',
+                            manual ? `عنوان: ${manual}` : '',
+                            note ? `ملاحظة توصيل: ${note}` : '',
+                            customerNote ? `ملاحظة الطلب: ${customerNote}` : '',
+                          ].filter(Boolean).join('\n');
+
+                          if (manual || note || customerPhone || customerNote) {
+                            return <span className="text-slate-200 font-black text-xs" title={title}>تفاصيل</span>;
+                          }
+                          return <span className="text-slate-500 text-xs font-bold">-</span>;
                         })()}
                       </td>
                       <td className="p-6">

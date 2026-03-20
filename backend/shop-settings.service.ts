@@ -81,6 +81,12 @@ export class ShopSettingsService {
 
       const prevLayout = (current?.layoutConfig as any) || {};
 
+      const prevEnabledModules = (() => {
+        const raw = (prevLayout as any)?.enabledModules;
+        if (!Array.isArray(raw)) return [] as string[];
+        return raw.map((x: any) => String(x || '').trim()).filter(Boolean);
+      })();
+
       const normalizeDashboardConfigUpdate = (next: { category?: any; dashboardMode?: any; enabledModules?: any }) => {
         const allowedModules = this.shopModules.getAllowedDashboardModules();
         const core = this.shopModules.getCoreDashboardModules();
@@ -127,6 +133,101 @@ export class ShopSettingsService {
             enabledModules: input.enabledModules,
           })
         : null;
+
+      const nextEnabledModules = dashboardCfg?.enabledModules
+        ? dashboardCfg.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : null;
+
+      const removedModules = (() => {
+        if (!hasDashboardUpdate) return [] as string[];
+        if (!Array.isArray(prevEnabledModules)) return [] as string[];
+        if (!Array.isArray(nextEnabledModules)) return [] as string[];
+        const prev = new Set(prevEnabledModules.map(String));
+        const next = new Set(nextEnabledModules.map(String));
+        const removed: string[] = [];
+        for (const id of prev) {
+          if (!next.has(id)) removed.push(id);
+        }
+        return removed;
+      })();
+
+      const cleanupRemovedModuleData = async (moduleId: string) => {
+        const id = String(moduleId || '').trim().toLowerCase();
+        if (!id) return;
+        const p: any = this.prisma as any;
+
+        if (id === 'invoice') {
+          if (p?.accountingInvoice?.deleteMany) {
+            await p.accountingInvoice.deleteMany({ where: { shopId } });
+          } else if (p?.AccountingInvoice?.deleteMany) {
+            await p.AccountingInvoice.deleteMany({ where: { shopId } });
+          }
+          return;
+        }
+
+        if (id === 'reservations') {
+          if (p?.reservation?.deleteMany) {
+            await p.reservation.deleteMany({ where: { shopId } });
+          } else if (p?.Reservation?.deleteMany) {
+            await p.Reservation.deleteMany({ where: { shopId } });
+          }
+          return;
+        }
+
+        if (id === 'gallery') {
+          if (p?.shopGallery?.deleteMany) {
+            await p.shopGallery.deleteMany({ where: { shopId } });
+          } else if (p?.ShopGallery?.deleteMany) {
+            await p.ShopGallery.deleteMany({ where: { shopId } });
+          }
+          return;
+        }
+
+        if (id === 'customers') {
+          if (p?.customer?.deleteMany) {
+            await p.customer.deleteMany({ where: { shopId } });
+          } else if (p?.Customer?.deleteMany) {
+            await p.Customer.deleteMany({ where: { shopId } });
+          }
+          return;
+        }
+
+        // Booking tables exist in prisma schema but module may not be exposed as a dashboard tab.
+        if (id === 'bookings') {
+          if (p?.booking?.deleteMany) {
+            await p.booking.deleteMany({ where: { shopId } });
+          } else if (p?.Booking?.deleteMany) {
+            await p.Booking.deleteMany({ where: { shopId } });
+          }
+          if (p?.bookingResource?.deleteMany) {
+            await p.bookingResource.deleteMany({ where: { shopId } });
+          } else if (p?.BookingResource?.deleteMany) {
+            await p.BookingResource.deleteMany({ where: { shopId } });
+          }
+          return;
+        }
+      };
+
+      if (removedModules.length > 0) {
+        try {
+          // Best effort cleanup to align with UI warning.
+          // Use a transaction when available.
+          const tx = (this.prisma as any)?.$transaction;
+          if (typeof tx === 'function') {
+            await (this.prisma as any).$transaction(async () => {
+              for (const m of removedModules) {
+                await cleanupRemovedModuleData(m);
+              }
+            });
+          } else {
+            for (const m of removedModules) {
+              await cleanupRemovedModuleData(m);
+            }
+          }
+        } catch {
+          // ignore cleanup errors; module will still be removed from enabledModules
+        }
+      }
 
       const nextLayout = {
         ...prevLayout,

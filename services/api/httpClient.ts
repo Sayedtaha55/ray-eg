@@ -1,3 +1,5 @@
+import { bootstrapSessionFromBackend } from '@/services/authStorage';
+
 function normalizeBaseUrl(input: string) {
   return String(input || '').trim().replace(/\/+$/, '');
 }
@@ -220,11 +222,6 @@ export function toBackendUrl(url: string) {
 }
 
 function getAuthToken() {
-  const enableBearer = String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
-  const isProdBuild = Boolean((import.meta as any)?.env?.PROD);
-  if (isProdBuild && !enableBearer) {
-    return '';
-  }
   try {
     return localStorage.getItem('ray_token') || '';
   } catch {
@@ -250,6 +247,27 @@ function handleUnauthorized(path: string, token: string) {
   return true;
 }
 
+async function shouldAttemptSessionRefresh(path: string) {
+  if (isAuthPublicEndpoint(path)) return false;
+  if (typeof window === 'undefined') return false;
+  // If you have an HTTP-only cookie session, this refresh can recover from expired bearer tokens.
+  return true;
+}
+
+async function tryRefreshSessionOnce(reason: string) {
+  try {
+    await bootstrapSessionFromBackend({ force: true });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    try {
+      window.dispatchEvent(new CustomEvent('auth-change', { detail: { reason, ts: Date.now() } }));
+    } catch {
+    }
+  }
+}
+
 export async function backendPost<T>(path: string, body: any): Promise<T> {
   return await backendPostWithOptions<T>(path, body);
 }
@@ -260,6 +278,7 @@ export async function backendPostWithOptions<T>(
   opts?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<T> {
   const token = getAuthToken();
+  const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const maxAttempts = 3;
   let lastTransientError: any = null;
@@ -319,6 +338,13 @@ export async function backendPostWithOptions<T>(
       }
 
       if (res.status === 401) {
+        if (allowRefresh && (await shouldAttemptSessionRefresh(path))) {
+          const ok = await tryRefreshSessionOnce('401-refresh-post');
+          if (ok) {
+            return await backendPostWithOptions<T>(path, body, { ...(opts || {}), __allowAuthRefresh: false } as any);
+          }
+        }
+
         if (handleUnauthorized(path, token)) {
           throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
         }
@@ -341,8 +367,9 @@ export async function backendPostWithOptions<T>(
   throw lastTransientError || new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
 }
 
-export async function backendDelete<T>(path: string): Promise<T> {
+export async function backendDelete<T>(path: string, opts?: { __allowAuthRefresh?: boolean }): Promise<T> {
   const token = getAuthToken();
+  const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   let res: Response;
   if (isBackendTemporarilyDown()) {
     throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
@@ -384,6 +411,13 @@ export async function backendDelete<T>(path: string): Promise<T> {
     }
 
     if (res.status === 401) {
+      if (allowRefresh && (await shouldAttemptSessionRefresh(path))) {
+        const ok = await tryRefreshSessionOnce('401-refresh-delete');
+        if (ok) {
+          return await backendDelete<T>(path, { __allowAuthRefresh: false });
+        }
+      }
+
       if (handleUnauthorized(path, token)) {
         throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
       }
@@ -397,8 +431,9 @@ export async function backendDelete<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export async function backendGet<T>(path: string): Promise<T> {
+export async function backendGet<T>(path: string, opts?: { __allowAuthRefresh?: boolean }): Promise<T> {
   const token = getAuthToken();
+  const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   let res: Response;
   if (isBackendTemporarilyDown()) {
     throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
@@ -434,6 +469,13 @@ export async function backendGet<T>(path: string): Promise<T> {
     }
 
     if (res.status === 401) {
+      if (allowRefresh && (await shouldAttemptSessionRefresh(path))) {
+        const ok = await tryRefreshSessionOnce('401-refresh-get');
+        if (ok) {
+          return await backendGet<T>(path, { __allowAuthRefresh: false });
+        }
+      }
+
       if (handleUnauthorized(path, token)) {
         throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
       }
@@ -449,6 +491,7 @@ export async function backendGet<T>(path: string): Promise<T> {
 
 export async function backendPatch<T>(path: string, body: any, opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
   const token = getAuthToken();
+  const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   const maxAttempts = 3;
   let lastTransientError: any = null;
   if (isBackendTemporarilyDown()) {
@@ -496,6 +539,13 @@ export async function backendPatch<T>(path: string, body: any, opts?: { timeoutM
       }
 
       if (res.status === 401) {
+        if (allowRefresh && (await shouldAttemptSessionRefresh(path))) {
+          const ok = await tryRefreshSessionOnce('401-refresh-patch');
+          if (ok) {
+            return await backendPatch<T>(path, body, { ...(opts || {}), __allowAuthRefresh: false } as any);
+          }
+        }
+
         if (handleUnauthorized(path, token)) {
           throw new Error('انتهت صلاحية الجلسة، يرجى تسجيل الدخول مرة أخرى');
         }

@@ -281,6 +281,12 @@ export function normalizeOrderFromBackend(order: any) {
   const codCollectedAt = order.codCollectedAt ?? order.cod_collected_at;
   const handedToCourierAt = order.handedToCourierAt ?? order.handed_to_courier_at;
   const shopId = order.shopId ?? order.shop_id;
+  const customerPhone = order.customerPhone ?? order.customer_phone;
+  const deliveryAddressManual = order.deliveryAddressManual ?? order.delivery_address_manual;
+  const deliveryLat = order.deliveryLat ?? order.delivery_lat;
+  const deliveryLng = order.deliveryLng ?? order.delivery_lng;
+  const deliveryNote = order.deliveryNote ?? order.delivery_note;
+  const customerNote = order.customerNote ?? order.customer_note;
   return {
     ...order,
     createdAt,
@@ -291,6 +297,18 @@ export function normalizeOrderFromBackend(order: any) {
     handed_to_courier_at: order.handed_to_courier_at ?? handedToCourierAt,
     shopId,
     shop_id: order.shop_id ?? shopId,
+    customerPhone,
+    customer_phone: order.customer_phone ?? customerPhone,
+    deliveryAddressManual,
+    delivery_address_manual: order.delivery_address_manual ?? deliveryAddressManual,
+    deliveryLat,
+    delivery_lat: order.delivery_lat ?? deliveryLat,
+    deliveryLng,
+    delivery_lng: order.delivery_lng ?? deliveryLng,
+    deliveryNote,
+    delivery_note: order.delivery_note ?? deliveryNote,
+    customerNote,
+    customer_note: order.customer_note ?? customerNote,
     total: typeof order.total === 'number' ? order.total : Number(order.total || 0),
   };
 }

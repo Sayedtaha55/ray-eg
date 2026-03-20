@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, memo } from 'react';
-import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical } from 'lucide-react';
+import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical, Printer } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { RayDB } from '@/constants';
 import Modal from '@/components/common/ui/Modal';
 import OrderReturnsPanel from './OrderReturnsPanel';
 import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
@@ -181,6 +182,7 @@ const OrderRow = memo(({
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
   const itemsSummary = formatOrderItemsSummary(sale);
+  const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
   return (
     <div className="border border-slate-100 rounded-3xl p-5">
@@ -289,7 +291,6 @@ const OrderRow = memo(({
                       updateStatus(id, 'HANDED_TO_COURIER');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canHandToCourier || busy ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-700 hover:bg-indigo-50'}`}
-                    data-sales-actions-menu="1"
                   >
                     {busy && canHandToCourier ? '...' : 'تم تسليمه للتوصيل'}
                   </button>
@@ -301,7 +302,6 @@ const OrderRow = memo(({
                       updateStatus(id, 'CANCELLED');
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
-                    data-sales-actions-menu="1"
                   >
                     {busy && canReject ? '...' : 'رفض'}
                   </button>
@@ -324,7 +324,8 @@ const OrderTableRow = memo(({
   setOpenMenuId,
   actionsEnabled,
   statusMeta, 
-  renderDeliveryFee 
+  renderDeliveryFee,
+  onPrintInvoice,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -338,11 +339,17 @@ const OrderTableRow = memo(({
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
   const itemsSummary = formatOrderItemsSummary(sale);
+  const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
   return (
     <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
       <td className="p-6 font-black text-slate-900 max-w-[360px]">
         <div className="whitespace-normal break-words" title={itemsSummary || ''}>{itemsSummary || '-'}</div>
+        {customerNote ? (
+          <div className="mt-2 text-[10px] font-black text-slate-500 whitespace-normal break-words">
+            ملاحظة: {customerNote}
+          </div>
+        ) : null}
       </td>
       <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
       <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
@@ -364,6 +371,20 @@ const OrderTableRow = memo(({
       </td>
       <td className="p-6">
         <div className="flex flex-wrap gap-2 justify-end" data-sales-actions-menu="1">
+          {typeof onPrintInvoice === 'function' ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                if (busy) return;
+                onPrintInvoice(sale);
+              }}
+              className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
+              title="طباعة فاتورة"
+              disabled={busy}
+            >
+              <Printer size={18} />
+            </button>
+          ) : null}
           {actionsEnabled ? (
             <div className="relative" data-sales-actions-menu="1">
               <button
@@ -473,6 +494,256 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string>('');
+
+  const parseCodLocation = (notes: any): { lat: number; lng: number; note?: string; address?: string } | null => {
+    try {
+      const raw = typeof notes === 'string' ? notes : '';
+      const prefix = 'COD_LOCATION:';
+      const start = raw.indexOf(prefix);
+      if (start < 0) return null;
+      const after = raw.slice(start + prefix.length).trim();
+      const jsonPart = (() => {
+        const line = after.split(/\r?\n/)[0];
+        return String(line || '').trim();
+      })();
+      if (!jsonPart) return null;
+      const parsed = JSON.parse(jsonPart);
+      const lat = Number(parsed?.coords?.lat);
+      const lng = Number(parsed?.coords?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+      const note = typeof parsed?.note === 'string' ? String(parsed.note).trim() : '';
+      const address = typeof parsed?.address === 'string' ? String(parsed.address).trim() : '';
+      return { lat, lng, ...(note ? { note } : {}), ...(address ? { address } : {}) };
+    } catch {
+      return null;
+    }
+  };
+
+  const printSaleInvoice = async (sale: any) => {
+    const orderId = String(sale?.id || '').trim();
+    if (!orderId) return;
+
+    const escapeHtml = (value: any) => {
+      const s = String(value ?? '');
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
+    const shopId = String((sale as any)?.shopId || (sale as any)?.shop_id || '').trim();
+    const theme = shopId ? (RayDB as any)?.getReceiptTheme?.(shopId) : null;
+
+    const shopName = escapeHtml(String((theme as any)?.shopName || (sale as any)?.shopName || (sale as any)?.shop_name || ''));
+    const phone = escapeHtml(String((theme as any)?.phone || ''));
+    const city = escapeHtml(String((theme as any)?.city || ''));
+    const address = escapeHtml(String((theme as any)?.address || ''));
+    const footerNote = escapeHtml(String((theme as any)?.footerNote || ''));
+    const logoDataUrl = escapeHtml(String((theme as any)?.logoDataUrl || ''));
+
+    const rawCustomerName =
+      (sale as any)?.customerName ??
+      (sale as any)?.customer_name ??
+      (sale as any)?.user?.fullName ??
+      (sale as any)?.user?.name ??
+      '';
+    const rawCustomerPhone =
+      (sale as any)?.customerPhone ??
+      (sale as any)?.customer_phone ??
+      (sale as any)?.user?.phone ??
+      (sale as any)?.phone ??
+      '';
+    const rawCustomerAddress =
+      (sale as any)?.deliveryAddressManual ??
+      (sale as any)?.delivery_address_manual ??
+      (sale as any)?.deliveryAddress ??
+      (sale as any)?.delivery_address ??
+      (sale as any)?.address ??
+      (sale as any)?.user?.address ??
+      '';
+
+    const codLoc = parseCodLocation((sale as any)?.notes);
+
+    const customerName = escapeHtml(String(rawCustomerName || ''));
+    const customerPhone = escapeHtml(String(rawCustomerPhone || ''));
+    const customerAddress = escapeHtml(String(rawCustomerAddress || codLoc?.address || ''));
+
+    const deliveryNote = escapeHtml(String((sale as any)?.deliveryNote ?? (sale as any)?.delivery_note ?? codLoc?.note ?? ''));
+    const customerNote = escapeHtml(String((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? ''));
+
+    const createdAtRaw = (sale as any)?.created_at || (sale as any)?.createdAt;
+    const createdAt = createdAtRaw ? new Date(createdAtRaw) : null;
+    const createdAtLabel = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('ar-EG') : '';
+
+    const items = Array.isArray((sale as any)?.items) ? (sale as any).items : [];
+
+    const pickMeaningfulText = (...candidates: any[]) => {
+      for (const c of candidates) {
+        if (c == null) continue;
+        if (typeof c === 'object') continue;
+        const t = asCleanText(c);
+        if (!t) continue;
+        if (t === '[object Object]') continue;
+        return t;
+      }
+      return '';
+    };
+
+    const normalizeNumber = (v: any) => {
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    const money = (v: any) => {
+      const n = normalizeNumber(v);
+      return (Math.round(n * 100) / 100).toFixed(2);
+    };
+
+    const computedSubtotal = items.reduce((sum: number, it: any) => {
+      const qty = normalizeNumber(it?.quantity ?? it?.qty ?? 0);
+      const unit = normalizeNumber(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
+      return sum + qty * unit;
+    }, 0);
+
+    const deliveryFee = normalizeNumber((sale as any)?.deliveryFee ?? (sale as any)?.delivery_fee ?? 0);
+    const discount = normalizeNumber((sale as any)?.discount ?? 0);
+    const total = normalizeNumber((sale as any)?.total ?? computedSubtotal + deliveryFee - discount);
+
+    const itemsHtml = items
+      .map((it: any) => {
+        const name = escapeHtml(String(it?.name || it?.productName || it?.product_name || it?.title || it?.label || ''));
+        const qty = normalizeNumber(it?.quantity ?? it?.qty ?? 0);
+        const unit = normalizeNumber(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
+        const lineTotal = qty * unit;
+        return `
+          <tr>
+            <td class="name">${name || '-'}</td>
+            <td class="num">${qty || 0}</td>
+            <td class="num">${money(unit)}</td>
+            <td class="num">${money(lineTotal)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const html = `
+      <!doctype html>
+      <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="utf-8" />
+          <title>Receipt</title>
+          <style>
+            @page { margin: 8mm; }
+            body { font-family: Arial, sans-serif; direction: rtl; }
+            .wrap { max-width: 80mm; margin: 0 auto; }
+            h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
+            .meta { font-size: 11px; color: #111; text-align: center; margin-bottom: 10px; }
+            .sep { border-top: 1px dashed #999; margin: 10px 0; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            .totals { font-size: 12px; }
+            .row { display:flex; justify-content: space-between; gap: 10px; padding: 4px 0; }
+            .foot { font-size: 11px; text-align:center; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <h1>${shopName || 'فاتورة'}</h1>
+            <div class="meta">
+              ${orderId ? `<div><strong>طلب:</strong> ${escapeHtml(orderId)}</div>` : ''}
+              ${phone ? `<div>${phone}</div>` : ''}
+              ${city ? `<div>${city}</div>` : ''}
+              ${address ? `<div>${address}</div>` : ''}
+              ${customerName ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${customerName}</div>` : ''}
+              ${customerAddress ? `<div style="margin-top:4px;"><strong>العنوان:</strong> ${customerAddress}</div>` : ''}
+              ${deliveryNote ? `<div style="margin-top:4px;"><strong>ملاحظة التوصيل:</strong> ${deliveryNote}</div>` : ''}
+              ${customerNote ? `<div style="margin-top:4px;"><strong>ملاحظة:</strong> ${customerNote}</div>` : ''}
+              ${customerPhone ? `<div style="margin-top:6px;"><strong>رقم العميل:</strong> ${customerPhone}</div>` : ''}
+              ${createdAtLabel ? `<div style="margin-top:6px;">${escapeHtml(createdAtLabel)}</div>` : ''}
+            </div>
+            <div class="sep"></div>
+            <table>
+              <tbody>
+                ${items
+                  .map((it: any) => {
+                    const baseName = pickMeaningfulText(
+                      it?.product?.name,
+                      it?.productName,
+                      it?.product_name,
+                      it?.name,
+                      it?.title,
+                      it?.label,
+                      it?.product?.title,
+                    );
+                    const variantText = asCleanText(formatVariantSelection(it?.variantSelection ?? it?.variant_selection));
+                    const addonsText = asCleanText(formatAddons(it?.addons ?? it?.extras ?? it?.addOns));
+                    const nameFull = [baseName, variantText, addonsText].filter(Boolean).join(' - ');
+                    const name = escapeHtml(String(nameFull || baseName || '-').trim());
+                    const qty = normalizeNumber(it?.quantity ?? it?.qty ?? 0);
+                    const unit = normalizeNumber(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
+                    const lineTotal = qty * unit;
+                    return `
+                      <tr>
+                        <td style="padding: 6px 0;">${name || '-'}</td>
+                        <td style="padding: 6px 0; text-align:left;">${qty || 0}x</td>
+                        <td style="padding: 6px 0; text-align:left;">${money(lineTotal)}</td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+            <div class="sep"></div>
+            <div class="totals">
+              <div class="row"><span>المجموع الفرعي</span><span>ج.م ${money(computedSubtotal)}</span></div>
+              ${deliveryFee > 0 ? `<div class="row"><span>الشحن</span><span>ج.م ${money(deliveryFee)}</span></div>` : ''}
+              ${discount > 0 ? `<div class="row"><span>خصم</span><span>ج.م ${money(discount)}</span></div>` : ''}
+              <div class="row" style="font-weight:700;"><span>الإجمالي</span><span>ج.م ${money(total)}</span></div>
+            </div>
+            ${footerNote ? `<div class="sep"></div><div class="foot">${footerNote}</div>` : ''}
+          </div>
+        </body>
+      </html>
+    `;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+    iframe.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      try {
+        document.body.removeChild(iframe);
+      } catch {
+      }
+      return;
+    }
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    setTimeout(() => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+      }
+      setTimeout(() => {
+        try {
+          document.body.removeChild(iframe);
+        } catch {
+        }
+      }, 300);
+    }, 300);
+  };
 
   useEffect(() => {
     const list = Array.isArray(sales) ? sales : [];
@@ -647,6 +918,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 actionsEnabled={actionsEnabled}
                 statusMeta={statusMeta}
                 renderDeliveryFee={renderDeliveryFee}
+                onPrintInvoice={channel === 'shop' || channel === 'pos' ? printSaleInvoice : undefined}
               />
             ))}
           </tbody>
@@ -680,10 +952,32 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات العميل</div>
             <div className="mt-3 text-white font-bold text-sm space-y-1">
               <div>الاسم: {selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</div>
-              <div>الهاتف: {selectedSale?.user?.phone || selectedSale?.phone || '-'}</div>
-              <div>العنوان: {selectedSale?.address || selectedSale?.user?.address || '-'}</div>
+              <div>
+                العنوان: {(() => {
+                  const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
+                  const loc = parseCodLocation((selectedSale as any)?.notes);
+                  return manual || String(loc?.address || '').trim() || '-';
+                })()}
+              </div>
+              <div>رقم العميل: {selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</div>
             </div>
           </div>
+
+          {(() => {
+            const loc = parseCodLocation((selectedSale as any)?.notes);
+            const deliveryNote = String((selectedSale as any)?.deliveryNote ?? (selectedSale as any)?.delivery_note ?? '').trim() || String(loc?.note || '').trim();
+            if (!deliveryNote) return null;
+            return (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات</div>
+              <div className="mt-3 text-white font-bold text-sm space-y-1">
+                {deliveryNote ? (
+                  <div>ملاحظة التوصيل: {deliveryNote}</div>
+                ) : null}
+              </div>
+            </div>
+            );
+          })()}
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المنتجات</div>

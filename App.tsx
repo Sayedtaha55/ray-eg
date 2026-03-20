@@ -9,7 +9,12 @@ import {
   useNavigate,
   Navigate,
 } from 'react-router-dom';
-import { bootstrapSessionFromBackend, startAuthSync } from './services/authStorage';
+import {
+  bootstrapSessionFromBackend,
+  getStoredMerchantContext,
+  getStoredUser,
+  startAuthSync,
+} from './services/authStorage';
 
 import RouteSeoManager from './components/seo/RouteSeoManager';
 const PublicLayout = React.lazy(() => import('./components/layouts/PublicLayout'));
@@ -87,13 +92,12 @@ const warmupRouteChunks = () => {
 const ScrollToTop = () => {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, [pathname]);
   return null;
 };
 
-const RoleRedirector: React.FC = () => {
+const RoleRedirector: React.FC<{ authReady: boolean }> = ({ authReady }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [authTick, setAuthTick] = useState(0);
@@ -113,17 +117,41 @@ const RoleRedirector: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (!authReady) return;
     try {
-      const userStr = localStorage.getItem('ray_user');
-      const user = userStr ? JSON.parse(userStr) : {};
+      const user = getStoredUser<any>() || {};
       const role = String(user?.role || '').toLowerCase();
+      const pathname = String(location?.pathname || '');
+      const isRootLike = pathname === '/' || pathname === '/login' || pathname === '/signup';
+      const isBusinessAuth = pathname === '/business' || pathname === '/business/' || pathname.startsWith('/business/login');
 
-      if (role === 'courier' && !String(location?.pathname || '').startsWith('/courier')) {
+      if (role === 'courier' && !pathname.startsWith('/courier')) {
         navigate('/courier/orders', { replace: true });
+        return;
+      }
+
+      if (role === 'admin' && (isRootLike || pathname.startsWith('/admin/gate') || pathname.startsWith('/login'))) {
+        navigate('/admin/dashboard', { replace: true });
+        return;
+      }
+
+      if (role === 'merchant') {
+        const merchantContext = getStoredMerchantContext();
+        const preferredRoute = String(merchantContext?.preferredRoute || '/business/dashboard');
+
+        if (isRootLike || isBusinessAuth) {
+          navigate(preferredRoute, { replace: true });
+          return;
+        }
+
+        if (pathname === '/business' || pathname === '/business/landing') {
+          navigate(preferredRoute, { replace: true });
+          return;
+        }
       }
     } catch {
     }
-  }, [location?.pathname, authTick, navigate]);
+  }, [authReady, location?.pathname, authTick, navigate]);
 
   return null;
 };
@@ -207,10 +235,23 @@ const App: React.FC = () => {
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
   const shouldStoreBearerToken =
     String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
+  const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
+    let active = true;
     startAuthSync();
-    void bootstrapSessionFromBackend({ persistBearer: shouldStoreBearerToken });
+
+    (async () => {
+      try {
+        await bootstrapSessionFromBackend({ force: true, persistBearer: shouldStoreBearerToken });
+      } finally {
+        if (active) setAuthReady(true);
+      }
+    })();
+
+    return () => {
+      active = false;
+    };
   }, [shouldStoreBearerToken]);
 
   useEffect(() => {
@@ -231,9 +272,12 @@ const App: React.FC = () => {
   return (
     <Router>
       <ScrollToTop />
-      <RoleRedirector />
+      <RoleRedirector authReady={authReady} />
       <OfflineOrBackendDownRedirector />
       <RouteSeoManager />
+      {!authReady ? (
+        <AppLoadingFallback />
+      ) : (
       <Routes>
         <Route path="/" element={suspense(<PublicLayout />)}>
           <Route index element={suspense(<HomeFeed />)} />
@@ -312,6 +356,7 @@ const App: React.FC = () => {
 
         <Route path="*" element={suspense(<Page404 />)} />
       </Routes>
+      )}
     </Router>
   );
 };

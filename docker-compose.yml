@@ -62,10 +62,15 @@ services:
       - NODE_ENV=${FRONTEND_NODE_ENV:-development}
       - VITE_PORT=5174
       - VITE_BACKEND_URL=http://127.0.0.1:4000
+      - VITE_HOST=0.0.0.0
+      - VITE_HMR_HOST=localhost
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
     volumes:
-      - ./dist:/app/dist
+      - ./:/app
+      - /app/node_modules
 
   # Nginx Reverse Proxy (Optional for production)
   nginx:

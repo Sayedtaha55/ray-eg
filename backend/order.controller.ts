@@ -165,6 +165,13 @@ export class OrderController {
     const notes = typeof body?.notes === 'string' ? body.notes : undefined;
     const source = typeof body?.source === 'string' ? body.source : undefined;
 
+    const customerPhone = typeof body?.customerPhone === 'string' ? body.customerPhone : (typeof body?.customer_phone === 'string' ? body.customer_phone : undefined);
+    const deliveryAddressManual = typeof body?.deliveryAddressManual === 'string' ? body.deliveryAddressManual : (typeof body?.delivery_address_manual === 'string' ? body.delivery_address_manual : undefined);
+    const deliveryLat = typeof body?.deliveryLat === 'number' ? body.deliveryLat : (body?.deliveryLat != null ? Number(body.deliveryLat) : (body?.delivery_lat != null ? Number(body.delivery_lat) : undefined));
+    const deliveryLng = typeof body?.deliveryLng === 'number' ? body.deliveryLng : (body?.deliveryLng != null ? Number(body.deliveryLng) : (body?.delivery_lng != null ? Number(body.delivery_lng) : undefined));
+    const deliveryNote = typeof body?.deliveryNote === 'string' ? body.deliveryNote : (typeof body?.delivery_note === 'string' ? body.delivery_note : undefined);
+    const customerNote = typeof body?.customerNote === 'string' ? body.customerNote : (typeof body?.customer_note === 'string' ? body.customer_note : undefined);
+
     return this.orderService.createOrder({
       shopId,
       userId,
@@ -173,6 +180,12 @@ export class OrderController {
       paymentMethod: body?.paymentMethod,
       source,
       notes,
+      customerPhone,
+      deliveryAddressManual,
+      deliveryLat: deliveryLat != null && Number.isFinite(deliveryLat) ? deliveryLat : undefined,
+      deliveryLng: deliveryLng != null && Number.isFinite(deliveryLng) ? deliveryLng : undefined,
+      deliveryNote,
+      customerNote,
     }, { role: req.user?.role, shopId: req.user?.shopId });
   }
 

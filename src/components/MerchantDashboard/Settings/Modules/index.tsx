@@ -103,6 +103,71 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
 
   const canEnableCustomersOrReports = (next: Set<ModuleId>) => next.has('sales');
 
+  const buildRemovalWarning = (id: ModuleId) => {
+    const label = MODULES.find((m) => m.id === id)?.label || id;
+
+    const details = (() => {
+      switch (id) {
+        case 'invoice':
+          return 'سيتم حذف كل فواتير الحسابات وبنودها الخاصة بهذا المتجر.';
+        case 'reservations':
+          return 'سيتم حذف كل بيانات الحجوزات الخاصة بهذا المتجر.';
+        case 'gallery':
+          return 'سيتم حذف صور المعرض الخاصة بهذا المتجر.';
+        case 'customers':
+          return 'سيتم حذف سجل العملاء المسجلين لهذا المتجر.';
+        case 'reports':
+          return 'سيتم حذف الإعدادات/البيانات المرتبطة بالتقارير (إن وجدت).';
+        case 'pos':
+          return 'قد يتم حذف/إخفاء بيانات مرتبطة بالكاشير لهذا المتجر (حسب الإعدادات).';
+        case 'sales':
+          return 'سيتم تعطيل المبيعات، وقد يتم حذف بيانات مرتبطة بالمبيعات والعملاء والتقارير (حسب الإعدادات).';
+        default:
+          return 'سيتم حذف البيانات المرتبطة بهذا الزر.';
+      }
+    })();
+
+    return `هل أنت متأكد من حذف زر "${label}"؟\n\n${details}\n\nتنبيه: في حالة حذف الزر سيتم حذف البيانات المرتبطة به ولا يمكن استرجاعها.`;
+  };
+
+  const removeActiveModule = useCallback(
+    async (id: ModuleId) => {
+      if (CORE_IDS.includes(id)) return;
+      if (!activeEnabled.includes(id)) return;
+
+      const ok = typeof window !== 'undefined' ? window.confirm(buildRemovalWarning(id)) : false;
+      if (!ok) return;
+
+      setSaving(true);
+      try {
+        const next = new Set<ModuleId>(activeEnabled as any);
+        next.delete(id);
+        if (id === 'sales') {
+          next.delete('customers');
+          next.delete('reports');
+        }
+
+        const list = toSortedArray(next as any);
+        await ApiService.updateMyShop(adminShopId ? { shopId: adminShopId, enabledModules: list } : { enabledModules: list });
+        baselineRef.current = list;
+        emitChanges(0);
+        setEnabled(new Set(list as any));
+        toast({ title: 'تم الحذف', description: 'تم حذف الزر وتحديث لوحة التحكم.' });
+        onSaved();
+      } catch (e: any) {
+        const msg = e?.message ? String(e.message) : '';
+        toast({
+          title: 'خطأ',
+          description: msg ? `فشل حذف الزر: ${msg}` : 'فشل حذف الزر',
+          variant: 'destructive',
+        });
+      } finally {
+        setSaving(false);
+      }
+    },
+    [activeEnabled, adminShopId, onSaved, toast],
+  );
+
   const toggleOptional = (id: ModuleId) => {
     if (CORE_IDS.includes(id)) return;
 
@@ -283,21 +348,36 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
               ((m.id === 'customers' || m.id === 'reports') && !enabled.has('sales'));
 
             return (
-              <button
+              <div
                 key={m.id}
-                type="button"
-                onClick={() => (disabled ? null : toggleOptional(m.id))}
                 className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all ${
                   checked ? 'border-[#00E5FF] bg-[#00E5FF]/5' : 'border-slate-100 bg-slate-50'
-                } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+                } ${disabled ? 'opacity-60' : ''}`}
               >
-                <span className="font-black text-slate-900">{m.label}</span>
-                <span
-                  className={`w-6 h-6 rounded-lg border ${
-                    checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'
-                  }`}
-                />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => (disabled ? null : toggleOptional(m.id))}
+                  className={`flex-1 flex items-center justify-between gap-4 ${disabled ? 'cursor-not-allowed' : ''}`}
+                >
+                  <span className="font-black text-slate-900">{m.label}</span>
+                  <span
+                    className={`w-6 h-6 rounded-lg border ${
+                      checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'
+                    }`}
+                  />
+                </button>
+
+                {isActive ? (
+                  <button
+                    type="button"
+                    onClick={() => removeActiveModule(m.id)}
+                    disabled={saving}
+                    className="shrink-0 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-black text-xs hover:bg-slate-50 disabled:opacity-60"
+                  >
+                    حذف
+                  </button>
+                ) : null}
+              </div>
             );
           })}
         </div>

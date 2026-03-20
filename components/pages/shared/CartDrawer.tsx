@@ -39,6 +39,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [locationNote, setLocationNote] = useState('');
   const [fallbackAddress, setFallbackAddress] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerNote, setCustomerNote] = useState('');
   const [deliveryFees, setDeliveryFees] = useState<Record<string, number | null>>({});
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<any>(null);
@@ -59,6 +61,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       setCoords(null);
       setLocationNote('');
       setFallbackAddress('');
+      setCustomerPhone('');
+      setCustomerNote('');
       setError('');
       setInvalidLineIds([]);
       setDeliveryFees({});
@@ -335,6 +339,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     }
 
     if (step === 'cod_location') {
+      const phone = String(customerPhone || '').trim();
+      if (!phone) {
+        setError('رقم الهاتف مطلوب');
+        return;
+      }
       const hasCoords = !!coords && typeof coords.lat === 'number' && typeof coords.lng === 'number';
       const hasFallback = String(fallbackAddress || '').trim().length > 0;
       if (!hasCoords && !hasFallback) {
@@ -348,22 +357,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     setInvalidLineIds([]);
     
     try {
-      if (!token) {
-        setIsProcessing(false);
-        setError('');
-        try {
-          const returnTo = `${window.location.pathname}${window.location.search}`;
-          window.dispatchEvent(new CustomEvent('ray-auth-required', {
-            detail: {
-              message: 'قبل إتمام الشراء لازم تسجل حساب.',
-              returnTo,
-            },
-          }));
-        } catch {
-        }
-        return;
-      }
-
       for (const [shopId, shop] of Object.entries(groupedItems)) {
         const items = (shop as any)?.items || [];
         const normalizedItems = (Array.isArray(items) ? items : []).map((it: any) => {
@@ -414,6 +407,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
           total: shopTotal,
           paymentMethod: 'COD',
           notes: buildOrderNotes(),
+          customerPhone: String(customerPhone || '').trim(),
+          deliveryAddressManual: String(fallbackAddress || '').trim() || undefined,
+          deliveryLat: coords ? coords.lat : undefined,
+          deliveryLng: coords ? coords.lng : undefined,
+          deliveryNote: String(locationNote || '').trim() || undefined,
+          customerNote: String(customerNote || '').trim() || undefined,
         });
       }
       RayDB.clearCart();
@@ -500,6 +499,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   </div>
 
                   <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-600">رقم الهاتف (إجباري)</label>
+                    <input
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
+                      placeholder="01xxxxxxxxx"
+                      inputMode="tel"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
                     <label className="text-xs font-black text-slate-600">وصف إضافي (اختياري)</label>
                     <input
                       value={locationNote}
@@ -516,6 +526,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                       onChange={(e) => setFallbackAddress(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
                       placeholder="العنوان كتابة"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-black text-slate-600">ملاحظة على الطلب (اختياري)</label>
+                    <input
+                      value={customerNote}
+                      onChange={(e) => setCustomerNote(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
+                      placeholder="مثال: إضافة كاتشب"
                     />
                   </div>
 

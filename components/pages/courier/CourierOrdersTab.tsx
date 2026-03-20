@@ -79,13 +79,25 @@ const CourierOrdersTab: React.FC<{
         const delivered = status === 'DELIVERED';
         const codCollected = !!order.codCollectedAt;
         const handedToCourier = Boolean((order as any)?.handedToCourierAt || (order as any)?.handed_to_courier_at);
-        const location = parseCodLocation(order.notes);
+        const location = (() => {
+          const lat = Number((order as any)?.deliveryLat ?? (order as any)?.delivery_lat);
+          const lng = Number((order as any)?.deliveryLng ?? (order as any)?.delivery_lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            const note = String(((order as any)?.deliveryNote ?? (order as any)?.delivery_note ?? '')).trim() || undefined;
+            const address = String(((order as any)?.deliveryAddressManual ?? (order as any)?.delivery_address_manual ?? '')).trim() || undefined;
+            return { lat, lng, note, address };
+          }
+          return parseCodLocation(order.notes);
+        })();
         const shopLat = Number((order as any)?.shop?.latitude);
         const shopLng = Number((order as any)?.shop?.longitude);
         const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
-        const customerPhone = String(order?.user?.phone || '').trim();
+        const customerPhone = String(((order as any)?.customerPhone ?? (order as any)?.customer_phone ?? order?.user?.phone ?? '')).trim();
         const customerName = String(order?.user?.name || 'غير معروف');
         const shopName = String(order?.shop?.name || 'متجر غير معروف');
+        const manualAddress = String(((order as any)?.deliveryAddressManual ?? (order as any)?.delivery_address_manual ?? '')).trim();
+        const deliveryNote = String(((order as any)?.deliveryNote ?? (order as any)?.delivery_note ?? '')).trim();
+        const customerNote = String(((order as any)?.customerNote ?? (order as any)?.customer_note ?? '')).trim();
 
         return (
           <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 lg:p-8">
@@ -144,6 +156,23 @@ const CourierOrdersTab: React.FC<{
                   </span>
                 )}
               </div>
+
+              {(manualAddress || location?.address || deliveryNote || location?.note || customerNote) ? (
+                <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات التوصيل</div>
+                  <div className="mt-3 text-slate-200 font-bold text-sm space-y-1">
+                    {(manualAddress || location?.address) ? (
+                      <div>العنوان: {manualAddress || location?.address}</div>
+                    ) : null}
+                    {(deliveryNote || location?.note) ? (
+                      <div>ملاحظة توصيل: {deliveryNote || location?.note}</div>
+                    ) : null}
+                    {customerNote ? (
+                      <div>ملاحظة الطلب: {customerNote}</div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="mt-4 md:mt-6 grid md:grid-cols-2 gap-4 md:gap-6">

@@ -96,6 +96,12 @@ export async function placeOrderViaBackend(order: {
   shopId?: string;
   source?: string; // 'customer' or 'pos'
   notes?: string;
+  customerPhone?: string;
+  deliveryAddressManual?: string;
+  deliveryLat?: number;
+  deliveryLng?: number;
+  deliveryNote?: string;
+  customerNote?: string;
 }) {
   const shopId = order.shopId || order.items?.[0]?.shopId;
   return await backendPost<any>('/api/v1/orders', {
@@ -105,6 +111,12 @@ export async function placeOrderViaBackend(order: {
     paymentMethod: order.paymentMethod,
     source: order.source || 'customer',
     notes: order.notes,
+    customerPhone: order.customerPhone,
+    deliveryAddressManual: order.deliveryAddressManual,
+    deliveryLat: order.deliveryLat,
+    deliveryLng: order.deliveryLng,
+    deliveryNote: order.deliveryNote,
+    customerNote: order.customerNote,
   });
 }
 

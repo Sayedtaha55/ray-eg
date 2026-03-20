@@ -301,6 +301,12 @@ model Order {
   paymentMethod              String?             @map("payment_method")
   paymentStatus              String?             @map("payment_status")
   notes                      String?
+  customerPhone              String?             @map("customer_phone")
+  deliveryAddressManual      String?             @map("delivery_address_manual")
+  deliveryLat                Float?              @map("delivery_lat")
+  deliveryLng                Float?              @map("delivery_lng")
+  deliveryNote               String?             @map("delivery_note")
+  customerNote               String?             @map("customer_note")
   userId                     String
   shopId                     String
   courierId                  String?             @map("courier_id")
