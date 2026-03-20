@@ -6,9 +6,14 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
 import express from 'express';
+import compression from 'compression';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createSlowDown } from './middleware/slow-down.middleware';
+import { requestIdMiddleware } from './middleware/request-id.middleware';
+import { LoggingInterceptor } from './interceptors/logging.interceptor';
+import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
+import { LoggerService } from './logger/logger.service';
 
 console.log('[main.ts] File loaded');
 
@@ -119,14 +124,29 @@ function isPrivateIpv4Host(hostname: string) {
 
 @Catch()
 class AnyExceptionFilter implements ExceptionFilter {
+  constructor(private readonly logger?: LoggerService) {}
+
   catch(exception: any, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const req: any = ctx.getRequest();
     const res: any = ctx.getResponse();
 
+    const requestId = String(req?.requestId || req?.headers?.['x-request-id'] || '').trim() || undefined;
+
     try {
-      // eslint-disable-next-line no-console
-      console.error('Unhandled exception:', exception);
+      if (this.logger) {
+        this.logger.error('Unhandled exception', {
+          requestId,
+          method: String(req?.method || '').toUpperCase(),
+          url: String(req?.originalUrl || req?.url || ''),
+          ip: String(req?.ip || ''),
+          userId: req?.user?.id ?? req?.user?.userId ?? req?.user?.sub,
+          error: exception?.stack || exception,
+        });
+      } else {
+        // eslint-disable-next-line no-console
+        console.error('Unhandled exception:', exception);
+      }
     } catch {
     }
 
@@ -138,10 +158,13 @@ class AnyExceptionFilter implements ExceptionFilter {
       const body = exception.getResponse();
 
       if (!isDev && status >= 500) {
-        return res.status(status).json({ message: 'حدث خطأ، حاول لاحقًا' });
+        return res.status(status).json({ message: 'حدث خطأ، حاول لاحقًا', requestId });
       }
 
-      return res.status(status).json(body);
+      if (body && typeof body === 'object') {
+        return res.status(status).json({ ...(body as any), requestId });
+      }
+      return res.status(status).json({ message: body, requestId });
     }
 
     if (isDev) {
@@ -155,11 +178,12 @@ class AnyExceptionFilter implements ExceptionFilter {
         statusCode: 400,
         error: 'Bad Request',
         message: detail,
+        requestId,
         stack: exception?.stack ? String(exception.stack) : undefined,
       });
     }
 
-    return res.status(500).json({ message: 'حدث خطأ، حاول لاحقًا' });
+    return res.status(500).json({ message: 'حدث خطأ، حاول لاحقًا', requestId });
   }
 }
 
@@ -292,6 +316,21 @@ async function bootstrap() {
   clearTimeout(createWatchdog);
   console.log('[main.ts] NestFactory.create() done');
 
+  app.use(requestIdMiddleware);
+
+  app.use(compression({
+    threshold: 1024,
+    level: 6,
+  }));
+
+  try {
+    const logger = app.get(LoggerService);
+    app.useGlobalInterceptors(new TimeoutInterceptor(), new LoggingInterceptor(logger));
+    app.useGlobalFilters(new AnyExceptionFilter(logger));
+  } catch {
+    app.useGlobalFilters(new AnyExceptionFilter());
+  }
+
   const bodyLimitRaw = String(process.env.BODY_LIMIT || '').trim();
   const bodyLimit = bodyLimitRaw || '25mb';
   app.use(bodyParser.json({ limit: bodyLimit }));
@@ -347,6 +386,8 @@ async function bootstrap() {
     }
   }
 
+  // Trust proxy for production (Railway/Cloudflare)
+  // Env var: TRUST_PROXY=true (or auto-enabled if RAILWAY_ENVIRONMENT is set)
   const shouldTrustProxy =
     String(process.env.TRUST_PROXY || '').toLowerCase() === 'true' ||
     !!process.env.RAILWAY_ENVIRONMENT;
@@ -456,15 +497,14 @@ async function bootstrap() {
     },
   }));
 
+  // Production-ready slow-down: delays aggressive clients to smooth traffic
+  // Env vars: API_SLOW_DOWN_AFTER (default 300), API_SLOW_DOWN_MS (default 250)
   const apiSlowDown = createSlowDown({
     windowMs: 15 * 60 * 1000,
-    delayAfter: isDev ? 1000 : 100,
-    delayMs: isDev ? 0 : 500,
+    delayAfter: parseInt(process.env.API_SLOW_DOWN_AFTER || (isDev ? '1000' : '300'), 10),
+    delayMs: parseInt(process.env.API_SLOW_DOWN_MS || (isDev ? '0' : '250'), 10),
     maxDelayMs: 4000,
-    skip: (req) => {
-      const url = String((req as any)?.originalUrl || (req as any)?.url || '');
-      return url.startsWith('/api/v1/health') || url.startsWith('/api/v1/db-test');
-    },
+    skip: (req: any) => String(req?.method || '').toUpperCase() === 'OPTIONS',
   });
 
   app.use('/api', apiSlowDown);
@@ -530,9 +570,11 @@ async function bootstrap() {
     return next();
   });
 
+  // Global rate limit for production scaling
+  // Env var: GLOBAL_RATE_LIMIT_MAX (default 3000 for production, 2000 for dev)
   app.use(rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: isDev ? 2000 : 1200,
+    max: parseInt(process.env.GLOBAL_RATE_LIMIT_MAX || (isDev ? '2000' : '3000'), 10),
     message: 'Too many requests from this IP, please try again later.',
     standardHeaders: true,
     legacyHeaders: false,
@@ -546,8 +588,6 @@ async function bootstrap() {
       forbidNonWhitelisted: false,
     }),
   );
-
-  app.useGlobalFilters(new AnyExceptionFilter());
 
   console.log('[main.ts] About to listen...');
   const port = parseInt(process.env.PORT || process.env.BACKEND_PORT || '4000', 10);

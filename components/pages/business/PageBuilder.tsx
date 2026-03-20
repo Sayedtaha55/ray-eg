@@ -134,6 +134,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const savingRef = useRef(false);
   const logoSavingRef = useRef(false);
+  const dirtyRef = useRef(false);
   const handleSaveRef = useRef<null | (() => void)>(null);
 
   const syncVisibilityWithModules = (current: any, shop: any) => {
@@ -259,6 +260,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         imageMapVisibility: imageMapVisibilityNormalized,
         customCss: customCssNormalized,
       } as any);
+      dirtyRef.current = false;
     } catch {
       if (!silent) {
         // ignore
@@ -274,6 +276,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useSmartRefreshListener(['shop', 'all'], () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     if (savingRef.current || logoSavingRef.current) return;
+    if (dirtyRef.current) return;
     loadCurrentDesign({ silent: true });
   });
 
@@ -500,6 +503,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       
       setSaving(false);
       setSaved(true);
+      dirtyRef.current = false;
       addToast('تم حفظ تصميم المتجر بنجاح!', 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));
@@ -530,6 +534,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (typeof next === 'function') {
       setConfig((prev: any) => {
         const computed = next(prev);
+        dirtyRef.current = true;
         try {
           localStorage.setItem('ray_builder_preview_design', JSON.stringify(computed));
           localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));
@@ -542,6 +547,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     setConfig(next as any);
+    dirtyRef.current = true;
     try {
       localStorage.setItem('ray_builder_preview_design', JSON.stringify(next));
       localStorage.setItem('ray_builder_preview_logo', String(logoDataUrl || ''));

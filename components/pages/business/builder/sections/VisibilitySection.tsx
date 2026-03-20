@@ -120,12 +120,14 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
               ? 'opacity-60'
               : ''
           }`}
+          onClick={(e) => e.stopPropagation()}
         >
           <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
           <input
             type="checkbox"
             checked={getValue(item.key)}
             disabled={(isCartToggle(item.key) && !hasSalesModule) || (isReserveToggle(item.key) && !hasReservationsModule)}
+            onClick={(e) => e.stopPropagation()}
             onChange={(e) => setValue(item.key, e.target.checked)}
           />
         </label>

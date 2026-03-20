@@ -54,9 +54,9 @@ EXPOSE 4000
 ENV PORT=4000
 ENV HOSTNAME="0.0.0.0"
 
-# Health check
+# Health check (uses standard /health/ready endpoint)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:4000/monitoring/health || exit 1
+  CMD curl -f http://localhost:4000/health/ready || exit 1
 
 # Start the application
 CMD ["npm", "run", "backend:start"]

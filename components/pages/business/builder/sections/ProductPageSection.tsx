@@ -29,9 +29,18 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
   return (
     <div className="space-y-3">
       {PRODUCT_ITEMS.map((item) => (
-        <label key={item.key} className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white">
+        <label
+          key={item.key}
+          className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white"
+          onClick={(e) => e.stopPropagation()}
+        >
           <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
-          <input type="checkbox" checked={getValue(item.key)} onChange={(e) => setValue(item.key, e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={getValue(item.key)}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => setValue(item.key, e.target.checked)}
+          />
         </label>
       ))}
     </div>

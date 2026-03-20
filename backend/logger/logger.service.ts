@@ -93,13 +93,14 @@ export class LoggerService implements OnModuleInit {
   }
 
   // API request logging
-  logRequest(method: string, url: string, statusCode: number, duration: number, userId?: string) {
+  logRequest(method: string, url: string, statusCode: number, duration: number, userId?: string, requestId?: string) {
     this.logger.info('API Request', {
       method,
       url,
       statusCode,
       duration: `${duration}ms`,
       userId,
+      requestId,
       timestamp: new Date().toISOString()
     });
   }

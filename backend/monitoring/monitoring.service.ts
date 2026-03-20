@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
 import { LoggerService } from '../logger/logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { RedisService } from '../redis/redis.service';
 
 @Injectable()
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
@@ -20,7 +21,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(LoggerService) private readonly logger: LoggerService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    // @Inject(RedisService) private readonly redis: RedisService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   onModuleInit() {
@@ -160,13 +161,14 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
       }
     });
 
-    // this.addHealthCheck('redis', async () => {
-    //   try {
-    //     return await this.redis.ping();
-    //   } catch {
-    //     return false;
-    //   }
-    // });
+    this.addHealthCheck('redis', async () => {
+      try {
+        if (this.redis.getClient() === null) return true;
+        return await this.redis.ping();
+      } catch {
+        return false;
+      }
+    });
 
     this.addHealthCheck('memory', async () => {
       const memUsage = process.memoryUsage();
