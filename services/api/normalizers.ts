@@ -1,6 +1,7 @@
 import { toBackendUrl } from './httpClient';
 
 export function normalizeUserFromBackend(user: any) {
+  if (!user) return user;
   return {
     ...user,
     role: String(user?.role || '').toLowerCase(),

@@ -249,6 +249,7 @@ function handleUnauthorized(path: string, token: string) {
 
 async function shouldAttemptSessionRefresh(path: string) {
   if (isAuthPublicEndpoint(path)) return false;
+  if (String(path || '').startsWith('/api/v1/auth/session')) return false;
   if (typeof window === 'undefined') return false;
   // If you have an HTTP-only cookie session, this refresh can recover from expired bearer tokens.
   return true;

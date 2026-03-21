@@ -4,6 +4,7 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './guards/optional-jwt-auth.guard';
 import { GoogleAuthGuard } from './guards/google-auth.guard';
 
 class SignupDto {
@@ -297,9 +298,12 @@ export class AuthController {
   }
 
   @Get('session')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalJwtAuthGuard)
   async session(@Request() req: any, @Res({ passthrough: true }) res: Response) {
     const userId = String(req?.user?.id || '').trim();
+    if (!userId) {
+      return { access_token: '', user: null } as any;
+    }
     const result = await this.authService.session(userId);
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));

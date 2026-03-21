@@ -47,7 +47,7 @@ export async function devCourierLoginViaBackend() {
 }
 
 export async function sessionViaBackend() {
-  const data = await backendGet<{ access_token: string; user: any }>('/api/v1/auth/session');
+  const data = await backendGet<{ access_token: string; user: any }>('/api/v1/auth/session', { __allowAuthRefresh: false });
   return {
     user: normalizeUserFromBackend(data.user),
     session: { access_token: data.access_token },
