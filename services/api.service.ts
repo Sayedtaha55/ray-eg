@@ -109,6 +109,8 @@ import {
   getPendingCouriersViaBackend,
   approveCourierViaBackend,
   rejectCourierViaBackend,
+  getCourierAdminDetailsViaBackend,
+  setCourierActiveStatusViaBackend,
   updateMyProfileViaBackend,
 } from './api/modules/users';
 import {
@@ -747,7 +749,7 @@ export const ApiService = {
   getShopAdminById: async (id: string) => {
     return await getShopAdminByIdViaBackend(id);
   },
-  updateShopStatus: async (id: string, status: 'approved' | 'pending' | 'rejected') => {
+  updateShopStatus: async (id: string, status: 'approved' | 'pending' | 'rejected' | 'suspended') => {
     return await updateShopStatusViaBackend(id, status);
   },
 
@@ -1088,6 +1090,12 @@ export const ApiService = {
   },
   rejectCourier: async (id: string) => {
     return await rejectCourierViaBackend(id);
+  },
+  getCourierAdminDetails: async (id: string) => {
+    return await getCourierAdminDetailsViaBackend(id);
+  },
+  setCourierActiveStatus: async (id: string, payload: { isActive: boolean }) => {
+    return await setCourierActiveStatusViaBackend(id, payload);
   },
 
   updateMyProfile: async (payload: { name?: string; phone?: string | null }) => {

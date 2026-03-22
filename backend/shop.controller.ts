@@ -348,13 +348,23 @@ export class ShopController {
   @Get('admin/list')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async adminList(@Query('status') status: string = 'ALL') {
+  async adminList(
+    @Query('status') status: string = 'ALL',
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+    @Query('search') search?: string,
+  ) {
     const normalized = String(status || 'ALL').toUpperCase();
     const allowed = new Set(['PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED', 'ALL']);
     if (!allowed.has(normalized)) {
       throw new BadRequestException('قيمة status غير صحيحة');
     }
-    return this.shopService.getShopsByStatus(normalized as any);
+    return this.shopService.getShopsByStatus({
+      status: normalized as any,
+      take: this.parseOptionalInt(take),
+      skip: this.parseOptionalInt(skip),
+      search: typeof search === 'string' ? String(search).trim() : undefined,
+    });
   }
 
   @Post('admin/upgrade-dashboard-config')

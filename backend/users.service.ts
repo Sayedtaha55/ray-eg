@@ -6,6 +6,25 @@ import { PrismaService } from './prisma/prisma.service';
 export class UsersService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+
+  private getPaging(input?: { take?: number; skip?: number }) {
+    const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : 50;
+    const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : 0;
+    return {
+      take: Math.min(200, Math.max(1, Math.floor(takeRaw))),
+      skip: Math.max(0, Math.floor(skipRaw)),
+    };
+  }
+
+  private parseBoolFilter(value?: string) {
+    if (typeof value !== 'string' || !value.trim()) return undefined;
+    const raw = value.trim().toLowerCase();
+    if (raw === 'true') return true;
+    if (raw === 'false') return false;
+    return undefined;
+  }
+
+
   async updateMe(userIdRaw: string, input: { name?: string; phone?: string | null }) {
     const userId = String(userIdRaw || '').trim();
     if (!userId) throw new BadRequestException('غير مصرح');
@@ -57,10 +76,25 @@ export class UsersService {
     return updated;
   }
 
-  async listCouriers() {
+  async listCouriers(input?: { take?: number; skip?: number; search?: string; isActive?: string }) {
+    const paging = this.getPaging(input);
+    const search = String(input?.search || '').trim();
+    const isActive = this.parseBoolFilter(input?.isActive);
     return this.prisma.user.findMany({
-      where: { role: 'COURIER' as any },
+      where: {
+        role: 'COURIER' as any,
+        ...(typeof isActive === 'boolean' ? { isActive } : {}),
+        ...(search ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as any } },
+            { email: { contains: search, mode: 'insensitive' as any } },
+            { phone: { contains: search, mode: 'insensitive' as any } },
+          ],
+        } : {}),
+      },
       orderBy: { createdAt: 'desc' },
+      take: paging.take,
+      skip: paging.skip,
       select: {
         id: true,
         name: true,
@@ -122,13 +156,24 @@ export class UsersService {
     return created;
   }
 
-  async listPendingCouriers() {
+  async listPendingCouriers(input?: { take?: number; skip?: number; search?: string }) {
+    const paging = this.getPaging(input);
+    const search = String(input?.search || '').trim();
     return this.prisma.user.findMany({
       where: {
         role: 'COURIER' as any,
         isActive: false,
+        ...(search ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' as any } },
+            { email: { contains: search, mode: 'insensitive' as any } },
+            { phone: { contains: search, mode: 'insensitive' as any } },
+          ],
+        } : {}),
       },
       orderBy: { createdAt: 'desc' },
+      take: paging.take,
+      skip: paging.skip,
       select: {
         id: true,
         name: true,
@@ -177,4 +222,102 @@ export class UsersService {
     await this.prisma.user.delete({ where: { id } });
     return { ok: true };
   }
+
+  async getCourierAdminDetails(idRaw: string) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const courier = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+        lastLogin: true,
+      },
+    });
+    if (!courier) throw new BadRequestException('المندوب غير موجود');
+    if (String((courier as any)?.role || '').toUpperCase() !== 'COURIER') {
+      throw new BadRequestException('هذا الحساب ليس مندوباً');
+    }
+
+    const [state, orders] = await Promise.all([
+      (this.prisma as any).courierState.findUnique({
+        where: { userId: id },
+      }).catch(() => null),
+      this.prisma.order.findMany({
+        where: { courierId: id } as any,
+        orderBy: { createdAt: 'desc' },
+        take: 12,
+        select: {
+          id: true,
+          total: true,
+          status: true,
+          createdAt: true,
+          handedToCourierAt: true,
+          deliveredAt: true,
+          shops: { select: { id: true, name: true, city: true, governorate: true } },
+          users_orders_userIdTousers: { select: { id: true, name: true, phone: true } },
+        } as any,
+      }),
+    ]);
+
+    const totalOrders = orders.length;
+    const activeOrders = orders.filter((o: any) => ['PENDING', 'CONFIRMED', 'PREPARING', 'READY'].includes(String(o?.status || '').toUpperCase())).length;
+    const deliveredOrders = orders.filter((o: any) => String(o?.status || '').toUpperCase() === 'DELIVERED').length;
+    const cancelledOrders = orders.filter((o: any) => String(o?.status || '').toUpperCase() === 'CANCELLED').length;
+    const deliveredRevenue = orders
+      .filter((o: any) => String(o?.status || '').toUpperCase() === 'DELIVERED')
+      .reduce((sum: number, o: any) => sum + (Number(o?.total) || 0), 0);
+
+    return {
+      courier,
+      state: state || null,
+      stats: {
+        totalOrders,
+        activeOrders,
+        deliveredOrders,
+        cancelledOrders,
+        deliveredRevenue,
+      },
+      recentOrders: (orders || []).map((o: any) => ({
+        ...o,
+        shop: o?.shops || null,
+        customer: o?.users_orders_userIdTousers || null,
+      })),
+    };
+  }
+
+  async setCourierActiveStatus(idRaw: string, isActiveRaw: boolean) {
+    const id = String(idRaw || '').trim();
+    if (!id) throw new BadRequestException('id مطلوب');
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true },
+    });
+    if (!existing) throw new BadRequestException('المندوب غير موجود');
+    if (String((existing as any)?.role || '').toUpperCase() !== 'COURIER') {
+      throw new BadRequestException('هذا الحساب ليس مندوباً');
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: { isActive: Boolean(isActiveRaw) },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        isActive: true,
+        createdAt: true,
+      },
+    });
+  }
+
 }

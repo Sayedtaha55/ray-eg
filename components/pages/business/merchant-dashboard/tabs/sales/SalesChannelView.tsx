@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, memo } from 'react';
-import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical, Printer, MapPin } from 'lucide-react';
+import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical, Printer, MapPin, Phone, Package2, ReceiptText } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import Modal from '@/components/common/ui/Modal';
@@ -252,7 +252,7 @@ const OrderRow = memo(({
   );
 
   return (
-    <div className="border border-slate-100 rounded-3xl p-5">
+    <div className="border border-slate-100 rounded-[1.75rem] p-4 sm:p-5 bg-white shadow-[0_16px_30px_-24px_rgba(15,23,42,0.4)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-black text-slate-900 whitespace-normal break-words">{itemsSummary || '-'}</div>
@@ -270,7 +270,7 @@ const OrderRow = memo(({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 mt-4">
+      <div className="grid grid-cols-2 gap-2.5 mt-4">
         <div className="bg-slate-50 rounded-2xl p-4">
           <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</div>
           <div className="mt-2 font-black text-slate-900 text-sm">{sale.items?.length || 0} صنف</div>
@@ -281,8 +281,8 @@ const OrderRow = memo(({
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-4">
-        <div className="text-slate-500 font-bold text-xs">{deliveryManagedByShop ? 'موقع العميل متاح للتوصيل الذاتي' : `رسوم التوصيل: ${renderDeliveryFee(sale)}`}</div>
+      <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
+        <div className="text-slate-500 font-bold text-[11px] leading-5">{deliveryManagedByShop ? 'موقع العميل متاح للتوصيل الذاتي' : `رسوم التوصيل: ${renderDeliveryFee(sale)}`}</div>
 
         <div className="flex items-center gap-2" data-sales-actions-menu="1">
           {deliveryManagedByShop && hasLocation && (
@@ -1014,34 +1014,34 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
   return (
     <>
-      <div className="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible no-scrollbar snap-x snap-mandatory">
         <button
           onClick={() => setFilter('successful')}
-          className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'successful' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-600'}`}
+          className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'successful' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-600'}`}
         >
           <CheckCircle2 size={16} /> {counts.successful} عملية ناجحة
         </button>
         <button
           onClick={() => setFilter('rejected')}
-          className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-600'}`}
+          className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-600'}`}
         >
           <XCircle size={16} /> {counts.rejected} عملية مرفوضة
         </button>
         <button
           onClick={() => setFilter('pending')}
-          className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'}`}
+          className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'}`}
         >
           <Clock size={16} /> {counts.pending} قيد المراجعة
         </button>
         <button
           onClick={() => setFilter('all')}
-          className={`px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}
+          className={`snap-start px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}
         >
           الكل ({counts.total})
         </button>
       </div>
 
-      <div className="mt-6 space-y-4 md:hidden">
+      <div className="mt-5 space-y-3 md:hidden">
         {filteredSales.length > 0 ? filteredSales.map((sale) => (
           <OrderRow
             key={sale.id}
@@ -1097,70 +1097,72 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
       </div>
 
       <Modal isOpen={detailsOpen} onClose={closeDetails} title="تفاصيل الطلب" size="lg">
-        <div className="space-y-5">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الفاتورة</div>
-              <div className="mt-2 text-white font-black">#{String(selectedSale?.id || '').slice(0, 8).toUpperCase()}</div>
+        <div className="space-y-4 text-right">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الطلب</div>
+              <div className="mt-2 text-slate-900 font-black">#{String(selectedSale?.id || '').slice(0, 8).toUpperCase() || '-'}</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الحالة</div>
-              <div className="mt-2 text-white font-black">{statusMeta(selectedSale?.status).label}</div>
+              <div className="mt-2 text-slate-900 font-black">{statusMeta(selectedSale?.status).label}</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ والوقت</div>
-              <div className="mt-2 text-white font-black">
-                {selectedSale ? new Date(selectedSale?.created_at || selectedSale?.createdAt).toLocaleString('ar-EG') : '-'}
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ</div>
+              <div className="mt-2 text-slate-900 font-black text-sm leading-6">{selectedSale ? new Date(selectedSale?.created_at || selectedSale?.createdAt).toLocaleString('ar-EG') : '-'}</div>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
-              <div className="mt-2 text-white font-black">ج.م {Number(selectedSale?.total || 0).toLocaleString()}</div>
+              <div className="mt-2 text-slate-900 font-black">ج.م {Number(selectedSale?.total || 0).toLocaleString()}</div>
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات العميل</div>
-            <div className="mt-3 text-white font-bold text-sm space-y-1">
-              <div>الاسم: {selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</div>
-              <div>رقم العميل: {selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</div>
-              {isDeliveryDisabledOrder(selectedSale) ? (
-                <>
-                  <div>
-                    العنوان: {(() => {
-                      const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
-                      const loc = parseCodLocation((selectedSale as any)?.notes);
-                      return manual || String(loc?.address || '').trim() || '-';
-                    })()}
-                  </div>
-                  <div className="text-amber-400 text-xs mt-2">التوصيل معطل على المنصة — اعرض موقع العميل من لوحة التاجر للتوصيل الذاتي.</div>
-                </>
-              ) : (
-                <div className="text-sky-300 text-xs mt-2">هذا الطلب سيتم التعامل معه من خلال المندوب، لذلك بيانات العنوان والخريطة تظهر في شاشة المندوب.</div>
-              )}
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
+              <ReceiptText size={16} /> ملخص العميل والطلب
             </div>
+            <div className="mt-3 space-y-2 text-sm font-bold text-slate-600">
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">الاسم</span><span className="text-slate-900 text-left">{selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</span></div>
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">رقم العميل</span><span className="text-slate-900 text-left">{selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</span></div>
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">طريقة التوصيل</span><span className="text-slate-900 text-left">{isDeliveryDisabledOrder(selectedSale) ? 'توصيل ذاتي من المتجر' : 'عبر المندوب'}</span></div>
+              {isDeliveryDisabledOrder(selectedSale) ? (
+                <div className="flex items-start justify-between gap-3"><span className="text-slate-400">العنوان</span><span className="text-slate-900 text-left">{(() => {
+                  const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
+                  const loc = parseCodLocation((selectedSale as any)?.notes);
+                  return manual || String(loc?.address || '').trim() || '-';
+                })()}</span></div>
+              ) : null}
+            </div>
+            {isDeliveryDisabledOrder(selectedSale) ? (
+              <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] font-black text-amber-700">العنوان والخريطة ظاهرين هنا لأن الطلب توصيل ذاتي.</div>
+            ) : (
+              <div className="mt-3 rounded-2xl bg-sky-50 border border-sky-100 px-3 py-2 text-[11px] font-black text-sky-700">تفاصيل الخريطة للمندوب فقط لتقليل الزحمة داخل شاشة التاجر.</div>
+            )}
           </div>
 
           {(() => {
-            if (!isDeliveryDisabledOrder(selectedSale)) return null;
             const loc = parseCodLocation((selectedSale as any)?.notes);
             const deliveryNote = String((selectedSale as any)?.deliveryNote ?? (selectedSale as any)?.delivery_note ?? '').trim() || String(loc?.note || '').trim();
-            if (!deliveryNote) return null;
+            const customerNote = String((selectedSale as any)?.customerNote ?? (selectedSale as any)?.customer_note ?? '').trim();
+            if (!deliveryNote && !customerNote) return null;
             return (
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات التوصيل</div>
-              <div className="mt-3 text-white font-bold text-sm space-y-1">
-                {deliveryNote ? (
-                  <div>{deliveryNote}</div>
-                ) : null}
+              <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+                <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
+                  <Phone size={16} /> ملاحظات مهمة
+                </div>
+                <div className="mt-3 space-y-2 text-sm font-bold text-slate-700">
+                  {deliveryNote ? <div><span className="text-slate-400">ملاحظة التوصيل:</span> {deliveryNote}</div> : null}
+                  {customerNote ? <div><span className="text-slate-400">ملاحظة العميل:</span> {customerNote}</div> : null}
+                </div>
               </div>
-            </div>
             );
           })()}
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">المنتجات</div>
-            <div className="mt-3 space-y-2">
+          <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+            <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
+              <Package2 size={16} /> المنتجات
+            </div>
+            <div className="mt-3 space-y-3">
               {(Array.isArray(selectedSale?.items) ? selectedSale.items : []).map((it: any, idx: number) => {
                 const name = it?.product?.name || it?.name || it?.title || `منتج ${idx + 1}`;
                 const qty = Number(it?.quantity || it?.qty || 1);
@@ -1169,32 +1171,36 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 const variantText = formatVariantSelection(it?.variantSelection ?? it?.variant_selection);
                 const addonsText = formatAddons(it?.addons ?? it?.extras ?? it?.addOns);
                 return (
-                  <div key={idx} className="flex items-center justify-between gap-3 bg-black/20 border border-white/10 rounded-xl p-3">
-                    <div className="min-w-0">
-                      <div className="text-white font-bold text-sm truncate">{name}</div>
-                      {(variantText || addonsText) ? (
-                        <div className="mt-1 space-y-1">
-                          {variantText ? <div className="text-[11px] text-slate-300 font-bold">{variantText}</div> : null}
-                          {addonsText ? <div className="text-[11px] text-slate-300 font-bold">{addonsText}</div> : null}
-                        </div>
-                      ) : null}
+                  <div key={idx} className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-slate-900 font-black text-sm break-words">{name}</div>
+                        {(variantText || addonsText) ? (
+                          <div className="mt-1.5 space-y-1">
+                            {variantText ? <div className="text-[11px] text-slate-500 font-bold break-words">{variantText}</div> : null}
+                            {addonsText ? <div className="text-[11px] text-slate-500 font-bold break-words">{addonsText}</div> : null}
+                          </div>
+                        ) : null}
+                      </div>
+                      <div className="shrink-0 text-left">
+                        <div className="text-slate-900 font-black text-sm">× {qty}</div>
+                        <div className="text-[11px] text-slate-500 font-bold">ج.م {Number(price || 0).toLocaleString()}</div>
+                      </div>
                     </div>
-                    <div className="text-slate-200 font-black text-xs shrink-0">
-                      {qty} x ج.م {price} = ج.م {Number(lineTotal || 0).toLocaleString()}
-                    </div>
+                    <div className="mt-2 pt-2 border-t border-slate-200 text-[12px] font-black text-slate-700">الإجمالي الفرعي: ج.م {Number(lineTotal || 0).toLocaleString()}</div>
                   </div>
                 );
               })}
               {!Array.isArray(selectedSale?.items) || selectedSale?.items?.length === 0 ? (
-                <div className="text-slate-300 font-bold text-sm">لا توجد منتجات</div>
+                <div className="text-slate-400 font-bold text-sm">لا توجد منتجات</div>
               ) : null}
             </div>
           </div>
 
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-            <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات</div>
-            <div className="mt-3 text-slate-200 font-bold text-sm whitespace-pre-wrap">{selectedSale?.notes || '-'}</div>
-          </div>
+          <details className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+            <summary className="cursor-pointer list-none font-black text-sm text-slate-700">عرض البيانات الإضافية</summary>
+            <div className="mt-3 text-xs leading-6 font-bold text-slate-500 whitespace-pre-wrap break-words">{selectedSale?.notes || 'لا توجد بيانات إضافية.'}</div>
+          </details>
 
           <OrderReturnsPanel order={selectedSale} />
         </div>

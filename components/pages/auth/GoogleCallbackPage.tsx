@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
-import { persistSession } from '@/services/authStorage';
+import { persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
+import { normalizeSafeReturnTo, resolvePostAuthDestination } from '@/services/authRedirect';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 
@@ -13,20 +14,15 @@ const GoogleCallbackPage: React.FC = () => {
   const shouldStoreBearerToken =
     String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
 
-  const normalizeReturnTo = (value: any) => {
-    const rt = String(value || '').trim();
-    if (!rt) return undefined;
-    if (!rt.startsWith('/')) return undefined;
-    if (rt.startsWith('//')) return undefined;
-    return rt;
-  };
 
   useEffect(() => {
     const run = async () => {
       try {
         const params = new URLSearchParams(location.search);
-        const returnTo = normalizeReturnTo(params.get('returnTo'));
+        const returnTo = normalizeSafeReturnTo(params.get('returnTo'));
         const followShopId = params.get('followShopId');
+        const hintedTarget = normalizeSafeReturnTo(params.get('target'));
+        const merchantStatus = String(params.get('merchantStatus') || '').trim().toLowerCase();
 
         const response = await ApiService.session();
         persistSession({
@@ -35,50 +31,28 @@ const GoogleCallbackPage: React.FC = () => {
           persistBearer: shouldStoreBearerToken,
         }, 'google-callback');
 
-        if (returnTo) {
+        const role = String(response.user?.role || '').toLowerCase();
+        if (role === 'merchant') {
+          await syncMerchantContextFromBackend(response.user);
+        }
+
+        if (followShopId) {
           try {
-            if (followShopId) {
-              await ApiService.followShop(followShopId);
-              window.dispatchEvent(new Event('ray-db-update'));
-            }
+            await ApiService.followShop(followShopId);
+            window.dispatchEvent(new Event('ray-db-update'));
           } catch {
             // ignore
           }
-          navigate(returnTo);
-          return;
         }
 
-        const role = String(response.user?.role || '').toLowerCase();
-        
-        // Radical fix: Explicit role-based routing that cannot be bypassed
-        const ROUTES: Record<string, string> = {
-          admin: '/admin/dashboard',
-          merchant: '/business/dashboard',
-          courier: '/courier/orders',
-          customer: '/profile',
-          user: '/profile',
-        };
-        
-        // Get the target route based on role, fallback to /profile
-        const targetRoute = ROUTES[role] || '/profile';
-        
-        // Special handling for merchant - check shop approval status
-        if (role === 'merchant') {
-          try {
-            const myShop = await ApiService.getMyShop();
-            const status = String(myShop?.status || '').toLowerCase();
-            if (status !== 'approved') {
-              navigate('/business/pending');
-              return;
-            }
-          } catch {
-            navigate('/business/pending');
-            return;
-          }
-        }
-        
-        // Navigate to the appropriate dashboard
-        navigate(targetRoute);
+        const targetRoute = await resolvePostAuthDestination({
+          role,
+          user: response.user,
+          returnTo: returnTo || hintedTarget,
+          merchantStatus,
+        });
+
+        navigate(targetRoute, { replace: true });
       } catch (err: any) {
         setError(err?.message || 'فشل تسجيل الدخول عبر Google');
       }

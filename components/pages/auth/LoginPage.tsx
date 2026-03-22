@@ -4,7 +4,8 @@ import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, S
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
-import { persistSession } from '@/services/authStorage';
+import { persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
+import { normalizeSafeReturnTo, resolvePostAuthDestination } from '@/services/authRedirect';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -70,15 +71,7 @@ const LoginPage: React.FC = () => {
   const isBusinessLogin = String(location?.pathname || '').startsWith('/business/login');
 
   const params = new URLSearchParams(location.search);
-  const normalizeReturnTo = (value: any) => {
-    const rt = String(value || '').trim();
-    if (!rt) return undefined;
-    if (!rt.startsWith('/')) return undefined;
-    if (rt.startsWith('//')) return undefined;
-    return rt;
-  };
-
-  const returnTo = normalizeReturnTo(params.get('returnTo'));
+  const returnTo = normalizeSafeReturnTo(params.get('returnTo'));
   const followShopId = params.get('followShopId');
 
   const showDevCourierLogin = !Boolean((import.meta as any)?.env?.PROD) && isBusinessLogin;
@@ -125,6 +118,7 @@ const LoginPage: React.FC = () => {
     const q = new URLSearchParams();
     if (returnTo) q.set('returnTo', returnTo);
     if (followShopId) q.set('followShopId', followShopId);
+    if (isBusinessLogin) q.set('target', '/business/dashboard');
     const qs = q.toString();
     window.location.href = `${backendBaseUrl}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
   };
@@ -146,50 +140,32 @@ const LoginPage: React.FC = () => {
 
       const role = String((response as any)?.user?.role || '').toLowerCase();
 
-      if (returnTo) {
+      if (followShopId) {
         try {
-          if (followShopId) {
-            await ApiService.followShop(followShopId);
-            window.dispatchEvent(new Event('ray-db-update'));
-          }
+          await ApiService.followShop(followShopId);
+          window.dispatchEvent(new Event('ray-db-update'));
         } catch {
           // ignore
         }
-
-        if (returnTo.startsWith('/admin') && role !== 'admin') {
-          setError('هذه المنطقة للمشرفين فقط!');
-          navigate('/admin/gate', { replace: true } as any);
-          return;
-        }
-        navigate(returnTo);
-        return;
       }
 
-      if (role === 'admin') {
-        navigate('/admin/dashboard');
-        return;
-      }
-
-      if (role === 'courier') {
-        navigate('/courier/orders');
+      if (returnTo?.startsWith('/admin') && role !== 'admin') {
+        setError('هذه المنطقة للمشرفين فقط!');
+        navigate('/admin/gate', { replace: true } as any);
         return;
       }
 
       if (role === 'merchant') {
-        try {
-          const myShop = await ApiService.getMyShop();
-          const status = String(myShop?.status || '').toLowerCase();
-          if (status !== 'approved') {
-            navigate('/business/pending');
-            return;
-          }
-          navigate('/business/dashboard');
-        } catch {
-          navigate('/business/pending');
-        }
-      } else {
-        navigate('/profile');
+        await syncMerchantContextFromBackend(response.user);
       }
+
+      const targetRoute = await resolvePostAuthDestination({
+        role,
+        user: response.user,
+        returnTo: returnTo || (isBusinessLogin ? '/business/dashboard' : undefined),
+      });
+
+      navigate(targetRoute, { replace: true } as any);
     } catch (err: any) {
       const status = typeof err?.status === 'number' ? err.status : undefined;
       if (status === 403) {

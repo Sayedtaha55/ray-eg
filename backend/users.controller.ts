@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject, Request, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject, Request, BadRequestException, Query } from '@nestjs/common';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { Roles } from './auth/decorators/roles.decorator';
@@ -22,8 +22,18 @@ export class UsersController {
   @Get('couriers')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async listCouriers() {
-    return this.usersService.listCouriers();
+  async listCouriers(
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+    @Query('search') search?: string,
+    @Query('isActive') isActive?: string,
+  ) {
+    return this.usersService.listCouriers({
+      take: take != null && take !== '' ? Number(take) : undefined,
+      skip: skip != null && skip !== '' ? Number(skip) : undefined,
+      search: typeof search === 'string' ? search : undefined,
+      isActive: typeof isActive === 'string' && isActive !== '' ? isActive : undefined,
+    });
   }
 
   @Post('couriers')
@@ -41,8 +51,16 @@ export class UsersController {
   @Get('couriers/pending')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async listPendingCouriers() {
-    return this.usersService.listPendingCouriers();
+  async listPendingCouriers(
+    @Query('take') take?: string,
+    @Query('skip') skip?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.usersService.listPendingCouriers({
+      take: take != null && take !== '' ? Number(take) : undefined,
+      skip: skip != null && skip !== '' ? Number(skip) : undefined,
+      search: typeof search === 'string' ? search : undefined,
+    });
   }
 
   @Patch('couriers/:id/approve')
@@ -50,6 +68,24 @@ export class UsersController {
   @Roles('admin')
   async approveCourier(@Param('id') id: string) {
     return this.usersService.approveCourier(id);
+  }
+
+
+  @Get('couriers/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async getCourierDetails(@Param('id') id: string) {
+    return this.usersService.getCourierAdminDetails(id);
+  }
+
+  @Patch('couriers/:id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('admin')
+  async setCourierStatus(@Param('id') id: string, @Body() body: any) {
+    const isActive = typeof body?.isActive === 'boolean'
+      ? body.isActive
+      : String(body?.isActive || '').trim().toLowerCase() === 'true';
+    return this.usersService.setCourierActiveStatus(id, isActive);
   }
 
   @Patch('couriers/:id/reject')

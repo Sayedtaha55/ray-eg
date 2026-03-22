@@ -46,7 +46,13 @@ export class RateLimitMiddleware implements NestMiddleware {
     
     if (clientData.count > this.options.max) {
       // Rate limit exceeded
-      const resetIn = Math.ceil((clientData.resetTime - now) / 1000);
+      const resetIn = Math.max(1, Math.ceil((clientData.resetTime - now) / 1000));
+      res.set({
+        'Retry-After': String(resetIn),
+        'X-RateLimit-Limit': this.options.max.toString(),
+        'X-RateLimit-Remaining': '0',
+        'X-RateLimit-Reset': new Date(clientData.resetTime).toISOString(),
+      });
       
       return res.status(429).json({
         error: 'Too Many Requests',
@@ -69,11 +75,9 @@ export class RateLimitMiddleware implements NestMiddleware {
   }
 
   private getClientId(req: Request): string {
-    // Use IP address as client identifier
-    return req.ip || 
-           req.connection.remoteAddress || 
-           req.socket.remoteAddress || 
-           'unknown';
+    const forwardedRaw = req.headers['x-forwarded-for'];
+    const forwarded = Array.isArray(forwardedRaw) ? forwardedRaw[0] : String(forwardedRaw || '').split(',')[0].trim();
+    return forwarded || req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 'unknown';
   }
 
   private cleanup(now: number) {

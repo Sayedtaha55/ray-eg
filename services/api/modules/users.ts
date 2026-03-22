@@ -12,8 +12,14 @@ export function updateUserRoleViaMock(mockDb: any, userId: string, role: string)
   return mockDb.updateUserRole(userId, role);
 }
 
-export async function getCouriersViaBackend() {
-  return await backendGet<any[]>(`/api/v1/users/couriers`);
+export async function getCouriersViaBackend(opts?: { take?: number; skip?: number; search?: string; isActive?: boolean }) {
+  const params = new URLSearchParams();
+  if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+  if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+  if (opts?.search) params.set('search', String(opts.search));
+  if (typeof opts?.isActive === 'boolean') params.set('isActive', String(opts.isActive));
+  const qs = params.toString();
+  return await backendGet<any[]>(`/api/v1/users/couriers${qs ? `?${qs}` : ''}`);
 }
 
 export async function createCourierViaBackend(payload: {
@@ -25,8 +31,13 @@ export async function createCourierViaBackend(payload: {
   return await backendPost<any>(`/api/v1/users/couriers`, payload);
 }
 
-export async function getPendingCouriersViaBackend() {
-  return await backendGet<any[]>(`/api/v1/users/couriers/pending`);
+export async function getPendingCouriersViaBackend(opts?: { take?: number; skip?: number; search?: string }) {
+  const params = new URLSearchParams();
+  if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+  if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+  if (opts?.search) params.set('search', String(opts.search));
+  const qs = params.toString();
+  return await backendGet<any[]>(`/api/v1/users/couriers/pending${qs ? `?${qs}` : ''}`);
 }
 
 export async function approveCourierViaBackend(id: string) {
@@ -35,6 +46,14 @@ export async function approveCourierViaBackend(id: string) {
 
 export async function rejectCourierViaBackend(id: string) {
   return await backendPatch<any>(`/api/v1/users/couriers/${encodeURIComponent(id)}/reject`, {});
+}
+
+export async function getCourierAdminDetailsViaBackend(id: string) {
+  return await backendGet<any>(`/api/v1/users/couriers/${encodeURIComponent(id)}`);
+}
+
+export async function setCourierActiveStatusViaBackend(id: string, payload: { isActive: boolean }) {
+  return await backendPatch<any>(`/api/v1/users/couriers/${encodeURIComponent(id)}/status`, payload);
 }
 
 export async function updateMyProfileViaBackend(payload: { name?: string; phone?: string | null }) {

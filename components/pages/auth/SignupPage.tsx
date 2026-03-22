@@ -6,6 +6,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
 import { clearSession, persistSession } from '@/services/authStorage';
+import { normalizeSafeReturnTo } from '@/services/authRedirect';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -38,15 +39,8 @@ const SignupPage: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const roleParam = params.get('role');
   const categoryParam = params.get('category');
-  const normalizeReturnTo = (value: any) => {
-    const rt = String(value || '').trim();
-    if (!rt) return undefined;
-    if (!rt.startsWith('/')) return undefined;
-    if (rt.startsWith('//')) return undefined;
-    return rt;
-  };
 
-  const returnTo = normalizeReturnTo(params.get('returnTo'));
+  const returnTo = normalizeSafeReturnTo(params.get('returnTo'));
   const followShopId = params.get('followShopId');
 
   const shouldStoreBearerToken =
@@ -156,6 +150,7 @@ const SignupPage: React.FC = () => {
     const q = new URLSearchParams();
     if (returnTo) q.set('returnTo', returnTo);
     if (followShopId) q.set('followShopId', followShopId);
+    if (role === 'merchant') q.set('target', '/business/dashboard');
     const qs = q.toString();
     window.location.href = `${backendBaseUrl}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
   };
