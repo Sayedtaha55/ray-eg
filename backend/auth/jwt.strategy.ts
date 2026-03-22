@@ -61,21 +61,27 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
 
     const role = String((user as any)?.role || '').toUpperCase();
+    let shop: { id: string; deliveryDisabled: boolean } | undefined;
     if (role === 'MERCHANT') {
       const shopId = String((user as any)?.shopId || '').trim();
       if (!shopId) {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
       }
 
-      const shop = await this.prisma.shop.findUnique({
+      const shopRecord = await this.prisma.shop.findUnique({
         where: { id: shopId },
-        select: { id: true, status: true },
+        select: { id: true, status: true, deliveryDisabled: true },
       });
 
-      const status = String((shop as any)?.status || '').toUpperCase();
-      if (!shop || status !== 'APPROVED') {
+      const status = String((shopRecord as any)?.status || '').toUpperCase();
+      if (!shopRecord || status !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
       }
+
+      shop = {
+        id: String((shopRecord as any).id),
+        deliveryDisabled: (shopRecord as any).deliveryDisabled ?? false,
+      };
     }
 
     return {
@@ -83,6 +89,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: String((user as any).email),
       role: (user as any).role,
       shopId: (user as any).shopId,
+      shop,
     };
   }
 }

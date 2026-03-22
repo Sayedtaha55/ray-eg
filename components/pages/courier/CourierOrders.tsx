@@ -127,6 +127,9 @@ const CourierOrders: React.FC = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const courierUser = useMemo(() => {
     try {
@@ -759,6 +762,12 @@ const CourierOrders: React.FC = () => {
                 newPassword={newPassword}
                 confirmNewPassword={confirmNewPassword}
                 passwordSaving={passwordSaving}
+                showCurrentPassword={showCurrentPassword}
+                showNewPassword={showNewPassword}
+                showConfirmPassword={showConfirmPassword}
+                onShowCurrentPasswordChange={setShowCurrentPassword}
+                onShowNewPasswordChange={setShowNewPassword}
+                onShowConfirmPasswordChange={setShowConfirmPassword}
                 onCurrentPasswordChange={setCurrentPassword}
                 onNewPasswordChange={setNewPassword}
                 onConfirmNewPasswordChange={setConfirmNewPassword}

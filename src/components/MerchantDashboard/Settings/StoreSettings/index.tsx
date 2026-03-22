@@ -27,6 +27,10 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const [togglingPublicDisabled, setTogglingPublicDisabled] = useState(false);
   const [publicDisabled, setPublicDisabled] = useState<boolean>(Boolean((shop as any)?.publicDisabled ?? (shop as any)?.public_disabled));
 
+  const [togglingDeliveryDisabled, setTogglingDeliveryDisabled] = useState(false);
+  const [deliveryDisabled, setDeliveryDisabled] = useState<boolean>(Boolean((shop as any)?.deliveryDisabled ?? (shop as any)?.delivery_disabled));
+  const pendingDeliveryDisabledRef = useRef<boolean | null>(null);
+
   useEffect(() => {
     setIsActive(Boolean(shop?.isActive));
   }, [shop?.isActive]);
@@ -34,6 +38,20 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   useEffect(() => {
     setPublicDisabled(Boolean((shop as any)?.publicDisabled ?? (shop as any)?.public_disabled));
   }, [shop?.publicDisabled, (shop as any)?.public_disabled]);
+
+  useEffect(() => {
+    const incoming = Boolean((shop as any)?.deliveryDisabled ?? (shop as any)?.delivery_disabled);
+    const pending = pendingDeliveryDisabledRef.current;
+    if (pending !== null && incoming !== pending) {
+      return;
+    }
+
+    if (pending !== null && incoming === pending) {
+      pendingDeliveryDisabledRef.current = null;
+    }
+
+    setDeliveryDisabled(incoming);
+  }, [shop?.deliveryDisabled, (shop as any)?.delivery_disabled]);
 
   const initial = useMemo(
     () => ({
@@ -336,6 +354,33 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
     }
   };
 
+  const handleToggleDeliveryDisabled = async () => {
+    setTogglingDeliveryDisabled(true);
+    const next = !deliveryDisabled;
+    try {
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        deliveryDisabled: next,
+      });
+      pendingDeliveryDisabledRef.current = next;
+      setDeliveryDisabled(next);
+      toast({
+        title: 'تم التحديث',
+        description: next ? 'تم تعطيل التوصيل - الطلبات لن تصل للمندوبين' : 'تم تفعيل التوصيل - الطلبات ستصل للمندوبين',
+      });
+      onSaved();
+    } catch (e: any) {
+      const msg = e?.message ? String(e.message) : '';
+      toast({
+        title: 'خطأ',
+        description: msg ? `فشل تحديث حالة التوصيل: ${msg}` : 'فشل تحديث حالة التوصيل',
+        variant: 'destructive',
+      });
+    } finally {
+      setTogglingDeliveryDisabled(false);
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
   };
@@ -441,6 +486,27 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
             variant={publicDisabled ? 'default' : 'destructive'}
           >
             {togglingPublicDisabled ? 'جارٍ التحديث...' : publicDisabled ? 'تفعيل صفحة العرض' : 'تعطيل صفحة العرض'}
+          </Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>التوصيل</CardTitle>
+          <CardDescription>
+            {deliveryDisabled
+              ? 'التوصيل معطل - الطلبات الجديدة لن تصل للمندوبين'
+              : 'التوصيل مفعل - الطلبات ستصل للمندوبين بشكل طبيعي'}
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex justify-end border-t px-6 py-4">
+          <Button
+            type="button"
+            onClick={handleToggleDeliveryDisabled}
+            disabled={togglingDeliveryDisabled}
+            variant={deliveryDisabled ? 'default' : 'destructive'}
+          >
+            {togglingDeliveryDisabled ? 'جارٍ التحديث...' : deliveryDisabled ? 'تفعيل التوصيل' : 'تعطيل التوصيل'}
           </Button>
         </CardFooter>
       </Card>

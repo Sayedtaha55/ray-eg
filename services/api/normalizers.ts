@@ -63,6 +63,11 @@ export function normalizeShopFromBackend(shop: any) {
     : typeof shop.public_disabled !== 'undefined'
       ? shop.public_disabled
       : undefined;
+  const deliveryDisabled = typeof (shop as any).deliveryDisabled !== 'undefined'
+    ? (shop as any).deliveryDisabled
+    : typeof (shop as any).delivery_disabled !== 'undefined'
+      ? (shop as any).delivery_disabled
+      : undefined;
   const status = String(shop.status || '').toLowerCase();
   const rawPageDesign = shop.pageDesign || shop.page_design || shop.pageDesign || null;
   const normalizedPageDesign = (() => {
@@ -99,6 +104,7 @@ export function normalizeShopFromBackend(shop: any) {
     logoUrl,
     bannerUrl,
     publicDisabled,
+    deliveryDisabled,
     addons,
     layoutConfig: normalizedLayoutConfig ?? shop.layoutConfig,
     layout_config: shop.layout_config ?? normalizedLayoutConfig,
@@ -117,6 +123,7 @@ export function normalizeShopFromBackend(shop: any) {
     location_accuracy: shop.location_accuracy ?? locationAccuracy,
     location_updated_at: shop.location_updated_at ?? locationUpdatedAt,
     public_disabled: shop.public_disabled ?? publicDisabled,
+    delivery_disabled: (shop as any).delivery_disabled ?? deliveryDisabled,
     pageDesign: normalizedPageDesign,
   };
 }

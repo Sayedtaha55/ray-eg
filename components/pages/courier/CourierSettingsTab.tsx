@@ -1,5 +1,5 @@
-import React from 'react';
-import { Navigation, RefreshCw, Settings } from 'lucide-react';
+import React, { useState } from 'react';
+import { Navigation, RefreshCw, Settings, Eye, EyeOff } from 'lucide-react';
 
 const CourierSettingsTab: React.FC<any> = (props) => {
   const {
@@ -33,6 +33,12 @@ const CourierSettingsTab: React.FC<any> = (props) => {
     onConfirmNewPasswordChange,
     onChangePassword,
     onOpenOrdersNow,
+    showCurrentPassword,
+    showNewPassword,
+    showConfirmPassword,
+    onShowCurrentPasswordChange,
+    onShowNewPasswordChange,
+    onShowConfirmPasswordChange,
   } = props || {};
 
   const showLocationWarning = !shareLocation || geoStatus === 'blocked' || geoStatus === 'unsupported';
@@ -216,30 +222,66 @@ const CourierSettingsTab: React.FC<any> = (props) => {
           <div className="pt-4 border-t border-white/10">
             <p className="text-xs text-slate-500 font-black mb-3">تغيير كلمة المرور</p>
             <form onSubmit={onChangePassword} className="space-y-3">
-              <input
-                type="password"
-                value={String(currentPassword || '')}
-                onChange={(e) => onCurrentPasswordChange?.(e.target.value)}
-                disabled={!!passwordSaving}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                placeholder="كلمة المرور الحالية"
-              />
-              <input
-                type="password"
-                value={String(newPassword || '')}
-                onChange={(e) => onNewPasswordChange?.(e.target.value)}
-                disabled={!!passwordSaving}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                placeholder="كلمة المرور الجديدة"
-              />
-              <input
-                type="password"
-                value={String(confirmNewPassword || '')}
-                onChange={(e) => onConfirmNewPasswordChange?.(e.target.value)}
-                disabled={!!passwordSaving}
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                placeholder="تأكيد كلمة المرور الجديدة"
-              />
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">كلمة المرور الحالية</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPassword ? 'text' : 'password'}
+                    value={String(currentPassword || '')}
+                    onChange={(e) => onCurrentPasswordChange?.(e.target.value)}
+                    disabled={!!passwordSaving}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                    placeholder="كلمة المرور الحالية"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onShowCurrentPasswordChange?.(!showCurrentPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  >
+                    {showCurrentPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">كلمة المرور الجديدة</label>
+                <div className="relative">
+                  <input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={String(newPassword || '')}
+                    onChange={(e) => onNewPasswordChange?.(e.target.value)}
+                    disabled={!!passwordSaving}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                    placeholder="كلمة المرور الجديدة"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onShowNewPasswordChange?.(!showNewPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  >
+                    {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">تأكيد كلمة المرور الجديدة</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={String(confirmNewPassword || '')}
+                    onChange={(e) => onConfirmNewPasswordChange?.(e.target.value)}
+                    disabled={!!passwordSaving}
+                    className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
+                    placeholder="تأكيد كلمة المرور الجديدة"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onShowConfirmPasswordChange?.(!showConfirmPassword)}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                  >
+                    {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
               <button
                 type="submit"
                 disabled={!!passwordSaving}

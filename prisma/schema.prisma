@@ -76,6 +76,7 @@ model Shop {
   updatedAt             DateTime                   @updatedAt
   addons                Json?
   publicDisabled        Boolean                    @default(false) @map("public_disabled")
+  deliveryDisabled      Boolean                    @default(false) @map("delivery_disabled")
   accountingInvoices    AccountingInvoice[]
   bookingResources      BookingResource[]
   bookings              Booking[]
@@ -102,6 +103,7 @@ model Shop {
   @@index([status])
   @@index([isActive])
   @@index([publicDisabled])
+  @@index([deliveryDisabled])
   @@map("shops")
 }
 

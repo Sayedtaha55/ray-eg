@@ -108,6 +108,7 @@ model Shop {
   governorate      String?
   city             String?
   deliveryFee      Float?     @map("delivery_fee")
+  deliveryDisabled  Boolean    @default(false) @map("delivery_disabled")
   isActive         Boolean    @default(true)
   visitors         Int        @default(0)
   followers        Int        @default(0)
@@ -300,6 +301,8 @@ model Order {
   paymentStatus PaymentStatus @default(PENDING)
   paymentMethod String?
   source        String?       @default("customer")
+  userId        String        @map("user_id")
+  shopId        String        @map("shop_id")
   handedToCourierAt DateTime?  @map("handed_to_courier_at")
   notes         String?
   deliveredAt   DateTime?      @map("delivered_at")

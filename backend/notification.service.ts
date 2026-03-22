@@ -221,7 +221,13 @@ export class NotificationService {
     });
   }
 
-  async notifyNewOrder(shopId: string, orderId: string, customerName: string, total: number) {
+  async notifyNewOrder(
+    shopId: string,
+    orderId: string,
+    customerName: string,
+    total: number,
+    extraMeta?: Record<string, any>,
+  ) {
     await this.createNotification({
       type: NotificationType.NEW_ORDER,
       title: 'طلب جديد!',
@@ -229,7 +235,7 @@ export class NotificationService {
       shopId,
       orderId,
       priority: NotificationPriority.HIGH,
-      metadata: { customerName, total },
+      metadata: { customerName, total, ...(extraMeta || {}) },
     });
   }
 

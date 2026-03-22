@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin } from 'lucide-react';
+import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin, Eye, EyeOff } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 import { persistSession } from '@/services/authStorage';
@@ -26,6 +26,9 @@ const AdminLogin: React.FC = () => {
   const [bootstrapName, setBootstrapName] = useState('Admin');
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const [isDevActivityMenuOpen, setIsDevActivityMenuOpen] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showBootstrapToken, setShowBootstrapToken] = useState(false);
+  const [showBootstrapPassword, setShowBootstrapPassword] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -183,14 +186,23 @@ const AdminLogin: React.FC = () => {
           </div>
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">كلمة المرور</label>
-            <input
-              required
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="1234"
-              className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-            />
+            <div className="relative">
+              <input
+                required
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="1234"
+                className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
           <button
             disabled={loading}
@@ -392,14 +404,23 @@ const AdminLogin: React.FC = () => {
                 <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
                   <div className="text-[11px] font-black text-slate-400">استخدم ADMIN_BOOTSTRAP_TOKEN من Railway لعمل/تحديث حساب الأدمن على الإنتاج.</div>
                   <form onSubmit={handleBootstrap} className="space-y-4">
-                    <input
-                      required
-                      type="password"
-                      value={bootstrapToken}
-                      onChange={(e) => setBootstrapToken(e.target.value)}
-                      placeholder="ADMIN_BOOTSTRAP_TOKEN"
-                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                    />
+                    <div className="relative">
+                      <input
+                        required
+                        type={showBootstrapToken ? 'text' : 'password'}
+                        value={bootstrapToken}
+                        onChange={(e) => setBootstrapToken(e.target.value)}
+                        placeholder="ADMIN_BOOTSTRAP_TOKEN"
+                        className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowBootstrapToken(!showBootstrapToken)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showBootstrapToken ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                     <input
                       required
                       type="email"
@@ -408,14 +429,23 @@ const AdminLogin: React.FC = () => {
                       placeholder="admin@mnmknk.com"
                       className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
                     />
-                    <input
-                      required
-                      type="password"
-                      value={bootstrapPassword}
-                      onChange={(e) => setBootstrapPassword(e.target.value)}
-                      placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
-                      className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
-                    />
+                    <div className="relative">
+                      <input
+                        required
+                        type={showBootstrapPassword ? 'text' : 'password'}
+                        value={bootstrapPassword}
+                        onChange={(e) => setBootstrapPassword(e.target.value)}
+                        placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
+                        className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowBootstrapPassword(!showBootstrapPassword)}
+                        className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors"
+                      >
+                        {showBootstrapPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={bootstrapName}

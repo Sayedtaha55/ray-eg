@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, memo } from 'react';
-import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical, Printer } from 'lucide-react';
+import { CheckCircle2, Eye, XCircle, Clock, Loader2, MoreVertical, Printer, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import Modal from '@/components/common/ui/Modal';
@@ -184,6 +184,60 @@ const OrderRow = memo(({
   const itemsSummary = formatOrderItemsSummary(sale);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
+  const openMapLink = () => {
+    const loc = (() => {
+      try {
+        const raw = typeof (sale as any)?.notes === 'string' ? (sale as any).notes : '';
+        const prefix = 'COD_LOCATION:';
+        const start = raw.indexOf(prefix);
+        if (start < 0) return null;
+        const after = raw.slice(start + prefix.length).trim();
+        const jsonPart = String(after.split(/\r?\n/)[0] || '').trim();
+        if (!jsonPart) return null;
+        const parsed = JSON.parse(jsonPart);
+        const lat = Number(parsed?.coords?.lat);
+        const lng = Number(parsed?.coords?.lng);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+        return null;
+      } catch {
+        return null;
+      }
+    })();
+    
+    const address = String(
+      (sale as any)?.deliveryAddressManual ??
+      (sale as any)?.delivery_address_manual ??
+      (sale as any)?.deliveryAddress ??
+      (sale as any)?.delivery_address ??
+      (sale as any)?.address ??
+      (sale as any)?.user?.address ??
+      ''
+    ).trim();
+
+    if (loc?.lat && loc?.lng) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`, '_blank');
+    } else if (address) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    }
+  };
+
+  const hasLocation = Boolean(
+    (() => {
+      try {
+        const raw = typeof (sale as any)?.notes === 'string' ? (sale as any).notes : '';
+        return raw.includes('COD_LOCATION:');
+      } catch {
+        return false;
+      }
+    })() ||
+    ((sale as any)?.deliveryAddressManual ??
+    (sale as any)?.delivery_address_manual ??
+    (sale as any)?.deliveryAddress ??
+    (sale as any)?.delivery_address ??
+    (sale as any)?.address ??
+    (sale as any)?.user?.address)
+  );
+
   return (
     <div className="border border-slate-100 rounded-3xl p-5">
       <div className="flex items-start justify-between gap-3">
@@ -218,6 +272,18 @@ const OrderRow = memo(({
         <div className="text-slate-500 font-bold text-xs">رسوم التوصيل: {renderDeliveryFee(sale)}</div>
 
         <div className="flex items-center gap-2" data-sales-actions-menu="1">
+          {hasLocation && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openMapLink();
+              }}
+              className="p-3 bg-white border border-slate-200 rounded-xl transition-all text-slate-400 hover:text-emerald-600"
+              title="عرض على الخريطة"
+            >
+              <MapPin size={18} />
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -233,7 +299,7 @@ const OrderRow = memo(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenMenuId(openMenuId === id ? '' : id);
+                  setOpenMenuId((prev: string) => prev === id ? '' : id);
                 }}
                 className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
                 data-sales-actions-menu="1"
@@ -341,6 +407,60 @@ const OrderTableRow = memo(({
   const itemsSummary = formatOrderItemsSummary(sale);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
+  const openMapLink = () => {
+    const loc = (() => {
+      try {
+        const raw = typeof (sale as any)?.notes === 'string' ? (sale as any).notes : '';
+        const prefix = 'COD_LOCATION:';
+        const start = raw.indexOf(prefix);
+        if (start < 0) return null;
+        const after = raw.slice(start + prefix.length).trim();
+        const jsonPart = String(after.split(/\r?\n/)[0] || '').trim();
+        if (!jsonPart) return null;
+        const parsed = JSON.parse(jsonPart);
+        const lat = Number(parsed?.coords?.lat);
+        const lng = Number(parsed?.coords?.lng);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) return { lat, lng };
+        return null;
+      } catch {
+        return null;
+      }
+    })();
+    
+    const address = String(
+      (sale as any)?.deliveryAddressManual ??
+      (sale as any)?.delivery_address_manual ??
+      (sale as any)?.deliveryAddress ??
+      (sale as any)?.delivery_address ??
+      (sale as any)?.address ??
+      (sale as any)?.user?.address ??
+      ''
+    ).trim();
+
+    if (loc?.lat && loc?.lng) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`, '_blank');
+    } else if (address) {
+      window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+    }
+  };
+
+  const hasLocation = Boolean(
+    (() => {
+      try {
+        const raw = typeof (sale as any)?.notes === 'string' ? (sale as any).notes : '';
+        return raw.includes('COD_LOCATION:');
+      } catch {
+        return false;
+      }
+    })() ||
+    ((sale as any)?.deliveryAddressManual ??
+    (sale as any)?.delivery_address_manual ??
+    (sale as any)?.deliveryAddress ??
+    (sale as any)?.delivery_address ??
+    (sale as any)?.address ??
+    (sale as any)?.user?.address)
+  );
+
   return (
     <tr className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
       <td className="p-6 font-black text-slate-900 max-w-[360px]">
@@ -371,6 +491,18 @@ const OrderTableRow = memo(({
       </td>
       <td className="p-6">
         <div className="flex flex-wrap gap-2 justify-end" data-sales-actions-menu="1">
+          {hasLocation && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                openMapLink();
+              }}
+              className="p-3 bg-white border border-slate-200 rounded-xl transition-all text-slate-400 hover:text-emerald-600"
+              title="عرض على الخريطة"
+            >
+              <MapPin size={18} />
+            </button>
+          )}
           {typeof onPrintInvoice === 'function' ? (
             <button
               onClick={(e) => {
@@ -390,7 +522,7 @@ const OrderTableRow = memo(({
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  setOpenMenuId(openMenuId === id ? '' : id);
+                  setOpenMenuId((prev: string) => prev === id ? '' : id);
                 }}
                 className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
                 data-sales-actions-menu="1"
@@ -494,6 +626,10 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string>('');
+
+  const isDeliveryDisabled = (order: any) => {
+    return Boolean(order?.shops?.deliveryDisabled ?? order?.shops?.delivery_disabled ?? false);
+  };
 
   const parseCodLocation = (notes: any): { lat: number; lng: number; note?: string; address?: string } | null => {
     try {
@@ -847,6 +983,10 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
   };
 
   const renderDeliveryFee = (sale: any) => {
+    if (isDeliveryDisabled(sale)) {
+      return 'التوصيل معطل';
+    }
+    
     const raw = typeof sale?.notes === 'string' ? sale.notes : '';
     const lines = raw
       .split(/\r?\n/)
@@ -960,6 +1100,9 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 })()}
               </div>
               <div>رقم العميل: {selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</div>
+              {isDeliveryDisabled(selectedSale) ? (
+                <div className="text-amber-400 text-xs mt-2">التوصيل معطل على المنصة - يستخدم التاجر توصيله الخاص</div>
+              ) : null}
             </div>
           </div>
 
@@ -969,10 +1112,10 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             if (!deliveryNote) return null;
             return (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ملاحظات التوصيل</div>
               <div className="mt-3 text-white font-bold text-sm space-y-1">
                 {deliveryNote ? (
-                  <div>ملاحظة التوصيل: {deliveryNote}</div>
+                  <div>{deliveryNote}</div>
                 ) : null}
               </div>
             </div>

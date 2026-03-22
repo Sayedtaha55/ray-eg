@@ -43,6 +43,7 @@ export class ShopSettingsService {
       deliveryFee?: number | null;
       isActive?: boolean;
       publicDisabled?: boolean;
+      deliveryDisabled?: boolean;
       dashboardMode?: string;
       enabledModules?: any;
     },
@@ -277,8 +278,48 @@ export class ShopSettingsService {
             : { bannerUrl: persistedBanner?.optUrl ? persistedBanner.optUrl : input.bannerUrl }),
           ...(typeof input.isActive === 'undefined' ? {} : { isActive: input.isActive }),
           ...(typeof input.publicDisabled === 'undefined' ? {} : { publicDisabled: input.publicDisabled }),
+          ...(typeof input.deliveryDisabled === 'undefined' ? {} : { deliveryDisabled: input.deliveryDisabled }),
           ...(typeof input.addons === 'undefined' ? {} : { addons: input.addons as any }),
           layoutConfig: nextLayout as any,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          category: true,
+          governorate: true,
+          city: true,
+          address: true,
+          addressDetailed: true,
+          displayAddress: true,
+          mapLabel: true,
+          latitude: true,
+          longitude: true,
+          locationSource: true,
+          locationAccuracy: true,
+          locationUpdatedAt: true,
+          phone: true,
+          email: true,
+          openingHours: true,
+          logoUrl: true,
+          bannerUrl: true,
+          status: true,
+          pageDesign: true,
+          theme: true,
+          customColors: true,
+          customFonts: true,
+          layoutConfig: true,
+          followers: true,
+          visitors: true,
+          rating: true,
+          isActive: true,
+          ownerId: true,
+          createdAt: true,
+          updatedAt: true,
+          addons: true,
+          publicDisabled: true,
+          deliveryDisabled: true,
         },
       });
 

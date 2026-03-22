@@ -169,9 +169,10 @@ export class CourierService {
       throw new ForbiddenException('لديك طلب قيد التنفيذ بالفعل');
     }
 
-    if (activeOrders.length >= 3) {
-      throw new ForbiddenException('تم الوصول للحد الأقصى من الطلبات');
-    }
+    // Order limit removed - couriers can now take unlimited orders
+    // if (activeOrders.length >= 3) {
+    //   throw new ForbiddenException('تم الوصول للحد الأقصى من الطلبات');
+    // }
   }
 
   async acceptOffer(userId: string, offerId: string) {

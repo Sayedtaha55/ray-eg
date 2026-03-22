@@ -383,6 +383,9 @@ const BusinessLayout: React.FC = () => {
         const nid = String((normalized as any)?.id || '').trim();
         if (!nid) return;
 
+        const metaSource = String(((normalized as any)?.metadata as any)?.source || '').trim().toLowerCase();
+        const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
+
         let isNew = false;
         setNotifications(prev => {
           const exists = prev.some((x: any) => String((x as any)?.id || '') === nid);
@@ -400,38 +403,42 @@ const BusinessLayout: React.FC = () => {
         } catch {
         }
 
-        try {
-          const title = String((normalized as any)?.title || 'إشعار جديد').trim();
-          const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
-          addToast([title, body].filter(Boolean).join(' - ') || 'إشعار جديد', 'info');
-        } catch {
+        if (!isPosOrigin) {
+          try {
+            const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+            const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
+            addToast([title, body].filter(Boolean).join(' - ') || 'إشعار جديد', 'info');
+          } catch {
+          }
         }
 
-        try {
-          if (
-            typeof window !== 'undefined' &&
-            'Notification' in window &&
-            Notification.permission === 'granted'
-          ) {
-            const key = String((normalized as any)?.id || '').trim();
-            if (key && !shownBrowserNotificationIdsRef.current.has(key)) {
-              shownBrowserNotificationIdsRef.current.add(key);
-              const title = String((normalized as any)?.title || 'إشعار جديد').trim();
-              const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
-              const n = new Notification(title, {
-                body,
-                tag: `shop-notification-${key}`,
-                icon: '/favicon.ico',
-              });
-              n.onclick = () => {
-                try {
-                  window.focus();
-                } catch {
-                }
-              };
+        if (!isPosOrigin) {
+          try {
+            if (
+              typeof window !== 'undefined' &&
+              'Notification' in window &&
+              Notification.permission === 'granted'
+            ) {
+              const key = String((normalized as any)?.id || '').trim();
+              if (key && !shownBrowserNotificationIdsRef.current.has(key)) {
+                shownBrowserNotificationIdsRef.current.add(key);
+                const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+                const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
+                const n = new Notification(title, {
+                  body,
+                  tag: `shop-notification-${key}`,
+                  icon: '/favicon.ico',
+                });
+                n.onclick = () => {
+                  try {
+                    window.focus();
+                  } catch {
+                  }
+                };
+              }
             }
+          } catch {
           }
-        } catch {
         }
 
         const t = String((normalized as any)?.type || '').trim().toUpperCase();
@@ -442,7 +449,7 @@ const BusinessLayout: React.FC = () => {
           t === 'NEW_RESERVATION' ||
           t === 'BOOKING';
 
-        if (shouldRing) {
+        if (shouldRing && !isPosOrigin) {
           try {
             const url = RayDB.getSelectedNotificationSoundUrl();
             if (url) {
@@ -462,7 +469,9 @@ const BusinessLayout: React.FC = () => {
         }
 
         // إظهار توست للمستخدم
-        addToast(String((normalized as any)?.title || ''), 'info');
+        if (!isPosOrigin) {
+          addToast(String((normalized as any)?.title || ''), 'info');
+        }
 
         if (!Boolean((normalized as any)?.is_read)) {
           setUnreadCount(prev => prev + 1);

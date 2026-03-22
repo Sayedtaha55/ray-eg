@@ -49,9 +49,21 @@ const GoogleCallbackPage: React.FC = () => {
         }
 
         const role = String(response.user?.role || '').toLowerCase();
-        if (role === 'admin') {
-          navigate('/admin/dashboard');
-        } else if (role === 'merchant') {
+        
+        // Radical fix: Explicit role-based routing that cannot be bypassed
+        const ROUTES: Record<string, string> = {
+          admin: '/admin/dashboard',
+          merchant: '/business/dashboard',
+          courier: '/courier/orders',
+          customer: '/profile',
+          user: '/profile',
+        };
+        
+        // Get the target route based on role, fallback to /profile
+        const targetRoute = ROUTES[role] || '/profile';
+        
+        // Special handling for merchant - check shop approval status
+        if (role === 'merchant') {
           try {
             const myShop = await ApiService.getMyShop();
             const status = String(myShop?.status || '').toLowerCase();
@@ -59,13 +71,14 @@ const GoogleCallbackPage: React.FC = () => {
               navigate('/business/pending');
               return;
             }
-            navigate('/business/dashboard');
           } catch {
             navigate('/business/pending');
+            return;
           }
-        } else {
-          navigate('/profile');
         }
+        
+        // Navigate to the appropriate dashboard
+        navigate(targetRoute);
       } catch (err: any) {
         setError(err?.message || 'فشل تسجيل الدخول عبر Google');
       }

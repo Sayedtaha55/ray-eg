@@ -138,6 +138,16 @@ export class ShopController {
       return undefined;
     })();
 
+    const deliveryDisabled = (() => {
+      if (typeof body?.deliveryDisabled === 'undefined' && typeof body?.delivery_disabled === 'undefined') return undefined;
+      const v = typeof body?.deliveryDisabled !== 'undefined' ? body.deliveryDisabled : body.delivery_disabled;
+      if (typeof v === 'boolean') return v;
+      const raw = String(v).trim().toLowerCase();
+      if (raw === 'true') return true;
+      if (raw === 'false') return false;
+      return undefined;
+    })();
+
     const locationAccuracy = (() => {
       if (typeof body?.locationAccuracy === 'undefined') return undefined;
       if (body.locationAccuracy === null) return null;
@@ -247,6 +257,7 @@ export class ShopController {
         addons,
         isActive,
         publicDisabled,
+        deliveryDisabled,
         enabledModules,
         dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
         deliveryFee:

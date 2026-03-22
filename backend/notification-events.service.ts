@@ -35,7 +35,8 @@ export class NotificationEventsService {
         order.shopId,
         order.id,
         order.users_orders_userIdTousers.name,
-        (order as any).total
+        (order as any).total,
+        { source: String((order as any)?.source || '').trim().toLowerCase() }
       );
 
       await this.notificationService.notifyOrderConfirmed(order.userId, order.id);

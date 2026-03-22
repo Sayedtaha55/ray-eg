@@ -549,7 +549,15 @@ export class OrderService {
 
     const before = await this.prisma.order.findUnique({
       where: { id },
-      select: { id: true, status: true, userId: true, shopId: true, codCollectedAt: true, handedToCourierAt: true, courierId: true },
+      select: ({
+        id: true,
+        status: true,
+        userId: true,
+        shopId: true,
+        codCollectedAt: true,
+        handedToCourierAt: true,
+        courierId: true,
+      } as any),
     });
     if (!before) {
       throw new BadRequestException('الطلب غير موجود');
@@ -645,13 +653,17 @@ export class OrderService {
     });
 
     try {
-      if (before?.userId && before?.shopId && before?.status !== updated?.status) {
+      if (
+        before?.userId &&
+        before?.shopId &&
+        String((before as any)?.status || '') !== String((updated as any)?.status || '')
+      ) {
         await this.createOrderStatusNotifications({
           tx: this.prisma,
           shopId: String(before.shopId),
           userId: String(before.userId),
           orderId: String(before.id),
-          status: String(updated.status),
+          status: String((updated as any)?.status),
         });
       }
 
@@ -883,7 +895,7 @@ export class OrderService {
       created = await this.prisma.$transaction(async (tx) => {
         const shop = await tx.shop.findUnique({
           where: { id: shopId },
-          select: { id: true, layoutConfig: true, category: true, addons: true } as any,
+          select: { id: true, layoutConfig: true, category: true, addons: true, deliveryDisabled: true } as any,
         });
         if (!shop) {
           throw new BadRequestException('المتجر غير موجود');
@@ -1230,7 +1242,7 @@ export class OrderService {
             content: `تم إنشاء طلب جديد بقيمة ${Number(total || 0)} ج.م`,
             type: 'NEW_ORDER' as any,
             isRead: false,
-          },
+          } as any,
         });
       } catch {
         // ignore
@@ -1244,7 +1256,7 @@ export class OrderService {
             content: `تم إنشاء طلبك بنجاح بقيمة ${Number(total || 0)} ج.م`,
             type: 'ORDER_CONFIRMED' as any,
             isRead: false,
-          },
+          } as any,
         });
       } catch {
         // ignore
@@ -1284,7 +1296,15 @@ export class OrderService {
       // ignore
     }
 
-    this.courierDispatch.dispatchForOrder(String(created?.id || '')).catch(() => {});
+    // Only dispatch to couriers if delivery is not disabled
+    const shopForDispatch = await this.prisma.shop.findUnique({
+      where: { id: shopId },
+      select: { deliveryDisabled: true },
+    });
+    
+    if (!shopForDispatch?.deliveryDisabled) {
+      this.courierDispatch.dispatchForOrder(String(created?.id || '')).catch(() => {});
+    }
 
     return created;
   }
@@ -1333,7 +1353,7 @@ export class OrderService {
 
     const pagination = this.getPagination(paging);
     return this.prisma.order.findMany({
-      where: { courierId: cId },
+      where: ({ courierId: cId } as any),
       orderBy: { createdAt: 'desc' },
       include: ({
         items: { include: { product: true } },
@@ -1352,10 +1372,11 @@ export class OrderService {
 
     const order = await this.prisma.order.findUnique({
       where: { id },
-      select: { id: true, courierId: true },
+      select: ({ id: true, courierId: true } as any),
     });
     if (!order) throw new BadRequestException('الطلب غير موجود');
-    if (!order.courierId || order.courierId !== actorId) {
+    const orderCourierId = String((order as any)?.courierId || '').trim();
+    if (!orderCourierId || orderCourierId !== actorId) {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
@@ -1383,11 +1404,11 @@ export class OrderService {
     const updated = await this.prisma.order.update({
       where: { id },
       data,
-      include: {
+      include: ({
         items: { include: { product: true } },
         shops: true,
         users_orders_userIdTousers: true,
-      },
+      } as any),
     });
 
     try {
