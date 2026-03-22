@@ -1,11 +1,21 @@
 @import "tailwindcss";
 
+html {
+  overflow-x: clip;
+}
+
 body {
   font-family: 'Alexandria', sans-serif;
   background-color: #FFFFFF;
   color: #1A1A1A;
   margin: 0;
-  overflow-x: hidden;
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+}
+
+#root {
+  min-height: 100vh;
+  overflow-x: clip;
 }
 
 .glass {
