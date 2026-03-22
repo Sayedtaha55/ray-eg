@@ -3,7 +3,6 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
 const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssistant'));
 const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
-import { motion, AnimatePresence } from 'framer-motion';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
@@ -11,6 +10,7 @@ import { clearSession, getStoredUser } from '@/services/authStorage';
 import PwaInstallPrompt from '@/components/common/feedback/PwaInstallPrompt';
 import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
+import { getDeferredDelay, isMobileViewportLike } from '@/utils/performanceProfile';
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 
@@ -62,8 +62,16 @@ const PublicLayout: React.FC = () => {
   const { playSound } = useCartSound();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    let rafId: number | null = null;
+    const updateScrolledState = () => {
+      rafId = null;
+      setScrolled(window.scrollY > 20);
+    };
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateScrolledState);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
     const checkAuth = () => {
       setUser(getStoredUser());
     };
@@ -91,6 +99,9 @@ const PublicLayout: React.FC = () => {
     window.addEventListener('ray-auth-required', onAuthRequired as any);
     return () => {
       window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
       window.removeEventListener('add-to-cart', handleAddToCart);
       window.removeEventListener('cart-updated', syncCart);
       window.removeEventListener('auth-change', checkAuth);
@@ -108,6 +119,25 @@ const PublicLayout: React.FC = () => {
     let stopped = false;
     let lastId: string | null = null;
     let paused = typeof document !== 'undefined' ? document.visibilityState === 'hidden' : false;
+    let idleHandle: number | null = null;
+    let startTimer: number | null = null;
+    let intervalHandle: number | null = null;
+    let loadHandler: (() => void) | null = null;
+
+    const clearScheduledStart = () => {
+      if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleHandle);
+        idleHandle = null;
+      }
+      if (startTimer !== null) {
+        window.clearTimeout(startTimer);
+        startTimer = null;
+      }
+      if (loadHandler) {
+        window.removeEventListener('load', loadHandler);
+        loadHandler = null;
+      }
+    };
 
     const pollUnread = async () => {
       if (stopped || paused) return;
@@ -132,26 +162,70 @@ const PublicLayout: React.FC = () => {
       }
     };
 
-    pollUnread();
-    pollLatest();
-    const timer = setInterval(() => {
-      pollUnread();
-      pollLatest();
-    }, 20000);
+    const ensurePollingInterval = () => {
+      if (intervalHandle !== null || stopped) return;
+      intervalHandle = window.setInterval(() => {
+        runPollingCycle();
+      }, isMobileViewportLike() ? 30000 : 20000);
+    };
+
+    const stopPollingInterval = () => {
+      if (intervalHandle === null) return;
+      window.clearInterval(intervalHandle);
+      intervalHandle = null;
+    };
+
+    const runPollingCycle = () => {
+      if (stopped || paused) return;
+      ensurePollingInterval();
+      void pollUnread();
+      void pollLatest();
+    };
+
+    const schedulePollingStart = () => {
+      if (stopped) return;
+      clearScheduledStart();
+      const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
+      if (typeof idle === 'function') {
+        idleHandle = idle(() => {
+          idleHandle = null;
+          runPollingCycle();
+        }, { timeout: getDeferredDelay(2500, 4000) });
+        return;
+      }
+
+      startTimer = window.setTimeout(() => {
+        startTimer = null;
+        runPollingCycle();
+      }, getDeferredDelay(1500, 2500));
+    };
+
+    if (document.readyState === 'complete') {
+      schedulePollingStart();
+    } else {
+      loadHandler = () => {
+        clearScheduledStart();
+        schedulePollingStart();
+      };
+      window.addEventListener('load', loadHandler, { once: true });
+    }
 
     const onVisibility = () => {
       paused = document.visibilityState === 'hidden';
-      if (!paused) {
-        pollUnread();
-        pollLatest();
+      if (paused) {
+        stopPollingInterval();
+        clearScheduledStart();
+        return;
       }
+      schedulePollingStart();
     };
 
     document.addEventListener('visibilitychange', onVisibility);
 
     return () => {
       stopped = true;
-      clearInterval(timer);
+      clearScheduledStart();
+      stopPollingInterval();
       document.removeEventListener('visibilitychange', onVisibility);
     };
   }, [user?.id, user?.role]);
@@ -192,6 +266,25 @@ const PublicLayout: React.FC = () => {
     const vapidPublicKey = String(((import.meta as any)?.env?.VITE_VAPID_PUBLIC_KEY as any) || '').trim();
     if (!vapidPublicKey) return;
 
+    let idleHandle: number | null = null;
+    let startTimer: number | null = null;
+    let loadHandler: (() => void) | null = null;
+
+    const clearScheduledRun = () => {
+      if (idleHandle !== null && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleHandle);
+        idleHandle = null;
+      }
+      if (startTimer !== null) {
+        window.clearTimeout(startTimer);
+        startTimer = null;
+      }
+      if (loadHandler) {
+        window.removeEventListener('load', loadHandler);
+        loadHandler = null;
+      }
+    };
+
     const urlBase64ToUint8Array = (base64String: string) => {
       const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
       const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -205,6 +298,7 @@ const PublicLayout: React.FC = () => {
 
     const run = async () => {
       try {
+        if (document.visibilityState === 'hidden') return;
         if (Notification.permission !== 'granted') return;
         if (webPushRegisterAttemptedRef.current) return;
         webPushRegisterAttemptedRef.current = true;
@@ -224,7 +318,36 @@ const PublicLayout: React.FC = () => {
       }
     };
 
-    run();
+    const scheduleRun = () => {
+      clearScheduledRun();
+      const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
+      if (typeof idle === 'function') {
+        idleHandle = idle(() => {
+          idleHandle = null;
+          void run();
+        }, { timeout: getDeferredDelay(3000, 4500) });
+        return;
+      }
+
+      startTimer = window.setTimeout(() => {
+        startTimer = null;
+        void run();
+      }, getDeferredDelay(1800, 3200));
+    };
+
+    if (document.readyState === 'complete') {
+      scheduleRun();
+    } else {
+      loadHandler = () => {
+        clearScheduledRun();
+        scheduleRun();
+      };
+      window.addEventListener('load', loadHandler, { once: true });
+    }
+
+    return () => {
+      clearScheduledRun();
+    };
   }, [user?.id, user?.role]);
 
   const logout = async () => {
@@ -329,11 +452,10 @@ const PublicLayout: React.FC = () => {
         </div>
       </nav>
 
-      <AnimatePresence>
-        {isMobileMenuOpen && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110]" />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-[88%] max-w-sm bg-white z-[120] px-5 pt-6 pb-8 sm:p-8 flex flex-col shadow-2xl overflow-y-auto" dir="rtl" >
+      {isMobileMenuOpen && (
+        <>
+          <div onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] animate-fade-in" />
+          <div className="fixed right-0 top-0 h-full w-[88%] max-w-sm bg-white z-[120] px-5 pt-6 pb-8 sm:p-8 flex flex-col shadow-2xl overflow-y-auto animate-[slideInFromRight_220ms_ease-out]" dir="rtl" >
               <div className="flex justify-between items-center mb-8">
                 <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">من مكانك</span>
                 <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
@@ -397,10 +519,9 @@ const PublicLayout: React.FC = () => {
                   <span className="font-bold text-sm break-all">mnmknk.eg@gmail.com</span>
                 </a>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+        </>
+      )}
 
       <main className="pt-20 md:pt-32 pb-28 lg:pb-0 min-h-screen overflow-x-clip">
         <Outlet />
@@ -452,24 +573,16 @@ const PublicLayout: React.FC = () => {
         <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
       </React.Suspense>
 
-      <AnimatePresence>
-        {authPrompt.open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[500]"
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 18, scale: 0.98 }}
-              transition={{ duration: 0.22 }}
-              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[510] w-[92vw] max-w-md"
-              dir="rtl"
-            >
+      {authPrompt.open && (
+        <>
+          <div
+            onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[500] animate-fade-in"
+          />
+          <div
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[510] w-[92vw] max-w-md animate-[fadeInUp_220ms_ease-out]"
+            dir="rtl"
+          >
               <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-6 md:p-8 text-right">
                 <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">يجب تسجل الدخول</div>
                 <div className="text-slate-500 font-bold text-sm leading-relaxed mb-6">{authPrompt.message}</div>
@@ -501,10 +614,9 @@ const PublicLayout: React.FC = () => {
                   </Link>
                 </div>
               </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          </div>
+        </>
+      )}
 
       <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto px-6">

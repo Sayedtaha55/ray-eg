@@ -1,3 +1,5 @@
+import { isMobileViewportLike } from '@/utils/performanceProfile';
+
 const warmupLoaders = [
   () => import('@/components/pages/public/MapPage'),
   () => import('@/components/pages/public/ShopProfile'),
@@ -12,6 +14,8 @@ export const warmupRouteChunks = () => {
 
 export const shouldWarmupRoutes = () => {
   try {
+    if (isMobileViewportLike()) return false;
+
     const nav = navigator as Navigator & {
       connection?: { saveData?: boolean; effectiveType?: string };
       deviceMemory?: number;
