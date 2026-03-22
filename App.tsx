@@ -9,6 +9,7 @@ import {
 import RouteSeoManager from './components/seo/RouteSeoManager';
 import AppRoutes from './app/AppRoutes';
 import { shouldWarmupRoutes, warmupRouteChunks } from './app/routeWarmup';
+import { getDeferredDelay, isMobileViewportLike } from './utils/performanceProfile';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -131,18 +132,70 @@ const App: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    startAuthSync();
+    let idleHandle: number | null = null;
+    let timeoutHandle: number | null = null;
 
-    (async () => {
-      try {
-        await bootstrapSessionFromBackend({ force: true, persistBearer: shouldStoreBearerToken });
-      } finally {
-        if (active) setAuthReady(true);
+    startAuthSync();
+    setAuthReady(true);
+
+    const hasStoredSession = Boolean(getStoredUser()) || Boolean(
+      typeof window !== 'undefined' ? window.localStorage.getItem('ray_token') : '',
+    );
+
+    const cancelScheduledBootstrap = () => {
+      if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleHandle);
+        idleHandle = null;
       }
-    })();
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    const runBootstrap = async () => {
+      if (!active) return;
+      try {
+        await bootstrapSessionFromBackend({
+          force: hasStoredSession,
+          persistBearer: shouldStoreBearerToken,
+        });
+      } catch {
+      } finally {
+        cancelScheduledBootstrap();
+      }
+    };
+
+    const scheduleBootstrap = (delayMs: number) => {
+      if (!active) return;
+      cancelScheduledBootstrap();
+      const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
+      if (typeof idle === 'function') {
+        idleHandle = idle(() => {
+          idleHandle = null;
+          void runBootstrap();
+        }, { timeout: delayMs });
+        return;
+      }
+
+      timeoutHandle = window.setTimeout(() => {
+        timeoutHandle = null;
+        void runBootstrap();
+      }, delayMs);
+    };
+
+    if (!hasStoredSession) {
+      return () => {
+        active = false;
+        cancelScheduledBootstrap();
+      };
+    }
+
+    scheduleBootstrap(getDeferredDelay(1200, 2500));
 
     return () => {
       active = false;
+      cancelScheduledBootstrap();
     };
   }, [shouldStoreBearerToken]);
 
@@ -150,24 +203,77 @@ const App: React.FC = () => {
     if (!shouldWarmupRoutes()) return;
 
     let warmed = false;
-    const triggerWarmup = () => {
-      if (warmed) return;
+    let idleHandle: number | null = null;
+    let timeoutHandle: number | null = null;
+    let loadHandler: (() => void) | null = null;
+
+    const cancelWarmup = () => {
+      if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+        (window as any).cancelIdleCallback(idleHandle);
+        idleHandle = null;
+      }
+      if (timeoutHandle !== null) {
+        window.clearTimeout(timeoutHandle);
+        timeoutHandle = null;
+      }
+    };
+
+    const runWarmup = () => {
+      if (warmed || document.visibilityState === 'hidden') return;
       warmed = true;
-      window.removeEventListener('pointerdown', triggerWarmup);
-      window.removeEventListener('keydown', triggerWarmup);
+      cancelWarmup();
+      warmupRouteChunks();
+    };
+
+    const scheduleWarmup = () => {
+      if (warmed) return;
+      cancelWarmup();
       const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
       if (typeof idle === 'function') {
-        idle(() => warmupRouteChunks(), { timeout: 1500 });
+        idleHandle = idle(() => {
+          idleHandle = null;
+          runWarmup();
+        }, { timeout: 2500 });
         return;
       }
-      window.setTimeout(() => warmupRouteChunks(), 800);
+
+      timeoutHandle = window.setTimeout(() => {
+        timeoutHandle = null;
+        runWarmup();
+      }, 1800);
+    };
+
+    const triggerWarmup = () => {
+      window.removeEventListener('pointerdown', triggerWarmup);
+      window.removeEventListener('keydown', triggerWarmup);
+
+      if (document.readyState === 'complete') {
+        scheduleWarmup();
+        return;
+      }
+
+      loadHandler = () => {
+        if (loadHandler) {
+          window.removeEventListener('load', loadHandler);
+          loadHandler = null;
+        }
+        scheduleWarmup();
+      };
+
+      window.addEventListener('load', loadHandler, { once: true });
     };
 
     window.addEventListener('pointerdown', triggerWarmup, { passive: true, once: true });
     window.addEventListener('keydown', triggerWarmup, { once: true });
+
     return () => {
       window.removeEventListener('pointerdown', triggerWarmup);
       window.removeEventListener('keydown', triggerWarmup);
+      if (loadHandler) {
+        window.removeEventListener('load', loadHandler);
+        loadHandler = null;
+      }
+      cancelWarmup();
     };
   }, []);
 
