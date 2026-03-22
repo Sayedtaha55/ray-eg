@@ -79,6 +79,13 @@ const CourierOrdersTab: React.FC<{
         const delivered = status === 'DELIVERED';
         const codCollected = !!order.codCollectedAt;
         const handedToCourier = Boolean((order as any)?.handedToCourierAt || (order as any)?.handed_to_courier_at);
+        const deliveryEnabledForCourier = !Boolean(
+          (order as any)?.shop?.deliveryDisabled ??
+          (order as any)?.shop?.delivery_disabled ??
+          (order as any)?.shops?.deliveryDisabled ??
+          (order as any)?.shops?.delivery_disabled ??
+          false
+        );
         const location = (() => {
           const lat = Number((order as any)?.deliveryLat ?? (order as any)?.delivery_lat);
           const lng = Number((order as any)?.deliveryLng ?? (order as any)?.delivery_lng);
@@ -108,11 +115,14 @@ const CourierOrdersTab: React.FC<{
                 <p className="text-xs md:text-sm text-slate-400 font-bold">
                   العميل: {customerName} {customerPhone ? `• ${customerPhone}` : ''}
                 </p>
+                {!deliveryEnabledForCourier ? (
+                  <p className="text-[11px] md:text-xs text-amber-300 font-black">هذا الطلب يتبع توصيل المتجر الداخلي، لذلك بيانات الخريطة لا تظهر للمندوب.</p>
+                ) : null}
                 <p className="text-xs text-slate-500">{new Date(order.created_at || order.createdAt).toLocaleString('ar-EG')}</p>
               </div>
 
               <div className="flex flex-wrap gap-2 md:gap-3">
-                {location && (
+                {deliveryEnabledForCourier && location && (
                   <a
                     href={buildGoogleMapsLink({
                       lat: location.lat,
@@ -157,7 +167,7 @@ const CourierOrdersTab: React.FC<{
                 )}
               </div>
 
-              {(manualAddress || location?.address || deliveryNote || location?.note || customerNote) ? (
+              {deliveryEnabledForCourier && (manualAddress || location?.address || deliveryNote || location?.note || customerNote) ? (
                 <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات التوصيل</div>
                   <div className="mt-3 text-slate-200 font-bold text-sm space-y-1">

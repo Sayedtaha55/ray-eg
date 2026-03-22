@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, Store, MapPin } from 'lucide-react';
+import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, Store, MapPin, Eye, EyeOff } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
@@ -40,6 +40,7 @@ const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [isForgotModalOpen, setForgotModalOpen] = useState(false);
@@ -132,7 +133,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
       const response = await ApiService.login(email, password);
       persistSession({
@@ -140,7 +141,7 @@ const LoginPage: React.FC = () => {
         accessToken: response.session?.access_token,
         persistBearer: shouldStoreBearerToken,
       }, 'login');
-      
+
       addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
 
       const role = String((response as any)?.user?.role || '').toLowerCase();
@@ -302,13 +303,13 @@ const LoginPage: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <MotionDiv 
+      <MotionDiv
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-xl bg-white border border-slate-100 p-8 md:p-16 rounded-[3.5rem] shadow-[0_40px_80px_-20px_rgba(0,0,0,0.05)] text-right text-slate-900"
       >
         <div className="flex flex-col items-center text-center mb-12">
-           <div 
+           <div
               onPointerDown={handleAdminSecretTap}
               className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
            >
@@ -331,7 +332,7 @@ const LoginPage: React.FC = () => {
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">البريد الإلكتروني</label>
-            <input 
+            <input
               type="email" required disabled={loading}
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
               value={email} onChange={(e) => setEmail(e.target.value)}
@@ -343,11 +344,22 @@ const LoginPage: React.FC = () => {
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">كلمة المرور</label>
               <button type="button" onClick={() => setForgotModalOpen(true)} className="text-[10px] font-black text-[#BD00FF]">نسيت كلمة المرور؟</button>
             </div>
-            <input 
-              type="password" required disabled={loading}
-              className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
-              value={password} onChange={(e) => setPassword(e.target.value)}
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'} required disabled={loading}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 pr-6 pl-16 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                value={password} onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                disabled={loading}
+                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
+              >
+                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" disabled={loading} className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3">

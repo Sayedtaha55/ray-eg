@@ -21,16 +21,16 @@ interface DashboardHeaderProps {
 
 const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
   return (
-    <header className="md:hidden h-20 bg-white text-slate-900 flex items-center justify-between px-6 sticky top-0 z-[200] border-b border-slate-100">
-      <Link to="/" className="flex items-center gap-2">
+    <header className="md:hidden min-h-20 bg-white/95 backdrop-blur text-slate-900 flex items-center justify-between gap-3 px-4 py-3 sticky top-0 z-[200] border-b border-slate-100">
+      <Link to="/" className="flex min-w-0 items-center gap-2.5">
         <BrandLogo variant="business" iconOnly />
-        <span className="font-black tracking-tighter uppercase">من مكانك للأعمال</span>
+        <span className="truncate text-sm font-black tracking-tight">من مكانك للأعمال</span>
       </Link>
 
-      <div className="flex items-center gap-4">
+      <div className="flex shrink-0 items-center gap-2">
         <button
           onClick={() => window.location.reload()}
-          className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 transition-all"
           title="تحديث"
         >
           <RefreshCw className="w-6 h-6" />
@@ -38,7 +38,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
         {props.hasPosTab && (
           <button
             onClick={() => props.navigate(props.buildDashboardUrl('pos'))}
-            className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 transition-all"
             title="نظام الكاشير"
           >
             <Store className="w-6 h-6" />
@@ -46,7 +46,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
         )}
         <button
           onClick={() => props.navigate(props.buildBuilderIndexUrl())}
-          className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all"
+          className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 transition-all"
           title="هوية المتجر"
         >
           <Palette className="w-6 h-6" />
@@ -61,7 +61,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
             </span>
           )}
         </div>
-        <button onClick={() => props.setSidebarOpen(true)} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-900 transition-all">
+        <button onClick={() => props.setSidebarOpen(true)} className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-900 transition-all">
           <Menu className="w-6 h-6" />
         </button>
       </div>

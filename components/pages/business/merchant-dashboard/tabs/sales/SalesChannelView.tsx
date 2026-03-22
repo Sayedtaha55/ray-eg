@@ -130,6 +130,18 @@ const formatVariantSelectionCompact = (raw: any) => {
   return [type, size].filter(Boolean).join(' ');
 };
 
+const isDeliveryDisabledOrder = (order: any) => {
+  return Boolean(
+    order?.shops?.deliveryDisabled ??
+    order?.shops?.delivery_disabled ??
+    order?.shop?.deliveryDisabled ??
+    order?.shop?.delivery_disabled ??
+    order?.deliveryDisabled ??
+    order?.delivery_disabled ??
+    false
+  );
+};
+
 const formatOrderItemsSummary = (sale: any) => {
   const items = Array.isArray(sale?.items) ? sale.items : [];
   if (items.length === 0) return '';
@@ -181,6 +193,7 @@ const OrderRow = memo(({
   const canReady = status === 'PREPARING';
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const deliveryManagedByShop = isDeliveryDisabledOrder(sale);
   const itemsSummary = formatOrderItemsSummary(sale);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
@@ -269,10 +282,10 @@ const OrderRow = memo(({
       </div>
 
       <div className="flex items-center justify-between mt-4">
-        <div className="text-slate-500 font-bold text-xs">رسوم التوصيل: {renderDeliveryFee(sale)}</div>
+        <div className="text-slate-500 font-bold text-xs">{deliveryManagedByShop ? 'موقع العميل متاح للتوصيل الذاتي' : `رسوم التوصيل: ${renderDeliveryFee(sale)}`}</div>
 
         <div className="flex items-center gap-2" data-sales-actions-menu="1">
-          {hasLocation && (
+          {deliveryManagedByShop && hasLocation && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -404,6 +417,7 @@ const OrderTableRow = memo(({
   const canReady = status === 'PREPARING';
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
+  const deliveryManagedByShop = isDeliveryDisabledOrder(sale);
   const itemsSummary = formatOrderItemsSummary(sale);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
@@ -491,7 +505,7 @@ const OrderTableRow = memo(({
       </td>
       <td className="p-6">
         <div className="flex flex-wrap gap-2 justify-end" data-sales-actions-menu="1">
-          {hasLocation && (
+          {deliveryManagedByShop && hasLocation && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -626,10 +640,6 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedSale, setSelectedSale] = useState<any>(null);
   const [openMenuId, setOpenMenuId] = useState<string>('');
-
-  const isDeliveryDisabled = (order: any) => {
-    return Boolean(order?.shops?.deliveryDisabled ?? order?.shops?.delivery_disabled ?? false);
-  };
 
   const parseCodLocation = (notes: any): { lat: number; lng: number; note?: string; address?: string } | null => {
     try {
@@ -983,7 +993,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
   };
 
   const renderDeliveryFee = (sale: any) => {
-    if (isDeliveryDisabled(sale)) {
+    if (isDeliveryDisabledOrder(sale)) {
       return 'التوصيل معطل';
     }
     
@@ -1004,7 +1014,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible no-scrollbar">
         <button
           onClick={() => setFilter('successful')}
           className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'successful' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-600'}`}
@@ -1031,7 +1041,28 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
         </button>
       </div>
 
-      <div className="overflow-x-auto touch-auto no-scrollbar mt-10" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
+      <div className="mt-6 space-y-4 md:hidden">
+        {filteredSales.length > 0 ? filteredSales.map((sale) => (
+          <OrderRow
+            key={sale.id}
+            sale={sale}
+            updatingId={updatingId}
+            openMenuId={openMenuId}
+            setOpenMenuId={setOpenMenuId}
+            updateStatus={updateStatus}
+            openDetails={openDetails}
+            actionsEnabled={actionsEnabled}
+            statusMeta={statusMeta}
+            renderDeliveryFee={renderDeliveryFee}
+          />
+        )) : (
+          <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm font-black text-slate-400">
+            لا توجد طلبات مطابقة لهذا الفلتر.
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:block overflow-x-auto touch-auto no-scrollbar mt-10" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <table className="w-full text-right border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
@@ -1092,21 +1123,26 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات العميل</div>
             <div className="mt-3 text-white font-bold text-sm space-y-1">
               <div>الاسم: {selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</div>
-              <div>
-                العنوان: {(() => {
-                  const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
-                  const loc = parseCodLocation((selectedSale as any)?.notes);
-                  return manual || String(loc?.address || '').trim() || '-';
-                })()}
-              </div>
               <div>رقم العميل: {selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</div>
-              {isDeliveryDisabled(selectedSale) ? (
-                <div className="text-amber-400 text-xs mt-2">التوصيل معطل على المنصة - يستخدم التاجر توصيله الخاص</div>
-              ) : null}
+              {isDeliveryDisabledOrder(selectedSale) ? (
+                <>
+                  <div>
+                    العنوان: {(() => {
+                      const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
+                      const loc = parseCodLocation((selectedSale as any)?.notes);
+                      return manual || String(loc?.address || '').trim() || '-';
+                    })()}
+                  </div>
+                  <div className="text-amber-400 text-xs mt-2">التوصيل معطل على المنصة — اعرض موقع العميل من لوحة التاجر للتوصيل الذاتي.</div>
+                </>
+              ) : (
+                <div className="text-sky-300 text-xs mt-2">هذا الطلب سيتم التعامل معه من خلال المندوب، لذلك بيانات العنوان والخريطة تظهر في شاشة المندوب.</div>
+              )}
             </div>
           </div>
 
           {(() => {
+            if (!isDeliveryDisabledOrder(selectedSale)) return null;
             const loc = parseCodLocation((selectedSale as any)?.notes);
             const deliveryNote = String((selectedSale as any)?.deliveryNote ?? (selectedSale as any)?.delivery_note ?? '').trim() || String(loc?.note || '').trim();
             if (!deliveryNote) return null;
