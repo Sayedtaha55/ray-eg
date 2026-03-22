@@ -43,7 +43,8 @@
     "postinstall": "prisma generate --schema prisma/schema.prisma",
     "vercel-build": "npm run backend:build && npm run build",
     "backend:dev:fix": "powershell -NoProfile -Command \"$env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/main.ts\"",
-    "loadtest:k6": "node scripts/load/load-test-node.js"
+    "loadtest:k6": "node scripts/load/load-test-node.js",
+    "prisma:fix:reservations-updated-at": "node scripts/fix-railway-reservations-updated-at.js"
   },
   "keywords": [
     "react",
