@@ -64,6 +64,10 @@ function resolveRolledBack(migrationName) {
   return run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--rolled-back', migrationName]);
 }
 
+function reconcileLegacyReservationUpdatedAtColumn() {
+  return run('node', ['scripts/fix-railway-reservations-updated-at.js']);
+}
+
 (function main() {
   try {
     const shouldGenerateOnStart = String(process.env.PRISMA_GENERATE_ON_START || '').toLowerCase().trim() === 'true';
@@ -81,6 +85,11 @@ function resolveRolledBack(migrationName) {
           process.exit(genStatus);
         }
       }
+    }
+
+    const reconcileStatus = reconcileLegacyReservationUpdatedAtColumn();
+    if (reconcileStatus !== 0) {
+      process.exit(reconcileStatus);
     }
 
     tryBaselineInit();
