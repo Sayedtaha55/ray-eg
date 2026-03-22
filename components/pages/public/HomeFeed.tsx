@@ -185,30 +185,30 @@ const HomeFeed: React.FC = () => {
   }, [hasMoreOffers, offers.length]);
 
   if (loading) return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative">
-      <div className="flex flex-col items-center text-center mb-10 md:mb-20">
-        <Skeleton className="h-9 w-44 rounded-full mb-10" />
-        <Skeleton className="h-12 md:h-20 w-[min(720px,90%)] mb-4" />
-        <Skeleton className="h-12 md:h-20 w-[min(560px,85%)] mb-8" />
-        <Skeleton className="h-6 w-[min(520px,85%)] mb-4" />
-        <Skeleton className="h-6 w-[min(420px,80%)] mb-10" />
-        <Skeleton className="h-14 w-44 rounded-2xl" />
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative overflow-x-clip">
+      <div className="flex flex-col items-center text-center mb-10 md:mb-20 w-full">
+        <Skeleton className="h-9 w-36 max-w-full rounded-full mb-8 md:mb-10" />
+        <Skeleton className="h-10 md:h-20 w-full max-w-[720px] mb-4" />
+        <Skeleton className="h-10 md:h-20 w-full max-w-[560px] mb-6 md:mb-8" />
+        <Skeleton className="h-5 md:h-6 w-full max-w-[520px] mb-3 md:mb-4" />
+        <Skeleton className="h-5 md:h-6 w-full max-w-[420px] mb-8 md:mb-10" />
+        <Skeleton className="h-12 md:h-14 w-40 max-w-full rounded-2xl" />
       </div>
 
       <section className="mb-24">
-        <div className="flex items-center justify-between mb-12 md:mb-20 flex-row-reverse px-2">
-          <Skeleton className="h-10 w-72" />
-          <Skeleton className="h-6 w-28" />
+        <div className="flex items-center justify-between gap-3 mb-10 md:mb-20 flex-row-reverse px-2">
+          <Skeleton className="h-8 md:h-10 w-40 sm:w-56 md:w-72 max-w-[58%]" />
+          <Skeleton className="h-5 md:h-6 w-20 sm:w-24 md:w-28 shrink-0" />
         </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-12">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
           {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={`offer-skel-${idx}`} className="bg-white p-5 rounded-[3rem] border border-slate-50">
-              <Skeleton className="relative aspect-[4/5] rounded-[2.5rem] mb-6" />
-              <div className="flex items-center justify-between mb-4 flex-row-reverse">
-                <Skeleton className="h-6 w-40" />
-                <Skeleton className="h-6 w-16 rounded-full" />
+            <div key={`offer-skel-${idx}`} className="bg-white p-3 sm:p-4 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 min-w-0">
+              <Skeleton className="relative aspect-[4/5] rounded-[1.5rem] md:rounded-[2.5rem] mb-4 md:mb-6" />
+              <div className="flex items-center justify-between gap-2 mb-4 flex-row-reverse">
+                <Skeleton className="h-5 md:h-6 w-full max-w-[70%]" />
+                <Skeleton className="h-5 md:h-6 w-12 md:w-16 rounded-full shrink-0" />
               </div>
-              <Skeleton className="h-5 w-56 mb-3" />
+              <Skeleton className="h-4 md:h-5 w-full mb-3" />
               <Skeleton className="h-12 w-full rounded-2xl" />
             </div>
           ))}
@@ -263,7 +263,7 @@ const HomeFeed: React.FC = () => {
             <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">استكشف العروض حسب الفئة</h2>
             <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
           </div>
-          <div className="relative max-w-4xl mx-auto">
+          <div className="relative max-w-4xl mx-auto w-full">
           <div className="flex items-center justify-center gap-4">
             {/* Left Arrow */}
             <button
@@ -275,10 +275,10 @@ const HomeFeed: React.FC = () => {
             </button>
 
             {/* Category Card */}
-            <div className="flex-1 max-w-md">
+            <div className="flex-1 max-w-md min-w-0">
               <Link
                 to={`/offers/${categories[currentCategoryIndex].id}`}
-                className={`group relative ${categories[currentCategoryIndex].cardClass} text-white rounded-[2rem] md:rounded-[3rem] p-8 md:p-12 text-center transition-all hover:scale-105 hover:shadow-2xl overflow-hidden block`}
+                className={`group relative ${categories[currentCategoryIndex].cardClass} text-white rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-center transition-all hover:scale-105 hover:shadow-2xl overflow-hidden block min-w-0`}
               >
                 <div
                   className={`absolute inset-0 bg-gradient-to-br ${categories[currentCategoryIndex].gradientClass} opacity-0 group-hover:opacity-100 transition-opacity`}
@@ -287,8 +287,8 @@ const HomeFeed: React.FC = () => {
                   {React.createElement(categories[currentCategoryIndex].icon, {
                     className: 'w-16 h-16 md:w-20 md:h-20 mx-auto mb-4',
                   })}
-                  <h3 className="text-2xl md:text-3xl font-black mb-2">{categories[currentCategoryIndex].name}</h3>
-                  <p className="text-base md:text-lg opacity-90">{categories[currentCategoryIndex].desc}</p>
+                  <h3 className="text-xl sm:text-2xl md:text-3xl font-black mb-2 break-words">{categories[currentCategoryIndex].name}</h3>
+                  <p className="text-sm sm:text-base md:text-lg opacity-90 break-words">{categories[currentCategoryIndex].desc}</p>
                 </div>
               </Link>
             </div>

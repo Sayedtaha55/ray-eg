@@ -251,7 +251,7 @@ const PublicLayout: React.FC = () => {
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] selection:bg-[#00E5FF] selection:text-black font-sans">
       <nav 
-        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-in-out px-4 md:px-8 ${
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-in-out px-3 sm:px-4 md:px-8 ${
           scrolled ? 'py-2 md:py-4' : 'py-4 md:py-8'
         }`}
       >
@@ -276,7 +276,7 @@ const PublicLayout: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 md:gap-4">
+          <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
             {!hideCartButton && (
               <button 
                 onClick={() => setCartOpen(true)}
@@ -305,11 +305,11 @@ const PublicLayout: React.FC = () => {
             )}
             <div className="h-6 md:h-8 w-[1px] bg-slate-100 mx-1 md:mx-2 hidden sm:block" />
             {user ? (
-              <Link to={user.role === 'merchant' ? '/business/dashboard' : '/profile'} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white pl-3 pr-1 py-1 rounded-full hover:bg-black transition-all">
+              <Link to={user.role === 'merchant' ? '/business/dashboard' : '/profile'} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white pl-2.5 md:pl-3 pr-1 py-1 rounded-full hover:bg-black transition-all max-w-[9.5rem] sm:max-w-none">
                 <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#00E5FF] text-black font-black flex items-center justify-center text-[10px] md:text-xs">
                   {user.name?.charAt(0) || 'U'}
                 </div>
-                <span className="text-[10px] md:text-xs font-black hidden md:block">{user.role === 'merchant' ? 'لوحة التحكم' : user.name}</span>
+                <span className="text-[10px] md:text-xs font-black hidden md:block truncate">{user.role === 'merchant' ? 'لوحة التحكم' : user.name}</span>
               </Link>
             ) : (
               <Link to="/login" className="bg-[#1A1A1A] text-white px-4 md:px-8 py-2 md:py-3.5 rounded-lg md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-[#00E5FF] hover:text-black transition-all">
@@ -333,19 +333,76 @@ const PublicLayout: React.FC = () => {
         {isMobileMenuOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110]" />
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-[85%] max-w-sm bg-white z-[120] p-8 flex flex-col shadow-2xl" dir="rtl" >
-              <div className="flex justify-between items-center mb-12">
+            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-[88%] max-w-sm bg-white z-[120] px-5 pt-6 pb-8 sm:p-8 flex flex-col shadow-2xl overflow-y-auto" dir="rtl" >
+              <div className="flex justify-between items-center mb-8">
                 <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">من مكانك</span>
                 <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
-              <nav className="flex flex-col gap-6 flex-1">
+              <div className="mb-5 rounded-[1.5rem] bg-slate-50 p-4">
+                <div className="text-xs font-black text-slate-400 mb-2">تنقل سريع</div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssistantOpen(true);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-right text-slate-700 shadow-sm ring-1 ring-slate-100"
+                >
+                  <span className="font-bold text-sm">ابحث عن أقوى العروض الآن...</span>
+                  <Sparkles className="w-4 h-4 text-[#00E5FF] shrink-0" />
+                </button>
+              </div>
+              <nav className="flex flex-col gap-2 flex-1">
+                <MobileNavItem to="/" icon={<Home className="w-5 h-5" />} label="الرئيسية" onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/offers" icon={<Heart className="w-5 h-5" />} label="العروض" onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/map" icon={<Search className="w-5 h-5" />} label="الخريطة" onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/support" icon={<Info className="w-5 h-5" />} label="الدعم" onClick={() => setMobileMenuOpen(false)} />
+                {user ? (
+                  <>
+                    <MobileNavItem
+                      to={String(user?.role || '').toLowerCase() === 'merchant' ? '/business/dashboard' : '/profile'}
+                      icon={<User className="w-5 h-5" />}
+                      label={String(user?.role || '').toLowerCase() === 'merchant' ? 'لوحة التحكم' : 'حسابي'}
+                      onClick={() => setMobileMenuOpen(false)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        void logout();
+                      }}
+                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-all text-xl font-black text-red-600 text-right"
+                    >
+                      <span className="text-red-300"><LogOut className="w-5 h-5" /></span> تسجيل الخروج
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <MobileNavItem to="/login" icon={<User className="w-5 h-5" />} label="تسجيل الدخول" onClick={() => setMobileMenuOpen(false)} />
+                    <MobileNavItem to="/signup" icon={<PlusCircle className="w-5 h-5" />} label="إنشاء حساب" onClick={() => setMobileMenuOpen(false)} />
+                  </>
+                )}
               </nav>
+              <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+                <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <Phone size={16} />
+                  </span>
+                  <span className="font-bold text-sm">01067461059</span>
+                </a>
+                <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
+                  <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                    <Mail size={16} />
+                  </span>
+                  <span className="font-bold text-sm break-all">mnmknk.eg@gmail.com</span>
+                </a>
+              </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
 
-      <main className="pt-20 md:pt-32 pb-24 lg:pb-0 min-h-screen">
+      <main className="pt-20 md:pt-32 pb-28 lg:pb-0 min-h-screen overflow-x-clip">
         <Outlet />
       </main>
 
