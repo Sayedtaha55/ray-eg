@@ -210,7 +210,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     try {
       const myShop = await ApiService.getMyShop();
+
+      const shouldSkipApplyingRemoteDesign = dirtyRef.current || savingRef.current || logoSavingRef.current;
       setShop(myShop);
+
+      if (shouldSkipApplyingRemoteDesign) {
+        return;
+      }
+
       const shopLogoSrc = String(myShop?.logoUrl || myShop?.logo_url || '').trim();
       setLogoDataUrl(shopLogoSrc);
       setLogoFile(null);
