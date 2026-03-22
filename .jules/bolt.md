@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2026-03-22 - [O(1) Favorites Lookup]
+**Learning:** Frequent `localStorage.getItem` and `JSON.parse` operations in React render cycles (like `ProductCard` in a list) create significant overhead and block the main thread.
+**Action:** Implement an in-memory `Set` cache for frequently accessed `localStorage` data, and synchronize it across tabs using the `storage` window event. This provides O(1) lookups instead of O(N) and eliminates redundant parsing.
