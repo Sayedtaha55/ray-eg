@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight, Sparkles } from 'lucide-react';
+import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
@@ -14,10 +14,10 @@ const MERCHANT_ONBOARDING_STORAGE_KEY = 'ray_merchant_onboarding';
 
 const SignupPage: React.FC = () => {
   const [role, setRole] = useState<'customer' | 'merchant'>('customer');
-  const [formData, setFormData] = useState({ 
-    name: '', 
-    email: '', 
-    password: '', 
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
     phone: '',
     shopName: '',
     category: Category.RETAIL,
@@ -30,6 +30,7 @@ const SignupPage: React.FC = () => {
     shopDescription: ''
   });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
@@ -217,7 +218,7 @@ const SignupPage: React.FC = () => {
         navigate(returnTo);
         return;
       }
-      
+
       if (role === 'merchant') {
         try {
           const myShop = await ApiService.getMyShop();
@@ -242,7 +243,7 @@ const SignupPage: React.FC = () => {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-20 flex items-center justify-center min-h-[80vh]">
-      <MotionDiv 
+      <MotionDiv
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className="w-full max-w-2xl bg-white border border-slate-100 p-8 md:p-12 rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] text-right"
@@ -253,7 +254,7 @@ const SignupPage: React.FC = () => {
         </header>
 
         <div className="flex p-2 bg-slate-50 rounded-[2rem] mb-10">
-           <button 
+           <button
              type="button"
              onClick={() => setRole('customer')}
              className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'customer' ? 'bg-white shadow-xl text-slate-900' : 'text-slate-400'}`}
@@ -261,7 +262,7 @@ const SignupPage: React.FC = () => {
               <User size={18} /> زبون
            </button>
            {allowMerchantSignup && (
-             <button 
+             <button
                type="button"
                onClick={() => setRole('merchant')}
                className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'merchant' ? 'bg-white shadow-xl text-[#00E5FF]' : 'text-slate-400'}`}
@@ -283,9 +284,9 @@ const SignupPage: React.FC = () => {
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">الاسم بالكامل</label>
-                <input 
-                  required 
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                <input
+                  required
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                   placeholder="أحمد محمد"
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
@@ -293,10 +294,10 @@ const SignupPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">رقم الموبايل</label>
-                <input 
-                  required 
-                  type="tel" 
-                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                <input
+                  required
+                  type="tel"
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                   placeholder="01x xxxx xxxx"
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
@@ -305,17 +306,17 @@ const SignupPage: React.FC = () => {
            </div>
 
            {role === 'merchant' && (
-             <motion.div 
-               initial={{ opacity: 0, height: 0 }} 
+             <motion.div
+               initial={{ opacity: 0, height: 0 }}
                animate={{ opacity: 1, height: 'auto' }}
                className="space-y-6 pt-4 border-t border-slate-50"
              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest mr-4">اسم المحل أو المطعم</label>
-                     <input 
+                     <input
                        required={role === 'merchant'}
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                        placeholder="مثلاً: محل الهدى"
                        value={formData.shopName}
                        onChange={(e) => setFormData({...formData, shopName: e.target.value})}
@@ -326,9 +327,9 @@ const SignupPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">المحافظة</label>
-                     <input 
+                     <input
                        required={role === 'merchant'}
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                        placeholder="القاهرة"
                        value={formData.governorate}
                        onChange={(e) => setFormData({...formData, governorate: e.target.value})}
@@ -336,9 +337,9 @@ const SignupPage: React.FC = () => {
                    </div>
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">المدينة / المنطقة</label>
-                     <input 
+                     <input
                        required={role === 'merchant'}
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                        placeholder="مدينة نصر"
                        value={formData.city}
                        onChange={(e) => setFormData({...formData, city: e.target.value})}
@@ -349,10 +350,10 @@ const SignupPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">موبايل المحل</label>
-                     <input 
+                     <input
                        required={role === 'merchant'}
                        type="tel"
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                        placeholder="01x xxxx xxxx"
                        value={formData.shopPhone}
                        onChange={(e) => setFormData({...formData, shopPhone: e.target.value})}
@@ -360,8 +361,8 @@ const SignupPage: React.FC = () => {
                    </div>
                    <div className="space-y-2">
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">مواعيد العمل</label>
-                     <input 
-                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+                     <input
+                       className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                        placeholder="مثال: ١٠ صباحاً - ١١ مساءً"
                        value={formData.openingHours}
                        onChange={(e) => setFormData({...formData, openingHours: e.target.value})}
@@ -406,10 +407,10 @@ const SignupPage: React.FC = () => {
 
            <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">البريد الإلكتروني</label>
-              <input 
-                required 
-                type="email" 
-                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
+              <input
+                required
+                type="email"
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                 placeholder="name@gmail.com"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
@@ -418,17 +419,28 @@ const SignupPage: React.FC = () => {
 
            <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">كلمة المرور</label>
-              <input 
-                required 
-                type="password" 
-                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none" 
-                placeholder="••••••••"
-                value={formData.password}
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
+              <div className="relative">
+                <input
+                  required
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-8 pl-16 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => setFormData({...formData, password: e.target.value})}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  disabled={loading}
+                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
+              </div>
            </div>
 
-           <button 
+           <button
              type="submit"
              disabled={loading}
              className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl hover:bg-black transition-all shadow-2xl mt-6 flex items-center justify-center gap-4 disabled:bg-slate-300"
