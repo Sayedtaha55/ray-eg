@@ -5,6 +5,8 @@ import { X, ShoppingBag, Trash2, CreditCard, Loader2, CheckCircle2, Plus, Minus 
 import { ApiService } from '@/services/api.service';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 import { RayDB } from '@/constants';
+import { locationPersistence } from '@/services/locationPersistence';
+import { explainGeoError, requestPreciseBrowserLocation } from '@/lib/geolocation';
 import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
 
 interface CartItem {
@@ -36,11 +38,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const [step, setStep] = useState<'cart' | 'cod_location'>('cart');
   const [isLocating, setIsLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [locationNote, setLocationNote] = useState('');
-  const [fallbackAddress, setFallbackAddress] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
-  const [customerNote, setCustomerNote] = useState('');
+  const checkoutDraft = React.useMemo(() => locationPersistence.getCheckoutLocation(), []);
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(checkoutDraft.coords);
+  const [locationNote, setLocationNote] = useState(checkoutDraft.locationNote);
+  const [fallbackAddress, setFallbackAddress] = useState(checkoutDraft.fallbackAddress);
+  const [customerPhone, setCustomerPhone] = useState(checkoutDraft.customerPhone);
+  const [customerNote, setCustomerNote] = useState(checkoutDraft.customerNote);
   const [deliveryFees, setDeliveryFees] = useState<Record<string, number | null>>({});
   const mapContainerRef = React.useRef<HTMLDivElement | null>(null);
   const mapRef = React.useRef<any>(null);
@@ -58,11 +61,12 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       setStep('cart');
       setIsLocating(false);
       setLocationError('');
-      setCoords(null);
-      setLocationNote('');
-      setFallbackAddress('');
-      setCustomerPhone('');
-      setCustomerNote('');
+      const saved = locationPersistence.getCheckoutLocation();
+      setCoords(saved.coords);
+      setLocationNote(saved.locationNote);
+      setFallbackAddress(saved.fallbackAddress);
+      setCustomerPhone(saved.customerPhone);
+      setCustomerNote(saved.customerNote);
       setError('');
       setInvalidLineIds([]);
       setDeliveryFees({});
@@ -73,6 +77,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       }
     }
   }, [isOpen]);
+
+  React.useEffect(() => {
+    locationPersistence.setCheckoutLocation({ coords, locationNote, fallbackAddress, customerPhone, customerNote });
+  }, [coords, locationNote, fallbackAddress, customerPhone, customerNote]);
 
   React.useEffect(() => {
     if (step === 'cod_location') return;
@@ -279,32 +287,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     setLocationError('');
 
     try {
-      if (!navigator.geolocation) {
+      const nextCoords = await requestPreciseBrowserLocation();
+      setCoords(nextCoords);
+    } catch (err) {
+      const message = String((err as any)?.message || '').trim();
+      if (message === 'GEO_UNSUPPORTED') {
         setLocationError('المتصفح لا يدعم تحديد الموقع');
-        setIsLocating(false);
-        return;
+      } else if (message === 'GEO_INSECURE_CONTEXT') {
+        setLocationError('تحديد الموقع يحتاج فتح الموقع عبر HTTPS.');
+      } else {
+        setLocationError(explainGeoError(err));
       }
-
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const lat = Number(pos?.coords?.latitude);
-          const lng = Number(pos?.coords?.longitude);
-          if (Number.isNaN(lat) || Number.isNaN(lng)) {
-            setLocationError('تعذر الحصول على الموقع');
-            setIsLocating(false);
-            return;
-          }
-          setCoords({ lat, lng });
-          setIsLocating(false);
-        },
-        () => {
-          setLocationError('تعذر الحصول على الموقع. فعل صلاحية الموقع أو اكتب العنوان');
-          setIsLocating(false);
-        },
-        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 },
-      );
-    } catch {
-      setLocationError('تعذر الحصول على الموقع');
+    } finally {
       setIsLocating(false);
     }
   };
@@ -416,6 +410,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         });
       }
       RayDB.clearCart();
+      locationPersistence.clearCheckoutLocation();
       setIsProcessing(false);
       setShowSuccess(true);
       window.dispatchEvent(new Event('orders-updated'));
@@ -732,6 +727,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                     <button
                       onClick={() => {
                         RayDB.clearCart();
+                        locationPersistence.clearCheckoutLocation();
                         setInvalidLineIds([]);
                         setError('تم تفريغ السلة');
                       }}

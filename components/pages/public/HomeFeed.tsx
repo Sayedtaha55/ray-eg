@@ -1,21 +1,14 @@
-
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
-import { Sparkles, TrendingUp, Loader2, MapPin, Utensils, ShoppingBag, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
-import { motion, useReducedMotion } from 'framer-motion';
+import { Utensils, ShoppingBag, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
+import { useReducedMotion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { Skeleton } from '@/components/common/ui';
 import { useCartSound } from '@/hooks/useCartSound';
+import HomeHero from './home/HomeHero';
+import OffersSection from './home/OffersSection';
 
-// Sub-components
-import OfferCard from './home/OfferCard';
-
-// Lazy load heavy global components
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
-
-const MotionDiv = motion.div as any;
-
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -84,8 +77,7 @@ const HomeFeed: React.FC = () => {
         offersLenRef.current = Array.isArray(offersData) ? offersData.length : 0;
         hasMoreOffersRef.current = nextHasMore;
         setHasMoreOffers(nextHasMore);
-      } catch (e) {
-        // Failed to fetch data - handled silently
+      } catch {
       } finally {
         setLoading(false);
       }
@@ -100,7 +92,6 @@ const HomeFeed: React.FC = () => {
         const list = Array.isArray(next) ? next : [];
         setOffers((prev) => {
           const merged = [...prev, ...list];
-          // Cap DOM nodes for weak devices by keeping only the most recent items
           const capped = merged.length > MAX_RENDERED_OFFERS ? merged.slice(merged.length - MAX_RENDERED_OFFERS) : merged;
           offersLenRef.current = capped.length;
           return capped;
@@ -136,7 +127,6 @@ const HomeFeed: React.FC = () => {
     scheduleInitialLoad();
     window.addEventListener('ray-db-update', loadData);
 
-    // IntersectionObserver instead of scroll listener
     try {
       if (observerRef.current) {
         observerRef.current.disconnect();
@@ -184,78 +174,9 @@ const HomeFeed: React.FC = () => {
     };
   }, [hasMoreOffers, offers.length]);
 
-  if (loading) return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-12 relative overflow-x-clip">
-      <div className="flex flex-col items-center text-center mb-10 md:mb-20 w-full">
-        <Skeleton className="h-9 w-36 max-w-full rounded-full mb-8 md:mb-10" />
-        <Skeleton className="h-10 md:h-20 w-full max-w-[720px] mb-4" />
-        <Skeleton className="h-10 md:h-20 w-full max-w-[560px] mb-6 md:mb-8" />
-        <Skeleton className="h-5 md:h-6 w-full max-w-[520px] mb-3 md:mb-4" />
-        <Skeleton className="h-5 md:h-6 w-full max-w-[420px] mb-8 md:mb-10" />
-        <Skeleton className="h-12 md:h-14 w-40 max-w-full rounded-2xl" />
-      </div>
-
-      <section className="mb-24">
-        <div className="flex items-center justify-between gap-3 mb-10 md:mb-20 flex-row-reverse px-2">
-          <Skeleton className="h-8 md:h-10 w-40 sm:w-56 md:w-72 max-w-[58%]" />
-          <Skeleton className="h-5 md:h-6 w-20 sm:w-24 md:w-28 shrink-0" />
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-12">
-          {Array.from({ length: 6 }).map((_, idx) => (
-            <div key={`offer-skel-${idx}`} className="bg-white p-3 sm:p-4 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 min-w-0">
-              <Skeleton className="relative aspect-[4/5] rounded-[1.5rem] md:rounded-[2.5rem] mb-4 md:mb-6" />
-              <div className="flex items-center justify-between gap-2 mb-4 flex-row-reverse">
-                <Skeleton className="h-5 md:h-6 w-full max-w-[70%]" />
-                <Skeleton className="h-5 md:h-6 w-12 md:w-16 rounded-full shrink-0" />
-              </div>
-              <Skeleton className="h-4 md:h-5 w-full mb-3" />
-              <Skeleton className="h-12 w-full rounded-2xl" />
-            </div>
-          ))}
-        </div>
-        {hasMoreOffers && (
-          <div className="mt-10 md:mt-16 flex items-center justify-center">
-            <button
-              type="button"
-              aria-label="تحميل المزيد من العروض"
-              onClick={() => {
-                loadMoreOffersRef.current?.();
-              }}
-              className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
-              disabled={loadingMore}
-            >
-              {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
-            </button>
-          </div>
-        )}
-      </section>
-    </div>
-  );
-
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
-      <div className="flex flex-col items-center text-center mb-8 md:mb-20">
-         <MotionDiv 
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
-            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-black text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
-         >
-            <Sparkles className="w-3 h-3 text-[#00E5FF] fill-current" />
-            عروض حصرية
-         </MotionDiv>
-         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">من مكانك<br/><span className="text-cyan-700">دليل المحلات والمطاعم.</span></h1>
-         <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
-            منصة من مكانك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات.
-         </p>
-
-         <Link
-           to="/map"
-           className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-black transition-all shadow-xl"
-         >
-           الخريطة <MapPin className="w-4 h-4" />
-         </Link>
-      </div>
+      <HomeHero prefersReducedMotion={prefersReducedMotion} />
 
       {import.meta.env.DEV && (
         <section className="mb-16 md:mb-24">
@@ -264,144 +185,106 @@ const HomeFeed: React.FC = () => {
             <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
           </div>
           <div className="relative max-w-4xl mx-auto w-full">
-          <div className="flex items-center justify-center gap-4">
-            {/* Left Arrow */}
-            <button
-              onClick={prevCategory}
-              className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
-              aria-label="السابق"
-            >
-              <ChevronRight className="w-6 h-6" />
-            </button>
-
-            {/* Category Card */}
-            <div className="flex-1 max-w-md min-w-0">
-              <Link
-                to={`/offers/${categories[currentCategoryIndex].id}`}
-                className={`group relative ${categories[currentCategoryIndex].cardClass} text-white rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-center transition-all hover:scale-105 hover:shadow-2xl overflow-hidden block min-w-0`}
+            <div className="flex items-center justify-center gap-4">
+              <button
+                onClick={prevCategory}
+                className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+                aria-label="السابق"
               >
-                <div
-                  className={`absolute inset-0 bg-gradient-to-br ${categories[currentCategoryIndex].gradientClass} opacity-0 group-hover:opacity-100 transition-opacity`}
-                />
-                <div className="relative z-10">
-                  {React.createElement(categories[currentCategoryIndex].icon, {
-                    className: 'w-16 h-16 md:w-20 md:h-20 mx-auto mb-4',
-                  })}
-                  <h3 className="text-xl sm:text-2xl md:text-3xl font-black mb-2 break-words">{categories[currentCategoryIndex].name}</h3>
-                  <p className="text-sm sm:text-base md:text-lg opacity-90 break-words">{categories[currentCategoryIndex].desc}</p>
-                </div>
-              </Link>
+                <ChevronRight className="w-6 h-6" />
+              </button>
+
+              <div className="flex-1 max-w-md min-w-0">
+                <Link
+                  to={`/offers/${categories[currentCategoryIndex].id}`}
+                  className={`group relative ${categories[currentCategoryIndex].cardClass} text-white rounded-[2rem] md:rounded-[3rem] p-6 sm:p-8 md:p-12 text-center transition-all hover:scale-105 hover:shadow-2xl overflow-hidden block min-w-0`}
+                >
+                  <div
+                    className={`absolute inset-0 bg-gradient-to-br ${categories[currentCategoryIndex].gradientClass} opacity-0 group-hover:opacity-100 transition-opacity`}
+                  />
+                  <div className="relative z-10">
+                    {React.createElement(categories[currentCategoryIndex].icon, {
+                      className: 'w-16 h-16 md:w-20 md:h-20 mx-auto mb-4',
+                    })}
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-black mb-2 break-words">{categories[currentCategoryIndex].name}</h3>
+                    <p className="text-sm sm:text-base md:text-lg opacity-90 break-words">{categories[currentCategoryIndex].desc}</p>
+                  </div>
+                </Link>
+              </div>
+
+              <button
+                onClick={nextCategory}
+                className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
+                aria-label="التالي"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
             </div>
 
-            {/* Right Arrow */}
-            <button
-              onClick={nextCategory}
-              className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
-              aria-label="التالي"
-            >
-              <ChevronLeft className="w-6 h-6" />
-            </button>
-          </div>
-
-          {/* Mobile Arrow Buttons */}
-          <div className="flex justify-center gap-4 mt-6 sm:hidden">
-            <button
-              onClick={prevCategory}
-              className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
-              aria-label="السابق"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-            <button
-              onClick={nextCategory}
-              className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
-              aria-label="التالي"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-          </div>
-
-          {/* Category Indicators */}
-          <div className="flex justify-center gap-1 mt-6">
-            {categories.map((_, index) => (
+            <div className="flex justify-center gap-4 mt-6 sm:hidden">
               <button
-                key={index}
-                onClick={() => setCurrentCategoryIndex(index)}
-                className={`h-11 min-w-11 px-2 flex items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00E5FF] ${
-                  index === currentCategoryIndex ? 'bg-slate-900/10' : 'bg-transparent hover:bg-slate-100'
-                }`}
-                aria-label={`الفئة ${index + 1}`}
-                aria-current={index === currentCategoryIndex ? 'true' : undefined}
+                onClick={prevCategory}
+                className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
+                aria-label="السابق"
               >
-                <span
-                  className={`block h-3 rounded-full transition-all ${
-                    index === currentCategoryIndex ? 'bg-slate-900 w-8' : 'bg-slate-400 w-3'
-                  }`}
-                />
+                <ChevronRight className="w-5 h-5" />
               </button>
-            ))}
-          </div>
+              <button
+                onClick={nextCategory}
+                className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
+                aria-label="التالي"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex justify-center gap-1 mt-6">
+              {categories.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentCategoryIndex(index)}
+                  className={`h-11 min-w-11 px-2 flex items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00E5FF] ${
+                    index === currentCategoryIndex ? 'bg-slate-900/10' : 'bg-transparent hover:bg-slate-100'
+                  }`}
+                  aria-label={`الفئة ${index + 1}`}
+                  aria-current={index === currentCategoryIndex ? 'true' : undefined}
+                >
+                  <span
+                    className={`block h-3 rounded-full transition-all ${
+                      index === currentCategoryIndex ? 'bg-slate-900 w-8' : 'bg-slate-400 w-3'
+                    }`}
+                  />
+                </button>
+              ))}
+            </div>
           </div>
         </section>
       )}
 
-      {/* Offers Grid */}
-      <section className="mb-16 md:mb-24">
-        <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
-           <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
-           <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
-             مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
-           </Link>
-        </div>
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
-          {offers.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض نشطة حالياً.</div>
-          ) : offers.map((offer, idx) => (
-            <div key={offer.id} className="cv-auto">
-              <OfferCard
-              offer={offer}
-              idx={idx}
-              navigate={navigate}
-              setSelectedItem={setSelectedItem}
-                playSound={playSound}
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Sentinel for IntersectionObserver pagination */}
-        {hasMoreOffers && (
-          <div ref={loadMoreSentinelRef} className="h-10" aria-hidden="true" />
-        )}
-
-        {hasMoreOffers && (
-          <div className="mt-10 md:mt-16 flex items-center justify-center">
-            <button
-              type="button"
-              aria-label="تحميل المزيد من العروض"
-              onClick={() => loadMoreOffersRef.current?.()}
-              className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
-              disabled={loadingMore}
-            >
-              {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
-            </button>
-          </div>
-        )}
-      </section>
+      <OffersSection
+        loading={loading}
+        loadingMore={loadingMore}
+        hasMoreOffers={hasMoreOffers}
+        offers={offers}
+        navigate={navigate as any}
+        setSelectedItem={setSelectedItem}
+        playSound={playSound}
+        loadMoreSentinelRef={loadMoreSentinelRef}
+        loadMoreOffers={() => loadMoreOffersRef.current?.()}
+      />
 
       <Suspense fallback={null}>
-        <ReservationModal 
-          isOpen={!!selectedItem} 
-          onClose={() => setSelectedItem(null)} 
+        <ReservationModal
+          isOpen={!!selectedItem}
+          onClose={() => setSelectedItem(null)}
           item={selectedItem ? {
             id: selectedItem.id,
             name: selectedItem.title,
             image: selectedItem.imageUrl,
             price: selectedItem.newPrice,
             shopId: selectedItem.shopId,
-            shopName: selectedItem.shopName
-          } : null} 
+            shopName: selectedItem.shopName,
+          } : null}
         />
       </Suspense>
     </div>
