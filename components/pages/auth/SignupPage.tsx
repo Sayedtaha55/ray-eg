@@ -5,8 +5,8 @@ import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapP
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
-import { clearSession, persistSession } from '@/services/authStorage';
-import { normalizeSafeReturnTo } from '@/services/authRedirect';
+import { clearSession, persistMerchantContext, persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
+import { normalizeSafeReturnTo, resolvePostAuthDestination } from '@/services/authRedirect';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -214,21 +214,40 @@ const SignupPage: React.FC = () => {
         return;
       }
 
-      if (role === 'merchant') {
-        try {
-          const myShop = await ApiService.getMyShop();
-          const status = String(myShop?.status || '').toLowerCase();
-          if (status !== 'approved') {
-            navigate('/business/pending');
-            return;
+      const normalizedRole = String((response as any)?.user?.role || role || '').trim().toLowerCase();
+
+      if (normalizedRole === 'merchant') {
+        const responseShop = (response as any)?.shop;
+        const responseShopStatus = String(responseShop?.status || '').trim().toLowerCase();
+
+        if (responseShopStatus) {
+          persistMerchantContext({
+            shopId: responseShop?.id ? String(responseShop.id) : undefined,
+            status: responseShopStatus,
+          });
+        } else {
+          try {
+            await syncMerchantContextFromBackend((response as any)?.user);
+          } catch {
+            const fallbackStatus = String(((response as any)?.user?.shop?.status) || '').trim().toLowerCase();
+            if (fallbackStatus) {
+              persistMerchantContext({
+                shopId: (response as any)?.user?.shopId ? String((response as any)?.user?.shopId) : undefined,
+                status: fallbackStatus,
+              });
+            }
           }
-          navigate('/business/dashboard');
-        } catch {
-          navigate('/business/pending');
         }
-      } else {
-        navigate('/profile');
       }
+
+      const targetRoute = await resolvePostAuthDestination({
+        role: normalizedRole,
+        user: (response as any)?.user,
+        returnTo,
+        merchantStatus: (response as any)?.shop?.status,
+      });
+
+      navigate(targetRoute, { replace: true } as any);
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء التسجيل');
     } finally {

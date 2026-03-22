@@ -442,45 +442,47 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
           </button>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-3 md:p-4 grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
-          {filteredProducts.map(p => (
-            <POSProductCard
-              key={p.id}
-              product={p}
-              addToCart={addToCart}
-              showConfigureIcon={
-                (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0) ||
-                (isFashion && (p?.sizes?.length > 1 || p?.colors?.length > 0)) ||
-                (isRestaurant && shopAddonsDef.length > 0)
-              }
-              onConfigure={(prod) => {
-                setConfigProduct(prod);
-                setSelectedAddons([]);
-                try {
-                  const menuVariants = (prod?.menuVariants ?? prod?.menu_variants) as any[];
-                  const firstType = Array.isArray(menuVariants) ? menuVariants[0] : undefined;
-                  const firstTypeId = String(firstType?.id || '').trim();
-                  const firstSize = Array.isArray(firstType?.sizes) ? firstType.sizes[0] : undefined;
-                  const firstSizeId = String(firstSize?.id || '').trim();
-                  setSelectedMenuTypeId(firstTypeId);
-                  setSelectedMenuSizeId(firstSizeId);
-                } catch {
-                  setSelectedMenuTypeId('');
-                  setSelectedMenuSizeId('');
+        <div className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom,0px)+8.5rem)] md:p-4 md:pb-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+            {filteredProducts.map(p => (
+              <POSProductCard
+                key={p.id}
+                product={p}
+                addToCart={addToCart}
+                showConfigureIcon={
+                  (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0) ||
+                  (isFashion && (p?.sizes?.length > 1 || p?.colors?.length > 0)) ||
+                  (isRestaurant && shopAddonsDef.length > 0)
                 }
-                if (isFashion) {
-                  setSelectedFashionColorValue(prod?.colors?.[0]?.value || '');
-                  setSelectedFashionSize(prod?.sizes?.[0]?.label || '');
-                }
-                setIsConfigOpen(true);
-              }}
-              isProductHasMenuVariants={(p) => (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0)}
-              isProductHasFashionDifferentSizePrices={(p) => isFashion && p?.sizes?.length > 1}
-              getProductEffectivePrice={getProductEffectivePrice}
-              getProductStock={getProductStock}
-              isProductTrackStockEnabled={(p) => p?.trackStock ?? p?.track_stock ?? true}
-            />
-          ))}
+                onConfigure={(prod) => {
+                  setConfigProduct(prod);
+                  setSelectedAddons([]);
+                  try {
+                    const menuVariants = (prod?.menuVariants ?? prod?.menu_variants) as any[];
+                    const firstType = Array.isArray(menuVariants) ? menuVariants[0] : undefined;
+                    const firstTypeId = String(firstType?.id || '').trim();
+                    const firstSize = Array.isArray(firstType?.sizes) ? firstType.sizes[0] : undefined;
+                    const firstSizeId = String(firstSize?.id || '').trim();
+                    setSelectedMenuTypeId(firstTypeId);
+                    setSelectedMenuSizeId(firstSizeId);
+                  } catch {
+                    setSelectedMenuTypeId('');
+                    setSelectedMenuSizeId('');
+                  }
+                  if (isFashion) {
+                    setSelectedFashionColorValue(prod?.colors?.[0]?.value || '');
+                    setSelectedFashionSize(prod?.sizes?.[0]?.label || '');
+                  }
+                  setIsConfigOpen(true);
+                }}
+                isProductHasMenuVariants={(p) => (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0)}
+                isProductHasFashionDifferentSizePrices={(p) => isFashion && p?.sizes?.length > 1}
+                getProductEffectivePrice={getProductEffectivePrice}
+                getProductStock={getProductStock}
+                isProductTrackStockEnabled={(p) => p?.trackStock ?? p?.track_stock ?? true}
+              />
+            ))}
+          </div>
         </div>
       </div>
 

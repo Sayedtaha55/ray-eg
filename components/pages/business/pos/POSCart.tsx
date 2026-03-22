@@ -154,11 +154,11 @@ const POSCart: React.FC<POSCartProps> = ({
     const sheetYClosed = 520;
     return (
       <>
-        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-[120] md:hidden pointer-events-none">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="w-full px-4 pb-4"
+            className="pointer-events-auto w-full px-4 pb-[calc(env(safe-area-inset-bottom,0px)+1rem)]"
           >
             <div className="mx-auto max-w-[1400px] rounded-[1.6rem] bg-slate-900 text-white shadow-2xl flex items-center justify-between p-4">
               <div className="flex items-center gap-3">

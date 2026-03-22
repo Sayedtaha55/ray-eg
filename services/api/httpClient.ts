@@ -238,11 +238,29 @@ function isAuthPublicEndpoint(path: string) {
   );
 }
 
+function buildLoginRedirectUrl() {
+  if (typeof window === 'undefined') return '/login';
+
+  const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
+  const returnTo = `${window.location.pathname || '/'}${window.location.search || ''}${window.location.hash || ''}`;
+  const qs = new URLSearchParams();
+
+  if (returnTo && returnTo !== '/' && returnTo !== '/#/' && returnTo !== '/login' && returnTo !== '/#/login') {
+    qs.set('returnTo', returnTo);
+  }
+
+  const loginPath = `/login${qs.toString() ? `?${qs.toString()}` : ''}`;
+  if (routerMode === 'browser') return loginPath;
+
+  const basePath = `${window.location.origin}${window.location.pathname}`.replace(/\/$/, '');
+  return `${basePath}/#${loginPath}`;
+}
+
 function handleUnauthorized(path: string, token: string) {
   if (!token || isAuthPublicEndpoint(path)) return false;
   clearStoredAuth('unauthorized');
   if (typeof window !== 'undefined') {
-    window.location.href = '/login';
+    window.location.href = buildLoginRedirectUrl();
   }
   return true;
 }
