@@ -6,7 +6,7 @@ const MapContainer = lazy(() => import('./MapContainer'));
 interface MapRendererProps {
   shops: any[];
   coords: { lat: number; lng: number } | null;
-  onMapReady: () => void;
+  onMapReady?: () => void;
   navigate: (url: string) => void;
 }
 

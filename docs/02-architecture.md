@@ -166,6 +166,31 @@ prisma/
 ### 2.3.2 نظام التوجيه (Routing System)
 **App.tsx - Central Router Configuration:**
 ```typescript
+// App shell only
+- Router shell setup
+- auth bootstrap lifecycle
+- redirector mounting
+- route warmup scheduling
+```
+
+**app/AppRoutes.tsx - Central Route Tree:**
+```typescript
+// Route definition module
+- Public/business/admin/courier routes
+- Nested layouts
+- Shared suspense wrappers
+- Legacy redirects
+```
+
+**app/routerHelpers.tsx / app/routeWarmup.ts:**
+```typescript
+// Small focused router helpers
+- suspense fallback helpers
+- redirect components
+- route warmup heuristics
+```
+
+```typescript
 // ميزات التوجيه المتقدمة
 - Dynamic routing mode (Hash/Browser Router)
 - Lazy loading للـ code splitting
@@ -517,3 +542,11 @@ npm run backend:dev:stable        # Stable development setup
 - **Predictive Scaling:** AI-powered scaling decisions
 - **Manual Scaling:** Administrative override capabilities
 - **Cost Optimization:** Resource usage optimization
+
+
+### 2.3.6 إعادة تنظيم الملفات الكبيرة
+- تم فصل شجرة الـ routes عن `App.tsx` إلى `app/AppRoutes.tsx`.
+- تم فصل helpers الخاصة بالتوجيه إلى `app/routerHelpers.tsx`.
+- تم فصل route warmup logic إلى `app/routeWarmup.ts`.
+- تم تقسيم الصفحة الرئيسية إلى منسّق حالة (`HomeFeed.tsx`) + أقسام UI مستقلة داخل `components/pages/public/home/`.
+- التفاصيل العملية موجودة في `docs/10-frontend-structure-refactor.md`.
