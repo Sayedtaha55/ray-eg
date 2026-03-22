@@ -1,11 +1,19 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Store, Search, Plus, Eye, Edit, Check, X, Loader2 } from 'lucide-react';
+import { Store, Search, Eye, Edit, Check, X, Loader2, ExternalLink, MapPin, Phone, Mail, Globe, Ban, ShieldCheck, Truck, LayoutGrid } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import Modal from '@/components/common/ui/Modal';
 
 const MotionDiv = motion.div as any;
+
+const fmtDate = (value: any) => {
+  if (!value) return '-';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '-';
+  return d.toLocaleString('ar-EG');
+};
 
 const AdminShops: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -13,15 +21,17 @@ const AdminShops: React.FC = () => {
   const [pendingShops, setPendingShops] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [shopStatusFilter, setShopStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>('all');
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [selectedShop, setSelectedShop] = useState<any>(null);
+  const [selectedShopDetails, setSelectedShopDetails] = useState<any>(null);
+  const [actionId, setActionId] = useState('');
   const { addToast } = useToast();
 
   const loadData = async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!silent) setLoading(true);
     try {
-      const [allS, p] = await Promise.all([
-        ApiService.getShops('all'),
-        ApiService.getPendingShops(),
-      ]);
+      const [allS, p] = await Promise.all([ApiService.getShops('all'), ApiService.getPendingShops()]);
       setShops(Array.isArray(allS) ? allS : []);
       setPendingShops(Array.isArray(p) ? p : []);
     } catch {
@@ -35,11 +45,8 @@ const AdminShops: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  useEffect(() => { loadData(); }, []);
 
-  // Smart event-driven refresh
   useSmartRefreshListener(['shop', 'all'], () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     loadData({ silent: true });
@@ -48,9 +55,10 @@ const AdminShops: React.FC = () => {
   const getShopDeliveryFee = (shop: any): number | null => {
     const raw = (shop?.layoutConfig as any)?.deliveryFee;
     const n = typeof raw === 'number' ? raw : raw == null ? NaN : Number(raw);
-    if (Number.isNaN(n) || n < 0) return null;
-    return n;
+    return Number.isNaN(n) || n < 0 ? null : n;
   };
+
+  const getEnabledModulesCount = (shop: any) => Array.isArray((shop?.layoutConfig as any)?.enabledModules) ? (shop.layoutConfig.enabledModules || []).length : 0;
 
   const editShopDeliveryFee = async (shop: any) => {
     try {
@@ -61,31 +69,96 @@ const AdminShops: React.FC = () => {
       if (Number.isNaN(fee) || fee < 0) return;
       await ApiService.updateMyShop({ shopId: String(shop.id), deliveryFee: fee });
       addToast('تم تحديث رسوم التوصيل', 'success');
-      loadData();
+      await loadData({ silent: true });
+      if (selectedShop?.id === shop?.id) {
+        const refreshed = await ApiService.getShopAdminById(String(shop.id));
+        setSelectedShopDetails(refreshed);
+      }
     } catch {
       addToast('فشل تحديث رسوم التوصيل', 'error');
     }
   };
 
-  const handleApprovalAction = async (id: string, action: 'approved' | 'rejected') => {
+  const handleApprovalAction = async (id: string, action: 'approved' | 'rejected' | 'pending') => {
     try {
-      await ApiService.updateShopStatus(id, action);
-      addToast(action === 'approved' ? 'تمت الموافقة على المحل' : 'تم رفض الطلب', 'success');
-      loadData();
+      setActionId(id);
+      await (ApiService as any).updateShopStatus(id, action);
+      addToast(action === 'approved' ? 'تمت الموافقة على المتجر' : action === 'rejected' ? 'تم رفض الطلب' : 'تمت إعادة المتجر للمراجعة', 'success');
+      await loadData({ silent: true });
+      if (selectedShop?.id === id) {
+        const refreshed = await ApiService.getShopAdminById(String(id));
+        setSelectedShopDetails(refreshed);
+      }
     } catch {
       addToast('فشلت العملية', 'error');
+    } finally {
+      setActionId('');
+    }
+  };
+
+  const handleSuspendToggle = async (shop: any, nextStatus: 'approved' | 'suspended') => {
+    try {
+      setActionId(String(shop?.id || ''));
+      await (ApiService as any).updateShopStatus(String(shop?.id || ''), nextStatus === 'approved' ? 'approved' : 'suspended');
+      addToast(nextStatus === 'approved' ? 'تمت إعادة تفعيل المتجر' : 'تم تعليق المتجر', 'success');
+      await loadData({ silent: true });
+      if (selectedShop?.id === shop?.id) {
+        const refreshed = await ApiService.getShopAdminById(String(shop.id));
+        setSelectedShopDetails(refreshed);
+      }
+    } catch {
+      addToast('فشلت العملية', 'error');
+    } finally {
+      setActionId('');
+    }
+  };
+
+  const toggleFlag = async (shop: any, key: 'publicDisabled' | 'deliveryDisabled', nextValue: boolean) => {
+    try {
+      setActionId(String(shop?.id || ''));
+      await ApiService.updateMyShop({ shopId: String(shop?.id || ''), [key]: nextValue });
+      addToast(key === 'publicDisabled' ? 'تم تحديث ظهور المتجر' : 'تم تحديث حالة التوصيل', 'success');
+      await loadData({ silent: true });
+      if (selectedShop?.id === shop?.id) {
+        const refreshed = await ApiService.getShopAdminById(String(shop.id));
+        setSelectedShopDetails(refreshed);
+      }
+    } catch (e: any) {
+      addToast(String(e?.message || 'فشل حفظ التعديل'), 'error');
+    } finally {
+      setActionId('');
+    }
+  };
+
+  const openShopDetails = async (shop: any) => {
+    setSelectedShop(shop);
+    setSelectedShopDetails(null);
+    setDetailsOpen(true);
+    setDetailsLoading(true);
+    try {
+      const data = await ApiService.getShopAdminById(String(shop?.id || ''));
+      setSelectedShopDetails(data || null);
+    } catch (e: any) {
+      addToast(String(e?.message || 'فشل تحميل تفاصيل المتجر'), 'error');
+    } finally {
+      setDetailsLoading(false);
     }
   };
 
   const filteredShops = useMemo(() => {
     return shops.filter((shop: any) => {
-      const matchesSearch = !searchTerm ||
-        String(shop?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        String(shop?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
+      const q = searchTerm.toLowerCase();
+      const matchesSearch = !searchTerm || [shop?.name, shop?.email, shop?.phone, shop?.city, shop?.governorate, shop?.slug].some((x) => String(x || '').toLowerCase().includes(q));
       const matchesStatus = shopStatusFilter === 'all' || String(shop?.status || '').toUpperCase() === shopStatusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [shops, searchTerm, shopStatusFilter]);
+
+  const selected = selectedShopDetails || selectedShop;
+  const selectedStatus = String(selected?.status || '').toUpperCase();
+  const selectedPublicDisabled = Boolean(selected?.publicDisabled ?? selected?.public_disabled ?? false);
+  const selectedDeliveryDisabled = Boolean(selected?.deliveryDisabled ?? selected?.delivery_disabled ?? false);
+  const enabledModules = Array.isArray((selected?.layoutConfig as any)?.enabledModules) ? selected.layoutConfig.enabledModules : [];
 
   if (loading) return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" /></div>;
 
@@ -93,18 +166,18 @@ const AdminShops: React.FC = () => {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="flex items-center gap-4">
-          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl">
-            <Store size={24} />
-          </div>
+          <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl"><Store size={24} /></div>
           <div>
             <h2 className="text-3xl font-black text-white">إدارة المتاجر</h2>
-            <p className="text-slate-500 text-sm font-bold">متابعة وتحديث حالة المتاجر ورسوم التوصيل.</p>
+            <p className="text-slate-500 text-sm font-bold">تفاصيل كاملة للمتاجر مع إجراءات مباشرة من شاشة الأدمن.</p>
           </div>
         </div>
 
-        <button className="px-4 py-3 bg-[#00E5FF] text-black rounded-2xl font-black text-sm flex items-center gap-2 hover:scale-105 transition-all">
-          <Plus size={18} /> متجر جديد
-        </button>
+        <div className="grid grid-cols-3 gap-3 w-full md:w-auto">
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">الإجمالي</div><div className="mt-2 text-white text-2xl font-black">{shops.length}</div></div>
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">معلق</div><div className="mt-2 text-amber-400 text-2xl font-black">{pendingShops.length}</div></div>
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">نشط</div><div className="mt-2 text-emerald-400 text-2xl font-black">{shops.filter((s: any) => String(s?.status || '').toUpperCase() === 'APPROVED').length}</div></div>
+        </div>
       </div>
 
       {pendingShops.length > 0 && (
@@ -112,15 +185,16 @@ const AdminShops: React.FC = () => {
           <h3 className="text-white font-black text-lg mb-4">طلبات موافقة متاجر ({pendingShops.length})</h3>
           <div className="space-y-3">
             {pendingShops.slice(0, 6).map((shop: any) => (
-              <div key={shop.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div key={shop.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
                 <div className="flex items-center gap-4 flex-row-reverse">
-                  <img src={shop.logo_url} className="w-12 h-12 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
+                  <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-12 h-12 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
                   <div className="text-right">
                     <div className="text-white font-black">{shop.name}</div>
                     <div className="text-slate-500 text-xs font-bold">{shop.governorate} • {shop.city} • {shop.category}</div>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => openShopDetails(shop)} className="px-4 py-2 bg-white/5 text-slate-200 rounded-xl font-black text-xs flex items-center gap-2"><Eye size={16} /> تفاصيل</button>
                   <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="px-4 py-2 bg-green-500 text-white rounded-xl font-black text-xs flex items-center gap-2"><Check size={16} /> موافقة</button>
                   <button onClick={() => handleApprovalAction(shop.id, 'rejected')} className="px-4 py-2 bg-red-500/10 text-red-400 rounded-xl font-black text-xs flex items-center gap-2"><X size={16} /> رفض</button>
                 </div>
@@ -134,20 +208,9 @@ const AdminShops: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="البحث عن المتاجر..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
-            />
+            <input type="text" placeholder="ابحث بالاسم / المدينة / السلاج / البريد..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
           </div>
-
-          <select
-            value={shopStatusFilter}
-            onChange={(e) => setShopStatusFilter(e.target.value as any)}
-            className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
-          >
+          <select value={shopStatusFilter} onChange={(e) => setShopStatusFilter(e.target.value as any)} className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30">
             <option value="all">جميع الحالات</option>
             <option value="APPROVED">نشط</option>
             <option value="PENDING">معلق</option>
@@ -157,75 +220,138 @@ const AdminShops: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-right border-collapse min-w-[800px]">
+          <table className="w-full text-right border-collapse min-w-[1180px]">
             <thead>
               <tr className="border-b border-white/10">
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المتجر</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الفئة</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المدينة</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">رسوم التوصيل</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المالك</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">التوصيل</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الأزرار</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">إجراءات</th>
               </tr>
             </thead>
             <tbody>
-              {filteredShops.map((shop: any) => (
-                <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-10 h-10 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
-                      <div className="min-w-0">
-                        <div className="text-white font-black truncate">{shop.name}</div>
-                        <div className="text-slate-500 text-xs font-bold truncate">{shop.phone || shop.email || ''}</div>
+              {filteredShops.map((shop: any) => {
+                const status = String(shop.status || '').toUpperCase();
+                return (
+                  <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3">
+                        <img src={shop.logoUrl || shop.logo_url || '/default-shop.png'} className="w-10 h-10 rounded-xl object-cover bg-slate-800" loading="lazy" decoding="async" fetchPriority="low" />
+                        <div className="min-w-0">
+                          <div className="text-white font-black truncate">{shop.name}</div>
+                          <div className="text-slate-500 text-xs font-bold truncate">/{shop.slug || '-'} • {shop.category || '-'}</div>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className="px-3 py-1 bg-white/10 text-slate-300 rounded-xl text-xs font-black">{shop.category}</span>
-                  </td>
-                  <td className="p-4 text-slate-300 font-bold text-sm">{shop.city}</td>
-                  <td className="p-4 text-slate-300 font-bold text-sm">
-                    <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">
-                      {getShopDeliveryFee(shop) ?? 0} ج.م
-                    </button>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-3 py-1 rounded-xl text-xs font-black ${
-                      String(shop.status || '').toUpperCase() === 'APPROVED'
-                        ? 'bg-green-500/20 text-green-400'
-                        : String(shop.status || '').toUpperCase() === 'REJECTED'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-amber-500/20 text-amber-400'
-                    }`}>
-                      {String(shop.status || '').toUpperCase() === 'APPROVED'
-                        ? 'نشط'
-                        : String(shop.status || '').toUpperCase() === 'REJECTED'
-                          ? 'مرفوض'
-                          : 'معلق'}
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex gap-2">
-                      <button className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="عرض">
-                        <Eye className="w-4 h-4" />
-                      </button>
-                      <button className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="تعديل">
-                        <Edit className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="p-4 text-slate-300 font-bold text-sm">
+                      <div>{shop?.owner?.name || '-'}</div>
+                      <div className="text-slate-500 text-xs mt-1">{shop?.owner?.email || shop?.email || '-'}</div>
+                    </td>
+                    <td className="p-4 text-slate-300 font-bold text-sm">{shop.governorate || '-'}<div className="text-slate-500 text-xs mt-1">{shop.city || '-'}</div></td>
+                    <td className="p-4 text-slate-300 font-bold text-sm">
+                      <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">{getShopDeliveryFee(shop) ?? 0} ج.م</button>
+                      <div className="text-slate-500 text-xs mt-1">{Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled) ? 'التوصيل معطل' : 'التوصيل مفعل'}</div>
+                    </td>
+                    <td className="p-4 text-slate-300 font-bold text-sm">{getEnabledModulesCount(shop)} زر</td>
+                    <td className="p-4"><span className={`px-3 py-1 rounded-xl text-xs font-black ${status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : status === 'REJECTED' ? 'bg-red-500/20 text-red-400' : status === 'SUSPENDED' ? 'bg-fuchsia-500/20 text-fuchsia-300' : 'bg-amber-500/20 text-amber-400'}`}>{status === 'APPROVED' ? 'نشط' : status === 'REJECTED' ? 'مرفوض' : status === 'SUSPENDED' ? 'معلق إدارياً' : 'معلق'}</span></td>
+                    <td className="p-4">
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => openShopDetails(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="عرض"><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => editShopDeliveryFee(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="تعديل رسوم التوصيل"><Edit className="w-4 h-4" /></button>
+                        {status === 'PENDING' ? <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300" title="موافقة"><Check className="w-4 h-4" /></button> : null}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
 
-        {filteredShops.length === 0 && (
-          <div className="text-center py-12 text-slate-500 font-bold">
-            {searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد متاجر'}
-          </div>
-        )}
+        {filteredShops.length === 0 && <div className="text-center py-12 text-slate-500 font-bold">{searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد متاجر'}</div>}
       </div>
+
+      <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title="تفاصيل المتجر" size="xl">
+        {detailsLoading ? (
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
+        ) : selected ? (
+          <div className="space-y-5 text-right">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <div className="lg:col-span-2 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-2xl font-black text-white">{selected?.name || 'متجر'}</h3>
+                    <div className="mt-2 space-y-2 text-sm font-bold text-slate-300">
+                      <div className="flex items-center gap-2 justify-end"><Globe size={14} className="text-slate-500" /> /{selected?.slug || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-500" /> {selected?.email || selected?.owner?.email || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><Phone size={14} className="text-slate-500" /> {selected?.phone || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end"><MapPin size={14} className="text-slate-500" /> {selected?.governorate || '-'} • {selected?.city || '-'}</div>
+                    </div>
+                  </div>
+                  <img src={selected?.logoUrl || selected?.logo_url || '/default-shop.png'} className="w-20 h-20 rounded-3xl object-cover bg-slate-800" />
+                </div>
+                {selected?.description ? <div className="mt-4 text-sm font-bold text-slate-300 leading-7">{selected.description}</div> : null}
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                <div className="text-white font-black">إجراءات مباشرة</div>
+                <div className="mt-4 space-y-3">
+                  <button onClick={() => window.open(`/shop/${selected?.slug || selected?.id}`, '_blank')} className="w-full px-4 py-3 rounded-2xl bg-white/5 text-slate-100 font-black text-sm flex items-center justify-center gap-2"><ExternalLink size={16} /> فتح صفحة المتجر</button>
+                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'approved')} className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"><Check size={16} /> قبول المتجر</button> : null}
+                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'rejected')} className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"><X size={16} /> رفض الطلب</button> : null}
+                  {selectedStatus === 'APPROVED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'suspended')} className="w-full px-4 py-3 rounded-2xl bg-fuchsia-500/15 text-fuchsia-300 font-black text-sm flex items-center justify-center gap-2"><Ban size={16} /> تعليق المتجر</button> : null}
+                  {selectedStatus === 'SUSPENDED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'approved')} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> إعادة التفعيل</button> : null}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                ['الحالة', selectedStatus || '-'],
+                ['رسوم التوصيل', `ج.م ${Number(getShopDeliveryFee(selected) || 0).toLocaleString()}`],
+                ['عدد الأزرار', enabledModules.length],
+                ['تاريخ الإنشاء', fmtDate(selected?.createdAt)],
+              ].map(([label, value]: any) => (
+                <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center"><div className="text-slate-500 text-[11px] font-black">{label}</div><div className="mt-2 text-white font-black">{value}</div></div>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                <div className="text-white font-black flex items-center gap-2 justify-end"><LayoutGrid size={16} /> إعدادات الظهور والخدمات</div>
+                <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">ظهور المتجر للعامة</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'publicDisabled', !selectedPublicDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedPublicDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{selectedPublicDisabled ? 'مخفي - إظهار' : 'ظاهر - إخفاء'}</button></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">خدمة التوصيل</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'deliveryDisabled', !selectedDeliveryDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedDeliveryDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-sky-500/15 text-sky-300'}`}>{selectedDeliveryDisabled ? 'معطلة - تفعيل' : 'مفعلة - تعطيل'}</button></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">لوحة التحكم</span><span>{String((selected?.layoutConfig as any)?.dashboardMode || '-')}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">صاحب المتجر</span><span>{selected?.owner?.name || '-'}</span></div>
+                </div>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+                <div className="text-white font-black flex items-center gap-2 justify-end"><Truck size={16} /> تفاصيل إضافية</div>
+                <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">العنوان الظاهر</span><span>{selected?.displayAddress || selected?.addressDetailed || '-'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">واتساب</span><span>{selected?.whatsapp || '-'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">عدد الزيارات</span><span>{Number(selected?.visitors || 0).toLocaleString()}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">آخر تحديث</span><span>{fmtDate(selected?.updatedAt)}</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
+              <div className="text-white font-black mb-4">الأزرار / الموديولات المفعلة</div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {enabledModules.length === 0 ? <span className="text-slate-500 font-bold">لا توجد أزرار مفعلة بعد.</span> : enabledModules.map((moduleId: any) => <span key={String(moduleId)} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">{String(moduleId)}</span>)}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="text-slate-400 font-bold text-center py-16">لا توجد بيانات لعرضها.</div>
+        )}
+      </Modal>
     </div>
   );
 };

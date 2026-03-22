@@ -78,6 +78,8 @@ model User {
   followingShops Shop[] @relation("ShopFollowers")
   notificationPreferences NotificationPreference?
 
+  @@index([role, isActive, createdAt])
+  @@index([isActive, createdAt])
   @@map("users")
 }
 
@@ -185,6 +187,7 @@ model Product {
   imageHotspots ShopImageHotspot[]
   furnitureMeta ProductFurnitureMeta?
 
+  @@index([shopId, isActive, createdAt])
   @@map("products")
 }
 
@@ -315,6 +318,10 @@ model Order {
   shop          Shop          @relation(fields: [shopId], references: [id])
   items         OrderItem[]
 
+  @@index([shopId, status, createdAt])
+  @@index([courierId, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("orders")
 }
 

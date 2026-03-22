@@ -512,25 +512,59 @@ export class ShopService {
     return await this.shopSettings.updateShopSettings(shopId, input);
   }
 
-  async getShopsByStatus(status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'ALL' = 'ALL') {
+  async getShopsByStatus(input: {
+    status?: 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'ALL';
+    take?: number;
+    skip?: number;
+    search?: string;
+  } = {}) {
     const startTime = Date.now();
 
     try {
+      const status = input?.status || 'ALL';
+      const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : 100;
+      const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : 0;
+      const take = Math.min(200, Math.max(1, Math.floor(takeRaw)));
+      const skip = Math.max(0, Math.floor(skipRaw));
+      const search = String(input?.search || '').trim();
+
       const shops = await this.prisma.shop.findMany({
         where: {
           ...(status === 'ALL' ? {} : { status: status as any }),
+          ...(search ? {
+            OR: [
+              { name: { contains: search, mode: 'insensitive' as any } },
+              { slug: { contains: search, mode: 'insensitive' as any } },
+              { city: { contains: search, mode: 'insensitive' as any } },
+              { governorate: { contains: search, mode: 'insensitive' as any } },
+              { phone: { contains: search, mode: 'insensitive' as any } },
+              { email: { contains: search, mode: 'insensitive' as any } },
+              { owner: { is: { email: { contains: search, mode: 'insensitive' as any } } } },
+            ],
+          } : {}),
         },
-        orderBy: {
-          createdAt: 'desc',
-        },
-        include: {
-          owner: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
+        orderBy: { createdAt: 'desc' },
+        take,
+        skip,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          category: true,
+          governorate: true,
+          city: true,
+          phone: true,
+          email: true,
+          status: true,
+          isActive: true,
+          publicDisabled: true,
+          deliveryDisabled: true,
+          logoUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          visitors: true,
+          layoutConfig: true,
+          owner: { select: { id: true, name: true, email: true } },
         },
       });
 

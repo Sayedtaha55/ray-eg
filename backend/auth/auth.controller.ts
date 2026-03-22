@@ -107,6 +107,13 @@ class CourierSignupDto {
   phone?: string;
 }
 
+class GoogleStateDto {
+  returnTo?: string;
+  followShopId?: string;
+  target?: string;
+  merchantStatus?: string;
+}
+
 class LoginDto {
   @IsString()
   email!: string;
@@ -154,19 +161,24 @@ class ChangePasswordDto {
   newPassword!: string;
 }
 
+class VerifyEmailDto {
+  @IsString()
+  token!: string;
+}
+
 @Controller('api/v1/auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 
-  private parseGoogleState(req: any) {
+  private parseGoogleState(req: any): GoogleStateDto {
     const raw = String(req?.query?.state || '').trim();
-    if (!raw) return {} as any;
+    if (!raw) return {};
     try {
       const decoded = Buffer.from(raw, 'base64url').toString('utf8');
       const parsed = JSON.parse(decoded);
       return parsed && typeof parsed === 'object' ? parsed : {};
     } catch {
-      return {} as any;
+      return {};
     }
   }
 
@@ -183,14 +195,25 @@ export class AuthController {
     const isProd = env === 'production';
     const domainRaw = String(process.env.COOKIE_DOMAIN || '').trim();
     const domain = domainRaw || undefined;
+    const maxAgeDaysRaw = String(process.env.AUTH_COOKIE_MAX_AGE_DAYS || '7').trim();
+    const maxAgeDays = Math.max(1, Math.min(30, Number(maxAgeDaysRaw) || 7));
 
     return {
       httpOnly: true,
       secure: isProd,
       sameSite: isProd ? 'none' : 'lax',
       path: '/',
+      maxAge: maxAgeDays * 24 * 60 * 60 * 1000,
       ...(domain ? { domain } : {}),
     } as any;
+  }
+
+  private getRequestMeta(req: any) {
+    const forwardedFor = String(req?.headers?.['x-forwarded-for'] || '').split(',')[0]?.trim();
+    const realIp = String(req?.headers?.['x-real-ip'] || '').trim();
+    const ip = forwardedFor || realIp || String(req?.ip || req?.socket?.remoteAddress || '').trim() || undefined;
+    const userAgent = String(req?.headers?.['user-agent'] || '').trim() || undefined;
+    return { ip, userAgent };
   }
 
   private setAuthCookie(res: Response, accessToken: string) {
@@ -218,20 +241,24 @@ export class AuthController {
     const state = this.parseGoogleState(req);
     const returnTo = this.normalizeReturnTo(state?.returnTo);
     const followShopId = String(state?.followShopId || '').trim() || undefined;
+    const target = this.normalizeReturnTo(state?.target);
+    const merchantStatus = String(state?.merchantStatus || '').trim().toLowerCase() || undefined;
 
     const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
     const base = appUrl.replace(/\/$/, '');
     const qs = new URLSearchParams();
     if (returnTo) qs.set('returnTo', returnTo);
     if (followShopId) qs.set('followShopId', followShopId);
+    if (target) qs.set('target', target);
+    if (merchantStatus) qs.set('merchantStatus', merchantStatus);
 
     const redirectUrl = `${base}/auth/google/callback${qs.toString() ? `?${qs.toString()}` : ''}`;
     return res.redirect(302, redirectUrl);
   }
 
   @Post('signup')
-  async signup(@Body() dto: SignupDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.signup(dto);
+  async signup(@Body() dto: SignupDto, @Request() req: any, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.signup(dto, this.getRequestMeta(req));
     const accessToken = (result as any)?.access_token;
     if (accessToken) {
       this.setAuthCookie(res, String(accessToken));
@@ -240,8 +267,8 @@ export class AuthController {
   }
 
   @Post('courier-signup')
-  async courierSignup(@Body() dto: CourierSignupDto) {
-    return this.authService.courierSignup(dto);
+  async courierSignup(@Body() dto: CourierSignupDto, @Request() req: any) {
+    return this.authService.courierSignup(dto, this.getRequestMeta(req));
   }
 
   @Post('bootstrap-admin')
@@ -255,8 +282,8 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() dto: LoginDto, @Res({ passthrough: true }) res: Response) {
-    const result = await this.authService.login(dto.email, dto.password);
+  async login(@Body() dto: LoginDto, @Request() req: any, @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.login(dto.email, dto.password, this.getRequestMeta(req));
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
     }
@@ -327,19 +354,31 @@ export class AuthController {
   }
 
   @Post('password/forgot')
-  async forgotPassword(@Body() dto: ForgotPasswordDto) {
-    return this.authService.requestPasswordReset(dto.email);
+  async forgotPassword(@Body() dto: ForgotPasswordDto, @Request() req: any) {
+    return this.authService.requestPasswordReset(dto.email, this.getRequestMeta(req));
   }
 
   @Post('password/reset')
-  async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
+  async resetPassword(@Body() dto: ResetPasswordDto, @Request() req: any) {
+    return this.authService.resetPassword(dto.token, dto.newPassword, this.getRequestMeta(req));
   }
 
   @Post('password/change')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Request() req: any, @Body() dto: ChangePasswordDto) {
     const userId = String(req?.user?.id || '').trim();
-    return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword);
+    return this.authService.changePassword(userId, dto.currentPassword, dto.newPassword, this.getRequestMeta(req));
+  }
+
+  @Post('email/verify/request')
+  @UseGuards(JwtAuthGuard)
+  async requestEmailVerification(@Request() req: any) {
+    const userId = String(req?.user?.id || '').trim();
+    return this.authService.requestEmailVerification(userId, this.getRequestMeta(req));
+  }
+
+  @Post('email/verify')
+  async verifyEmail(@Body() dto: VerifyEmailDto, @Request() req: any) {
+    return this.authService.verifyEmail(dto.token, this.getRequestMeta(req));
   }
 }

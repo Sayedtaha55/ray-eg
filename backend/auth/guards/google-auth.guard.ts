@@ -19,12 +19,22 @@ export class GoogleAuthGuard extends AuthGuard('google') {
   getAuthenticateOptions(context: ExecutionContext) {
     const req = context.switchToHttp().getRequest();
 
-    const returnTo = String(req?.query?.returnTo || '').trim();
+    const normalizeReturnTo = (value: any) => {
+      const rt = String(value || '').trim();
+      if (!rt || !rt.startsWith('/') || rt.startsWith('//')) return undefined;
+      return rt;
+    };
+
+    const returnTo = normalizeReturnTo(req?.query?.returnTo);
     const followShopId = String(req?.query?.followShopId || '').trim();
+    const target = normalizeReturnTo(req?.query?.target);
+    const merchantStatus = String(req?.query?.merchantStatus || '').trim().toLowerCase();
 
     const statePayload: any = {};
     if (returnTo) statePayload.returnTo = returnTo;
     if (followShopId) statePayload.followShopId = followShopId;
+    if (target) statePayload.target = target;
+    if (merchantStatus) statePayload.merchantStatus = merchantStatus;
 
     const state =
       Object.keys(statePayload).length > 0

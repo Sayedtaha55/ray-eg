@@ -38,17 +38,32 @@ export async function getShopsViaBackend(
   }
 
   if (status === 'all') {
-    const shops = await backendGet<any[]>('/api/v1/shops/admin/list?status=ALL');
+    const params = new URLSearchParams();
+    params.set('status', 'ALL');
+    if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+    if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+    if (opts?.search) params.set('search', String(opts.search));
+    const shops = await backendGet<any[]>(`/api/v1/shops/admin/list?${params.toString()}`);
     return shops.map(normalizeShopFromBackend);
   }
 
   if (status === 'pending') {
-    const shops = await backendGet<any[]>('/api/v1/shops/admin/list?status=PENDING');
+    const params = new URLSearchParams();
+    params.set('status', 'PENDING');
+    if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+    if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+    if (opts?.search) params.set('search', String(opts.search));
+    const shops = await backendGet<any[]>(`/api/v1/shops/admin/list?${params.toString()}`);
     return shops.map(normalizeShopFromBackend);
   }
 
   if (status === 'rejected') {
-    const shops = await backendGet<any[]>('/api/v1/shops/admin/list?status=REJECTED');
+    const params = new URLSearchParams();
+    params.set('status', 'REJECTED');
+    if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+    if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+    if (opts?.search) params.set('search', String(opts.search));
+    const shops = await backendGet<any[]>(`/api/v1/shops/admin/list?${params.toString()}`);
     return shops.map(normalizeShopFromBackend);
   }
 
@@ -108,7 +123,7 @@ export async function getShopAdminByIdViaBackend(id: string) {
   return normalizeShopFromBackend(shop);
 }
 
-export async function updateShopStatusViaBackend(id: string, status: 'approved' | 'pending' | 'rejected') {
+export async function updateShopStatusViaBackend(id: string, status: 'approved' | 'pending' | 'rejected' | 'suspended') {
   const mapped = String(status || '').toUpperCase();
   const updated = await backendPatch<any>(`/api/v1/shops/admin/${encodeURIComponent(id)}/status`, {
     status: mapped,

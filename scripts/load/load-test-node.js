@@ -96,7 +96,7 @@ class LoadTestRunner {
 
   async runVirtualUser(duration) {
     const endTime = Date.now() + duration;
-    const endpoints = ['/api/health', '/api/shops', `/api/shops/slug/${targetShopSlug}`];
+    const endpoints = ['/api/health', '/api/v1/shops?take=24&skip=0', `/api/v1/shops/${targetShopSlug}`];
     
     while (Date.now() < endTime) {
       const endpoint = endpoints[Math.floor(Math.random() * endpoints.length)];

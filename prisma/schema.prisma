@@ -17,6 +17,8 @@ model User {
   shopId                      String?                    @unique
   isActive                    Boolean                    @default(true)
   lastLogin                   DateTime?
+  emailVerifiedAt             DateTime?                  @map("email_verified_at")
+  emailVerificationSentAt     DateTime?                  @map("email_verification_sent_at")
   createdAt                   DateTime                   @default(now())
   updatedAt                   DateTime                   @updatedAt
   deactivatedAt               DateTime?                  @map("deactivated_at")
@@ -34,9 +36,30 @@ model User {
   orders_orders_userIdTousers Order[]                    @relation("orders_userIdTousers")
   reservations                Reservation[]
   shopFollows                 ShopFollower[]
+  authEvents                  AuthEvent[]
   shop                        Shop?                      @relation("ShopOwner")
 
+  @@index([role, isActive, createdAt])
+  @@index([isActive, createdAt])
   @@map("users")
+}
+
+model AuthEvent {
+  id        String   @id @default(cuid())
+  userId    String?  @map("user_id")
+  email     String?
+  action    String
+  status    String
+  ip        String?
+  userAgent String?  @map("user_agent")
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([email, createdAt])
+  @@index([action, createdAt])
+  @@map("auth_events")
 }
 
 model Shop {
@@ -104,6 +127,9 @@ model Shop {
   @@index([isActive])
   @@index([publicDisabled])
   @@index([deliveryDisabled])
+  @@index([status, createdAt])
+  @@index([status, isActive, publicDisabled, createdAt])
+  @@index([category, governorate, createdAt])
   @@map("shops")
 }
 
@@ -190,6 +216,7 @@ model Product {
   @@index([shopId])
   @@index([category])
   @@index([isActive])
+  @@index([shopId, isActive, createdAt])
   @@map("products")
 }
 
@@ -326,6 +353,10 @@ model Order {
   shops                      Shop                @relation(fields: [shopId], references: [id])
   users_orders_userIdTousers User                @relation("orders_userIdTousers", fields: [userId], references: [id])
 
+  @@index([shopId, status, createdAt])
+  @@index([courierId, status, createdAt])
+  @@index([userId, createdAt])
+  @@index([createdAt])
   @@map("orders")
 }
 

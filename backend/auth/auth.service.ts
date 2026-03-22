@@ -5,6 +5,7 @@ import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
+import { EmailService } from '../email.service';
 
 type IncomingRole = 'customer' | 'merchant' | 'admin' | 'courier' | 'CUSTOMER' | 'MERCHANT' | 'ADMIN' | 'COURIER';
 type IncomingShopCategory =
@@ -17,13 +18,93 @@ type IncomingShopCategory =
   | 'HEALTH'
   | 'OTHER';
 
+type RequestMeta = {
+  ip?: string;
+  userAgent?: string;
+};
+
 @Injectable()
 export class AuthService implements OnModuleInit {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(JwtService) private jwtService: JwtService,
     @Inject(RedisService) private redis: RedisService,
+    @Inject(EmailService) private email: EmailService,
   ) {}
+
+  private async recordAuthEvent(input: {
+    userId?: string | null;
+    email?: string | null;
+    action: string;
+    status: string;
+    ip?: string;
+    userAgent?: string;
+    metadata?: Record<string, any> | null;
+  }) {
+    try {
+      await this.prisma.authEvent.create({
+        data: {
+          userId: input.userId || null,
+          email: input.email || null,
+          action: input.action,
+          status: input.status,
+          ip: input.ip || null,
+          userAgent: input.userAgent || null,
+          metadata: input.metadata || undefined,
+        } as any,
+      });
+    } catch {
+      // swallow audit failures to avoid blocking auth flows
+    }
+  }
+
+  private buildEmailVerificationToken(user: { id: string; email: string }) {
+    return this.jwtService.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        typ: 'email_verify',
+      },
+      { expiresIn: '24h' } as any,
+    );
+  }
+
+  private async sendEmailVerification(user: { id: string; email: string; name?: string | null }, meta?: RequestMeta) {
+    const token = this.buildEmailVerificationToken({ id: user.id, email: user.email });
+    const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim().replace(/\/$/, '');
+    const verifyUrl = `${appUrl}/verify-email?token=${encodeURIComponent(token)}`;
+    const text = [
+      `مرحباً ${String(user.name || user.email).trim()},`,
+      '',
+      'يرجى تأكيد بريدك الإلكتروني لإكمال تأمين الحساب.',
+      `رابط التحقق: ${verifyUrl}`,
+      '',
+      'إذا لم تطلب إنشاء هذا الحساب، يمكنك تجاهل هذه الرسالة.',
+    ].join('\n');
+
+    const mailResult = await this.email.sendMail({
+      to: user.email,
+      subject: 'تأكيد البريد الإلكتروني',
+      text,
+    });
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerificationSentAt: new Date() } as any,
+    });
+
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'email_verification_requested',
+      status: mailResult?.ok ? 'sent' : 'skipped',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
+      metadata: mailResult?.ok ? null : { delivery: 'skipped' },
+    });
+
+    return { ok: true, delivery: mailResult?.ok ? 'sent' : 'skipped' as 'sent' | 'skipped' };
+  }
 
   async onModuleInit() {
     const env = String(process.env.NODE_ENV || '').toLowerCase();
@@ -156,7 +237,7 @@ export class AuthService implements OnModuleInit {
     return { ok: true, userId: created.id };
   }
 
-  async requestPasswordReset(email: string) {
+  async requestPasswordReset(email: string, meta?: RequestMeta) {
     const normalizedEmail = String(email || '').toLowerCase().trim();
     if (!normalizedEmail) {
       return { ok: true };
@@ -166,6 +247,13 @@ export class AuthService implements OnModuleInit {
 
     // Always return ok to prevent account enumeration.
     if (!user) {
+      await this.recordAuthEvent({
+        email: normalizedEmail,
+        action: 'password_reset_requested',
+        status: 'ignored',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+      });
       return { ok: true };
     }
 
@@ -184,10 +272,19 @@ export class AuthService implements OnModuleInit {
     // The token must be delivered out-of-band (e.g. email/SMS) to avoid account takeover.
     void token;
 
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'password_reset_requested',
+      status: 'accepted',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
+    });
+
     return { ok: true };
   }
 
-  async resetPassword(token: string, newPassword: string) {
+  async resetPassword(token: string, newPassword: string, meta?: RequestMeta) {
     const rawToken = String(token || '').trim();
     const pass = String(newPassword || '');
 
@@ -217,6 +314,15 @@ export class AuthService implements OnModuleInit {
     await this.prisma.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
+    });
+
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'password_reset_completed',
+      status: 'success',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
     });
 
     return { ok: true };
@@ -321,7 +427,7 @@ export class AuthService implements OnModuleInit {
     return { ok: true, scheduledPurgeAt };
   }
 
-  async changePassword(userId: string, currentPassword: string, newPassword: string) {
+  async changePassword(userId: string, currentPassword: string, newPassword: string, meta?: RequestMeta) {
     const uid = String(userId || '').trim();
     if (!uid) throw new UnauthorizedException('غير مصرح');
 
@@ -343,6 +449,15 @@ export class AuthService implements OnModuleInit {
     await this.prisma.user.update({
       where: { id: uid },
       data: { password: hashedPassword },
+    });
+
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'password_changed',
+      status: 'success',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
     });
 
     return { ok: true };
@@ -398,7 +513,7 @@ export class AuthService implements OnModuleInit {
   /**
    * تسجيل مستخدم جديد مع تشفير كلمة المرور والتحقق من القوة
    */
-  async signup(dto: any) {
+  async signup(dto: any, meta?: RequestMeta) {
     const {
       email,
       password,
@@ -622,6 +737,17 @@ export class AuthService implements OnModuleInit {
       return { user: updatedUser, shop: createdShop };
     });
 
+    await this.sendEmailVerification(result.user, meta);
+    await this.recordAuthEvent({
+      userId: result.user.id,
+      email: result.user.email,
+      action: 'signup',
+      status: 'success',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
+      metadata: { role: String(result?.user?.role || '').toUpperCase() },
+    });
+
     if (String(result?.user?.role || '').toUpperCase() === 'MERCHANT') {
       const shopStatus = String((result as any)?.shop?.status || '').toUpperCase();
       if (shopStatus === 'APPROVED') {
@@ -643,7 +769,7 @@ export class AuthService implements OnModuleInit {
     return await this.issueToken(result.user);
   }
 
-  async courierSignup(dto: any) {
+  async courierSignup(dto: any, meta?: RequestMeta) {
     const {
       email,
       password,
@@ -702,6 +828,16 @@ export class AuthService implements OnModuleInit {
         isActive: true,
         createdAt: true,
       },
+    });
+
+    await this.sendEmailVerification(createdUser as any, meta);
+    await this.recordAuthEvent({
+      userId: createdUser.id,
+      email: createdUser.email,
+      action: 'courier_signup',
+      status: 'pending',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
     });
 
     return {
@@ -919,7 +1055,7 @@ export class AuthService implements OnModuleInit {
   /**
    * تسجيل الدخول والتحقق الآمن
    */
-  async login(email: string, pass: string) {
+  async login(email: string, pass: string, meta?: RequestMeta) {
     if (!email || typeof email !== 'string' || !pass || typeof pass !== 'string') {
       throw new BadRequestException('البريد الإلكتروني وكلمة المرور مطلوبان');
     }
@@ -983,12 +1119,29 @@ export class AuthService implements OnModuleInit {
     }
 
     if (!user) {
+      await this.recordAuthEvent({
+        email: normalizedEmail,
+        action: 'login',
+        status: 'failed',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        metadata: { reason: 'user_not_found' },
+      });
       // رسالة مبهمة لمنع الـ Account Enumeration
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
     const isMatch = await bcrypt.compare(pass, user.password);
     if (!isMatch) {
+      await this.recordAuthEvent({
+        userId: user.id,
+        email: user.email,
+        action: 'login',
+        status: 'failed',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        metadata: { reason: 'invalid_password' },
+      });
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة');
     }
 
@@ -1022,6 +1175,15 @@ export class AuthService implements OnModuleInit {
     await this.prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() }
+    });
+
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'login',
+      status: 'success',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
     });
 
     return await this.issueToken(user);
@@ -1062,7 +1224,22 @@ export class AuthService implements OnModuleInit {
       });
     }
 
-    return await this.issueToken(user);
+    const issued = await this.issueToken(user);
+    const role = String(user?.role || '').toUpperCase();
+    if (role === 'MERCHANT') {
+      try {
+        const shop = await this.prisma.shop.findFirst({
+          where: { ownerId: user.id },
+          select: { status: true },
+        });
+        const status = String((shop as any)?.status || 'PENDING').toLowerCase();
+        return { ...issued, merchantStatus: status };
+      } catch {
+        return { ...issued, merchantStatus: 'pending' };
+      }
+    }
+
+    return issued;
   }
 
   async session(userId: string) {
@@ -1100,6 +1277,68 @@ export class AuthService implements OnModuleInit {
     return await this.issueToken(user);
   }
 
+  async requestEmailVerification(userId: string, meta?: RequestMeta) {
+    const uid = String(userId || '').trim();
+    if (!uid) throw new UnauthorizedException('غير مصرح');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: uid },
+      select: { id: true, email: true, name: true, emailVerifiedAt: true },
+    });
+    if (!user) throw new UnauthorizedException('غير مصرح');
+    if (user.emailVerifiedAt) {
+      return { ok: true, alreadyVerified: true };
+    }
+
+    return await this.sendEmailVerification(user, meta);
+  }
+
+  async verifyEmail(token: string, meta?: RequestMeta) {
+    const rawToken = String(token || '').trim();
+    if (!rawToken) throw new BadRequestException('رابط التحقق غير صالح');
+
+    let payload: any;
+    try {
+      payload = this.jwtService.verify(rawToken);
+    } catch {
+      throw new BadRequestException('رابط التحقق غير صالح أو منتهي');
+    }
+
+    if (String(payload?.typ || '') !== 'email_verify') {
+      throw new BadRequestException('رابط التحقق غير صالح');
+    }
+
+    const userId = String(payload?.sub || '').trim();
+    const email = String(payload?.email || '').toLowerCase().trim();
+    if (!userId || !email) throw new BadRequestException('رابط التحقق غير صالح');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, emailVerifiedAt: true },
+    });
+    if (!user || String(user.email || '').toLowerCase() !== email) {
+      throw new BadRequestException('رابط التحقق غير صالح');
+    }
+
+    if (!user.emailVerifiedAt) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { emailVerifiedAt: new Date() } as any,
+      });
+    }
+
+    await this.recordAuthEvent({
+      userId: user.id,
+      email: user.email,
+      action: 'email_verified',
+      status: 'success',
+      ip: meta?.ip,
+      userAgent: meta?.userAgent,
+    });
+
+    return { ok: true, alreadyVerified: Boolean(user.emailVerifiedAt) };
+  }
+
   /**
    * توليد توكن JWT آمن
    */
@@ -1129,6 +1368,7 @@ export class AuthService implements OnModuleInit {
         name: user.name,
         email: user.email,
         role: user.role,
+        emailVerifiedAt: user.emailVerifiedAt || null,
         ...(shopId ? { shopId } : {}),
       },
     };
