@@ -130,6 +130,29 @@ const AdminShops: React.FC = () => {
     }
   };
 
+  const toggleShopActive = async (shop: any, nextActive: boolean) => {
+    const id = String(shop?.id || '').trim();
+    if (!id) return;
+    const name = String(shop?.name || '').trim() || 'المتجر';
+    const ok = window.confirm(nextActive ? `تأكيد إعادة تفعيل ${name}؟` : `تأكيد حذف ${name} من التطبيق (تعطيل)؟`);
+    if (!ok) return;
+
+    try {
+      setActionId(id);
+      await ApiService.updateMyShop({ shopId: id, isActive: nextActive });
+      addToast(nextActive ? 'تمت إعادة تفعيل المتجر' : 'تم حذف المتجر من التطبيق (تم تعطيله)', 'success');
+      await loadData({ silent: true });
+      if (selectedShop?.id === id) {
+        const refreshed = await ApiService.getShopAdminById(String(id));
+        setSelectedShopDetails(refreshed);
+      }
+    } catch (e: any) {
+      addToast(String(e?.message || 'فشلت العملية'), 'error');
+    } finally {
+      setActionId('');
+    }
+  };
+
   const openShopDetails = async (shop: any) => {
     setSelectedShop(shop);
     setSelectedShopDetails(null);
@@ -158,6 +181,7 @@ const AdminShops: React.FC = () => {
   const selectedStatus = String(selected?.status || '').toUpperCase();
   const selectedPublicDisabled = Boolean(selected?.publicDisabled ?? selected?.public_disabled ?? false);
   const selectedDeliveryDisabled = Boolean(selected?.deliveryDisabled ?? selected?.delivery_disabled ?? false);
+  const selectedIsActive = Boolean(selected?.isActive ?? selected?.is_active ?? true);
   const enabledModules = Array.isArray((selected?.layoutConfig as any)?.enabledModules) ? selected.layoutConfig.enabledModules : [];
 
   if (loading) return <div className="h-[60vh] flex items-center justify-center"><Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" /></div>;
@@ -235,6 +259,7 @@ const AdminShops: React.FC = () => {
             <tbody>
               {filteredShops.map((shop: any) => {
                 const status = String(shop.status || '').toUpperCase();
+                const isActive = Boolean(shop?.isActive ?? shop?.is_active ?? true);
                 return (
                   <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                     <td className="p-4">
@@ -262,6 +287,25 @@ const AdminShops: React.FC = () => {
                         <button onClick={() => openShopDetails(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="عرض"><Eye className="w-4 h-4" /></button>
                         <button onClick={() => editShopDeliveryFee(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="تعديل رسوم التوصيل"><Edit className="w-4 h-4" /></button>
                         {status === 'PENDING' ? <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300" title="موافقة"><Check className="w-4 h-4" /></button> : null}
+                        {isActive ? (
+                          <button
+                            disabled={actionId === String(shop?.id)}
+                            onClick={() => toggleShopActive(shop, false)}
+                            className="p-2 rounded-xl bg-red-500/10 text-red-300"
+                            title="حذف من التطبيق"
+                          >
+                            <Ban className="w-4 h-4" />
+                          </button>
+                        ) : (
+                          <button
+                            disabled={actionId === String(shop?.id)}
+                            onClick={() => toggleShopActive(shop, true)}
+                            className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300"
+                            title="إعادة تفعيل"
+                          >
+                            <ShieldCheck className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -304,6 +348,23 @@ const AdminShops: React.FC = () => {
                   {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'rejected')} className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"><X size={16} /> رفض الطلب</button> : null}
                   {selectedStatus === 'APPROVED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'suspended')} className="w-full px-4 py-3 rounded-2xl bg-fuchsia-500/15 text-fuchsia-300 font-black text-sm flex items-center justify-center gap-2"><Ban size={16} /> تعليق المتجر</button> : null}
                   {selectedStatus === 'SUSPENDED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'approved')} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> إعادة التفعيل</button> : null}
+                  {selectedIsActive ? (
+                    <button
+                      disabled={actionId === String(selected?.id)}
+                      onClick={() => toggleShopActive(selected, false)}
+                      className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"
+                    >
+                      <Ban size={16} /> حذف من التطبيق
+                    </button>
+                  ) : (
+                    <button
+                      disabled={actionId === String(selected?.id)}
+                      onClick={() => toggleShopActive(selected, true)}
+                      className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"
+                    >
+                      <ShieldCheck size={16} /> إعادة تفعيل المتجر
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
