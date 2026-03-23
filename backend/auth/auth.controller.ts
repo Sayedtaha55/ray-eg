@@ -233,9 +233,40 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Request() req: any, @Res() res: Response) {
-    const result = await this.authService.loginWithGoogleProfile(req.user);
+    // DEBUG logging to diagnose missing set-cookie
+    const debugLog = (step: string, data?: any) => {
+      try {
+        // eslint-disable-next-line no-console
+        console.log(`[GoogleCallback DEBUG] ${step}`, data || '');
+      } catch {
+        // ignore
+      }
+    };
+
+    debugLog('1 - Received callback', { hasUser: !!req?.user, userKeys: req?.user ? Object.keys(req.user) : null });
+
+    if (!req?.user) {
+      debugLog('ERROR - req.user is missing!');
+      // Redirect with error
+      const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
+      return res.redirect(302, `${appUrl}/login?error=google_auth_failed`);
+    }
+
+    let result: any;
+    try {
+      result = await this.authService.loginWithGoogleProfile(req.user);
+      debugLog('2 - loginWithGoogleProfile result', { hasAccessToken: !!result?.access_token, hasUser: !!result?.user });
+    } catch (err: any) {
+      debugLog('ERROR - loginWithGoogleProfile threw', { message: err?.message, name: err?.name });
+      const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
+      return res.redirect(302, `${appUrl}/login?error=google_login_failed`);
+    }
+
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
+      debugLog('3 - Cookie set successfully');
+    } else {
+      debugLog('ERROR - No access_token in result!');
     }
 
     const state = this.parseGoogleState(req);
