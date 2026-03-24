@@ -20,3 +20,53 @@ root.render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+try {
+  if ('serviceWorker' in navigator) {
+    void (async () => {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(
+          regs.map(async (r) => {
+            try {
+              const url = String((r.active as any)?.scriptURL || (r.installing as any)?.scriptURL || (r.waiting as any)?.scriptURL || '');
+              if (url && url.includes('/sw.js')) {
+                await r.unregister();
+              }
+            } catch {
+            }
+          }),
+        );
+      } catch {
+      }
+
+      try {
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          try {
+            window.location.reload();
+          } catch {
+          }
+        });
+
+        const tick = async () => {
+          try {
+            const reg = await navigator.serviceWorker.getRegistration();
+            if (!reg) return;
+            try {
+              await reg.update();
+            } catch {
+            }
+          } catch {
+          }
+        };
+
+        await tick();
+        setInterval(() => {
+          void tick();
+        }, 60 * 1000);
+      } catch {
+      }
+    })();
+  }
+} catch {
+}

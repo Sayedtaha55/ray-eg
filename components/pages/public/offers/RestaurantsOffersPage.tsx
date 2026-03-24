@@ -201,19 +201,19 @@ const RestaurantsOffersPage: React.FC = () => {
          <MotionDiv 
             initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
             animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-orange-500 text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
+            className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-orange-700 text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
          >
             <Utensils className="w-3 h-3 text-white fill-current" />
             عروض المطاعم
          </MotionDiv>
-         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">عروض<br/><span className="text-orange-500">المطاعم والمطابخ.</span></h1>
+         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">عروض<br/><span className="text-orange-700">المطاعم والمطابخ.</span></h1>
          <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
             اكتشف أفضل عروض المطاعم والمطابخ القريبة منك مع خصومات حصرية على وجباتك المفضلة.
          </p>
 
          <Link
            to="/map"
-           className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-orange-500 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-orange-600 transition-all shadow-xl"
+           className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-orange-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-orange-800 transition-all shadow-xl"
          >
            الخريطة <MapPin className="w-4 h-4" />
          </Link>

@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -31,13 +30,9 @@ const Badge: React.FC<BadgeProps> = ({
   };
 
   return (
-    <motion.span
-      initial={{ scale: 0.8, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-    >
+    <span className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} animate-[fadeInScale_220ms_ease-out] ${className}`}>
       {children}
-    </motion.span>
+    </span>
   );
 };
 

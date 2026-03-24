@@ -79,7 +79,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
             <button onClick={handleShare} className="p-3 bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-900 transition-all">
               <Share2 size={20} />
             </button>
-            <button onClick={toggleFavorite} className={`p-3 rounded-2xl transition-all ${isFavorite ? 'bg-red-50 text-red-500' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
+            <button onClick={toggleFavorite} className={`p-3 rounded-2xl transition-all ${isFavorite ? 'bg-red-100 text-red-600' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}>
               <Heart size={20} className={isFavorite ? 'fill-current' : ''} />
             </button>
           </div>

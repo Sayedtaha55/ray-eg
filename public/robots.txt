@@ -1,4 +1,5 @@
 User-agent: *
+Allow: /
 Allow: /shops
 Allow: /products
 Allow: /offers
@@ -14,4 +15,4 @@ Disallow: /admin/
 Disallow: /pos/
 Disallow: /builder/
 
-Sitemap: https://www.mnmknk.com/sitemap.xml
+Sitemap: https://mnmknk.com/sitemap.xml

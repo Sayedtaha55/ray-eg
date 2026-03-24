@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import * as ReactRouterDOM from 'react-router-dom';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
-const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssistant'));
-const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
@@ -12,7 +10,8 @@ import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 import { getDeferredDelay, isMobileViewportLike } from '@/utils/performanceProfile';
 
-const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
+const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssistant'));
+const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
 
 const PublicLayout: React.FC = () => {
   const WhatsAppIcon = (props: { size?: number }) => {
@@ -566,12 +565,22 @@ const PublicLayout: React.FC = () => {
         </div>
       </div>
 
-      <React.Suspense fallback={null}>
-        <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
-      </React.Suspense>
-      <React.Suspense fallback={null}>
-        <CartDrawer isOpen={isCartOpen} onClose={() => setCartOpen(false)} items={cartItems} onRemove={removeFromCart} onUpdateQuantity={updateCartItemQuantity} />
-      </React.Suspense>
+      {isAssistantOpen && (
+        <React.Suspense fallback={null}>
+          <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
+        </React.Suspense>
+      )}
+      {isCartOpen && (
+        <React.Suspense fallback={null}>
+          <CartDrawer
+            isOpen={isCartOpen}
+            onClose={() => setCartOpen(false)}
+            items={cartItems}
+            onRemove={removeFromCart}
+            onUpdateQuantity={updateCartItemQuantity}
+          />
+        </React.Suspense>
+      )}
 
       {authPrompt.open && (
         <>
@@ -625,7 +634,7 @@ const PublicLayout: React.FC = () => {
               {/* Links Section - First on mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 text-right">
                 <div>
-                  <h4 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h4>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                     <Link to="/offers/restaurants" className="hover:text-white transition-colors">عروض المطاعم</Link>
                     <Link to="/offers/fashion" className="hover:text-white transition-colors">عروض الملابس والأحذية</Link>
@@ -634,7 +643,7 @@ const PublicLayout: React.FC = () => {
                   </nav>
                 </div>
                 <div>
-                  <h4 className="font-black text-[10px] uppercase tracking-widest text-[#BD00FF] mb-6">للأعمال</h4>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#E879F9] mb-6">للأعمال</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                     <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
                     {String(user?.role || '').toLowerCase() === 'courier' ? (
@@ -643,7 +652,7 @@ const PublicLayout: React.FC = () => {
                   </nav>
                 </div>
                 <div>
-                  <h4 className="font-black text-[10px] uppercase tracking-widest text-green-400 mb-6">مساعدة</h4>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-green-300 mb-6">مساعدة</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                     <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
                     <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
@@ -665,7 +674,7 @@ const PublicLayout: React.FC = () => {
             <div className="order-3 md:order-3 space-y-6 text-right">
               {/* Contact Info */}
               <div className="space-y-3">
-                <h4 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">تواصل معنا</h4>
+                <h3 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">تواصل معنا</h3>
                 <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
                     <Mail size={16} />

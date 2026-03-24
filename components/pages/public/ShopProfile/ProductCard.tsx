@@ -481,7 +481,7 @@ const ProductCard = React.memo(function ProductCard({
                   }}
                   className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 text-white ${
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
-                  } ${buttonShape} ${isAdded ? 'bg-green-500' : ''} shadow-md`}
+                  } ${buttonShape} ${isAdded ? 'bg-green-600' : ''} shadow-md`}
                   style={isAdded ? undefined : { backgroundColor: primaryColor }}
                 >
                   {isAdded ? <Check size={11} className="sm:w-3 sm:h-3" /> : <Plus size={11} className="sm:w-3 sm:h-3" />}

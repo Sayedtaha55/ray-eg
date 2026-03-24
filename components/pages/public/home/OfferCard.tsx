@@ -1,9 +1,6 @@
 import React from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
 import { Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
-
-const MotionDiv = motion.div as any;
 
 // Use a simple IntersectionObserver for reveal to avoid many whileInView listeners
 const useInView = (options?: IntersectionObserverInit) => {
@@ -34,7 +31,10 @@ interface OfferCardProps {
 }
 
 const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelectedItem, playSound }) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
 
   const handleNavigate = () => {
     const productId = String(offer.productId || offer.id || '').trim();

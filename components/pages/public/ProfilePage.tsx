@@ -111,7 +111,7 @@ const ProfilePage: React.FC = () => {
              <p className="text-slate-400 font-bold mb-8">{user.email}</p>
              <div className="flex gap-2 w-full">
                <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">تعديل الملف</button>
-               <button onClick={logout} className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition-all"><LogOut size={20} /></button>
+               <button onClick={logout} className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><LogOut size={20} /></button>
              </div>
           </div>
         </div>
