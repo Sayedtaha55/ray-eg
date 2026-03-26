@@ -29,6 +29,25 @@ export const coerceNumber = (value: any, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+// Global performance profiling to avoid redundant calculations on every component mount.
+// We calculate device capabilities once per module load.
+export const IS_LOW_END_DEVICE = (() => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : 8;
+    const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : 8;
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // Low end: mobile with <= 4 cores OR <= 4GB RAM
+    if (isMobile && (cores <= 4 || mem <= 4)) return true;
+
+    // Generic: <= 2 cores OR <= 2GB RAM
+    return cores <= 2 || mem <= 2;
+  } catch {
+    return false;
+  }
+})();
+
 export const scopeCss = (css: string, scopeSelector: string) => {
   const raw = String(css || '');
   const safe = raw.replace(/<\s*\/\s*style/gi, '');
