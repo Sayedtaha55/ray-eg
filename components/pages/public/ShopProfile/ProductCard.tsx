@@ -5,7 +5,7 @@ import { CalendarCheck, Check, Eye, Heart, Plus, X, Zap } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
-import { coerceBoolean } from './utils';
+import { coerceBoolean, IS_LOW_END_DEVICE } from './utils';
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -34,24 +34,10 @@ const ProductCard = React.memo(function ProductCard({
   allowReserve?: boolean;
 }) {
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(() => {
-    try {
-      const favs = RayDB.getFavorites();
-      return Array.isArray(favs) ? favs.includes(product.id) : false;
-    } catch {
-      return false;
-    }
-  });
+  const [isFavorite, setIsFavorite] = useState(() => RayDB.isFavorite(product.id));
   const navigate = useNavigate();
   const { slug } = useParams();
   const location = useLocation();
@@ -197,7 +183,7 @@ const ProductCard = React.memo(function ProductCard({
   };
 
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion || isLowEndDevice ? {} : { 
+  const motionProps = disableMotion || IS_LOW_END_DEVICE ? {} : {
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
     animate: { opacity: 1, y: 0 } 
   };
@@ -215,7 +201,7 @@ const ProductCard = React.memo(function ProductCard({
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full object-cover ${!IS_LOW_END_DEVICE ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
@@ -370,7 +356,7 @@ const ProductCard = React.memo(function ProductCard({
             loading="lazy"
             decoding="async"
             src={product.imageUrl || (product as any).image_url}
-            className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            className={`w-full h-full object-cover ${!IS_LOW_END_DEVICE ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             style={{ transitionProperty: 'opacity, transform' }}
             alt={product.name}
             onLoad={() => setImageReady(true)}
