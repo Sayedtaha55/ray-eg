@@ -37,21 +37,11 @@ const ProfilePage: React.FC = () => {
     // Fix: Await asynchronous RayDB calls
     const loadData = async () => {
       setReservations(await RayDB.getReservations());
-      const favIds = RayDB.getFavorites();
       const allProducts = await RayDB.getProducts();
       
-      // Debug: Log to check what's happening
-      console.log('Favorite IDs:', favIds);
-      console.log('All Products:', allProducts.map(p => ({ id: p.id, name: p.name })));
+      // Memory-optimized filtering using the RayDB O(1) cache
+      const filteredProducts = allProducts.filter(p => RayDB.isFavorite(String(p.id)));
       
-      // Better matching logic - ensure both IDs are strings
-      const filteredProducts = allProducts.filter(p => {
-        const productId = String(p.id);
-        const isFavorite = favIds.some(favId => String(favId) === productId);
-        return isFavorite;
-      });
-      
-      console.log('Filtered favorites:', filteredProducts);
       setFavorites(filteredProducts);
     };
     loadData();
