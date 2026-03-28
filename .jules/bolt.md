@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2025-05-20 - [LocalStorage Access Optimization]
+**Learning:** Frequent `JSON.parse(localStorage.getItem(key))` in React render loops (especially in lists) is a significant bottleneck. O(N) lookup logic on the resulting array further compounds the issue.
+**Action:** Implement an in-memory cache (e.g., a `Set` for ID lists) that is initialized once and synchronized with `localStorage` via events. Provide O(1) lookup methods to components.
