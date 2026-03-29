@@ -7,3 +7,7 @@
 ## 2025-05-15 - [Animation Performance]
 **Learning:** Staggered animations in Framer Motion using index-based delays can lead to poor UX and performance issues for long lists (e.g., waiting 5s for the 50th item).
 **Action:** Always cap the maximum animation delay for list items (e.g., `Math.min(index * 0.1, 0.5)`) to maintain a snappy feel while preserving the staggered effect for the initial viewport.
+
+## 2025-05-15 - [Cache Hit Optimization & Invalidation]
+**Learning:** In this architecture, `ShopPublicQueryService` was performing redundant DB queries even on Redis cache hits to filter products. This was because the "hotspot" filtering logic was executed downstream of the cache retrieval. Additionally, `ShopImageMapService` lacked cache invalidation, leading to stale filtered lists.
+**Action:** Always ensure that data stored in Redis is already "ready-to-serve" (fully filtered and normalized). Pair this with explicit cache invalidation in services that modify the source of truth (like `ShopImageMapService`) to maintain consistency.
