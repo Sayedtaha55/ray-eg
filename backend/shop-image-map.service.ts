@@ -1,11 +1,13 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { RedisService } from './redis/redis.service';
 import { GeminiVisionService } from './gemini-vision.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
   ) {}
 
@@ -293,6 +295,13 @@ export class ShopImageMapService {
       }),
     ]);
 
+    try {
+      const shop = await (this.prisma as any).shop.findUnique({ where: { id: sid }, select: { slug: true } });
+      await this.redis.invalidateShopCache(sid, shop?.slug);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
+
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
       include: {
@@ -517,6 +526,13 @@ export class ShopImageMapService {
           },
         },
       });
+
+      try {
+        const shop = await tx.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+        await this.redis.invalidateShopCache(sid, shop?.slug);
+        await this.redis.invalidatePattern('products:*');
+      } catch {
+      }
 
       return { ...updated, createdSections };
     });
