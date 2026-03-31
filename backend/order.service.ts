@@ -1155,6 +1155,7 @@ export class OrderService {
           customerNote: customerNote || null,
           updatedAt: new Date(),
           ...(String(effectiveStatus || '').toUpperCase() === 'DELIVERED' ? { deliveredAt: new Date() } : {}),
+          notes: safeNotes,
           items: {
             create: normalizedItems.map((item) => {
               const product = byId[item.productId];
