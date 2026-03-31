@@ -21,6 +21,32 @@ export const MOCK_SHOPS: Shop[] = [
   
 ];
 
+const favoritesCache = new Set<string>();
+
+if (typeof window !== 'undefined') {
+  try {
+    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
+    if (Array.isArray(favs)) {
+      favs.forEach((id) => favoritesCache.add(String(id)));
+    }
+  } catch (e) {
+    console.error('Failed to initialize favorites cache', e);
+  }
+
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'ray_favorites') {
+      favoritesCache.clear();
+      try {
+        const favs = JSON.parse(e.newValue || '[]');
+        if (Array.isArray(favs)) {
+          favs.forEach((id) => favoritesCache.add(String(id)));
+        }
+      } catch {}
+      window.dispatchEvent(new Event('ray-db-update'));
+    }
+  });
+}
+
 export const RayDB = {
   getShops: async () => ApiService.getShops(),
   getOffers: async () => ApiService.getOffers(),
@@ -28,7 +54,8 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  getFavorites: () => Array.from(favoritesCache),
+  isFavorite: (id: string) => favoritesCache.has(String(id)),
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -237,7 +264,13 @@ export const RayDB = {
   toggleFavorite: (id: string) => {
     const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
     const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
+    if (idx === -1) {
+      favs.push(id);
+      favoritesCache.add(String(id));
+    } else {
+      favs.splice(idx, 1);
+      favoritesCache.delete(String(id));
+    }
     localStorage.setItem('ray_favorites', JSON.stringify(favs));
     window.dispatchEvent(new Event('ray-db-update'));
     return idx === -1;
