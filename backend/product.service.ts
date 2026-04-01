@@ -292,22 +292,24 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
     const [linkedIds, labelKeys] = await Promise.all([
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(

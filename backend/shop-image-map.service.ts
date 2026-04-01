@@ -1,12 +1,14 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { GeminiVisionService } from './gemini-vision.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   private normalizeId(value: any) {
@@ -293,6 +295,21 @@ export class ShopImageMapService {
       }),
     ]);
 
+    // Invalidate caches as the image map affects product visibility and shop layout
+    try {
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: sid },
+        select: { id: true, slug: true },
+      });
+      if (shop) {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+        await this.redis.invalidatePattern('products:*');
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[ShopImageMapService.activateMap] Cache invalidation failed', e);
+    }
+
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
       include: {
@@ -406,7 +423,7 @@ export class ShopImageMapService {
       })
       .filter(Boolean);
 
-    return (this.prisma as any).$transaction(async (tx: any) => {
+    const result = await (this.prisma as any).$transaction(async (tx: any) => {
       await tx.shopImageHotspot.deleteMany({ where: { mapId: mid } });
       await tx.shopImageSection.deleteMany({ where: { mapId: mid } });
 
@@ -520,6 +537,23 @@ export class ShopImageMapService {
 
       return { ...updated, createdSections };
     });
+
+    // Invalidate caches as the layout change affects product visibility and shop contents
+    try {
+      const shop = await this.prisma.shop.findUnique({
+        where: { id: sid },
+        select: { id: true, slug: true },
+      });
+      if (shop) {
+        await this.redis.invalidateShopCache(shop.id, shop.slug);
+        await this.redis.invalidatePattern('products:*');
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[ShopImageMapService.saveLayout] Cache invalidation failed', e);
+    }
+
+    return result;
   }
 
   async getActiveForCustomerBySlug(slug: string) {
