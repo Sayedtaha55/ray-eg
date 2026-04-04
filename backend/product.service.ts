@@ -291,23 +291,25 @@ export class ProductService {
     }
 
     const deduped = this.dedupeById(products);
-
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
     const [linkedIds, labelKeys] = await Promise.all([
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
+      if (this.isImageMapCategory((p as any)?.category)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -449,17 +451,21 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
+    const deduped = this.dedupeById(products);
+    const linkedIds = await this.getLinkedImageMapProductIds();
+    const filtered = deduped.filter((p: any) => {
+      const id = String((p as any)?.id || '').trim();
+      if (id && linkedIds.has(id)) return false;
+      if (this.isImageMapCategory((p as any)?.category)) return false;
+      return true;
+    });
+
     try {
-      await this.redis.set(cacheKey, products, 60);
+      await this.redis.set(cacheKey, filtered, 60);
     } catch {
     }
 
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
-      const id = String((p as any)?.id || '').trim();
-      if (id && linkedIds.has(id)) return false;
-      return true;
-    });
+    return filtered;
   }
 
   async create(input: {
