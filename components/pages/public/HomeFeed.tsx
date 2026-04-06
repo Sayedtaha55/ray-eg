@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -20,13 +20,17 @@ const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useCartSound();
 
-  const nextCategory = () => {
+  const nextCategory = useCallback(() => {
     setCurrentCategoryIndex((prev) => prev + 1);
-  };
+  }, []);
 
-  const prevCategory = () => {
+  const prevCategory = useCallback(() => {
     setCurrentCategoryIndex((prev) => prev - 1);
-  };
+  }, []);
+
+  const handleLoadMore = useCallback(() => {
+    loadMoreOffersRef.current?.();
+  }, []);
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -175,7 +179,7 @@ const HomeFeed: React.FC = () => {
           setSelectedItem={setSelectedItem}
           playSound={playSound}
           loadMoreSentinelRef={loadMoreSentinelRef}
-          loadMoreOffers={() => loadMoreOffersRef.current?.()}
+          loadMoreOffers={handleLoadMore}
         />
       </Suspense>
 
