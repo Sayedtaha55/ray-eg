@@ -29,6 +29,20 @@ export const coerceNumber = (value: any, fallback: number) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
+// Centralized device capability profiling for performance optimization
+export const IS_LOW_END_DEVICE = (() => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    // Consider low-end if mobile AND (limited cores OR limited memory)
+    return isMobile && (cores <= 4 || memory <= 4);
+  } catch {
+    return false;
+  }
+})();
+
 export const scopeCss = (css: string, scopeSelector: string) => {
   const raw = String(css || '');
   const safe = raw.replace(/<\s*\/\s*style/gi, '');
