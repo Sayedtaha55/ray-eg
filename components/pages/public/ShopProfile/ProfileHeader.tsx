@@ -26,6 +26,7 @@ interface ProfileHeaderProps {
   headerTextColor: string;
   bannerReady: boolean;
   purchaseModeButton?: React.ReactNode;
+  isBuilderPreview?: boolean;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -45,6 +46,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   headerTextColor,
   bannerReady,
   purchaseModeButton,
+  isBuilderPreview = false,
 }) => {
   const bannerRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -155,11 +157,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     };
   }, [showProfileBanner]);
 
+  const effectiveStuck = isBuilderPreview ? true : stuck;
+  const headerPositionClass = isBuilderPreview
+    ? 'sticky top-0'
+    : headerOverlayBanner
+      ? 'fixed top-0 left-0 right-0'
+      : 'sticky top-0';
+
   return (
     <div className="relative">
       {/* Banner Section */}
       {showProfileBanner ? (
-        <div ref={bannerRef} className={`relative ${headerOverlayBanner ? 'h-[250px] md:h-[400px]' : 'h-[250px] md:h-[400px]'} overflow-hidden`}>
+        <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
           {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
           {isVideoBanner ? (
             shouldPlayVideoBanner ? (
@@ -207,10 +216,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Header - Always Fixed */}
       <header
         ref={headerRef as any}
-        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
-          stuck ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'
+        className={`${headerPositionClass} z-[100] transition-all duration-300 ${
+          effectiveStuck ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'
         }`}
-        style={{ color: stuck ? undefined : headerTextColor }}
+        style={{ color: effectiveStuck ? undefined : headerTextColor }}
       >
           <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between flex-row-reverse">
             {/* Logo & Name */}
@@ -301,7 +310,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
           </div>
         </header>
 
-      {stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
+      {!isBuilderPreview && headerOverlayBanner && stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
 
       {/* Mobile Menu */}
       <AnimatePresence>

@@ -7,6 +7,7 @@ type Props = {
 
 const SHAPES = ['rounded-none', 'rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rounded-full'];
 const PADDINGS = ['px-3 py-2', 'px-4 py-2.5', 'px-6 py-3', 'px-8 py-4'];
+const PRESETS = ['primary', 'ghost', 'premium', 'urgent'] as const;
 
 const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
   <div className="space-y-4">
@@ -35,6 +36,24 @@ const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
             className={`p-3 rounded-xl border text-right transition-all hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-[0.99] ${config.buttonPadding === padding ? 'border-[#00E5FF] bg-cyan-50' : 'border-slate-100 bg-white hover:bg-slate-50'}`}
           >
             <p className="font-black text-xs">{padding}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <div>
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">نمط الزر</label>
+      <div className="grid grid-cols-2 gap-2">
+        {PRESETS.map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => setConfig({ ...config, buttonPreset: preset })}
+            className={`p-3 rounded-xl border text-right transition-all ${String(config.buttonPreset || 'primary') === preset ? 'border-[#00E5FF] bg-cyan-50' : 'border-slate-100 bg-white hover:bg-slate-50'}`}
+          >
+            <p className="font-black text-xs">
+              {preset === 'primary' ? 'Primary' : preset === 'ghost' ? 'Ghost' : preset === 'premium' ? 'Premium' : 'Urgent'}
+            </p>
           </button>
         ))}
       </div>

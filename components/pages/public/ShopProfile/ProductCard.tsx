@@ -89,6 +89,18 @@ const ProductCard = React.memo(function ProductCard({
   const secondaryColor = String((design as any)?.secondaryColor || '').trim() || '#BD00FF';
   const buttonShape = String((design as any)?.buttonShape || '').trim() || '';
   const buttonPadding = String((design as any)?.buttonPadding || '').trim() || '';
+  const buttonPreset = String((design as any)?.buttonPreset || 'primary').trim();
+  const imageAspectRatio = String((design as any)?.imageAspectRatio || 'square').trim();
+  const imageFitMode = String((design as any)?.imageFitMode || 'adaptive').trim();
+
+  const imageAspectClass = imageAspectRatio === 'portrait'
+    ? 'aspect-[2/3]'
+    : imageAspectRatio === 'landscape'
+      ? 'aspect-[3/2]'
+      : 'aspect-square';
+  const [autoImageFit, setAutoImageFit] = useState<'cover' | 'contain'>('cover');
+  const effectiveImageFit: 'cover' | 'contain' =
+    imageFitMode === 'contain' ? 'contain' : imageFitMode === 'cover' ? 'cover' : autoImageFit;
 
   const overlayBgHex = String((design as any)?.productCardOverlayBgColor || '').trim() || '#0F172A';
   const overlayOpacityPctRaw = typeof (design as any)?.productCardOverlayOpacity === 'number'
@@ -172,6 +184,14 @@ const ProductCard = React.memo(function ProductCard({
     return yiq < 140 ? 'text-white' : 'text-black';
   })();
 
+  const buttonPresetCls = (() => {
+    if (buttonPreset === 'ghost') return 'border border-white/30 bg-white/10 backdrop-blur text-white';
+    if (buttonPreset === 'premium') return 'bg-gradient-to-l from-fuchsia-600 to-indigo-600 text-white shadow-lg';
+    if (buttonPreset === 'urgent') return 'bg-gradient-to-l from-rose-600 to-orange-500 text-white shadow-lg';
+    return '';
+  })();
+  const usePrimarySolidColor = buttonPreset === 'primary' || !buttonPreset;
+
   const trackStock =
     typeof (product as any)?.trackStock === 'boolean'
       ? (product as any).trackStock
@@ -227,13 +247,13 @@ const ProductCard = React.memo(function ProductCard({
           {...motionProps}
           className="group relative transition-all duration-500 overflow-hidden"
         >
-          <div onClick={goToProduct} className="relative overflow-hidden cursor-pointer aspect-[4/5] md:aspect-[3/4]">
+          <div onClick={goToProduct} className={`relative overflow-hidden cursor-pointer ${imageAspectClass}`}>
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
           <SmartImage
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
@@ -365,7 +385,7 @@ const ProductCard = React.memo(function ProductCard({
           className={`relative overflow-hidden cursor-pointer ${
             isList || isCardless
               ? 'w-28 h-28 md:w-36 md:h-36 rounded-2xl shrink-0'
-              : `aspect-square ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
+              : `${imageAspectClass} ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
           }`}
         >
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
@@ -374,10 +394,18 @@ const ProductCard = React.memo(function ProductCard({
               loading="lazy"
               decoding="async"
               src={product.imageUrl || (product as any).image_url}
-              className={`w-full h-full object-cover ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
               style={{ transitionProperty: 'opacity, transform' }}
               alt={product.name}
-              onLoad={() => setImageReady(true)}
+              onLoad={(e) => {
+                setImageReady(true);
+                if (imageFitMode !== 'adaptive') return;
+                const w = e.currentTarget.naturalWidth || 0;
+                const h = e.currentTarget.naturalHeight || 0;
+                if (!w || !h) return;
+                const ratio = w / h;
+                setAutoImageFit(ratio > 1.9 || ratio < 0.56 ? 'contain' : 'cover');
+              }}
               onError={() => setImageReady(true)}
             />
           ) : null}
@@ -493,8 +521,8 @@ const ProductCard = React.memo(function ProductCard({
                   }}
                   className={`flex-1 py-2 md:py-3 flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-90 text-white ${
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
-                  } ${buttonShape} ${isAdded ? 'bg-green-600' : ''} shadow-md`}
-                  style={isAdded ? undefined : { backgroundColor: primaryColor }}
+                  } ${buttonShape} ${buttonPresetCls} ${isAdded ? 'bg-green-600' : ''} shadow-md`}
+                  style={isAdded || !usePrimarySolidColor ? undefined : { backgroundColor: primaryColor }}
                 >
                   {isAdded ? <Check size={11} className="sm:w-3 sm:h-3" /> : <Plus size={11} className="sm:w-3 sm:h-3" />}
                   <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
@@ -510,8 +538,8 @@ const ProductCard = React.memo(function ProductCard({
                   }}
                   className={`flex-1 py-2 md:py-3 ${reserveTextClass} flex items-center justify-center gap-1.5 md:gap-2 font-black text-[9px] md:text-[11px] uppercase transition-all active:scale-95 shadow-md ${
                     isBold ? 'rounded-xl md:rounded-[1.2rem]' : isModern ? 'rounded-lg md:rounded-xl' : 'rounded-none'
-                  } ${buttonShape} ${buttonPadding}`}
-                  style={{ backgroundColor: primaryColor }}
+                  } ${buttonShape} ${buttonPadding} ${buttonPresetCls}`}
+                  style={usePrimarySolidColor ? { backgroundColor: primaryColor } : undefined}
                 >
                   <CalendarCheck size={11} className="sm:w-3 sm:h-3" /> حجز
                 </button>

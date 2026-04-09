@@ -7,18 +7,15 @@ import HomeHero from './home/HomeHero';
 
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
-const TopVisitedShopsSection = lazy(() => import('./home/TopVisitedShopsSection'));
-const TopSellingProductsSection = lazy(() => import('./home/TopSellingProductsSection'));
+const StorefrontShowcaseSection = lazy(() => import('./home/StorefrontShowcaseSection'));
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [shops, setShops] = useState<Shop[]>([]);
-  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingShops, setLoadingShops] = useState(true);
-  const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -75,16 +72,6 @@ const HomeFeed: React.FC = () => {
         setLoadingShops(false);
       }
 
-      // Load orders for top selling products (with fallback)
-      setLoadingOrders(true);
-      try {
-        const ordersData = await ApiService.getAllOrders();
-        setOrders(ordersData || []);
-      } catch {
-        setOrders([]);
-      } finally {
-        setLoadingOrders(false);
-      }
     };
 
     const loadMoreOffers = async () => {
@@ -194,16 +181,15 @@ const HomeFeed: React.FC = () => {
       )}
 
       <Suspense fallback={null}>
-        <TopVisitedShopsSection shops={shops} loading={loadingShops} />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <TopSellingProductsSection
-          orders={orders}
+        <StorefrontShowcaseSection
+          shops={shops}
           offers={offers}
-          loading={loadingOrders}
-          onSelectItem={setSelectedItem}
-          onAddToCart={() => playSound()}
+          loading={loadingShops}
+          onOpenShop={(shop) => {
+            const slug = String((shop as any)?.slug || '').trim();
+            if (!slug) return;
+            navigate(`/s/${slug}`);
+          }}
         />
       </Suspense>
 
