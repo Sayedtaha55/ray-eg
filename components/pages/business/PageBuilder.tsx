@@ -524,21 +524,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         productsLayout: config.productsLayout || 'vertical',
       };
       await ApiService.updateShopDesign(shopId, normalized);
-
-      if (uploadedBanner?.bannerUrl) {
-        setConfig((prev: any) => ({
-          ...prev,
-          bannerUrl: uploadedBanner.bannerUrl,
-          bannerPosterUrl: uploadedBanner?.bannerPosterUrl || (prev as any)?.bannerPosterUrl,
-        }));
-      }
-
-      if (uploadedBackgroundUrl) {
-        setConfig((prev: any) => ({
-          ...prev,
-          backgroundImageUrl: uploadedBackgroundUrl,
-        }));
-      }
+      setConfig(normalized as any);
 
       try {
         if (logoFile) {
@@ -563,22 +549,21 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       if (bannerPreview && bannerPreview.startsWith('blob:')) {
         URL.revokeObjectURL(bannerPreview);
         setBannerPreview('');
-        // Keep the server URL in config
-        setConfig({ ...config, bannerUrl: uploadedBanner?.bannerUrl || config.bannerUrl || '' });
       }
 
       if (backgroundPreview && backgroundPreview.startsWith('blob:')) {
         URL.revokeObjectURL(backgroundPreview);
         setBackgroundPreview('');
         setBackgroundFile(null);
-        setConfig({ ...config, backgroundImageUrl: uploadedBackgroundUrl || (config as any)?.backgroundImageUrl || '' });
       }
       
       setSaving(false);
       setSaved(true);
       dirtyRef.current = false;
-      if (designSnapshot) {
-        lastSavedDesignRef.current = designSnapshot;
+      try {
+        lastSavedDesignRef.current = JSON.stringify(normalized || {});
+      } catch {
+        lastSavedDesignRef.current = designSnapshot || '';
       }
       addToast('تم حفظ تصميم المتجر بنجاح!', 'success');
       try {

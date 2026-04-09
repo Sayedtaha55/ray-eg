@@ -5,6 +5,7 @@ import { Client } from '@elastic/elasticsearch';
 export class SearchService {
   private readonly logger = new Logger(SearchService.name);
   private client: Client;
+  private isElasticsearchAvailable = false;
 
   constructor() {
     const esUrl = process.env.ELASTICSEARCH_URL || 'http://localhost:9200';
@@ -19,6 +20,7 @@ export class SearchService {
     try {
       // Check if Elasticsearch is available
       await this.client.ping();
+      this.isElasticsearchAvailable = true;
 
       // Create products index if not exists
       const productsExists = await this.client.indices.exists({
@@ -115,12 +117,38 @@ export class SearchService {
 
       this.logger.log('Elasticsearch indices initialized successfully');
     } catch (error) {
-      this.logger.error('Failed to initialize Elasticsearch indices:', error);
+      this.isElasticsearchAvailable = false;
+      this.logger.warn(
+        `Elasticsearch unavailable during startup (${this.getErrorMessage(error)}). Search indexing is disabled until the service becomes reachable.`,
+      );
       // Don't throw - allow app to start without Elasticsearch
     }
   }
 
+  private getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+      return error.message;
+    }
+    if (typeof error === 'string') {
+      return error;
+    }
+    return 'Unknown error';
+  }
+
+  private ensureElasticsearchAvailable(operation: string): boolean {
+    if (this.isElasticsearchAvailable) {
+      return true;
+    }
+
+    this.logger.warn(`Skipping ${operation}: Elasticsearch is unavailable`);
+    return false;
+  }
+
   async indexProduct(product: any) {
+    if (!this.ensureElasticsearchAvailable(`indexProduct(${product?.id ?? 'unknown'})`)) {
+      return;
+    }
+
     try {
       await this.client.index({
         index: 'products',
@@ -141,11 +169,15 @@ export class SearchService {
       } as any);
       this.logger.log(`Product ${product.id} indexed`);
     } catch (error) {
-      this.logger.error(`Failed to index product ${product.id}:`, error);
+      this.logger.error(`Failed to index product ${product.id}: ${this.getErrorMessage(error)}`);
     }
   }
 
   async indexShop(shop: any) {
+    if (!this.ensureElasticsearchAvailable(`indexShop(${shop?.id ?? 'unknown'})`)) {
+      return;
+    }
+
     try {
       await this.client.index({
         index: 'shops',
@@ -167,7 +199,7 @@ export class SearchService {
       } as any);
       this.logger.log(`Shop ${shop.id} indexed`);
     } catch (error) {
-      this.logger.error(`Failed to index shop ${shop.id}:`, error);
+      this.logger.error(`Failed to index shop ${shop.id}: ${this.getErrorMessage(error)}`);
     }
   }
 
@@ -177,6 +209,10 @@ export class SearchService {
     minPrice?: number;
     maxPrice?: number;
   }) {
+    if (!this.ensureElasticsearchAvailable('searchProducts')) {
+      return [];
+    }
+
     try {
       const must: any[] = [
         {
@@ -225,7 +261,7 @@ export class SearchService {
         ...hit._source,
       }));
     } catch (error) {
-      this.logger.error('Search failed:', error);
+      this.logger.error(`Search failed (products): ${this.getErrorMessage(error)}`);
       return [];
     }
   }
@@ -235,6 +271,10 @@ export class SearchService {
     governorate?: string;
     city?: string;
   }) {
+    if (!this.ensureElasticsearchAvailable('searchShops')) {
+      return [];
+    }
+
     try {
       const must: any[] = [
         {
@@ -279,12 +319,16 @@ export class SearchService {
         ...hit._source,
       }));
     } catch (error) {
-      this.logger.error('Search failed:', error);
+      this.logger.error(`Search failed (shops): ${this.getErrorMessage(error)}`);
       return [];
     }
   }
 
   async deleteProduct(productId: string) {
+    if (!this.ensureElasticsearchAvailable(`deleteProduct(${productId})`)) {
+      return;
+    }
+
     try {
       await this.client.delete({
         index: 'products',
@@ -292,11 +336,15 @@ export class SearchService {
       } as any);
       this.logger.log(`Product ${productId} deleted from index`);
     } catch (error) {
-      this.logger.error(`Failed to delete product ${productId}:`, error);
+      this.logger.error(`Failed to delete product ${productId}: ${this.getErrorMessage(error)}`);
     }
   }
 
   async deleteShop(shopId: string) {
+    if (!this.ensureElasticsearchAvailable(`deleteShop(${shopId})`)) {
+      return;
+    }
+
     try {
       await this.client.delete({
         index: 'shops',
@@ -304,11 +352,15 @@ export class SearchService {
       } as any);
       this.logger.log(`Shop ${shopId} deleted from index`);
     } catch (error) {
-      this.logger.error(`Failed to delete shop ${shopId}:`, error);
+      this.logger.error(`Failed to delete shop ${shopId}: ${this.getErrorMessage(error)}`);
     }
   }
 
   async bulkIndexProducts(products: any[]) {
+    if (!this.ensureElasticsearchAvailable(`bulkIndexProducts(${products.length})`)) {
+      return;
+    }
+
     try {
       const body = products.flatMap((product) => [
         { index: { _index: 'products', _id: product.id } },
@@ -330,11 +382,15 @@ export class SearchService {
       await this.client.bulk({ body } as any);
       this.logger.log(`Bulk indexed ${products.length} products`);
     } catch (error) {
-      this.logger.error('Bulk index failed:', error);
+      this.logger.error(`Bulk index failed (products): ${this.getErrorMessage(error)}`);
     }
   }
 
   async bulkIndexShops(shops: any[]) {
+    if (!this.ensureElasticsearchAvailable(`bulkIndexShops(${shops.length})`)) {
+      return;
+    }
+
     try {
       const body = shops.flatMap((shop) => [
         { index: { _index: 'shops', _id: shop.id } },
@@ -357,7 +413,7 @@ export class SearchService {
       await this.client.bulk({ body } as any);
       this.logger.log(`Bulk indexed ${shops.length} shops`);
     } catch (error) {
-      this.logger.error('Bulk index failed:', error);
+      this.logger.error(`Bulk index failed (shops): ${this.getErrorMessage(error)}`);
     }
   }
 }

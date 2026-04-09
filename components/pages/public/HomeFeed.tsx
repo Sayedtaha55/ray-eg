@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApiService } from '@/services/api.service';
-import { Offer, Shop } from '@/types';
+import { Offer, Product, Shop } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { useCartSound } from '@/hooks/useCartSound';
 import HomeHero from './home/HomeHero';
@@ -16,6 +16,7 @@ const HomeFeed: React.FC = () => {
   const [shops, setShops] = useState<Shop[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingShops, setLoadingShops] = useState(true);
+  const [shopProductsById, setShopProductsById] = useState<Record<string, Product[]>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -65,9 +66,34 @@ const HomeFeed: React.FC = () => {
       setLoadingShops(true);
       try {
         const shopsData = await ApiService.getShops('all', { take: 100 });
-        setShops(shopsData || []);
+        const shopsList = Array.isArray(shopsData) ? shopsData : [];
+        setShops(shopsList);
+
+        const approvedShops = shopsList
+          .filter((s: any) => String((s as any)?.status || '').toLowerCase() === 'approved')
+          .slice(0, 8);
+
+        const previews = await Promise.all(
+          approvedShops.map(async (shop: any) => {
+            try {
+              const products = await ApiService.getProducts(String(shop?.id || ''), { page: 1, limit: 4 });
+              const list = Array.isArray(products) ? products.filter((p: any) => (p?.isActive ?? true)) : [];
+              return { shopId: String(shop?.id || ''), list: list.slice(0, 4) as Product[] };
+            } catch {
+              return { shopId: String(shop?.id || ''), list: [] as Product[] };
+            }
+          }),
+        );
+
+        const byShopId = previews.reduce<Record<string, Product[]>>((acc, { shopId, list }) => {
+          if (!shopId) return acc;
+          acc[shopId] = list;
+          return acc;
+        }, {});
+        setShopProductsById(byShopId);
       } catch {
         setShops([]);
+        setShopProductsById({});
       } finally {
         setLoadingShops(false);
       }
@@ -184,6 +210,7 @@ const HomeFeed: React.FC = () => {
         <StorefrontShowcaseSection
           shops={shops}
           offers={offers}
+          shopProductsById={shopProductsById}
           loading={loadingShops}
           onOpenShop={(shop) => {
             const slug = String((shop as any)?.slug || '').trim();
