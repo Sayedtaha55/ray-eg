@@ -60,6 +60,7 @@ const DEFAULT_PAGE_DESIGN = {
   // Buttons
   buttonShape: 'rounded-2xl',
   buttonPadding: 'px-6 py-3',
+  buttonPreset: 'primary' as const,
   buttonHover: 'bg-slate-900',
   // Product Card
   productCardOverlayBgColor: '#0F172A',
@@ -118,6 +119,7 @@ interface ShopDesign {
   fontWeight: string;
   buttonShape: string;
   buttonPadding: string;
+  buttonPreset?: 'primary' | 'ghost' | 'premium' | 'urgent';
   buttonHover: string;
   productCardOverlayBgColor?: string;
   productCardOverlayOpacity?: number;
@@ -173,6 +175,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const logoSavingRef = useRef(false);
   const dirtyRef = useRef(false);
   const handleSaveRef = useRef<null | (() => void)>(null);
+  const lastSavedDesignRef = useRef<string>('');
 
   const syncVisibilityWithModules = (current: any, shop: any) => {
     const next = { ...(current && typeof current === 'object' ? current : {}) } as Record<string, boolean>;
@@ -304,6 +307,17 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         imageMapVisibility: imageMapVisibilityNormalized,
         customCss: customCssNormalized,
       } as any);
+      try {
+        lastSavedDesignRef.current = JSON.stringify({
+          ...merged,
+          elementsVisibility: elementsVisibilitySynced,
+          productEditorVisibility: productEditorVisibilityNormalized,
+          imageMapVisibility: imageMapVisibilityNormalized,
+          customCss: customCssNormalized,
+        });
+      } catch {
+        lastSavedDesignRef.current = '';
+      }
       dirtyRef.current = false;
     } catch {
       if (!silent) {
@@ -382,6 +396,21 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleSave = async () => {
     if (!shopId) return;
     if (savingRef.current) return;
+    const hasMediaChanges = Boolean(bannerFile || backgroundFile || logoFile);
+    const designSnapshot = (() => {
+      try {
+        return JSON.stringify(config || {});
+      } catch {
+        return '';
+      }
+    })();
+    if (!hasMediaChanges && designSnapshot && designSnapshot === lastSavedDesignRef.current) {
+      dirtyRef.current = false;
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1200);
+      addToast('لا توجد تغييرات جديدة للحفظ', 'info');
+      return;
+    }
     savingRef.current = true;
     setSaving(true);
     try {
@@ -548,6 +577,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setSaving(false);
       setSaved(true);
       dirtyRef.current = false;
+      if (designSnapshot) {
+        lastSavedDesignRef.current = designSnapshot;
+      }
       addToast('تم حفظ تصميم المتجر بنجاح!', 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));

@@ -87,63 +87,63 @@ const ShopProfilePreview: React.FC<Props> = ({
   const products = useMemo(() => ([
     {
       id: 'preview-1',
-      name: 'تيشيرت قطني',
-      description: 'تيشيرت قطني مريح',
-      price: 249,
+      name: 'منتج تجريبي 1',
+      description: 'وصف تجريبي قابل للتخصيص',
+      price: 129,
       imageUrl: '',
-      stock: 8,
-      category: 'ملابس',
+      stock: 12,
+      category: 'منتجات',
     },
     {
       id: 'preview-2',
-      name: 'ساعة ذكية',
-      description: 'ساعة ذكية مع شاشة',
-      price: 599,
+      name: 'منتج تجريبي 2',
+      description: 'نموذج عرض للمعاينة',
+      price: 199,
       imageUrl: '',
-      stock: 3,
-      category: 'ساعات',
+      stock: 7,
+      category: 'تجربة',
     },
     {
       id: 'preview-3',
-      name: 'حذاء رياضي',
-      description: 'حذاء رياضي مريح',
-      price: 399,
+      name: 'منتج تجريبي 3',
+      description: 'تفاصيل قصيرة للمنتج',
+      price: 259,
       imageUrl: '',
-      stock: 5,
-      category: 'أحذية',
+      stock: 4,
+      category: 'منتجات',
     },
     {
       id: 'preview-4',
-      name: 'سماعة بلوتوث',
-      description: 'سماعة لاسلكية عالية الجودة',
-      price: 299,
+      name: 'منتج تجريبي 4',
+      description: 'خيار عرض متعدد الاستخدام',
+      price: 319,
       imageUrl: '',
-      stock: 10,
-      category: 'إلكترونيات',
+      stock: 9,
+      category: 'تجربة',
     },
     {
       id: 'preview-5',
-      name: 'بنطلون جينز',
-      description: 'بنطلون جينز كلاسيك',
-      price: 349,
+      name: 'منتج تجريبي 5',
+      description: 'مناسب لأي نشاط تجاري',
+      price: 89,
       imageUrl: '',
-      stock: 7,
-      category: 'ملابس',
+      stock: 14,
+      category: 'عام',
     },
     {
       id: 'preview-6',
-      name: 'منتج عام',
-      description: 'تفاصيل المنتج',
-      price: 99,
+      name: 'منتج تجريبي 6',
+      description: 'بيانات افتراضية للمعاينة',
+      price: 149,
       imageUrl: '',
-      stock: 0,
+      stock: 6,
       category: 'عام',
     },
   ]), []);
 
   const offersByProductId = useMemo(() => new Map<string, any>(), []);
 
-  const categories = useMemo(() => ['الكل', 'ملابس', 'إلكترونيات', 'أحذية', 'ساعات', 'عام'], []);
+  const categories = useMemo(() => ['الكل', 'منتجات', 'تجربة', 'عام'], []);
 
   const prefersReducedMotion = true;
 
@@ -179,6 +179,7 @@ const ShopProfilePreview: React.FC<Props> = ({
             headerBg={headerBg}
             headerTextColor={headerTextColor}
             bannerReady={true}
+            isBuilderPreview={true}
           />
 
       <main

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState, memo } from 'react';
-import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart, ChevronDown, Lock, Unlock } from 'lucide-react';
+import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart, ChevronDown, Lock, Unlock, Upload, Download } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
@@ -123,6 +123,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   const [savingAddons, setSavingAddons] = useState(false);
   const [openAddonId, setOpenAddonId] = useState<string>('');
   const [lockedAddonIds, setLockedAddonIds] = useState<Set<string>>(new Set());
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkExporting, setBulkExporting] = useState(false);
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const canUseImageMapEditor = !isRestaurant && Boolean(String(shopId || '').trim());
@@ -134,6 +136,86 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
   };
 
   const normalizeText = (v: any) => String(v ?? '').trim();
+
+  const parseCsvLike = (raw: string) => {
+    const txt = String(raw || '').replace(/\r/g, '').trim();
+    if (!txt) return [] as any[];
+    const lines = txt.split('\n').filter((x) => x.trim());
+    if (lines.length < 2) return [];
+    const header = lines[0].split(/[;,]/g).map((x) => x.trim().toLowerCase());
+    const idx = (name: string) => header.findIndex((h) => h === name);
+    const iName = idx('name');
+    const iPrice = idx('price');
+    const iStock = idx('stock');
+    const iCategory = idx('category');
+    const iDesc = idx('description');
+    if (iName < 0 || iPrice < 0) return [];
+    return lines.slice(1).map((line) => {
+      const cols = line.split(/[;,]/g).map((x) => x.trim());
+      return {
+        name: cols[iName] || '',
+        price: Number(cols[iPrice] || 0),
+        stock: iStock >= 0 ? Number(cols[iStock] || 0) : 0,
+        category: iCategory >= 0 ? cols[iCategory] || 'عام' : 'عام',
+        description: iDesc >= 0 ? (cols[iDesc] || null) : null,
+      };
+    }).filter((x) => x.name && Number.isFinite(x.price) && x.price >= 0);
+  };
+
+  const handleBulkImportFile = async (file: File) => {
+    if (!shopId) return;
+    setBulkImporting(true);
+    try {
+      const raw = await file.text();
+      const items = parseCsvLike(raw);
+      if (!items.length) {
+        addToast('الملف لا يحتوي بيانات صالحة. استخدم الأعمدة: name,price,stock,category,description', 'error');
+        return;
+      }
+      await backendPostWithOptions<any>(
+        `/api/v1/products/manage/by-shop/${encodeURIComponent(String(shopId))}/import-drafts`,
+        { source: 'excel_bulk', items },
+        { timeoutMs: 180_000 },
+      );
+      addToast(`تم استيراد ${items.length} منتج بنجاح`, 'success');
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+      } catch {
+      }
+    } catch {
+      addToast('فشل استيراد ملف المنتجات', 'error');
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
+  const handleBulkExport = async () => {
+    setBulkExporting(true);
+    try {
+      const rows = (Array.isArray(products) ? products : []).map((p: any) => [
+        String((p as any)?.name || '').replace(/[;,]/g, ' '),
+        String(Number((p as any)?.price || 0)),
+        String(Number((p as any)?.stock || 0)),
+        String((p as any)?.category || 'عام').replace(/[;,]/g, ' '),
+        String((p as any)?.description || '').replace(/[\n\r;,]/g, ' '),
+      ]);
+      const csv = ['name,price,stock,category,description', ...rows.map((r) => r.join(','))].join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'inventory-export.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      addToast('تم تصدير المخزون بنجاح', 'success');
+    } catch {
+      addToast('فشل تصدير المخزون', 'error');
+    } finally {
+      setBulkExporting(false);
+    }
+  };
 
   const normalizeColorLabel = (c: any) => {
     if (typeof c === 'string') return normalizeText(c);
@@ -679,6 +761,29 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
               type="button"
             >
               <Plus size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" /> إضافة صنف جديد
+            </button>
+            <label className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-white border border-slate-200 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-50 transition-all cursor-pointer">
+              {bulkImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+              استيراد CSV/Excel
+              <input
+                type="file"
+                accept=".csv,text/csv,application/vnd.ms-excel"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleBulkImportFile(file);
+                  e.currentTarget.value = '';
+                }}
+              />
+            </label>
+            <button
+              type="button"
+              onClick={handleBulkExport}
+              disabled={bulkExporting}
+              className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-white border border-slate-200 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-50 transition-all disabled:opacity-60"
+            >
+              {bulkExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              تصدير المخزون
             </button>
           </div>
         </div>

@@ -69,6 +69,27 @@ export class AuthService implements OnModuleInit {
     );
   }
 
+  private async resolveMerchantPrimaryShop(ownerIdRaw: string): Promise<{ id: string; status: string } | null> {
+    const ownerId = String(ownerIdRaw || '').trim();
+    if (!ownerId) return null;
+
+    const shops = await this.prisma.shop.findMany({
+      where: { ownerId },
+      select: { id: true, status: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+
+    if (!shops.length) return null;
+
+    const approved = shops.find((s: any) => String((s as any)?.status || '').toUpperCase() === 'APPROVED');
+    const picked = approved || shops[0];
+    return {
+      id: String((picked as any).id),
+      status: String((picked as any).status || '').toUpperCase() || 'PENDING',
+    };
+  }
+
   private async sendEmailVerification(user: { id: string; email: string; name?: string | null }, meta?: RequestMeta) {
     const token = this.buildEmailVerificationToken({ id: user.id, email: user.email });
     const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim().replace(/\/$/, '');
@@ -661,11 +682,36 @@ export class AuthService implements OnModuleInit {
     }
 
     // 2. التأكد من عدم وجود المستخدم مسبقاً
-    const existingUser = await this.prisma.user.findUnique({ 
+    const existingUser = await this.prisma.user.findUnique({
       where: { email: normalizedEmail } 
     });
-    
+
     if (existingUser) {
+      if (normalizedRole === 'MERCHANT') {
+        const existingRole = String((existingUser as any)?.role || '').toUpperCase();
+        if (existingRole === 'MERCHANT') {
+          const passMatches = await bcrypt.compare(password, String((existingUser as any)?.password || ''));
+          if (passMatches) {
+            const primaryShop = await this.resolveMerchantPrimaryShop(String((existingUser as any)?.id || ''));
+            if (primaryShop && primaryShop.status !== 'APPROVED') {
+              return {
+                ok: true,
+                pending: true,
+                user: {
+                  id: (existingUser as any).id,
+                  name: (existingUser as any).name,
+                  email: (existingUser as any).email,
+                  role: (existingUser as any).role,
+                },
+                shop: {
+                  id: primaryShop.id,
+                  status: primaryShop.status,
+                },
+              };
+            }
+          }
+        }
+      }
       throw new ConflictException('البريد الإلكتروني مستخدم بالفعل في نظامنا');
     }
 
@@ -1168,16 +1214,23 @@ export class AuthService implements OnModuleInit {
       }
     }
     if (role === 'MERCHANT') {
-      const shop = await this.prisma.shop.findFirst({
-        where: { ownerId: user.id },
-        select: { id: true, status: true },
-      });
-      if (!shop) {
+      const primaryShop = await this.resolveMerchantPrimaryShop(user.id);
+      if (!primaryShop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
       }
-      const status = String((shop as any)?.status || '').toUpperCase();
+      const status = String(primaryShop.status || '').toUpperCase();
       if (status !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+      if (String((user as any)?.shopId || '').trim() !== primaryShop.id) {
+        try {
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { shopId: primaryShop.id as any },
+          });
+          (user as any).shopId = primaryShop.id;
+        } catch {
+        }
       }
     }
 
@@ -1238,11 +1291,8 @@ export class AuthService implements OnModuleInit {
     const role = String(user?.role || '').toUpperCase();
     if (role === 'MERCHANT') {
       try {
-        const shop = await this.prisma.shop.findFirst({
-          where: { ownerId: user.id },
-          select: { status: true },
-        });
-        const status = String((shop as any)?.status || 'PENDING').toLowerCase();
+        const primaryShop = await this.resolveMerchantPrimaryShop(user.id);
+        const status = String(primaryShop?.status || 'PENDING').toLowerCase();
         return { ...issued, merchantStatus: status };
       } catch {
         return { ...issued, merchantStatus: 'pending' };
@@ -1271,16 +1321,22 @@ export class AuthService implements OnModuleInit {
       throw new ForbiddenException('الحساب معطل');
     }
     if (role === 'MERCHANT') {
-      const shop = await this.prisma.shop.findFirst({
-        where: { ownerId: user.id },
-        select: { id: true, status: true },
-      });
-      if (!shop) {
+      const primaryShop = await this.resolveMerchantPrimaryShop(user.id);
+      if (!primaryShop) {
         throw new ForbiddenException('حساب التاجر غير مكتمل');
       }
-      const status = String((shop as any)?.status || '').toUpperCase();
+      const status = String(primaryShop.status || '').toUpperCase();
       if (status !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      }
+      if (String((user as any)?.shopId || '').trim() !== primaryShop.id) {
+        try {
+          await this.prisma.user.update({
+            where: { id: user.id },
+            data: { shopId: primaryShop.id as any },
+          });
+        } catch {
+        }
       }
     }
 
@@ -1357,11 +1413,19 @@ export class AuthService implements OnModuleInit {
     let shopId: string | undefined;
 
     if (role === 'MERCHANT') {
-      const shop = await this.prisma.shop.findFirst({
-        where: { ownerId: user.id },
-        select: { id: true },
-      });
-      if (shop?.id) shopId = shop.id;
+      const primaryShop = await this.resolveMerchantPrimaryShop(user.id);
+      if (primaryShop?.id) {
+        shopId = primaryShop.id;
+        if (String((user as any)?.shopId || '').trim() !== primaryShop.id) {
+          try {
+            await this.prisma.user.update({
+              where: { id: user.id },
+              data: { shopId: primaryShop.id as any },
+            });
+          } catch {
+          }
+        }
+      }
     }
 
     const payload: any = {

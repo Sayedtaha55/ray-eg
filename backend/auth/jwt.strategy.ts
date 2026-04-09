@@ -64,17 +64,39 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     let shop: { id: string; deliveryDisabled: boolean } | undefined;
     if (role === 'MERCHANT') {
       const shopId = String((user as any)?.shopId || '').trim();
-      if (!shopId) {
-        throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
+      let shopRecord: any = null;
+
+      if (shopId) {
+        shopRecord = await this.prisma.shop.findUnique({
+          where: { id: shopId },
+          select: { id: true, status: true, deliveryDisabled: true, ownerId: true, createdAt: true },
+        });
       }
 
-      const shopRecord = await this.prisma.shop.findUnique({
-        where: { id: shopId },
-        select: { id: true, status: true, deliveryDisabled: true },
-      });
-
       const status = String((shopRecord as any)?.status || '').toUpperCase();
-      if (!shopRecord || status !== 'APPROVED') {
+      const ownerMatches = shopRecord ? String((shopRecord as any)?.ownerId || '') === String((user as any)?.id || '') : false;
+      if (!shopRecord || !ownerMatches || status !== 'APPROVED') {
+        const ownerShops = await this.prisma.shop.findMany({
+          where: { ownerId: String((user as any)?.id || '') },
+          select: { id: true, status: true, deliveryDisabled: true, createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 10,
+        });
+        const approvedShop = ownerShops.find((s: any) => String((s as any)?.status || '').toUpperCase() === 'APPROVED');
+        if (approvedShop) {
+          shopRecord = approvedShop;
+          try {
+            await this.prisma.user.update({
+              where: { id: String((user as any).id) },
+              data: { shopId: String((approvedShop as any).id) as any },
+            });
+          } catch {
+          }
+        }
+      }
+
+      const normalizedStatus = String((shopRecord as any)?.status || '').toUpperCase();
+      if (!shopRecord || normalizedStatus !== 'APPROVED') {
         throw new ForbiddenException('حسابك قيد المراجعة من الأدمن');
       }
 
