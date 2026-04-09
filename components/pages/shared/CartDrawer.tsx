@@ -1,6 +1,5 @@
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { X, ShoppingBag, Trash2, CreditCard, Loader2, CheckCircle2, Plus, Minus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
@@ -8,6 +7,7 @@ import { RayDB } from '@/constants';
 import { locationPersistence } from '@/services/locationPersistence';
 import { explainGeoError, requestPreciseBrowserLocation } from '@/lib/geolocation';
 import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 interface CartItem {
   id: string;
@@ -449,21 +449,29 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[400]" />
-          <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} className="fixed right-0 top-0 h-full w-full max-w-md bg-white z-[401] shadow-2xl flex flex-col text-right" dir="rtl">
-            <header className="p-4 sm:p-8 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-xl sm:text-2xl font-black flex items-center gap-3 sm:gap-4">
-                <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 text-[#00E5FF]" /> سلة التسوق
-              </h2>
-              <button onClick={onClose} className="p-2 sm:p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
-                <X size={20} className="sm:w-6 sm:h-6" />
-              </button>
-            </header>
+    <Sheet
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
+    >
+      <SheetContent
+        side="right"
+        dir="rtl"
+        className="z-[401] h-full w-full max-w-md p-0 flex flex-col text-right"
+      >
+        <SheetHeader className="flex-row items-center justify-between space-y-0">
+          <SheetTitle className="flex items-center gap-3 sm:gap-4">
+            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 text-[#00E5FF]" /> سلة التسوق
+          </SheetTitle>
+          <SheetClose asChild>
+            <button className="p-2 sm:p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors" aria-label="إغلاق">
+              <X size={20} className="sm:w-6 sm:h-6" />
+            </button>
+          </SheetClose>
+        </SheetHeader>
 
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-10">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 space-y-6 sm:space-y-10">
               {showSuccess ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-500 rounded-full flex items-center justify-center mb-6 sm:mb-8 shadow-2xl animate-bounce">
@@ -710,61 +718,69 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   </div>
                 ))
               )}
-            </div>
+        </div>
 
-            {!showSuccess && localItems.length > 0 && (
-              <footer className="p-4 sm:p-8 border-t border-slate-100 bg-slate-50 space-y-6">
-                {error && <p className="text-red-500 text-xs font-bold text-center">{String(error)}</p>}
-                {invalidLineIds.length > 0 && (
-                  <div className="space-y-3">
-                    <button
-                      onClick={removeInvalidItems}
-                      disabled={isProcessing}
-                      className="w-full py-3 bg-red-50 text-red-700 rounded-2xl font-black text-sm hover:bg-red-100 transition-all disabled:opacity-50"
-                    >
-                      حذف المنتجات غير المتاحة
-                    </button>
-                    <button
-                      onClick={() => {
-                        RayDB.clearCart();
-                        locationPersistence.clearCheckoutLocation();
-                        setInvalidLineIds([]);
-                        setError('تم تفريغ السلة');
-                      }}
-                      disabled={isProcessing}
-                      className="w-full py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
-                    >
-                      تفريغ السلة بالكامل
-                    </button>
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center flex-row-reverse">
-                    <span className="font-black text-slate-400">إجمالي المنتجات</span>
-                    <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {total}</span>
-                  </div>
-                  <div className="flex justify-between items-center flex-row-reverse">
-                    <span className="font-black text-slate-400">رسوم التوصيل</span>
-                    <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {deliveryFeeTotal}</span>
-                  </div>
-                  <div className="flex justify-between items-center flex-row-reverse">
-                    <span className="font-black text-slate-900">الإجمالي النهائي</span>
-                    <span className="text-3xl sm:text-4xl font-black tracking-tighter">ج.م {grandTotal}</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={handleCheckout}
+        {!showSuccess && localItems.length > 0 && (
+          <footer className="p-4 sm:p-8 border-t border-slate-100 bg-slate-50 space-y-6">
+            {error && <p className="text-red-500 text-xs font-bold text-center">{String(error)}</p>}
+            {invalidLineIds.length > 0 && (
+              <div className="space-y-3">
+                <button
+                  onClick={removeInvalidItems}
                   disabled={isProcessing}
-                  className="w-full py-4 sm:py-6 bg-slate-900 text-white rounded-2xl sm:rounded-[2.5rem] font-black text-base sm:text-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-black transition-all shadow-2xl disabled:opacity-50"
+                  className="w-full py-3 bg-red-50 text-red-700 rounded-2xl font-black text-sm hover:bg-red-100 transition-all disabled:opacity-50"
                 >
-                  {isProcessing ? <Loader2 className="animate-spin" /> : step === 'cart' ? <>التالي <CreditCard size={18} className="sm:w-6 sm:h-6" /></> : <>تأكيد الطلب (دفع عند الاستلام) <CreditCard size={18} className="sm:w-6 sm:h-6" /></>}
+                  حذف المنتجات غير المتاحة
                 </button>
-              </footer>
+                <button
+                  onClick={() => {
+                    RayDB.clearCart();
+                    locationPersistence.clearCheckoutLocation();
+                    setInvalidLineIds([]);
+                    setError('تم تفريغ السلة');
+                  }}
+                  disabled={isProcessing}
+                  className="w-full py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
+                >
+                  تفريغ السلة بالكامل
+                </button>
+              </div>
             )}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center flex-row-reverse">
+                <span className="font-black text-slate-400">إجمالي المنتجات</span>
+                <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {total}</span>
+              </div>
+              <div className="flex justify-between items-center flex-row-reverse">
+                <span className="font-black text-slate-400">رسوم التوصيل</span>
+                <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {deliveryFeeTotal}</span>
+              </div>
+              <div className="flex justify-between items-center flex-row-reverse">
+                <span className="font-black text-slate-900">الإجمالي النهائي</span>
+                <span className="text-3xl sm:text-4xl font-black tracking-tighter">ج.م {grandTotal}</span>
+              </div>
+            </div>
+            <button
+              onClick={handleCheckout}
+              disabled={isProcessing}
+              className="w-full py-4 sm:py-6 bg-slate-900 text-white rounded-2xl sm:rounded-[2.5rem] font-black text-base sm:text-xl flex items-center justify-center gap-3 sm:gap-4 hover:bg-black transition-all shadow-2xl disabled:opacity-50"
+            >
+              {isProcessing ? (
+                <Loader2 className="animate-spin" />
+              ) : step === 'cart' ? (
+                <>
+                  التالي <CreditCard size={18} className="sm:w-6 sm:h-6" />
+                </>
+              ) : (
+                <>
+                  تأكيد الطلب (دفع عند الاستلام) <CreditCard size={18} className="sm:w-6 sm:h-6" />
+                </>
+              )}
+            </button>
+          </footer>
+        )}
+      </SheetContent>
+    </Sheet>
   );
 };
 

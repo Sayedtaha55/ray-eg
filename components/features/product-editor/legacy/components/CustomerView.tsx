@@ -1,0 +1,568 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { ShoppingCart, LogOut, ChevronUp, ChevronDown, Plus, Minus, Trash2, ChevronLeft, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { Shop, Product, CartItem } from '../types';
+import { StoreViewer } from './StoreViewer.tsx';
+import { RayDB } from '@/constants';
+import { useCartSound } from '@/hooks/useCartSound';
+import CartDrawer from '@/components/pages/shared/CartDrawer';
+import ReservationModal from '@/components/pages/shared/ReservationModal';
+
+interface CustomerViewProps {
+  shop: Shop;
+  shopCategory?: string;
+  productEditorVisibility?: Record<string, any>;
+  imageMapVisibility?: Record<string, any>;
+  onExit: () => void;
+}
+
+export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', productEditorVisibility, imageMapVisibility, onExit }) => {
+  const [cart, setCart] = useState<any[]>([]);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCartDrawerOpen, setIsCartDrawerOpen] = useState(false);
+  const [selectedProductForReservation, setSelectedProductForReservation] = useState<Product | null>(null);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const { playSound } = useCartSound();
+
+  const performanceMode = useMemo(() => {
+    try {
+      const coarse = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+        ? window.matchMedia('(pointer: coarse)').matches
+        : false;
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      const low = (typeof mem === 'number' && mem > 0 && mem <= 4) || (typeof cores === 'number' && cores > 0 && cores <= 4);
+      return coarse || low;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const sid = String((shop as any)?.id || '').trim();
+      if (!sid) return;
+
+      const sections = Array.isArray((shop as any)?.sections) ? (shop as any).sections : [];
+      const productById = new Map();
+      for (const sec of sections) {
+        const products = Array.isArray((sec as any)?.products) ? (sec as any).products : [];
+        for (const p of products) {
+          const pid = String((p as any)?.id || '').trim();
+          if (pid) productById.set(pid, p);
+        }
+      }
+
+      const prev = RayDB.getCart();
+      if (!Array.isArray(prev) || prev.length === 0) return;
+
+      const next = prev.map((it: any) => {
+        const itemShopId = String(it?.shopId || '').trim();
+        const itemProductId = String(it?.id || it?.productId || '').trim();
+        if (!itemShopId || itemShopId !== sid) return it;
+        if (!itemProductId) return it;
+
+        const p = productById.get(itemProductId);
+        if (!p) return it;
+
+        const basePriceRaw = (p as any)?.price;
+        const basePrice = typeof basePriceRaw === 'number' ? basePriceRaw : Number(basePriceRaw || 0);
+
+        const unit = typeof (p as any)?.unit === 'string' ? (p as any).unit : it?.unit;
+        const packOptions = typeof (p as any)?.packOptions === 'undefined' ? undefined : (p as any).packOptions;
+        const furnitureMeta = typeof (p as any)?.furnitureMeta === 'undefined' ? (it as any)?.furnitureMeta : (p as any).furnitureMeta;
+
+        const variantSelection = (it as any)?.variantSelection ?? (it as any)?.variant_selection;
+        const kind = variantSelection && typeof variantSelection === 'object' ? String((variantSelection as any)?.kind || '').trim().toLowerCase() : '';
+
+        const resolvedPrice = (() => {
+          if (kind === 'pack') {
+            const packId = String((variantSelection as any)?.packId || (variantSelection as any)?.id || '').trim();
+            const defs = Array.isArray(packOptions) ? (packOptions as any[]) : [];
+            const def = packId ? defs.find((x: any) => String(x?.id || '').trim() === packId) : null;
+            const pr = def ? (typeof def?.price === 'number' ? def.price : Number(def?.price || NaN)) : NaN;
+            return Number.isFinite(pr) ? pr : (Number.isFinite(basePrice) ? basePrice : (Number(it?.price) || 0));
+          }
+          return Number.isFinite(basePrice) ? basePrice : (Number(it?.price) || 0);
+        })();
+
+        return {
+          ...it,
+          name: String((p as any)?.name || it?.name || ''),
+          imageUrl: (p as any)?.imageUrl || (p as any)?.image_url || it?.imageUrl || it?.image_url,
+          unit,
+          packOptions,
+          furnitureMeta,
+          price: resolvedPrice,
+        };
+      });
+
+      const changed = JSON.stringify(prev) !== JSON.stringify(next);
+      if (changed) {
+        RayDB.setCart(next);
+      }
+    } catch {
+    }
+  }, [shop, shopCategory]);
+
+  useEffect(() => {
+    if (performanceMode) return;
+    const handleMove = (e: MouseEvent) => {
+      setMousePos({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+    window.addEventListener('mousemove', handleMove);
+    return () => window.removeEventListener('mousemove', handleMove);
+  }, [performanceMode]);
+
+  useEffect(() => {
+    const sync = () => {
+      try {
+        setCart(RayDB.getCart());
+      } catch {
+        setCart([]);
+      }
+    };
+
+    sync();
+    window.addEventListener('cart-updated', sync);
+
+    let bc: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        bc = new BroadcastChannel('ray-cart');
+        bc.onmessage = () => {
+          sync();
+        };
+      }
+    } catch {
+      bc = null;
+    }
+
+    const onStorage = (e: StorageEvent) => {
+      if (e && e.key && e.key !== 'ray_cart') return;
+      sync();
+    };
+    window.addEventListener('storage', onStorage);
+
+    return () => {
+      window.removeEventListener('cart-updated', sync);
+      window.removeEventListener('storage', onStorage);
+      try { bc?.close(); } catch { }
+    };
+  }, []);
+
+  const addToCart = (product: Product) => {
+    const isFood = String(shopCategory || '').toUpperCase() === 'FOOD';
+    const selectedPackId = String((product as any)?.selectedPackId || '').trim();
+    const packDefs = isFood && Array.isArray((product as any)?.packOptions) ? (product as any).packOptions : [];
+    const selectedPack = selectedPackId && Array.isArray(packDefs)
+      ? (packDefs as any[]).find((p: any) => String(p?.id || '').trim() === selectedPackId)
+      : null;
+    const packPriceRaw = selectedPack ? (typeof selectedPack?.price === 'number' ? selectedPack.price : Number(selectedPack?.price || NaN)) : NaN;
+    const packPrice = Number.isFinite(packPriceRaw) && packPriceRaw >= 0 ? packPriceRaw : NaN;
+
+    const selectedColor = String((product as any)?.selectedColor || '').trim();
+    const selectedSizeLabel = (() => {
+      const s = (product as any)?.selectedSize;
+      if (!s) return '';
+      if (typeof s === 'string') return String(s).trim();
+      if (s && typeof s === 'object') return String((s as any)?.label || '').trim();
+      return '';
+    })();
+    const variantSelection = selectedColor && selectedSizeLabel
+      ? {
+          kind: 'fashion',
+          colorName: selectedColor,
+          colorValue: selectedColor,
+          size: selectedSizeLabel,
+        }
+      : (isFood && selectedPackId ? { kind: 'pack', packId: selectedPackId } : undefined);
+
+    const payload = (product as any)?.__cartPayload || {
+      productId: String((product as any)?.id || ''),
+      shopId: String((shop as any)?.id || ''),
+      name: String((product as any)?.name || ''),
+      price: isFood && selectedPackId && Number.isFinite(packPrice)
+        ? packPrice
+        : (typeof (product as any)?.price === 'number' ? (product as any).price : Number((product as any)?.price || 0)),
+      imageUrl: (product as any)?.imageUrl || (product as any)?.image_url,
+      shopName: (shop as any)?.name,
+      quantity: 1,
+      ...(variantSelection ? { variantSelection } : {}),
+      unit: typeof (product as any)?.unit === 'string' ? (product as any).unit : undefined,
+      furnitureMeta: (product as any)?.furnitureMeta,
+    };
+
+    try {
+      RayDB.addToCart(payload);
+    } catch {
+    }
+    try {
+      playSound();
+    } catch {
+    }
+    setIsCartOpen(true);
+  };
+
+  const handleReserve = (product: Product) => {
+    // Open the reservation modal with the selected product
+    setSelectedProductForReservation(product);
+    playSound();
+  };
+
+  const activeSection = shop.sections?.[activeSectionIndex];
+  const total = cart.reduce((sum, item: any) => sum + Number(item?.price || 0) * Number(item?.quantity || 0), 0);
+  const count = cart.reduce((sum, item: any) => sum + Number(item?.quantity || 0), 0);
+
+  const handleNextSection = () => {
+    setActiveSectionIndex((prev) => (prev + 1) % (shop.sections?.length || 1));
+  };
+
+  const handlePrevSection = () => {
+    setActiveSectionIndex((prev) => (prev - 1 + (shop.sections?.length || 1)) % (shop.sections?.length || 1));
+  };
+
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-black relative">
+      <CartDrawer
+        isOpen={isCartDrawerOpen}
+        onClose={() => setIsCartDrawerOpen(false)}
+        items={cart as any}
+        onRemove={(id: string) => {
+          try {
+            RayDB.removeFromCart(id);
+          } catch {
+          }
+        }}
+        onUpdateQuantity={(id: string, delta: number) => {
+          try {
+            RayDB.updateCartItemQuantity(id, delta);
+          } catch {
+          }
+        }}
+      />
+
+      {/* Header with centered navigation */}
+      <header className="absolute top-0 left-0 right-0 z-[60] bg-black/80 backdrop-blur-md border-b border-white/10">
+        <div className="p-2 sm:p-4 flex items-center justify-between">
+          <button
+            onClick={onExit}
+            className="pointer-events-auto bg-black/20 backdrop-blur-md border border-white/10 text-white p-2 sm:p-3 rounded-full hover:bg-white/5 transition-colors"
+          >
+            <LogOut size={20} className="sm:hidden" />
+            <LogOut size={24} className="hidden sm:block" />
+          </button>
+          
+          {/* Centered section navigation */}
+          <div className="flex-1 flex items-center justify-center gap-2 sm:gap-4">
+            {shop.sections && shop.sections.length > 1 && (
+              <>
+                <button 
+                  onClick={handlePrevSection} 
+                  className="p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur border border-white/10 hover:border-cyan-500 text-white transition-all hover:scale-110"
+                >
+                  <ChevronRight size={20} className="sm:hidden" />
+                  <ChevronRight size={24} className="hidden sm:block" />
+                </button>
+                <div className="bg-black/60 backdrop-blur px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl border border-white/10 flex items-center gap-2 sm:gap-3 max-w-[62vw] sm:max-w-none">
+                  <MapIcon size={14} className="text-cyan-400 sm:hidden" />
+                  <MapIcon size={16} className="text-cyan-400 hidden sm:block" />
+                  <span className="text-white font-bold text-sm sm:text-base truncate">{activeSection?.name || 'القسم'}</span>
+                  <span className="text-[11px] sm:text-xs text-slate-500 whitespace-nowrap">({activeSectionIndex + 1}/{shop.sections.length})</span>
+                </div>
+                <button 
+                  onClick={handleNextSection} 
+                  className="p-2 sm:p-3 rounded-full bg-black/60 backdrop-blur border border-white/10 hover:border-cyan-500 text-white transition-all hover:scale-110"
+                >
+                  <ChevronLeft size={20} className="sm:hidden" />
+                  <ChevronLeft size={24} className="hidden sm:block" />
+                </button>
+              </>
+            )}
+          </div>
+          
+          <div className="hidden sm:flex pointer-events-auto bg-black/50 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 text-white font-bold flex-col items-center">
+            <span>{shop.name}</span>
+            <span className="text-[10px] text-cyan-400 font-normal">{shop.type}</span>
+          </div>
+        </div>
+      </header>
+
+      <main className="h-full w-full pt-20 sm:pt-24">
+        <StoreViewer
+          sections={shop.sections || []}
+          shopCategory={shopCategory}
+          onAddToCart={addToCart}
+          onReserve={handleReserve}
+          productEditorVisibility={productEditorVisibility}
+          imageMapVisibility={imageMapVisibility}
+          activeSectionIndex={activeSectionIndex}
+        />
+      </main>
+
+      {/* Holographic Cart */}
+      <div
+        className={`fixed bottom-4 left-4 right-4 sm:bottom-8 sm:left-8 sm:right-auto z-[100] ${performanceMode ? '' : 'preserve-3d transition-transform duration-100 ease-out'}`}
+        style={{
+          transform: performanceMode
+            ? 'translateZ(0)'
+            : `perspective(1000px) rotateX(${mousePos.y * 0.5}deg) rotateY(${mousePos.x * 0.5}deg) translateZ(50px)`,
+        }}
+      >
+        {/* Mobile: Icon only with badge */}
+        <div className="sm:hidden">
+          <button
+            onClick={() => setIsCartOpen(!isCartOpen)}
+            className="relative bg-slate-900/80 backdrop-blur-xl border border-cyan-500/30 rounded-full p-2 shadow-[0_0_50px_rgba(8,145,178,0.2)] transition-all duration-300 hover:scale-105"
+          >
+            <ShoppingCart size={18} className="text-cyan-400" />
+            {count > 0 && (
+              <span className="absolute -top-1 -right-1 bg-cyan-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center font-bold border-2 border-slate-900">
+                {count}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* Desktop: Full cart interface */}
+        <div
+          className="hidden sm:block relative w-full sm:w-80 max-w-sm bg-slate-900/80 backdrop-blur-xl border border-cyan-500/30 rounded-2xl shadow-[0_0_50px_rgba(8,145,178,0.2)] overflow-hidden transition-transform duration-300 ease-out"
+          style={{
+            transform: isCartOpen ? 'translateY(0px)' : 'translateY(calc(100% - 72px))',
+          }}
+        >
+          <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_10px_#22d3ee]"></div>
+          <button
+            onClick={() => setIsCartOpen(!isCartOpen)}
+            className="w-full p-4 border-b border-white/10 flex justify-between items-center bg-black/40 text-left"
+          >
+            <div className="flex items-center gap-2 text-cyan-400">
+              <ShoppingCart size={18} />
+              <span className="font-bold text-sm tracking-widest uppercase">سلة ثلاثية الأبعاد</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-cyan-900 text-cyan-200 text-xs px-2 py-0.5 rounded border border-cyan-500/30">{count} منتجات</span>
+              {isCartOpen ? <ChevronDown size={16} className="text-cyan-300" /> : <ChevronUp size={16} className="text-cyan-300" />}
+            </div>
+          </button>
+
+          {isCartOpen && (
+            <>
+              <div className="max-h-48 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {cart.length === 0 ? (
+                  <div className="text-center py-4 opacity-50 text-xs">
+                    <div className="mb-2">السلة فارغة</div>
+                    <div>انظر للمنتج لإضافته</div>
+                  </div>
+                ) : (
+                  cart.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center animate-slide-in-right text-sm">
+                      <div className="min-w-0">
+                        <div className="text-slate-300 truncate w-32">{item.name}</div>
+                        {(item as any)?.furnitureMeta && typeof (item as any)?.furnitureMeta === 'object' && (
+                          <div className="text-[10px] text-slate-500 truncate w-32">
+                            {typeof (item as any)?.furnitureMeta?.lengthCm === 'number' ? `${(item as any).furnitureMeta.lengthCm}×` : ''}
+                            {typeof (item as any)?.furnitureMeta?.widthCm === 'number' ? `${(item as any).furnitureMeta.widthCm}` : ''}
+                            {typeof (item as any)?.furnitureMeta?.heightCm === 'number' ? `×${(item as any).furnitureMeta.heightCm}` : ''}
+                            {((item as any)?.furnitureMeta?.lengthCm != null || (item as any)?.furnitureMeta?.widthCm != null || (item as any)?.furnitureMeta?.heightCm != null)
+                              ? ' سم'
+                              : ''}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.updateCartItemQuantity(key, -1);
+                            } catch {
+                            }
+                          }}
+                          className="text-cyan-200 hover:text-white"
+                          aria-label="تقليل"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-slate-500">x{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.updateCartItemQuantity(key, 1);
+                            } catch {
+                            }
+                          }}
+                          className="text-cyan-200 hover:text-white"
+                          aria-label="زيادة"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.removeFromCart(key);
+                            } catch {
+                            }
+                          }}
+                          className="text-slate-400 hover:text-red-400"
+                          aria-label="حذف"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <span className="text-white font-mono">{item.price * item.quantity}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <div className="p-4 bg-gradient-to-t from-cyan-900/40 to-transparent border-t border-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-slate-400 text-xs">المجموع</span>
+                  <span className="text-xl font-bold text-white font-mono">{total} ج.م</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCartDrawerOpen(true)}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all"
+                >
+                  إتمام الشراء
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Cart Drawer - Full screen overlay when cart is open on mobile */}
+      {isCartOpen && (
+        <div className="sm:hidden fixed inset-0 bg-black/80 backdrop-blur-md z-[90] flex flex-col">
+          <div className="flex-1 flex flex-col mt-20">
+            <div className="bg-slate-900/90 border border-cyan-500/30 rounded-t-2xl mx-4 mt-auto max-h-[70vh] overflow-hidden">
+              <div className="p-4 border-b border-white/10 flex justify-between items-center">
+                <div className="flex items-center gap-2 text-cyan-400">
+                  <ShoppingCart size={18} />
+                  <span className="font-bold text-sm tracking-widest uppercase">سلة ثلاثية الأبعاد</span>
+                </div>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="text-cyan-300"
+                >
+                  <ChevronDown size={20} />
+                </button>
+              </div>
+              
+              <div className="max-h-48 overflow-y-auto p-4 space-y-3 scrollbar-hide">
+                {cart.length === 0 ? (
+                  <div className="text-center py-4 opacity-50 text-xs">
+                    <div className="mb-2">السلة فارغة</div>
+                    <div>انظر للمنتج لإضافته</div>
+                  </div>
+                ) : (
+                  cart.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center animate-slide-in-right text-sm">
+                      <div className="min-w-0">
+                        <div className="text-slate-300 truncate w-32">{item.name}</div>
+                        {(item as any)?.furnitureMeta && typeof (item as any)?.furnitureMeta === 'object' && (
+                          <div className="text-[10px] text-slate-500 truncate w-32">
+                            {typeof (item as any)?.furnitureMeta?.lengthCm === 'number' ? `${(item as any).furnitureMeta.lengthCm}×` : ''}
+                            {typeof (item as any)?.furnitureMeta?.widthCm === 'number' ? `${(item as any).furnitureMeta.widthCm}` : ''}
+                            {typeof (item as any)?.furnitureMeta?.heightCm === 'number' ? `×${(item as any).furnitureMeta.heightCm}` : ''}
+                            {((item as any)?.furnitureMeta?.lengthCm != null || (item as any)?.furnitureMeta?.widthCm != null || (item as any)?.furnitureMeta?.heightCm != null)
+                              ? ' سم'
+                              : ''}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.updateCartItemQuantity(key, -1);
+                            } catch {
+                            }
+                          }}
+                          className="text-cyan-200 hover:text-white"
+                          aria-label="تقليل"
+                        >
+                          <Minus size={14} />
+                        </button>
+                        <span className="text-slate-500">x{item.quantity}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.updateCartItemQuantity(key, 1);
+                            } catch {
+                            }
+                          }}
+                          className="text-cyan-200 hover:text-white"
+                          aria-label="زيادة"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            try {
+                              const key = String(item?.lineId || `${item?.shopId || 'unknown'}:${item?.id}`);
+                              RayDB.removeFromCart(key);
+                            } catch {
+                            }
+                          }}
+                          className="text-slate-400 hover:text-red-400"
+                          aria-label="حذف"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                        <span className="text-white font-mono">{item.price * item.quantity}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              <div className="p-4 bg-gradient-to-t from-cyan-900/40 to-transparent border-t border-white/5">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-slate-400 text-xs">المجموع</span>
+                  <span className="text-xl font-bold text-white font-mono">{total} ج.م</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsCartDrawerOpen(true)}
+                  className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all"
+                >
+                  إتمام الشراء
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reservation Modal */}
+      <ReservationModal
+        isOpen={!!selectedProductForReservation}
+        onClose={() => setSelectedProductForReservation(null)}
+        item={selectedProductForReservation ? {
+          id: selectedProductForReservation.id,
+          name: selectedProductForReservation.name,
+          image: (selectedProductForReservation as any)?.imageUrl || (selectedProductForReservation as any)?.image_url || '',
+          price: selectedProductForReservation.price,
+          shopId: (shop as any)?.id || '',
+          shopName: shop.name,
+        } : null}
+      />
+    </div>
+  );
+};

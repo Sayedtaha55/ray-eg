@@ -38,10 +38,17 @@ const DEFAULT_PAGE_DESIGN = {
   headerBackgroundImageUrl: '',
   headerTextColor: '#0F172A',
   headerTransparent: true,
+  headerOverlayBanner: false,
   headerOpacity: 60,
   pageBackgroundColor: '#FFFFFF',
   backgroundImageUrl: '',
-  productDisplay: 'cards',
+  productDisplay: 'cards' as const,
+  productsLayout: 'vertical' as const,
+  imageAspectRatio: 'square' as const,
+  rowsConfig: [
+    { id: 'row-1', imageShape: 'portrait' as const, displayMode: 'cards' as const, itemsPerRow: 2 },
+    { id: 'row-2', imageShape: 'square' as const, displayMode: 'cards' as const, itemsPerRow: 3 },
+  ],
   footerBackgroundColor: '#FFFFFF',
   footerTextColor: '#0F172A',
   footerTransparent: false,
@@ -54,6 +61,16 @@ const DEFAULT_PAGE_DESIGN = {
   buttonShape: 'rounded-2xl',
   buttonPadding: 'px-6 py-3',
   buttonHover: 'bg-slate-900',
+  // Product Card
+  productCardOverlayBgColor: '#0F172A',
+  productCardOverlayOpacity: 70,
+  productCardTitleColor: '#FFFFFF',
+  productCardPriceColor: '#FFFFFF',
+  // Categories
+  categoryIconShape: 'circular' as const, // circular, square, large
+  categoryIconSize: 'medium' as const, // small, medium, large
+  showProductsInCategories: false,
+  categoryIconImage: '',
   // Spacing
   pagePadding: 'p-6 md:p-12',
   itemGap: 'gap-4 md:gap-6',
@@ -78,12 +95,20 @@ interface ShopDesign {
   headerBackgroundImageUrl?: string;
   headerTextColor?: string;
   headerTransparent?: boolean;
+  headerOverlayBanner?: boolean;
   headerOpacity?: number;
   pageBackgroundColor: string;
   backgroundColor?: string;
   backgroundImageUrl?: string;
-  productDisplay: string;
-  productDisplayStyle?: string;
+  productDisplay?: 'cards' | 'list' | 'minimal';
+  productsLayout?: 'vertical' | 'horizontal';
+  imageAspectRatio?: 'square' | 'portrait' | 'landscape';
+  rowsConfig?: Array<{
+    id: string;
+    imageShape: 'square' | 'portrait' | 'landscape';
+    displayMode: 'cards' | 'list' | 'minimal';
+    itemsPerRow: number;
+  }>;
   footerBackgroundColor?: string;
   footerTextColor?: string;
   footerTransparent?: boolean;
@@ -94,6 +119,18 @@ interface ShopDesign {
   buttonShape: string;
   buttonPadding: string;
   buttonHover: string;
+  productCardOverlayBgColor?: string;
+  productCardOverlayOpacity?: number;
+  productCardTitleColor?: string;
+  productCardPriceColor?: string;
+  productPageBackgroundColor?: string;
+  productPageTextColor?: string;
+  productPagePriceColor?: string;
+  productPageButtonColor?: string;
+  categoryIconShape?: 'circular' | 'square' | 'large';
+  categoryIconSize?: 'small' | 'medium' | 'large';
+  showProductsInCategories?: boolean;
+  categoryIconImage?: string;
   pagePadding: string;
   itemGap: string;
   elementsVisibility?: Record<string, boolean>;
@@ -454,8 +491,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         customCss: typeof (config as any)?.customCss === 'string' ? (config as any).customCss : undefined,
         pageBackgroundColor: config.pageBackgroundColor || config.backgroundColor,
         backgroundColor: config.backgroundColor || config.pageBackgroundColor,
-        productDisplay: config.productDisplay || (config.productDisplayStyle === 'list' ? 'list' : undefined),
-        productDisplayStyle: config.productDisplayStyle || (config.productDisplay === 'list' ? 'list' : undefined),
+        productDisplay: config.productDisplay || 'cards',
+        productsLayout: config.productsLayout || 'vertical',
       };
       await ApiService.updateShopDesign(shopId, normalized);
 
@@ -835,6 +872,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
                 isMobilePreview={previewMode === 'mobile'}
+                onProductClick={() => setPreviewPage('product')}
               />
             </div>
           </MotionDiv>

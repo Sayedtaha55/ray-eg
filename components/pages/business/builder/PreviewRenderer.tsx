@@ -12,6 +12,7 @@ interface PreviewRendererProps {
   isPreviewHeaderMenuOpen: boolean;
   setIsPreviewHeaderMenuOpen: (val: boolean) => void;
   isMobilePreview?: boolean;
+  onProductClick?: () => void;
 }
 
 const PreviewFallback = () => (
@@ -36,6 +37,7 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
         isPreviewHeaderMenuOpen={props.isPreviewHeaderMenuOpen}
         setIsPreviewHeaderMenuOpen={props.setIsPreviewHeaderMenuOpen}
         isMobilePreview={props.isMobilePreview}
+        onProductClick={props.onProductClick}
       />
     </Suspense>
   );

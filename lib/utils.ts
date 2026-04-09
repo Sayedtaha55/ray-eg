@@ -1,7 +1,10 @@
-export type ClassValue = string | undefined | null | false;
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export type { ClassValue };
 
 export function cn(...inputs: ClassValue[]) {
-  return inputs.filter(Boolean).join(' ');
+  return twMerge(clsx(inputs));
 }
 
 export function toArabicUnitLabel(raw: any) {

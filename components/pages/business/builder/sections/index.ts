@@ -12,3 +12,6 @@ export { default as ButtonsSection } from './ButtonsSection';
 export { default as VisibilitySection } from './VisibilitySection';
 export { default as ImageMapVisibilitySection } from './ImageMapVisibilitySection';
 export { default as CustomCssSection } from './CustomCssSection';
+export { default as ProductCardSection } from './ProductCardSection';
+export { default as CategorySection } from './CategorySection';
+export { default as ImageShapeSection } from './ImageShapeSection';

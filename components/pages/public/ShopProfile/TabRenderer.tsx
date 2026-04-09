@@ -1,4 +1,5 @@
 import React, { lazy, Suspense } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Skeleton } from '@/components/common/ui';
 
 interface TabRendererProps {
@@ -28,11 +29,15 @@ interface TabRendererProps {
   retryGalleryTab: () => void;
   isVisible: (key: string, fallback?: boolean) => boolean;
   whatsappHref: string;
+  isPreview?: boolean;
+  onProductClick?: () => void;
 }
 
 const ProductTab = lazy(() => import('./ProductTab'));
 const InfoTab = lazy(() => import('./InfoTab'));
 const ShopGalleryComponent = lazy(() => import('@/components/features/shop/ShopGallery'));
+
+const MotionDiv = motion.div as any;
 
 const TabFallback = () => (
   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
@@ -58,70 +63,87 @@ const GalleryFallback = () => (
 const TabRenderer: React.FC<TabRendererProps> = (props) => {
   const { activeTab } = props;
 
+  const prefersReducedMotion = useReducedMotion();
+  const Wrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
+  const wrapperMotionProps = prefersReducedMotion
+    ? {}
+    : {
+      initial: { opacity: 0, y: 14 },
+      animate: { opacity: 1, y: 0 },
+      exit: { opacity: 0, y: -10 },
+      transition: { type: 'spring', stiffness: 520, damping: 42, mass: 0.7 },
+    };
+
   const primaryColor = String(props.currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((props.currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((props.currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
 
   return (
     <Suspense fallback={activeTab === 'gallery' ? <GalleryFallback /> : <TabFallback />}>
-      {activeTab === 'products' && (
-        <ProductTab 
-          products={props.products}
-          offersByProductId={props.offersByProductId}
-          activeCategory={props.activeCategory}
-          categories={props.categories}
-          setActiveCategory={props.setActiveCategory}
-          productsTabLoading={props.productsTabLoading}
-          productsTabError={props.productsTabError}
-          retryProductsTab={props.retryProductsTab}
-          loadMoreProducts={props.loadMoreProducts}
-          hasMoreProducts={props.hasMoreProducts}
-          loadingMoreProducts={props.loadingMoreProducts}
-          currentDesign={props.currentDesign}
-          shop={props.shop}
-          handleAddToCart={props.handleAddToCart}
-          addedItemId={props.addedItemId}
-          handleReserve={props.handleReserve}
-          disableCardMotion={props.disableCardMotion}
-          allowAddToCart={props.allowAddToCart}
-          allowReserve={props.allowReserve}
-        />
-      )}
-
-      {activeTab === 'gallery' && (
-        <div className="space-y-8">
-          {props.galleryTabLoading && props.galleryImages.length === 0 ? (
-            <GalleryFallback />
-          ) : props.galleryTabError && props.galleryImages.length === 0 ? (
-            <div className="py-20 text-center">
-              <p className="text-slate-500 mb-4">{props.galleryTabError}</p>
-              <button
-                onClick={props.retryGalleryTab}
-                className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`}
-                style={{ backgroundColor: primaryColor }}
-              >
-                إعادة المحاولة
-              </button>
-            </div>
-          ) : (
-            <ShopGalleryComponent 
-              images={props.galleryImages} 
-              shopName={props.shop?.name}
-              primaryColor={props.currentDesign?.primaryColor}
-              layout={props.currentDesign?.layout}
+      <AnimatePresence mode="wait" initial={false}>
+        <Wrapper key={activeTab} {...wrapperMotionProps}>
+          {activeTab === 'products' && (
+            <ProductTab 
+              products={props.products}
+              offersByProductId={props.offersByProductId}
+              activeCategory={props.activeCategory}
+              categories={props.categories}
+              setActiveCategory={props.setActiveCategory}
+              productsTabLoading={props.productsTabLoading}
+              productsTabError={props.productsTabError}
+              retryProductsTab={props.retryProductsTab}
+              loadMoreProducts={props.loadMoreProducts}
+              hasMoreProducts={props.hasMoreProducts}
+              loadingMoreProducts={props.loadingMoreProducts}
+              currentDesign={props.currentDesign}
+              shop={props.shop}
+              handleAddToCart={props.handleAddToCart}
+              addedItemId={props.addedItemId}
+              handleReserve={props.handleReserve}
+              disableCardMotion={props.disableCardMotion}
+              allowAddToCart={props.allowAddToCart}
+              allowReserve={props.allowReserve}
+              isPreview={props.isPreview}
+              onProductClick={props.onProductClick}
             />
           )}
-        </div>
-      )}
 
-      {activeTab === 'info' && (
-        <InfoTab 
-          shop={props.shop}
-          currentDesign={props.currentDesign}
-          isVisible={props.isVisible}
-          whatsappHref={props.whatsappHref}
-        />
-      )}
+          {activeTab === 'gallery' && (
+            <div className="space-y-8">
+              {props.galleryTabLoading && props.galleryImages.length === 0 ? (
+                <GalleryFallback />
+              ) : props.galleryTabError && props.galleryImages.length === 0 ? (
+                <div className="py-20 text-center">
+                  <p className="text-slate-500 mb-4">{props.galleryTabError}</p>
+                  <button
+                    onClick={props.retryGalleryTab}
+                    className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`}
+                    style={{ backgroundColor: primaryColor }}
+                  >
+                    إعادة المحاولة
+                  </button>
+                </div>
+              ) : (
+                <ShopGalleryComponent 
+                  images={props.galleryImages} 
+                  shopName={props.shop?.name}
+                  primaryColor={props.currentDesign?.primaryColor}
+                  layout={props.currentDesign?.layout}
+                />
+              )}
+            </div>
+          )}
+
+          {activeTab === 'info' && (
+            <InfoTab 
+              shop={props.shop}
+              currentDesign={props.currentDesign}
+              isVisible={props.isVisible}
+              whatsappHref={props.whatsappHref}
+            />
+          )}
+        </Wrapper>
+      </AnimatePresence>
     </Suspense>
   );
 };

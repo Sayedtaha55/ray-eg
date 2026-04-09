@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import ProfileHeader from '@/components/pages/public/ShopProfile/ProfileHeader';
 import TabRenderer from '@/components/pages/public/ShopProfile/TabRenderer';
 import ProfileFooter from '@/components/pages/public/ShopProfile/ProfileFooter';
+import ProductPagePreview from './ProductPagePreview';
 import { coerceBoolean } from '@/components/pages/public/ShopProfile/utils';
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   isPreviewHeaderMenuOpen: boolean;
   setIsPreviewHeaderMenuOpen: (val: boolean) => void;
   isMobilePreview?: boolean;
+  onProductClick?: () => void;
 };
 
 const ShopProfilePreview: React.FC<Props> = ({
@@ -22,6 +24,7 @@ const ShopProfilePreview: React.FC<Props> = ({
   isPreviewHeaderMenuOpen,
   setIsPreviewHeaderMenuOpen,
   isMobilePreview,
+  onProductClick,
 }) => {
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>(() => {
     if (page === 'gallery') return 'gallery';
@@ -84,16 +87,52 @@ const ShopProfilePreview: React.FC<Props> = ({
   const products = useMemo(() => ([
     {
       id: 'preview-1',
-      name: 'منتج تجريبي',
-      description: 'وصف مختصر للمنتج',
+      name: 'تيشيرت قطني',
+      description: 'تيشيرت قطني مريح',
       price: 249,
       imageUrl: '',
       stock: 8,
-      category: 'عام',
+      category: 'ملابس',
     },
     {
       id: 'preview-2',
-      name: 'منتج تجريبي 2',
+      name: 'ساعة ذكية',
+      description: 'ساعة ذكية مع شاشة',
+      price: 599,
+      imageUrl: '',
+      stock: 3,
+      category: 'ساعات',
+    },
+    {
+      id: 'preview-3',
+      name: 'حذاء رياضي',
+      description: 'حذاء رياضي مريح',
+      price: 399,
+      imageUrl: '',
+      stock: 5,
+      category: 'أحذية',
+    },
+    {
+      id: 'preview-4',
+      name: 'سماعة بلوتوث',
+      description: 'سماعة لاسلكية عالية الجودة',
+      price: 299,
+      imageUrl: '',
+      stock: 10,
+      category: 'إلكترونيات',
+    },
+    {
+      id: 'preview-5',
+      name: 'بنطلون جينز',
+      description: 'بنطلون جينز كلاسيك',
+      price: 349,
+      imageUrl: '',
+      stock: 7,
+      category: 'ملابس',
+    },
+    {
+      id: 'preview-6',
+      name: 'منتج عام',
       description: 'تفاصيل المنتج',
       price: 99,
       imageUrl: '',
@@ -104,7 +143,7 @@ const ShopProfilePreview: React.FC<Props> = ({
 
   const offersByProductId = useMemo(() => new Map<string, any>(), []);
 
-  const categories = useMemo(() => ['الكل', 'عام'], []);
+  const categories = useMemo(() => ['الكل', 'ملابس', 'إلكترونيات', 'أحذية', 'ساعات', 'عام'], []);
 
   const prefersReducedMotion = true;
 
@@ -120,23 +159,27 @@ const ShopProfilePreview: React.FC<Props> = ({
         backgroundRepeat: pageBgImageUrl ? 'no-repeat' : undefined,
       }}
     >
-      <ProfileHeader
-        shop={previewShop}
-        currentDesign={currentDesign}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab as any}
-        isHeaderMenuOpen={isPreviewHeaderMenuOpen}
-        setIsHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
-        hasFollowed={false}
-        followLoading={false}
-        handleFollow={() => {}}
-        handleShare={() => {}}
-        isVisible={isVisible as any}
-        prefersReducedMotion={prefersReducedMotion}
-        headerBg={headerBg}
-        headerTextColor={headerTextColor}
-        bannerReady={true}
-      />
+      {page === 'product' ? (
+        <ProductPagePreview config={currentDesign} shop={previewShop} />
+      ) : (
+        <>
+          <ProfileHeader
+            shop={previewShop}
+            currentDesign={currentDesign}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab as any}
+            isHeaderMenuOpen={isPreviewHeaderMenuOpen}
+            setIsHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
+            hasFollowed={false}
+            followLoading={false}
+            handleFollow={() => {}}
+            handleShare={() => {}}
+            isVisible={isVisible as any}
+            prefersReducedMotion={prefersReducedMotion}
+            headerBg={headerBg}
+            headerTextColor={headerTextColor}
+            bannerReady={true}
+          />
 
       <main
         className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10"
@@ -166,6 +209,12 @@ const ShopProfilePreview: React.FC<Props> = ({
           retryGalleryTab={() => {}}
           isVisible={isVisible as any}
           whatsappHref={''}
+          isPreview={true}
+          onProductClick={() => {
+            if (onProductClick) {
+              onProductClick();
+            }
+          }}
         />
       </main>
 
@@ -177,6 +226,8 @@ const ShopProfilePreview: React.FC<Props> = ({
         isVisible={isVisible as any}
         isBold={isBold}
       />
+        </>
+      )}
     </div>
   );
 };

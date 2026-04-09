@@ -730,23 +730,33 @@ export class AuthService implements OnModuleInit {
         data: {
           shop: {
             connect: { id: createdShop.id }
-          }
+          },
+          // Some auth flows (JWT strategy / shops/me) depend on user.shopId being set.
+          // Use `as any` to stay compatible across Prisma schema variants.
+          shopId: createdShop.id as any,
+          isActive: true,
         },
       });
 
       return { user: updatedUser, shop: createdShop };
     });
 
-    await this.sendEmailVerification(result.user, meta);
-    await this.recordAuthEvent({
-      userId: result.user.id,
-      email: result.user.email,
-      action: 'signup',
-      status: 'success',
-      ip: meta?.ip,
-      userAgent: meta?.userAgent,
-      metadata: { role: String(result?.user?.role || '').toUpperCase() },
-    });
+    try {
+      void this.sendEmailVerification(result.user, meta).catch(() => undefined);
+    } catch {
+    }
+    try {
+      void this.recordAuthEvent({
+        userId: result.user.id,
+        email: result.user.email,
+        action: 'signup',
+        status: 'success',
+        ip: meta?.ip,
+        userAgent: meta?.userAgent,
+        metadata: { role: String(result?.user?.role || '').toUpperCase() },
+      }).catch(() => undefined);
+    } catch {
+    }
 
     if (String(result?.user?.role || '').toUpperCase() === 'MERCHANT') {
       const shopStatus = String((result as any)?.shop?.status || '').toUpperCase();

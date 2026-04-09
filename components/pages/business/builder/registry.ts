@@ -5,10 +5,12 @@ import {
   BackgroundSection,
   BannerSection,
   ButtonsSection,
+  CategorySection,
   ColorsSection,
   CustomCssSection,
   HeaderFooterSection,
   HeaderTypeSection,
+  ProductCardSection,
   ProductEditorSection,
   LayoutSection,
   ProductPageSection,
@@ -16,6 +18,7 @@ import {
   TypographySection,
   VisibilitySection,
   ImageMapVisibilitySection,
+  ImageShapeSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -25,8 +28,11 @@ export type BuilderSectionId =
   | 'header'
   | 'headerFooter'
   | 'products'
+  | 'productCard'
+  | 'categories'
   | 'productEditor'
   | 'productPage'
+  | 'imageShape'
   | 'layout'
   | 'typography'
   | 'buttons'
@@ -134,6 +140,18 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     render: ({ config, setConfig }) => React.createElement(ProductsSection as any, { config, setConfig }),
   },
   {
+    id: 'productCard',
+    title: 'كارت المنتج',
+    icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }),
+    render: ({ config, setConfig }) => React.createElement(ProductCardSection as any, { config, setConfig }),
+  },
+  {
+    id: 'categories',
+    title: 'الأقسام',
+    icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
+    render: ({ config, setConfig }) => React.createElement(CategorySection as any, { config, setConfig }),
+  },
+  {
     id: 'productEditor',
     title: 'تحرير المنتجات',
     icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
@@ -144,6 +162,12 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     title: 'صفحة المنتج',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(ProductPageSection as any, { config, setConfig }),
+  },
+  {
+    id: 'imageShape',
+    title: 'أشكال الصور',
+    icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
+    render: ({ config, setConfig }) => React.createElement(ImageShapeSection as any, { config, setConfig }),
   },
   {
     id: 'layout',

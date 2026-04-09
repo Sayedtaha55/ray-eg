@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
@@ -154,22 +154,99 @@ const BusinessLayout: React.FC = () => {
     pos: <Store size={20} />,
   };
 
-  const buildUrlForTab = (id: MerchantDashboardTabId) => {
+  const buildDashboardUrl = useCallback((tab?: string) => {
+    const params = new URLSearchParams(location.search);
+    if (!tab) {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+    }
+    if (tab !== 'settings') {
+      params.delete('settingsTab');
+    }
+    if (tab !== 'builder') {
+      params.delete('builderTab');
+    }
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search]);
+
+  const buildSettingsUrl = useCallback((section?: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'settings');
+    params.set('settingsTab', String(section || 'overview'));
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search]);
+
+  const buildBuilderUrl = useCallback((section?: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'builder');
+    params.set('builderTab', String(section || 'colors'));
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search]);
+
+  const buildBuilderIndexUrl = useCallback(() => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'builder');
+    params.delete('builderTab');
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search]);
+
+  const buildBuilderToggleUrl = useCallback((section: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'builder');
+    const current = String(builderTabRaw || '').trim();
+    const next = String(section || '').trim();
+    if (current && next && current === next) {
+      params.delete('builderTab');
+    } else {
+      params.set('builderTab', next || 'colors');
+    }
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search, builderTabRaw]);
+
+  const buildUrlForTab = useCallback((id: MerchantDashboardTabId) => {
     if (id === 'builder') return buildBuilderIndexUrl();
     if (id === 'settings') return buildSettingsUrl('overview');
     return buildDashboardUrl(id);
-  };
+  }, [buildBuilderIndexUrl, buildSettingsUrl, buildDashboardUrl]);
 
-  const isTabActive = (id: MerchantDashboardTabId) => {
+  const isTabActive = useCallback((id: MerchantDashboardTabId) => {
     if (isProfilePage) return false;
     return String(activeTab) === String(id);
-  };
+  }, [isProfilePage, activeTab]);
 
-  const visibleMainTabs = getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
-    .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] }))
-    ;
+  const handleNavItemClick = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
+  const visibleMainTabs = useMemo(
+    () => getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
+      .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] })),
+    [shopForModules, shopCategory],
+  );
 
   const hasPosTab = visibleMainTabs.some((t) => t.id === 'pos');
+
+  const sidebarNavSections = useMemo(() => {
+    const byId = new Map<string, any>();
+    for (const t of visibleMainTabs) byId.set(String(t.id), t);
+
+    const pick = (...ids: MerchantDashboardTabId[]) =>
+      ids.map((id) => byId.get(String(id))).filter(Boolean);
+
+    return [
+      { title: 'اللوحة', items: pick('overview') },
+      { title: 'التشغيل', items: pick('products', 'pos', 'reservations', 'invoice') },
+      { title: 'المبيعات', items: pick('sales') },
+      { title: 'النمو', items: pick('promotions', 'customers', 'reports', 'gallery') },
+      { title: 'الإعداد', items: pick('builder', 'settings') },
+    ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
+  }, [visibleMainTabs]);
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -297,61 +374,6 @@ const BusinessLayout: React.FC = () => {
 
     run();
   }, [canUseShopNotifications, (effectiveUser as any)?.shopId, isDev]);
-
-  const buildDashboardUrl = (tab?: string) => {
-    const params = new URLSearchParams(location.search);
-    if (!tab) {
-      params.delete('tab');
-    } else {
-      params.set('tab', tab);
-    }
-    if (tab !== 'settings') {
-      params.delete('settingsTab');
-    }
-    if (tab !== 'builder') {
-      params.delete('builderTab');
-    }
-    const qs = params.toString();
-    return `/business/dashboard${qs ? `?${qs}` : ''}`;
-  };
-
-  const buildSettingsUrl = (section?: string) => {
-    const params = new URLSearchParams(location.search);
-    params.set('tab', 'settings');
-    params.set('settingsTab', String(section || 'overview'));
-    const qs = params.toString();
-    return `/business/dashboard${qs ? `?${qs}` : ''}`;
-  };
-
-  const buildBuilderUrl = (section?: string) => {
-    const params = new URLSearchParams(location.search);
-    params.set('tab', 'builder');
-    params.set('builderTab', String(section || 'colors'));
-    const qs = params.toString();
-    return `/business/dashboard${qs ? `?${qs}` : ''}`;
-  };
-
-  const buildBuilderIndexUrl = () => {
-    const params = new URLSearchParams(location.search);
-    params.set('tab', 'builder');
-    params.delete('builderTab');
-    const qs = params.toString();
-    return `/business/dashboard${qs ? `?${qs}` : ''}`;
-  };
-
-  const buildBuilderToggleUrl = (section: string) => {
-    const params = new URLSearchParams(location.search);
-    params.set('tab', 'builder');
-    const current = String(builderTabRaw || '').trim();
-    const next = String(section || '').trim();
-    if (current && next && current === next) {
-      params.delete('builderTab');
-    } else {
-      params.set('builderTab', next || 'colors');
-    }
-    const qs = params.toString();
-    return `/business/dashboard${qs ? `?${qs}` : ''}`;
-  };
 
   const loadNotifications = async () => {
     if (!canUseShopNotifications) return;
@@ -701,31 +723,60 @@ const BusinessLayout: React.FC = () => {
           </div>
         )}
 
-        <nav className="flex-1 px-6 space-y-2 py-4 overflow-y-auto no-scrollbar min-h-0">
+        <nav className="flex-1 px-6 py-4 overflow-y-auto no-scrollbar min-h-0">
           {!isSettingsTab && !isBuilderTab ? (
             <>
-              {visibleMainTabs.map((t) => (
-                <NavItem
-                  key={t.id}
-                  to={buildUrlForTab(t.id)}
-                  onClick={() => setSidebarOpen(false)}
-                  icon={t.icon}
-                  label={t.label}
-                  active={isTabActive(t.id)}
-                />
-              ))}
+              <div className="space-y-6">
+                {sidebarNavSections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                      {section.title}
+                    </div>
+                    <div className="space-y-2">
+                      {section.items.map((t: any) => (
+                        <NavItem
+                          key={t.id}
+                          to={buildUrlForTab(t.id)}
+                          onClick={handleNavItemClick}
+                          icon={t.icon}
+                          showIcon={false}
+                          label={t.label}
+                          active={isTabActive(t.id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </>
           ) : isSettingsTab ? (
             <>
-              <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="رجوع للوحة" active={false} />
-              <NavItem to={buildSettingsUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="نظرة عامة" active={String(settingsTab) === 'overview'} />
-              <NavItem to={buildSettingsUrl('account')} onClick={() => setSidebarOpen(false)} icon={<User size={20} />} label="الحساب" active={String(settingsTab) === 'account'} />
-              <NavItem to={buildSettingsUrl('security')} onClick={() => setSidebarOpen(false)} icon={<Shield size={20} />} label="الأمان" active={String(settingsTab) === 'security'} />
-              <NavItem to={buildSettingsUrl('store')} onClick={() => setSidebarOpen(false)} icon={<Store size={20} />} label="إعدادات المتجر" active={String(settingsTab) === 'store'} />
-              <NavItem to={buildSettingsUrl('modules')} onClick={() => setSidebarOpen(false)} icon={<RefreshCw size={20} />} label="ترقية" active={String(settingsTab) === 'modules'} />
-              <NavItem to={buildSettingsUrl('receipt_theme')} onClick={() => setSidebarOpen(false)} icon={<FileText size={20} />} label="ثيم الفاتورة" active={String(settingsTab) === 'receipt_theme'} />
-              <NavItem to={buildSettingsUrl('payments')} onClick={() => setSidebarOpen(false)} icon={<CreditCard size={20} />} label="المدفوعات" active={String(settingsTab) === 'payments'} />
-              <NavItem to={buildSettingsUrl('notifications')} onClick={() => setSidebarOpen(false)} icon={<Bell size={20} />} label="التنبيهات" active={String(settingsTab) === 'notifications'} />
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                    الإعدادات
+                  </div>
+                  <div className="space-y-2">
+                    <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="رجوع للوحة" active={false} />
+                    <NavItem to={buildSettingsUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="نظرة عامة" active={String(settingsTab) === 'overview'} />
+                    <NavItem to={buildSettingsUrl('account')} onClick={handleNavItemClick} icon={<User size={20} />} showIcon={false} label="الحساب" active={String(settingsTab) === 'account'} />
+                    <NavItem to={buildSettingsUrl('security')} onClick={handleNavItemClick} icon={<Shield size={20} />} showIcon={false} label="الأمان" active={String(settingsTab) === 'security'} />
+                    <NavItem to={buildSettingsUrl('store')} onClick={handleNavItemClick} icon={<Store size={20} />} showIcon={false} label="إعدادات المتجر" active={String(settingsTab) === 'store'} />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                    الفوترة والتنبيهات
+                  </div>
+                  <div className="space-y-2">
+                    <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label="ترقية" active={String(settingsTab) === 'modules'} />
+                    <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label="ثيم الفاتورة" active={String(settingsTab) === 'receipt_theme'} />
+                    <NavItem to={buildSettingsUrl('payments')} onClick={handleNavItemClick} icon={<CreditCard size={20} />} showIcon={false} label="المدفوعات" active={String(settingsTab) === 'payments'} />
+                    <NavItem to={buildSettingsUrl('notifications')} onClick={handleNavItemClick} icon={<Bell size={20} />} showIcon={false} label="التنبيهات" active={String(settingsTab) === 'notifications'} />
+                  </div>
+                </div>
+              </div>
             </>
           ) : (() => {
             const activeBuilderId = String(builderTabRaw || '').trim();
@@ -734,8 +785,9 @@ const BusinessLayout: React.FC = () => {
               <React.Fragment key={id}>
                 <NavItem
                   to={buildBuilderToggleUrl(id)}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={handleNavItemClick}
                   icon={icon}
+                  showIcon={false}
                   label={label}
                   active={String(builderTabRaw) === id}
                 />
@@ -751,16 +803,64 @@ const BusinessLayout: React.FC = () => {
               </React.Fragment>
             );
 
+            const subItem = (id: string, label: string, icon: React.ReactNode, parentId: string) => (
+              <React.Fragment key={id}>
+                <div className="pr-8">
+                  <NavItem
+                    to={buildBuilderToggleUrl(id)}
+                    onClick={handleNavItemClick}
+                    icon={icon}
+                    showIcon={false}
+                    label={label}
+                    active={String(builderTabRaw) === id}
+                  />
+                </div>
+                <div
+                  className={`hidden md:block transition-all ${
+                    String(builderTabRaw) === id
+                      ? 'max-h-[70vh] pb-4 overflow-y-auto'
+                      : 'max-h-0 overflow-hidden'
+                  }`}
+                >
+                  <div id={`builder-accordion-${id}`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+                </div>
+              </React.Fragment>
+            );
+
             if (focusMode) {
               return (
                 <>
-                  <NavItem to={buildBuilderIndexUrl()} onClick={() => setSidebarOpen(false)} icon={<ChevronRight size={20} />} label="رجوع" active={false} />
-                  {activeBuilderId === 'colors' ? item('colors', 'الألوان', <Palette size={20} />) : null}
-                  {activeBuilderId === 'background' ? item('background', 'صورة الخلفية', <Palette size={20} />) : null}
-                  {activeBuilderId === 'banner' ? item('banner', 'البانر', <Layout size={20} />) : null}
+                  <NavItem to={buildBuilderIndexUrl()} onClick={handleNavItemClick} icon={<ChevronRight size={20} />} showIcon={false} label="رجوع" active={false} />
+                  {activeBuilderId === 'products' ? item('products', 'عرض المعروضات', <Layout size={20} />) : null}
+                  {activeBuilderId === 'productCard' ? item('productCard', 'كارت المنتج', <Palette size={20} />) : null}
+                  {activeBuilderId === 'imageShape' ? item('imageShape', 'أشكال الصور', <Layout size={20} />) : null}
+                  {activeBuilderId === 'categories' ? item('categories', 'الأقسام', <ShoppingBag size={20} />) : null}
+                  {activeBuilderId === 'productEditor' ? item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />) : null}
                   {activeBuilderId === 'header' ? item('header', 'اللوجو', <Layout size={20} />) : null}
                   {activeBuilderId === 'headerFooter' ? item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />) : null}
-                  {activeBuilderId === 'products' ? item('products', 'عرض المعروضات', <Layout size={20} />) : null}
+                  {activeBuilderId === 'products' || activeBuilderId === 'productCard' ? (
+                    <>
+                      <NavItem
+                        to={buildBuilderToggleUrl('products')}
+                        onClick={handleNavItemClick}
+                        icon={<Layout size={20} />}
+                        showIcon={false}
+                        label="عرض المعروضات"
+                        active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
+                      />
+                      <div
+                        className={`hidden md:block transition-all ${
+                          String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'
+                            ? 'max-h-[70vh] pb-4 overflow-y-auto'
+                            : 'max-h-0 overflow-hidden'
+                        }`}
+                      >
+                        <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+                      </div>
+                      {subItem('productCard', 'كارت المنتج', <Palette size={20} />, 'products')}
+                      {subItem('imageShape', 'أشكال الصور', <Layout size={20} />, 'products')}
+                    </>
+                  ) : null}
                   {activeBuilderId === 'productEditor' ? item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />) : null}
                   {activeBuilderId === 'layout' ? item('layout', 'النمط', <Layout size={20} />) : null}
                   {activeBuilderId === 'typography' ? item('typography', 'الخطوط', <Type size={20} />) : null}
@@ -773,13 +873,34 @@ const BusinessLayout: React.FC = () => {
 
             return (
               <>
-                <NavItem to={buildDashboardUrl('overview')} onClick={() => setSidebarOpen(false)} icon={<LayoutDashboard size={20} />} label="رجوع للوحة" active={false} />
+                <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="رجوع للوحة" active={false} />
                 {item('colors', 'الألوان', <Palette size={20} />)}
                 {item('background', 'صورة الخلفية', <Palette size={20} />)}
                 {item('banner', 'البانر', <Layout size={20} />)}
                 {item('header', 'اللوجو', <Layout size={20} />)}
                 {item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />)}
-                {item('products', 'عرض المعروضات', <Layout size={20} />)}
+                <>
+                  <NavItem
+                    to={buildBuilderToggleUrl('products')}
+                    onClick={handleNavItemClick}
+                    icon={<Layout size={20} />}
+                    showIcon={false}
+                    label="عرض المعروضات"
+                    active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
+                  />
+                  <div
+                    className={`hidden md:block transition-all ${
+                      String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'
+                        ? 'max-h-[70vh] pb-4 overflow-y-auto'
+                        : 'max-h-0 overflow-hidden'
+                    }`}
+                  >
+                    <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
+                  </div>
+                  {subItem('productCard', 'كارت المنتج', <Palette size={20} />, 'products')}
+                  {subItem('imageShape', 'أشكال الصور', <Layout size={20} />, 'products')}
+                </>
+                {item('categories', 'الأقسام', <ShoppingBag size={20} />)}
                 {item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />)}
                 {item('layout', 'النمط', <Layout size={20} />)}
                 {item('typography', 'الخطوط', <Type size={20} />)}
@@ -792,11 +913,10 @@ const BusinessLayout: React.FC = () => {
         </nav>
 
         <div className="p-6 mt-auto border-t border-slate-100 space-y-2">
-           <button 
+           <button
              onClick={handleLogout}
-             className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-bold group"
+             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-black group"
            >
-             <LogOut size={20} className="group-hover:-translate-x-1 transition-transform" />
              <span>تسجيل الخروج</span>
            </button>
         </div>

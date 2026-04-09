@@ -1,18 +1,24 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import { ApiService } from '@/services/api.service';
-import { Offer } from '@/types';
+import { Offer, Shop } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { useCartSound } from '@/hooks/useCartSound';
 import HomeHero from './home/HomeHero';
 
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
+const TopVisitedShopsSection = lazy(() => import('./home/TopVisitedShopsSection'));
+const TopSellingProductsSection = lazy(() => import('./home/TopSellingProductsSection'));
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [shops, setShops] = useState<Shop[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingShops, setLoadingShops] = useState(true);
+  const [loadingOrders, setLoadingOrders] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -56,6 +62,28 @@ const HomeFeed: React.FC = () => {
       } catch {
       } finally {
         setLoading(false);
+      }
+
+      // Load shops in parallel
+      setLoadingShops(true);
+      try {
+        const shopsData = await ApiService.getShops('all', { take: 100 });
+        setShops(shopsData || []);
+      } catch {
+        setShops([]);
+      } finally {
+        setLoadingShops(false);
+      }
+
+      // Load orders for top selling products (with fallback)
+      setLoadingOrders(true);
+      try {
+        const ordersData = await ApiService.getAllOrders();
+        setOrders(ordersData || []);
+      } catch {
+        setOrders([]);
+      } finally {
+        setLoadingOrders(false);
       }
     };
 
@@ -164,6 +192,20 @@ const HomeFeed: React.FC = () => {
           />
         </Suspense>
       )}
+
+      <Suspense fallback={null}>
+        <TopVisitedShopsSection shops={shops} loading={loadingShops} />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <TopSellingProductsSection
+          orders={orders}
+          offers={offers}
+          loading={loadingOrders}
+          onSelectItem={setSelectedItem}
+          onAddToCart={() => playSound()}
+        />
+      </Suspense>
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
         <OffersSection

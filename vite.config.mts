@@ -39,7 +39,7 @@ export default defineConfig(({ mode }) => {
         manifestFilename: 'manifest.json',
         filename: 'pwa-sw.js',
         devOptions: {
-          enabled: true,
+          enabled: false,
         },
         includeAssets: [
           'favicon-16x16.png',
@@ -110,14 +110,15 @@ export default defineConfig(({ mode }) => {
           clientsClaim: true,
           skipWaiting: true,
           navigateFallback: '/index.html',
+          navigateFallbackDenylist: [/\/api\//],
           runtimeCaching: [
             {
               urlPattern: ({ request }) => request.mode === 'navigate',
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'pages',
-                networkTimeoutSeconds: 4,
-                expiration: { maxEntries: 20, maxAgeSeconds: 24 * 60 * 60 },
+                networkTimeoutSeconds: 10, // Increased for slow networks
+                expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
               },
             },
             {
@@ -126,7 +127,7 @@ export default defineConfig(({ mode }) => {
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'assets',
-                expiration: { maxEntries: 60, maxAgeSeconds: 7 * 24 * 60 * 60 },
+                expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
               },
             },
             {
@@ -134,7 +135,7 @@ export default defineConfig(({ mode }) => {
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'images',
-                expiration: { maxEntries: 80, maxAgeSeconds: 14 * 24 * 60 * 60 },
+                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 24 * 60 * 60 },
               },
             },
             {
@@ -142,7 +143,19 @@ export default defineConfig(({ mode }) => {
               handler: 'CacheFirst',
               options: {
                 cacheName: 'fonts',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 24 * 60 * 60 },
+                expiration: { maxEntries: 50, maxAgeSeconds: 365 * 24 * 60 * 60 },
+              },
+            },
+            {
+              urlPattern: /^https?:\/\/.*\/api\/.*/,
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'api-cache',
+                networkTimeoutSeconds: 8,
+                expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 }, // 5 minutes for API cache
+                cacheableResponse: {
+                  statuses: [0, 200],
+                },
               },
             },
           ],

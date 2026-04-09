@@ -22,6 +22,14 @@ const HeaderFooterSection: React.FC<Props> = ({
           }}
         />
       </div>
+      <div className="flex items-center justify-between">
+        <span className="font-black text-sm">مكان الهيدر فوق البنر</span>
+        <input
+          type="checkbox"
+          checked={Boolean(config.headerOverlayBanner)}
+          onChange={(e) => setConfig({ ...config, headerOverlayBanner: e.target.checked })}
+        />
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون الخلفية</label>

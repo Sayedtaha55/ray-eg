@@ -32,6 +32,7 @@ services:
       - DATABASE_URL=postgresql://ray_user:ray_password@postgres:5432/ray_marketplace?schema=public
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - JWT_SECRET=${JWT_SECRET:-}
       - BACKEND_PORT=4000
@@ -112,6 +113,8 @@ volumes:
   redis_data:
     driver: local
   postgres_data:
+    driver: local
+  elasticsearch_data:
     driver: local
 
 networks:

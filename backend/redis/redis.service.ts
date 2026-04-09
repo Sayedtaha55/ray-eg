@@ -220,4 +220,99 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       return false;
     }
   }
+
+  // Cache tagging system
+  async setWithTags(key: string, value: any, tags: string[], ttl?: number): Promise<void> {
+    if (!this.client) return;
+    const serializedValue = JSON.stringify(value);
+    
+    if (ttl) {
+      await this.client.setex(key, ttl, serializedValue);
+    } else {
+      await this.client.set(key, serializedValue);
+    }
+
+    // Add key to each tag
+    for (const tag of tags) {
+      await this.client.sadd(`tag:${tag}`, key);
+    }
+  }
+
+  async invalidateByTag(tag: string): Promise<void> {
+    if (!this.client) return;
+    const keys = await this.client.smembers(`tag:${tag}`);
+    if (keys.length > 0) {
+      await this.client.del(...keys);
+    }
+    await this.client.del(`tag:${tag}`);
+  }
+
+  // Distributed lock
+  async acquireLock(lockKey: string, ttl: number = 10): Promise<boolean> {
+    if (!this.client) return false;
+    const result = await this.client.set(lockKey, '1', 'EX', ttl, 'NX');
+    return result === 'OK';
+  }
+
+  async releaseLock(lockKey: string): Promise<void> {
+    if (!this.client) return;
+    await this.client.del(lockKey);
+  }
+
+  // Rate limiting
+  async checkRateLimit(identifier: string, limit: number, window: number): Promise<{ allowed: boolean; remaining: number }> {
+    if (!this.client) return { allowed: true, remaining: limit };
+
+    const key = `ratelimit:${identifier}`;
+    const current = await this.client.incr(key);
+
+    if (current === 1) {
+      await this.client.expire(key, window);
+    }
+
+    return {
+      allowed: current <= limit,
+      remaining: Math.max(0, limit - current),
+    };
+  }
+
+  // Cache warming
+  async warmUp(keys: Record<string, { value: any; ttl?: number }>): Promise<void> {
+    if (!this.client) return;
+    const pipeline = this.client.pipeline();
+
+    for (const [key, { value, ttl }] of Object.entries(keys)) {
+      const serializedValue = JSON.stringify(value);
+      if (ttl) {
+        pipeline.setex(key, ttl, serializedValue);
+      } else {
+        pipeline.set(key, serializedValue);
+      }
+    }
+
+    await pipeline.exec();
+  }
+
+  // Cache statistics
+  async getCacheStats(pattern: string = '*'): Promise<{ keys: number; memory: number }> {
+    if (!this.client) return { keys: 0, memory: 0 };
+
+    let cursor = '0';
+    let keys = 0;
+    let memory = 0;
+
+    do {
+      const result = await this.client.scan(cursor, 'MATCH', pattern, 'COUNT', 100);
+      cursor = result[0];
+      const batchKeys = result[1];
+      keys += batchKeys.length;
+
+      for (const key of batchKeys) {
+        const size = await this.client.memory('USAGE', key) as any;
+        memory += size || 0;
+      }
+    } while (cursor !== '0');
+
+    return { keys, memory };
+  }
 }

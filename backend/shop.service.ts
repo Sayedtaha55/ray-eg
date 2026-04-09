@@ -693,6 +693,22 @@ export class ShopService {
 
       if (String(status).toUpperCase() === 'APPROVED') {
         try {
+          // Ensure merchant can login immediately after approval.
+          // JWT strategy blocks access if user.isActive === false or user.shopId is missing.
+          try {
+            const ownerId = String((updated as any)?.ownerId || '').trim();
+            if (ownerId) {
+              await this.prisma.user.update({
+                where: { id: ownerId },
+                data: {
+                  isActive: true,
+                  shopId: String((updated as any).id) as any,
+                },
+              });
+            }
+          } catch {
+          }
+
           const shop = await this.prisma.shop.findUnique({
             where: { id: updated.id },
             select: {

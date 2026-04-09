@@ -66,6 +66,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const bannerUrl = String(currentDesign?.bannerUrl || '').trim();
   const isVideoBanner = isVideoUrl(bannerUrl);
+  const headerOverlayBanner = Boolean(currentDesign?.headerOverlayBanner);
 
   const isLowEndDevice = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -86,6 +87,16 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       exit: { opacity: 0, x: '100%' },
     };
 
+  const Backdrop: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
+  const backdropMotionProps = prefersReducedMotion || isLowEndDevice
+    ? {}
+    : {
+      initial: { opacity: 0 },
+      animate: { opacity: 1 },
+      exit: { opacity: 0 },
+      transition: { duration: 0.18 },
+    };
+
   useEffect(() => {
     let rafId: any = null;
     let lastStuck: boolean | null = null;
@@ -99,23 +110,24 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       }
     };
 
-    if (!showProfileBanner) {
-      setStuck(true);
-      measure();
-      window.addEventListener('resize', measure);
-      return () => {
-        window.removeEventListener('resize', measure);
-      };
-    }
-
     const computeStuck = () => {
       try {
-        if (!bannerRef.current) return;
-        const rect = bannerRef.current.getBoundingClientRect();
-        const next = rect.bottom <= 0;
-        if (lastStuck === null || next !== lastStuck) {
-          lastStuck = next;
-          setStuck(next);
+        if (!bannerRef.current && !showProfileBanner) {
+          // No banner - always stuck
+          if (lastStuck !== true) {
+            lastStuck = true;
+            setStuck(true);
+          }
+          return;
+        }
+        
+        if (bannerRef.current) {
+          const rect = bannerRef.current.getBoundingClientRect();
+          const next = rect.bottom <= 0;
+          if (lastStuck === null || next !== lastStuck) {
+            lastStuck = next;
+            setStuck(next);
+          }
         }
       } catch {
       }
@@ -147,7 +159,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <div className="relative">
       {/* Banner Section */}
       {showProfileBanner ? (
-        <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
+        <div ref={bannerRef} className={`relative ${headerOverlayBanner ? 'h-[250px] md:h-[400px]' : 'h-[250px] md:h-[400px]'} overflow-hidden`}>
           {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
           {isVideoBanner ? (
             shouldPlayVideoBanner ? (
@@ -192,161 +204,169 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </div>
       ) : null}
 
-      {stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
-
-      {/* Header Content */}
-      <header 
+      {/* Header - Always Fixed */}
+      <header
         ref={headerRef as any}
-        className={`${stuck ? 'fixed top-0 left-0 right-0' : ''} z-[100] transition-all duration-300`}
-        style={{ backgroundColor: headerBg, color: headerTextColor }}
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-300 ${
+          stuck ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'
+        }`}
+        style={{ color: stuck ? undefined : headerTextColor }}
       >
-        <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between flex-row-reverse">
-          {/* Logo & Name */}
-          <div className="flex items-center gap-3 md:gap-4 flex-row-reverse">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-white">
-              <SmartImage
-                src={shop?.logoUrl || '/brand/logo.png'}
-                alt={shop?.name}
-                className="w-full h-full"
-                imgClassName="object-cover"
-                optimizeVariant="thumb"
-                fallbackSrc="/brand/logo.png"
-                loading="lazy"
-                decoding="async"
-                fetchPriority="low"
-              />
+          <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between flex-row-reverse">
+            {/* Logo & Name */}
+            <div className="flex items-center gap-3 md:gap-4 flex-row-reverse">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-white">
+                <SmartImage
+                  src={shop?.logoUrl || '/brand/logo.png'}
+                  alt={shop?.name}
+                  className="w-full h-full"
+                  imgClassName="object-cover"
+                  optimizeVariant="thumb"
+                  fallbackSrc="/brand/logo.png"
+                  loading="lazy"
+                  decoding="async"
+                  fetchPriority="low"
+                />
+              </div>
+              <div className="text-right">
+                <h1 className="font-black text-sm md:text-xl leading-none mb-1">{shop?.name}</h1>
+                {showShopFollowersCount && (
+                  <p className="text-[10px] md:text-xs opacity-70 flex items-center gap-1 justify-end">
+                    {shop?.followers || 0} متابع <Users size={10} />
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="text-right">
-              <h1 className="font-black text-sm md:text-xl leading-none mb-1">{shop?.name}</h1>
-              {showShopFollowersCount && (
-                <p className="text-[10px] md:text-xs opacity-70 flex items-center gap-1 justify-end">
-                  {shop?.followers || 0} متابع <Users size={10} />
-                </p>
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
+              {showHeaderNavHome && (
+                <NavTab 
+                  active={activeTab === 'products'} 
+                  onClick={() => setActiveTab('products')}
+                  icon={<ShoppingBag size={18} />}
+                  label="المنتجات"
+                  design={currentDesign}
+                />
               )}
+              {showHeaderNavGallery && (
+                <NavTab 
+                  active={activeTab === 'gallery'} 
+                  onClick={() => setActiveTab('gallery')}
+                  icon={<Utensils size={18} />}
+                  label="المعرض"
+                  design={currentDesign}
+                />
+              )}
+              {showHeaderNavInfo && (
+                <NavTab 
+                  active={activeTab === 'info'} 
+                  onClick={() => setActiveTab('info')}
+                  icon={<Info size={18} />}
+                  label="عن المحل"
+                  design={currentDesign}
+                />
+              )}
+            </nav>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2 flex-row-reverse">
+              {showHeaderShareButton && (
+                <button
+                  onClick={handleShare}
+                  className="p-2 rounded-full transition-all hover:bg-white/20"
+                  aria-label="مشاركة"
+                >
+                  <Share2 size={18} />
+                </button>
+              )}
+              {showShopFollowButton && (
+                <button
+                  onClick={handleFollow}
+                  disabled={followLoading}
+                  className={`px-4 py-2 rounded-full font-black text-xs md:text-sm transition-all ${
+                    hasFollowed ? 'bg-white/20' : buttonShape
+                  } ${buttonPadding}`}
+                >
+                  {followLoading ? '...' : hasFollowed ? 'متابع' : 'تابع'}
+                </button>
+              )}
+              <button
+                className="md:hidden p-2 rounded-full transition-all hover:bg-white/20"
+                onClick={() => setIsHeaderMenuOpen(true)}
+              >
+                <Menu size={24} />
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
-            {showHeaderNavHome && (
-              <NavTab 
-                active={activeTab === 'products'} 
-                onClick={() => setActiveTab('products')}
-                icon={<ShoppingBag size={18} />}
-                label="المنتجات"
-                design={currentDesign}
-              />
-            )}
-            {showHeaderNavGallery && (
-              <NavTab 
-                active={activeTab === 'gallery'} 
-                onClick={() => setActiveTab('gallery')}
-                icon={<Utensils size={18} />}
-                label="المعرض"
-                design={currentDesign}
-              />
-            )}
-            {showHeaderNavInfo && (
-              <NavTab 
-                active={activeTab === 'info'} 
-                onClick={() => setActiveTab('info')}
-                icon={<Info size={18} />}
-                label="عن المحل"
-                design={currentDesign}
-              />
-            )}
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2">
-            {showHeaderShareButton && (
-              <button 
-                onClick={handleShare}
-                className="p-2 md:p-2.5 rounded-full hover:bg-black/5 transition-colors"
-              >
-                <Share2 size={20} />
-              </button>
-            )}
-            {showShopFollowButton && (
-              <button
-                onClick={handleFollow}
-                disabled={followLoading || hasFollowed}
-                className={`hidden md:flex items-center gap-2 ${buttonPadding} ${buttonShape} font-black text-sm transition-all ${
-                  hasFollowed 
-                    ? 'bg-slate-100 text-slate-400 cursor-default' 
-                    : 'text-white hover:scale-105 active:scale-95'
-                }`}
-                style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
-              >
-                {hasFollowed ? 'متابع' : 'متابعة'}
-              </button>
-            )}
-            <button 
-              className="md:hidden p-2 rounded-full hover:bg-black/5"
-              onClick={() => setIsHeaderMenuOpen(true)}
-            >
-              <Menu size={24} />
-            </button>
-          </div>
-        </div>
-      </header>
+      {stuck && headerHeight ? <div style={{ height: headerHeight }} /> : null}
 
       {/* Mobile Menu */}
       <AnimatePresence>
         {isHeaderMenuOpen && (
-          <MobileMenuWrapper
-            {...mobileMenuMotionProps}
-            className="fixed inset-0 z-[200] bg-white md:hidden"
-          >
-            <div className="p-6 flex flex-col h-full text-right" dir="rtl">
-              <div className="flex items-center justify-between mb-10">
-                <h2 className="font-black text-xl">القائمة</h2>
-                <button onClick={() => setIsHeaderMenuOpen(false)} className="p-2">
-                  <X size={24} />
-                </button>
-              </div>
-              
-              <div className="space-y-4 flex-1">
-                {showHeaderNavHome && (
-                  <button 
-                    onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
-                  >
-                    <ShoppingBag /> المنتجات
-                  </button>
-                )}
-                {showHeaderNavGallery && (
-                  <button 
-                    onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors ${activeTab === 'gallery' ? 'bg-slate-100' : ''}`}
-                  >
-                    <Utensils /> المعرض
-                  </button>
-                )}
-                {showHeaderNavInfo && (
-                  <button 
-                    onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
-                    className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors ${activeTab === 'info' ? 'bg-slate-100' : ''}`}
-                  >
-                    <Info /> عن المحل
-                  </button>
-                )}
-              </div>
+          <div className="fixed inset-0 z-[200] md:hidden">
+            <Backdrop
+              {...backdropMotionProps}
+              className="absolute inset-0 bg-black/35"
+              onClick={() => setIsHeaderMenuOpen(false)}
+            />
 
-              {showShopFollowButton && (
-                <button
-                  onClick={() => { handleFollow(); setIsHeaderMenuOpen(false); }}
-                  disabled={followLoading || hasFollowed}
-                  className={`w-full py-5 ${buttonShape} font-black text-lg shadow-xl transition-all ${
-                    hasFollowed ? 'bg-slate-100 text-slate-400' : 'text-white active:scale-95'
-                  }`}
-                  style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
-                >
-                  {hasFollowed ? 'أنت تتابع هذا المحل' : 'متابعة المحل'}
-                </button>
-              )}
-            </div>
-          </MobileMenuWrapper>
+            <MobileMenuWrapper
+              {...mobileMenuMotionProps}
+              className="absolute inset-y-0 right-0 w-[88%] max-w-sm bg-white shadow-2xl"
+            >
+              <div className="p-6 flex flex-col h-full text-right" dir="rtl">
+                <div className="flex items-center justify-between mb-10">
+                  <h2 className="font-black text-xl">القائمة</h2>
+                  <button onClick={() => setIsHeaderMenuOpen(false)} className="p-2">
+                    <X size={24} />
+                  </button>
+                </div>
+                
+                <div className="space-y-4 flex-1">
+                  {showHeaderNavHome && (
+                    <button 
+                      onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
+                    >
+                      <ShoppingBag /> المنتجات
+                    </button>
+                  )}
+                  {showHeaderNavGallery && (
+                    <button 
+                      onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'gallery' ? 'bg-slate-100' : ''}`}
+                    >
+                      <Utensils /> المعرض
+                    </button>
+                  )}
+                  {showHeaderNavInfo && (
+                    <button 
+                      onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
+                      className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'info' ? 'bg-slate-100' : ''}`}
+                    >
+                      <Info /> عن المحل
+                    </button>
+                  )}
+                </div>
+
+                {showShopFollowButton && (
+                  <button
+                    onClick={() => { handleFollow(); setIsHeaderMenuOpen(false); }}
+                    disabled={followLoading || hasFollowed}
+                    className={`w-full py-5 ${buttonShape} font-black text-lg shadow-xl transition-all ${
+                      hasFollowed ? 'bg-slate-100 text-slate-400' : 'text-white active:scale-95'
+                    }`}
+                    style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
+                  >
+                    {hasFollowed ? 'أنت تتابع هذا المحل' : 'متابعة المحل'}
+                  </button>
+                )}
+              </div>
+            </MobileMenuWrapper>
+          </div>
         )}
       </AnimatePresence>
     </div>
