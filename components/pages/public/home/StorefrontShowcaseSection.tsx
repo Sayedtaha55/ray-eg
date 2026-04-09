@@ -1,15 +1,16 @@
 import React, { useMemo, useRef } from 'react';
 import { ChevronLeft, ChevronRight, Store } from 'lucide-react';
-import { Offer, Shop } from '@/types';
+import { Offer, Product, Shop } from '@/types';
 
 interface StorefrontShowcaseSectionProps {
   shops: Shop[];
   offers: Offer[];
+  shopProductsById?: Record<string, Product[]>;
   loading?: boolean;
   onOpenShop: (shop: Shop) => void;
 }
 
-const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ shops, offers, loading = false, onOpenShop }) => {
+const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ shops, offers, shopProductsById = {}, loading = false, onOpenShop }) => {
   const slidersRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const approvedShops = useMemo(
@@ -61,6 +62,8 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
           const shopOffers = offersByShopId.get(String(shop.id)) || [];
           const banner = String((shop as any)?.pageDesign?.bannerUrl || '').trim() || String((shop as any)?.logoUrl || '').trim();
           const logo = String((shop as any)?.logoUrl || '').trim();
+          const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
+          const hasProducts = shopProducts.length > 0;
 
           return (
             <article key={shop.id} className="rounded-[2rem] border border-slate-100 bg-white p-4 md:p-6 shadow-sm">
@@ -79,7 +82,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
                     <div className="absolute bottom-4 right-4 left-4 text-right">
                       <div className="flex items-center gap-2 flex-row-reverse">
-                        {logo ? <img src={logo} alt="" className="w-8 h-8 rounded-full object-cover border border-white/60" loading="lazy" /> : null}
+                        {logo ? <img src={logo} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/80 shadow-md" loading="lazy" /> : null}
                         <h3 className="text-white font-black text-base md:text-lg line-clamp-1">{shop.name}</h3>
                       </div>
                       <p className="text-white/80 text-xs mt-1 line-clamp-1">{shop.city} - {shop.governorate}</p>
@@ -123,7 +126,25 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                     className="flex gap-3 overflow-x-auto no-scrollbar pb-2"
                     style={{ scrollSnapType: 'x mandatory' }}
                   >
-                    {shopOffers.length ? shopOffers.slice(0, 10).map((offer) => (
+                    {hasProducts ? shopProducts.slice(0, 4).map((product: any) => (
+                      <button
+                        key={product.id}
+                        type="button"
+                        onClick={() => onOpenShop(shop)}
+                        className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden"
+                        style={{ scrollSnapAlign: 'start' }}
+                      >
+                        <div className="aspect-[4/3] bg-slate-100">
+                          {String(product?.imageUrl || '').trim() ? (
+                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
+                          ) : null}
+                        </div>
+                        <div className="p-3">
+                          <p className="font-black text-xs text-slate-900 line-clamp-1">{product.name}</p>
+                          <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(product.price || 0).toLocaleString('ar-EG')}</p>
+                        </div>
+                      </button>
+                    )) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => (
                       <button
                         key={offer.id}
                         type="button"
