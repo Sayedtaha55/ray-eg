@@ -116,7 +116,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, idx, onSelectItem, onAd
       className={`group flex-shrink-0 w-[170px] sm:w-[200px] md:w-[240px] ${
         !prefersReducedMotion ? 'transition-all duration-700' : ''
       } ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-      style={{ transitionDelay: `${idx * 80}ms` }}
+      style={{ transitionDelay: `${Math.min(idx * 80, 500)}ms` }}
     >
       <div className="bg-white rounded-[1.5rem] md:rounded-[2rem] overflow-hidden border border-slate-100 hover:border-slate-200 hover:shadow-xl transition-all duration-300">
         {/* صورة المنتج */}
