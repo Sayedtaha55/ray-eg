@@ -4,10 +4,10 @@ import { Offer, Product, Shop } from '@/types';
 import { useNavigate } from 'react-router-dom';
 import { useCartSound } from '@/hooks/useCartSound';
 import HomeHero from './home/HomeHero';
+import StorefrontShowcaseSection from './home/StorefrontShowcaseSection';
 
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
-const StorefrontShowcaseSection = lazy(() => import('./home/StorefrontShowcaseSection'));
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
@@ -39,6 +39,8 @@ const HomeFeed: React.FC = () => {
   const loadMoreOffersRef = useRef<(() => void) | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const observedSentinelRef = useRef<HTMLDivElement | null>(null);
+  const previewCacheRef = useRef<Record<string, Product[]>>({});
+  const latestLoadIdRef = useRef(0);
   const MAX_RENDERED_OFFERS = 48;
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -47,57 +49,100 @@ const HomeFeed: React.FC = () => {
 
   useEffect(() => {
     const PAGE_SIZE = 12;
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const offersData = await ApiService.getOffers({ take: PAGE_SIZE, skip: 0 });
-        setOffers(offersData);
-
-        const nextHasMore = Array.isArray(offersData) && offersData.length >= PAGE_SIZE;
-        offersLenRef.current = Array.isArray(offersData) ? offersData.length : 0;
-        hasMoreOffersRef.current = nextHasMore;
-        setHasMoreOffers(nextHasMore);
-      } catch {
-      } finally {
-        setLoading(false);
+    const loadShopPreviews = async (shopsList: Shop[], loadId: number) => {
+      const approvedShops = shopsList
+        .filter((shop: any) => String(shop?.status || '').trim().toLowerCase() === 'approved')
+        .slice(0, 8);
+      const previewShopIds = approvedShops.map((shop: any) => String(shop?.id || '')).filter(Boolean);
+      if (!previewShopIds.length) {
+        if (latestLoadIdRef.current === loadId) setShopProductsById({});
+        return;
       }
 
-      // Load shops in parallel
+      const cached: Record<string, Product[]> = {};
+      const missingShopIds: string[] = [];
+      for (const shopId of previewShopIds) {
+        const cachedProducts = previewCacheRef.current[shopId];
+        if (Array.isArray(cachedProducts)) cached[shopId] = cachedProducts;
+        else missingShopIds.push(shopId);
+      }
+
+      if (latestLoadIdRef.current === loadId) {
+        setShopProductsById(cached);
+      }
+
+      if (!missingShopIds.length) return;
+
+      const previews = await Promise.all(
+        missingShopIds.map(async (shopId) => {
+          try {
+            const products = await ApiService.getProducts(shopId, { page: 1, limit: 4 });
+            const list = Array.isArray(products) ? products.filter((p: any) => (p?.isActive ?? true)).slice(0, 4) : [];
+            return { shopId, list: list as Product[] };
+          } catch {
+            return { shopId, list: [] as Product[] };
+          }
+        }),
+      );
+
+      const fetched = previews.reduce<Record<string, Product[]>>((acc, { shopId, list }) => {
+        if (!shopId) return acc;
+        acc[shopId] = list;
+        return acc;
+      }, {});
+      previewCacheRef.current = { ...previewCacheRef.current, ...fetched };
+
+      if (latestLoadIdRef.current === loadId) {
+        setShopProductsById((prev) => ({ ...prev, ...fetched }));
+      }
+    };
+
+    const loadData = async () => {
+      const loadId = Date.now();
+      latestLoadIdRef.current = loadId;
+      setLoading(true);
       setLoadingShops(true);
+
       try {
-        const shopsData = await ApiService.getShops('approved', { take: 100 });
+        const [offersData, shopsData] = await Promise.all([
+          ApiService.getOffers({ take: PAGE_SIZE, skip: 0 }),
+          ApiService.getShops('approved', { take: 100 }),
+        ]);
+
+        const offersList = Array.isArray(offersData) ? offersData : [];
+        setOffers(offersList);
+
+        const nextHasMore = offersList.length >= PAGE_SIZE;
+        offersLenRef.current = offersList.length;
+        hasMoreOffersRef.current = nextHasMore;
+        setHasMoreOffers(nextHasMore);
+
         const shopsList = Array.isArray(shopsData)
           ? shopsData
           : (Array.isArray((shopsData as any)?.items) ? (shopsData as any).items : []);
-        setShops(shopsList);
+        if (latestLoadIdRef.current === loadId) {
+          setShops(shopsList);
+          setLoadingShops(false);
+        }
 
-        const approvedShops = shopsList.slice(0, 8);
-
-        const previews = await Promise.all(
-          approvedShops.map(async (shop: any) => {
-            try {
-              const products = await ApiService.getProducts(String(shop?.id || ''), { page: 1, limit: 4 });
-              const list = Array.isArray(products) ? products.filter((p: any) => (p?.isActive ?? true)) : [];
-              return { shopId: String(shop?.id || ''), list: list.slice(0, 4) as Product[] };
-            } catch {
-              return { shopId: String(shop?.id || ''), list: [] as Product[] };
-            }
-          }),
-        );
-
-        const byShopId = previews.reduce<Record<string, Product[]>>((acc, { shopId, list }) => {
-          if (!shopId) return acc;
-          acc[shopId] = list;
-          return acc;
-        }, {});
-        setShopProductsById(byShopId);
+        loadShopPreviews(shopsList, loadId).catch(() => {
+          if (latestLoadIdRef.current === loadId) setShopProductsById({});
+        });
       } catch {
-        setShops([]);
-        setShopProductsById({});
+        if (latestLoadIdRef.current === loadId) {
+          setOffers([]);
+          offersLenRef.current = 0;
+          hasMoreOffersRef.current = false;
+          setHasMoreOffers(false);
+          setShops([]);
+          setShopProductsById({});
+          setLoadingShops(false);
+        }
       } finally {
-        setLoadingShops(false);
+        if (latestLoadIdRef.current === loadId) {
+          setLoading(false);
+        }
       }
-
     };
 
     const loadMoreOffers = async () => {
@@ -127,21 +172,7 @@ const HomeFeed: React.FC = () => {
       loadMoreOffers();
     };
 
-    const scheduleInitialLoad = () => {
-      if (typeof window === 'undefined') {
-        loadData();
-        return;
-      }
-
-      if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(loadData, { timeout: 700 });
-        return;
-      }
-
-      setTimeout(loadData, 0);
-    };
-
-    scheduleInitialLoad();
+    loadData();
     window.addEventListener('ray-db-update', loadData);
 
     try {
@@ -206,19 +237,17 @@ const HomeFeed: React.FC = () => {
         </Suspense>
       )}
 
-      <Suspense fallback={null}>
-        <StorefrontShowcaseSection
-          shops={shops}
-          offers={offers}
-          shopProductsById={shopProductsById}
-          loading={loadingShops}
-          onOpenShop={(shop) => {
-            const slug = String((shop as any)?.slug || '').trim();
-            if (!slug) return;
-            navigate(`/s/${slug}`);
-          }}
-        />
-      </Suspense>
+      <StorefrontShowcaseSection
+        shops={shops}
+        offers={offers}
+        shopProductsById={shopProductsById}
+        loading={loadingShops}
+        onOpenShop={(shop) => {
+          const slug = String((shop as any)?.slug || '').trim();
+          if (!slug) return;
+          navigate(`/s/${slug}`);
+        }}
+      />
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
         <OffersSection
