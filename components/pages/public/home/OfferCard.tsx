@@ -1,6 +1,6 @@
 import React from 'react';
 import { Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
-import { getOptimizedImageUrl } from '@/lib/image-utils';
+import { SmartImage } from '@/components/common/ui';
 
 // Use a simple IntersectionObserver for reveal to avoid many whileInView listeners
 const useInView = (options?: IntersectionObserverInit) => {
@@ -77,20 +77,14 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
         onClick={handleNavigate}
         className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50 cursor-pointer"
       >
-        <img
+        <SmartImage
+          src={offer.imageUrl}
+          alt={offer.title}
           loading={idx === 0 ? 'eager' : 'lazy'}
           fetchPriority={idx === 0 ? 'high' : 'auto'}
-          decoding="async"
-          src={getOptimizedImageUrl(offer.imageUrl, 'md')}
-          alt={offer.title}
-          onError={(e) => {
-            // Fallback to original URL if optimized variant fails (e.g. old uploads)
-            const img = e.currentTarget;
-            if (img.src !== offer.imageUrl) {
-              img.src = offer.imageUrl;
-            }
-          }}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
+          optimizeVariant="md"
+          className="w-full h-full"
+          imgClassName="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[2s]"
         />
         <div className="absolute top-3 left-3 md:top-5 md:left-5 bg-[#BD00FF] text-white px-3 py-1.5 md:px-4 md:py-2 rounded-xl md:rounded-2xl font-black text-xs md:text-sm shadow-xl shadow-purple-500/30">-{offer.discount}%</div>
         <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">

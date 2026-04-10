@@ -1,0 +1,337 @@
+[MediaModule] file loaded
+[main.ts] File loaded
+[env] NODE_ENV= undefined
+[env] ALLOW_DEV_MERCHANT_BOOTSTRAP= undefined
+[env] ALLOW_DEV_COURIER_BOOTSTRAP= undefined
+[env] DATABASE_URL= file:///dev.db
+[main.ts] Bootstrap function started
+[main.ts] NestFactory.create() starting...
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[PrismaService] constructor: creating PrismaClient...
+[PrismaService] constructor: PrismaClient created
+[MediaCompressionService] constructor
+[MediaOptimizeService] constructor
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLoggerModule dependencies initialized[39m[38;5;3m +66ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRedisModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mEmailModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mSearchModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDiscoveryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[MediaPresignService] constructor
+[MediaStorageService] constructor
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +3ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBullModule dependencies initialized[39m[38;5;3m +11ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mQueueModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mRealtimeModule dependencies initialized[39m[38;5;3m +2ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mReservationModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCourierModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mInvoiceModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mUsersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAnalyticsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mCustomersModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mFeedbackModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mShopImageMapModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProductModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mOfferModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMonitoringModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mNotificationModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMediaModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mOrderModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mShopModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGalleryModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +0ms[39m
+[main.ts] NestFactory.create() done
+[main.ts] app.init() starting...
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RealtimeGateway] [39m[32mWebSocket Gateway initialized on /realtime namespace[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mRealtimeGateway subscribed to the "ping" message[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mRealtimeGateway subscribed to the "subscribe" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mRealtimeGateway subscribed to the "unsubscribe" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mTestController {/test}:[39m[38;5;3m +2ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/test, GET} route[39m[38;5;3m +3ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/health/live, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/health/ready, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDatabaseTestController {/db-test}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/db-test, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/google, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/google/callback, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/signup, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/courier-signup, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/bootstrap-admin, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/dev-merchant-login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/dev-courier-login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/session, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/logout, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/deactivate, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/password/forgot, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/password/reset, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/password/change, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/email/verify/request, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/email/verify, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mShopController {/api/v1/shops}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/sitemap, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/me/module-upgrade-requests, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/me/module-upgrade-requests, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/me, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/me/banner, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/list, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/upgrade-dashboard-config, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/:id/reset-visitors, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/module-upgrade-requests, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/module-upgrade-requests/:id/approve, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/module-upgrade-requests/:id/reject, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/admin/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:slug, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/id/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:id/visit, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:id/follow, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:id/design, PATCH} route[39m[38;5;3m +6ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:id/analytics, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaControllerLite {/api/v1/media}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/ping, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaControllerPresignOnly {/api/v1/media}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/presign, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/complete, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/status, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaControllerUploadOnly {/api/v1/media}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/upload, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMediaControllerPutOnly {/api/v1/media}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/media/upload, PUT} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mNotificationController {/api/v1/notifications}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/push/merchant/subscribe, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/push/merchant/unsubscribe, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/push/subscribe, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/push/customer/subscribe, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/push/customer/unsubscribe, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/me/unread-count, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/me/read, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/me/:id/read, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/shop/:shopId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/shop/:shopId/unread-count, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/shop/:shopId/read, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/notifications/shop/:shopId/:id/read, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMonitoringController {/monitoring}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/monitoring/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/monitoring/metrics, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/monitoring/alerts, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/monitoring/dashboard, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProductController {/api/v1/products}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/manage/by-shop/:shopId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/manage/by-shop/:shopId/import-drafts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/:id/stock, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/products/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mGalleryController {/api/v1/gallery}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/gallery/upload, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/gallery/:shopId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/gallery/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/gallery/:id/caption, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mReservationController {/api/v1/reservations}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reservations, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reservations/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reservations, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/reservations/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOrderController {/api/v1/orders}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/:id/returns, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/:id/returns, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/me, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/admin, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/courier/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/:id, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/:id/assign-courier, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/orders/:id/courier, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCourierController {/api/v1/courier}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/courier/state, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/courier/state, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/courier/offers, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/courier/offers/:id/accept, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/courier/offers/:id/reject, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mOfferController {/api/v1/offers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/offers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/offers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/offers, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/offers/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInvoiceController {/api/v1/invoices}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices/summary/me, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices/summary, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/invoices/:id, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mUsersController {/api/v1/users}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/me, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers/pending, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers/:id/approve, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers/:id, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers/:id/status, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/users/couriers/:id/reject, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAnalyticsController {/api/v1/analytics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/analytics/system, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/analytics/system/timeseries, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/analytics/system/activity, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mCustomersController {/api/v1/customers}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/customers/shop/:shopId, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/customers/:customerId/status, PUT} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/customers/send-promotion, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/customers/convert, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mFeedbackController {/api/v1/feedback}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/feedback/public, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/feedback, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/feedback/admin, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/feedback/admin/:id/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/feedback/admin/:id, DELETE} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mShopImageMapController {/api/v1/shops}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:slug/image-map/active, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:shopId/image-maps/manage, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:shopId/image-maps, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:shopId/image-maps/:mapId/activate, PATCH} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:shopId/image-maps/:mapId/layout, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/shops/:shopId/image-maps/analyze, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mSearchController {/api/v1/search}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/search/products, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/search/shops, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/search/health, GET} route[39m[38;5;3m +0ms[39m
+[PrismaService] onModuleInit() start
+[PrismaService] DATABASE_URL (safe): { protocol: 'file', host: '', database: 'dev.db' }
+[PrismaService] onModuleInit() after DATABASE_URL checks
+[PrismaService] Skipping $connect() on boot (lazy connection enabled)
+[RedisService] onModuleInit() start
+[RedisService] attempting connect...
+⚠️ Redis connection error (cache disabled): AggregateError [ECONNREFUSED]:
+    at internalConnectMultiple (node:net:1134:18)
+    at afterConnectMultiple (node:net:1715:7) {
+  code: 'ECONNREFUSED',
+  [errors]: [
+    Error: connect ECONNREFUSED ::1:6379
+        at createConnectionError (node:net:1678:14)
+        at afterConnectMultiple (node:net:1708:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '::1',
+      port: 6379
+    },
+    Error: connect ECONNREFUSED 127.0.0.1:6379
+        at createConnectionError (node:net:1678:14)
+        at afterConnectMultiple (node:net:1708:16) {
+      errno: -111,
+      code: 'ECONNREFUSED',
+      syscall: 'connect',
+      address: '127.0.0.1',
+      port: 6379
+    }
+  ]
+}
+⚠️ Redis is not available. Continuing without cache.
+[RedisService] cache disabled (client=null)
+[32m[Nest] 153268  - [39m04/10/2026, 9:27:00 PM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +50ms[39m
+[main.ts] app.init() done
+[Routes] total= 0
+[Routes] interesting= []
+[main.ts] About to listen...
+✅ Backend running on http://127.0.0.1:4000
+[33m[Nest] 153268  - [39m04/10/2026, 9:27:08 PM [33m   WARN[39m [38;5;3m[SearchService] [39m[33mElasticsearch unavailable during startup (). Search indexing is disabled until the service becomes reachable.[39m
+[33mwarn[39m: ALERT: system {"service":"ray-marketplace","timestamp":"2026-04-10T21:27:30.353Z"}
+prisma:error
+Invalid `this.prisma.offer.findMany()` invocation in
+/app/backend/offer.service.ts:159:44
+
+  156 } catch {
+  157 }
+  158
+→ 159 const offers = await this.prisma.offer.findMany(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   |
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   |
+
+Validation Error Count: 1
+[32minfo[39m: API Request {"duration":"63ms","method":"GET","requestId":"ca83e41b-766b-471d-9ea6-37f52ba788f7","service":"ray-marketplace","statusCode":500,"timestamp":"2026-04-10T21:27:34.884Z","url":"/api/v1/offers?take=12&skip=0"}
+[31merror[39m: Request failed {"error":{"duration":63,"error":"PrismaClientInitializationError: \nInvalid `this.prisma.offer.findMany()` invocation in\n/app/backend/offer.service.ts:159:44\n\n  156 } catch {\n  157 }\n  158 \n→ 159 const offers = await this.prisma.offer.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async OfferService.listActive (/app/backend/offer.service.ts:159:20)","method":"GET","requestId":"ca83e41b-766b-471d-9ea6-37f52ba788f7","statusCode":500,"url":"/api/v1/offers?take=12&skip=0"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.885Z"}
+[31merror[39m: Unhandled exception {"error":{"error":"PrismaClientInitializationError: \nInvalid `this.prisma.offer.findMany()` invocation in\n/app/backend/offer.service.ts:159:44\n\n  156 } catch {\n  157 }\n  158 \n→ 159 const offers = await this.prisma.offer.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async OfferService.listActive (/app/backend/offer.service.ts:159:20)","ip":"127.0.0.1","method":"GET","requestId":"ca83e41b-766b-471d-9ea6-37f52ba788f7","url":"/api/v1/offers?take=12&skip=0"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.887Z"}
+prisma:error
+Invalid `this.prisma.offer.findMany()` invocation in
+/app/backend/offer.service.ts:159:44
+
+  156 } catch {
+  157 }
+  158
+→ 159 const offers = await this.prisma.offer.findMany(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   |
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   |
+
+Validation Error Count: 1
+[32minfo[39m: API Request {"duration":"3ms","method":"GET","requestId":"217d3987-75bc-4233-8deb-ac97d85690b8","service":"ray-marketplace","statusCode":500,"timestamp":"2026-04-10T21:27:34.922Z","url":"/api/v1/offers?take=12&skip=0"}
+[31merror[39m: Request failed {"error":{"duration":3,"error":"PrismaClientInitializationError: \nInvalid `this.prisma.offer.findMany()` invocation in\n/app/backend/offer.service.ts:159:44\n\n  156 } catch {\n  157 }\n  158 \n→ 159 const offers = await this.prisma.offer.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async OfferService.listActive (/app/backend/offer.service.ts:159:20)","method":"GET","requestId":"217d3987-75bc-4233-8deb-ac97d85690b8","statusCode":500,"url":"/api/v1/offers?take=12&skip=0"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.923Z"}
+[31merror[39m: Unhandled exception {"error":{"error":"PrismaClientInitializationError: \nInvalid `this.prisma.offer.findMany()` invocation in\n/app/backend/offer.service.ts:159:44\n\n  156 } catch {\n  157 }\n  158 \n→ 159 const offers = await this.prisma.offer.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async OfferService.listActive (/app/backend/offer.service.ts:159:20)","ip":"127.0.0.1","method":"GET","requestId":"217d3987-75bc-4233-8deb-ac97d85690b8","url":"/api/v1/offers?take=12&skip=0"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.924Z"}
+prisma:error
+Invalid `this.prisma.shop.findMany()` invocation in
+/app/backend/shop.service.ts:618:44
+
+  615   }
+  616 }
+  617
+→ 618 const shops = await this.prisma.shop.findMany(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   |
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   |
+
+Validation Error Count: 1
+[32minfo[39m: Database Operation {"duration":"18ms","operation":"findMany","service":"ray-marketplace","success":false,"table":"shops","timestamp":"2026-04-10T21:27:34.957Z"}
+[32minfo[39m: API Request {"duration":"21ms","method":"GET","requestId":"d0ffac6c-a9dd-498a-b120-91827d17df70","service":"ray-marketplace","statusCode":500,"timestamp":"2026-04-10T21:27:34.958Z","url":"/api/v1/shops?take=100"}
+[31merror[39m: Request failed {"error":{"duration":21,"error":"PrismaClientInitializationError: \nInvalid `this.prisma.shop.findMany()` invocation in\n/app/backend/shop.service.ts:618:44\n\n  615   }\n  616 }\n  617 \n→ 618 const shops = await this.prisma.shop.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async ShopService.getAllShops (/app/backend/shop.service.ts:618:21)","method":"GET","requestId":"d0ffac6c-a9dd-498a-b120-91827d17df70","statusCode":500,"url":"/api/v1/shops?take=100"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.963Z"}
+[31merror[39m: Unhandled exception {"error":{"error":"PrismaClientInitializationError: \nInvalid `this.prisma.shop.findMany()` invocation in\n/app/backend/shop.service.ts:618:44\n\n  615   }\n  616 }\n  617 \n→ 618 const shops = await this.prisma.shop.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async ShopService.getAllShops (/app/backend/shop.service.ts:618:21)","ip":"127.0.0.1","method":"GET","requestId":"d0ffac6c-a9dd-498a-b120-91827d17df70","url":"/api/v1/shops?take=100"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.964Z"}
+prisma:error
+Invalid `this.prisma.shop.findMany()` invocation in
+/app/backend/shop.service.ts:618:44
+
+  615   }
+  616 }
+  617
+→ 618 const shops = await this.prisma.shop.findMany(
+error: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.
+  -->  schema.prisma:7
+   |
+ 6 |   provider = "postgresql"
+ 7 |   url      = env("DATABASE_URL")
+   |
+
+Validation Error Count: 1
+[32minfo[39m: Database Operation {"duration":"3ms","operation":"findMany","service":"ray-marketplace","success":false,"table":"shops","timestamp":"2026-04-10T21:27:34.977Z"}
+[32minfo[39m: API Request {"duration":"3ms","method":"GET","requestId":"2642bcf4-7d88-4ab3-b304-11b4a89a0a42","service":"ray-marketplace","statusCode":500,"timestamp":"2026-04-10T21:27:34.977Z","url":"/api/v1/shops?take=100"}
+[31merror[39m: Request failed {"error":{"duration":3,"error":"PrismaClientInitializationError: \nInvalid `this.prisma.shop.findMany()` invocation in\n/app/backend/shop.service.ts:618:44\n\n  615   }\n  616 }\n  617 \n→ 618 const shops = await this.prisma.shop.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async ShopService.getAllShops (/app/backend/shop.service.ts:618:21)","method":"GET","requestId":"2642bcf4-7d88-4ab3-b304-11b4a89a0a42","statusCode":500,"url":"/api/v1/shops?take=100"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.977Z"}
+[31merror[39m: Unhandled exception {"error":{"error":"PrismaClientInitializationError: \nInvalid `this.prisma.shop.findMany()` invocation in\n/app/backend/shop.service.ts:618:44\n\n  615   }\n  616 }\n  617 \n→ 618 const shops = await this.prisma.shop.findMany(\nerror: Error validating datasource `db`: the URL must start with the protocol `postgresql://` or `postgres://`.\n  -->  schema.prisma:7\n   | \n 6 |   provider = \"postgresql\"\n 7 |   url      = env(\"DATABASE_URL\")\n   | \n\nValidation Error Count: 1\n    at ei.handleRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:242:13)\n    at ei.handleAndLogRequestError (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:174:12)\n    at ei.request (/app/node_modules/@prisma/client/src/runtime/RequestHandler.ts:143:12)\n    at async a (/app/node_modules/@prisma/client/src/runtime/getPrismaClient.ts:833:24)\n    at async ShopService.getAllShops (/app/backend/shop.service.ts:618:21)","ip":"127.0.0.1","method":"GET","requestId":"2642bcf4-7d88-4ab3-b304-11b4a89a0a42","url":"/api/v1/shops?take=100"},"service":"ray-marketplace","timestamp":"2026-04-10T21:27:34.978Z"}
