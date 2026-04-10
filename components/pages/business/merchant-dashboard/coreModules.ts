@@ -1,5 +1,6 @@
 export const CORE_MERCHANT_MODULES = [
   'overview',
+  'notifications',
   'products',
   'promotions',
   'builder',

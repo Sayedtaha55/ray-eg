@@ -7,9 +7,10 @@ type Props = {
   shop: any;
   analytics: any;
   notifications: any[];
+  onViewAllNotifications?: () => void;
 };
 
-const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
+const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAllNotifications }) => {
   const [recharts, setRecharts] = useState<any>(null);
 
   useEffect(() => {
@@ -157,7 +158,11 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
                     notifications.map((n) => <ActivityItem key={n.id} n={n} />)
                   )}
                 </div>
-                <button className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-400 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all">
+                <button
+                  type="button"
+                  onClick={onViewAllNotifications}
+                  className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-500 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all"
+                >
                   مشاهدة كافة الإشعارات
                 </button>
               </div>
@@ -183,7 +188,11 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications }) => {
                 notifications.map((n) => <ActivityItem key={n.id} n={n} />)
               )}
             </div>
-            <button className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-400 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all">
+            <button
+              type="button"
+              onClick={onViewAllNotifications}
+              className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-500 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all"
+            >
               مشاهدة كافة الإشعارات
             </button>
           </div>

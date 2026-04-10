@@ -55,6 +55,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       imagePreview: string | null;
       imageUrl: string | null;
       imageUploadFile: File | null;
+      colorSpec: string;
+      sizeSpec: string;
       priceSmall: string;
       priceMedium: string;
       priceLarge: string;
@@ -309,6 +311,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
               imagePreview: img || null,
               imageUrl: img || null,
               imageUploadFile: null,
+              colorSpec: Array.isArray(o?.colors) ? o.colors.map((x: any) => String(x || '').trim()).filter(Boolean).join('، ') : '',
+              sizeSpec: Array.isArray(o?.sizes) ? o.sizes.map((x: any) => String(x || '').trim()).filter(Boolean).join('، ') : '',
               priceSmall: getPrice('small'),
               priceMedium: getPrice('medium'),
               priceLarge: getPrice('large'),
@@ -650,6 +654,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
               id: optId,
               name: optName,
               imageUrl,
+              colors: String(a?.colorSpec || '').split(/[,\n،]/).map((x) => String(x || '').trim()).filter(Boolean),
+              sizes: String(a?.sizeSpec || '').split(/[,\n،]/).map((x) => String(x || '').trim()).filter(Boolean),
               variants,
             };
           }),
@@ -828,6 +834,114 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                   customSize={customSize}
                   setCustomSize={setCustomSize}
                 />
+              )}
+
+              {isFashion && (
+                <div className="p-5 sm:p-6 rounded-3xl border border-slate-200 bg-slate-50/60 space-y-4">
+                  <div className="flex items-center justify-between flex-row-reverse">
+                    <div className="text-right">
+                      <h4 className="font-black text-slate-900">المنتجات المكملة</h4>
+                      <p className="text-[11px] font-bold text-slate-500">مثال: حزام/كاب/جاكيت يظهر مع التيشيرت مع المقاسات والألوان.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddonItems((prev) => [
+                          ...(Array.isArray(prev) ? prev : []),
+                          {
+                            id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
+                            name: '',
+                            imagePreview: null,
+                            imageUrl: null,
+                            imageUploadFile: null,
+                            colorSpec: '',
+                            sizeSpec: '',
+                            priceSmall: '',
+                            priceMedium: '',
+                            priceLarge: '',
+                          },
+                        ]);
+                      }}
+                      className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black"
+                    >
+                      + إضافة صنف مكمل
+                    </button>
+                  </div>
+
+                  {(addonItems || []).length === 0 ? (
+                    <div className="text-[12px] text-slate-500 font-bold text-right">لا يوجد أصناف مكملة حالياً.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {(addonItems || []).map((a) => (
+                        <div key={a.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3">
+                          <div className="flex items-center justify-between flex-row-reverse gap-3">
+                            <input
+                              value={a.name}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
+                              }}
+                              placeholder="اسم الصنف المكمل"
+                              className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setAddonItems((prev) => prev.filter((x) => x.id !== a.id))}
+                              className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-black text-xs"
+                            >
+                              حذف
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <input
+                              value={a.colorSpec}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, colorSpec: v } : x)));
+                              }}
+                              placeholder="الألوان (مثال: أسود، أبيض)"
+                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                            <input
+                              value={a.sizeSpec}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, sizeSpec: v } : x)));
+                              }}
+                              placeholder="المقاسات (مثال: S، M، L)"
+                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <input
+                              type="number"
+                              value={a.priceSmall}
+                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
+                              placeholder="سعر صغير"
+                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                            <input
+                              type="number"
+                              value={a.priceMedium}
+                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
+                              placeholder="سعر وسط"
+                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                            <input
+                              type="number"
+                              value={a.priceLarge}
+                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
+                              placeholder="سعر كبير"
+                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}
