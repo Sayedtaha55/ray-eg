@@ -8,7 +8,6 @@ import HomeHero from './home/HomeHero';
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
 const StorefrontShowcaseSection = lazy(() => import('./home/StorefrontShowcaseSection'));
-const TopVisitedShopsSection = lazy(() => import('./home/TopVisitedShopsSection'));
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
@@ -219,10 +218,6 @@ const HomeFeed: React.FC = () => {
             navigate(`/s/${slug}`);
           }}
         />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <TopVisitedShopsSection shops={shops} loading={loadingShops} />
       </Suspense>
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
