@@ -360,6 +360,73 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
             </div>
           </div>
         )}
+
+        {!isRestaurant && !isFashion && addonsDef.length > 0 && (
+          <div className="space-y-4">
+            <p className="font-black text-slate-900">منتجات تابعة للمنتج</p>
+            <div className="space-y-3">
+              {(addonsDef || []).map((g: any) => {
+                const options = Array.isArray(g?.options) ? g.options : [];
+                return options.map((opt: any) => {
+                  const optId = String(opt?.id || '').trim();
+                  if (!optId) return null;
+                  const optName = String(opt?.name || opt?.title || '').trim() || optId;
+                  const img = typeof opt?.imageUrl === 'string' ? String(opt.imageUrl).trim() : '';
+                  const colors = Array.isArray(opt?.colors) ? opt.colors.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+                  const sizes = Array.isArray(opt?.sizes) ? opt.sizes.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+                  const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                  if (variants.length === 0) return null;
+
+                  const selectedVariantId = (selectedAddons || []).find((x: any) => String(x?.optionId) === optId)?.variantId;
+
+                  return (
+                    <div key={optId} className="p-4 rounded-2xl border-2 border-slate-100 bg-white">
+                      <div className="flex items-center justify-between gap-3 flex-row-reverse">
+                        <div className="flex items-center gap-3 flex-row-reverse">
+                          {img ? <img src={img} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-100" /> : null}
+                          <div className="text-right">
+                            <div className="font-black text-sm text-slate-900">{optName}</div>
+                            {colors.length > 0 ? <div className="text-[10px] font-bold text-slate-500">الألوان: {colors.join(' - ')}</div> : null}
+                            {sizes.length > 0 ? <div className="text-[10px] font-bold text-slate-500">المقاسات: {sizes.join(' - ')}</div> : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 justify-end mt-3">
+                        {variants.map((v: any) => {
+                          const vid = String(v?.id || '').trim();
+                          if (!vid) return null;
+                          const vLabel = String(v?.label || v?.name || '').trim() || vid;
+                          const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                          const isSelected = String(selectedVariantId || '') === vid;
+
+                          return (
+                            <button
+                              key={vid}
+                              type="button"
+                              onClick={() => {
+                                const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                                const next = arr.filter((x: any) => String(x?.optionId) !== optId);
+                                if (isSelected) {
+                                  setSelectedAddons(next);
+                                  return;
+                                }
+                                setSelectedAddons([...next, { optionId: optId, variantId: vid }]);
+                              }}
+                              className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                            >
+                              {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                });
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="flex flex-col gap-4 mt-auto pt-8">

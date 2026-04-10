@@ -65,50 +65,64 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
       <div className="space-y-5 md:space-y-7">
         {approvedShops.slice(0, 8).map((shop) => {
           const shopOffers = offersByShopId.get(String(shop.id)) || [];
-          const banner =
-            String((shop as any)?.pageDesign?.bannerUrl || '').trim() ||
-            String((shop as any)?.bannerUrl || '').trim() ||
-            String((shop as any)?.banner_url || '').trim() ||
-            String((shop as any)?.logoUrl || '').trim() ||
-            String((shop as any)?.logo_url || '').trim();
           const logo = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
+          const design = (shop as any)?.pageDesign || {};
+          const primaryColor = String((design as any)?.primaryColor || '').trim() || '#0f172a';
+          const secondaryColor = String((design as any)?.secondaryColor || '').trim() || '#334155';
           const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
           const hasProducts = shopProducts.length > 0;
 
           return (
             <article key={shop.id} className="rounded-[2rem] border border-slate-100 bg-white p-4 md:p-6 shadow-sm">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 items-stretch">
-                <div className="lg:col-span-4">
+              <div className="flex flex-col gap-4 md:gap-5">
+                <div className="flex items-center justify-between flex-row-reverse">
                   <button
                     type="button"
                     onClick={() => onOpenShop(shop)}
-                    className="relative w-full h-full min-h-[180px] md:min-h-[220px] rounded-2xl overflow-hidden group"
+                    className="px-4 py-2 rounded-xl bg-slate-900 text-white font-black text-xs md:text-sm hover:bg-slate-800 transition-colors"
                   >
-                    {banner ? (
-                      <img src={banner} alt={shop.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                    ) : (
-                      <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-400"><Store size={32} /></div>
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-black/10" />
-                    <div className="absolute bottom-4 right-4 left-4 text-right">
-                      <div className="flex items-center gap-2 flex-row-reverse">
-                        {logo ? <img src={logo} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/80 shadow-md" loading="lazy" /> : null}
-                        <h3 className="text-white font-black text-base md:text-lg line-clamp-1">{shop.name}</h3>
-                      </div>
-                      <p className="text-white/80 text-xs mt-1 line-clamp-1">{shop.city} - {shop.governorate}</p>
-                    </div>
+                    عرض المزيد
                   </button>
+
+                  <div className="flex items-center gap-3 flex-row-reverse">
+                    {logo ? (
+                      <img
+                        src={logo}
+                        alt={shop.name}
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-slate-200 shadow-sm"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
+                        <Store size={18} />
+                      </div>
+                    )}
+                    <div className="text-right">
+                      <h3 className="text-slate-900 font-black text-sm md:text-base line-clamp-1">{shop.name}</h3>
+                      <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{shop.city} - {shop.governorate}</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="lg:col-span-8 flex flex-col">
-                  <div className="flex items-center justify-between flex-row-reverse mb-3">
-                    <button
-                      type="button"
-                      onClick={() => onOpenShop(shop)}
-                      className="px-4 py-2 rounded-xl bg-slate-900 text-white font-black text-xs md:text-sm hover:bg-slate-800 transition-colors"
-                    >
-                      عرض المزيد
-                    </button>
+                <div className="flex flex-col">
+                  <button
+                    type="button"
+                    onClick={() => onOpenShop(shop)}
+                    className="w-full rounded-2xl p-4 text-right mb-3 border border-slate-200 hover:opacity-95 transition-opacity"
+                    style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
+                  >
+                    <p className="text-white font-black text-sm">معاينة تصميم المتجر</p>
+                    <p className="text-white/80 text-xs mt-1">الألوان والخلفية والبنر داخل صفحة المتجر</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenShop(shop)}
+                    className="w-full mb-3 px-4 py-2.5 rounded-xl text-right text-xs md:text-sm font-black border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                  >
+                    زر الترويسة — الكلام اللي بيكون فوق البنر
+                  </button>
+
+                  <div className="flex items-center justify-start mb-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
