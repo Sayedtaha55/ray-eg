@@ -10,6 +10,16 @@ interface StorefrontShowcaseSectionProps {
   onOpenShop: (shop: Shop) => void;
 }
 
+const normalizeColor = (value: unknown, fallback: string) => {
+  const raw = String(value || '').trim();
+  if (!raw) return fallback;
+  if (raw.startsWith('#')) return raw;
+  if (/^[0-9a-fA-F]{3,8}$/.test(raw)) return `#${raw}`;
+  return raw;
+};
+
+const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(String(url || '').trim());
+
 const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ shops, offers, shopProductsById = {}, loading = false, onOpenShop }) => {
   const slidersRef = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -66,9 +76,18 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
         {approvedShops.slice(0, 8).map((shop) => {
           const shopOffers = offersByShopId.get(String(shop.id)) || [];
           const logo = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
-          const design = (shop as any)?.pageDesign || {};
-          const primaryColor = String((design as any)?.primaryColor || '').trim() || '#0f172a';
-          const secondaryColor = String((design as any)?.secondaryColor || '').trim() || '#334155';
+          const design = (shop as any)?.pageDesign || (shop as any)?.page_design || {};
+          const primaryColor = normalizeColor((design as any)?.primaryColor, '#0f172a');
+          const secondaryColor = normalizeColor((design as any)?.secondaryColor, '#334155');
+          const pageBgColor = normalizeColor((design as any)?.pageBackgroundColor || (design as any)?.backgroundColor, '#f8fafc');
+          const backgroundImageUrl = String((design as any)?.backgroundImageUrl || '').trim();
+          const bannerUrl = String((design as any)?.bannerUrl || '').trim();
+          const bannerPosterUrl = String((design as any)?.bannerPosterUrl || '').trim();
+          const previewBannerUrl = isVideoUrl(bannerUrl) ? (bannerPosterUrl || '') : bannerUrl;
+          const bannerPosX = Number((design as any)?.bannerPosX);
+          const bannerPosY = Number((design as any)?.bannerPosY);
+          const bannerPosition = `${Number.isFinite(bannerPosX) ? bannerPosX : 50}% ${Number.isFinite(bannerPosY) ? bannerPosY : 50}%`;
+          const headerTextColor = normalizeColor((design as any)?.headerTextColor, '#0f172a');
           const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
           const hasProducts = shopProducts.length > 0;
 
@@ -108,16 +127,40 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                   <button
                     type="button"
                     onClick={() => onOpenShop(shop)}
-                    className="w-full rounded-2xl p-4 text-right mb-3 border border-slate-200 hover:opacity-95 transition-opacity"
-                    style={{ background: `linear-gradient(135deg, ${primaryColor}, ${secondaryColor})` }}
+                    className="w-full rounded-2xl p-4 text-right mb-3 border border-slate-200 hover:opacity-95 transition-opacity overflow-hidden relative"
+                    style={{
+                      backgroundColor: pageBgColor,
+                      backgroundImage: backgroundImageUrl ? `url("${backgroundImageUrl}")` : undefined,
+                      backgroundSize: backgroundImageUrl ? 'cover' : undefined,
+                      backgroundPosition: backgroundImageUrl ? 'center' : undefined,
+                    }}
                   >
-                    <p className="text-white font-black text-sm">معاينة تصميم المتجر</p>
-                    <p className="text-white/80 text-xs mt-1">الألوان والخلفية والبنر داخل صفحة المتجر</p>
+                    <div
+                      className="absolute inset-0 pointer-events-none"
+                      style={{ background: `linear-gradient(135deg, ${primaryColor}cc, ${secondaryColor}cc)` }}
+                    />
+                    {previewBannerUrl ? (
+                      <div
+                        className="absolute left-0 right-0 top-0 h-14 md:h-16 opacity-70 pointer-events-none"
+                        style={{
+                          backgroundImage: `url("${previewBannerUrl}")`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: bannerPosition,
+                        }}
+                      />
+                    ) : null}
+                    <p className="relative text-white font-black text-sm">معاينة تصميم المتجر</p>
+                    <p className="relative text-white/85 text-xs mt-1">الألوان + الخلفية + البنر من إعدادات المتجر الحقيقية</p>
                   </button>
                   <button
                     type="button"
                     onClick={() => onOpenShop(shop)}
-                    className="w-full mb-3 px-4 py-2.5 rounded-xl text-right text-xs md:text-sm font-black border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                    className="w-full mb-3 px-4 py-2.5 rounded-xl text-right text-xs md:text-sm font-black border border-slate-200 bg-white/90 hover:bg-white transition-colors"
+                    style={{
+                      color: headerTextColor,
+                      boxShadow: `inset 0 0 0 1px ${primaryColor}22`,
+                      background: `linear-gradient(90deg, ${primaryColor}12, ${secondaryColor}10)`,
+                    }}
                   >
                     زر الترويسة — الكلام اللي بيكون فوق البنر
                   </button>
