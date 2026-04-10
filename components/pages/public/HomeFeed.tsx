@@ -8,6 +8,7 @@ import HomeHero from './home/HomeHero';
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
 const StorefrontShowcaseSection = lazy(() => import('./home/StorefrontShowcaseSection'));
+const TopVisitedShopsSection = lazy(() => import('./home/TopVisitedShopsSection'));
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 
@@ -65,13 +66,13 @@ const HomeFeed: React.FC = () => {
       // Load shops in parallel
       setLoadingShops(true);
       try {
-        const shopsData = await ApiService.getShops('all', { take: 100 });
-        const shopsList = Array.isArray(shopsData) ? shopsData : [];
+        const shopsData = await ApiService.getShops('approved', { take: 100 });
+        const shopsList = Array.isArray(shopsData)
+          ? shopsData
+          : (Array.isArray((shopsData as any)?.items) ? (shopsData as any).items : []);
         setShops(shopsList);
 
-        const approvedShops = shopsList
-          .filter((s: any) => String((s as any)?.status || '').toLowerCase() === 'approved')
-          .slice(0, 8);
+        const approvedShops = shopsList.slice(0, 8);
 
         const previews = await Promise.all(
           approvedShops.map(async (shop: any) => {
@@ -218,6 +219,10 @@ const HomeFeed: React.FC = () => {
             navigate(`/s/${slug}`);
           }}
         />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <TopVisitedShopsSection shops={shops} loading={loadingShops} />
       </Suspense>
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>

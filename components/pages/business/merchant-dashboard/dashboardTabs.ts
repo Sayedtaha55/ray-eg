@@ -4,6 +4,7 @@ import { CORE_MERCHANT_MODULES } from './coreModules';
 
 export type MerchantDashboardTabId =
   | 'overview'
+  | 'notifications'
   | 'products'
   | 'reservations'
   | 'invoice'
@@ -31,6 +32,7 @@ export const getProductTabLabel = (category?: string): string => {
 
 export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'overview', label: 'نظرة عامة' },
+  { id: 'notifications', label: 'الإشعارات' },
   { id: 'gallery', label: 'معرض الصور' },
   { id: 'reports', label: 'التقارير' },
   { id: 'customers', label: 'العملاء' },

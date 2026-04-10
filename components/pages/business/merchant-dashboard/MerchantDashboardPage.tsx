@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { clearSession } from '@/services/authStorage';
 import {
   BarChart3,
+  Bell,
   CalendarCheck,
   Camera,
   CheckCircle2,
@@ -44,6 +45,7 @@ const ReportsTab = lazy(() => import('./tabs/ReportsTab'));
 const ReservationsTab = lazy(() => import('./tabs/ReservationsTab').then(m => ({ default: m.ReservationsTab })));
 const SalesTab = lazy(() => import('./tabs/SalesTab'));
 const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
+const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
 
 import TabButton from './components/TabButton';
 import {
@@ -59,6 +61,7 @@ type TabType = MerchantDashboardTabId;
 
 const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   overview: <TrendingUp size={18} />,
+  notifications: <Bell size={18} />,
   gallery: <Camera size={18} />,
   reports: <BarChart3 size={18} />,
   customers: <Users size={18} />,
@@ -430,9 +433,18 @@ const MerchantDashboardPage: React.FC = () => {
     return (
       <Suspense fallback={TabFallback}>
         {(() => {
-          switch (activeTab) {
+          switch (effectiveTab) {
             case 'overview':
-              return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
+              return (
+                <OverviewTab
+                  shop={currentShop}
+                  analytics={analytics}
+                  notifications={notifications}
+                  onViewAllNotifications={() => setTab('notifications')}
+                />
+              );
+            case 'notifications':
+              return <NotificationsTab shopId={String(currentShop.id)} />;
             case 'products':
               return (
                 <ProductsTab
@@ -478,7 +490,14 @@ const MerchantDashboardPage: React.FC = () => {
             case 'settings':
               return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
             default:
-              return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} />;
+              return (
+                <OverviewTab
+                  shop={currentShop}
+                  analytics={analytics}
+                  notifications={notifications}
+                  onViewAllNotifications={() => setTab('notifications')}
+                />
+              );
           }
         })()}
       </Suspense>
@@ -511,11 +530,31 @@ const MerchantDashboardPage: React.FC = () => {
     );
   }
 
+  const bannerImageUrl = String(
+    currentShop?.pageDesign?.bannerUrl ||
+    currentShop?.bannerUrl ||
+    currentShop?.banner_url ||
+    currentShop?.coverImage ||
+    '',
+  ).trim();
+
   return (
     <div className="max-w-[1600px] mx-auto space-y-5 md:space-y-10 text-right pb-28 md:pb-32 px-3 sm:px-4 md:px-6 font-sans" dir="rtl">
       {effectiveTab !== 'builder' && effectiveTab !== 'settings' && (
-        <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 md:gap-8">
-          <div className="flex items-center gap-3 sm:gap-6 md:gap-8 flex-row-reverse">
+        <div className="relative overflow-hidden bg-gradient-to-l from-cyan-50 via-white to-slate-50 p-4 sm:p-6 md:p-12 rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-cyan-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 md:gap-8">
+          {bannerImageUrl ? (
+            <img
+              src={bannerImageUrl}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover opacity-15"
+              loading="lazy"
+              decoding="async"
+            />
+          ) : null}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-white/95 via-white/90 to-cyan-50/95" />
+          <div className="pointer-events-none absolute -top-12 -left-10 w-36 h-36 rounded-full bg-[#00E5FF]/20 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -right-8 w-40 h-40 rounded-full bg-slate-900/10 blur-3xl" />
+          <div className="relative z-10 flex items-center gap-3 sm:gap-6 md:gap-8 flex-row-reverse">
             <div className="relative group">
               <SmartImage
                 src={
@@ -543,17 +582,19 @@ const MerchantDashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
+          <div className="relative z-10 flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
             <button
+              type="button"
               onClick={() => navigate(`/shop/${currentShop.slug}`)}
-              className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-[#00E5FF] text-black rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] transition-all shadow-md sm:shadow-xl"
+              className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-[#00E5FF] text-black rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] hover:brightness-110 transition-all shadow-md sm:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
               <Eye size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> <span>معاينة المحل</span>
             </button>
             {hasPosTab && (
               <button
+                type="button"
                 onClick={() => setTab('pos')}
-                className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-slate-900 text-white rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
+                className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-slate-900 text-white rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               >
                 <Smartphone size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">الكاشير الذكي</span>
               </button>
@@ -562,7 +603,7 @@ const MerchantDashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="hidden gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar sticky top-24 z-40 shadow-inner">
+      <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar sticky top-24 z-40 shadow-inner">
         {visibleTabs.map((tab) => (
           <TabButton key={tab.id} active={effectiveTab === tab.id} onClick={() => setTab(tab.id)} icon={tab.icon} label={tab.label} />
         ))}

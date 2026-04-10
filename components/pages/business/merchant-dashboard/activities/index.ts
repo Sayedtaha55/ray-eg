@@ -3,6 +3,7 @@ import { CORE_MERCHANT_MODULES } from '../coreModules';
 
 export type MerchantDashboardTabId =
   | 'overview'
+  | 'notifications'
   | 'products'
   | 'reservations'
   | 'invoice'

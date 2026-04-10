@@ -14,7 +14,12 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
   const slidersRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const approvedShops = useMemo(
-    () => (Array.isArray(shops) ? shops : []).filter((s) => String((s as any)?.status || '').toLowerCase() === 'approved'),
+    () =>
+      (Array.isArray(shops) ? shops : []).filter((s) => {
+        const status = String((s as any)?.status || '').trim().toLowerCase();
+        if (!status) return Boolean((s as any)?.id);
+        return status === 'approved';
+      }),
     [shops],
   );
 
@@ -60,8 +65,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
       <div className="space-y-5 md:space-y-7">
         {approvedShops.slice(0, 8).map((shop) => {
           const shopOffers = offersByShopId.get(String(shop.id)) || [];
-          const banner = String((shop as any)?.pageDesign?.bannerUrl || '').trim() || String((shop as any)?.logoUrl || '').trim();
-          const logo = String((shop as any)?.logoUrl || '').trim();
+          const banner =
+            String((shop as any)?.pageDesign?.bannerUrl || '').trim() ||
+            String((shop as any)?.bannerUrl || '').trim() ||
+            String((shop as any)?.banner_url || '').trim() ||
+            String((shop as any)?.logoUrl || '').trim() ||
+            String((shop as any)?.logo_url || '').trim();
+          const logo = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
           const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
           const hasProducts = shopProducts.length > 0;
 

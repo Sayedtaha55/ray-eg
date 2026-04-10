@@ -141,6 +141,7 @@ const BusinessLayout: React.FC = () => {
 
   const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
     overview: <LayoutDashboard size={20} />,
+    notifications: <Bell size={20} />,
     sales: <CreditCard size={20} />,
     reservations: <Calendar size={20} />,
     invoice: <FileText size={20} />,
