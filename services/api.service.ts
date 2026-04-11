@@ -152,6 +152,11 @@ import {
   listMyInvoicesViaBackend,
   updateInvoiceViaBackend,
 } from './api/modules/invoices';
+import {
+  addMyFavoriteViaBackend,
+  getMyFavoritesViaBackend,
+  removeMyFavoriteViaBackend,
+} from './api/modules/favorites';
 import { mockDb } from './api/mockDb';
 
 let rayDbUpdateTimer: any;
@@ -676,6 +681,19 @@ export const ApiService = {
 
   getMyNotifications: async (opts?: { take?: number; skip?: number }) => {
     return await getMyNotificationsViaBackend(opts);
+  },
+  getMyFavorites: async () => {
+    return await getMyFavoritesViaBackend();
+  },
+  addMyFavorite: async (productId: string) => {
+    const id = String(productId || '').trim();
+    if (!id) throw new Error('Missing productId');
+    await addMyFavoriteViaBackend(id);
+  },
+  removeMyFavorite: async (productId: string) => {
+    const id = String(productId || '').trim();
+    if (!id) throw new Error('Missing productId');
+    await removeMyFavoriteViaBackend(id);
   },
   getMyUnreadNotificationsCount: async () => {
     return await getMyUnreadNotificationsCountViaBackend();

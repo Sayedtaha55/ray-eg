@@ -37,12 +37,8 @@ const ProfilePage: React.FC = () => {
     // Fix: Await asynchronous RayDB calls
     const loadData = async () => {
       setReservations(await RayDB.getReservations());
-      const favIds = RayDB.getFavorites();
+      const favIds = await RayDB.getFavorites();
       const allProducts = await RayDB.getProducts();
-      
-      // Debug: Log to check what's happening
-      console.log('Favorite IDs:', favIds);
-      console.log('All Products:', allProducts.map(p => ({ id: p.id, name: p.name })));
       
       // Better matching logic - ensure both IDs are strings
       const filteredProducts = allProducts.filter(p => {
@@ -50,8 +46,6 @@ const ProfilePage: React.FC = () => {
         const isFavorite = favIds.some(favId => String(favId) === productId);
         return isFavorite;
       });
-      
-      console.log('Filtered favorites:', filteredProducts);
       setFavorites(filteredProducts);
     };
     loadData();
@@ -190,7 +184,15 @@ const ProfilePage: React.FC = () => {
                             <h4 className="font-black mb-1">{product.name}</h4>
                             <p className="text-[#00E5FF] font-black text-xl">ج.م {product.price}</p>
                          </div>
-                         <button onClick={() => RayDB.toggleFavorite(product.id)} className="text-red-500"><Heart size={20} fill="currentColor" /></button>
+                         <button
+                           onClick={async () => {
+                             await RayDB.toggleFavorite(product.id);
+                             window.dispatchEvent(new Event('ray-db-update'));
+                           }}
+                           className="text-red-500"
+                         >
+                           <Heart size={20} fill="currentColor" />
+                         </button>
                       </div>
                     ))
                    )}

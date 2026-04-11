@@ -50,12 +50,7 @@ const ProductCard = React.memo(function ProductCard({
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [isFavorite, setIsFavorite] = useState(() => {
-    try {
-      const favs = RayDB.getFavorites();
-      return Array.isArray(favs) ? favs.includes(product.id) : false;
-    } catch {
-      return false;
-    }
+    return false;
   });
   const navigate = useNavigate();
   const { slug } = useParams();
@@ -111,10 +106,27 @@ const ProductCard = React.memo(function ProductCard({
   const titleColor = String((design as any)?.productCardTitleColor || '').trim() || '#FFFFFF';
   const priceColor = String((design as any)?.productCardPriceColor || '').trim() || '#FFFFFF';
 
-  const toggleFav = (e: React.MouseEvent) => {
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const favs = await RayDB.getFavorites();
+      if (cancelled) return;
+      setIsFavorite(favs.includes(String(product.id)));
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [product.id]);
+
+  const toggleFav = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    const state = RayDB.toggleFavorite(product.id);
-    setIsFavorite(state);
+    const state = await RayDB.toggleFavorite(product.id);
+    if (state?.requiresAuth) {
+      navigate(`/login?next=${encodeURIComponent(String(location?.pathname || '/'))}`);
+      return;
+    }
+    if (state?.failed) return;
+    setIsFavorite(Boolean(state?.isFavorite));
   };
 
   const currentPrice = offer ? offer.newPrice : product.price;
