@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, ShoppingBag, X } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/common/ui';
 
@@ -221,9 +221,11 @@ const ProductTab: React.FC<ProductTabProps> = ({
   isPreview,
   onProductClick,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 
   const sectionsContainerRef = useRef<HTMLDivElement | null>(null);
   const categoryHeaderRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -235,15 +237,25 @@ const ProductTab: React.FC<ProductTabProps> = ({
     return out;
   }, [categories]);
 
+  const filteredProducts = useMemo(() => {
+    if (!normalizedSearchQuery) return Array.isArray(products) ? products : [];
+    return (Array.isArray(products) ? products : []).filter((p) => {
+      const name = String((p as any)?.name || '').toLowerCase();
+      const category = String((p as any)?.category || '').toLowerCase();
+      const description = String((p as any)?.description || '').toLowerCase();
+      return name.includes(normalizedSearchQuery) || category.includes(normalizedSearchQuery) || description.includes(normalizedSearchQuery);
+    });
+  }, [products, normalizedSearchQuery]);
+
   const categorizedProducts = useMemo(() => {
     const map = new Map<string, any[]>();
-    for (const p of Array.isArray(products) ? products : []) {
+    for (const p of filteredProducts) {
       const cat = String(p?.category || 'عام').trim() || 'عام';
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(p);
     }
     return map;
-  }, [products]);
+  }, [filteredProducts]);
 
   const rowsConfig = useMemo(() => {
     const raw = Array.isArray((currentDesign as any)?.rowsConfig) ? (currentDesign as any).rowsConfig : [];
@@ -292,7 +304,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
 
   const initialBatch = isLowEndDevice ? 18 : 36;
   const batchSize = isLowEndDevice ? 12 : 24;
-  const totalProductsCount = products.length;
+  const totalProductsCount = filteredProducts.length;
   const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, totalProductsCount));
 
   useEffect(() => {
@@ -379,6 +391,28 @@ const ProductTab: React.FC<ProductTabProps> = ({
 
   return (
     <div className="space-y-8">
+      <div className="relative">
+        <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+        <input
+          type="search"
+          dir="rtl"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="ابحث عن منتج داخل المتجر..."
+          className="w-full h-12 pr-11 pl-11 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-300 transition-all"
+        />
+        {searchQuery ? (
+          <button
+            type="button"
+            aria-label="مسح البحث"
+            onClick={() => setSearchQuery('')}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
+          >
+            <X size={14} />
+          </button>
+        ) : null}
+      </div>
+
       {normalizedCategories.length > 1 && (
         <div className="-mx-4 md:-mx-8 px-4 md:px-8 py-4">
           <div className="flex items-center gap-4 overflow-x-auto no-scrollbar pb-2 flex-row-reverse">
@@ -414,10 +448,12 @@ const ProductTab: React.FC<ProductTabProps> = ({
         </div>
       )}
 
-      {products.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <div className="py-32 text-center">
           <ShoppingBag size={48} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-400 font-bold">لا توجد منتجات في هذا القسم حالياً</p>
+          <p className="text-slate-400 font-bold">
+            {normalizedSearchQuery ? 'لا توجد منتجات مطابقة لبحثك حالياً' : 'لا توجد منتجات في هذا القسم حالياً'}
+          </p>
         </div>
       ) : (
         <div ref={sectionsContainerRef} className="space-y-10">
