@@ -14,10 +14,12 @@ import {
   Megaphone,
   Package,
   Palette,
+  Search,
   Settings,
   Smartphone,
   TrendingUp,
   Users,
+  X,
   Eye,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -56,8 +58,29 @@ import {
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
+const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Promise<unknown>>> = {
+  overview: () => import('./tabs/OverviewTab'),
+  notifications: () => import('./tabs/NotificationsTab'),
+  gallery: () => import('./tabs/GalleryTab'),
+  reports: () => import('./tabs/ReportsTab'),
+  customers: () => import('./tabs/CustomersTab'),
+  products: () => import('./tabs/ProductsTab'),
+  promotions: () => import('./tabs/PromotionsTab'),
+  reservations: () => import('./tabs/ReservationsTab'),
+  invoice: () => import('./tabs/InvoiceTab'),
+  sales: () => import('./tabs/SalesTab'),
+  builder: () => import('../builder/PageBuilder'),
+  settings: () => import('@/src/components/MerchantDashboard/Settings'),
+  pos: () => import('../POSSystem'),
+};
 
 type TabType = MerchantDashboardTabId;
+type MerchantSearchResult = {
+  id: string;
+  title: string;
+  subtitle: string;
+  tabId: MerchantDashboardTabId;
+};
 
 const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   overview: <TrendingUp size={18} />,
@@ -94,6 +117,8 @@ const MerchantDashboardPage: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerSeedProduct, setOfferSeedProduct] = useState<Product | null>(null);
+  const [merchantSearchQuery, setMerchantSearchQuery] = useState('');
+  const [isMerchantSearchHydrating, setIsMerchantSearchHydrating] = useState(false);
 
   const hasInitializedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -127,6 +152,63 @@ const MerchantDashboardPage: React.FC = () => {
   }));
   const hasPosTab = visibleTabs.some((t) => t.id === 'pos');
   const effectiveTab = resolveMerchantDashboardTabForShop(activeTab, currentShop || { category: shopCategory });
+  const normalizedMerchantSearchQuery = merchantSearchQuery.trim().toLowerCase();
+  const merchantSearchResults = useMemo(() => {
+    if (!normalizedMerchantSearchQuery) return [] as MerchantSearchResult[];
+    const textHasQuery = (value: unknown) => String(value || '').toLowerCase().includes(normalizedMerchantSearchQuery);
+    const results: MerchantSearchResult[] = [];
+
+    for (const tab of visibleTabs) {
+      if (!textHasQuery(tab.label)) continue;
+      results.push({
+        id: `tab-${tab.id}`,
+        title: `القسم: ${tab.label}`,
+        subtitle: 'نتيجة من أقسام لوحة التاجر',
+        tabId: tab.id,
+      });
+    }
+
+    for (const product of products) {
+      if (!textHasQuery((product as any)?.name) && !textHasQuery((product as any)?.description)) continue;
+      results.push({
+        id: `product-${product.id}`,
+        title: String((product as any)?.name || 'منتج بدون اسم'),
+        subtitle: 'نتيجة من منتجات متجرك',
+        tabId: 'products',
+      });
+    }
+
+    for (const reservation of reservations) {
+      if (
+        !textHasQuery((reservation as any)?.customerName) &&
+        !textHasQuery((reservation as any)?.customerPhone) &&
+        !textHasQuery((reservation as any)?.itemName)
+      ) continue;
+      results.push({
+        id: `reservation-${reservation.id}`,
+        title: String((reservation as any)?.customerName || (reservation as any)?.customerPhone || 'حجز'),
+        subtitle: `نتيجة من حجوزات متجرك${(reservation as any)?.itemName ? ` • ${(reservation as any).itemName}` : ''}`,
+        tabId: 'reservations',
+      });
+    }
+
+    for (const order of sales) {
+      if (
+        !textHasQuery((order as any)?.id) &&
+        !textHasQuery((order as any)?.orderId) &&
+        !textHasQuery((order as any)?.customerName) &&
+        !textHasQuery((order as any)?.customerPhone)
+      ) continue;
+      results.push({
+        id: `order-${String((order as any)?.id || (order as any)?.orderId || (order as any)?.customerPhone || (order as any)?.customerName || 'unknown')}`,
+        title: `طلب #${String((order as any)?.id || (order as any)?.orderId || '').slice(0, 10)}`,
+        subtitle: 'نتيجة من طلبات متجرك',
+        tabId: 'sales',
+      });
+    }
+
+    return results.slice(0, 12);
+  }, [normalizedMerchantSearchQuery, products, reservations, sales, visibleTabs]);
 
   const setTab = useCallback((tab: TabType) => {
     const next = new URLSearchParams(searchParams);
@@ -504,6 +586,70 @@ const MerchantDashboardPage: React.FC = () => {
     );
   };
 
+  const preloadTab = useCallback((tabId: MerchantDashboardTabId) => {
+    const preloader = DASHBOARD_TAB_PRELOADERS[tabId];
+    if (!preloader) return;
+    void preloader();
+  }, []);
+
+  const handleTabPointerEnter = useCallback((tabId: MerchantDashboardTabId) => {
+    preloadTab(tabId);
+    if (!currentShop) return;
+    void ensureTabData(tabId, currentShop);
+  }, [currentShop, ensureTabData, preloadTab]);
+
+  useEffect(() => {
+    if (!currentShop) return;
+    const idleCallback = (window as any).requestIdleCallback as ((cb: () => void) => number) | undefined;
+    const run = () => {
+      for (const tab of visibleTabs) {
+        if (tab.id === effectiveTab) continue;
+        preloadTab(tab.id);
+      }
+    };
+
+    if (typeof idleCallback === 'function') {
+      const id = idleCallback(run);
+      return () => {
+        const cancelIdleCallback = (window as any).cancelIdleCallback as ((callbackId: number) => void) | undefined;
+        if (typeof cancelIdleCallback === 'function') {
+          cancelIdleCallback(id);
+        }
+      };
+    }
+
+    const timeoutId = window.setTimeout(run, 250);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentShop, effectiveTab, preloadTab, visibleTabs]);
+
+  useEffect(() => {
+    if (!currentShop || normalizedMerchantSearchQuery.length < 2) {
+      setIsMerchantSearchHydrating(false);
+      return;
+    }
+
+    let isCancelled = false;
+    const hydrateSearchData = async () => {
+      setIsMerchantSearchHydrating(true);
+      try {
+        await Promise.all([
+          ensureTabData('products', currentShop),
+          ensureTabData('reservations', currentShop),
+          ensureTabData('sales', currentShop),
+        ]);
+      } finally {
+        if (!isCancelled) {
+          setIsMerchantSearchHydrating(false);
+        }
+      }
+    };
+
+    void hydrateSearchData();
+    return () => {
+      isCancelled = true;
+    };
+  }, [currentShop, ensureTabData, normalizedMerchantSearchQuery]);
+
   if (loading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
@@ -603,10 +749,60 @@ const MerchantDashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar sticky top-24 z-40 shadow-inner">
-        {visibleTabs.map((tab) => (
-          <TabButton key={tab.id} active={effectiveTab === tab.id} onClick={() => setTab(tab.id)} icon={tab.icon} label={tab.label} />
-        ))}
+      <div className="space-y-2 sticky top-24 z-40">
+        <div className="relative">
+          <Search size={16} className="absolute top-1/2 -translate-y-1/2 right-4 text-slate-400" />
+          <input
+            type="search"
+            value={merchantSearchQuery}
+            onChange={(event) => setMerchantSearchQuery(event.target.value)}
+            placeholder="ابحث داخل متجرك فقط (أقسام/منتجات/حجوزات/طلبات)..."
+            className="w-full rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur px-12 py-3 text-sm font-bold text-slate-700 placeholder:text-slate-400 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
+          />
+          {merchantSearchQuery ? (
+            <button
+              type="button"
+              onClick={() => setMerchantSearchQuery('')}
+              className="absolute top-1/2 -translate-y-1/2 left-3 p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+              aria-label="مسح البحث"
+            >
+              <X size={14} />
+            </button>
+          ) : null}
+        </div>
+        {normalizedMerchantSearchQuery ? (
+          <div className="rounded-2xl border border-slate-200 bg-white/95 shadow-sm p-2 sm:p-3 space-y-1.5">
+            {isMerchantSearchHydrating ? (
+              <div className="px-3 py-2 text-xs font-bold text-slate-500">جاري تجهيز نتائج البحث من بيانات متجرك...</div>
+            ) : merchantSearchResults.length ? (
+              merchantSearchResults.map((result) => (
+                <button
+                  key={result.id}
+                  type="button"
+                  onClick={() => setTab(result.tabId)}
+                  className="w-full text-right px-3 py-2 rounded-xl hover:bg-slate-100 transition-colors"
+                >
+                  <p className="text-sm font-black text-slate-800">{result.title}</p>
+                  <p className="text-[11px] font-bold text-slate-500">{result.subtitle}</p>
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-xs font-bold text-slate-500">لا توجد نتائج داخل بيانات متجرك فقط.</div>
+            )}
+          </div>
+        ) : null}
+        <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar shadow-inner">
+          {visibleTabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              active={effectiveTab === tab.id}
+              onClick={() => setTab(tab.id)}
+              onPointerEnter={() => handleTabPointerEnter(tab.id)}
+              icon={tab.icon}
+              label={tab.label}
+            />
+          ))}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
