@@ -28,7 +28,33 @@ export const RayDB = {
   getShopBySlug: async (slug: string) => ApiService.getShopBySlug(slug),
   addProduct: async (product: any) => ApiService.addProduct(product),
   getAnalytics: async (shopId: string) => ApiService.getShopAnalytics(shopId),
-  getFavorites: () => JSON.parse(localStorage.getItem('ray_favorites') || '[]'),
+  isAuthenticated: () => {
+    try {
+      const rawUser = localStorage.getItem('ray_user');
+      const rawToken = localStorage.getItem('ray_token');
+      if (!rawUser || !rawToken) return false;
+      const user = JSON.parse(rawUser);
+      return Boolean(user?.id || user?.email || user?.phone);
+    } catch {
+      return false;
+    }
+  },
+  getFavorites: async () => {
+    if (!RayDB.isAuthenticated()) return [];
+    try {
+      const favs = await ApiService.getMyFavorites();
+      const normalized = Array.isArray(favs) ? favs.map((id: any) => String(id)).filter(Boolean) : [];
+      localStorage.setItem('ray_favorites', JSON.stringify(normalized));
+      return normalized;
+    } catch {
+      try {
+        const localFavs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
+        return Array.isArray(localFavs) ? localFavs.map((id: any) => String(id)).filter(Boolean) : [];
+      } catch {
+        return [];
+      }
+    }
+  },
   getQuantityStepForUnit: (unitRaw: any) => {
     const unit = String(unitRaw || '').trim().toUpperCase();
     if (unit === 'KG' || unit === 'G' || unit === 'L' || unit === 'ML') return 0.25;
@@ -234,13 +260,25 @@ export const RayDB = {
   clearCart: () => {
     return RayDB.setCart([]);
   },
-  toggleFavorite: (id: string) => {
-    const favs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-    const idx = favs.indexOf(id);
-    if (idx === -1) favs.push(id); else favs.splice(idx, 1);
-    localStorage.setItem('ray_favorites', JSON.stringify(favs));
+  toggleFavorite: async (id: string) => {
+    const productId = String(id || '').trim();
+    if (!productId) return { isFavorite: false, requiresAuth: false };
+    if (!RayDB.isAuthenticated()) return { isFavorite: false, requiresAuth: true };
+
+    const favs = await RayDB.getFavorites();
+    const has = favs.includes(productId);
+    const next = has ? favs.filter((favId: string) => favId !== productId) : [...favs, productId];
+
+    try {
+      if (has) await ApiService.removeMyFavorite(productId);
+      else await ApiService.addMyFavorite(productId);
+    } catch {
+      return { isFavorite: has, requiresAuth: false, failed: true };
+    }
+
+    localStorage.setItem('ray_favorites', JSON.stringify(next));
     window.dispatchEvent(new Event('ray-db-update'));
-    return idx === -1;
+    return { isFavorite: !has, requiresAuth: false };
   },
   getReceiptTheme: (shopId: string): ReceiptTheme => {
     try {

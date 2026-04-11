@@ -15,11 +15,23 @@ export default function BackendStatusBanner() {
     return navigator.onLine;
   });
   const [backendDownUntil, setBackendDownUntil] = useState<number>(0);
+  const [offlineSince, setOfflineSince] = useState<number>(0);
+  const [backendDownSince, setBackendDownSince] = useState<number>(0);
   const [lastPath, setLastPath] = useState<string>('');
+  const [now, setNow] = useState<number>(() => Date.now());
+
+  const OFFLINE_GRACE_MS = 3000;
+  const BACKEND_GRACE_MS = 3500;
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setOfflineSince(0);
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+      setOfflineSince((prev) => (prev > 0 ? prev : Date.now()));
+    };
 
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -29,7 +41,13 @@ export default function BackendStatusBanner() {
       if (!detail) return;
       if (typeof detail.downUntil === 'number') setBackendDownUntil(detail.downUntil);
       if (typeof detail.lastPath === 'string') setLastPath(detail.lastPath);
-      if (detail.status === 'up') setBackendDownUntil(0);
+      if (detail.status === 'up') {
+        setBackendDownUntil(0);
+        setBackendDownSince(0);
+      }
+      if (detail.status === 'down') {
+        setBackendDownSince((prev) => (prev > 0 ? prev : Date.now()));
+      }
     };
 
     window.addEventListener('ray-backend-status', handleBackendStatus as any);
@@ -41,17 +59,31 @@ export default function BackendStatusBanner() {
     };
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const isBackendDown = useMemo(() => {
-    return backendDownUntil > Date.now();
-  }, [backendDownUntil]);
+    return backendDownUntil > now;
+  }, [backendDownUntil, now]);
 
-  const shouldShow = !isOnline || isBackendDown;
+  const offlineDuration = !isOnline && offlineSince > 0 ? now - offlineSince : 0;
+  const backendDownDuration = isBackendDown && backendDownSince > 0 ? now - backendDownSince : 0;
+  const showOfflinePanel = !isOnline && offlineDuration >= OFFLINE_GRACE_MS;
+  const showBackendPanel = isOnline && isBackendDown && backendDownDuration >= BACKEND_GRACE_MS;
+  const showReconnectingHint = (!isOnline && !showOfflinePanel) || (isOnline && isBackendDown && !showBackendPanel);
+  const shouldShow = showOfflinePanel || showBackendPanel || showReconnectingHint;
 
-  const message = !isOnline
+  const message = showReconnectingHint
+    ? 'جاري إعادة الاتصال تلقائيًا...'
+    : !isOnline
     ? 'تم فصل الإنترنت مؤقتًا.'
     : 'الخدمة غير متاحة مؤقتًا.';
 
-  const subMessage = !isOnline
+  const subMessage = showReconnectingHint
+    ? 'ثواني بسيطة وبنرجع نكمل من نفس المكان بدون مقاطعة.'
+    : !isOnline
     ? 'ارجع افتح الصفحة بعد ما الاتصال يرجع، أو جرّب تاني بعد لحظات.'
     : lastPath
       ? `آخر محاولة: ${lastPath}`
@@ -63,7 +95,7 @@ export default function BackendStatusBanner() {
 
   if (!shouldShow) return null;
 
-  if (isOnline && isBackendDown) {
+  if (showBackendPanel) {
     return (
       <div className="fixed inset-0 z-[999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" dir="rtl">
         <div className="w-full max-w-xl rounded-[2.5rem] bg-white border border-slate-100 shadow-2xl p-8 md:p-10 text-right">
@@ -105,12 +137,16 @@ export default function BackendStatusBanner() {
 
   return (
     <div className="fixed bottom-4 left-4 right-4 z-[998]" dir="rtl">
-      <div className="mx-auto max-w-3xl rounded-2xl border border-amber-200/60 bg-amber-50/90 backdrop-blur-xl p-4 flex items-start justify-between gap-4">
+      <div className={`mx-auto max-w-3xl rounded-2xl backdrop-blur-xl p-4 flex items-start justify-between gap-4 ${
+        showReconnectingHint
+          ? 'border border-cyan-200/60 bg-cyan-50/90'
+          : 'border border-amber-200/60 bg-amber-50/90'
+      }`}>
         <div className="min-w-0">
-          <div className="font-black text-amber-900">{message}</div>
-          {subMessage ? <div className="mt-1 text-xs text-amber-800/80 break-words">{subMessage}</div> : null}
+          <div className={`font-black ${showReconnectingHint ? 'text-cyan-900' : 'text-amber-900'}`}>{message}</div>
+          {subMessage ? <div className={`mt-1 text-xs break-words ${showReconnectingHint ? 'text-cyan-800/80' : 'text-amber-800/80'}`}>{subMessage}</div> : null}
         </div>
-        {!isOnline ? null : (
+        {!isOnline || showReconnectingHint ? null : (
           <button
             type="button"
             onClick={handleRetry}

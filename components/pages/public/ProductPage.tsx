@@ -143,7 +143,7 @@ const ProductPage: React.FC = () => {
           }
         }
 
-        const favs = RayDB.getFavorites();
+        const favs = await RayDB.getFavorites();
         setIsFavorite(favs.includes(String(p.id)));
         return;
       }
@@ -163,7 +163,7 @@ const ProductPage: React.FC = () => {
         }
         if (prodResolved?.id) {
           setProduct(prodResolved);
-          const favs = RayDB.getFavorites();
+          const favs = await RayDB.getFavorites();
           setIsFavorite(favs.includes(String(prodResolved.id)));
         } else {
           setError(true);
@@ -260,15 +260,21 @@ const ProductPage: React.FC = () => {
     });
   }, [shop?.category, (product as any)?.id, selectedMenuTypeId]);
 
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     if (product) {
-      const state = RayDB.toggleFavorite(product.id);
-      setIsFavorite(state);
+      const state = await RayDB.toggleFavorite(product.id);
+      if (state?.requiresAuth) {
+        const next = encodeURIComponent(String(location?.pathname || '/'));
+        navigate(`/login?next=${next}`);
+        return;
+      }
+      if (state?.failed) return;
+      setIsFavorite(Boolean(state?.isFavorite));
       // Notify other components that favorites changed
       window.dispatchEvent(new Event('ray-db-update'));
       
       // Show toast notification
-      const message = state ? 'تمت إضافة المنتج للمفضلة! ❤️' : 'تم حذف المنتج من المفضلة';
+      const message = state?.isFavorite ? 'تمت إضافة المنتج للمفضلة! ❤️' : 'تم حذف المنتج من المفضلة';
       // Simple notification (you can replace with a proper toast system)
       const toast = document.createElement('div');
       toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm animate-pulse';
