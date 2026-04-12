@@ -56,52 +56,14 @@ export class ShopPublicQueryService {
 
       try {
         const cachedShop = await this.redis.getShopBySlug(slug);
-        if (cachedShop) {
+        // Ensure cached shop is active and contains the pre-filtered product list.
+        // Data in Redis is pre-filtered by the cache-miss logic (see normalizedShop logic below).
+        if (cachedShop && Array.isArray((cachedShop as any).products)) {
           if ((cachedShop as any)?.isActive === false) {
             return null;
           }
 
           const normalizedCached = this.stripPublicDisabledShop(cachedShop);
-          if (normalizedCached && Array.isArray((normalizedCached as any).products)) {
-            const sid = (normalizedCached as any)?.id ? String((normalizedCached as any).id).trim() : '';
-            let linkedIds = new Set<string>();
-            let labelKeys = new Set<string>();
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { productId: { not: null }, map: { shopId: sid } },
-                select: { productId: true },
-              });
-              linkedIds = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
-
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { map: { shopId: sid, isActive: true } },
-                select: { label: true },
-              });
-              labelKeys = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
-
-            const deduped = this.dedupeProductsById((normalizedCached as any).products);
-            (normalizedCached as any).products = deduped.filter((p: any) => {
-              const id = p?.id != null ? String(p.id).trim() : '';
-              if (id && linkedIds.has(id)) return false;
-              if (this.isImageMapCategory((p as any)?.category)) return false;
-              const nameKey = this.normalizeProductNameKey((p as any)?.name);
-              if (nameKey && labelKeys.has(nameKey)) return false;
-              return true;
-            });
-          }
           const owner = (cachedShop as any)?.owner;
           if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
             return null;
@@ -216,17 +178,19 @@ export class ShopPublicQueryService {
         });
       }
 
-      const owner = (shop as any)?.owner;
-      if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
-        return null;
-      }
-
+      // Pre-filtered shop data is cached to avoid redundant DB queries on subsequent requests.
       if (normalizedShop) {
         try {
           await this.redis.cacheShop((normalizedShop as any).id, normalizedShop as any, 3600);
         } catch {
         }
       }
+
+      const owner = (shop as any)?.owner;
+      if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
+        return null;
+      }
+
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findUnique', 'shops', duration, true);

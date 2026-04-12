@@ -1,11 +1,13 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { RedisService } from './redis/redis.service';
 import { GeminiVisionService } from './gemini-vision.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
   ) {}
 
@@ -293,6 +295,17 @@ export class ShopImageMapService {
       }),
     ]);
 
+    try {
+      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+      if (shop) {
+        await this.redis.invalidateShopCache(sid, shop.slug);
+        // Clear cached product lists that might contain this shop's items
+        await this.redis.invalidatePattern(`*products:*${sid}*`);
+        await this.redis.invalidatePattern('*products:all:*');
+      }
+    } catch {
+    }
+
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
       include: {
@@ -519,6 +532,18 @@ export class ShopImageMapService {
       });
 
       return { ...updated, createdSections };
+    }).then(async (res) => {
+      try {
+        const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+        if (shop) {
+          await this.redis.invalidateShopCache(sid, shop.slug);
+          // Clear cached product lists that might contain this shop's items
+          await this.redis.invalidatePattern(`*products:*${sid}*`);
+          await this.redis.invalidatePattern('*products:all:*');
+        }
+      } catch {
+      }
+      return res;
     });
   }
 
