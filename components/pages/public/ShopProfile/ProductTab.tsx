@@ -419,7 +419,16 @@ const ProductTab: React.FC<ProductTabProps> = ({
             {normalizedCategories.map((cat) => {
               const shape = (currentDesign as any)?.categoryIconShape || 'circular';
               const size = (currentDesign as any)?.categoryIconSize || 'medium';
-              const iconImage = (currentDesign as any)?.categoryIconImage || '';
+              const categoryImages = ((currentDesign as any)?.categoryImages || {}) as Record<string, string>;
+              const legacyDefault = String((currentDesign as any)?.categoryIconImage || '');
+              const perCategory = String(categoryImages?.[cat] || '');
+              const defaultAll = String(categoryImages?.['الكل'] || '');
+              const iconImage = String(
+                perCategory ||
+                  (cat === 'الكل' ? defaultAll : '') ||
+                  legacyDefault ||
+                  '',
+              );
               const sizeClasses: Record<string, string> = { small: 'w-10 h-10 text-lg', medium: 'w-14 h-14 text-2xl', large: 'w-20 h-20 text-3xl' };
               const shapeClasses: Record<string, string> = { circular: 'rounded-full', square: 'rounded-2xl', large: 'rounded-3xl' };
               const containerSizeClasses: Record<string, string> = { small: 'min-w-[60px]', medium: 'min-w-[80px]', large: 'min-w-[100px]' };
@@ -438,7 +447,15 @@ const ProductTab: React.FC<ProductTabProps> = ({
                     className={`${sizeClasses[size]} ${shapeClasses[shape]} flex items-center justify-center bg-white border-2 transition-all ${active ? 'scale-110 shadow-xl' : 'shadow-md'} group-active:scale-95`}
                     style={{ borderColor: active ? primaryColor : '#E2E8F0', boxShadow: active ? `0 12px 30px ${primaryColor}33` : undefined }}
                   >
-                    {iconImage ? <img src={iconImage} alt={cat} className="w-full h-full object-cover rounded-full" /> : <span>{icon}</span>}
+                    {iconImage ? (
+                      <img
+                        src={iconImage}
+                        alt={cat}
+                        className={`w-full h-full object-cover ${shapeClasses[shape] || 'rounded-full'}`}
+                      />
+                    ) : (
+                      <span>{icon}</span>
+                    )}
                   </div>
                   <span className={`text-xs font-black transition-colors ${active ? 'text-[#00E5FF]' : 'text-slate-700'}`} style={active ? { color: primaryColor } : undefined}>{cat}</span>
                 </button>

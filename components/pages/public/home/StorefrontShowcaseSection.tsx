@@ -68,7 +68,6 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
       <div className="flex items-center justify-between flex-row-reverse mb-6 md:mb-8">
         <div>
           <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">المتاجر المتاحة الآن</h2>
-          <p className="text-slate-500 font-bold text-sm mt-1">صورة المتجر + منتجات مختارة، وبضغطة واحدة تفتح المتجر كامل.</p>
         </div>
       </div>
 
@@ -117,53 +116,26 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                       </div>
                     )}
                     <div className="text-right">
-                      <h3 className="text-slate-900 font-black text-sm md:text-base line-clamp-1">{shop.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-slate-900 font-black text-sm md:text-base line-clamp-1">{shop.name}</h3>
+                        <button
+                          type="button"
+                          onClick={() => onOpenShop(shop)}
+                          className="px-2 py-0.5 rounded-md text-[10px] font-black border border-slate-200 bg-white/80 hover:bg-white transition-colors text-slate-600"
+                          style={{
+                            boxShadow: `inset 0 0 0 1px ${primaryColor}22`,
+                            background: `linear-gradient(90deg, ${primaryColor}12, ${secondaryColor}10)`,
+                          }}
+                        >
+                          زيارة المحل
+                        </button>
+                      </div>
                       <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{shop.city} - {shop.governorate}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex flex-col">
-                  <button
-                    type="button"
-                    onClick={() => onOpenShop(shop)}
-                    className="w-full rounded-2xl p-4 text-right mb-3 border border-slate-200 hover:opacity-95 transition-opacity overflow-hidden relative"
-                    style={{
-                      backgroundColor: pageBgColor,
-                      backgroundImage: backgroundImageUrl ? `url("${backgroundImageUrl}")` : undefined,
-                      backgroundSize: backgroundImageUrl ? 'cover' : undefined,
-                      backgroundPosition: backgroundImageUrl ? 'center' : undefined,
-                    }}
-                  >
-                    <div
-                      className="absolute inset-0 pointer-events-none"
-                      style={{ background: `linear-gradient(135deg, ${primaryColor}cc, ${secondaryColor}cc)` }}
-                    />
-                    {previewBannerUrl ? (
-                      <div
-                        className="absolute left-0 right-0 top-0 h-14 md:h-16 opacity-70 pointer-events-none"
-                        style={{
-                          backgroundImage: `url("${previewBannerUrl}")`,
-                          backgroundSize: 'cover',
-                          backgroundPosition: bannerPosition,
-                        }}
-                      />
-                    ) : null}
-                    <p className="relative text-white font-black text-sm">معاينة تصميم المتجر</p>
-                    <p className="relative text-white/85 text-xs mt-1">الألوان + الخلفية + البنر من إعدادات المتجر الحقيقية</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpenShop(shop)}
-                    className="w-full mb-3 px-4 py-2.5 rounded-xl text-right text-xs md:text-sm font-black border border-slate-200 bg-white/90 hover:bg-white transition-colors"
-                    style={{
-                      color: headerTextColor,
-                      boxShadow: `inset 0 0 0 1px ${primaryColor}22`,
-                      background: `linear-gradient(90deg, ${primaryColor}12, ${secondaryColor}10)`,
-                    }}
-                  >
-                    زر الترويسة — الكلام اللي بيكون فوق البنر
-                  </button>
 
                   <div className="flex items-center justify-start mb-3">
                     <div className="flex items-center gap-2">
@@ -211,28 +183,46 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                           <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(product.price || 0).toLocaleString('ar-EG')}</p>
                         </div>
                       </button>
-                    )) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => (
+                    )) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => {
+                      const hasPrice = Number(offer.newPrice || 0) > 0;
+                      return (
+                        <button
+                          key={offer.id}
+                          type="button"
+                          onClick={() => onOpenShop(shop)}
+                          className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-100 bg-white overflow-hidden hover:shadow-md transition-shadow"
+                          style={{ scrollSnapAlign: 'start' }}
+                        >
+                          <div className="aspect-[4/3] bg-slate-100 relative">
+                            {offer.imageUrl ? (
+                              <img src={offer.imageUrl} alt={offer.title} className="w-full h-full object-cover" loading="lazy" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                <Store size={32} />
+                              </div>
+                            )}
+                            {hasPrice && (
+                              <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-white/90 text-[10px] font-black text-slate-700 shadow-sm">
+                                ج.م {Number(offer.newPrice).toLocaleString('ar-EG')}
+                              </div>
+                            )}
+                          </div>
+                          <div className="p-3">
+                            <p className="font-black text-xs text-slate-900 line-clamp-1">{offer.title}</p>
+                            {hasPrice ? null : <p className="text-[10px] text-slate-400 mt-1">عرض خاص</p>}
+                          </div>
+                        </button>
+                      );
+                    }) : (
                       <button
-                        key={offer.id}
                         type="button"
                         onClick={() => onOpenShop(shop)}
-                        className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-100 bg-slate-50 overflow-hidden"
+                        className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors flex flex-col items-center justify-center gap-2"
                         style={{ scrollSnapAlign: 'start' }}
                       >
-                        <div className="aspect-[4/3] bg-slate-100">
-                          {offer.imageUrl ? (
-                            <img src={offer.imageUrl} alt={offer.title} className="w-full h-full object-cover" loading="lazy" />
-                          ) : null}
-                        </div>
-                        <div className="p-3">
-                          <p className="font-black text-xs text-slate-900 line-clamp-1">{offer.title}</p>
-                          <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(offer.newPrice || 0).toLocaleString('ar-EG')}</p>
-                        </div>
+                        <Store size={32} className="text-slate-300" />
+                        <p className="text-slate-400 text-xs font-bold text-center">تصفح المتجر</p>
                       </button>
-                    )) : (
-                      <div className="rounded-2xl border border-dashed border-slate-200 px-4 py-8 text-center text-slate-400 text-sm w-full">
-                        سيتم إضافة منتجات المتجر هنا قريبًا
-                      </div>
                     )}
                   </div>
                 </div>

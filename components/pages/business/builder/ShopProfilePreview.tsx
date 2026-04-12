@@ -48,7 +48,6 @@ const ShopProfilePreview: React.FC<Props> = ({
     layout: 'modern',
     primaryColor: '#00E5FF',
     secondaryColor: '#BD00FF',
-    bannerUrl: '/placeholder-banner.jpg',
     ...config,
   }), [config]);
 

@@ -38,11 +38,13 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
           {/* Shop Info Column */}
           <div className="text-center md:text-right space-y-6">
             <div className="flex items-center justify-center md:justify-start gap-4">
-              <img
-                src={shop.logoUrl || '/brand/logo.png'}
-                className="w-12 h-12 rounded-full border-2 border-white shadow-lg object-cover bg-white"
-                alt={shop.name}
-              />
+              {shop.logoUrl ? (
+                <img
+                  src={shop.logoUrl}
+                  className="w-12 h-12 rounded-full border-2 border-white shadow-lg object-cover bg-white"
+                  alt={shop.name}
+                />
+              ) : null}
               <h4 className={`font-black ${isBold ? 'text-2xl' : 'text-xl'}`}>
                 {shop.name}
               </h4>

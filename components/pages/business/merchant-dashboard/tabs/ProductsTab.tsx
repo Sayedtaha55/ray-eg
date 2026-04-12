@@ -128,6 +128,15 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
 
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const canUseImageMapEditor = !isRestaurant && Boolean(String(shopId || '').trim());
+  const canShowPurchaseMode = (() => {
+    try {
+      const raw = (shop as any)?.pageDesign?.elementsVisibility?.purchaseModeButton;
+      if (raw === undefined || raw === null) return true;
+      return Boolean(raw);
+    } catch {
+      return true;
+    }
+  })();
   const pageTitle = isRestaurant ? 'المنيو' : 'المخزون والمنتجات';
 
   const normalizeNumber = (v: any, fallback: number) => {
@@ -734,7 +743,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         <div className="flex items-start sm:items-center justify-between mb-6 sm:mb-12 flex-row-reverse gap-4">
           <h3 className="text-2xl sm:text-3xl font-black">{pageTitle}</h3>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-            {canUseImageMapEditor && (
+            {canUseImageMapEditor && canShowPurchaseMode && (
               <button
                 onClick={() => setImageMapEditorOpen(true)}
                 className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-[#00E5FF] text-black rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:scale-105 transition-all"
@@ -743,7 +752,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                 تحرير المنتجات بالصورة
               </button>
             )}
-            {canUseImageMapEditor && (
+            {canUseImageMapEditor && canShowPurchaseMode && (
               <button
                 onClick={async () => {
                   setImageMapProductsOpen(true);

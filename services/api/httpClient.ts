@@ -350,6 +350,10 @@ export async function backendPostWithOptions<T>(
       } catch {
       }
 
+      if (res.status === 404 && String(path || '').startsWith('/api/v1/favorites')) {
+        disablePathPrefix('/api/v1/favorites');
+      }
+
       try {
         // eslint-disable-next-line no-console
         console.error('Backend error', { path, status: res.status, data, message });
@@ -423,6 +427,10 @@ export async function backendDelete<T>(path: string, opts?: { __allowAuthRefresh
       // ignore
     }
 
+    if (res.status === 404 && String(path || '').startsWith('/api/v1/favorites')) {
+      disablePathPrefix('/api/v1/favorites');
+    }
+
     try {
       // eslint-disable-next-line no-console
       console.error('Backend error', { path, status: res.status, data, message });
@@ -485,6 +493,10 @@ export async function backendGet<T>(path: string, opts?: { __allowAuthRefresh?: 
       message = extractErrorMessage(data, message);
     } catch {
       // ignore
+    }
+
+    if (res.status === 404 && String(path || '').startsWith('/api/v1/favorites')) {
+      disablePathPrefix('/api/v1/favorites');
     }
 
     if (res.status === 401) {
@@ -555,6 +567,10 @@ export async function backendPatch<T>(path: string, body: any, opts?: { timeoutM
         data = await res.json();
         message = extractErrorMessage(data, message);
       } catch {
+      }
+
+      if (res.status === 404 && String(path || '').startsWith('/api/v1/favorites')) {
+        disablePathPrefix('/api/v1/favorites');
       }
 
       if (res.status === 401) {

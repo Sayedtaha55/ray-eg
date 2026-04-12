@@ -305,53 +305,156 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                   if (!optId) return null;
                   const optName = String(opt?.name || opt?.title || '').trim() || optId;
                   const img = typeof opt?.imageUrl === 'string' ? String(opt.imageUrl).trim() : '';
+                  const images = Array.isArray(opt?.images) ? opt.images.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+                  const allImgs = [img, ...images].filter(Boolean);
                   const colors = Array.isArray(opt?.colors) ? opt.colors.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
                   const sizes = Array.isArray(opt?.sizes) ? opt.sizes.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
                   const variants = Array.isArray(opt?.variants) ? opt.variants : [];
-                  if (variants.length === 0) return null;
 
-                  const selectedVariantId = (selectedAddons || []).find((x: any) => String(x?.optionId) === optId)?.variantId;
+                  const hasVariants = variants.length > 0;
+                  const addonSelection = (selectedAddons || []).find((x: any) => String(x?.optionId) === optId);
+                  const selectedVariantId = addonSelection?.variantId;
+                  const isSelectedAddon = !!addonSelection;
+                  const selectedColor = addonSelection?.color || '';
+                  const selectedSize = addonSelection?.size || '';
+
+                  const canSelect = !hasVariants || (hasVariants && selectedVariantId);
 
                   return (
-                    <div key={optId} className="p-4 rounded-2xl border-2 border-slate-100 bg-white">
+                    <div key={optId} className={`p-4 rounded-2xl border-2 bg-white transition-all ${isSelectedAddon ? 'border-slate-900 shadow-lg' : 'border-slate-100'}`}>
                       <div className="flex items-center justify-between gap-3 flex-row-reverse">
                         <div className="flex items-center gap-3 flex-row-reverse">
-                          {img ? <img src={img} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-100" /> : null}
+                          {allImgs.length > 0 ? (
+                            <div className="flex gap-1">
+                              {allImgs.slice(0, 3).map((u: string, idx: number) => (
+                                <img key={idx} src={u} alt="" className={`rounded-xl object-cover border border-slate-100 ${idx === 0 ? 'w-12 h-12' : 'w-10 h-10'}`} />
+                              ))}
+                              {allImgs.length > 3 ? <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-xs font-black text-slate-500">+{allImgs.length - 3}</div> : null}
+                            </div>
+                          ) : null}
                           <div className="text-right">
                             <div className="font-black text-sm text-slate-900">{optName}</div>
-                            {colors.length > 0 ? <div className="text-[10px] font-bold text-slate-500">الألوان: {colors.join(' - ')}</div> : null}
-                            {sizes.length > 0 ? <div className="text-[10px] font-bold text-slate-500">المقاسات: {sizes.join(' - ')}</div> : null}
                           </div>
                         </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 justify-end mt-3">
-                        {variants.map((v: any) => {
-                          const vid = String(v?.id || '').trim();
-                          if (!vid) return null;
-                          const vLabel = String(v?.label || v?.name || '').trim() || vid;
-                          const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-                          const isSelected = String(selectedVariantId || '') === vid;
+                      {/* Selectable Colors */}
+                      {colors.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-[10px] font-bold text-slate-500 mb-2">اختر اللون:</div>
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            {colors.map((c: string) => {
+                              const isColorSelected = selectedColor === c;
+                              return (
+                                <button
+                                  key={c}
+                                  type="button"
+                                  onClick={() => {
+                                    const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                                    const existing = arr.find((x: any) => String(x?.optionId) === optId);
+                                    if (existing) {
+                                      setSelectedAddons(arr.map((x: any) => String(x?.optionId) === optId ? { ...x, color: c } : x));
+                                    } else {
+                                      setSelectedAddons([...arr, { optionId: optId, variantId: '', color: c, size: '' }]);
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 rounded-full border font-black text-xs transition-all ${isColorSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:border-slate-400'}`}
+                                >
+                                  {c}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
 
-                          return (
-                            <button
-                              key={vid}
-                              type="button"
-                              onClick={() => {
-                                const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
-                                const next = arr.filter((x: any) => String(x?.optionId) !== optId);
-                                if (isSelected) {
-                                  setSelectedAddons(next);
-                                  return;
-                                }
-                                setSelectedAddons([...next, { optionId: optId, variantId: vid }]);
-                              }}
-                              className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
-                            >
-                              {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
-                            </button>
-                          );
-                        })}
+                      {/* Selectable Sizes */}
+                      {sizes.length > 0 && (
+                        <div className="mt-3">
+                          <div className="text-[10px] font-bold text-slate-500 mb-2">اختر المقاس:</div>
+                          <div className="flex flex-wrap gap-2 justify-end">
+                            {sizes.map((s: string) => {
+                              const isSizeSelected = selectedSize === s;
+                              return (
+                                <button
+                                  key={s}
+                                  type="button"
+                                  onClick={() => {
+                                    const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                                    const existing = arr.find((x: any) => String(x?.optionId) === optId);
+                                    if (existing) {
+                                      setSelectedAddons(arr.map((x: any) => String(x?.optionId) === optId ? { ...x, size: s } : x));
+                                    } else {
+                                      setSelectedAddons([...arr, { optionId: optId, variantId: '', color: '', size: s }]);
+                                    }
+                                  }}
+                                  className={`px-3 py-1.5 rounded-full border font-black text-xs transition-all ${isSizeSelected ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 text-slate-600 hover:border-slate-400'}`}
+                                >
+                                  {s}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Variants or Simple Selection */}
+                      <div className="flex items-center justify-between mt-4">
+                        {hasVariants ? (
+                          <div className="flex flex-wrap gap-2 justify-end flex-1">
+                            {variants.map((v: any) => {
+                              const vid = String(v?.id || '').trim();
+                              if (!vid) return null;
+                              const vLabel = String(v?.label || v?.name || '').trim() || vid;
+                              const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                              const isSelected = String(selectedVariantId || '') === vid;
+
+                              return (
+                                <button
+                                  key={vid}
+                                  type="button"
+                                  onClick={() => {
+                                    const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                                    const existing = arr.find((x: any) => String(x?.optionId) === optId);
+                                    if (isSelected) {
+                                      setSelectedAddons(arr.filter((x: any) => String(x?.optionId) !== optId));
+                                      return;
+                                    }
+                                    setSelectedAddons([
+                                      ...arr.filter((x: any) => String(x?.optionId) !== optId),
+                                      { optionId: optId, variantId: vid, color: existing?.color || '', size: existing?.size || '' }
+                                    ]);
+                                  }}
+                                  className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
+                                >
+                                  {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!canSelect}
+                            onClick={() => {
+                              const arr = Array.isArray(selectedAddons) ? selectedAddons : [];
+                              if (isSelectedAddon) {
+                                setSelectedAddons(arr.filter((x: any) => String(x?.optionId) !== optId));
+                              } else {
+                                setSelectedAddons([...arr, { optionId: optId, variantId: '', color: selectedColor, size: selectedSize }]);
+                              }
+                            }}
+                            className={`px-4 py-2 rounded-xl border-2 font-black text-xs transition-all ${
+                              isSelectedAddon 
+                                ? 'border-slate-900 bg-slate-900 text-white shadow-xl' 
+                                : canSelect 
+                                  ? 'border-slate-100 text-slate-500 hover:border-slate-200' 
+                                  : 'border-slate-100 text-slate-300 cursor-not-allowed'
+                            }`}
+                          >
+                            {isSelectedAddon ? 'تم الاختيار ✓' : (colors.length > 0 && !selectedColor) || (sizes.length > 0 && !selectedSize) ? 'اختر اللون والمقاس أولاً' : 'اختيار'}
+                          </button>
+                        )}
                       </div>
                     </div>
                   );

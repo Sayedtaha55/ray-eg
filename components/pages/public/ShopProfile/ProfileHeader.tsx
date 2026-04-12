@@ -170,7 +170,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {showProfileBanner ? (
         <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
           {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
-          {isVideoBanner ? (
+          {bannerUrl ? (isVideoBanner ? (
             shouldPlayVideoBanner ? (
               <video
                 autoPlay
@@ -195,13 +195,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             )
           ) : (
             <img
-              src={bannerUrl || '/placeholder-banner.jpg'}
+              src={bannerUrl}
               alt={shop?.name}
               className="w-full h-full object-cover"
               decoding="async"
               fetchPriority="high"
               loading="eager"
             />
+          )) : (
+            <div className="absolute inset-0 bg-slate-100" />
           )}
           <div className="absolute inset-0 bg-black/20" />
 
@@ -225,17 +227,18 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             {/* Logo & Name */}
             <div className="flex items-center gap-3 md:gap-4 flex-row-reverse">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-full overflow-hidden border-2 border-white shadow-md bg-white">
-                <SmartImage
-                  src={shop?.logoUrl || '/brand/logo.png'}
-                  alt={shop?.name}
-                  className="w-full h-full"
-                  imgClassName="object-cover"
-                  optimizeVariant="thumb"
-                  fallbackSrc="/brand/logo.png"
-                  loading="lazy"
-                  decoding="async"
-                  fetchPriority="low"
-                />
+                {shop?.logoUrl ? (
+                  <SmartImage
+                    src={shop.logoUrl}
+                    alt={shop?.name}
+                    className="w-full h-full"
+                    imgClassName="object-cover"
+                    optimizeVariant="thumb"
+                    loading="lazy"
+                    decoding="async"
+                    fetchPriority="low"
+                  />
+                ) : null}
               </div>
               <div className="text-right">
                 <h1 className="font-black text-sm md:text-xl leading-none mb-1">{shop?.name}</h1>

@@ -52,14 +52,13 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     Array<{
       id: string;
       name: string;
-      imagePreview: string | null;
-      imageUrl: string | null;
-      imageUploadFile: File | null;
-      colorSpec: string;
-      sizeSpec: string;
-      priceSmall: string;
-      priceMedium: string;
-      priceLarge: string;
+      imagePreviews: string[];
+      imageUrls: string[];
+      imageUploadFiles: File[];
+      selectedColors: Array<{ name: string; value: string }>;
+      customColor: string;
+      selectedSizes: string[];
+      customSize: string;
     }>
   >([]);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -110,6 +109,55 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   ];
 
   const presetSizes: string[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
+
+  const handleAddonImagesChange = (addonId: string, files: File[]) => {
+    const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
+    const nextFiles: File[] = [];
+    const nextPreviews: string[] = [];
+
+    for (const file of Array.isArray(files) ? files : []) {
+      const mime = String(file?.type || '').toLowerCase().trim();
+      if (!mime || !allowed.has(mime)) {
+        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        continue;
+      }
+      nextFiles.push(file);
+      nextPreviews.push(URL.createObjectURL(file));
+    }
+
+    if (nextFiles.length === 0) return;
+
+    setAddonItems((prev) =>
+      (Array.isArray(prev) ? prev : []).map((x) => {
+        if (x.id !== addonId) return x;
+        const combinedFiles = [...(x.imageUploadFiles || []), ...nextFiles].slice(0, 5);
+        const combinedPreviews = [...(x.imagePreviews || []), ...nextPreviews].slice(0, 5);
+        return { ...x, imageUploadFiles: combinedFiles, imagePreviews: combinedPreviews };
+      }),
+    );
+  };
+
+  const handleRemoveAddonImage = (addonId: string, idx: number) => {
+    setAddonItems((prev) =>
+      (Array.isArray(prev) ? prev : []).map((x) => {
+        if (x.id !== addonId) return x;
+        const previews = Array.isArray(x.imagePreviews) ? [...x.imagePreviews] : [];
+        const urls = Array.isArray(x.imageUrls) ? [...x.imageUrls] : [];
+        const files = Array.isArray(x.imageUploadFiles) ? [...x.imageUploadFiles] : [];
+
+        const target = previews[idx];
+        try {
+          if (target && target.startsWith('blob:')) URL.revokeObjectURL(target);
+        } catch {
+        }
+
+        previews.splice(idx, 1);
+        urls.splice(idx, 1);
+        files.splice(idx, 1);
+        return { ...x, imagePreviews: previews, imageUrls: urls, imageUploadFiles: files };
+      }),
+    );
+  };
 
   const toLatinDigits = (input: string) => {
     const map: Record<string, string> = {
@@ -299,23 +347,26 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             const optId = String(o?.id || '').trim();
             if (!optId) return null;
             const vars = Array.isArray(o?.variants) ? o.variants : [];
-            const getPrice = (vid: string) => {
-              const v = vars.find((x: any) => String(x?.id || '').trim() === vid);
-              const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
-              return Number.isFinite(p) ? String(p) : '';
-            };
             const img = typeof o?.imageUrl === 'string' ? String(o.imageUrl) : (typeof o?.image_url === 'string' ? String(o.image_url) : '');
+            const imagesRaw = (o as any)?.images;
+            const extraImgs = Array.isArray(imagesRaw) ? imagesRaw.map((u: any) => (typeof u === 'string' ? String(u) : '')).filter(Boolean) : [];
+            const allImgs = [img, ...extraImgs].map((u) => String(u || '').trim()).filter(Boolean);
+            const colorsArr = Array.isArray(o?.colors) ? o.colors.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+            const sizesArr = Array.isArray(o?.sizes) ? o.sizes.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
             return {
               id: optId,
               name: String(o?.name || o?.title || '').trim(),
-              imagePreview: img || null,
-              imageUrl: img || null,
-              imageUploadFile: null,
-              colorSpec: Array.isArray(o?.colors) ? o.colors.map((x: any) => String(x || '').trim()).filter(Boolean).join('، ') : '',
-              sizeSpec: Array.isArray(o?.sizes) ? o.sizes.map((x: any) => String(x || '').trim()).filter(Boolean).join('، ') : '',
-              priceSmall: getPrice('small'),
-              priceMedium: getPrice('medium'),
-              priceLarge: getPrice('large'),
+              imagePreviews: allImgs,
+              imageUrls: allImgs,
+              imageUploadFiles: [],
+              selectedColors: colorsArr.map((c: string) => {
+                const found = presetColors.find((p) => p.name === c);
+                if (found) return found;
+                return { name: c, value: '#111827' };
+              }),
+              customColor: '#000000',
+              selectedSizes: sizesArr,
+              customSize: '',
             };
           })
           .filter(Boolean);
@@ -627,36 +678,42 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             const optName = String(a?.name || '').trim();
             if (!optName) return null;
 
-            let imageUrl: string | null = a?.imageUrl ? String(a.imageUrl).trim() : null;
-            const file = a?.imageUploadFile;
-            if (file) {
-              const compressedFile = await compressImage(file, { maxSizeMB: 0.2, maxWidthOrHeight: 600 });
+            const existingUrls = (Array.isArray(a?.imageUrls) ? a.imageUrls : [])
+              .map((u: any) => (typeof u === 'string' ? String(u) : ''))
+              .filter(Boolean)
+              .filter((u: string) => !u.startsWith('blob:'))
+              .slice(0, 5);
+
+            const uploadFiles = Array.isArray(a?.imageUploadFiles) ? a.imageUploadFiles : [];
+            const uploadedUrls: string[] = [];
+            for (const f of uploadFiles.slice(0, 5)) {
+              const compressedFile = await compressImage(f, { maxSizeMB: 0.2, maxWidthOrHeight: 600 });
               const upload = await ApiService.uploadMediaRobust({
                 file: compressedFile as File,
                 purpose: 'product_image',
                 shopId,
               });
-              imageUrl = String(upload?.url || '').trim() || null;
+              const url = String(upload?.url || '').trim();
+              if (url) uploadedUrls.push(url);
             }
 
-            const pSmall = parseNumberInput(a?.priceSmall);
-            const pMed = parseNumberInput(a?.priceMedium);
-            const pLarge = parseNumberInput(a?.priceLarge);
+            const images = [...existingUrls, ...uploadedUrls].filter(Boolean).slice(0, 5);
+            const imageUrl = images.length > 0 ? String(images[0] || '').trim() : null;
 
-            const variants: Array<{ id: string; label: string; price: number }> = [];
-            if (Number.isFinite(pSmall) && pSmall > 0) variants.push({ id: 'small', label: 'صغير', price: Math.round(pSmall * 100) / 100 });
-            if (Number.isFinite(pMed) && pMed > 0) variants.push({ id: 'medium', label: 'وسط', price: Math.round(pMed * 100) / 100 });
-            if (Number.isFinite(pLarge) && pLarge > 0) variants.push({ id: 'large', label: 'كبير', price: Math.round(pLarge * 100) / 100 });
-
-            if (variants.length === 0) return null;
+            const colors = (Array.isArray(a?.selectedColors) ? a.selectedColors : [])
+              .map((c: any) => String(c?.name || '').trim())
+              .filter(Boolean);
+            const sizes = (Array.isArray(a?.selectedSizes) ? a.selectedSizes : [])
+              .map((s: any) => String(s || '').trim())
+              .filter(Boolean);
 
             return {
               id: optId,
               name: optName,
               imageUrl,
-              colors: String(a?.colorSpec || '').split(/[,\n،]/).map((x) => String(x || '').trim()).filter(Boolean),
-              sizes: String(a?.sizeSpec || '').split(/[,\n،]/).map((x) => String(x || '').trim()).filter(Boolean),
-              variants,
+              ...(images.length > 0 ? { images } : {}),
+              colors,
+              sizes,
             };
           }),
         );
@@ -851,14 +908,13 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                           {
                             id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
                             name: '',
-                            imagePreview: null,
-                            imageUrl: null,
-                            imageUploadFile: null,
-                            colorSpec: '',
-                            sizeSpec: '',
-                            priceSmall: '',
-                            priceMedium: '',
-                            priceLarge: '',
+                            imagePreviews: [],
+                            imageUrls: [],
+                            imageUploadFiles: [],
+                            selectedColors: [],
+                            customColor: '#000000',
+                            selectedSizes: [],
+                            customSize: '',
                           },
                         ]);
                       }}
@@ -886,57 +942,247 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                             />
                             <button
                               type="button"
-                              onClick={() => setAddonItems((prev) => prev.filter((x) => x.id !== a.id))}
+                              onClick={() => {
+                                try {
+                                  const previews = Array.isArray(a.imagePreviews) ? a.imagePreviews : [];
+                                  for (const p of previews) {
+                                    if (p && String(p).startsWith('blob:')) {
+                                      URL.revokeObjectURL(String(p));
+                                    }
+                                  }
+                                } catch {
+                                }
+                                setAddonItems((prev) => prev.filter((x) => x.id !== a.id));
+                              }}
                               className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-black text-xs"
                             >
                               حذف
                             </button>
                           </div>
 
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <input
-                              value={a.colorSpec}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, colorSpec: v } : x)));
-                              }}
-                              placeholder="الألوان (مثال: أسود، أبيض)"
-                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
-                            />
-                            <input
-                              value={a.sizeSpec}
-                              onChange={(e) => {
-                                const v = e.target.value;
-                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, sizeSpec: v } : x)));
-                              }}
-                              placeholder="المقاسات (مثال: S، M، L)"
-                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
-                            />
+                          <div className="space-y-3">
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">صور الصنف المكمل</label>
+                            <div className="flex flex-wrap gap-2 justify-end">
+                              {(Array.isArray(a.imagePreviews) ? a.imagePreviews : []).map((u, idx) => (
+                                <div key={`${a.id}_${idx}`} className="relative">
+                                  <img src={u} alt="addon" className="w-16 h-16 rounded-2xl object-cover border border-slate-200" />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveAddonImage(a.id, idx)}
+                                    className="absolute -top-2 -left-2 w-6 h-6 rounded-full bg-white border border-slate-200 flex items-center justify-center"
+                                    aria-label="remove"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </div>
+                              ))}
+
+                              <label className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900 text-white font-black text-xs cursor-pointer">
+                                <Upload size={14} />
+                                إضافة صور
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  multiple
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    if (files.length) handleAddonImagesChange(a.id, files);
+                                    try {
+                                      e.currentTarget.value = '';
+                                    } catch {
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                            <input
-                              type="number"
-                              value={a.priceSmall}
-                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceSmall: e.target.value } : x)))}
-                              placeholder="سعر صغير"
-                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
-                            />
-                            <input
-                              type="number"
-                              value={a.priceMedium}
-                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceMedium: e.target.value } : x)))}
-                              placeholder="سعر وسط"
-                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
-                            />
-                            <input
-                              type="number"
-                              value={a.priceLarge}
-                              onChange={(e) => setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, priceLarge: e.target.value } : x)))}
-                              placeholder="سعر كبير"
-                              className="bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
-                            />
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">الألوان</label>
+                              <div className="bg-slate-50 rounded-[1.25rem] p-3 border border-slate-200">
+                                <div className="flex flex-wrap gap-2 justify-end">
+                                  {presetColors.map((c) => {
+                                    const isActive = (a.selectedColors || []).some((x) => x.value === c.value);
+                                    return (
+                                      <button
+                                        key={c.value}
+                                        type="button"
+                                        onClick={() => {
+                                          setAddonItems((prev) =>
+                                            (Array.isArray(prev) ? prev : []).map((x) => {
+                                              if (x.id !== a.id) return x;
+                                              const exists = (x.selectedColors || []).some((t) => t.value === c.value);
+                                              const next = exists
+                                                ? (x.selectedColors || []).filter((t) => t.value !== c.value)
+                                                : [...(x.selectedColors || []), c];
+                                              return { ...x, selectedColors: next };
+                                            }),
+                                          );
+                                        }}
+                                        className={`flex items-center gap-2 px-3 py-2 rounded-full border font-black text-xs transition-all ${isActive ? 'bg-white border-[#00E5FF]/30' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
+                                      >
+                                        <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+                                        {c.name}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="flex items-center justify-between mt-3 gap-3 flex-row-reverse">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAddonItems((prev) =>
+                                        (Array.isArray(prev) ? prev : []).map((x) => {
+                                          if (x.id !== a.id) return x;
+                                          const hex = String(x.customColor || '').trim();
+                                          if (!hex) return x;
+                                          const exists = (x.selectedColors || []).some((t) => t.value === hex);
+                                          if (exists) return x;
+                                          return {
+                                            ...x,
+                                            selectedColors: [...(x.selectedColors || []), { name: hex.toUpperCase(), value: hex }],
+                                          };
+                                        }),
+                                      );
+                                    }}
+                                    className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                                  >
+                                    إضافة لون
+                                  </button>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="color"
+                                      value={String(a.customColor || '#000000')}
+                                      onChange={(e) => {
+                                        const v = e.target.value;
+                                        setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, customColor: v } : x)));
+                                      }}
+                                      className="w-12 h-10 rounded-xl border border-slate-200 bg-white"
+                                    />
+                                    <div className="text-xs font-black text-slate-500">لون مخصص</div>
+                                  </div>
+                                </div>
+
+                                {(a.selectedColors || []).length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                                    {(a.selectedColors || []).map((c) => (
+                                      <span key={c.value} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
+                                        <span className="w-4 h-4 rounded-full border border-slate-200" style={{ background: c.value }} />
+                                        {c.name}
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setAddonItems((prev) =>
+                                              prev.map((x) =>
+                                                x.id === a.id
+                                                  ? { ...x, selectedColors: (x.selectedColors || []).filter((t) => t.value !== c.value) }
+                                                  : x,
+                                              ),
+                                            )
+                                          }
+                                          className="p-1 rounded-full hover:bg-slate-50"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">المقاسات</label>
+                              <div className="bg-slate-50 rounded-[1.25rem] p-3 border border-slate-200">
+                                <div className="flex flex-wrap gap-2 justify-end">
+                                  {presetSizes.map((s) => {
+                                    const isActive = (a.selectedSizes || []).some((x) => String(x).trim() === String(s).trim());
+                                    return (
+                                      <button
+                                        key={s}
+                                        type="button"
+                                        onClick={() => {
+                                          setAddonItems((prev) =>
+                                            (Array.isArray(prev) ? prev : []).map((x) => {
+                                              if (x.id !== a.id) return x;
+                                              const label = String(s || '').trim();
+                                              const exists = (x.selectedSizes || []).some((t) => String(t).trim() === label);
+                                              const next = exists
+                                                ? (x.selectedSizes || []).filter((t) => String(t).trim() !== label)
+                                                : [...(x.selectedSizes || []), label];
+                                              return { ...x, selectedSizes: next };
+                                            }),
+                                          );
+                                        }}
+                                        className={`px-4 py-2 rounded-full border font-black text-xs transition-all ${isActive ? 'bg-white border-[#00E5FF]/30' : 'bg-white/70 border-slate-200 hover:bg-white'}`}
+                                      >
+                                        {s}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+
+                                <div className="flex flex-col md:flex-row-reverse md:items-center md:justify-between mt-3 gap-3">
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setAddonItems((prev) =>
+                                        (Array.isArray(prev) ? prev : []).map((x) => {
+                                          if (x.id !== a.id) return x;
+                                          const v = String(x.customSize || '').trim();
+                                          if (!v) return x;
+                                          const exists = (x.selectedSizes || []).some((t) => String(t).trim() === v);
+                                          if (exists) return { ...x, customSize: '' };
+                                          return { ...x, selectedSizes: [...(x.selectedSizes || []), v], customSize: '' };
+                                        }),
+                                      );
+                                    }}
+                                    className="w-full md:w-auto px-4 py-3 md:py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
+                                  >
+                                    إضافة مقاس
+                                  </button>
+                                  <input
+                                    placeholder="مثلاً: 42 أو 38"
+                                    value={String(a.customSize || '')}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, customSize: v } : x)));
+                                    }}
+                                    className="w-full md:flex-1 bg-white border border-slate-200 rounded-xl py-3 md:py-2 px-4 font-bold text-right outline-none"
+                                  />
+                                </div>
+
+                                {(a.selectedSizes || []).length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2 justify-end">
+                                    {(a.selectedSizes || []).map((s) => (
+                                      <span key={s} className="inline-flex items-center gap-2 px-3 py-2 rounded-full bg-white border border-slate-200 font-black text-xs">
+                                        <span>{String(s)}</span>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setAddonItems((prev) =>
+                                              prev.map((x) =>
+                                                x.id === a.id
+                                                  ? { ...x, selectedSizes: (x.selectedSizes || []).filter((t) => String(t).trim() !== String(s).trim()) }
+                                                  : x,
+                                              ),
+                                            )
+                                          }
+                                          className="p-1 rounded-full hover:bg-slate-50"
+                                        >
+                                          <X size={14} />
+                                        </button>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
+
                         </div>
                       ))}
                     </div>

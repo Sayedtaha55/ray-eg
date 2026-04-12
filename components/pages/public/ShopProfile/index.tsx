@@ -154,7 +154,6 @@ const ShopProfile: React.FC = () => {
             layout: 'modern',
             primaryColor: '#00E5FF',
             secondaryColor: '#BD00FF',
-            bannerUrl: '/placeholder-banner.jpg',
           };
           const allowBuilderPreview = (() => {
             try {
@@ -820,7 +819,9 @@ const ShopProfile: React.FC = () => {
         headerTextColor={headerTextColor}
         bannerReady={bannerReady}
         purchaseModeButton={
-          hasActiveImageMap && String(shop?.category || '').toUpperCase() !== 'RESTAURANT' ? (
+          hasActiveImageMap &&
+          isVisible('purchaseModeButton', true) &&
+          String(shop?.category || '').toUpperCase() !== 'RESTAURANT' ? (
             <PurchaseModeButton
               onClick={() => navigate(`/shop/${String(slug || '').trim()}/image-map`)}
               className="shadow-2xl"

@@ -1,6 +1,10 @@
 import { Category, Shop, Offer, Product, Reservation } from './types';
 import { ApiService } from './services/api.service';
 
+let favoritesInFlight: Promise<string[]> | null = null;
+let favoritesLastValue: string[] | null = null;
+let favoritesLastTs = 0;
+
 export type ReceiptTheme = {
   shopName?: string;
   phone?: string;
@@ -41,18 +45,38 @@ export const RayDB = {
   },
   getFavorites: async () => {
     if (!RayDB.isAuthenticated()) return [];
+
+    const now = Date.now();
+    if (favoritesLastValue && now - favoritesLastTs < 30_000) {
+      return favoritesLastValue;
+    }
+    if (favoritesInFlight) {
+      return await favoritesInFlight;
+    }
+
     try {
-      const favs = await ApiService.getMyFavorites();
-      const normalized = Array.isArray(favs) ? favs.map((id: any) => String(id)).filter(Boolean) : [];
-      localStorage.setItem('ray_favorites', JSON.stringify(normalized));
-      return normalized;
+      favoritesInFlight = (async () => {
+        const favs = await ApiService.getMyFavorites();
+        const normalized = Array.isArray(favs) ? favs.map((id: any) => String(id)).filter(Boolean) : [];
+        favoritesLastValue = normalized;
+        favoritesLastTs = Date.now();
+        localStorage.setItem('ray_favorites', JSON.stringify(normalized));
+        return normalized;
+      })();
+
+      return await favoritesInFlight;
     } catch {
       try {
         const localFavs = JSON.parse(localStorage.getItem('ray_favorites') || '[]');
-        return Array.isArray(localFavs) ? localFavs.map((id: any) => String(id)).filter(Boolean) : [];
+        const normalized = Array.isArray(localFavs) ? localFavs.map((id: any) => String(id)).filter(Boolean) : [];
+        favoritesLastValue = normalized;
+        favoritesLastTs = Date.now();
+        return normalized;
       } catch {
         return [];
       }
+    } finally {
+      favoritesInFlight = null;
     }
   },
   getQuantityStepForUnit: (unitRaw: any) => {

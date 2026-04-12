@@ -1,17 +1,44 @@
-import { backendDelete, backendGet, backendPost } from '../httpClient';
+import { backendDelete, backendGet, backendPost, disablePathPrefix } from '../httpClient';
 
 export async function getMyFavoritesViaBackend(): Promise<string[]> {
-  const data = await backendGet<any[]>('/api/v1/favorites/me');
-  if (!Array.isArray(data)) return [];
-  return data
-    .map((item: any) => String(item?.productId || item?.product_id || item?.id || '').trim())
-    .filter((id: string) => Boolean(id));
+  try {
+    const data = await backendGet<any[]>('/api/v1/favorites/me');
+    if (!Array.isArray(data)) return [];
+    return data
+      .map((item: any) => String(item?.productId || item?.product_id || item?.id || '').trim())
+      .filter((id: string) => Boolean(id));
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : Number(err?.status);
+    if (status === 404) {
+      disablePathPrefix('/api/v1/favorites');
+      return [];
+    }
+    throw err;
+  }
 }
 
 export async function addMyFavoriteViaBackend(productId: string): Promise<void> {
-  await backendPost('/api/v1/favorites/me', { productId });
+  try {
+    await backendPost('/api/v1/favorites/me', { productId });
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : Number(err?.status);
+    if (status === 404) {
+      disablePathPrefix('/api/v1/favorites');
+      return;
+    }
+    throw err;
+  }
 }
 
 export async function removeMyFavoriteViaBackend(productId: string): Promise<void> {
-  await backendDelete(`/api/v1/favorites/me/${encodeURIComponent(String(productId || '').trim())}`);
+  try {
+    await backendDelete(`/api/v1/favorites/me/${encodeURIComponent(String(productId || '').trim())}`);
+  } catch (err: any) {
+    const status = typeof err?.status === 'number' ? err.status : Number(err?.status);
+    if (status === 404) {
+      disablePathPrefix('/api/v1/favorites');
+      return;
+    }
+    throw err;
+  }
 }

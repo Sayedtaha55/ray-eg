@@ -13,6 +13,7 @@ type VisibilityKey =
   | 'headerNavInfo'
   | 'headerChatButton'
   | 'headerShareButton'
+  | 'purchaseModeButton'
   | 'profileBanner'
   | 'floatingChatButton'
   | 'shopFollowersCount'
@@ -38,6 +39,7 @@ const VISIBILITY_ITEMS: { key: VisibilityKey; label: string }[] = [
   { key: 'headerNavInfo', label: 'إظهار زر (معلومات المتجر)' },
   { key: 'headerChatButton', label: 'إظهار زر المحادثة في الهيدر' },
   { key: 'headerShareButton', label: 'إظهار زر المشاركة في الهيدر' },
+  { key: 'purchaseModeButton', label: 'إظهار زر (وضع الشراء)' },
   { key: 'profileBanner', label: 'إظهار البنر (صورة الغلاف)' },
   { key: 'floatingChatButton', label: 'إظهار زر المحادثة العائم' },
   { key: 'shopFollowersCount', label: 'إظهار عدد المتابعين' },

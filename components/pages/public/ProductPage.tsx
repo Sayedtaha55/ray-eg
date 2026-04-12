@@ -31,7 +31,7 @@ const ProductPage: React.FC = () => {
   const [isResModalOpen, setIsResModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
+  const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string; color?: string; size?: string }>>([]);
   const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
   const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -428,6 +428,8 @@ const ProductPage: React.FC = () => {
           variantId: a.variantId,
           variantLabel: labelByKey.get(key) || a.variantId,
           price: priceByKey.get(key) || 0,
+          color: a.color || '',
+          size: a.size || '',
         };
       });
     })();

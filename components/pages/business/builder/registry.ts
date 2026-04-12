@@ -149,7 +149,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     id: 'categories',
     title: 'الأقسام',
     icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
-    render: ({ config, setConfig }) => React.createElement(CategorySection as any, { config, setConfig }),
+    render: ({ config, setConfig, shop }) => React.createElement(CategorySection as any, { config, setConfig, shopId: shop?.id }),
   },
   {
     id: 'productEditor',

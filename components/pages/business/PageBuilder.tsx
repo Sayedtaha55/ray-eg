@@ -72,6 +72,7 @@ const DEFAULT_PAGE_DESIGN = {
   categoryIconSize: 'medium' as const, // small, medium, large
   showProductsInCategories: false,
   categoryIconImage: '',
+  categoryImages: {} as Record<string, string>, // per-category images
   // Spacing
   pagePadding: 'p-6 md:p-12',
   itemGap: 'gap-4 md:gap-6',
@@ -133,6 +134,7 @@ interface ShopDesign {
   categoryIconSize?: 'small' | 'medium' | 'large';
   showProductsInCategories?: boolean;
   categoryIconImage?: string;
+  categoryImages?: Record<string, string>; // per-category images
   pagePadding: string;
   itemGap: string;
   elementsVisibility?: Record<string, boolean>;
@@ -177,7 +179,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleSaveRef = useRef<null | (() => void)>(null);
   const lastSavedDesignRef = useRef<string>('');
 
-  const syncVisibilityWithModules = (current: any, shop: any) => {
+  const syncVisibilityWithModules = useCallback((current: any, shop: any) => {
     const next = { ...(current && typeof current === 'object' ? current : {}) } as Record<string, boolean>;
 
     const allowedByActivity = getAllowedTabIdsForCategory(shop?.category);
@@ -222,7 +224,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     }
 
     return next;
-  };
+  }, []);
 
   const query = new URLSearchParams(String(location?.search || ''));
   const requestedBuilderTabRaw = String(query.get('builderTab') || '').trim();
@@ -236,6 +238,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (!sidebarMode) return;
     setOpenSection(activeBuilderTab);
   }, [activeBuilderTab, sidebarMode]);
+
+  useEffect(() => {
+    if (!integratedMode) return;
+    if (!sidebarMode) return;
+    if (isDesktop) return;
+    setShowSettingsMobile(true);
+  }, [integratedMode, isDesktop, sidebarMode]);
 
   const loadCurrentDesign = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
@@ -780,7 +789,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </header>
 
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4">
-                  <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
+                  <div className="hidden md:block border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">معاينة الصفحة</span>
                       <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
