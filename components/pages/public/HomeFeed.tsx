@@ -120,12 +120,25 @@ const HomeFeed: React.FC = () => {
         const shopsList = Array.isArray(shopsData)
           ? shopsData
           : (Array.isArray((shopsData as any)?.items) ? (shopsData as any).items : []);
+
+        const mapVisibleShops = shopsList.filter((shop: any) => {
+          const status = String(shop?.status || '').trim().toLowerCase();
+          if (status !== 'approved') return false;
+          const publicDisabled =
+            typeof shop?.publicDisabled !== 'undefined'
+              ? Boolean(shop.publicDisabled)
+              : typeof shop?.public_disabled !== 'undefined'
+                ? Boolean(shop.public_disabled)
+                : false;
+          if (publicDisabled) return false;
+          return typeof shop?.latitude === 'number' && typeof shop?.longitude === 'number';
+        });
         if (latestLoadIdRef.current === loadId) {
-          setShops(shopsList);
+          setShops(mapVisibleShops);
           setLoadingShops(false);
         }
 
-        loadShopPreviews(shopsList, loadId).catch(() => {
+        loadShopPreviews(mapVisibleShops, loadId).catch(() => {
           if (latestLoadIdRef.current === loadId) setShopProductsById({});
         });
       } catch {

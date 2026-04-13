@@ -18,7 +18,7 @@ const BrandLogo: React.FC<Props> = ({
   name = 'MNMKNK',
   suffix,
   showName = true,
-  logoSrc = '/brand/icon-72.webp',
+  logoSrc = '/brand/logo.png',
   iconOnly = false,
   prioritizeImage = false,
 }) => {

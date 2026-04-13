@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
-import { ChevronLeft, ChevronRight, Store } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, Store } from 'lucide-react';
 import { Offer, Product, Shop } from '@/types';
+import { coerceBoolean } from '../ShopProfile/utils';
 
 interface StorefrontShowcaseSectionProps {
   shops: Shop[];
@@ -76,6 +77,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
           const shopOffers = offersByShopId.get(String(shop.id)) || [];
           const logo = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
           const design = (shop as any)?.pageDesign || (shop as any)?.page_design || {};
+          const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
+          const isVisible = (key: string, fallback: boolean = true) => {
+            if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
+            if (!(key in elementsVisibility)) return fallback;
+            return coerceBoolean((elementsVisibility as any)[key], fallback);
+          };
+          const showPrice = isVisible('productCardPrice', true);
           const primaryColor = normalizeColor((design as any)?.primaryColor, '#0f172a');
           const secondaryColor = normalizeColor((design as any)?.secondaryColor, '#334155');
           const pageBgColor = normalizeColor((design as any)?.pageBackgroundColor || (design as any)?.backgroundColor, '#f8fafc');
@@ -89,6 +97,20 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
           const headerTextColor = normalizeColor((design as any)?.headerTextColor, '#0f172a');
           const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
           const hasProducts = shopProducts.length > 0;
+          const isPharmacy = String((shop as any)?.category || '').trim().toUpperCase() === 'HEALTH';
+          const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String((shop as any)?.phone || '').trim();
+          const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
+          const prescriptionHref = (() => {
+            if (!whatsappDigits) return '';
+            const base = `https://wa.me/${whatsappDigits}`;
+            try {
+              const u = new URL(base);
+              u.searchParams.set('text', `مرحبا ${shop?.name || ''}، عايز أضيف روشتة`);
+              return u.toString();
+            } catch {
+              return base;
+            }
+          })();
 
           return (
             <article key={shop.id} className="rounded-[2rem] border border-slate-100 bg-white p-4 md:p-6 shadow-sm">
@@ -180,10 +202,38 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         </div>
                         <div className="p-3">
                           <p className="font-black text-xs text-slate-900 line-clamp-1">{product.name}</p>
-                          <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(product.price || 0).toLocaleString('ar-EG')}</p>
+                          {showPrice && Number(product.price || 0) > 0 ? (
+                            <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(product.price).toLocaleString('ar-EG')}</p>
+                          ) : null}
                         </div>
                       </button>
-                    )) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => {
+                    )) : isPharmacy ? (
+                      prescriptionHref ? (
+                        <a
+                          href={prescriptionHref}
+                          key={`${shop.id}-rx`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors flex flex-col items-center justify-center gap-2"
+                          style={{ scrollSnapAlign: 'start' }}
+                        >
+                          <FileText size={32} className="text-slate-300" />
+                          <p className="text-slate-700 text-xs font-black text-center">إرسال روشتة</p>
+                          <p className="text-slate-400 text-[10px] font-bold text-center">عبر واتساب</p>
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          key={`${shop.id}-rx`}
+                          onClick={() => onOpenShop(shop)}
+                          className="shrink-0 w-[160px] md:w-[190px] text-right rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 transition-colors flex flex-col items-center justify-center gap-2"
+                          style={{ scrollSnapAlign: 'start' }}
+                        >
+                          <FileText size={32} className="text-slate-300" />
+                          <p className="text-slate-700 text-xs font-black text-center">إرسال روشتة</p>
+                        </button>
+                      )
+                    ) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => {
                       const hasPrice = Number(offer.newPrice || 0) > 0;
                       return (
                         <button
