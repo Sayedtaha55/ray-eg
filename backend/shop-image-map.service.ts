@@ -1,12 +1,14 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { GeminiVisionService } from './gemini-vision.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   private normalizeId(value: any) {
@@ -293,6 +295,14 @@ export class ShopImageMapService {
       }),
     ]);
 
+    try {
+      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+      if (shop) {
+        await this.redis.invalidateShopCache(sid, shop.slug);
+      }
+    } catch {
+    }
+
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
       include: {
@@ -406,7 +416,7 @@ export class ShopImageMapService {
       })
       .filter(Boolean);
 
-    return (this.prisma as any).$transaction(async (tx: any) => {
+    const result = await (this.prisma as any).$transaction(async (tx: any) => {
       await tx.shopImageHotspot.deleteMany({ where: { mapId: mid } });
       await tx.shopImageSection.deleteMany({ where: { mapId: mid } });
 
@@ -520,6 +530,16 @@ export class ShopImageMapService {
 
       return { ...updated, createdSections };
     });
+
+    try {
+      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+      if (shop) {
+        await this.redis.invalidateShopCache(sid, shop.slug);
+      }
+    } catch {
+    }
+
+    return result;
   }
 
   async getActiveForCustomerBySlug(slug: string) {
