@@ -24,13 +24,19 @@ const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useCartSound();
 
-  const nextCategory = () => {
+  const nextCategory = React.useCallback(() => {
     setCurrentCategoryIndex((prev) => prev + 1);
-  };
+  }, []);
 
-  const prevCategory = () => {
+  const prevCategory = React.useCallback(() => {
     setCurrentCategoryIndex((prev) => prev - 1);
-  };
+  }, []);
+
+  const handleOpenShop = React.useCallback((shop: Shop) => {
+    const slug = String((shop as any)?.slug || '').trim();
+    if (!slug) return;
+    navigate(`/s/${slug}`);
+  }, [navigate]);
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -255,11 +261,7 @@ const HomeFeed: React.FC = () => {
         offers={offers}
         shopProductsById={shopProductsById}
         loading={loadingShops}
-        onOpenShop={(shop) => {
-          const slug = String((shop as any)?.slug || '').trim();
-          if (!slug) return;
-          navigate(`/s/${slug}`);
-        }}
+        onOpenShop={handleOpenShop}
       />
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
