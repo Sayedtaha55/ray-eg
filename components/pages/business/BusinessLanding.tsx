@@ -1,15 +1,75 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Store, ArrowLeft, TrendingUp, PackageCheck, BellRing } from 'lucide-react';
+import {
+  Store, ArrowLeft, TrendingUp, PackageCheck, BellRing,
+  Layout, BarChart3, Smartphone, Zap, Shield, Clock,
+  Users, Globe, ChevronLeft, Star, CheckCircle2,
+  Mail, Phone, Facebook, ArrowUp, ChevronUp,
+} from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import type { ShopGallery } from '@/types';
 
 const { Link } = ReactRouterDOM as any;
 
+const WhatsAppIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M12 2C6.477 2 2 6.145 2 11.26c0 2.007.688 3.866 1.86 5.367L3 22l5.633-1.76c1.413.747 3.046 1.172 4.367 1.172 5.523 0 10-4.145 10-9.26C23 6.145 17.523 2 12 2Z" fill="currentColor" opacity="0.22" />
+    <path d="M12 3.5c4.66 0 8.5 3.46 8.5 7.76 0 4.3-3.84 7.76-8.5 7.76-1.25 0-2.81-.39-4.1-1.12l-.42-.24-3.25 1.02.92-3.06-.27-.4C4.13 14.2 3.5 12.78 3.5 11.26 3.5 6.96 7.34 3.5 12 3.5Z" stroke="currentColor" strokeWidth="1.3" />
+    <path d="M9.4 8.5c-.2-.45-.4-.47-.58-.48h-.5c-.17 0-.45.06-.68.3-.23.25-.9.86-.9 2.09 0 1.23.92 2.42 1.05 2.59.13.17 1.78 2.72 4.34 3.7 2.13.82 2.56.66 3.02.62.46-.04 1.5-.6 1.71-1.18.21-.57.21-1.07.15-1.18-.06-.11-.23-.17-.48-.3-.25-.13-1.5-.71-1.73-.8-.23-.09-.4-.13-.57.13-.17.26-.66.8-.81.96-.15.17-.3.19-.56.06-.25-.13-1.07-.38-2.03-1.2-.75-.63-1.25-1.4-1.4-1.64-.15-.25-.02-.38.12-.5.11-.1.25-.26.38-.39.13-.13.17-.22.25-.37.08-.15.04-.28-.02-.39-.06-.11-.52-1.23-.72-1.68Z" fill="currentColor" />
+  </svg>
+);
+
+const useScrollProgress = () => {
+  const [progress, setProgress] = useState(0);
+  useEffect(() => {
+    const handler = () => {
+      const scrollTop = window.scrollY;
+      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(docHeight > 0 ? (scrollTop / docHeight) * 100 : 0);
+    };
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
+  return progress;
+};
+
+const useScrollReveal = () => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setVisible(true); obs.disconnect(); } },
+      { threshold: 0.1 },
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+  return { ref, visible };
+};
+
+const RevealSection: React.FC<{ children: React.ReactNode; className?: string; id?: string }> = ({ children, className, id }) => {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      id={id}
+      className={`transition-all duration-700 ease-out ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'} ${className || ''}`}
+    >
+      {children}
+    </div>
+  );
+};
+
 const BusinessLanding: React.FC = () => {
   const featuredShopId = String(import.meta.env.VITE_FEATURED_SHOP_ID || '').trim();
   const [heroVideo, setHeroVideo] = useState<ShopGallery | null>(null);
+  const aboutRef = useRef<HTMLDivElement>(null);
+  const scrollProgress = useScrollProgress();
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const fallbackHero = useMemo(
     () => ({
@@ -50,10 +110,31 @@ const BusinessLanding: React.FC = () => {
   const heroPoster = heroVideo?.thumbUrl ? String(heroVideo.thumbUrl) : fallbackHero.poster;
   const hasDynamicHero = Boolean(heroVideo?.imageUrl);
 
+  const scrollToAbout = () => {
+    aboutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    const handler = () => setShowBackToTop(window.scrollY > 600);
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, []);
+
   return (
     <>
     <div className="text-right" dir="rtl">
-      {/* Hero Section */}
+      {/* Scroll Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 z-[90] h-1 bg-transparent pointer-events-none">
+        <div
+          className="h-full bg-gradient-to-l from-[#00E5FF] to-[#BD00FF] transition-[width] duration-150 ease-out"
+          style={{ width: `${scrollProgress}%` }}
+        />
+      </div>
+      {/* Hero Section - preserved with video */}
       <div className="relative min-h-[86vh] md:min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
         <video
           className="absolute inset-0 w-full h-full object-cover"
@@ -68,20 +149,14 @@ const BusinessLanding: React.FC = () => {
           <source src={heroMp4} type="video/mp4" />
           {!hasDynamicHero && <source src={fallbackHero.mp4} type="video/mp4" />}
         </video>
-        <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black/80" />
-
-        <div aria-hidden className="absolute inset-0 pointer-events-none hidden md:block">
-          <div className="absolute -top-24 -left-24 w-[520px] h-[520px] rounded-full bg-[#00E5FF]/18 blur-[90px] opacity-90" />
-          <div className="absolute -bottom-32 -right-24 w-[620px] h-[620px] rounded-full bg-[#BD00FF]/18 blur-[100px] opacity-80" />
-          <div className="absolute top-[12%] left-1/2 -translate-x-1/2 w-[540px] h-[540px] rounded-full bg-white/6 blur-[120px] opacity-60" />
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-[#FAFAF7]" />
 
         <div className="relative z-10 w-full">
           <div className="max-w-7xl mx-auto px-5 sm:px-6 pt-24 pb-16 md:pt-44 md:pb-28">
             <div className="text-center max-w-4xl mx-auto">
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 rounded-full text-[#00E5FF] font-black text-xs uppercase tracking-widest mb-8 md:mb-10 border border-white/10">
-                  <TrendingUp className="w-4 h-4" />
+                <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-white font-black text-xs uppercase tracking-widest mb-8 md:mb-10 border border-white/15">
+                  <TrendingUp className="w-4 h-4 text-[#00E5FF]" />
                   انضم لنكون من الأوائل — التسجيل مجاني
                 </div>
 
@@ -89,40 +164,31 @@ const BusinessLanding: React.FC = () => {
                   قم ببناء <br /> <span className="text-[#00E5FF]">علامتك التجارية.</span>
                 </h1>
 
-                <p className="text-lg sm:text-xl md:text-2xl text-slate-200/80 mb-10 md:mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
+                <p className="text-lg sm:text-xl md:text-2xl text-white/80 mb-10 md:mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
                   منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
                 </p>
 
-                <div className="flex flex-col md:flex-row items-center justify-center gap-6">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
                   <div className="w-full md:w-auto">
                     <Link
                       to="/business/onboarding"
-                      className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-[2rem] font-black text-lg md:text-xl shadow-lg md:shadow-2xl shadow-cyan-500/15 md:shadow-cyan-500/20"
+                      className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 transition-shadow"
                     >
                       ابدأ تجربتك المجانية
                     </Link>
                   </div>
                   <button
                     type="button"
-                    className="w-full md:w-auto border border-slate-200/30 text-white px-10 md:px-14 py-5 md:py-6 rounded-[2rem] font-black text-lg md:text-xl md:backdrop-blur"
+                    className="w-full md:w-auto bg-white/10 backdrop-blur-sm border border-white/20 text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-white/20 transition-colors"
                   >
                     شاهد العرض التوضيحي
                   </button>
                 </div>
 
-                <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4 text-slate-200/80">
-                  <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-                    <Store className="w-5 h-5 text-[#00E5FF]" />
-                    <span className="font-black text-sm">متجر جاهز في دقائق</span>
-                  </div>
-                  <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-                    <PackageCheck className="w-5 h-5 text-[#BD00FF]" />
-                    <span className="font-black text-sm">إدارة منتجات سهلة</span>
-                  </div>
-                  <div className="px-5 py-3 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-3">
-                    <BellRing className="w-5 h-5 text-white" />
-                    <span className="font-black text-sm">تنبيه فوري للطلبات</span>
-                  </div>
+                <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 text-white/70">
+                  <HeroPill icon={<Store className="w-4 h-4" />} text="متجر جاهز في دقائق" />
+                  <HeroPill icon={<PackageCheck className="w-4 h-4" />} text="إدارة منتجات سهلة" />
+                  <HeroPill icon={<BellRing className="w-4 h-4" />} text="تنبيه فوري للطلبات" />
                 </div>
               </div>
             </div>
@@ -130,120 +196,388 @@ const BusinessLanding: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-20">
-
-        <div className="relative h-12" />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10 mb-24 md:mb-40 relative">
-          <div className="absolute inset-0 bg-gradient-to-br from-[#00E5FF]/5 via-transparent to-[#BD00FF]/5 rounded-[3rem] md:rounded-[4rem] blur-2xl md:blur-3xl -z-10" />
-          <FeatureCard
-            icon={<Store className="w-10 h-10 text-[#00E5FF]" />}
-            title="مصمم الصفحات الذكي"
-            description="اسحب وأفلت لتبني واجهة متجر تعكس هوية علامتك التجارية بلمسات احترافية دون الحاجة لمبرمج."
-          />
-          <FeatureCard
-            icon={<PackageCheck className="w-10 h-10 text-[#BD00FF]" />}
-            title="إدارة المنتجات والطلبات"
-            description="أضف منتجاتك، حدّث المخزون، وتابع الطلبات من لوحة تحكم واحدة بشكل واضح وسريع."
-          />
-          <FeatureCard
-            icon={<BellRing className="w-10 h-10 text-white" />}
-            title="تنبيه فوري للتاجر"
-            description="رنّة إشعار تلقائية عند وصول طلب أو حجز جديد حتى لا يفوتك أي عميل."
-          />
+      {/* Stats Bar */}
+      <RevealSection>
+      <section className="bg-[#FAFAF7] border-b border-slate-100">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-10 md:py-14">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            <StatItem value="١٠+" label="نشاط تجاري مدعوم" />
+            <StatItem value="٢٤/٧" label="دعم فني متواصل" />
+            <StatItem value="٩٩.٩%" label="وقت تشغيل الخوادم" />
+            <StatItem value="٣٠ ثانية" label="زمن إنشاء المتجر" />
+          </div>
         </div>
+      </section>
+      </RevealSection>
 
-        <section className="bg-white rounded-[2.5rem] md:rounded-[4rem] p-8 sm:p-10 md:p-24 text-slate-900 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-[#BD00FF]/10 to-transparent rounded-full blur-3xl hidden md:block" />
-          <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-tr from-[#00E5FF]/10 to-transparent rounded-full blur-3xl hidden md:block" />
-           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 md:gap-20 items-center">
-              <div>
-                <h2 className="text-4xl sm:text-5xl md:text-7xl font-black tracking-tighter mb-6 md:mb-8">
-                  كل اللي تحتاجه لإدارة <span className="text-[#BD00FF]">متجرك.</span>
-                </h2>
-                <div className="space-y-8 md:space-y-10">
-                   <BenefitItem
-                      icon={<Store className="w-6 h-6" />}
-                      title="لوحة تحكم واضحة للتاجر"
-                      description="تابع متجرك من مكان واحد: المنتجات، الطلبات، والحجوزات — بدون تعقيد."
-                   />
-                   <BenefitItem
-                      icon={<PackageCheck className="w-6 h-6" />}
-                      title="إدارة الطلبات والحجوزات"
-                      description="استقبل الطلبات والحجوزات، وحدّث حالتها بسهولة من داخل لوحة التحكم."
-                   />
-                   <BenefitItem
-                      icon={<BellRing className="w-6 h-6" />}
-                      title="تنبيه فوري عند طلب/حجز جديد"
-                      description="رنّة إشعار للتاجر عند وصول طلب أو حجز جديد حتى لا يفوتك أي عميل."
-                   />
-                </div>
-                <div className="mt-12 md:mt-16">
-                  <Link to="/business/dashboard" className="inline-flex items-center gap-3 font-black text-xl md:text-2xl text-[#BD00FF]">
-                     سجل متجرك الآن <ArrowLeft className="w-7 h-7 md:w-8 md:h-8" />
-                  </Link>
-                </div>
-              </div>
-              <div className="relative">
-                <div className="absolute -inset-12 bg-gradient-to-br from-[#BD00FF]/15 via-[#00E5FF]/10 to-[#BD00FF]/15 blur-[120px] rounded-full hidden md:block" />
-                <div className="relative">
-                  <img src="/images/business/dashboard-hero.png" className="relative rounded-[2rem] md:rounded-[3rem] shadow-xl md:shadow-2xl border border-slate-100" alt="dashboard" />
-                </div>
-              </div>
-           </div>
-        </section>
-      </div>
+      {/* What We Offer - Feature Grid */}
+      <RevealSection>
+      <section className="bg-[#FAFAF7]">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="text-center mb-12 md:mb-16">
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">ما نقدمه لك</span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
+              كل أدواتك في <span className="text-[#0097A7]">مكان واحد.</span>
+            </h2>
+            <p className="mt-4 text-slate-500 text-lg md:text-xl max-w-2xl mx-auto font-medium">
+              من المتجر إلى الطلبات إلى التحليلات — كل شيء يعمل مع بعضه بسهولة.
+            </p>
+          </div>
 
-      <section className="bg-slate-900 py-16 border-y border-slate-800 overflow-hidden relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#00E5FF]/5 via-transparent to-[#BD00FF]/5" />
-        <div className="relative z-10">
-          <p className="text-center text-slate-400 font-bold mb-8 uppercase tracking-widest text-sm">من مكانك للأعمال</p>
-          <div className="flex flex-wrap items-center justify-center gap-10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00E5FF] to-[#BD00FF] flex items-center justify-center text-white font-black text-lg shadow-lg shadow-[#00E5FF]/25">
-                م
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+            <OfferCard
+              icon={<Layout className="w-6 h-6" />}
+              title="مصمم الصفحات الذكي"
+              description="اسحب وأفلت لتبني واجهة متجر تعكس هوية علامتك التجارية بلمسات احترافية — بدون مبرمج."
+              accent="cyan"
+            />
+            <OfferCard
+              icon={<PackageCheck className="w-6 h-6" />}
+              title="إدارة المنتجات والطلبات"
+              description="أضف منتجاتك، حدّث المخزون، وتابع الطلبات من لوحة تحكم واحدة بشكل واضح وسريع."
+              accent="purple"
+            />
+            <OfferCard
+              icon={<BellRing className="w-6 h-6" />}
+              title="تنبيه فوري للتاجر"
+              description="إشعار تلقائي فوري عند وصول طلب أو حجز جديد — لا يفوتك أي عميل."
+              accent="cyan"
+            />
+            <OfferCard
+              icon={<BarChart3 className="w-6 h-6" />}
+              title="تحليلات وتقارير"
+              description="تتبع مبيعاتك، أعلى المنتجات أداءً، وسلوك العملاء بتحليلات واضحة وسهلة."
+              accent="purple"
+            />
+            <OfferCard
+              icon={<Smartphone className="w-6 h-6" />}
+              title="تجربة موبايل مثالية"
+              description="متجرك يعمل بسلاسة على أي جهاز — موبايل، تابلت، أو كمبيوتر — بدون إعدادات."
+              accent="cyan"
+            />
+            <OfferCard
+              icon={<Shield className="w-6 h-6" />}
+              title="أمان وحماية بيانات"
+              description="بياناتك ومبيعاتك محمية بأحدث تقنيات التشفير والأمان — راحة بالك مطلبنا."
+              accent="purple"
+            />
+          </div>
+        </div>
+      </section>
+      </RevealSection>
+
+      {/* How It Works - Steps */}
+      <RevealSection>
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="text-center mb-12 md:mb-16">
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">كيف يعمل</span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
+              ثلاث خطوات <span className="text-[#0097A7]">فقط.</span>
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
+            <StepCard
+              step="١"
+              title="سجّل متجرك"
+              description="أنشئ حسابك في أقل من دقيقة — أدخل بياناتك واختر نوع نشاطك التجاري."
+              icon={<Zap className="w-7 h-7" />}
+            />
+            <StepCard
+              step="٢"
+              title="صمم واجهتك"
+              description="استخدم مصمم الصفحات لإنشاء متجر يعكس هويتك — ألوان، صور، وتصنيفات مخصصة."
+              icon={<Layout className="w-7 h-7" />}
+            />
+            <StepCard
+              step="٣"
+              title="ابدأ البيع"
+              description="أضف منتجاتك، فعّل طرق الدفع، وابدأ استقبال الطلبات فوراً."
+              icon={<Store className="w-7 h-7" />}
+            />
+          </div>
+
+          <div className="mt-12 md:mt-16 text-center">
+            <Link
+              to="/business/onboarding"
+              className="inline-flex items-center gap-3 bg-slate-900 text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-slate-800 transition-colors"
+            >
+              ابدأ الآن مجاناً
+              <ArrowLeft className="w-6 h-6" />
+            </Link>
+          </div>
+        </div>
+      </section>
+      </RevealSection>
+
+      {/* Dashboard Preview Section */}
+      <RevealSection>
+      <section className="bg-[#FAFAF7]">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div>
+              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">لوحة التحكم</span>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-6 md:mb-8">
+                كل اللي تحتاجه لإدارة <span className="text-[#0097A7]">متجرك.</span>
+              </h2>
+              <div className="space-y-5 md:space-y-6">
+                <CheckItem text="لوحة تحكم واضحة — تابع المنتجات، الطلبات، والحجوزات من مكان واحد" />
+                <CheckItem text="إدارة الطلبات والحجوزات — استقبل وحدّث الحالة بضغطة واحدة" />
+                <CheckItem text="تنبيه فوري — إشعار صوتي ومرئي عند أي طلب أو حجز جديد" />
+                <CheckItem text="تحليلات ذكية — تقارير مبيعات وسلوك عملاء مفصلة" />
               </div>
-              <span className="text-white font-black text-2xl tracking-tight">MNMKNK</span>
+              <div className="mt-10 md:mt-14">
+                <Link to="/business/onboarding" className="inline-flex items-center gap-3 font-black text-xl md:text-2xl text-[#0097A7] hover:text-[#00796B] transition-colors">
+                  سجّل متجرك الآن <ArrowLeft className="w-7 h-7 md:w-8 md:h-8" />
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="absolute -inset-4 bg-gradient-to-br from-[#00E5FF]/8 via-transparent to-[#BD00FF]/8 rounded-[2rem] blur-2xl hidden md:block" />
+              <div className="relative bg-white rounded-2xl md:rounded-3xl shadow-xl md:shadow-2xl border border-slate-100 overflow-hidden">
+                <img src="/images/business/dashboard-hero.png" className="w-full" alt="لوحة التحكم" />
+              </div>
             </div>
           </div>
         </div>
       </section>
+      </RevealSection>
+
+      {/* Industries / Activities */}
+      <RevealSection>
+      <section className="bg-white">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="text-center mb-12 md:mb-16">
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">صناعات مدعومة</span>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
+              متجرك <span className="text-[#0097A7]">لأي نشاط.</span>
+            </h2>
+            <p className="mt-4 text-slate-500 text-lg md:text-xl max-w-2xl mx-auto font-medium">
+              سواء كنت تبيع ملابس أو تدير صيدلية أو تقدم خدمات حجز — المنصة تتكيف مع نشاطك.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <IndustryPill icon={<Store className="w-5 h-5" />} label="متاجر عامة" />
+            <IndustryPill icon={<PackageCheck className="w-5 h-5" />} label="سوبرماركت" />
+            <IndustryPill icon={<Globe className="w-5 h-5" />} label="مطاعم" />
+            <IndustryPill icon={<Smartphone className="w-5 h-5" />} label="إلكترونيات" />
+            <IndustryPill icon={<Users className="w-5 h-5" />} label="عيادات" />
+            <IndustryPill icon={<Shield className="w-5 h-5" />} label="صيدليات" />
+            <IndustryPill icon={<Clock className="w-5 h-5" />} label="حجوزات فنادق" />
+            <IndustryPill icon={<Star className="w-5 h-5" />} label="أزياء" />
+            <IndustryPill icon={<BarChart3 className="w-5 h-5" />} label="عقارات" />
+            <IndustryPill icon={<Zap className="w-5 h-5" />} label="سيارات" />
+            <IndustryPill icon={<Layout className="w-5 h-5" />} label="خدمات" />
+            <IndustryPill icon={<BellRing className="w-5 h-5" />} label="أخرى" />
+          </div>
+        </div>
+      </section>
+      </RevealSection>
+
+      {/* About Us Section */}
+      <RevealSection id="about">
+      <section ref={aboutRef} className="bg-slate-900 text-white scroll-mt-24">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
+            <div>
+              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/15 text-[#00E5FF] rounded-full text-xs font-black uppercase tracking-widest mb-4">من نحن</span>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter mb-6 md:mb-8">
+                نبني مستقبل <span className="text-[#00E5FF]">التجارة الرقمية.</span>
+              </h2>
+              <p className="text-white/70 text-lg md:text-xl leading-relaxed font-medium mb-6">
+                نحن فريق MNMKNK — منصة عربية متكاملة تمكّن التجار من إدارة أعمالهم بسهولة واحترافية. نؤمن أن كل تاجر يستحق أدوات عالمية بلغته وبسعر يناسبه.
+              </p>
+              <p className="text-white/60 text-base md:text-lg leading-relaxed font-medium mb-8">
+                من المتجر الإلكتروني إلى نقطة البيع، من إدارة المنتجات إلى التحليلات المتقدمة — نوفر لك كل ما تحتاجه لتنمية مشروعك في مكان واحد.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  to="/business/onboarding"
+                  className="inline-flex items-center justify-center gap-2 bg-[#00E5FF] text-slate-900 px-8 py-4 rounded-2xl font-black text-base hover:bg-[#00D4EE] transition-colors"
+                >
+                  ابدأ تجربتك المجانية
+                  <ArrowLeft className="w-5 h-5" />
+                </Link>
+                <Link
+                  to="/contact"
+                  className="inline-flex items-center justify-center gap-2 border border-white/20 text-white px-8 py-4 rounded-2xl font-black text-base hover:bg-white/5 transition-colors"
+                >
+                  تواصل معنا
+                </Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 md:gap-5">
+              <AboutCard icon={<Globe className="w-8 h-8" />} title="منصة عربية" description="مصممة خصيصاً للسوق العربي" />
+              <AboutCard icon={<Zap className="w-8 h-8" />} title="سهولة الاستخدام" description="بدون تعقيد أو حاجة لخبرة تقنية" />
+              <AboutCard icon={<Shield className="w-8 h-8" />} title="أمان عالمي" description="تشفير وحماية بمعايير عالمية" />
+              <AboutCard icon={<Users className="w-8 h-8" />} title="دعم متواصل" description="فريق دعم متاح على مدار الساعة" />
+            </div>
+          </div>
+        </div>
+      </section>
+      </RevealSection>
+
+      {/* CTA Section */}
+      <RevealSection>
+      <section className="bg-[#FAFAF7]">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+          <div className="bg-slate-900 rounded-3xl md:rounded-[2.5rem] p-8 sm:p-12 md:p-20 text-center relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-[#00E5FF]/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#BD00FF]/10 rounded-full blur-3xl" />
+            <div className="relative z-10">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter text-white mb-4 md:mb-6">
+                جاهز تبدأ؟
+              </h2>
+              <p className="text-white/60 text-lg md:text-xl max-w-xl mx-auto mb-8 md:mb-10 font-medium">
+                أنشئ متجرك الآن مجاناً — بدون بطاقة ائتمانية، بدون التزامات.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                <Link
+                  to="/business/onboarding"
+                  className="inline-flex items-center gap-3 bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-[#00D4EE] transition-colors"
+                >
+                  ابدأ مجاناً الآن
+                  <ArrowLeft className="w-6 h-6" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={scrollToAbout}
+                  className="inline-flex items-center gap-2 border border-white/20 text-white px-8 py-5 rounded-2xl font-black text-lg hover:bg-white/5 transition-colors"
+                >
+                  تعرف علينا
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      </RevealSection>
+
+      {/* Floating Mobile CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-[85] md:hidden pointer-events-none">
+        <div className="px-4 pb-4 pt-12 bg-gradient-to-t from-black/40 via-black/20 to-transparent pointer-events-auto">
+          <Link
+            to="/business/onboarding"
+            className="block w-full bg-[#00E5FF] text-slate-900 py-4 rounded-2xl font-black text-base text-center shadow-lg shadow-cyan-500/25"
+          >
+            ابدأ مجاناً الآن
+          </Link>
+        </div>
+      </div>
+
+      {/* Back to Top Button */}
+      <button
+        type="button"
+        onClick={scrollToTop}
+        className={`fixed bottom-20 md:bottom-8 left-6 z-[85] w-11 h-11 rounded-xl bg-slate-900/80 backdrop-blur-sm text-white flex items-center justify-center shadow-lg border border-white/10 transition-all duration-300 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
+        aria-label="الرجوع للأعلى"
+      >
+        <ChevronUp size={20} />
+      </button>
 
       {/* Business Footer */}
       <footer className="bg-slate-900 border-t border-slate-800 text-slate-300">
-        <div className="max-w-7xl mx-auto px-6 py-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 py-12 md:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-12">
             {/* Brand */}
-            <div>
-              <h3 className="text-2xl font-black text-white mb-4">MNMKNK</h3>
-              <p className="text-slate-400 leading-relaxed">
+            <div className="md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 bg-[#00E5FF] rounded-xl flex items-center justify-center overflow-hidden">
+                  <img src="/brand/logo.png" className="w-full h-full object-contain" alt="" />
+                </div>
+                <span className="text-xl font-black tracking-tighter text-white uppercase">MNMKNK</span>
+              </div>
+              <p className="text-slate-400 leading-relaxed text-sm">
                 منصة متكاملة لتجار العصر الجديد. صمم متجرك، أدر منتجاتك، واربح بسهولة.
               </p>
             </div>
 
-            {/* Quick Links */}
+            {/* Product */}
             <div>
-              <h4 className="text-lg font-black text-white mb-4">روابط سريعة</h4>
-              <ul className="space-y-2">
-                <li><Link to="/" className="hover:text-[#00E5FF] transition-colors">الرئيسية</Link></li>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">المنتج</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link to="/business/onboarding" className="text-slate-400 hover:text-[#00E5FF] transition-colors">إنشاء متجر</Link></li>
+                <li><Link to="/courier" className="text-slate-400 hover:text-[#00E5FF] transition-colors">مندوب توصيل</Link></li>
+              </ul>
+            </div>
+
+            {/* Company */}
+            <div>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">الشركة</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li><button type="button" onClick={scrollToAbout} className="text-slate-400 hover:text-[#00E5FF] transition-colors">من نحن</button></li>
+                <li><Link to="/" className="text-slate-400 hover:text-[#00E5FF] transition-colors">الرئيسية</Link></li>
+                <li><Link to="/blog" className="text-slate-400 hover:text-[#00E5FF] transition-colors">المدونة</Link></li>
               </ul>
             </div>
 
             {/* Support */}
             <div>
-              <h4 className="text-lg font-black text-white mb-4">الدعم والشروط</h4>
-              <ul className="space-y-2">
-                <li><Link to="/courier" className="hover:text-[#00E5FF] transition-colors">تسجيل مندوب توصيل</Link></li>
-                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">مركز المساعدة</a></li>
-                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">شروط الخدمة</a></li>
-                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">سياسة الخصوصية</a></li>
-                <li><a href="#" className="hover:text-[#00E5FF] transition-colors">تواصل معنا</a></li>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">الدعم والشروط</h4>
+              <ul className="space-y-2.5 text-sm">
+                <li><Link to="/support" className="text-slate-400 hover:text-[#00E5FF] transition-colors">مركز المساعدة</Link></li>
+                <li><Link to="/terms" className="text-slate-400 hover:text-[#00E5FF] transition-colors">شروط الخدمة</Link></li>
+                <li><Link to="/privacy" className="text-slate-400 hover:text-[#00E5FF] transition-colors">سياسة الخصوصية</Link></li>
+                <li><Link to="/contact" className="text-slate-400 hover:text-[#00E5FF] transition-colors">تواصل معنا</Link></li>
               </ul>
             </div>
           </div>
 
-          <div className="mt-12 pt-8 border-t border-slate-800 text-center text-slate-500 text-sm">
-            <p> {new Date().getFullYear()} MNMKNK. جميع الحقوق محفوظة.</p>
+          {/* Contact Info */}
+          <div className="mt-10 pt-8 border-t border-slate-800">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex items-center gap-3 flex-row-reverse">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                  <Mail size={16} />
+                </div>
+                <a href="mailto:mnmknk.eg@gmail.com" className="font-bold text-sm md:text-base text-slate-300 hover:text-white transition-colors">
+                  mnmknk.eg@gmail.com
+                </a>
+              </div>
+              <div className="flex items-center gap-3 flex-row-reverse">
+                <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                  <Phone size={16} />
+                </div>
+                <a href="tel:01067461059" className="font-bold text-sm md:text-base text-slate-300 hover:text-white transition-colors">
+                  01067461059
+                </a>
+              </div>
+              <div className="flex items-center gap-3 flex-row-reverse md:justify-end">
+                <a
+                  href="mailto:mnmknk.eg@gmail.com"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-[#00E5FF]/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(0,229,255,0.25)]"
+                  aria-label="Gmail"
+                >
+                  <Mail size={16} className="sm:w-[18px] sm:h-[18px]" />
+                </a>
+                <a
+                  href="https://wa.me/201067461059"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-emerald-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(16,185,129,0.25)]"
+                  aria-label="WhatsApp"
+                >
+                  <WhatsAppIcon size={16} />
+                </a>
+                <a
+                  href="https://www.facebook.com/profile.php?id=61587556276694"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-blue-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(96,165,250,0.25)]"
+                  aria-label="Facebook"
+                >
+                  <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-sm">
+            <p>© {new Date().getFullYear()} MNMKNK. جميع الحقوق محفوظة.</p>
+            <p className="font-medium">من مكانك للأعمال</p>
           </div>
         </div>
       </footer>
@@ -252,32 +586,64 @@ const BusinessLanding: React.FC = () => {
   );
 };
 
-const FeatureCard: React.FC<{ icon: React.ReactNode, title: string, description: string, index?: number }> = ({ icon, title, description, index = 0 }) => (
-  <div className="relative">
-    <div className="relative p-8 sm:p-10 md:p-12 rounded-[2.5rem] md:rounded-[3rem] bg-slate-800/40 border border-slate-700">
-      <div className="mb-6 md:mb-8 p-4 md:p-5 bg-slate-900 rounded-2xl inline-block shadow-lg md:shadow-xl shadow-black/20 relative">
-        {icon}
-      </div>
-      
-      <h3 className="text-2xl md:text-3xl font-black mb-4 md:mb-6 uppercase tracking-tight">
-        {title}
-      </h3>
-      <p className="text-slate-400 text-base md:text-lg leading-relaxed font-medium">
-        {description}
-      </p>
-    </div>
+const HeroPill: React.FC<{ icon: React.ReactNode; text: string }> = ({ icon, text }) => (
+  <div className="px-4 py-2.5 rounded-xl bg-white/8 backdrop-blur-sm border border-white/10 flex items-center gap-2.5">
+    <span className="text-[#00E5FF]">{icon}</span>
+    <span className="font-bold text-sm">{text}</span>
   </div>
 );
 
-const BenefitItem: React.FC<{ icon: React.ReactNode, title: string, description: string }> = ({ icon, title, description }) => (
-  <div className="flex gap-5 md:gap-6 flex-row-reverse">
-     <div className="w-11 h-11 md:w-12 md:h-12 rounded-2xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-900 shadow-md md:shadow-lg shadow-slate-200/40 md:shadow-slate-200/50">
-       {icon}
-     </div>
-     <div className="text-right">
-        <h4 className="text-xl md:text-2xl font-black mb-2">{title}</h4>
-        <p className="text-slate-500 text-sm sm:text-base font-medium leading-relaxed">{description}</p>
-     </div>
+const StatItem: React.FC<{ value: string; label: string }> = ({ value, label }) => (
+  <div className="text-center">
+    <div className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 mb-1">{value}</div>
+    <div className="text-slate-400 text-sm font-medium">{label}</div>
+  </div>
+);
+
+const OfferCard: React.FC<{ icon: React.ReactNode; title: string; description: string; accent: 'cyan' | 'purple' }> = ({ icon, title, description, accent }) => (
+  <div className="group bg-white rounded-2xl p-6 md:p-8 border border-slate-100 hover:border-slate-200 hover:shadow-lg transition-all">
+    <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${accent === 'cyan' ? 'bg-[#00E5FF]/10 text-[#0097A7]' : 'bg-[#BD00FF]/10 text-[#9C27B0]'}`}>
+      {icon}
+    </div>
+    <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-3 tracking-tight">{title}</h3>
+    <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">{description}</p>
+  </div>
+);
+
+const StepCard: React.FC<{ step: string; title: string; description: string; icon: React.ReactNode }> = ({ step, title, description, icon }) => (
+  <div className="text-center md:text-right">
+    <div className="flex items-center gap-4 mb-5 md:justify-start justify-center">
+      <div className="w-14 h-14 rounded-2xl bg-slate-900 text-[#00E5FF] flex items-center justify-center font-black text-2xl">
+        {step}
+      </div>
+      <div className="w-10 h-10 rounded-xl bg-[#00E5FF]/10 text-[#0097A7] flex items-center justify-center">
+        {icon}
+      </div>
+    </div>
+    <h3 className="text-xl md:text-2xl font-black text-slate-900 mb-3 tracking-tight">{title}</h3>
+    <p className="text-slate-400 text-sm md:text-base leading-relaxed font-medium">{description}</p>
+  </div>
+);
+
+const CheckItem: React.FC<{ text: string }> = ({ text }) => (
+  <div className="flex gap-3 items-start flex-row-reverse">
+    <CheckCircle2 className="w-5 h-5 text-[#0097A7] shrink-0 mt-0.5" />
+    <p className="text-slate-600 text-sm md:text-base font-medium leading-relaxed">{text}</p>
+  </div>
+);
+
+const IndustryPill: React.FC<{ icon: React.ReactNode; label: string }> = ({ icon, label }) => (
+  <div className="flex flex-col items-center gap-2.5 p-4 md:p-5 bg-[#FAFAF7] rounded-2xl border border-slate-100 hover:border-[#00E5FF]/30 hover:bg-[#00E5FF]/5 transition-colors cursor-default">
+    <div className="text-[#0097A7]">{icon}</div>
+    <span className="text-xs md:text-sm font-bold text-slate-600 text-center">{label}</span>
+  </div>
+);
+
+const AboutCard: React.FC<{ icon: React.ReactNode; title: string; description: string }> = ({ icon, title, description }) => (
+  <div className="bg-white/5 rounded-2xl p-5 md:p-6 border border-white/10">
+    <div className="text-[#00E5FF] mb-3">{icon}</div>
+    <h4 className="text-lg font-black text-white mb-1.5">{title}</h4>
+    <p className="text-white/50 text-sm font-medium">{description}</p>
   </div>
 );
 
