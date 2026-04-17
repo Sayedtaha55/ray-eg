@@ -29,6 +29,8 @@ const SeoDirectoryPage = React.lazy(() => import('@/components/pages/public/SeoD
 const ProductPage = React.lazy(() => import('@/components/pages/public/ProductPage'));
 const ShopProfile = React.lazy(() => import('@/components/pages/public/ShopProfile'));
 const CourierIntroPage = React.lazy(() => import('@/components/pages/public/CourierIntroPage'));
+const BlogPage = React.lazy(() => import('@/components/pages/public/BlogPage'));
+const BlogPostPage = React.lazy(() => import('@/components/pages/public/BlogPostPage'));
 const BusinessLayout = React.lazy(() => import('@/components/layouts/BusinessLayout'));
 const BusinessLanding = React.lazy(() => import('@/components/pages/business/BusinessLanding'));
 const BusinessHero = React.lazy(() => import('@/components/pages/business/BusinessHero'));
@@ -84,6 +86,8 @@ const AppRoutes: React.FC = () => {
         <Route path="menmakank" element={<Navigate to="/dalil" replace />} />
         <Route path="mnmknk" element={<Navigate to="/dalil" replace />} />
         <Route path="product/:id" element={suspense(<ProductPage />)} />
+        <Route path="blog" element={suspense(<BlogPage />)} />
+        <Route path="blog/:slug" element={suspense(<BlogPostPage />)} />
         <Route path="courier" element={suspense(<CourierIntroPage />)} />
         <Route path="delivery" element={<Navigate to="/courier" replace />} />
       </Route>

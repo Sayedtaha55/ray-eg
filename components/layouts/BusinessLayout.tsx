@@ -596,16 +596,38 @@ const BusinessLayout: React.FC = () => {
     navigate('/');
   };
 
+  const [landingScrolled, setLandingScrolled] = useState(false);
+
+  useEffect(() => {
+    if (!isBusinessLanding) return;
+    const onScroll = () => setLandingScrolled(window.scrollY > 80);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [isBusinessLanding]);
+
   if (!isDashboard) {
+    const scrolled = landingScrolled;
+    const headerTextCls = scrolled ? 'text-slate-900' : 'text-white';
+    const borderBtnCls = scrolled
+      ? 'border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900'
+      : 'border border-white/20 hover:border-white/40 text-white/80 hover:text-white';
+    const ctaBtnCls = scrolled
+      ? 'bg-slate-900 text-white hover:bg-slate-800'
+      : 'bg-white text-slate-900 hover:bg-[#00E5FF]';
+
     const headerContent = (
       <>
-        <Link to="/" className="flex items-center gap-2 md:gap-3">
+        <Link to="/" className={`flex items-center gap-2 md:gap-3 transition-colors ${headerTextCls}`}>
           <BrandLogo variant="business" iconOnly />
           <span className="text-lg md:text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
         </Link>
-        <div className="flex items-center gap-4 md:gap-8">
-          <Link to="/business/login" className="text-xs md:text-sm font-bold bg-white text-slate-900 px-3 py-1.5 rounded-lg hover:bg-[#00E5FF] transition-all">دخول التجار</Link>
-          <Link to="/signup?role=merchant" className="bg-white text-slate-900 px-5 md:px-8 py-2 md:py-3 rounded-xl md:rounded-2xl font-black text-xs md:text-sm hover:bg-[#00E5FF] transition-all shadow-xl">ابدأ مجاناً</Link>
+        <div className="flex items-center gap-3 md:gap-4">
+          {isBusinessLanding && (
+            <a href="#about" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>من نحن</a>
+          )}
+          <Link to="/business/login" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>دخول التجار</Link>
+          <Link to="/signup?role=merchant" className={`px-5 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-lg ${ctaBtnCls}`}>ابدأ مجاناً</Link>
         </div>
       </>
     );
@@ -613,8 +635,8 @@ const BusinessLayout: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-900 text-white selection:bg-[#00E5FF] selection:text-slate-900 text-right font-sans" dir="rtl">
         {isBusinessLanding ? (
-          <header className="fixed top-0 left-0 right-0 z-[80] bg-transparent">
-            <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-24 flex items-center justify-between">
+          <header className={`fixed top-0 left-0 right-0 z-[80] transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
+            <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
               {headerContent}
             </div>
           </header>
