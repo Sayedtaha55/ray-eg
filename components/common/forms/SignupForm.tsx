@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '../ui';
 import { Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SignupFormProps {
   onSubmit: (name: string, email: string, password: string) => void;
@@ -13,6 +14,7 @@ const SignupForm: React.FC<SignupFormProps> = ({
   loading = false,
   error,
 }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,8 +29,8 @@ const SignupForm: React.FC<SignupFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Input
         type="text"
-        label="الاسم الكامل"
-        placeholder="أدخل اسمك الكامل"
+        label={t('common.forms.signup.nameLabel')}
+        placeholder={t('common.forms.signup.namePlaceholder')}
         value={name}
         onChange={setName}
         required
@@ -37,7 +39,7 @@ const SignupForm: React.FC<SignupFormProps> = ({
 
       <Input
         type="email"
-        label="البريد الإلكتروني"
+        label={t('common.forms.signup.emailLabel')}
         placeholder="example@email.com"
         value={email}
         onChange={setEmail}
@@ -48,7 +50,7 @@ const SignupForm: React.FC<SignupFormProps> = ({
       
       <Input
         type={showPassword ? 'text' : 'password'}
-        label="كلمة المرور"
+        label={t('common.forms.signup.passwordLabel')}
         placeholder="••••••••"
         value={password}
         onChange={setPassword}
@@ -70,7 +72,7 @@ const SignupForm: React.FC<SignupFormProps> = ({
         disabled={!name || !email || !password}
         className="w-full py-4"
       >
-        إنشاء حساب جديد
+        {t('common.forms.signup.submit')}
       </Button>
     </form>
   );

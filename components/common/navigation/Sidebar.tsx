@@ -1,5 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -31,34 +32,35 @@ interface NavItem {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer' }) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
 
   const adminNavItems: NavItem[] = [
-    { icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', href: '/admin/dashboard' },
-    { icon: <ShieldAlert size={20} />, label: 'طلبات الموافقة', href: '/admin/approvals' },
-    { icon: <Store size={20} />, label: 'إدارة المتاجر', href: '/admin/shops' },
-    { icon: <Users size={20} />, label: 'إدارة المستخدمين', href: '/admin/users' },
-    { icon: <CreditCard size={20} />, label: 'كافة العمليات', href: '/admin/orders' },
-    { icon: <Truck size={20} />, label: 'إدارة التوصيل', href: '/admin/delivery' },
-    { icon: <MessageSquare size={20} />, label: 'مركز الاقتراحات', href: '/admin/feedback' },
-    { icon: <Settings size={20} />, label: 'إعدادات النظام', href: '/admin/settings' },
+    { icon: <LayoutDashboard size={20} />, label: t('sidebar.admin.dashboard'), href: '/admin/dashboard' },
+    { icon: <ShieldAlert size={20} />, label: t('sidebar.admin.approvals'), href: '/admin/approvals' },
+    { icon: <Store size={20} />, label: t('sidebar.admin.shopMgmt'), href: '/admin/shops' },
+    { icon: <Users size={20} />, label: t('sidebar.admin.userMgmt'), href: '/admin/users' },
+    { icon: <CreditCard size={20} />, label: t('sidebar.admin.allOperations'), href: '/admin/orders' },
+    { icon: <Truck size={20} />, label: t('sidebar.admin.deliveryMgmt'), href: '/admin/delivery' },
+    { icon: <MessageSquare size={20} />, label: t('sidebar.admin.feedback'), href: '/admin/feedback' },
+    { icon: <Settings size={20} />, label: t('sidebar.admin.systemSettings'), href: '/admin/settings' },
   ];
 
   const merchantNavItems: NavItem[] = [
-    { icon: <LayoutDashboard size={20} />, label: 'لوحة التحكم', href: '/business/dashboard' },
-    { icon: <Store size={20} />, label: 'إدارة المتجر', href: '/business/shop' },
-    { icon: <Palette size={20} />, label: 'المظهر', href: '/business/appearance' },
-    { icon: <CreditCard size={20} />, label: 'الطلبات', href: '/business/orders' },
-    { icon: <MessageSquare size={20} />, label: 'الرسائل', href: '/business/messages' },
-    { icon: <Settings size={20} />, label: 'الإعدادات', href: '/business/settings' },
+    { icon: <LayoutDashboard size={20} />, label: t('sidebar.merchant.dashboard'), href: '/business/dashboard' },
+    { icon: <Store size={20} />, label: t('sidebar.merchant.shopMgmt'), href: '/business/shop' },
+    { icon: <Palette size={20} />, label: t('sidebar.merchant.appearance'), href: '/business/appearance' },
+    { icon: <CreditCard size={20} />, label: t('sidebar.merchant.orders'), href: '/business/orders' },
+    { icon: <MessageSquare size={20} />, label: t('sidebar.merchant.messages'), href: '/business/messages' },
+    { icon: <Settings size={20} />, label: t('sidebar.merchant.settings'), href: '/business/settings' },
   ];
 
   const customerNavItems: NavItem[] = [
-    { icon: <LayoutDashboard size={20} />, label: 'الرئيسية', href: '/' },
-    { icon: <CreditCard size={20} />, label: 'طلباتي', href: '/orders' },
-    { icon: <MessageSquare size={20} />, label: 'الرسائل', href: '/messages' },
-    { icon: <Settings size={20} />, label: 'الإعدادات', href: '/settings' },
+    { icon: <LayoutDashboard size={20} />, label: t('sidebar.customer.home'), href: '/' },
+    { icon: <CreditCard size={20} />, label: t('sidebar.customer.myOrders'), href: '/orders' },
+    { icon: <MessageSquare size={20} />, label: t('sidebar.customer.messages'), href: '/messages' },
+    { icon: <Settings size={20} />, label: t('sidebar.customer.settings'), href: '/settings' },
   ];
 
   const navItems = userRole === 'admin' ? adminNavItems : 
@@ -139,9 +141,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
               <div>
                 <h2 className="text-xl font-black text-white">MNMKNK</h2>
                 <p className="text-[10px] text-slate-500 uppercase tracking-widest">
-                  {userRole === 'admin' ? 'لوحة الإدارة' : 
-                   userRole === 'merchant' ? 'لوحة التاجر' : 
-                   'لوحة التحكم'}
+                  {userRole === 'admin' ? t('sidebar.adminPanel') : 
+                   userRole === 'merchant' ? t('sidebar.merchantPanel') : 
+                   t('sidebar.controlPanel')}
                 </p>
               </div>
             </div>
@@ -165,7 +167,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose, userRole = 'customer
               whileTap={{ scale: 0.95 }}
             >
               <LogOut size={20} />
-              <span className="font-bold">تسجيل الخروج</span>
+              <span className="font-bold">{t('common.logout')}</span>
             </motion.button>
           </div>
         </div>

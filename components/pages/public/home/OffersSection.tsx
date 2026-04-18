@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Loader2, TrendingUp } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/common/ui';
@@ -28,12 +29,13 @@ const OffersSection: React.FC<OffersSectionProps> = ({
   loadMoreSentinelRef,
   loadMoreOffers,
 }) => {
+  const { t } = useTranslation();
   return (
     <section className="mb-16 md:mb-24">
       <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
-        <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث الانفجارات السعرية</h2>
+        <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">{t('home.offers.title')}</h2>
         <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
-          مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
+          {t('home.offers.viewAll')} <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
         </Link>
       </div>
       {loading ? (
@@ -54,7 +56,7 @@ const OffersSection: React.FC<OffersSectionProps> = ({
         <>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
             {offers.length === 0 ? (
-              <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض نشطة حالياً.</div>
+              <div className="col-span-full py-20 text-center text-slate-500 font-bold">{t('home.offers.noOffers')}</div>
             ) : offers.map((offer, idx) => (
               <div key={offer.id} className="cv-auto">
                 <OfferCard
@@ -76,13 +78,13 @@ const OffersSection: React.FC<OffersSectionProps> = ({
             <div className="mt-10 md:mt-16 flex items-center justify-center">
               <button
                 type="button"
-                aria-label="تحميل المزيد من العروض"
+                aria-label={t('home.offers.loadMoreAria')}
                 onClick={loadMoreOffers}
                 className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl"
                 disabled={loadingMore}
               >
                 {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-                <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+                <span>{loadingMore ? t('home.offers.loading') : t('home.offers.loadMore')}</span>
               </button>
             </div>
           )}

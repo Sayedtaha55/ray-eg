@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, MessageSquarePlus, X, Loader2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -10,6 +11,7 @@ interface FeedbackWidgetProps {
 }
 
 const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
+  const { t } = useTranslation();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
@@ -28,9 +30,9 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
         userEmail: user?.email
       });
 
-      setFeedbackResponse('شكراً ليك يا بطل، اقتراحك وصل وهنراجعه قريب!');
+      setFeedbackResponse(t('home.feedback.thanksSuccess'));
     } catch (e) {
-      setFeedbackResponse('حصل مشكلة بسيطة بس اقتراحك وصل لمهندسينا!');
+      setFeedbackResponse(t('home.feedback.thanksError'));
     } finally {
       setFeedbackLoading(false);
       setFeedbackText('');
@@ -50,9 +52,9 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <h4 className="font-black text-slate-900 flex items-center gap-2">
-                <Sparkles size={16} className="text-[#00E5FF]" /> مساعد تحسين MNMKNK
+                <Sparkles size={16} className="text-[#00E5FF]" /> {t('home.feedback.title')}
               </h4>
-              <button type="button" aria-label="إغلاق" onClick={() => setIsFeedbackOpen(false)}>
+              <button type="button" aria-label={t('home.feedback.close')} onClick={() => setIsFeedbackOpen(false)}>
                 <X size={16} />
               </button>
             </div>
@@ -67,15 +69,15 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
                   onClick={() => {setFeedbackResponse(''); setIsFeedbackOpen(false);}} 
                   className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs"
                 >
-                  شكراً يا MNMKNK!
+                  {t('home.feedback.thanksBtn')}
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-xs text-slate-600 font-bold mb-4">عندك فكرة أو شايف حاجة مش عجباك؟ احنا لسه بنجرب ومحتاجين رأيك.</p>
+                <p className="text-xs text-slate-600 font-bold mb-4">{t('home.feedback.prompt')}</p>
                 <textarea 
                   className="w-full bg-slate-50 rounded-2xl p-4 text-xs font-bold border-none focus:ring-2 focus:ring-[#00E5FF] h-28 outline-none"
-                  placeholder="اكتب اقتراحك هنا يا بطل..."
+                  placeholder={t('home.feedback.placeholder')}
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                 />
@@ -84,7 +86,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
                   disabled={feedbackLoading}
                   className="w-full py-5 bg-[#00E5FF] text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl"
                 >
-                  {feedbackLoading ? <Loader2 className="animate-spin" size={16} /> : <><MessageSquarePlus size={16} /> إرسال لمهندسينا</>}
+                  {feedbackLoading ? <Loader2 className="animate-spin" size={16} /> : <><MessageSquarePlus size={16} /> {t('home.feedback.send')}</>}
                 </button>
               </div>
             )}
@@ -93,7 +95,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
       </AnimatePresence>
       <button 
         type="button"
-        aria-label="فتح المساعد"
+        aria-label={t('home.feedback.openAssistant')}
         onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
         className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
       >

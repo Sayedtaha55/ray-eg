@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eye, MapPin, ChevronLeft, ChevronRight, Store } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Shop } from '@/types';
@@ -87,6 +88,7 @@ const ShopCard: React.FC<{ shop: Shop; idx: number }> = ({ shop, idx }) => {
 };
 
 const TopVisitedShopsSection: React.FC<TopVisitedShopsSectionProps> = ({ shops, loading }) => {
+  const { t } = useTranslation();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // ترتيب المحلات حسب عدد الزيارات
@@ -141,10 +143,10 @@ const TopVisitedShopsSection: React.FC<TopVisitedShopsSectionProps> = ({ shops, 
             </div>
             <div>
               <h2 className="text-lg md:text-2xl lg:text-3xl font-black tracking-tighter text-slate-900">
-                الأنشطة الأكثر زيارة
+                {t('home.topVisited.title')}
               </h2>
               <p className="text-[10px] md:text-sm text-slate-500 font-medium">
-                لا توجد أنشطة متاحة حالياً.
+                {t('home.topVisited.noData')}
               </p>
             </div>
           </div>
@@ -163,10 +165,10 @@ const TopVisitedShopsSection: React.FC<TopVisitedShopsSectionProps> = ({ shops, 
           </div>
           <div>
             <h2 className="text-lg md:text-2xl lg:text-3xl font-black tracking-tighter text-slate-900">
-              الأنشطة الأكثر زيارة
+              {t('home.topVisited.title')}
             </h2>
             <p className="text-[10px] md:text-sm text-slate-500 font-medium hidden sm:block">
-              اكتشف المحلات الأكثر شعبية بين عملائنا
+              {t('home.topVisited.subtitle')}
             </p>
           </div>
         </div>
@@ -176,21 +178,21 @@ const TopVisitedShopsSection: React.FC<TopVisitedShopsSectionProps> = ({ shops, 
             to="/map"
             className="text-xs md:text-sm font-bold text-slate-600 hover:text-cyan-600 transition-colors ml-2"
           >
-            عرض الكل
+            {t('home.topVisited.viewAll')}
           </Link>
           {/* أزرار التنقل - تظهر فقط على الشاشات الكبيرة */}
           <div className="hidden md:flex gap-2">
             <button
               onClick={() => scroll('right')}
               className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-600"
-              aria-label="التالي"
+              aria-label={t('home.topVisited.next')}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
               onClick={() => scroll('left')}
               className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-600"
-              aria-label="السابق"
+              aria-label={t('home.topVisited.previous')}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>

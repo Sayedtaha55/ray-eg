@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Search, ShoppingBag, X } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/common/ui';
@@ -84,6 +85,7 @@ const ProductRow: React.FC<{
   onProductClick,
 }) => {
   const sliderRef = useRef<HTMLDivElement | null>(null);
+  const { t } = useTranslation();
   const rowMode = String(rowCfg?.rowMode || 'grid');
   const dir = String(rowCfg?.layoutDirection || 'rtl').toLowerCase() === 'ltr' ? 'ltr' : 'rtl';
   const showArrows = rowCfg?.showArrows !== false;
@@ -111,7 +113,7 @@ const ProductRow: React.FC<{
                   type="button"
                   onClick={() => sliderRef.current?.scrollBy({ left: dir === 'rtl' ? 320 : -320, behavior: 'smooth' })}
                   className="w-9 h-9 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center hover:shadow-md transition-all"
-                  aria-label="السابق"
+                  aria-label={t('shopProfile.prevAria')}
                 >
                   {dir === 'rtl' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
                 </button>
@@ -119,14 +121,14 @@ const ProductRow: React.FC<{
                   type="button"
                   onClick={() => sliderRef.current?.scrollBy({ left: dir === 'rtl' ? -320 : 320, behavior: 'smooth' })}
                   className="w-9 h-9 rounded-full border border-slate-200 bg-white shadow-sm flex items-center justify-center hover:shadow-md transition-all"
-                  aria-label="التالي"
+                  aria-label={t('shopProfile.nextAria')}
                 >
                   {dir === 'rtl' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
                 </button>
               </>
             ) : null}
           </div>
-          <span className="text-xs font-black text-slate-500">عرض أفقي ({itemsPerRow} / صف)</span>
+          <span className="text-xs font-black text-slate-500">{t('shopProfile.horizontalView')} ({itemsPerRow} {t('shopProfile.perRow')})</span>
         </div>
 
         <div
@@ -222,6 +224,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   onProductClick,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const { t } = useTranslation();
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
@@ -233,7 +236,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   const normalizedCategories = useMemo(() => {
     const raw = Array.isArray(categories) ? categories : [];
     const out = raw.map((c) => String(c || '').trim()).filter(Boolean);
-    if (!out.includes('الكل')) return ['الكل', ...out];
+    if (!out.includes(t('shopProfile.all'))) return [t('shopProfile.all'), ...out];
     return out;
   }, [categories]);
 
@@ -250,7 +253,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   const categorizedProducts = useMemo(() => {
     const map = new Map<string, any[]>();
     for (const p of filteredProducts) {
-      const cat = String(p?.category || 'عام').trim() || 'عام';
+      const cat = String(p?.category || t('shopProfile.general')).trim() || t('shopProfile.general');
       if (!map.has(cat)) map.set(cat, []);
       map.get(cat)!.push(p);
     }
@@ -284,7 +287,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   }, [currentDesign]);
 
   const displayCategories = useMemo(() => {
-    const cats = normalizedCategories.filter((c) => c !== 'الكل');
+    const cats = normalizedCategories.filter((c) => c !== t('shopProfile.all'));
     if (cats.length === 0) return Array.from(categorizedProducts.keys());
     const existing = new Set<string>(categorizedProducts.keys());
     return cats.filter((c) => existing.has(c));
@@ -328,7 +331,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
   const scrollToCategory = (cat: string) => {
     const normalized = String(cat || '').trim();
     if (!normalized) return;
-    if (normalized === 'الكل') {
+    if (normalized === t('shopProfile.all')) {
       const topTarget = sectionsContainerRef.current;
       if (topTarget) {
         try { topTarget.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; } catch {}
@@ -383,7 +386,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
       <div className="py-20 text-center">
         <p className="text-slate-500 mb-4">{productsTabError}</p>
         <button onClick={retryProductsTab} className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`} style={{ backgroundColor: primaryColor }}>
-          إعادة المحاولة
+          {t('shopProfile.retry')}
         </button>
       </div>
     );
@@ -398,13 +401,13 @@ const ProductTab: React.FC<ProductTabProps> = ({
           dir="rtl"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="ابحث عن منتج داخل المتجر..."
+          placeholder={t('shopProfile.searchProducts')}
           className="w-full h-12 pr-11 pl-11 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-300 transition-all"
         />
         {searchQuery ? (
           <button
             type="button"
-            aria-label="مسح البحث"
+            aria-label={t('shopProfile.clearSearch')}
             onClick={() => setSearchQuery('')}
             className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
           >
@@ -422,17 +425,17 @@ const ProductTab: React.FC<ProductTabProps> = ({
               const categoryImages = ((currentDesign as any)?.categoryImages || {}) as Record<string, string>;
               const legacyDefault = String((currentDesign as any)?.categoryIconImage || '');
               const perCategory = String(categoryImages?.[cat] || '');
-              const defaultAll = String(categoryImages?.['الكل'] || '');
+              const defaultAll = String(categoryImages?.[t('shopProfile.all')] || '');
               const iconImage = String(
                 perCategory ||
-                  (cat === 'الكل' ? defaultAll : '') ||
+                  (cat === t('shopProfile.all') ? defaultAll : '') ||
                   legacyDefault ||
                   '',
               );
               const sizeClasses: Record<string, string> = { small: 'w-10 h-10 text-lg', medium: 'w-14 h-14 text-2xl', large: 'w-20 h-20 text-3xl' };
               const shapeClasses: Record<string, string> = { circular: 'rounded-full', square: 'rounded-2xl', large: 'rounded-3xl' };
               const containerSizeClasses: Record<string, string> = { small: 'min-w-[60px]', medium: 'min-w-[80px]', large: 'min-w-[100px]' };
-              const categoryIcons: Record<string, string> = { 'الكل': '🏠', 'ملابس': '👕', 'إلكترونيات': '📱', 'أحذية': '👟', 'ساعات': '⌚', 'عام': '📦' };
+              const categoryIcons: Record<string, string> = { [t('shopProfile.all')]: '🏠', [t('restaurantsPage.categoryIcons.clothing')]: '👕', [t('restaurantsPage.categoryIcons.electronics')]: '📱', [t('restaurantsPage.categoryIcons.shoes')]: '👟', [t('restaurantsPage.categoryIcons.watches')]: '⌚', [t('shopProfile.general')]: '📦' };
               const icon = categoryIcons[cat] || '📦';
               const active = activeCategory === cat;
 
@@ -469,7 +472,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
         <div className="py-32 text-center">
           <ShoppingBag size={48} className="mx-auto text-slate-200 mb-4" />
           <p className="text-slate-400 font-bold">
-            {normalizedSearchQuery ? 'لا توجد منتجات مطابقة لبحثك حالياً' : 'لا توجد منتجات في هذا القسم حالياً'}
+            {normalizedSearchQuery ? t('shopProfile.noProductsSearch') : t('shopProfile.noProducts')}
           </p>
         </div>
       ) : (
@@ -579,7 +582,7 @@ const ProductTab: React.FC<ProductTabProps> = ({
             className={`${buttonPadding} ${buttonShape} bg-white border-2 font-black transition-all disabled:opacity-50`}
             style={{ borderColor: primaryColor, color: primaryColor }}
           >
-            {loadingMoreProducts ? 'جاري التحميل...' : 'عرض المزيد من المنتجات'}
+            {loadingMoreProducts ? t('shopProfile.loadingMore') : t('shopProfile.loadMoreProducts')}
           </button>
         </div>
       )}

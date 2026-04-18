@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 // Sub-components
 import POSCart from './pos/POSCart';
@@ -22,6 +23,7 @@ interface CartItem {
 const MotionDiv = motion.div as any;
 
 const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> = ({ onClose, shopId, shop }) => {
+  const { t } = useTranslation();
   const [products, setProducts] = useState<any[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [search, setSearch] = useState('');
@@ -234,6 +236,13 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       })
       .join('');
 
+    const receiptTitle = shopName || t('business.posSystem.receipt.titleFallback');
+    const receiptCustomerLabel = t('business.posSystem.receipt.customerLabel');
+    const receiptSubtotal = t('business.posSystem.receipt.subtotal');
+    const receiptVat = t('business.posSystem.receipt.vat', { pct: vatRatePct });
+    const receiptTotal = t('business.posSystem.receipt.total');
+    const receiptEgp = t('business.pos.egp');
+
     const html = `
       <!doctype html>
       <html>
@@ -255,12 +264,12 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         </head>
         <body>
           <div class="wrap">
-            <h1>${shopName || 'فاتورة'}</h1>
+            <h1>${receiptTitle}</h1>
             <div class="meta">
               ${phone ? `<div>${phone}</div>` : ''}
               ${city ? `<div>${city}</div>` : ''}
               ${address ? `<div>${address}</div>` : ''}
-              ${(customerNameEsc || customerPhoneEsc) ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${customerNameEsc || '-'} ${customerPhoneEsc ? `- ${customerPhoneEsc}` : ''}</div>` : ''}
+              ${(customerNameEsc || customerPhoneEsc) ? `<div style="margin-top:6px;"><strong>${receiptCustomerLabel}:</strong> ${customerNameEsc || '-'} ${customerPhoneEsc ? `- ${customerPhoneEsc}` : ''}</div>` : ''}
               <div>${dateLabel}</div>
             </div>
             <div class="sep"></div>
@@ -271,9 +280,9 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             </table>
             <div class="sep"></div>
             <div class="totals">
-              <div class="row"><span>المجموع الفرعي</span><span>ج.م ${fmt(subtotal)}</span></div>
-              ${vatRatePct > 0 ? `<div class="row"><span>الضريبة (${vatRatePct}%)</span><span>ج.م ${fmt(vatAmount)}</span></div>` : ''}
-              <div class="row" style="font-weight:700;"><span>الإجمالي</span><span>ج.م ${fmt(total)}</span></div>
+              <div class="row"><span>${receiptSubtotal}</span><span>${receiptEgp} ${fmt(subtotal)}</span></div>
+              ${vatRatePct > 0 ? `<div class="row"><span>${receiptVat}</span><span>${receiptEgp} ${fmt(vatAmount)}</span></div>` : ''}
+              <div class="row" style="font-weight:700;"><span>${receiptTotal}</span><span>${receiptEgp} ${fmt(total)}</span></div>
             </div>
             ${footerNote ? `<div class="sep"></div><div class="foot">${footerNote}</div>` : ''}
           </div>
@@ -401,7 +410,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         console.error('[POSSystem] placeOrder failed', err);
       } catch {
       }
-      const msg = String(err?.message || '').trim() || 'حدث خطأ أثناء إتمام العملية';
+      const msg = String(err?.message || '').trim() || t('business.posSystem.placeOrderError');
       try {
         window.alert(msg);
       } catch {
@@ -425,7 +434,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
             <input 
               type="text" 
-              placeholder="ابحث عن منتج..." 
+              placeholder={t('business.posSystem.searchPlaceholder')}
               className="w-full bg-slate-50 border rounded-2xl py-3 pr-12 pl-4 outline-none focus:ring-2 focus:ring-[#BD00FF]"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -435,10 +444,10 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             type="button"
             onClick={() => setIsCustomerCardOpen(true)}
             className="bg-white border rounded-2xl py-3 px-4 w-40 md:w-48 outline-none flex items-center justify-center gap-2 font-black text-sm hover:bg-slate-50"
-            title="إضافة عميل"
+            title={t('business.posSystem.customer.addTitle')}
           >
             <UserPlus size={18} />
-            {String(customerPhone || '').trim() ? 'تعديل عميل' : 'إضافة عميل'}
+            {String(customerPhone || '').trim() ? t('business.posSystem.customer.edit') : t('business.posSystem.customer.add')}
           </button>
         </header>
 
@@ -527,7 +536,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
                 const typeOptions = mv.map((t: any) => ({
                   id: String(t?.id || '').trim(),
-                  label: String(t?.name || t?.label || '').trim() || 'نوع',
+                  label: String(t?.name || t?.label || '').trim() || t('business.posSystem.defaults.type'),
                   sizes: Array.isArray(t?.sizes) ? t.sizes : [],
                 })).filter((t: any) => t.id);
 
@@ -535,7 +544,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 const sizeOptions = Array.isArray(selectedType?.sizes)
                   ? selectedType.sizes.map((s: any) => ({
                     id: String(s?.id || '').trim(),
-                    label: String(s?.label || s?.name || '').trim() || 'حجم',
+                    label: String(s?.label || s?.name || '').trim() || t('business.posSystem.defaults.size'),
                     price: Number(s?.price),
                   })).filter((s: any) => s.id)
                   : [];
@@ -545,7 +554,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
                 return (
                   <div className="space-y-3 mb-5">
-                    <div className="font-black text-sm text-slate-900">اختيار الحجم</div>
+                    <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.chooseSize')}</div>
                     <div className="flex flex-wrap gap-2">
                       {typeOptions.map((t: any) => (
                         <button
@@ -579,7 +588,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                     ) : null}
 
                     {selectedSize && Number.isFinite(Number(selectedSize?.price)) ? (
-                      <div className="text-xs font-bold text-slate-500">سعر الحجم: ج.م {Number(selectedSize.price).toFixed(2)}</div>
+                      <div className="text-xs font-bold text-slate-500">{t('business.posSystem.config.sizePrice', { egp: t('business.pos.egp'), price: Number(selectedSize.price).toFixed(2) })}</div>
                     ) : null}
                   </div>
                 );
@@ -589,7 +598,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 <div className="space-y-3 mb-5">
                   {Array.isArray(configProduct?.colors) && configProduct.colors.length > 0 ? (
                     <div className="space-y-2">
-                      <div className="font-black text-sm text-slate-900">اللون</div>
+                      <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.color')}</div>
                       <div className="flex flex-wrap gap-2">
                         {configProduct.colors.map((c: any) => (
                           <button
@@ -598,7 +607,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                             onClick={() => setSelectedFashionColorValue(String(c?.value || ''))}
                             className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(selectedFashionColorValue) === String(c?.value) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'}`}
                           >
-                            {String(c?.name || c?.label || c?.value || 'لون')}
+                            {String(c?.name || c?.label || c?.value || t('business.posSystem.defaults.color'))}
                           </button>
                         ))}
                       </div>
@@ -606,7 +615,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                   ) : null}
                   {Array.isArray(configProduct?.sizes) && configProduct.sizes.length > 0 ? (
                     <div className="space-y-2">
-                      <div className="font-black text-sm text-slate-900">المقاس</div>
+                      <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.size')}</div>
                       <div className="flex flex-wrap gap-2">
                         {configProduct.sizes.map((s: any) => (
                           <button
@@ -615,7 +624,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                             onClick={() => setSelectedFashionSize(String(s?.label || s?.name || ''))}
                             className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(selectedFashionSize) === String(s?.label || s?.name) ? 'bg-[#00E5FF] text-slate-900 border-[#00E5FF]' : 'bg-white text-slate-700 border-slate-200'}`}
                           >
-                            {String(s?.label || s?.name || 'مقاس')}
+                            {String(s?.label || s?.name || t('business.posSystem.defaults.fashionSize'))}
                           </button>
                         ))}
                       </div>
@@ -626,7 +635,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
               {isRestaurant && shopAddonsDef.length > 0 ? (
                 <div className="space-y-3 mb-5">
-                  <div className="font-black text-sm text-slate-900">الإضافات</div>
+                  <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.addons')}</div>
                   <div className="space-y-3">
                     {shopAddonsDef.map((g: any) => {
                       const groupId = String(g?.id || '').trim();
@@ -637,12 +646,12 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                       const selectedVariantId = selectedAddons.find((x) => String(x?.optionId) === groupId)?.variantId;
                       return (
                         <div key={groupId} className="p-3 rounded-2xl border border-slate-100 bg-slate-50">
-                          <div className="font-black text-xs text-slate-700 mb-2">{groupName || 'مجموعة'}</div>
+                          <div className="font-black text-xs text-slate-700 mb-2">{groupName || t('business.posSystem.defaults.group')}</div>
                           <div className="flex flex-wrap gap-2">
                             {opts.map((opt: any) => {
                               const optId = String(opt?.id || '').trim();
                               if (!optId) return null;
-                              const label = String(opt?.name || opt?.label || '').trim() || 'خيار';
+                              const label = String(opt?.name || opt?.label || '').trim() || t('business.posSystem.defaults.option');
                               const price = Number(opt?.price);
                               const isSelected = String(selectedVariantId || '') === optId;
                               return (
@@ -748,7 +757,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                     }}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black"
                   >
-                    إضافة للسلة
+                    {t('business.posSystem.config.addToCart')}
                   </button>
                 );
               })()}
@@ -758,7 +767,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 onClick={() => setIsConfigOpen(false)}
                 className="w-full mt-2 py-2 text-slate-400 font-bold"
               >
-                إلغاء
+                {t('business.posSystem.cancel')}
               </button>
             </MotionDiv>
           </MotionDiv>
@@ -770,7 +779,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
           <MotionDiv initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-sm">
             <div className="bg-white rounded-[3rem] p-12 text-center shadow-2xl">
               <CheckCircle2 size={64} className="text-green-500 mx-auto mb-4" />
-              <h3 className="text-2xl font-black">تم بنجاح!</h3>
+              <h3 className="text-2xl font-black">{t('business.posSystem.success')}</h3>
             </div>
           </MotionDiv>
         )}
@@ -793,7 +802,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
               onClick={(e: any) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4 flex-row-reverse">
-                <h3 className="text-lg font-black">بيانات العميل</h3>
+                <h3 className="text-lg font-black">{t('business.posSystem.customer.title')}</h3>
                 <button type="button" onClick={() => setIsCustomerCardOpen(false)} className="p-2 rounded-xl hover:bg-slate-100">
                   <X size={18} />
                 </button>
@@ -801,18 +810,18 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
 
               <div className="space-y-3">
                 <div className="space-y-1">
-                  <div className="text-xs font-black text-slate-500">الاسم (اختياري)</div>
+                  <div className="text-xs font-black text-slate-500">{t('business.posSystem.customer.nameOptional')}</div>
                   <input
                     type="text"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="اسم العميل"
+                    placeholder={t('business.posSystem.customer.namePlaceholder')}
                     className="w-full bg-white border rounded-2xl py-3 px-4 outline-none"
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <div className="text-xs font-black text-slate-500">رقم الهاتف</div>
+                  <div className="text-xs font-black text-slate-500">{t('business.posSystem.customer.phone')}</div>
                   <input
                     type="tel"
                     value={customerPhone}
@@ -833,14 +842,14 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                   }}
                   className="py-3 rounded-2xl bg-slate-50 text-slate-700 font-black"
                 >
-                  مسح
+                  {t('business.posSystem.customer.clear')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setIsCustomerCardOpen(false)}
                   className="py-3 rounded-2xl bg-slate-900 text-white font-black"
                 >
-                  حفظ
+                  {t('business.posSystem.customer.save')}
                 </button>
               </div>
             </MotionDiv>

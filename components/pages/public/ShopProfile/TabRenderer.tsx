@@ -1,6 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Skeleton } from '@/components/common/ui';
+import { useTranslation } from 'react-i18next';
 
 interface TabRendererProps {
   activeTab: 'products' | 'gallery' | 'info';
@@ -61,6 +62,7 @@ const GalleryFallback = () => (
 );
 
 const TabRenderer: React.FC<TabRendererProps> = (props) => {
+  const { t } = useTranslation();
   const { activeTab } = props;
 
   const prefersReducedMotion = useReducedMotion();
@@ -120,7 +122,7 @@ const TabRenderer: React.FC<TabRendererProps> = (props) => {
                     className={`${buttonPadding} ${buttonShape} text-white font-black transition-opacity hover:opacity-90`}
                     style={{ backgroundColor: primaryColor }}
                   >
-                    إعادة المحاولة
+                    {t('restaurantsPage.retry')}
                   </button>
                 </div>
               ) : (

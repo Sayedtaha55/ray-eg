@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { TrendingUp, ShoppingBag, ChevronLeft, ChevronRight, Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Offer, Product } from '@/types';
@@ -68,6 +69,7 @@ interface ProductCardProps {
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ item, idx, onSelectItem, onAddToCart }) => {
+  const { t } = useTranslation();
   const [setRef, inView] = useInView({ rootMargin: '50px' });
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -141,7 +143,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, idx, onSelectItem, onAd
           {item.soldCount && item.soldCount > 0 && (
             <div className="absolute top-2 right-2 md:top-3 md:right-3 bg-black/80 backdrop-blur-sm text-white px-2 py-1 md:px-3 md:py-1.5 rounded-full text-[10px] md:text-xs font-black flex items-center gap-1">
               <TrendingUp className="w-3 h-3 text-[#BD00FF]" />
-              <span>{item.soldCount.toLocaleString('ar-EG')} مبيع</span>
+              <span>{item.soldCount.toLocaleString('ar-EG')} {t('home.topSelling.sold')}</span>
             </div>
           )}
 
@@ -178,11 +180,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, idx, onSelectItem, onAd
             <div className="text-left">
               {item.originalPrice && item.originalPrice > item.price && (
                 <p className="text-[10px] text-slate-400 line-through">
-                  ج.م {item.originalPrice}
+                  {t('home.topSelling.currency')} {item.originalPrice}
                 </p>
               )}
               <p className="text-sm md:text-lg font-black text-[#BD00FF] tracking-tighter">
-                ج.م {item.price}
+                {t('home.topSelling.currency')} {item.price}
               </p>
             </div>
 
@@ -190,14 +192,14 @@ const ProductCard: React.FC<ProductCardProps> = ({ item, idx, onSelectItem, onAd
               <button
                 onClick={handleReserve}
                 className="w-7 h-7 md:w-9 md:h-9 bg-[#00E5FF] rounded-lg flex items-center justify-center hover:scale-110 transition-all shadow-md"
-                aria-label="حجز"
+                aria-label={t('home.topSelling.reserve')}
               >
                 <CalendarCheck className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>
               <button
                 onClick={handleAddToCart}
                 className="w-7 h-7 md:w-9 md:h-9 bg-slate-900 text-white rounded-lg flex items-center justify-center hover:scale-110 transition-all shadow-md"
-                aria-label="إضافة للسلة"
+                aria-label={t('home.topSelling.addToCart')}
               >
                 <ShoppingCart className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>
@@ -216,6 +218,7 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
   onSelectItem,
   onAddToCart,
 }) => {
+  const { t } = useTranslation();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // حساب المنتجات الأكثر مبيعًا من الطلبات
@@ -252,7 +255,7 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
           productSales[pid] = {
             id: pid,
             productId: pid,
-            name: product?.name || 'منتج',
+            name: product?.name || t('home.topSelling.product'),
             imageUrl: product?.imageUrl || '',
             price: product?.price || item.price || 0,
             shopId: order.shopId || product?.shopId,
@@ -313,7 +316,7 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
   }, []);
 
   const hasOrderData = topProducts.length > 0;
-  const sectionTitle = hasOrderData ? 'الأكثر مبيعًا' : 'عروض مميزة';
+  const sectionTitle = hasOrderData ? t('home.topSelling.bestSellers') : t('home.topSelling.featuredOffers');
   const SectionIcon = hasOrderData ? TrendingUp : ShoppingBag;
   const sectionColor = hasOrderData ? 'from-purple-500 to-purple-600' : 'from-cyan-500 to-cyan-600';
 
@@ -360,7 +363,7 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
                 {sectionTitle}
               </h2>
               <p className="text-[10px] md:text-sm text-slate-500 font-medium">
-                لا توجد بيانات متاحة حالياً.
+                {t('home.topSelling.noData')}
               </p>
             </div>
           </div>
@@ -385,8 +388,8 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
             </h2>
             <p className="text-[10px] md:text-sm text-slate-500 font-medium hidden sm:block">
               {hasOrderData
-                ? 'المنتجات الأكثر طلبًا من عملائنا'
-                : 'اكتشف أحدث العروض والتخفيضات'}
+                ? t('home.topSelling.bestSellersDesc')
+                : t('home.topSelling.featuredOffersDesc')}
             </p>
           </div>
         </div>
@@ -396,21 +399,21 @@ const TopSellingProductsSection: React.FC<TopSellingProductsSectionProps> = ({
             to="/offers"
             className="text-xs md:text-sm font-bold text-slate-600 hover:text-purple-600 transition-colors ml-2"
           >
-            عرض الكل
+            {t('home.topSelling.viewAll')}
           </Link>
           {/* أزرار التنقل - تظهر فقط على الشاشات الكبيرة */}
           <div className="hidden md:flex gap-2">
             <button
               onClick={() => scroll('right')}
               className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-600"
-              aria-label="التالي"
+              aria-label={t('home.topSelling.next')}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
             <button
               onClick={() => scroll('left')}
               className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex items-center justify-center text-slate-600"
-              aria-label="السابق"
+              aria-label={t('home.topSelling.previous')}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>

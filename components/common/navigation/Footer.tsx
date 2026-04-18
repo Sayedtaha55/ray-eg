@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { Facebook, Twitter, Instagram, Youtube, Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer: React.FC = () => {
+  const { t } = useTranslation();
   const currentYear = new Date().getFullYear();
 
   const WhatsAppIcon = (props: { size?: number }) => {
@@ -36,29 +38,29 @@ const Footer: React.FC = () => {
 
   const footerSections = [
     {
-      title: 'الخدمات',
+      title: t('footer.services'),
       links: [
-        { name: 'العروض', href: '/offers' },
-        { name: 'التوصيل', href: '/delivery' },
+        { name: t('public.offers'), href: '/offers' },
+        { name: t('business.delivery'), href: '/delivery' },
       ],
     },
     {
-      title: 'للتجار',
+      title: t('footer.forMerchants'),
       links: [
-        { name: 'إنشاء متجر', href: '/business/register' },
-        { name: 'تسجيل الدخول', href: '/business/login' },
-        { name: 'تسجيل مندوب توصيل', href: '/courier' },
-        { name: 'الأسعار', href: '/pricing' },
-        { name: 'الدعم', href: '/support' },
+        { name: t('business.createStore'), href: '/business/register' },
+        { name: t('common.login'), href: '/business/login' },
+        { name: t('business.courierRegister'), href: '/courier' },
+        { name: t('business.pricing'), href: '/pricing' },
+        { name: t('common.support'), href: '/support' },
       ],
     },
     {
-      title: 'عن MNMKNK',
+      title: t('footer.aboutMNMKNK'),
       links: [
-        { name: 'من نحن', href: '/about' },
-        { name: 'الشروط والأحكام', href: '/terms' },
-        { name: 'سياسة الخصوصية', href: '/privacy' },
-        { name: 'اتصل بنا', href: '/contact' },
+        { name: t('common.aboutUs'), href: '/about' },
+        { name: t('common.terms'), href: '/terms' },
+        { name: t('common.privacy'), href: '/privacy' },
+        { name: t('common.contactUs'), href: '/contact' },
       ],
     },
   ];
@@ -82,7 +84,7 @@ const Footer: React.FC = () => {
               <span className="text-2xl font-black text-white">MNMKNK</span>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed">
-              منصتك الأولى للتسوق الإلكتروني في مصر. اكتشف أفضل المتاجر والمنتجات والعروض في مكان واحد.
+              {t('footer.desc')}
             </p>
             <div className="flex gap-3">
               {socialLinks.map((social, index) => (
@@ -129,7 +131,7 @@ const Footer: React.FC = () => {
                 <Mail size={18} />
               </div>
               <div>
-                <p className="text-white font-black text-sm">البريد الإلكتروني</p>
+                <p className="text-white font-black text-sm">{t('common.email')}</p>
                 <a
                   href="mailto:mnmknk.eg@gmail.com"
                   className="text-slate-400 text-sm hover:text-white transition-colors"
@@ -143,7 +145,7 @@ const Footer: React.FC = () => {
                 <Phone size={18} />
               </div>
               <div>
-                <p className="text-white font-black text-sm">الهاتف</p>
+                <p className="text-white font-black text-sm">{t('common.phone')}</p>
                 <a
                   href="tel:01067461059"
                   className="text-slate-400 text-sm hover:text-white transition-colors"
@@ -157,8 +159,8 @@ const Footer: React.FC = () => {
                 <MapPin size={18} />
               </div>
               <div>
-                <p className="text-white font-black text-sm">العنوان</p>
-                <p className="text-slate-400 text-sm">القاهرة، مصر</p>
+                <p className="text-white font-black text-sm">{t('common.address')}</p>
+                <p className="text-slate-400 text-sm">{t('common.addressValue')}</p>
               </div>
             </div>
           </div>
@@ -203,7 +205,7 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-white/10 text-center">
           <p className="text-slate-400 text-sm">
-            &copy; {currentYear} MNMKNK. جميع الحقوق محفوظة.
+            &copy; {currentYear} MNMKNK. {t('common.allRightsReserved')}
           </p>
         </div>
       </div>

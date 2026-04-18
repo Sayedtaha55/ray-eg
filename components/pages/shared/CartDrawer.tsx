@@ -8,6 +8,7 @@ import { locationPersistence } from '@/services/locationPersistence';
 import { explainGeoError, requestPreciseBrowserLocation } from '@/lib/geolocation';
 import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
 import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useTranslation } from 'react-i18next';
 
 interface CartItem {
   id: string;
@@ -30,6 +31,7 @@ interface CartDrawerProps {
 }
 
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemove, onUpdateQuantity }) => {
+  const { t, i18n } = useTranslation();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState('');
@@ -101,6 +103,26 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     }
   };
 
+  const isArabic = String(i18n?.language || '').toLowerCase().startsWith('ar');
+
+  const toUnitLabel = (raw: any) => {
+    const u = String(raw || '').trim();
+    if (!u) return '';
+    return isArabic ? toArabicUnitLabel(u) : u;
+  };
+
+  const formatPackLabel = (input: any, fallbackUnit?: any) => {
+    if (isArabic) return formatPackLabelArabic(input, fallbackUnit);
+    if (!input || typeof input !== 'object') return '';
+    const label = String((input as any)?.label || (input as any)?.name || '').trim();
+    if (label) return label;
+    const qtyRaw = typeof (input as any)?.qty === 'number' ? (input as any).qty : Number((input as any)?.qty ?? NaN);
+    const qty = Number.isFinite(qtyRaw) && qtyRaw > 0 ? qtyRaw : NaN;
+    if (!Number.isFinite(qty)) return '';
+    const unit = toUnitLabel((input as any)?.unit || fallbackUnit);
+    return unit ? `${qty} ${unit}` : String(qty);
+  };
+
   const isLikelyInvalidProductId = (raw: any) => {
     const id = String(raw || '').trim();
     if (!id) return true;
@@ -137,7 +159,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     }
     RayDB.setCart(next);
     setInvalidLineIds([]);
-    setError('تم حذف المنتجات غير المتاحة من السلة');
+    setError(t('public.cartDrawer.invalidItemsRemoved'));
   };
 
   React.useEffect(() => {
@@ -223,7 +245,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
   const groupedItems = localItems.reduce((acc, item) => {
     const sId = String(item.shopId || 'unknown');
     if (!acc[sId]) {
-      acc[sId] = { name: String(item.shopName || 'متجر'), items: [] };
+      acc[sId] = { name: String(item.shopName || t('public.cartDrawer.shopFallback')), items: [] };
     }
     acc[sId].items.push(item);
     return acc;
@@ -292,9 +314,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     } catch (err) {
       const message = String((err as any)?.message || '').trim();
       if (message === 'GEO_UNSUPPORTED') {
-        setLocationError('المتصفح لا يدعم تحديد الموقع');
+        setLocationError(t('public.cartDrawer.locationErrors.unsupported'));
       } else if (message === 'GEO_INSECURE_CONTEXT') {
-        setLocationError('تحديد الموقع يحتاج فتح الموقع عبر HTTPS.');
+        setLocationError(t('public.cartDrawer.locationErrors.insecureContext'));
       } else {
         setLocationError(explainGeoError(err));
       }
@@ -309,7 +331,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     const bad = computeInvalidItems(localItems);
     if (bad.length > 0) {
       setInvalidLineIds(bad.map(getLineKey));
-      setError('يوجد منتجات غير متاحة/غير صالحة في السلة. احذفها ثم حاول مرة أخرى.');
+      setError(t('public.cartDrawer.invalidItemsHint'));
       return;
     }
 
@@ -335,13 +357,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
     if (step === 'cod_location') {
       const phone = String(customerPhone || '').trim();
       if (!phone) {
-        setError('رقم الهاتف مطلوب');
+        setError(t('public.cartDrawer.phoneRequired'));
         return;
       }
       const hasCoords = !!coords && typeof coords.lat === 'number' && typeof coords.lng === 'number';
       const hasFallback = String(fallbackAddress || '').trim().length > 0;
       if (!hasCoords && !hasFallback) {
-        setError('حدد موقعك أو اكتب العنوان');
+        setError(t('public.cartDrawer.addressOrLocationRequired'));
         return;
       }
     }
@@ -421,7 +443,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       }, 2500);
     } catch (err: any) {
       const msg = String(err?.message || '').trim();
-      if (msg.includes('غير متاحة') || msg.toLowerCase().includes('productid')) {
+      if (msg.toLowerCase().includes('productid')) {
         const current = RayDB.getCart();
         const badNow = computeInvalidItems(current as any);
         if (badNow.length > 0) {
@@ -436,7 +458,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
           const returnTo = `${window.location.pathname}${window.location.search}`;
           window.dispatchEvent(new CustomEvent('ray-auth-required', {
             detail: {
-              message: 'قبل إتمام الشراء لازم تسجل حساب.',
+              message: t('public.cartDrawer.authRequired'),
               returnTo,
             },
           }));
@@ -444,7 +466,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
         }
         return;
       }
-      setError(err?.message || 'حدث خطأ أثناء إتمام الشراء');
+      setError(err?.message || t('public.cartDrawer.checkoutError'));
     }
   };
 
@@ -462,10 +484,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       >
         <SheetHeader className="flex-row items-center justify-between space-y-0">
           <SheetTitle className="flex items-center gap-3 sm:gap-4">
-            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 text-[#00E5FF]" /> سلة التسوق
+            <ShoppingBag className="w-6 h-6 sm:w-8 sm:h-8 text-[#00E5FF]" /> {t('public.cartDrawer.title')}
           </SheetTitle>
           <SheetClose asChild>
-            <button className="p-2 sm:p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors" aria-label="إغلاق">
+            <button className="p-2 sm:p-3 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors" aria-label={t('public.cartDrawer.close')}>
               <X size={20} className="sm:w-6 sm:h-6" />
             </button>
           </SheetClose>
@@ -477,14 +499,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                    <div className="w-20 h-20 sm:w-24 sm:h-24 bg-green-500 rounded-full flex items-center justify-center mb-6 sm:mb-8 shadow-2xl animate-bounce">
                       <CheckCircle2 size={40} className="text-white sm:w-12 sm:h-12" />
                    </div>
-                   <h3 className="text-2xl sm:text-3xl font-black mb-3 sm:mb-4">تم تأكيد طلبك!</h3>
-                   <p className="text-slate-400 font-bold">جاري إخطار المحل لتجهيز طلبك فوراً.</p>
+                   <h3 className="text-2xl sm:text-3xl font-black mb-3 sm:mb-4">{t('public.cartDrawer.success.title')}</h3>
+                   <p className="text-slate-400 font-bold">{t('public.cartDrawer.success.subtitle')}</p>
                 </div>
               ) : step === 'cod_location' ? (
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black text-slate-900">عنوان التوصيل</h3>
-                    <p className="text-slate-500 text-sm font-bold">هنحدد موقعك تلقائياً وتقدر تعدّل الـ Pin على الخريطة.</p>
+                    <h3 className="text-xl font-black text-slate-900">{t('public.cartDrawer.deliveryAddress.title')}</h3>
+                    <p className="text-slate-500 text-sm font-bold">{t('public.cartDrawer.deliveryAddress.subtitle')}</p>
                   </div>
 
                   {locationError && <p className="text-red-500 text-xs font-bold text-center">{String(locationError)}</p>}
@@ -494,7 +516,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                     disabled={isLocating}
                     className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-3 hover:bg-black transition-all disabled:opacity-50"
                   >
-                    {isLocating ? <Loader2 className="animate-spin" /> : <>تحديد موقعي تلقائياً</>}
+                    {isLocating ? <Loader2 className="animate-spin" /> : <>{t('public.cartDrawer.deliveryAddress.locateMe')}</>}
                   </button>
 
                   <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
@@ -502,7 +524,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-600">رقم الهاتف (إجباري)</label>
+                    <label className="text-xs font-black text-slate-600">{t('public.cartDrawer.deliveryAddress.phoneLabel')}</label>
                     <input
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value)}
@@ -513,32 +535,32 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-600">وصف إضافي (اختياري)</label>
+                    <label className="text-xs font-black text-slate-600">{t('public.cartDrawer.deliveryAddress.extraNoteLabel')}</label>
                     <input
                       value={locationNote}
                       onChange={(e) => setLocationNote(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
-                      placeholder="مثال: الدور 3 - شقة 12 - بجوار..."
+                      placeholder={t('public.cartDrawer.deliveryAddress.extraNotePlaceholder')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-600">لو الموقع مش شغال، اكتب العنوان (اختياري)</label>
+                    <label className="text-xs font-black text-slate-600">{t('public.cartDrawer.deliveryAddress.fallbackAddressLabel')}</label>
                     <input
                       value={fallbackAddress}
                       onChange={(e) => setFallbackAddress(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
-                      placeholder="العنوان كتابة"
+                      placeholder={t('public.cartDrawer.deliveryAddress.fallbackAddressPlaceholder')}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-600">ملاحظة على الطلب (اختياري)</label>
+                    <label className="text-xs font-black text-slate-600">{t('public.cartDrawer.deliveryAddress.orderNoteLabel')}</label>
                     <input
                       value={customerNote}
                       onChange={(e) => setCustomerNote(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl py-3 px-4 text-slate-900 outline-none focus:border-[#00E5FF]/60 transition-all text-sm"
-                      placeholder="مثال: إضافة كاتشب"
+                      placeholder={t('public.cartDrawer.deliveryAddress.orderNotePlaceholder')}
                     />
                   </div>
 
@@ -546,25 +568,25 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                     onClick={() => setStep('cart')}
                     className="w-full py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all"
                   >
-                    رجوع للسلة
+                    {t('public.cartDrawer.backToCart')}
                   </button>
                 </div>
               ) : localItems.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-200">
                   <ShoppingBag size={64} className="mb-6 opacity-10 sm:w-20 sm:h-20" />
-                  <p className="font-black text-xl">سلتك فارغة تماماً</p>
+                  <p className="font-black text-xl">{t('public.cartDrawer.empty')}</p>
                 </div>
               ) : (
                 Object.entries(groupedItems).map(([shopId, shop]: [string, any]) => (
                   <div key={shopId} className="space-y-6">
                     <div className="flex items-center gap-3 border-b border-slate-50 pb-4">
-                       <span className="text-[10px] font-black bg-[#00E5FF] px-2 py-1 rounded text-black">متجر</span>
+                       <span className="text-[10px] font-black bg-[#00E5FF] px-2 py-1 rounded text-black">{t('public.cartDrawer.shopTag')}</span>
                        <h3 className="font-black text-lg sm:text-xl text-slate-900">{String(shop.name)}</h3>
                        <span className="text-[10px] font-black text-slate-400 mr-auto">
-                         رسوم التوصيل: {(() => {
+                         {t('public.cartDrawer.deliveryFeeLabel')}: {(() => {
                            const fee = deliveryFees[String(shopId)];
-                           if (fee == null) return 'غير محددة';
-                           return `ج.م ${fee}`;
+                           if (fee == null) return t('public.cartDrawer.deliveryFeeUnknown');
+                           return `${t('business.pos.egp')} ${fee}`;
                          })()}
                        </span>
                     </div>
@@ -586,7 +608,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                           />
                           <div className="text-right flex-1">
                             <p className="font-black text-sm">{String(item.name)}</p>
-                            <p className="text-[#00E5FF] font-black text-xs">ج.م {Number(item.price)}</p>
+                            <p className="text-[#00E5FF] font-black text-xs">{t('business.pos.egp')} {Number(item.price)}</p>
                             {(() => {
                               const sel = (item as any)?.variantSelection;
                               if (!sel || typeof sel !== 'object') return null;
@@ -619,20 +641,20 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 const qtyText = Number.isFinite(qtyRaw) && qtyRaw > 0
                                   ? qtyRaw
                                   : (Number.isFinite(defQtyRaw) && defQtyRaw > 0 ? defQtyRaw : NaN);
-                                const unitText = toArabicUnitLabel(String(sel?.unit || defUnit || ''));
+                                const unitText = toUnitLabel(String(sel?.unit || defUnit || ''));
                                 const priceText = Number.isFinite(priceRaw) && priceRaw >= 0
                                   ? priceRaw
                                   : (Number.isFinite(defPriceRaw) && defPriceRaw >= 0 ? defPriceRaw : NaN);
                                 const left = (() => {
-                                  const selLabel = formatPackLabelArabic(sel, (item as any)?.unit);
+                                  const selLabel = formatPackLabel(sel, (item as any)?.unit);
                                   if (selLabel) return selLabel;
-                                  const defFmt = formatPackLabelArabic(def, (item as any)?.unit);
+                                  const defFmt = formatPackLabel(def, (item as any)?.unit);
                                   if (defFmt) return defFmt;
                                   if (defLabel) return defLabel;
                                   return Number.isFinite(qtyText) ? `${qtyText}${unitText ? ` ${unitText}` : ''}` : '';
                                 })();
                                 if (!left) return null;
-                                const full = Number.isFinite(priceText) ? `${left} = ج.م ${Math.round(priceText * 100) / 100}` : left;
+                                const full = Number.isFinite(priceText) ? `${left} = ${t('business.pos.egp')} ${Math.round(priceText * 100) / 100}` : left;
                                 return (
                                   <p className="mt-1 text-[10px] font-bold text-slate-500">
                                     {full}
@@ -653,7 +675,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                               <div className="mt-2 space-y-1">
                                 {(item as any).addons.map((a: any, idx: number) => (
                                   <p key={idx} className="text-[10px] font-bold text-slate-500">
-                                    + {String(a?.optionName || a?.optionId || 'إضافة')} ({String(a?.variantLabel || a?.variantId || '')})
+                                    + {String(a?.optionName || a?.optionId || t('public.cartDrawer.addonFallback'))} ({String(a?.variantLabel || a?.variantId || '')})
                                   </p>
                                 ))}
                               </div>
@@ -667,14 +689,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                               const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
                               const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
                               const dims = [
-                                Number.isFinite(l) && l > 0 ? `طول ${Math.round(l * 100) / 100}سم` : '',
-                                Number.isFinite(w) && w > 0 ? `عرض ${Math.round(w * 100) / 100}سم` : '',
-                                Number.isFinite(h) && h > 0 ? `ارتفاع ${Math.round(h * 100) / 100}سم` : '',
+                                Number.isFinite(l) && l > 0 ? t('public.cartDrawer.furniture.lengthCm', { value: Math.round(l * 100) / 100 }) : '',
+                                Number.isFinite(w) && w > 0 ? t('public.cartDrawer.furniture.widthCm', { value: Math.round(w * 100) / 100 }) : '',
+                                Number.isFinite(h) && h > 0 ? t('public.cartDrawer.furniture.heightCm', { value: Math.round(h * 100) / 100 }) : '',
                               ].filter(Boolean);
                               if (!unit && dims.length === 0) return null;
                               return (
                                 <p className="mt-1 text-[10px] font-bold text-slate-500">
-                                  {unit ? `وحدة: ${unit}` : ''}
+                                  {unit ? t('public.cartDrawer.furniture.unit', { unit }) : ''}
                                   {unit && dims.length ? ' - ' : ''}
                                   {dims.join(' - ')}
                                 </p>
@@ -711,7 +733,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                 <Minus size={14} className="sm:w-4 sm:h-4" />
                               </button>
                            </div>
-                           <p className="font-black text-base sm:text-lg text-slate-900">ج.م {Number(item.price) * Number(item.quantity)}</p>
+                           <p className="font-black text-base sm:text-lg text-slate-900">{t('business.pos.egp')} {Number(item.price) * Number(item.quantity)}</p>
                         </div>
                       </div>
                     ))}
@@ -730,34 +752,34 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                   disabled={isProcessing}
                   className="w-full py-3 bg-red-50 text-red-700 rounded-2xl font-black text-sm hover:bg-red-100 transition-all disabled:opacity-50"
                 >
-                  حذف المنتجات غير المتاحة
+                  {t('public.cartDrawer.removeUnavailable')}
                 </button>
                 <button
                   onClick={() => {
                     RayDB.clearCart();
                     locationPersistence.clearCheckoutLocation();
                     setInvalidLineIds([]);
-                    setError('تم تفريغ السلة');
+                    setError(t('public.cartDrawer.cartCleared'));
                   }}
                   disabled={isProcessing}
                   className="w-full py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-sm hover:bg-slate-200 transition-all disabled:opacity-50"
                 >
-                  تفريغ السلة بالكامل
+                  {t('public.cartDrawer.clearAll')}
                 </button>
               </div>
             )}
             <div className="space-y-2">
               <div className="flex justify-between items-center flex-row-reverse">
-                <span className="font-black text-slate-400">إجمالي المنتجات</span>
-                <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {total}</span>
+                <span className="font-black text-slate-400">{t('public.cartDrawer.totals.itemsTotal')}</span>
+                <span className="text-xl sm:text-2xl font-black tracking-tighter">{t('business.pos.egp')} {total}</span>
               </div>
               <div className="flex justify-between items-center flex-row-reverse">
-                <span className="font-black text-slate-400">رسوم التوصيل</span>
-                <span className="text-xl sm:text-2xl font-black tracking-tighter">ج.م {deliveryFeeTotal}</span>
+                <span className="font-black text-slate-400">{t('public.cartDrawer.totals.deliveryFees')}</span>
+                <span className="text-xl sm:text-2xl font-black tracking-tighter">{t('business.pos.egp')} {deliveryFeeTotal}</span>
               </div>
               <div className="flex justify-between items-center flex-row-reverse">
-                <span className="font-black text-slate-900">الإجمالي النهائي</span>
-                <span className="text-3xl sm:text-4xl font-black tracking-tighter">ج.م {grandTotal}</span>
+                <span className="font-black text-slate-900">{t('public.cartDrawer.totals.grandTotal')}</span>
+                <span className="text-3xl sm:text-4xl font-black tracking-tighter">{t('business.pos.egp')} {grandTotal}</span>
               </div>
             </div>
             <button
@@ -769,11 +791,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                 <Loader2 className="animate-spin" />
               ) : step === 'cart' ? (
                 <>
-                  التالي <CreditCard size={18} className="sm:w-6 sm:h-6" />
+                  {t('public.cartDrawer.next')} <CreditCard size={18} className="sm:w-6 sm:h-6" />
                 </>
               ) : (
                 <>
-                  تأكيد الطلب (دفع عند الاستلام) <CreditCard size={18} className="sm:w-6 sm:h-6" />
+                  {t('public.cartDrawer.confirmCod')} <CreditCard size={18} className="sm:w-6 sm:h-6" />
                 </>
               )}
             </button>

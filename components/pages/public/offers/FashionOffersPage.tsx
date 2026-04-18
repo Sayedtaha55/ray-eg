@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
 import { Sparkles, TrendingUp, Loader2, MapPin, ShoppingBag } from 'lucide-react';
@@ -16,6 +17,7 @@ const ReservationModal = lazy(() => import('../../shared/ReservationModal'));
 const MotionDiv = motion.div as any;
 
 const FashionOffersPage: React.FC = () => {
+  const { t } = useTranslation();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -179,7 +181,7 @@ const FashionOffersPage: React.FC = () => {
           <div className="mt-10 md:mt-16 flex items-center justify-center">
             <button
               type="button"
-              aria-label="تحميل المزيد من العروض"
+              aria-label={t('fashion.loadMoreAria')}
               onClick={() => {
                 loadMoreOffersRef.current?.();
               }}
@@ -187,7 +189,7 @@ const FashionOffersPage: React.FC = () => {
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+              <span>{loadingMore ? t('fashion.loading') : t('fashion.loadMore')}</span>
             </button>
           </div>
         )}
@@ -198,45 +200,45 @@ const FashionOffersPage: React.FC = () => {
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
       <div className="flex flex-col items-center text-center mb-8 md:mb-20">
-         <MotionDiv 
-            initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
-            animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-purple-700 text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
-         >
-            <ShoppingBag className="w-3 h-3 text-white fill-current" />
-            عروض الأزياء
-         </MotionDiv>
-         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">عروض<br/><span className="text-purple-700">الملابس والأحذية.</span></h1>
-         <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
-            اكتشف أفضل عروض الملابس والأحذية مع خصومات حصرية على أحدث الموديلات والماركات العالمية.
-         </p>
+        <MotionDiv
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-purple-700 text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
+        >
+          <ShoppingBag className="w-3 h-3 text-white fill-current" />
+          {t('fashion.badge')}
+        </MotionDiv>
+        <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">{t('fashion.title')}<br /><span className="text-purple-700">{t('fashion.subtitle')}</span></h1>
+        <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
+          {t('fashion.description')}
+        </p>
 
-         <Link
-           to="/map"
-           className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-purple-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-purple-800 transition-all shadow-xl"
-         >
-           الخريطة <MapPin className="w-4 h-4" />
-         </Link>
+        <Link
+          to="/map"
+          className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-purple-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-purple-800 transition-all shadow-xl"
+        >
+          {t('fashion.mapBtn')} <MapPin className="w-4 h-4" />
+        </Link>
       </div>
 
       {/* Offers Grid */}
       <section className="mb-16 md:mb-24">
         <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
-           <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث عروض الأزياء</h2>
-           <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
-             مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
-           </Link>
+          <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">{t('fashion.sectionTitle')}</h2>
+          <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
+            {t('fashion.viewAll')} <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
+          </Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
           {offers.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض أزياء نشطة حالياً.</div>
+            <div className="col-span-full py-20 text-center text-slate-500 font-bold">{t('fashion.noOffers')}</div>
           ) : offers.map((offer, idx) => (
             <div key={offer.id} className="cv-auto">
               <OfferCard
-              offer={offer}
-              idx={idx}
-              navigate={navigate}
-              setSelectedItem={setSelectedItem}
+                offer={offer}
+                idx={idx}
+                navigate={navigate}
+                setSelectedItem={setSelectedItem}
                 playSound={playSound}
               />
             </div>
@@ -252,13 +254,13 @@ const FashionOffersPage: React.FC = () => {
           <div className="mt-10 md:mt-16 flex items-center justify-center">
             <button
               type="button"
-              aria-label="تحميل المزيد من العروض"
+              aria-label={t('fashion.loadMoreAria')}
               onClick={() => loadMoreOffersRef.current?.()}
               className="px-8 py-3 md:px-10 md:py-4 bg-purple-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-purple-800 transition-all shadow-xl"
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+              <span>{loadingMore ? t('fashion.loading') : t('fashion.loadMore')}</span>
             </button>
           </div>
         )}

@@ -1,5 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Search, MapPin, UtensilsCrossed, ChevronLeft, Star } from 'lucide-react';
 import { Category } from '@/types';
 import { motion } from 'framer-motion';
@@ -17,7 +18,8 @@ const isVideoUrl = (url: string) => {
 };
 
 const RestaurantsPage: React.FC = () => {
-  const [governorate, setGovernorate] = useState('الكل');
+  const { t } = useTranslation();
+  const [governorate, setGovernorate] = useState(t('common.governorates.all'));
   const [search, setSearch] = useState('');
   const [shops, setShops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,7 @@ const RestaurantsPage: React.FC = () => {
           take: PAGE_SIZE,
           skip: 0,
           category: Category.RESTAURANT,
-          governorate: governorate === 'الكل' ? undefined : governorate,
+          governorate: governorate === t('restaurantsPage.all') ? undefined : governorate,
           search: search.trim() ? search.trim() : undefined,
         });
         if (!mounted) return;
@@ -59,7 +61,7 @@ const RestaurantsPage: React.FC = () => {
       mounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [governorate, search]);
+  }, [governorate, search, t]);
 
   const loadMore = async () => {
     const PAGE_SIZE = 12;
@@ -70,7 +72,7 @@ const RestaurantsPage: React.FC = () => {
         take: PAGE_SIZE,
         skip: shops.length,
         category: Category.RESTAURANT,
-        governorate: governorate === 'الكل' ? undefined : governorate,
+        governorate: governorate === t('restaurantsPage.all') ? undefined : governorate,
         search: search.trim() ? search.trim() : undefined,
       });
       const list = Array.isArray(next) ? next : [];
@@ -101,14 +103,14 @@ const RestaurantsPage: React.FC = () => {
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-4 md:py-12 text-right" dir="rtl">
       <div className="flex flex-col gap-6 md:gap-8 mb-8 md:mb-16">
         <div className="text-center md:text-right">
-          <h1 className="text-2xl md:text-4xl lg:text-7xl font-black tracking-tighter mb-3 md:mb-4">عالم <span className="text-[#BD00FF]">المطاعم.</span></h1>
-          <p className="text-slate-400 text-sm md:text-lg md:text-xl font-medium">أفضل تجارب الطعام والعروض الشهية بانتظارك.</p>
+          <h1 className="text-2xl md:text-4xl lg:text-7xl font-black tracking-tighter mb-3 md:mb-4">{t('restaurantsPage.title')} <span className="text-[#BD00FF]">{t('restaurantsPage.subtitle')}</span></h1>
+          <p className="text-slate-400 text-sm md:text-lg md:text-xl font-medium">{t('restaurantsPage.description')}</p>
         </div>
         <div className="w-full md:w-96 relative">
            <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 md:w-5 md:h-5 text-slate-400" />
            <input 
              type="text" 
-             placeholder="ابحث عن مطعم أو وجبة..." 
+             placeholder={t('restaurantsPage.searchPlaceholder')} 
              className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pr-14 pl-6 outline-none focus:ring-2 focus:ring-[#BD00FF] transition-all font-bold text-sm md:text-base"
              value={search}
              onChange={(e) => setSearch(e.target.value)}
@@ -117,7 +119,7 @@ const RestaurantsPage: React.FC = () => {
       </div>
 
       <div className="flex flex-wrap gap-2 md:gap-3 mb-8 md:mb-16">
-         {['الكل', 'القاهرة', 'الجيزة', 'الإسكندرية'].map(g => (
+         {[t('restaurantsPage.all'), t('common.governorates.cairo'), t('common.governorates.giza'), t('common.governorates.alexandria')].map(g => (
            <button 
              key={g}
              onClick={() => setGovernorate(g)}
@@ -164,7 +166,7 @@ const RestaurantsPage: React.FC = () => {
             </div>
           ))
         ) : restaurants.length === 0 ? (
-          <div className="text-slate-400 font-bold">لا توجد مطاعم حالياً</div>
+          <div className="text-slate-400 font-bold">{t('restaurantsPage.noData')}</div>
         ) : (
           restaurants.map((shop, idx) => (
           <div
@@ -231,7 +233,7 @@ const RestaurantsPage: React.FC = () => {
                    />
                    <h3 className="text-xl md:text-3xl font-black text-white truncate">{shop.name}</h3>
                    <span className={`px-2 md:px-4 py-1 md:py-1.5 rounded-full text-[9px] md:text-[11px] font-black shrink-0 ${shop?.isActive === false ? 'bg-white/90 text-rose-600' : 'bg-white/90 text-emerald-600'}`}>
-                     {shop?.isActive === false ? 'مقفول' : 'مفتوح'}
+                     {shop?.isActive === false ? t('restaurantsPage.closed') : t('restaurantsPage.open')}
                    </span>
                 </div>
                 <p className="text-white/60 font-bold text-sm md:text-lg flex items-center gap-2 justify-end truncate">
@@ -242,7 +244,7 @@ const RestaurantsPage: React.FC = () => {
                 to={`/s/${shop.slug}`}
                 className="bg-white text-black px-6 py-2 md:px-8 md:py-4 rounded-xl md:rounded-2xl font-black text-sm md:text-lg hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl"
               >
-                اطلب الآن
+                {t('restaurantsPage.orderNow')}
               </Link>
             </div>
           </div>
@@ -257,7 +259,7 @@ const RestaurantsPage: React.FC = () => {
             className="px-8 py-3 md:px-10 md:py-4 bg-slate-900 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-black transition-all shadow-xl disabled:opacity-60"
             disabled={loadingMore}
           >
-            <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+            <span>{loadingMore ? t('restaurantsPage.loading') : t('restaurantsPage.loadMore')}</span>
           </button>
         </div>
       )}

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Trash2, Printer } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
@@ -31,6 +32,7 @@ const POSCart: React.FC<POSCartProps> = ({
   onPrintReceipt,
   variant = 'desktop',
 }) => {
+  const { t } = useTranslation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const itemsCount = useMemo(() => {
@@ -48,9 +50,9 @@ const POSCart: React.FC<POSCartProps> = ({
             <div className="bg-[#BD00FF]/10 p-2.5 rounded-xl">
               <ShoppingCart className="w-6 h-6 text-[#BD00FF]" />
             </div>
-            <h2 className="text-xl md:text-2xl font-black">السلة الحالية</h2>
+            <h2 className="text-xl md:text-2xl font-black">{t('business.pos.cart.title')}</h2>
           </div>
-          <span className="bg-slate-100 px-4 py-1.5 rounded-full text-xs font-black">{cart.length} أصناف</span>
+          <span className="bg-slate-100 px-4 py-1.5 rounded-full text-xs font-black">{t('business.pos.cart.itemsCount', { count: cart.length })}</span>
         </div>
       </div>
 
@@ -68,7 +70,7 @@ const POSCart: React.FC<POSCartProps> = ({
               <div className="flex justify-between items-start mb-2">
                 <div className="flex-1 text-right">
                   <h4 className="font-black text-slate-900 leading-tight mb-0.5 text-sm md:text-base">{item.name}</h4>
-                  <p className="text-[#BD00FF] font-black text-xs md:text-sm">ج.م {Number(item.price || 0).toFixed(2)}</p>
+                  <p className="text-[#BD00FF] font-black text-xs md:text-sm">{t('business.pos.egp')} {Number(item.price || 0).toFixed(2)}</p>
                 </div>
                 <button
                   onClick={() => removeFromCart(item.id)}
@@ -95,7 +97,7 @@ const POSCart: React.FC<POSCartProps> = ({
                   </button>
                 </div>
                 <div className="text-left">
-                  <p className="font-black text-slate-900 text-sm md:text-base">ج.م {(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</p>
+                  <p className="font-black text-slate-900 text-sm md:text-base">{t('business.pos.egp')} {(Number(item.price || 0) * Number(item.quantity || 0)).toFixed(2)}</p>
                 </div>
               </div>
             </MotionDiv>
@@ -105,7 +107,7 @@ const POSCart: React.FC<POSCartProps> = ({
         {cart.length === 0 && (
           <div className="h-full flex flex-col items-center justify-center text-slate-300 py-20">
             <ShoppingCart size={64} className="mb-4 opacity-20" />
-            <p className="font-black text-lg">السلة فارغة</p>
+            <p className="font-black text-lg">{t('business.pos.cart.empty')}</p>
           </div>
         )}
       </div>
@@ -113,18 +115,18 @@ const POSCart: React.FC<POSCartProps> = ({
       <div className="p-3 md:p-8 bg-white border-t border-slate-100 space-y-3">
         <div className="space-y-2">
           <div className="flex justify-between text-slate-500 font-bold text-sm md:text-base">
-            <span>المجموع الفرعي</span>
-            <span>ج.م {subtotal.toFixed(2)}</span>
+            <span>{t('business.pos.cart.subtotal')}</span>
+            <span>{t('business.pos.egp')} {subtotal.toFixed(2)}</span>
           </div>
           {vatRatePct > 0 && (
             <div className="flex justify-between text-slate-500 font-bold text-sm md:text-base">
-              <span>الضريبة ({vatRatePct}%)</span>
-              <span>ج.م {vatAmount.toFixed(2)}</span>
+              <span>{t('business.pos.cart.vat', { pct: vatRatePct })}</span>
+              <span>{t('business.pos.egp')} {vatAmount.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between items-end pt-1">
-            <span className="text-lg md:text-2xl font-black text-slate-900">الإجمالي</span>
-            <span className="text-xl md:text-3xl font-black text-[#BD00FF]">ج.م {total.toFixed(2)}</span>
+            <span className="text-lg md:text-2xl font-black text-slate-900">{t('business.pos.cart.total')}</span>
+            <span className="text-xl md:text-3xl font-black text-[#BD00FF]">{t('business.pos.egp')} {total.toFixed(2)}</span>
           </div>
         </div>
 
@@ -135,7 +137,7 @@ const POSCart: React.FC<POSCartProps> = ({
             onClick={() => onPrintReceipt?.()}
             className="w-full py-4 md:py-6 bg-white border border-slate-200 text-slate-900 rounded-2xl md:rounded-3xl font-black text-sm md:text-lg shadow-sm hover:bg-slate-50 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            <Printer size={18} className="md:w-5 md:h-5" /> طباعة
+            <Printer size={18} className="md:w-5 md:h-5" /> {t('business.pos.cart.print')}
           </button>
           <button
             type="button"
@@ -143,7 +145,7 @@ const POSCart: React.FC<POSCartProps> = ({
             onClick={processPayment}
             className="w-full py-4 md:py-6 bg-slate-900 text-white rounded-2xl md:rounded-3xl font-black text-base md:text-xl shadow-2xl shadow-slate-200 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3"
           >
-            {isProcessing ? 'جاري التنفيذ...' : 'إتمام العملية الآن'}
+            {isProcessing ? t('business.pos.cart.processing') : t('business.pos.cart.checkoutNow')}
           </button>
         </div>
       </div>
@@ -166,13 +168,13 @@ const POSCart: React.FC<POSCartProps> = ({
                   <ShoppingCart size={18} />
                 </div>
                 <div className="text-right">
-                  <div className="font-black text-sm">السلة</div>
-                  <div className="text-xs text-white/70 font-bold">{itemsCount} قطعة</div>
+                  <div className="font-black text-sm">{t('business.pos.cart.cartLabel')}</div>
+                  <div className="text-xs text-white/70 font-bold">{t('business.pos.cart.pieces', { count: itemsCount })}</div>
                 </div>
               </div>
               <div className="text-left">
-                <div className="text-xs text-white/70 font-bold">الإجمالي</div>
-                <div className="font-black">ج.م {total.toFixed(2)}</div>
+                <div className="text-xs text-white/70 font-bold">{t('business.pos.cart.total')}</div>
+                <div className="font-black">{t('business.pos.egp')} {total.toFixed(2)}</div>
               </div>
             </div>
           </button>

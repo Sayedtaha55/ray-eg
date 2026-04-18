@@ -1,4 +1,5 @@
 import React, { useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, FileText, Store } from 'lucide-react';
 import { Offer, Product, Shop } from '@/types';
 import { coerceBoolean } from '../ShopProfile/utils';
@@ -22,6 +23,7 @@ const normalizeColor = (value: unknown, fallback: string) => {
 const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(String(url || '').trim());
 
 const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ shops, offers, shopProductsById = {}, loading = false, onOpenShop }) => {
+  const { t } = useTranslation();
   const slidersRef = useRef<Record<string, HTMLDivElement | null>>({});
 
   const approvedShops = useMemo(
@@ -68,7 +70,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
     <section className="mb-16 md:mb-24" dir="rtl">
       <div className="flex items-center justify-between flex-row-reverse mb-6 md:mb-8">
         <div>
-          <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">المتاجر المتاحة الآن</h2>
+          <h2 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tight">{t('home.stores.title')}</h2>
         </div>
       </div>
 
@@ -105,7 +107,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
             const base = `https://wa.me/${whatsappDigits}`;
             try {
               const u = new URL(base);
-              u.searchParams.set('text', `مرحبا ${shop?.name || ''}، عايز أضيف روشتة`);
+              u.searchParams.set('text', t('home.stores.whatsappPrescription', { shopName: shop?.name || '' }));
               return u.toString();
             } catch {
               return base;
@@ -121,7 +123,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                     onClick={() => onOpenShop(shop)}
                     className="px-4 py-2 rounded-xl bg-slate-900 text-white font-black text-xs md:text-sm hover:bg-slate-800 transition-colors"
                   >
-                    عرض المزيد
+                    {t('home.stores.showMore')}
                   </button>
 
                   <div className="flex items-center gap-3 flex-row-reverse">
@@ -149,7 +151,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                             background: `linear-gradient(90deg, ${primaryColor}12, ${secondaryColor}10)`,
                           }}
                         >
-                          زيارة المحل
+                          {t('home.stores.visitShop')}
                         </button>
                       </div>
                       <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-1">{shop.city} - {shop.governorate}</p>
@@ -165,7 +167,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         type="button"
                         className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center"
                         onClick={() => slidersRef.current[String(shop.id)]?.scrollBy({ left: 320, behavior: 'smooth' })}
-                        aria-label="يمين"
+                        aria-label={t('home.stores.scrollRight')}
                       >
                         <ChevronRight size={18} />
                       </button>
@@ -173,7 +175,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         type="button"
                         className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center"
                         onClick={() => slidersRef.current[String(shop.id)]?.scrollBy({ left: -320, behavior: 'smooth' })}
-                        aria-label="يسار"
+                        aria-label={t('home.stores.scrollLeft')}
                       >
                         <ChevronLeft size={18} />
                       </button>
@@ -203,7 +205,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         <div className="p-3">
                           <p className="font-black text-xs text-slate-900 line-clamp-1">{product.name}</p>
                           {showPrice && Number(product.price || 0) > 0 ? (
-                            <p className="text-[11px] text-cyan-600 font-black mt-1">ج.م {Number(product.price).toLocaleString('ar-EG')}</p>
+                            <p className="text-[11px] text-cyan-600 font-black mt-1">{t('home.topSelling.currency')} {Number(product.price).toLocaleString('ar-EG')}</p>
                           ) : null}
                         </div>
                       </button>
@@ -218,8 +220,8 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                           style={{ scrollSnapAlign: 'start' }}
                         >
                           <FileText size={32} className="text-slate-300" />
-                          <p className="text-slate-700 text-xs font-black text-center">إرسال روشتة</p>
-                          <p className="text-slate-400 text-[10px] font-bold text-center">عبر واتساب</p>
+                          <p className="text-slate-700 text-xs font-black text-center">{t('home.stores.sendPrescription')}</p>
+                          <p className="text-slate-400 text-[10px] font-bold text-center">{t('home.stores.viaWhatsApp')}</p>
                         </a>
                       ) : (
                         <button
@@ -230,7 +232,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                           style={{ scrollSnapAlign: 'start' }}
                         >
                           <FileText size={32} className="text-slate-300" />
-                          <p className="text-slate-700 text-xs font-black text-center">إرسال روشتة</p>
+                          <p className="text-slate-700 text-xs font-black text-center">{t('home.stores.sendPrescription')}</p>
                         </button>
                       )
                     ) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => {
@@ -253,13 +255,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                             )}
                             {hasPrice && (
                               <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-white/90 text-[10px] font-black text-slate-700 shadow-sm">
-                                ج.م {Number(offer.newPrice).toLocaleString('ar-EG')}
+                                {t('home.topSelling.currency')} {Number(offer.newPrice).toLocaleString('ar-EG')}
                               </div>
                             )}
                           </div>
                           <div className="p-3">
                             <p className="font-black text-xs text-slate-900 line-clamp-1">{offer.title}</p>
-                            {hasPrice ? null : <p className="text-[10px] text-slate-400 mt-1">عرض خاص</p>}
+                            {hasPrice ? null : <p className="text-[10px] text-slate-400 mt-1">{t('home.stores.specialOffer')}</p>}
                           </div>
                         </button>
                       );
@@ -271,7 +273,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         style={{ scrollSnapAlign: 'start' }}
                       >
                         <Store size={32} className="text-slate-300" />
-                        <p className="text-slate-400 text-xs font-bold text-center">تصفح المتجر</p>
+                        <p className="text-slate-400 text-xs font-bold text-center">{t('home.stores.browseStore')}</p>
                       </button>
                     )}
                   </div>

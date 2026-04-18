@@ -5,6 +5,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 // Lazy load sub-components
 const ProfileSummary = lazy(() => import('./merchant-profile/ProfileSummary'));
@@ -15,6 +16,7 @@ const { useLocation, useNavigate } = ReactRouterDOM as any;
 
 
 const MerchantProfilePage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const { addToast } = useToast();
@@ -54,7 +56,7 @@ const MerchantProfilePage: React.FC = () => {
 
       const role = String(savedUser?.role || '').toLowerCase();
       if (role !== 'merchant' && !(role === 'admin' && impersonateShopId)) {
-        addToast('هذه الصفحة للتجار فقط', 'error');
+        addToast(t('business.merchantProfilePage.merchantsOnly'), 'error');
         navigate('/login');
         return;
       }
@@ -68,7 +70,7 @@ const MerchantProfilePage: React.FC = () => {
       setShop(effectiveShop);
     } catch (e) {
       if (loadSeqRef.current !== seq) return;
-      const message = (e as any)?.message || 'حدث خطأ أثناء تحميل بيانات البروفايل';
+      const message = (e as any)?.message || t('business.merchantProfilePage.loadError');
       addToast(message, 'error');
     } finally {
       if (!silent && loadSeqRef.current === seq) setLoading(false);
@@ -89,7 +91,7 @@ const MerchantProfilePage: React.FC = () => {
     return (
       <div className="h-[70vh] flex flex-col items-center justify-center gap-4">
         <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-        <p className="font-black text-slate-400">تحميل ملف التاجر...</p>
+        <p className="font-black text-slate-400">{t('business.merchantProfilePage.loading')}</p>
       </div>
     );
   }

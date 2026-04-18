@@ -11,6 +11,7 @@ import { ApiService } from '@/services/api.service';
 import { getAllowedTabIdsForCategory } from './merchant-dashboard/activities';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { BUILDER_SECTIONS } from './builder/registry';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
@@ -145,6 +146,7 @@ interface ShopDesign {
 
 const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addToast } = useToast();
+  const { t } = useTranslation();
   const location = useLocation();
   const [shopId, setShopId] = useState<string>('');
   const [shop, setShop] = useState<any>(null);
@@ -377,9 +379,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const href = window.location.href;
       const clipboard = (navigator as any)?.clipboard;
       if (clipboard?.writeText) clipboard.writeText(href);
-      addToast('تم نسخ الرابط لمشاركته!', 'info');
+      addToast(t('business.pageBuilder.linkCopied'), 'info');
     } catch {
-      addToast('تم نسخ الرابط لمشاركته!', 'info');
+      addToast(t('business.pageBuilder.linkCopied'), 'info');
     }
   };
 
@@ -417,7 +419,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       dirtyRef.current = false;
       setSaved(true);
       setTimeout(() => setSaved(false), 1200);
-      addToast('لا توجد تغييرات جديدة للحفظ', 'info');
+      addToast(t('business.pageBuilder.noChangesToSave'), 'info');
       return;
     }
     savingRef.current = true;
@@ -450,7 +452,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setBannerPreview('');
           setBannerFile(null);
         } catch {
-          addToast('فشل رفع بانر المتجر', 'error');
+          addToast(t('business.pageBuilder.uploadBannerFailed'), 'error');
         }
       }
 
@@ -467,7 +469,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setBackgroundPreview('');
           setBackgroundFile(null);
         } catch {
-          addToast('فشل رفع خلفية الصفحة', 'error');
+          addToast(t('business.pageBuilder.uploadBackgroundFailed'), 'error');
         }
       }
 
@@ -551,7 +553,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           await ApiService.updateMyShop({ logoUrl: '' });
         }
       } catch {
-        addToast('فشل تحديث لوجو المتجر', 'error');
+        addToast(t('business.pageBuilder.updateLogoFailed'), 'error');
       }
       
       // Clear blob URL after successful save
@@ -574,7 +576,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       } catch {
         lastSavedDesignRef.current = designSnapshot || '';
       }
-      addToast('تم حفظ تصميم المتجر بنجاح!', 'success');
+      addToast(t('business.pageBuilder.saved'), 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));
       } catch {
@@ -582,7 +584,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       setTimeout(() => setSaved(false), 2000);
     } catch (e) {
       setSaving(false);
-      addToast('فشل حفظ التصميم، حاول مرة أخرى', 'error');
+      addToast(t('business.pageBuilder.saveFailed'), 'error');
     } finally {
       savingRef.current = false;
     }
@@ -670,13 +672,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       setLogoDataUrl(nextLogoUrl);
       setLogoFile(null);
-      addToast('تم حفظ اللوجو بنجاح!', 'success');
+      addToast(t('business.pageBuilder.logoSaved'), 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-shop-updated', { detail: { shopId } }));
       } catch {
       }
     } catch {
-      addToast('فشل حفظ اللوجو، حاول مرة أخرى', 'error');
+      addToast(t('business.pageBuilder.logoSaveFailed'), 'error');
     } finally {
       setLogoSaving(false);
       logoSavingRef.current = false;
@@ -774,7 +776,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 <header className="p-4 sm:p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
                   <div className="flex items-center gap-3">
                     <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={18} className="sm:w-5 sm:h-5" /></button>
-                    <h2 className="font-black text-xl md:text-3xl tracking-tighter">التصميم</h2>
+                    <h2 className="font-black text-xl md:text-3xl tracking-tighter">{t('business.pageBuilder.designTitle')}</h2>
                   </div>
                   <button 
                     onClick={handleSave}
@@ -784,42 +786,42 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     }`}
                   >
                     {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
-                    <span>{saved ? 'تم الحفظ' : 'حفظ التصميم'}</span>
+                    <span>{saved ? t('business.pageBuilder.savedShort') : t('business.pageBuilder.saveDesign')}</span>
                   </button>
                 </header>
 
                 <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4">
                   <div className="hidden md:block border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
                     <div className="px-5 py-4 flex items-center justify-between">
-                      <span className="font-black text-sm text-slate-900">معاينة الصفحة</span>
+                      <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle')}</span>
                       <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
                         <button
                           type="button"
                           onClick={() => setPreviewPage('home')}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'home' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                          الرئيسية
+                          {t('business.pageBuilder.previewTabs.home')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage('gallery')}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'gallery' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                          معرض الصور
+                          {t('business.pageBuilder.previewTabs.gallery')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage('info')}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'info' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                          معلومات
+                          {t('business.pageBuilder.previewTabs.info')}
                         </button>
                         <button
                           type="button"
                           onClick={() => setPreviewPage('product')}
                           className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'product' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
                         >
-                          المنتج
+                          {t('business.pageBuilder.previewTabs.product')}
                         </button>
                       </div>
                     </div>

@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Utensils, ShoppingBag, ShoppingCart, ChevronRight, ChevronLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -15,34 +16,35 @@ const DevCategoryCarousel: React.FC<Props> = ({
   nextCategory,
   prevCategory,
 }) => {
+  const { t } = useTranslation();
   const categories = useMemo(
     () => [
       {
         id: 'restaurants',
-        name: 'عروض المطاعم',
-        desc: 'أفضل عروض المطاعم والمطابخ',
+        name: t('home.categories.restaurants'),
+        desc: t('home.categories.restaurantsDesc'),
         icon: Utensils,
         cardClass: 'bg-orange-700',
         gradientClass: 'from-orange-600 to-orange-800',
       },
       {
         id: 'fashion',
-        name: 'عروض الأزياء',
-        desc: 'ملابس وأحذية بأسعار مميزة',
+        name: t('home.categories.fashion'),
+        desc: t('home.categories.fashionDesc'),
         icon: ShoppingBag,
         cardClass: 'bg-purple-700',
         gradientClass: 'from-purple-600 to-purple-800',
       },
       {
         id: 'supermarket',
-        name: 'عروض السوبر ماركت',
-        desc: 'منتجات بقالة ومواد غذائية',
+        name: t('home.categories.supermarket'),
+        desc: t('home.categories.supermarketDesc'),
         icon: ShoppingCart,
         cardClass: 'bg-green-700',
         gradientClass: 'from-green-600 to-green-800',
       },
     ],
-    [],
+    [t],
   );
 
   const safeIndex = ((currentCategoryIndex % categories.length) + categories.length) % categories.length;
@@ -51,15 +53,15 @@ const DevCategoryCarousel: React.FC<Props> = ({
   return (
     <section className="mb-16 md:mb-24">
       <div className="flex flex-col items-center text-center mb-8 md:mb-12">
-        <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">استكشف العروض حسب الفئة</h2>
-        <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة</p>
+        <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter mb-4">{t('home.categories.title')}</h2>
+        <p className="text-slate-600 text-sm md:text-lg font-bold max-w-2xl">{t('home.categories.subtitle')}</p>
       </div>
       <div className="relative max-w-4xl mx-auto w-full">
         <div className="flex items-center justify-center gap-4">
           <button
             onClick={prevCategory}
             className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
-            aria-label="السابق"
+            aria-label={t('home.categories.previous')}
             type="button"
           >
             <ChevronRight className="w-6 h-6" />
@@ -86,7 +88,7 @@ const DevCategoryCarousel: React.FC<Props> = ({
           <button
             onClick={nextCategory}
             className="hidden sm:flex w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-600 hover:text-slate-900 shadow-md"
-            aria-label="التالي"
+            aria-label={t('home.categories.next')}
             type="button"
           >
             <ChevronLeft className="w-6 h-6" />
@@ -97,7 +99,7 @@ const DevCategoryCarousel: React.FC<Props> = ({
           <button
             onClick={prevCategory}
             className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
-            aria-label="السابق"
+            aria-label={t('home.categories.previous')}
             type="button"
           >
             <ChevronRight className="w-5 h-5" />
@@ -105,7 +107,7 @@ const DevCategoryCarousel: React.FC<Props> = ({
           <button
             onClick={nextCategory}
             className="w-12 h-12 rounded-full bg-slate-100 hover:bg-slate-200 transition-all items-center justify-center text-slate-700 hover:text-slate-900 shadow-md"
-            aria-label="التالي"
+            aria-label={t('home.categories.next')}
             type="button"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -120,7 +122,7 @@ const DevCategoryCarousel: React.FC<Props> = ({
               className={`h-11 min-w-11 px-2 flex items-center justify-center rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#00E5FF] ${
                 index === safeIndex ? 'bg-slate-900/10' : 'bg-transparent hover:bg-slate-100'
               }`}
-              aria-label={`الفئة ${index + 1}`}
+              aria-label={t('home.categories.category', { index: index + 1 })}
               aria-current={index === safeIndex ? 'true' : undefined}
               type="button"
             >

@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import { Loader2, ShieldAlert, RefreshCw, CheckCircle2 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const BusinessPendingApproval: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [shop, setShop] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -58,7 +60,7 @@ const BusinessPendingApproval: React.FC = () => {
         navigate('/business/dashboard', { replace: true } as any);
       }
     } catch (e: any) {
-      setError(e?.message || 'فشل تحميل حالة الحساب');
+      setError(e?.message || t('business.pendingApproval.loadFailed'));
     } finally {
       setLoading(false);
     }
@@ -83,11 +85,11 @@ const BusinessPendingApproval: React.FC = () => {
             <ShieldAlert size={28} />
           </div>
           <div className="flex-1">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">حسابك قيد المراجعة</h1>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">{t('business.pendingApproval.title')}</h1>
             <p className="text-slate-500 font-bold text-sm mt-2">
               {status === 'rejected'
-                ? 'تم رفض طلب الانضمام. يمكنك تعديل البيانات وإعادة المحاولة أو التواصل مع الدعم.'
-                : 'تم استلام طلبك وسيقوم الأدمن بمراجعته أولاً قبل تفعيل لوحة التحكم.'}
+                ? t('business.pendingApproval.rejectedHint')
+                : t('business.pendingApproval.pendingHint')}
             </p>
           </div>
         </div>
@@ -100,7 +102,7 @@ const BusinessPendingApproval: React.FC = () => {
 
         <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 space-y-4">
           <div className="flex items-center justify-between flex-row-reverse">
-            <p className="font-black text-slate-900">الحالة الحالية</p>
+            <p className="font-black text-slate-900">{t('business.pendingApproval.currentStatus')}</p>
             <span className={`px-4 py-2 rounded-2xl text-xs font-black ${
               status === 'approved'
                 ? 'bg-green-500/15 text-green-700'
@@ -108,7 +110,11 @@ const BusinessPendingApproval: React.FC = () => {
                   ? 'bg-red-500/10 text-red-600'
                   : 'bg-amber-500/15 text-amber-700'
             }`}>
-              {status === 'approved' ? 'موافق عليه' : status === 'rejected' ? 'مرفوض' : 'في الانتظار'}
+              {status === 'approved'
+                ? t('business.pendingApproval.status.approved')
+                : status === 'rejected'
+                  ? t('business.pendingApproval.status.rejected')
+                  : t('business.pendingApproval.status.pending')}
             </span>
           </div>
 
@@ -120,7 +126,7 @@ const BusinessPendingApproval: React.FC = () => {
                 className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:bg-slate-300"
               >
                 {loading ? <Loader2 className="animate-spin" /> : <RefreshCw size={18} />}
-                {loading ? 'جاري التحقق...' : 'تحديث الحالة'}
+                {loading ? t('business.pendingApproval.checking') : t('business.pendingApproval.refreshStatus')}
               </button>
             )}
 
@@ -128,13 +134,13 @@ const BusinessPendingApproval: React.FC = () => {
               onClick={() => navigate('/')}
               className="flex-1 py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black"
             >
-              العودة للرئيسية
+              {t('business.pendingApproval.backHome')}
             </button>
           </div>
 
           <div className="flex items-center gap-3 text-slate-500 font-bold text-xs flex-row-reverse">
             <CheckCircle2 size={16} className="text-slate-400" />
-            لو تمت الموافقة سيتم تحويلك تلقائياً للوحة التحكم عند تحديث الحالة.
+            {t('business.pendingApproval.autoRedirectHint')}
           </div>
         </div>
       </MotionDiv>

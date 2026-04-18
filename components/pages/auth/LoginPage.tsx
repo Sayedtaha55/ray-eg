@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, ShieldCheck, Loader2, AlertCircle, KeyRound, X, UserPlus, Store, MapPin, Eye, EyeOff } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
@@ -39,6 +40,7 @@ const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20
 );
 
 const LoginPage: React.FC = () => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -63,7 +65,7 @@ const LoginPage: React.FC = () => {
     if (nextCount >= 6) {
       adminTapState.current.count = 0;
       adminTapState.current.lastAt = 0;
-      addToast('فتح بوابة الأدمن...', 'success');
+      addToast(t('auth.login.adminGateOpened'), 'success');
       navigate('/admin/gate');
     }
   };
@@ -108,7 +110,7 @@ const LoginPage: React.FC = () => {
       }, 'dev-courier-login');
       navigate('/courier/orders');
     } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');
+      setError(err?.message || t('auth.login.devCourierLoginFailed'));
     } finally {
       setLoading(false);
     }
@@ -136,7 +138,7 @@ const LoginPage: React.FC = () => {
         persistBearer: shouldStoreBearerToken,
       }, 'login');
 
-      addToast(`أهلاً بك مجدداً، ${response.user.name}`, 'success');
+      addToast(t('auth.login.welcomeBack', { name: response.user.name }), 'success');
 
       const role = String((response as any)?.user?.role || '').toLowerCase();
 
@@ -150,7 +152,7 @@ const LoginPage: React.FC = () => {
       }
 
       if (returnTo?.startsWith('/admin') && role !== 'admin') {
-        setError('هذه المنطقة للمشرفين فقط!');
+        setError(t('auth.login.adminsOnly'));
         navigate('/admin/gate', { replace: true } as any);
         return;
       }
@@ -171,7 +173,7 @@ const LoginPage: React.FC = () => {
       if (status === 403) {
         const msg = String(err?.message || '').trim();
         if (isBusinessLogin) {
-          if (msg.includes('المندوب')) {
+          if (msg.includes('courier') || msg.includes('المندوب')) {
             navigate('/business/courier-signup?pending=1');
             return;
           }
@@ -179,7 +181,7 @@ const LoginPage: React.FC = () => {
           return;
         }
       }
-      setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
+      setError(err.message || t('auth.login.loginFailed'));
     } finally {
       setLoading(false);
     }
@@ -209,8 +211,8 @@ const LoginPage: React.FC = () => {
             >
               <div className="flex items-start justify-between flex-row-reverse gap-4 mb-6">
                 <div className="text-right">
-                  <h3 className="text-2xl font-black tracking-tight">نسيت كلمة المرور</h3>
-                  <p className="text-slate-400 font-bold text-sm mt-1">اكتب بريدك الإلكتروني علشان نجهز لك رابط إعادة تعيين.</p>
+                  <h3 className="text-2xl font-black tracking-tight">{t('auth.login.forgotPasswordTitle')}</h3>
+                  <p className="text-slate-400 font-bold text-sm mt-1">{t('auth.login.forgotPasswordSubtitle')}</p>
                 </div>
                 <button
                   type="button"
@@ -227,7 +229,7 @@ const LoginPage: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">البريد الإلكتروني</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-1">{t('auth.login.emailLabel')}</label>
                   <input
                     type="email"
                     disabled={forgotLoading}
@@ -240,9 +242,9 @@ const LoginPage: React.FC = () => {
 
                 {forgotResult?.ok && (
                   <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                    <div className="text-sm font-black text-slate-700">تم إرسال الطلب</div>
+                    <div className="text-sm font-black text-slate-700">{t('auth.login.requestSent')}</div>
                     <div className="text-[12px] font-bold text-slate-500 mt-2">
-                      إذا كان البريد الإلكتروني مسجل لدينا، ستصلك خطوات إعادة التعيين على بريدك.
+                      {t('auth.login.resetInstructions')}
                     </div>
                   </div>
                 )}
@@ -253,7 +255,7 @@ const LoginPage: React.FC = () => {
                   onClick={async () => {
                     const e = String(forgotEmail || '').trim();
                     if (!e) {
-                      addToast('اكتب البريد الإلكتروني أولاً', 'error');
+                      addToast(t('auth.login.enterEmailFirst'), 'error');
                       return;
                     }
                     setForgotLoading(true);
@@ -261,9 +263,9 @@ const LoginPage: React.FC = () => {
                     try {
                       const res = await ApiService.forgotPassword({ email: e });
                       setForgotResult(res);
-                      addToast('إذا كان البريد موجود، هتوصلك خطوات إعادة التعيين.', 'success');
+                      addToast(t('auth.login.resetStepsSent'), 'success');
                     } catch (err: any) {
-                      addToast(err?.message || 'فشل إرسال رابط إعادة التعيين', 'error');
+                      addToast(err?.message || t('auth.login.resetLinkFailed'), 'error');
                     } finally {
                       setForgotLoading(false);
                     }
@@ -271,7 +273,7 @@ const LoginPage: React.FC = () => {
                   className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                 >
                   {forgotLoading ? <Loader2 className="animate-spin" size={18} /> : <KeyRound size={18} className="text-[#00E5FF]" />}
-                  {forgotLoading ? 'جاري التجهيز...' : 'إرسال رابط إعادة التعيين'}
+                  {forgotLoading ? t('auth.login.preparing') : t('auth.login.sendResetLink')}
                 </button>
               </div>
             </MotionDiv>
@@ -292,8 +294,8 @@ const LoginPage: React.FC = () => {
               <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
               <span className="text-white font-black text-4xl relative z-10">R</span>
            </div>
-           <h1 className="text-4xl font-black tracking-tighter mb-4">أهلاً بك <span className="text-[#00E5FF]">مجدداً.</span></h1>
-           <p className="text-slate-400 font-bold text-sm">سجّل الدخول لمتابعة حسابك أو إدارة نشاطك.</p>
+           <h1 className="text-4xl font-black tracking-tighter mb-4">{t('auth.login.welcomeTitle')} <span className="text-[#00E5FF]">{t('auth.login.welcomeTitleHighlight')}</span></h1>
+           <p className="text-slate-400 font-bold text-sm">{t('auth.login.welcomeSubtitle')}</p>
         </div>
 
         <AnimatePresence>
@@ -307,7 +309,7 @@ const LoginPage: React.FC = () => {
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">البريد الإلكتروني</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">{t('auth.login.emailLabel')}</label>
             <input
               type="email" required disabled={loading}
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
@@ -317,8 +319,8 @@ const LoginPage: React.FC = () => {
 
           <div className="space-y-2">
             <div className="flex justify-between items-center flex-row-reverse mr-4">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">كلمة المرور</label>
-              <button type="button" onClick={() => setForgotModalOpen(true)} className="text-[10px] font-black text-[#BD00FF]">نسيت كلمة المرور؟</button>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{t('auth.login.passwordLabel')}</label>
+              <button type="button" onClick={() => setForgotModalOpen(true)} className="text-[10px] font-black text-[#BD00FF]">{t('auth.login.forgotPasswordCta')}</button>
             </div>
             <div className="relative">
               <input
@@ -330,7 +332,7 @@ const LoginPage: React.FC = () => {
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 disabled={loading}
-                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                aria-label={showPassword ? t('auth.login.hidePasswordAria') : t('auth.login.showPasswordAria')}
                 className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -340,7 +342,7 @@ const LoginPage: React.FC = () => {
 
           <button type="submit" disabled={loading} className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3">
             {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={24} className="text-[#00E5FF]" />}
-            {loading ? 'جاري التحقق...' : 'دخول آمن'}
+            {loading ? t('auth.login.verifying') : t('auth.login.secureLogin')}
           </button>
         </form>
 
@@ -352,24 +354,24 @@ const LoginPage: React.FC = () => {
             className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
           >
             <GoogleIcon size={20} />
-            تسجيل الدخول عبر Google
+            {t('auth.login.googleLogin')}
           </button>
         </div>
 
         <div className="mt-12 pt-8 border-t border-slate-50 space-y-4">
-           <p className="text-center text-slate-400 font-bold text-xs mb-4">ليس لديك حساب؟</p>
+           <p className="text-center text-slate-400 font-bold text-xs mb-4">{t('auth.login.noAccount')}</p>
            {!isBusinessLogin ? (
              <div className="grid grid-cols-1 gap-4">
                <Link to={buildSignupLink()} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900">
                  <UserPlus size={20} className="text-slate-900" />
-                 <span className="font-black text-[10px]">تسجيل مشتري</span>
+                 <span className="font-black text-[10px]">{t('auth.login.signupCustomer')}</span>
                </Link>
              </div>
            ) : (
              <div className="grid grid-cols-1 gap-4">
                <Link to={buildSignupLink('merchant')} className="flex flex-col items-center gap-2 p-4 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all text-slate-900">
                  <Store size={20} className="text-[#BD00FF]" />
-                 <span className="font-black text-[10px]">تسجيل نشاط</span>
+                 <span className="font-black text-[10px]">{t('auth.login.signupBusiness')}</span>
                </Link>
              </div>
            )}
@@ -382,7 +384,7 @@ const LoginPage: React.FC = () => {
                className="w-full py-4 bg-slate-900/5 text-slate-700 rounded-[2rem] font-black text-sm hover:bg-slate-900/10 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
              >
                <MapPin size={18} className="text-slate-900" />
-               دخول مندوب (تطوير)
+               {t('auth.login.devCourierLogin')}
              </button>
            )}
         </div>

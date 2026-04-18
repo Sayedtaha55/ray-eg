@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
   Info, MapPin, Phone, Clock, Star, Users, MessageCircle
@@ -15,6 +16,7 @@ interface InfoTabProps {
 }
 
 const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whatsappHref }) => {
+  const { t } = useTranslation();
   const showShopFollowersCount = isVisible('shopFollowersCount', true);
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-2xl';
@@ -31,10 +33,10 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
           {/* Bio Section */}
           <div className="text-right">
             <h3 className="font-black text-2xl mb-4 flex items-center gap-3 justify-end">
-              عن المحل <Info style={{ color: primaryColor }} />
+              {t('shopProfile.infoTab')} <Info style={{ color: primaryColor }} />
             </h3>
             <p className="text-slate-600 leading-relaxed text-lg font-bold">
-              {shop?.description || 'لا يوجد وصف متاح حالياً لهذا المحل.'}
+              {shop?.description || t('shopProfile.noDesc')}
             </p>
           </div>
 
@@ -42,24 +44,24 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <InfoItem 
               icon={<MapPin />} 
-              label="العنوان" 
-              value={`${shop?.governorate || ''}، ${shop?.city || ''} ${shop?.addressDetailed ? `، ${shop.addressDetailed}` : ''}`} 
+              label={t('shopProfile.address')} 
+              value={[shop?.governorate, shop?.city, shop?.addressDetailed].filter(Boolean).join(t('shopProfile.addressSeparator'))} 
             />
             <InfoItem 
               icon={<Phone />} 
-              label="رقم التواصل" 
+              label={t('shopProfile.phone')} 
               value={shop?.phone} 
             />
             <InfoItem 
               icon={<Clock />} 
-              label="ساعات العمل" 
-              value={shop?.openingHours || 'غير محدد'} 
+              label={t('shopProfile.workingHours')} 
+              value={shop?.openingHours || t('shopProfile.unspecified')} 
             />
             {showShopFollowersCount && (
               <InfoItem 
                 icon={<Users />} 
-                label="المتابعون" 
-                value={`${shop?.followers || 0} متابع`} 
+                label={t('shopProfile.followersLabel')} 
+                value={`${shop?.followers || 0} ${t('shopProfile.followers')}`} 
               />
             )}
           </div>
@@ -73,7 +75,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 px-8 py-4 bg-[#25D366] text-white rounded-2xl font-black hover:scale-105 transition-all shadow-lg shadow-green-500/20"
               >
-                تواصل واتساب <MessageCircle size={20} />
+                {t('shopProfile.whatsappChat')} <MessageCircle size={20} />
               </a>
             )}
             <button
@@ -81,7 +83,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
               className={`flex items-center gap-3 ${buttonPadding} text-white ${buttonShape} font-black hover:scale-105 transition-all shadow-lg`}
               style={{ backgroundColor: primaryColor }}
             >
-              فتح الخريطة <MapPin size={20} />
+              {t('shopProfile.openMap')} <MapPin size={20} />
             </button>
           </div>
         </div>

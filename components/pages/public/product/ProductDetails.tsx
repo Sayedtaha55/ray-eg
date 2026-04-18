@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Heart, Share2, ShoppingCart, CalendarCheck, MessageCircle, Store, ShieldCheck, Truck, Package } from 'lucide-react';
 import { formatPackLabelArabic } from '@/lib/utils';
@@ -44,6 +45,7 @@ interface ProductDetailsProps {
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
+  const { t } = useTranslation();
   const { product, shop, offer, isFavorite, toggleFavorite, handleShare, handleAddToCart, showAddToCartButton, showReserveButton, showPrice, setIsResModalOpen, displayedPrice, hasDiscount, isRestaurant, isFashion, hasPacks, packDefs, selectedPackId, setSelectedPackId, menuVariantsDef, selectedMenuTypeId, setSelectedMenuTypeId, selectedMenuSizeId, setSelectedMenuSizeId, fashionColors, selectedFashionColorValue, setSelectedFashionColorValue, fashionSizes, selectedFashionSize, setSelectedFashionSize, selectedAddons, setSelectedAddons, addonsDef, whatsappHref, primaryColor } = props;
 
   const canShowAddToCart = typeof showAddToCartButton === 'boolean' ? showAddToCartButton : true;
@@ -87,9 +89,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
         {canShowPrice ? (
           <div className="flex items-baseline gap-4 justify-end flex-row-reverse">
-            <span className="text-4xl font-black text-[#BD00FF]">ج.م {displayedPrice}</span>
+            <span className="text-4xl font-black text-[#BD00FF]">{t('shopProfile.currency')} {displayedPrice}</span>
             {hasDiscount && (
-              <span className="text-xl font-bold text-slate-300 line-through">ج.م {offer.oldPrice || product.price}</span>
+              <span className="text-xl font-bold text-slate-300 line-through">{t('shopProfile.currency')} {offer.oldPrice || product.price}</span>
             )}
           </div>
         ) : null}
@@ -100,12 +102,12 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
         {isRestaurant && Array.isArray(menuVariantsDef) && menuVariantsDef.length > 0 && (
           <div className="space-y-4" dir="rtl">
             <div className="text-right">
-              <p className="font-black text-slate-900">الأحجام</p>
-              <p className="text-xs font-bold text-slate-400 mt-1">اختر النوع ثم الحجم</p>
+              <p className="font-black text-slate-900">{t('productPage.sizes')}</p>
+              <p className="text-xs font-bold text-slate-400 mt-1">{t('productPage.selectTypeThenSize')}</p>
             </div>
 
             <div className="space-y-3">
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">النوع</div>
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('productPage.type')}</div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(menuVariantsDef as any[]).map((t: any) => {
                   const tid = String(t?.id || t?.typeId || t?.variantId || '').trim();
@@ -127,7 +129,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
             </div>
 
             <div className="space-y-3">
-              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">الحجم</div>
+              <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{t('productPage.size')}</div>
               <div className="flex flex-wrap gap-2 justify-end">
                 {(selectedMenuSizes as any[]).map((s: any) => {
                   const sid = String(s?.id || s?.sizeId || '').trim();
@@ -143,7 +145,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                       onClick={() => setSelectedMenuSizeId(sid)}
                       className={`px-5 py-3 rounded-xl border-2 font-black text-sm transition-all ${isSelected ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 text-slate-500 hover:border-slate-200'}`}
                     >
-                      {label}{Number.isFinite(price) ? ` (ج.م ${price})` : ''}
+                      {label}{Number.isFinite(price) ? ` (${t('shopProfile.currency')} ${price})` : ''}
                     </button>
                   );
                 })}
@@ -154,7 +156,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
         {hasPacks && (
           <div className="space-y-4">
-            <p className="font-black text-slate-900">اختر الباقة</p>
+            <p className="font-black text-slate-900">{t('productPage.selectPackLabel')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {packDefs.map((p: any) => {
                 const label = packLineLabel(p);
@@ -168,7 +170,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                 >
                   <p className="font-black text-sm">{label || p.label || p.name}</p>
                   <p className="font-bold text-[#00E5FF] text-xs mt-1">
-                    {label && Number.isFinite(price) ? `${label} = ج.م ${price}` : (Number.isFinite(price) ? `ج.م ${price}` : '')}
+                    {label && Number.isFinite(price) ? `${label} = ${t('shopProfile.currency')} ${price}` : (Number.isFinite(price) ? `${t('shopProfile.currency')} ${price}` : '')}
                   </p>
                 </button>
                 );
@@ -181,7 +183,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
           <>
             {fashionColors.length > 0 && (
               <div className="space-y-4 text-right">
-                <p className="font-black text-slate-900">اللون المختار</p>
+                <p className="font-black text-slate-900">{t('productPage.selectedColor')}</p>
                 <div className="flex flex-wrap gap-3 justify-end">
                   {fashionColors.map((c: any) => (
                     <button
@@ -197,7 +199,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
             )}
             {fashionSizes.length > 0 && (
               <div className="space-y-4 text-right">
-                <p className="font-black text-slate-900">المقاس</p>
+                <p className="font-black text-slate-900">{t('productPage.sizeLabel')}</p>
                 <div className="flex flex-wrap gap-2 justify-end">
                   {fashionSizes.map((s: any) => (
                     <button
@@ -216,7 +218,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
         {isRestaurant && addonsDef.length > 0 && (
           <div className="space-y-4">
-            <p className="font-black text-slate-900">الإضافات</p>
+            <p className="font-black text-slate-900">{t('productPage.addons')}</p>
             <div className="space-y-4">
               {(addonsDef || []).map((g: any) => {
                 const groupId = String(g?.id || '').trim() || 'addons';
@@ -250,7 +252,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                                 ) : null}
                                 <div className="text-right">
                                   <div className="font-black text-sm text-slate-900">{optName}</div>
-                                  <div className="text-[10px] font-bold text-slate-400">اختر الحجم</div>
+                                  <div className="text-[10px] font-bold text-slate-400">{t('productPage.selectSizeLabel')}</div>
                                 </div>
                               </div>
                             </div>
@@ -296,7 +298,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
         {isFashion && addonsDef.length > 0 && (
           <div className="space-y-4">
-            <p className="font-black text-slate-900">منتجات مكملة</p>
+            <p className="font-black text-slate-900">{t('productPage.complementaryProducts')}</p>
             <div className="space-y-3">
               {(addonsDef || []).map((g: any) => {
                 const options = Array.isArray(g?.options) ? g.options : [];
@@ -341,7 +343,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                       {/* Selectable Colors */}
                       {colors.length > 0 && (
                         <div className="mt-3">
-                          <div className="text-[10px] font-bold text-slate-500 mb-2">اختر اللون:</div>
+                          <div className="text-[10px] font-bold text-slate-500 mb-2">{t('productPage.selectColorLabel')}</div>
                           <div className="flex flex-wrap gap-2 justify-end">
                             {colors.map((c: string) => {
                               const isColorSelected = selectedColor === c;
@@ -371,7 +373,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                       {/* Selectable Sizes */}
                       {sizes.length > 0 && (
                         <div className="mt-3">
-                          <div className="text-[10px] font-bold text-slate-500 mb-2">اختر المقاس:</div>
+                          <div className="text-[10px] font-bold text-slate-500 mb-2">{t('productPage.selectSizeLabel2')}</div>
                           <div className="flex flex-wrap gap-2 justify-end">
                             {sizes.map((s: string) => {
                               const isSizeSelected = selectedSize === s;
@@ -452,7 +454,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                                   : 'border-slate-100 text-slate-300 cursor-not-allowed'
                             }`}
                           >
-                            {isSelectedAddon ? 'تم الاختيار ✓' : (colors.length > 0 && !selectedColor) || (sizes.length > 0 && !selectedSize) ? 'اختر اللون والمقاس أولاً' : 'اختيار'}
+                            {isSelectedAddon ? t('productPage.selected') : (colors.length > 0 && !selectedColor) || (sizes.length > 0 && !selectedSize) ? t('productPage.selectColorSizeFirst') : t('productPage.choose')}
                           </button>
                         )}
                       </div>
@@ -466,7 +468,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
 
         {!isRestaurant && !isFashion && addonsDef.length > 0 && (
           <div className="space-y-4">
-            <p className="font-black text-slate-900">منتجات تابعة للمنتج</p>
+            <p className="font-black text-slate-900">{t('productPage.relatedProducts')}</p>
             <div className="space-y-3">
               {(addonsDef || []).map((g: any) => {
                 const options = Array.isArray(g?.options) ? g.options : [];
@@ -489,8 +491,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
                           {img ? <img src={img} alt="" className="w-10 h-10 rounded-xl object-cover border border-slate-100" /> : null}
                           <div className="text-right">
                             <div className="font-black text-sm text-slate-900">{optName}</div>
-                            {colors.length > 0 ? <div className="text-[10px] font-bold text-slate-500">الألوان: {colors.join(' - ')}</div> : null}
-                            {sizes.length > 0 ? <div className="text-[10px] font-bold text-slate-500">المقاسات: {sizes.join(' - ')}</div> : null}
+                            {colors.length > 0 ? <div className="text-[10px] font-bold text-slate-500">{t('productPage.colors')}: {colors.join(' - ')}</div> : null}
+                            {sizes.length > 0 ? <div className="text-[10px] font-bold text-slate-500">{t('productPage.sizesLabel')}: {sizes.join(' - ')}</div> : null}
                           </div>
                         </div>
                       </div>
@@ -540,7 +542,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
               onClick={handleAddToCart}
               className="flex-1 bg-slate-900 text-white h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:bg-black transition-all shadow-2xl"
             >
-              <ShoppingCart size={24} /> إضافة للسلة
+              <ShoppingCart size={24} /> {t('productPage.addToCart')}
             </button>
           ) : null}
           {canShowReserve ? (
@@ -549,7 +551,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
               onClick={() => setIsResModalOpen(true)}
               className="flex-1 bg-[#00E5FF] text-slate-900 h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
             >
-              <CalendarCheck size={24} /> حجز الآن
+              <CalendarCheck size={24} /> {t('productPage.reserveNow')}
             </button>
           ) : null}
         </div>
@@ -560,7 +562,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = (props) => {
             rel="noopener noreferrer"
             className="w-full bg-[#25D366] text-white h-16 rounded-[2rem] font-black text-lg flex items-center justify-center gap-3 hover:opacity-90 transition-all shadow-xl"
           >
-            <MessageCircle size={24} /> تواصل عبر واتساب
+            <MessageCircle size={24} /> {t('productPage.whatsappChat')}
           </a>
         )}
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Truck, ShieldCheck, Package } from 'lucide-react';
 
 interface ProductTabsProps {
@@ -10,15 +11,16 @@ interface ProductTabsProps {
 }
 
 const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, productDescription, product, primaryColor }) => {
+  const { t } = useTranslation();
   const fm = (product as any)?.furnitureMeta ?? (product as any)?.furniture_meta;
   const unit = typeof fm?.unit === 'string' ? String(fm.unit).trim() : '';
   const l = typeof fm?.lengthCm === 'number' ? fm.lengthCm : Number(fm?.lengthCm || NaN);
   const w = typeof fm?.widthCm === 'number' ? fm.widthCm : Number(fm?.widthCm || NaN);
   const h = typeof fm?.heightCm === 'number' ? fm.heightCm : Number(fm?.heightCm || NaN);
   const dims = [
-    Number.isFinite(l) && l > 0 ? `الطول: ${Math.round(l * 100) / 100} سم` : '',
-    Number.isFinite(w) && w > 0 ? `العرض: ${Math.round(w * 100) / 100} سم` : '',
-    Number.isFinite(h) && h > 0 ? `الارتفاع: ${Math.round(h * 100) / 100} سم` : '',
+    Number.isFinite(l) && l > 0 ? `${t('productPage.length')}: ${Math.round(l * 100) / 100} ${t('productPage.cm')}` : '',
+    Number.isFinite(w) && w > 0 ? `${t('productPage.width')}: ${Math.round(w * 100) / 100} ${t('productPage.cm')}` : '',
+    Number.isFinite(h) && h > 0 ? `${t('productPage.height')}: ${Math.round(h * 100) / 100} ${t('productPage.cm')}` : '',
   ].filter(Boolean);
   const hasFurniture = Boolean(unit || dims.length);
 
@@ -32,7 +34,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
               activeTab === 'details' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
-            التفاصيل
+            {t('productPage.detailsTab')}
           </button>
           <button
             onClick={() => setActiveTab('specs')}
@@ -40,7 +42,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
               activeTab === 'specs' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
-            المواصفات
+            {t('productPage.specsTab')}
           </button>
           <button
             onClick={() => setActiveTab('shipping')}
@@ -48,7 +50,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
               activeTab === 'shipping' ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
             }`}
           >
-            الشحن
+            {t('productPage.shippingTab')}
           </button>
         </div>
       </div>
@@ -56,21 +58,21 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
       <div className="transition-all duration-300">
         {activeTab === 'details' && (
           <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 shadow-sm">
-            <h3 className="font-black text-lg mb-4">وصف المنتج</h3>
+            <h3 className="font-black text-lg mb-4">{t('productPage.productDesc')}</h3>
             <p className="text-sm font-bold text-slate-600 leading-relaxed">
-              {productDescription || 'لا يوجد تفاصيل إضافية بعد.'}
+              {productDescription || t('productPage.noDetails')}
             </p>
           </div>
         )}
 
         {activeTab === 'specs' && (
           <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 shadow-sm">
-            <h3 className="font-black text-lg mb-4">المواصفات التقنية</h3>
+            <h3 className="font-black text-lg mb-4">{t('productPage.techSpecs')}</h3>
             {hasFurniture ? (
               <div className="space-y-4">
                 {unit ? (
                   <div className="flex items-center justify-between flex-row-reverse p-4 bg-slate-50 rounded-2xl">
-                    <span className="font-black text-slate-900 text-sm">الوحدة</span>
+                    <span className="font-black text-slate-900 text-sm">{t('productPage.unit')}</span>
                     <span className="font-bold text-slate-600 text-sm">{unit}</span>
                   </div>
                 ) : null}
@@ -86,7 +88,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
               </div>
             ) : (
               <div className="py-8 text-center bg-slate-50 rounded-2xl">
-                <p className="text-sm font-bold text-slate-400">سيتم إضافة المواصفات قريباً.</p>
+                <p className="text-sm font-bold text-slate-400">{t('productPage.specsSoon')}</p>
               </div>
             )}
           </div>
@@ -94,15 +96,15 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
 
         {activeTab === 'shipping' && (
           <div className="bg-white border border-slate-100 rounded-[2rem] p-6 md:p-8 shadow-sm">
-            <h3 className="font-black text-lg mb-6">سياسة الشحن</h3>
+            <h3 className="font-black text-lg mb-6">{t('productPage.shippingPolicy')}</h3>
             <div className="space-y-4">
               <div className="flex items-center gap-4 flex-row-reverse p-4 bg-slate-50 rounded-2xl">
                 <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-900 shadow-sm">
                   <Truck size={20} />
                 </div>
                 <div className="flex-1 text-right">
-                  <p className="font-black text-sm text-slate-900">شحن سريع</p>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">توصيل خلال ٢-٤ أيام عمل</p>
+                  <p className="font-black text-sm text-slate-900">{t('productPage.fastShipping')}</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{t('productPage.fastShippingDesc')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 flex-row-reverse p-4 bg-slate-50 rounded-2xl">
@@ -110,8 +112,8 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
                   <ShieldCheck size={20} />
                 </div>
                 <div className="flex-1 text-right">
-                  <p className="font-black text-sm text-slate-900">ضمان الجودة</p>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">فحص المنتج قبل الاستلام</p>
+                  <p className="font-black text-sm text-slate-900">{t('productPage.qualityGuarantee')}</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{t('productPage.qualityGuaranteeDesc')}</p>
                 </div>
               </div>
               <div className="flex items-center gap-4 flex-row-reverse p-4 bg-slate-50 rounded-2xl">
@@ -119,8 +121,8 @@ const ProductTabs: React.FC<ProductTabsProps> = ({ activeTab, setActiveTab, prod
                   <Package size={20} />
                 </div>
                 <div className="flex-1 text-right">
-                  <p className="font-black text-sm text-slate-900">تغليف آمن</p>
-                  <p className="text-xs font-bold text-slate-500 mt-0.5">وصول المنتج في أفضل حالة</p>
+                  <p className="font-black text-sm text-slate-900">{t('productPage.safePackaging')}</p>
+                  <p className="text-xs font-bold text-slate-500 mt-0.5">{t('productPage.safePackagingDesc')}</p>
                 </div>
               </div>
             </div>

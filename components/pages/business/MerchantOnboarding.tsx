@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { Category } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -32,94 +33,43 @@ type ModuleDef = {
   label: string;
 };
 
-const MODULE_EXPLANATIONS: Record<ModuleId, string> = {
-  overview: 'ملخص سريع لأهم الأرقام والحالة العامة للمحل (نظرة واحدة على كل شيء).',
-  products: 'إضافة وتعديل المنتجات والأسعار والمخزون والصور.',
-  reservations:
-    'حجز المنتج لمدة 24 ساعة: المشتري بيحجز المنتج أونلاين ويستلمه/يشتريه من المحل خلال 24 ساعة (مش دفع ولا توصيل).',
-  invoice:
-    'فاتورة حسابات (مش POS): تعمل فاتورة مرنة لما السعر يتغير/في فِصال — تضيف أصناف وتحدد خصم وتطلع إجمالي + طباعة/نسخة إلكترونية بنفس ثيم الفاتورة.',
-  sales: 'إدارة الطلبات والمدفوعات والمبيعات والشحن/التوصيل (لو موجود).',
-  pos: 'الكاشير (POS): نقطة بيع لإدارة عمليات البيع داخل المحل.',
-  promotions: 'إنشاء عروض وكوبونات وخصومات لزيادة المبيعات.',
-  reports: 'تقارير وتحليلات عن المبيعات والمنتجات والأداء.',
-  customers: 'إدارة العملاء وبياناتهم وسجل الشراء والتواصل معهم.',
-  gallery: 'عرض صور للمنتجات/الأعمال داخل صفحة المحل (معرض).',
-  builder: 'تخصيص شكل الصفحة/الواجهة: ترتيب الأقسام وإظهار/إخفاء عناصر.',
-  settings: 'إعدادات الحساب والمحل ووسائل الدفع/التوصيل والتنبيهات.',
-};
 
 const CORE_MODULES: ModuleDef[] = [
-  { id: 'overview', label: 'نظرة عامة' },
-  { id: 'products', label: 'المنتجات' },
-  { id: 'promotions', label: 'العروض' },
-  { id: 'builder', label: 'التصميم' },
-  { id: 'settings', label: 'الإعدادات' },
+  { id: 'overview', label: '' },
+  { id: 'products', label: '' },
+  { id: 'promotions', label: '' },
+  { id: 'builder', label: '' },
+  { id: 'settings', label: '' },
 ];
 
 const OPTIONAL_MODULES: ModuleDef[] = [
-  { id: 'gallery', label: 'معرض الصور' },
-  { id: 'reservations', label: 'الحجوزات' },
-  { id: 'invoice', label: 'فاتورة' },
-  { id: 'pos', label: 'الكاشير' },
-  { id: 'sales', label: 'الطلبات / المبيعات' },
-  { id: 'customers', label: 'العملاء' },
-  { id: 'reports', label: 'التقارير' },
+  { id: 'gallery', label: '' },
+  { id: 'reservations', label: '' },
+  { id: 'invoice', label: '' },
+  { id: 'pos', label: '' },
+  { id: 'sales', label: '' },
+  { id: 'customers', label: '' },
+  { id: 'reports', label: '' },
 ];
 
 type Step = 'activity' | 'modules';
 
 const ACTIVITIES: ActivityDef[] = [
-  {
-    id: 'restaurant',
-    label: 'مطعم',
-    category: Category.RESTAURANT,
-  },
-  {
-    id: 'grocery',
-    label: 'سوبر ماركت / بقالة / عطارة',
-    category: Category.FOOD,
-  },
-  {
-    id: 'fashion',
-    label: 'ملابس / أحذية',
-    category: Category.FASHION,
-  },
-  {
-    id: 'home-textiles',
-    label: 'المفروشات والسجاد',
-    category: Category.RETAIL,
-  },
-  {
-    id: 'furniture',
-    label: 'أثاث / معارض',
-    category: Category.SERVICE,
-  },
-  {
-    id: 'electronics',
-    label: 'كمبيوترات وموبايلات',
-    category: Category.ELECTRONICS,
-  },
-  {
-    id: 'health',
-    label: 'صيدلية / مستحضرات',
-    category: Category.HEALTH,
-  },
-  {
-    id: 'home-goods',
-    label: 'مستلزمات المنزل',
-    category: Category.RETAIL,
-  },
-  {
-    id: 'other',
-    label: 'أخرى',
-    category: Category.OTHER,
-  },
+  { id: 'restaurant', label: '', category: Category.RESTAURANT },
+  { id: 'grocery', label: '', category: Category.FOOD },
+  { id: 'fashion', label: '', category: Category.FASHION },
+  { id: 'home-textiles', label: '', category: Category.RETAIL },
+  { id: 'furniture', label: '', category: Category.SERVICE },
+  { id: 'electronics', label: '', category: Category.ELECTRONICS },
+  { id: 'health', label: '', category: Category.HEALTH },
+  { id: 'home-goods', label: '', category: Category.RETAIL },
+  { id: 'other', label: '', category: Category.OTHER },
 ];
 
 const STORAGE_KEY = 'ray_merchant_onboarding';
 
 const MerchantOnboarding: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -150,9 +100,8 @@ const MerchantOnboarding: React.FC = () => {
   }, [enabledModules]);
 
   const activePreviewLabel = useMemo(() => {
-    const all = [...CORE_MODULES, ...OPTIONAL_MODULES];
-    return all.find((m) => m.id === previewActiveTab)?.label || '';
-  }, [previewActiveTab]);
+    return t('business.onboarding.modules.' + previewActiveTab);
+  }, [previewActiveTab, t]);
 
   const ensureValidActiveTab = (modules: ModuleDef[]) => {
     if (modules.some((m) => m.id === previewActiveTab)) return;
@@ -177,7 +126,7 @@ const MerchantOnboarding: React.FC = () => {
       }
 
       if ((id === 'customers' || id === 'reports') && !next.has('sales')) {
-        setError('لا يمكن تفعيل العملاء أو التقارير قبل تفعيل الطلبات / المبيعات.');
+        setError(t('business.onboarding.enableCustomersReportsError'));
         return prev;
       }
 
@@ -191,7 +140,7 @@ const MerchantOnboarding: React.FC = () => {
 
     if (step === 'activity') {
       if (!selectedActivity) {
-        setError('اختر نشاطك أولاً');
+        setError(t('business.onboarding.chooseActivityFirst'));
         return;
       }
       setStep('modules');
@@ -199,7 +148,7 @@ const MerchantOnboarding: React.FC = () => {
     }
 
     if (!selectedActivity) {
-      setError('اختر نشاطك أولاً');
+      setError(t('business.onboarding.chooseActivityFirst'));
       setStep('activity');
       return;
     }
@@ -245,9 +194,9 @@ const MerchantOnboarding: React.FC = () => {
       >
         <div className="flex items-center justify-between mb-8">
           <div className="text-right">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">ابدأ مشروعك</h1>
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter">{t('business.onboarding.startProject')}</h1>
             <p className="text-slate-900 font-black text-sm mt-2">
-              {step === 'activity' ? 'اختر نشاطك أولاً — ثم اختر الأزرار.' : 'اختار الأزرار الإضافية — وشوف المعاينة على الشمال.'}
+              {step === 'activity' ? t('business.onboarding.stepActivityHint') : t('business.onboarding.stepModulesHint')}
             </p>
           </div>
           <div>
@@ -258,7 +207,7 @@ const MerchantOnboarding: React.FC = () => {
                 className="px-4 py-3 rounded-2xl bg-slate-50 border border-slate-100 font-black text-sm flex items-center gap-2"
               >
                 <ChevronLeft size={18} />
-                رجوع
+                {t('business.onboarding.back')}
               </button>
             ) : (
               <div />
@@ -292,11 +241,11 @@ const MerchantOnboarding: React.FC = () => {
                   >
                     <div className="flex items-center justify-between gap-4 flex-row-reverse">
                       <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black">
-                        {a.label.slice(0, 1)}
+                        {t('business.onboarding.activities.' + a.id).charAt(0)}
                       </div>
                       {active ? <CheckCircle2 className="text-[#00E5FF]" /> : null}
                     </div>
-                    <div className="mt-4 font-black text-lg text-slate-900">{a.label}</div>
+                    <div className="mt-4 font-black text-lg text-slate-900">{t('business.onboarding.activities.' + a.id)}</div>
                   </button>
                 );
               })}
@@ -309,16 +258,16 @@ const MerchantOnboarding: React.FC = () => {
             <div className="col-span-12 lg:col-span-8">
               <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden h-full">
                 <div className="h-16 bg-slate-900 text-white flex items-center justify-between px-6">
-                  <div className="font-black tracking-tight">معاينة لوحة التاجر</div>
+                  <div className="font-black tracking-tight">{t('business.onboarding.previewMerchantDashboard')}</div>
                   <div className="text-xs font-black text-slate-200">
-                    {selectedActivity?.label || ''}
+                    {selectedActivity ? t('business.onboarding.activities.' + selectedActivity.id) : ''}
                   </div>
                 </div>
 
                 <div className="grid grid-cols-12 h-[calc(70vh-4rem)]">
                   <div className="col-span-5 md:col-span-4 bg-slate-50 border-l border-slate-100 p-4 overflow-auto">
                     <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">
-                      القائمة
+                      {t('business.onboarding.menu')}
                     </div>
                     <div className="space-y-2">
                       {(() => {
@@ -332,7 +281,7 @@ const MerchantOnboarding: React.FC = () => {
                               onClick={() => setPreviewActiveTab(m.id)}
                               className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border transition-all ${active ? 'bg-white border-[#00E5FF]' : 'bg-white/70 border-slate-100 hover:bg-white'}`}
                             >
-                              <span className="font-black text-slate-900 text-sm">{m.label}</span>
+                              <span className="font-black text-slate-900 text-sm">{t('business.onboarding.modules.' + m.id)}</span>
                               <span className={`w-2.5 h-2.5 rounded-full ${active ? 'bg-[#00E5FF]' : 'bg-slate-300'}`} />
                             </button>
                           );
@@ -345,7 +294,7 @@ const MerchantOnboarding: React.FC = () => {
                     <div className="text-right">
                       <div className="text-2xl font-black text-slate-900">{activePreviewLabel}</div>
                       <div className="mt-2 text-sm font-black text-slate-500">
-                        دي معاينة للشكل — المحتوى الحقيقي هيتملأ بعد ما تكمل التسجيل.
+                        {t('business.onboarding.previewHint')}
                       </div>
                     </div>
 
@@ -362,9 +311,9 @@ const MerchantOnboarding: React.FC = () => {
 
             <div className="col-span-12 lg:col-span-4">
               <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 h-full">
-                <div className="font-black text-lg text-slate-900 mb-2">الأزرار الإضافية</div>
+                <div className="font-black text-lg text-slate-900 mb-2">{t('business.onboarding.optionalButtonsTitle')}</div>
                 <div className="text-xs font-black text-slate-500 mb-5">
-                  الأزرار الأساسية موجودة تلقائيًا. فعّل الإضافي اللي تحتاجه.
+                  {t('business.onboarding.optionalButtonsSubtitle')}
                 </div>
 
                 <div className="space-y-3">
@@ -380,7 +329,7 @@ const MerchantOnboarding: React.FC = () => {
                         onClick={() => (disabled ? null : toggleOptional(m.id))}
                         className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all ${checked ? 'border-[#00E5FF] bg-[#00E5FF]/5' : 'border-slate-100 bg-slate-50'} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
                       >
-                        <span className="font-black text-slate-900">{m.label}</span>
+                        <span className="font-black text-slate-900">{t('business.onboarding.modules.' + m.id)}</span>
                         <span className={`w-6 h-6 rounded-lg border ${checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'}`} />
                       </button>
                     );
@@ -397,22 +346,22 @@ const MerchantOnboarding: React.FC = () => {
             onClick={goNext}
             className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all"
           >
-            {step === 'activity' ? 'التالي' : 'متابعة للتسجيل'}
+            {step === 'activity' ? t('business.onboarding.next') : t('business.onboarding.continueToSignup')}
           </button>
         </div>
 
         <div className="mt-10 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6">
-          <div className="font-black text-lg text-slate-900 mb-2">شرح الأزرار</div>
+          <div className="font-black text-lg text-slate-900 mb-2">{t('business.onboarding.buttonsGuideTitle')}</div>
           <div className="text-xs font-black text-slate-500 mb-5">
-            الهدف إن كل زر يكون معناه واضح من دلوقتي — خصوصًا الفرق بين الحجوزات والطلبات/المبيعات.
+            {t('business.onboarding.buttonsGuideSubtitle')}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {[...CORE_MODULES, ...OPTIONAL_MODULES].map((m) => (
               <div key={m.id} className="bg-white border border-slate-100 rounded-2xl p-4">
-                <div className="font-black text-slate-900">{m.label}</div>
+                <div className="font-black text-slate-900">{t('business.onboarding.modules.' + m.id)}</div>
                 <div className="mt-2 text-sm font-black text-slate-600 leading-relaxed">
-                  {MODULE_EXPLANATIONS[m.id]}
+                  {t('business.onboarding.moduleExplanations.' + m.id)}
                 </div>
               </div>
             ))}

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ArrowRight, Home, ShoppingCart, User } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -21,6 +22,7 @@ const CartDrawer = lazy(() => import('../shared/CartDrawer'));
 const { useParams, useNavigate } = ReactRouterDOM as any;
 
 const ProductPage: React.FC = () => {
+  const { t } = useTranslation();
   const { id, slug } = useParams();
   const navigate = useNavigate();
   const { playSound } = useCartSound();
@@ -274,7 +276,7 @@ const ProductPage: React.FC = () => {
       window.dispatchEvent(new Event('ray-db-update'));
       
       // Show toast notification
-      const message = state?.isFavorite ? 'تمت إضافة المنتج للمفضلة! ❤️' : 'تم حذف المنتج من المفضلة';
+      const message = state?.isFavorite ? t('productPage.addedToFav') : t('productPage.removedFromFav');
       // Simple notification (you can replace with a proper toast system)
       const toast = document.createElement('div');
       toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm animate-pulse';
@@ -311,7 +313,7 @@ const ProductPage: React.FC = () => {
       try {
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-        toast.textContent = 'يرجى اختيار النوع والحجم';
+        toast.textContent = t('productPage.selectTypeAndSize');
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
       } catch {
@@ -324,7 +326,7 @@ const ProductPage: React.FC = () => {
         try {
           const toast = document.createElement('div');
           toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-          toast.textContent = 'هذا المنتج يحتاج تحديد لون ومقاس من لوحة التاجر';
+          toast.textContent = t('productPage.selectColorSizeFromMerchant');
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 2500);
         } catch {
@@ -335,7 +337,7 @@ const ProductPage: React.FC = () => {
         try {
           const toast = document.createElement('div');
           toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-          toast.textContent = 'يرجى اختيار اللون والمقاس';
+          toast.textContent = t('productPage.selectColorAndSize');
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 2500);
         } catch {
@@ -348,7 +350,7 @@ const ProductPage: React.FC = () => {
       try {
         const toast = document.createElement('div');
         toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-        toast.textContent = 'يرجى اختيار الباقة';
+        toast.textContent = t('productPage.selectPack');
         document.body.appendChild(toast);
         setTimeout(() => toast.remove(), 2500);
       } catch {
@@ -630,7 +632,7 @@ const ProductPage: React.FC = () => {
     const shopWhatsApp = (shop as any)?.layoutConfig?.whatsapp || shopPhone;
     const digits = String(shopWhatsApp || '').replace(/[^\d]/g, '');
     if (!digits) return '';
-    const text = `مرحبا ${shop?.name || ''}، أنا مهتم بمنتج: ${product?.name || ''}`;
+    const text = `${t('productPage.whatsappInterest')} ${shop?.name || ''}${t('productPage.whatsappProductInterest')}: ${product?.name || ''}`;
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`;
   }, [shop, product]);
 
@@ -700,12 +702,12 @@ const ProductPage: React.FC = () => {
             onError={() => setPageBgReady(true)}
           />
         ) : null}
-        <p className="text-slate-500 font-bold mb-8">ربما تم حذفه أو أن الرابط غير صحيح.</p>
+        <p className="text-slate-500 font-bold mb-8">{t('productPage.deletedOrInvalid')}</p>
         <button 
           onClick={() => navigate('/')}
           className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black flex items-center gap-2"
         >
-          <Home size={18} /> العودة للرئيسية
+          <Home size={18} /> {t('productPage.backHome')}
         </button>
       </div>
     );
@@ -734,7 +736,7 @@ const ProductPage: React.FC = () => {
         ) : null}
 
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black mb-12 hover:text-black transition-all">
-          <ArrowRight size={20} /> العودة للسابق
+          <ArrowRight size={20} /> {t('productPage.backPrev')}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 md:gap-24" style={{ contentVisibility: 'auto' }}>
@@ -838,7 +840,7 @@ const ProductPage: React.FC = () => {
                   className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} text-slate-500`}
                 >
                   <Home size={18} />
-                  الرئيسية
+                  {t('productPage.home')}
                 </button>
 
                 {canUseCart ? (
@@ -848,7 +850,7 @@ const ProductPage: React.FC = () => {
                     className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
                   >
                     <ShoppingCart size={18} />
-                    السلة
+                    {t('productPage.cart')}
                     {Array.isArray(cartItems) && cartItems.length > 0 ? (
                       <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
                         {cartItems.length}
@@ -875,7 +877,7 @@ const ProductPage: React.FC = () => {
                   className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavAccount ? '' : 'hidden'} text-slate-500`}
                 >
                   <User size={18} />
-                  حسابي
+                  {t('productPage.account')}
                 </button>
               </div>
             </div>

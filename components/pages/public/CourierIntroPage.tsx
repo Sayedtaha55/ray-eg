@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ShieldCheck, Clock, MapPin, Wallet, ArrowLeft } from 'lucide-react';
 
 const { Link } = ReactRouterDOM as any;
 
 const CourierIntroPage: React.FC = () => {
+  const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [installing, setInstalling] = useState(false);
 
@@ -45,23 +47,23 @@ const CourierIntroPage: React.FC = () => {
   const features = [
     {
       icon: <MapPin size={20} />,
-      title: 'طلبات قريبة منك',
-      body: 'هيوصل لك عروض التوصيل الأقرب لمكانك، وأول مندوب يقبل يتم إسناد الطلب له.',
+      title: t('courier.f1Title'),
+      body: t('courier.f1Body'),
     },
     {
       icon: <Clock size={20} />,
-      title: 'تحديثات تلقائية',
-      body: 'لو فعّلت مشاركة الموقع، النظام هيحدّث موقعك تلقائيًا علشان مايفوتكش أي طلب.',
+      title: t('courier.f2Title'),
+      body: t('courier.f2Body'),
     },
     {
       icon: <Wallet size={20} />,
-      title: 'تحصيل الكاش بسهولة',
-      body: 'تقدر تتابع الطلبات وتحصيل الكاش (COD) وتحديث حالة الطلب من لوحة المندوب.',
+      title: t('courier.f3Title'),
+      body: t('courier.f3Body'),
     },
     {
       icon: <ShieldCheck size={20} />,
-      title: 'تفعيل بعد المراجعة',
-      body: 'بعد التسجيل، حسابك بيكون قيد المراجعة من الأدمن قبل التفعيل.',
+      title: t('courier.f4Title'),
+      body: t('courier.f4Body'),
     },
   ];
 
@@ -70,29 +72,29 @@ const CourierIntroPage: React.FC = () => {
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-start">
         <div className="space-y-6">
           <div className="space-y-3">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400">للمندوبين</p>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400">{t('courier.badge')}</p>
             <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900">
-              اشتغل كمندوب توصيل على من مكانك
+              {t('courier.title')}
             </h1>
             <p className="text-slate-600 font-bold leading-relaxed">
-              صفحة تعريفية سريعة قبل التسجيل: هتعرف إزاي النظام بيشتغل وإيه اللي محتاجه علشان تبدأ.
+              {t('courier.intro')}
             </p>
           </div>
 
           <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.2)] space-y-4">
-            <h2 className="text-xl md:text-2xl font-black text-slate-900">قبل ما تسجّل</h2>
+            <h2 className="text-xl md:text-2xl font-black text-slate-900">{t('courier.beforeTitle')}</h2>
             <div className="space-y-2 text-slate-600 font-bold">
               <div className="flex items-start gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#00E5FF] mt-2" />
-                <p>فعّل <span className="text-slate-900">مشاركة الموقع</span> علشان يجيلك عروض قريبة تلقائيًا.</p>
+                <p>{t('courier.tip1').split(t('courier.tip1Highlight'))[0]}<span className="text-slate-900">{t('courier.tip1Highlight')}</span>{t('courier.tip1').split(t('courier.tip1Highlight'))[1] || ''}</p>
               </div>
               <div className="flex items-start gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#00E5FF] mt-2" />
-                <p>فعّل <span className="text-slate-900">متاح لاستلام الطلبات</span> من إعدادات لوحة المندوب.</p>
+                <p>{t('courier.tip2').split(t('courier.tip2Highlight'))[0]}<span className="text-slate-900">{t('courier.tip2Highlight')}</span>{t('courier.tip2').split(t('courier.tip2Highlight'))[1] || ''}</p>
               </div>
               <div className="flex items-start gap-3">
                 <span className="w-2 h-2 rounded-full bg-[#00E5FF] mt-2" />
-                <p>بعد قبول الطلب، هتقدر تفتح الخريطة بضغطة واحدة وتحدّث حالة الطلب بسهولة.</p>
+                <p>{t('courier.tip3')}</p>
               </div>
             </div>
 
@@ -118,7 +120,7 @@ const CourierIntroPage: React.FC = () => {
                   }}
                   className="flex-1 text-center py-4 rounded-2xl bg-[#00E5FF] text-slate-900 font-black"
                 >
-                  {installing ? 'جاري الفتح...' : 'تثبيت تطبيق المندوب'}
+                  {installing ? t('courier.installing') : t('courier.installApp')}
                 </button>
               ) : null}
 
@@ -126,24 +128,24 @@ const CourierIntroPage: React.FC = () => {
                 to="/business/courier-signup"
                 className="flex-1 text-center py-4 rounded-2xl bg-slate-900 text-white font-black"
               >
-                تسجيل مندوب توصيل
+                {t('courier.signup')}
               </Link>
               <Link
                 to="/"
                 className="flex-1 text-center py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black inline-flex items-center justify-center gap-2"
               >
-                <ArrowLeft size={18} /> العودة للرئيسية
+                <ArrowLeft size={18} /> {t('courier.backHome')}
               </Link>
             </div>
 
             {(!canInstall && isIOS) ? (
               <div className="text-[11px] text-slate-500 font-bold">
-                على iPhone: افتح زر المشاركة في Safari ثم اختر "Add to Home Screen" لتثبيت تطبيق المندوب.
+                {t('courier.iosNote')}
               </div>
             ) : null}
 
             <p className="text-[11px] text-slate-500 font-bold">
-              ملحوظة: التسجيل بيكون طلب انضمام، وبيتم تفعيل الحساب بعد مراجعة الأدمن.
+              {t('courier.note')}
             </p>
           </div>
         </div>
@@ -162,15 +164,15 @@ const CourierIntroPage: React.FC = () => {
       </div>
 
       <div className="mt-10 md:mt-14 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6 md:p-8">
-        <h2 className="text-lg md:text-xl font-black text-slate-900 mb-3">أسئلة سريعة</h2>
+        <h2 className="text-lg md:text-xl font-black text-slate-900 mb-3">{t('courier.faqTitle')}</h2>
         <div className="space-y-3 text-slate-600 font-bold text-sm">
           <div>
-            <p className="text-slate-900 font-black">هل لازم أفعّل الموقع؟</p>
-            <p>مستحسن جدًا. بدون الموقع ممكن يفوتك عروض كتير لأن النظام مش هيعرف يرشح لك الطلبات القريبة.</p>
+            <p className="text-slate-900 font-black">{t('courier.faq1Q')}</p>
+            <p>{t('courier.faq1A')}</p>
           </div>
           <div>
-            <p className="text-slate-900 font-black">بعد التسجيل أبدأ فورًا؟</p>
-            <p>حسابك بيكون قيد المراجعة، وبعد الموافقة تقدر تسجّل دخول وتروح للوحة المندوب.</p>
+            <p className="text-slate-900 font-black">{t('courier.faq2Q')}</p>
+            <p>{t('courier.faq2A')}</p>
           </div>
         </div>
       </div>

@@ -1,12 +1,13 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 type Props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   label?: string;
 };
 
 export const PurchaseModeButton: React.FC<Props> = ({
-  label = 'وضع الشراء',
+  label = i18n.t('common.purchaseModeButton.label'),
   className,
   type,
   ...props

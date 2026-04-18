@@ -1,5 +1,6 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Settings, ShoppingBag, Heart, MapPin, Bell, LogOut, ChevronLeft, Star, CalendarCheck, Clock, CheckCircle2, AlertCircle, Zap, ArrowLeft, Sparkles } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
@@ -15,6 +16,7 @@ const MotionDiv = motion.div as any;
 type ProfileTab = 'reservations' | 'favorites' | 'notifications' | 'settings';
 
 const ProfilePage: React.FC = () => {
+  const { t } = useTranslation();
   const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>('reservations');
   const [reservations, setReservations] = useState<Reservation[]>([]);
@@ -104,7 +106,7 @@ const ProfilePage: React.FC = () => {
              <h2 className="text-3xl font-black mb-2">{user.name}</h2>
              <p className="text-slate-400 font-bold mb-8">{user.email}</p>
              <div className="flex gap-2 w-full">
-               <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">تعديل الملف</button>
+               <button className="flex-1 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">{t('profile.editProfile')}</button>
                <button onClick={logout} className="w-14 h-14 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center hover:bg-red-600 hover:text-white transition-all"><LogOut size={20} /></button>
              </div>
           </div>
@@ -114,10 +116,10 @@ const ProfilePage: React.FC = () => {
         <div className="lg:col-span-8 space-y-10">
           
           <div className="flex gap-2 md:gap-4 overflow-x-auto no-scrollbar pb-2">
-             <TabBtn active={activeTab === 'reservations'} onClick={() => setActiveTab('reservations')} icon={<CalendarCheck size={18} />} label="حجوزاتي" />
-             <TabBtn active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} icon={<Heart size={18} />} label="المفضلة" />
-             <TabBtn active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={18} />} label="التنبيهات" />
-             <TabBtn active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings size={18} />} label="الإعدادات" />
+             <TabBtn active={activeTab === 'reservations'} onClick={() => setActiveTab('reservations')} icon={<CalendarCheck size={18} />} label={t('profile.reservations')} />
+             <TabBtn active={activeTab === 'favorites'} onClick={() => setActiveTab('favorites')} icon={<Heart size={18} />} label={t('profile.favorites')} />
+             <TabBtn active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} icon={<Bell size={18} />} label={t('profile.notifications')} />
+             <TabBtn active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon={<Settings size={18} />} label={t('profile.settings')} />
           </div>
 
           <AnimatePresence mode="wait">
@@ -132,12 +134,12 @@ const ProfilePage: React.FC = () => {
                        <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-xl text-slate-200">
                           <CalendarCheck size={48} />
                        </div>
-                       <h3 className="text-3xl font-black mb-4">مستعد لأول حجز؟</h3>
+                       <h3 className="text-3xl font-black mb-4">{t('profile.firstResTitle')}</h3>
                        <p className="text-slate-400 font-bold text-lg mb-10 max-w-sm leading-relaxed">
-                          احجز عروضك المفضلة الآن واستلمها من المحل بكل سهولة خلال ٢٤ ساعة.
+                          {t('profile.firstResDesc')}
                        </p>
                        <Link to="/" className="px-12 py-5 bg-[#00E5FF] text-slate-900 rounded-[2rem] font-black text-lg flex items-center gap-3 hover:scale-105 transition-all shadow-xl shadow-cyan-100">
-                          <Sparkles size={20} /> اكتشف العروض
+                          <Sparkles size={20} /> {t('profile.discoverOffers')}
                        </Link>
                     </div>
                   ) : (
@@ -147,12 +149,12 @@ const ProfilePage: React.FC = () => {
                             <img src={res.itemImage} className="w-20 h-20 rounded-2xl object-cover shrink-0" loading="lazy" decoding="async" fetchPriority="low" />
                             <div className="text-right">
                                <p className="font-black text-xl">{res.itemName}</p>
-                               <p className="text-slate-400 font-bold text-sm">متجر {res.shopName}</p>
+                               <p className="text-slate-400 font-bold text-sm">{t('profile.shopLabel')} {res.shopName}</p>
                             </div>
                          </div>
                          <div className="text-left">
-                            <p className="text-2xl font-black">ج.م {res.itemPrice}</p>
-                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase">بانتظار الاستلام</span>
+                            <p className="text-2xl font-black">{t('profile.currency')} {res.itemPrice}</p>
+                            <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase">{t('profile.pendingPickup')}</span>
                          </div>
                       </div>
                     ))
@@ -167,9 +169,9 @@ const ProfilePage: React.FC = () => {
                         <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mb-8 shadow-xl text-red-100">
                            <Heart size={48} fill="currentColor" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4">فين الحب؟</h3>
+                        <h3 className="text-3xl font-black mb-4">{t('profile.noFavTitle')}</h3>
                         <p className="text-slate-500 text-sm font-bold mb-8">
-                           لسة مفيش منتجات في المفضلة. ضيف الحاجات اللي عجبتك عشان تلاقيها هنا بسرعة.
+                           {t('profile.noFavDesc')}
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
                         </div>
@@ -182,7 +184,7 @@ const ProfilePage: React.FC = () => {
                           </div>
                          <div className="flex-1 text-right">
                             <h4 className="font-black mb-1">{product.name}</h4>
-                            <p className="text-[#00E5FF] font-black text-xl">ج.م {product.price}</p>
+                            <p className="text-[#00E5FF] font-black text-xl">{t('profile.currency')} {product.price}</p>
                          </div>
                          <button
                            onClick={async () => {
@@ -206,7 +208,7 @@ const ProfilePage: React.FC = () => {
                       onClick={() => loadNotifications()}
                       className="px-6 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all"
                     >
-                      تحديث
+                      {t('profile.refresh')}
                     </button>
                     <button
                       onClick={async () => {
@@ -218,14 +220,14 @@ const ProfilePage: React.FC = () => {
                       }}
                       className="px-6 py-3 bg-slate-100 text-slate-900 rounded-2xl font-black text-xs hover:bg-slate-200 transition-all"
                     >
-                      تعليم الكل كمقروء
+                      {t('profile.markAllRead')}
                     </button>
                   </div>
 
                   {notifLoading ? (
-                    <div className="p-10 text-center text-slate-400 font-bold">تحميل التنبيهات...</div>
+                    <div className="p-10 text-center text-slate-400 font-bold">{t('profile.loadingNotifs')}</div>
                   ) : notifications.length === 0 ? (
-                    <div className="p-10 text-center text-slate-300 font-bold">لا توجد تنبيهات</div>
+                    <div className="p-10 text-center text-slate-300 font-bold">{t('profile.noNotifs')}</div>
                   ) : (
                     notifications.map((notif: any) => (
                       <div key={notif.id} className={`p-8 rounded-[2rem] border-r-8 flex items-center gap-6 flex-row-reverse text-right ${notif.isRead ? 'bg-white border-slate-200' : 'bg-cyan-50 border-cyan-400'}`}>
@@ -248,7 +250,7 @@ const ProfilePage: React.FC = () => {
                                 }}
                                 className="px-4 py-2 bg-slate-900 text-white rounded-xl font-black text-[10px]"
                               >
-                                كمقروء
+                                {t('profile.markRead')}
                               </button>
                             )}
                           </div>
@@ -261,18 +263,18 @@ const ProfilePage: React.FC = () => {
 
               {activeTab === 'settings' && (
                 <div className="bg-white border border-slate-100 p-8 rounded-[3rem] space-y-8 text-right">
-                   <h3 className="text-2xl font-black mb-12">إعدادات الحساب</h3>
+                   <h3 className="text-2xl font-black mb-12">{t('profile.accountSettings')}</h3>
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">رقم الموبايل</label>
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('profile.phoneLabel')}</label>
                          <input className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-right outline-none focus:bg-white focus:ring-2 focus:ring-[#00E5FF]/20" defaultValue="0123456789" />
                       </div>
                       <div className="space-y-2">
-                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">المنطقة</label>
-                         <input className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-right outline-none focus:bg-white focus:ring-2 focus:ring-[#00E5FF]/20" defaultValue="القاهرة" />
+                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('profile.areaLabel')}</label>
+                         <input className="w-full bg-slate-50 rounded-2xl py-4 px-6 font-bold text-right outline-none focus:bg-white focus:ring-2 focus:ring-[#00E5FF]/20" defaultValue={t('common.governorates.cairo')} />
                       </div>
                    </div>
-                   <button className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-black transition-all shadow-xl">حفظ التعديلات</button>
+                   <button className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-lg hover:bg-black transition-all shadow-xl">{t('profile.saveChanges')}</button>
                 </div>
               )}
             </MotionDiv>

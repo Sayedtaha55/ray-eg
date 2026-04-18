@@ -1,20 +1,22 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Book } from 'lucide-react';
 
 const TermsPage: React.FC = () => {
+  const { t } = useTranslation();
   const sections = [
     {
-      title: 'قبول الشروط',
-      content: 'باستخدامك لمنصة "من مكانك"، فإنك توافق على الالتزام بشروط الخدمة الموضحة هنا.'
+      title: t('terms.s1Title'),
+      content: t('terms.s1Content')
     },
     {
-      title: 'حسابات المستخدمين',
-      content: 'يجب أن تكون المعلومات المقدمة عند إنشاء الحساب دقيقة وكاملة. أنت مسؤول عن الحفاظ على سرية معلومات حسابك.'
+      title: t('terms.s2Title'),
+      content: t('terms.s2Content')
     },
     {
-      title: 'الاستخدام المقبول',
-      content: 'يُحظر استخدام المنصة لأي أغراض غير قانونية أو لانتهاك حقوق الملكية الفكرية للآخرين.'
+      title: t('terms.s3Title'),
+      content: t('terms.s3Content')
     }
   ];
 
@@ -29,12 +31,12 @@ const TermsPage: React.FC = () => {
           <div className="w-12 h-12 bg-[#BD00FF]/20 text-[#BD00FF] rounded-2xl flex items-center justify-center">
             <Book size={24} />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900">شروط الخدمة</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900">{t('terms.title')}</h1>
         </div>
 
         <div className="prose prose-slate max-w-none">
           <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-            توضح هذه الصفحة القواعد والشروط التي تحكم استخدامك لمنصة "من مكانك". يرجى قراءتها بعناية.
+            {t('terms.intro')}
           </p>
 
           <div className="space-y-12">

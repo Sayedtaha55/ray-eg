@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
+import LanguageToggle from '@/components/common/LanguageToggle';
 import { ApiService } from '@/services/api.service';
 import { clearSession, getStoredUser } from '@/services/authStorage';
 import PwaInstallPrompt from '@/components/common/feedback/PwaInstallPrompt';
@@ -14,6 +16,7 @@ const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssis
 const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
 
 const PublicLayout: React.FC = () => {
+  const { t } = useTranslation();
   const WhatsAppIcon = (props: { size?: number }) => {
     const s = typeof props?.size === 'number' ? props.size : 18;
     return (
@@ -53,7 +56,7 @@ const PublicLayout: React.FC = () => {
   const webPushRegisterAttemptedRef = React.useRef(false);
   const [authPrompt, setAuthPrompt] = useState<{ open: boolean; message: string; returnTo: string }>(() => ({
     open: false,
-    message: 'قبل أي عملية لازم تسجل حساب.',
+    message: t('public.authRequired'),
     returnTo: '/',
   }));
   const location = useLocation();
@@ -91,7 +94,7 @@ const PublicLayout: React.FC = () => {
 
     const onAuthRequired = (e: any) => {
       const detail = e?.detail || {};
-      const msg = String(detail?.message || '').trim() || 'قبل أي عملية لازم تسجل حساب.';
+      const msg = String(detail?.message || '').trim() || t('public.authRequired');
       const returnTo = String(detail?.returnTo || '').trim() || `${window.location.pathname}${window.location.search || ''}`;
       setAuthPrompt({ open: true, message: msg, returnTo });
     };
@@ -386,14 +389,14 @@ const PublicLayout: React.FC = () => {
         >
           <Link to="/" className="flex items-center gap-2 md:gap-4">
             <BrandLogo variant="public" iconOnly name="" />
-            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">من مكانك</span>
+            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center gap-6 max-w-2xl mx-8">
             <div onClick={() => setAssistantOpen(true)} className="flex-1 group">
               <div className="relative flex items-center bg-slate-100/60 hover:bg-white rounded-[1.5rem] px-6 py-3 border border-transparent hover:border-[#00E5FF]/30 cursor-pointer transition-all duration-500">
                 <Sparkles className="w-4 h-4 text-[#00E5FF] ml-3" />
-                <span className="text-slate-400 text-xs font-semibold truncate mr-2">ابحث عن أقوى العروض الآن...</span>
+                <span className="text-slate-400 text-xs font-semibold truncate mr-2">{t('common.search')}</span>
               </div>
             </div>
           </div>
@@ -425,17 +428,18 @@ const PublicLayout: React.FC = () => {
                 )}
               </button>
             )}
+            <LanguageToggle variant="public" className="hidden sm:flex" />
             <div className="h-6 md:h-8 w-[1px] bg-slate-100 mx-1 md:mx-2 hidden sm:block" />
             {user ? (
               <Link to={user.role === 'merchant' ? '/business/dashboard' : '/profile'} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white pl-2.5 md:pl-3 pr-1 py-1 rounded-full hover:bg-black transition-all max-w-[9.5rem] sm:max-w-none">
                 <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#00E5FF] text-black font-black flex items-center justify-center text-[10px] md:text-xs">
                   {user.name?.charAt(0) || 'U'}
                 </div>
-                <span className="text-[10px] md:text-xs font-black hidden md:block truncate">{user.role === 'merchant' ? 'لوحة التحكم' : user.name}</span>
+                <span className="text-[10px] md:text-xs font-black hidden md:block truncate">{user.role === 'merchant' ? t('public.dashboard') : user.name}</span>
               </Link>
             ) : (
               <Link to="/login" className="bg-[#1A1A1A] text-white px-4 md:px-8 py-2 md:py-3.5 rounded-lg md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-[#00E5FF] hover:text-black transition-all">
-                دخول
+                {t('common.login')}
               </Link>
             )}
 
@@ -443,7 +447,7 @@ const PublicLayout: React.FC = () => {
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 text-slate-900"
               type="button"
-              aria-label="فتح القائمة"
+              aria-label={t('common.openMenu')}
             >
               <Menu className="w-5 h-5" />
             </button>
@@ -456,11 +460,11 @@ const PublicLayout: React.FC = () => {
           <div onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] animate-fade-in" />
           <div className="fixed right-0 top-0 h-full w-[88%] max-w-sm bg-white z-[120] px-5 pt-6 pb-8 sm:p-8 flex flex-col shadow-2xl overflow-y-auto animate-[slideInFromRight_220ms_ease-out]" dir="rtl" >
               <div className="flex justify-between items-center mb-8">
-                <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">من مكانك</span>
-                <button type="button" aria-label="إغلاق القائمة" onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
+                <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
+                <button type="button" aria-label={t('common.closeMenu')} onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
               </div>
               <div className="mb-5 rounded-[1.5rem] bg-slate-50 p-4">
-                <div className="text-xs font-black text-slate-400 mb-2">تنقل سريع</div>
+                <div className="text-xs font-black text-slate-400 mb-2">{t('common.quickNav')}</div>
                 <button
                   type="button"
                   onClick={() => {
@@ -469,21 +473,21 @@ const PublicLayout: React.FC = () => {
                   }}
                   className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-right text-slate-700 shadow-sm ring-1 ring-slate-100"
                 >
-                  <span className="font-bold text-sm">ابحث عن أقوى العروض الآن...</span>
+                  <span className="font-bold text-sm">{t('common.search')}</span>
                   <Sparkles className="w-4 h-4 text-[#00E5FF] shrink-0" />
                 </button>
               </div>
               <nav className="flex flex-col gap-2 flex-1">
-                <MobileNavItem to="/" icon={<Home className="w-5 h-5" />} label="الرئيسية" onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/offers" icon={<Heart className="w-5 h-5" />} label="العروض" onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/map" icon={<Search className="w-5 h-5" />} label="الخريطة" onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/support" icon={<Info className="w-5 h-5" />} label="الدعم" onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/" icon={<Home className="w-5 h-5" />} label={t('common.home')} onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/offers" icon={<Heart className="w-5 h-5" />} label={t('public.offers')} onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/map" icon={<Search className="w-5 h-5" />} label={t('public.map')} onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavItem to="/support" icon={<Info className="w-5 h-5" />} label={t('common.support')} onClick={() => setMobileMenuOpen(false)} />
                 {user ? (
                   <>
                     <MobileNavItem
                       to={String(user?.role || '').toLowerCase() === 'merchant' ? '/business/dashboard' : '/profile'}
                       icon={<User className="w-5 h-5" />}
-                      label={String(user?.role || '').toLowerCase() === 'merchant' ? 'لوحة التحكم' : 'حسابي'}
+                      label={String(user?.role || '').toLowerCase() === 'merchant' ? t('public.dashboard') : t('common.profile')}
                       onClick={() => setMobileMenuOpen(false)}
                     />
                     <button
@@ -494,42 +498,32 @@ const PublicLayout: React.FC = () => {
                       }}
                       className="flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-all text-xl font-black text-red-600 text-right"
                     >
-                      <span className="text-red-300"><LogOut className="w-5 h-5" /></span> تسجيل الخروج
+                      <span className="text-red-300"><LogOut className="w-5 h-5" /></span> {t('common.logout')}
                     </button>
                   </>
                 ) : (
                   <>
-                    <MobileNavItem to="/login" icon={<User className="w-5 h-5" />} label="تسجيل الدخول" onClick={() => setMobileMenuOpen(false)} />
-                    <MobileNavItem to="/signup" icon={<PlusCircle className="w-5 h-5" />} label="إنشاء حساب" onClick={() => setMobileMenuOpen(false)} />
+                    <MobileNavItem to="/login" icon={<User className="w-5 h-5" />} label={t('public.loginLabel')} onClick={() => setMobileMenuOpen(false)} />
+                    <MobileNavItem to="/signup" icon={<PlusCircle className="w-5 h-5" />} label={t('common.signup')} onClick={() => setMobileMenuOpen(false)} />
                   </>
                 )}
               </nav>
               <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+                <LanguageToggle variant="public" className="w-full" />
                 <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
                     <Phone size={16} />
                   </span>
                   <span className="font-bold text-sm">01067461059</span>
                 </a>
-                <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
-                  <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <Mail size={16} />
-                  </span>
-                  <span className="font-bold text-sm break-all">mnmknk.eg@gmail.com</span>
-                </a>
               </div>
-          </div>
+            </div>
         </>
       )}
 
-      <main className="pt-20 md:pt-32 pb-28 lg:pb-0 min-h-screen overflow-x-clip">
-        <Outlet />
-      </main>
-
-      <PwaInstallPrompt />
-
-      <div
-        className="fixed bottom-0 left-0 right-0 z-[95] px-4 pb-4 lg:hidden"
+      {/* Bottom Navigation */}
+      <div 
+        className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 z-50 md:hidden"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
       >
         <div className="max-w-md mx-auto">
@@ -540,7 +534,7 @@ const PublicLayout: React.FC = () => {
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname === '/' || pathname === '' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
               >
                 <Home className="w-5 h-5" />
-                <span className="text-[10px] font-black">الرئيسية</span>
+                <span className="text-[10px] font-black">{t('common.home')}</span>
               </Link>
 
               <Link
@@ -548,7 +542,7 @@ const PublicLayout: React.FC = () => {
                 className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
               >
                 <User className="w-5 h-5" />
-                <span className="text-[10px] font-black">حسابي</span>
+                <span className="text-[10px] font-black">{t('common.profile')}</span>
               </Link>
 
               {!hideCartButton && (
@@ -557,7 +551,7 @@ const PublicLayout: React.FC = () => {
                     count={cartItems.length}
                     onClick={() => setCartOpen(true)}
                   />
-                  <span className="text-[10px] font-black">السلة</span>
+                  <span className="text-[10px] font-black">{t('common.cart')}</span>
                 </div>
               )}
             </div>
@@ -565,14 +559,19 @@ const PublicLayout: React.FC = () => {
         </div>
       </div>
 
+      <main className="pt-20 md:pt-28 pb-24 md:pb-8">
+        <Outlet />
+      </main>
+
       {isAssistantOpen && (
         <React.Suspense fallback={null}>
           <RayAssistant isOpen={isAssistantOpen} onClose={() => setAssistantOpen(false)} />
         </React.Suspense>
       )}
+
       {isCartOpen && (
         <React.Suspense fallback={null}>
-          <CartDrawer
+          <CartDrawer 
             isOpen={isCartOpen}
             onClose={() => setCartOpen(false)}
             items={cartItems}
@@ -581,6 +580,8 @@ const PublicLayout: React.FC = () => {
           />
         </React.Suspense>
       )}
+
+      <PwaInstallPrompt />
 
       {authPrompt.open && (
         <>
@@ -593,7 +594,7 @@ const PublicLayout: React.FC = () => {
             dir="rtl"
           >
               <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-6 md:p-8 text-right">
-                <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">يجب تسجل الدخول</div>
+                <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">{t('public.mustLogin')}</div>
                 <div className="text-slate-500 font-bold text-sm leading-relaxed mb-6">{authPrompt.message}</div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -602,14 +603,14 @@ const PublicLayout: React.FC = () => {
                     onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
                     className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm flex items-center justify-center"
                   >
-                    التسجيل
+                    {t('common.signup')}
                   </Link>
                   <Link
                     to="/"
                     onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
                     className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center"
                   >
-                    الرئيسية
+                    {t('common.home')}
                   </Link>
                 </div>
 
@@ -619,7 +620,7 @@ const PublicLayout: React.FC = () => {
                     onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
                     className="text-slate-500 font-black text-xs hover:text-slate-900 transition-colors"
                   >
-                    عندك حساب؟ تسجيل الدخول
+                    {t('public.haveAccount')}
                   </Link>
                 </div>
               </div>
@@ -630,34 +631,34 @@ const PublicLayout: React.FC = () => {
       <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col gap-12 md:gap-16 md:grid md:grid-cols-2">
-            <div className="order-2 md:order-1 md:col-span-2">
+            <div className="order-2 md:order-1">
               {/* Links Section - First on mobile */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-12 text-right">
                 <div>
-                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">استكشف</h3>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#00E5FF] mb-6">{t('public.explore')}</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                    <Link to="/offers/restaurants" className="hover:text-white transition-colors">عروض المطاعم</Link>
-                    <Link to="/offers/fashion" className="hover:text-white transition-colors">عروض الملابس والأحذية</Link>
-                    <Link to="/offers/supermarket" className="hover:text-white transition-colors">عروض السوبر ماركت</Link>
-                    <Link to="/about" className="hover:text-white transition-colors">من نحن</Link>
+                    <Link to="/offers/restaurants" className="hover:text-white transition-colors">{t('public.restaurantOffers')}</Link>
+                    <Link to="/offers/fashion" className="hover:text-white transition-colors">{t('public.fashionOffers')}</Link>
+                    <Link to="/offers/supermarket" className="hover:text-white transition-colors">{t('public.supermarketOffers')}</Link>
+                    <Link to="/about" className="hover:text-white transition-colors">{t('common.aboutUs')}</Link>
                   </nav>
                 </div>
                 <div>
-                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#E879F9] mb-6">للأعمال</h3>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-[#E879F9] mb-6">{t('public.forBusiness')}</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                    <Link to="/business" className="hover:text-white transition-colors">انضم إلينا</Link>
+                    <Link to="/business" className="hover:text-white transition-colors">{t('public.joinUs')}</Link>
                     {String(user?.role || '').toLowerCase() === 'courier' ? (
-                      <Link to="/courier/orders" className="hover:text-white transition-colors">لوحة المندوب</Link>
+                      <Link to="/courier/orders" className="hover:text-white transition-colors">{t('public.courierDashboard')}</Link>
                     ) : null}
                   </nav>
                 </div>
                 <div>
-                  <h3 className="font-black text-[10px] uppercase tracking-widest text-green-300 mb-6">مساعدة</h3>
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-green-300 mb-6">{t('public.help')}</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
-                    <Link to="/support" className="hover:text-white transition-colors">مركز المساعدة</Link>
-                    <Link to="/terms" className="hover:text-white transition-colors">شروط الخدمة</Link>
-                    <Link to="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link>
-                    <Link to="/contact" className="hover:text-white transition-colors">تواصل معنا</Link>
+                    <Link to="/support" className="hover:text-white transition-colors">{t('common.helpCenter')}</Link>
+                    <Link to="/terms" className="hover:text-white transition-colors">{t('common.terms')}</Link>
+                    <Link to="/privacy" className="hover:text-white transition-colors">{t('common.privacy')}</Link>
+                    <Link to="/contact" className="hover:text-white transition-colors">{t('common.contactUs')}</Link>
                   </nav>
                 </div>
               </div>
@@ -666,58 +667,71 @@ const PublicLayout: React.FC = () => {
             <div className="order-1 md:order-2">
               <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
                 <BrandLogo variant="business" iconOnly />
-                <span className="text-2xl font-black tracking-tighter uppercase">من مكانك</span>
+                <span className="text-2xl font-black tracking-tighter uppercase">{t('brand.name')}</span>
               </div>
-              <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium mb-6">نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.</p>
+              <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium mb-6">{t('public.betaNote')}</p>
             </div>
 
             <div className="order-3 md:order-3 space-y-6 text-right">
               {/* Contact Info */}
               <div className="space-y-3">
-                <h3 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">تواصل معنا</h3>
+                <h3 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">{t('public.contactUsFooter')}</h3>
                 <a href="mailto:mnmknk.eg@gmail.com" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
                     <Mail size={16} />
                   </span>
-                  <span className="font-bold text-sm md:text-base">mnmknk.eg@gmail.com</span>
+                  <span className="font-bold text-sm md:text-base">{t('common.email')}</span>
                 </a>
                 <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-300 hover:text-white transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
                     <Phone size={16} />
                   </span>
-                  <span className="font-bold text-sm md:text-base">01067461059</span>
+                  <span className="font-bold text-sm md:text-base">{t('common.phone')}</span>
                 </a>
+                <div className="flex items-center gap-3 flex-row-reverse text-slate-300">
+                  <span className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center ring-1 ring-white/10">
+                    <Home size={16} />
+                  </span>
+                  <span className="font-bold text-sm md:text-base">{t('common.addressValue')}</span>
+                </div>
               </div>
 
               {/* Social Links */}
-              <div className="flex items-center gap-3 flex-row-reverse md:justify-end">
-                <a
-                  href="mailto:mnmknk.eg@gmail.com"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-[#00E5FF]/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(0,229,255,0.25)]"
-                  aria-label="Gmail"
-                >
-                  <Mail size={16} className="sm:w-[18px] sm:h-[18px]" />
-                </a>
-                <a
-                  href="https://wa.me/201067461059"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-emerald-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(16,185,129,0.25)]"
-                  aria-label="WhatsApp"
-                >
-                  <WhatsAppIcon size={16} />
-                </a>
-                <a
-                  href="https://www.facebook.com/profile.php?id=61587556276694"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-blue-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(96,165,250,0.25)]"
-                  aria-label="Facebook"
-                >
-                  <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
-                </a>
+              <div className="space-y-3">
+                <h3 className="font-black text-[10px] uppercase tracking-widest text-white mb-4">{t('common.contactUs')}</h3>
+                <div className="flex gap-3 flex-row-reverse">
+                  <a
+                    href="mailto:mnmknk.eg@gmail.com"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-[#00E5FF]/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(0,229,255,0.25)]"
+                    aria-label="Gmail"
+                  >
+                    <Mail size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  </a>
+                  <a
+                    href="https://wa.me/201067461059"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-emerald-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(16,185,129,0.25)]"
+                    aria-label="WhatsApp"
+                  >
+                    <WhatsAppIcon size={16} />
+                  </a>
+                  <a
+                    href="https://www.facebook.com/profile.php?id=61587556276694"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/10 text-white flex items-center justify-center transition-all ring-1 ring-white/10 hover:ring-blue-400/40 hover:bg-white/15 shadow-[0_0_0_rgba(0,0,0,0)] hover:shadow-[0_0_18px_rgba(96,165,250,0.25)]"
+                    aria-label="Facebook"
+                  >
+                    <Facebook size={16} className="sm:w-[18px] sm:h-[18px]" />
+                  </a>
+                </div>
               </div>
             </div>
+          </div>
+
+          <div className="text-center text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-8">
+            {t('common.allRightsReserved')}
           </div>
         </div>
       </footer>

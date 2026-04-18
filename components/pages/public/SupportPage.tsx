@@ -1,20 +1,22 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { HelpCircle, Book, Shield, MessageSquare, ChevronRight } from 'lucide-react';
 
 const SupportPage: React.FC = () => {
+  const { t } = useTranslation();
   const faqs = [
     {
-      question: 'كيف يمكنني الطلب من الموقع؟',
-      answer: 'يمكنك اختيار المنتج الذي تريده، إضافة إلى السلة، ثم إكمال بيانات التوصيل وتأكيد الطلب.'
+      question: t('support.faq1Q'),
+      answer: t('support.faq1A')
     },
     {
-      question: 'ما هي طرق الدفع المتاحة؟',
-      answer: 'نوفر حالياً الدفع عند الاستلام، وقريباً سنوفر خيارات الدفع الإلكتروني.'
+      question: t('support.faq2Q'),
+      answer: t('support.faq2A')
     },
     {
-      question: 'كيف يمكنني تتبع طلبي؟',
-      answer: 'يمكنك تتبع حالة طلبك من خلال صفحة "طلباتي" في ملفك الشخصي.'
+      question: t('support.faq3Q'),
+      answer: t('support.faq3A')
     }
   ];
 
@@ -29,11 +31,11 @@ const SupportPage: React.FC = () => {
           <div className="w-12 h-12 bg-[#00E5FF]/20 text-[#00E5FF] rounded-2xl flex items-center justify-center">
             <HelpCircle size={24} />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900">مركز المساعدة</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900">{t('support.title')}</h1>
         </div>
 
         <section className="space-y-6">
-          <h2 className="text-2xl font-bold text-slate-800">الأسئلة الشائعة</h2>
+          <h2 className="text-2xl font-bold text-slate-800">{t('support.faqTitle')}</h2>
           <div className="grid gap-4">
             {faqs.map((faq, index) => (
               <div key={index} className="p-6 bg-slate-50 rounded-2xl border border-slate-100">
@@ -46,11 +48,11 @@ const SupportPage: React.FC = () => {
 
         <section className="p-8 bg-slate-900 text-white rounded-[2rem] flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="space-y-2 text-center md:text-right">
-            <h3 className="text-xl font-black">ما زلت بحاجة للمساعدة؟</h3>
-            <p className="text-slate-400">فريق الدعم الفني متواجد لمساعدتك في أي وقت</p>
+            <h3 className="text-xl font-black">{t('support.stillNeedHelp')}</h3>
+            <p className="text-slate-400">{t('support.stillNeedHelpDesc')}</p>
           </div>
           <button className="px-8 py-4 bg-[#00E5FF] text-black font-black rounded-xl hover:scale-105 transition-all">
-            تواصل معنا
+            {t('support.contactUs')}
           </button>
         </section>
       </motion.div>

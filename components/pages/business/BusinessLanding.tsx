@@ -6,6 +6,7 @@ import {
   Users, Globe, ChevronLeft, Star, CheckCircle2,
   Mail, Phone, Facebook, ArrowUp, ChevronUp,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import type { ShopGallery } from '@/types';
@@ -65,6 +66,7 @@ const RevealSection: React.FC<{ children: React.ReactNode; className?: string; i
 };
 
 const BusinessLanding: React.FC = () => {
+  const { t } = useTranslation();
   const featuredShopId = String(import.meta.env.VITE_FEATURED_SHOP_ID || '').trim();
   const [heroVideo, setHeroVideo] = useState<ShopGallery | null>(null);
   const aboutRef = useRef<HTMLDivElement>(null);
@@ -157,15 +159,15 @@ const BusinessLanding: React.FC = () => {
               <div>
                 <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/10 backdrop-blur-sm rounded-full text-white font-black text-xs uppercase tracking-widest mb-8 md:mb-10 border border-white/15">
                   <TrendingUp className="w-4 h-4 text-[#00E5FF]" />
-                  انضم لنكون من الأوائل — التسجيل مجاني
+                  {t('business.hero.badge')}
                 </div>
 
                 <h1 className="text-5xl sm:text-6xl md:text-9xl font-black tracking-tighter mb-8 md:mb-10 leading-[0.95] md:leading-[0.9] text-white">
-                  قم ببناء <br /> <span className="text-[#00E5FF]">علامتك التجارية.</span>
+                  {t('business.hero.title1')} <br /> <span className="text-[#00E5FF]">{t('business.hero.title2')}</span>
                 </h1>
 
                 <p className="text-lg sm:text-xl md:text-2xl text-white/80 mb-10 md:mb-12 leading-relaxed font-medium max-w-3xl mx-auto">
-                  منصة التجارة الشاملة لتجار العصر الجديد. صمم متجرك، أدر مخزونك، وقم ببيع منتجاتك من أي مكان باستخدام أقوى الأدوات التقنية.
+                  {t('business.landingDesc')}
                 </p>
 
                 <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
@@ -174,21 +176,21 @@ const BusinessLanding: React.FC = () => {
                       to="/business/onboarding"
                       className="block w-full md:w-auto bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 transition-shadow"
                     >
-                      ابدأ تجربتك المجانية
+                      {t('business.startFreeTrial')}
                     </Link>
                   </div>
                   <button
                     type="button"
                     className="w-full md:w-auto bg-white/10 backdrop-blur-sm border border-white/20 text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-white/20 transition-colors"
                   >
-                    شاهد العرض التوضيحي
+                    {t('business.watchDemo')}
                   </button>
                 </div>
 
                 <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-3 text-white/70">
-                  <HeroPill icon={<Store className="w-4 h-4" />} text="متجر جاهز في دقائق" />
-                  <HeroPill icon={<PackageCheck className="w-4 h-4" />} text="إدارة منتجات سهلة" />
-                  <HeroPill icon={<BellRing className="w-4 h-4" />} text="تنبيه فوري للطلبات" />
+                  <HeroPill icon={<Store className="w-4 h-4" />} text={t('business.hero.storeReady')} />
+                  <HeroPill icon={<PackageCheck className="w-4 h-4" />} text={t('business.hero.easyProducts')} />
+                  <HeroPill icon={<BellRing className="w-4 h-4" />} text={t('business.hero.instantAlert')} />
                 </div>
               </div>
             </div>
@@ -201,10 +203,10 @@ const BusinessLanding: React.FC = () => {
       <section className="bg-[#FAFAF7] border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-10 md:py-14">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
-            <StatItem value="١٠+" label="نشاط تجاري مدعوم" />
-            <StatItem value="٢٤/٧" label="دعم فني متواصل" />
-            <StatItem value="٩٩.٩%" label="وقت تشغيل الخوادم" />
-            <StatItem value="٣٠ ثانية" label="زمن إنشاء المتجر" />
+            <StatItem value="10+" label={t('business.stats.activities')} />
+            <StatItem value="24/7" label={t('business.stats.support')} />
+            <StatItem value="99.9%" label={t('business.stats.uptime')} />
+            <StatItem value="30s" label={t('business.stats.storeTime')} />
           </div>
         </div>
       </section>
@@ -215,50 +217,50 @@ const BusinessLanding: React.FC = () => {
       <section className="bg-[#FAFAF7]">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
           <div className="text-center mb-12 md:mb-16">
-            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">ما نقدمه لك</span>
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">{t('business.features.badge')}</span>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
-              كل أدواتك في <span className="text-[#0097A7]">مكان واحد.</span>
+              {t('business.features.title1')} <span className="text-[#0097A7]">{t('business.features.title2')}</span>
             </h2>
             <p className="mt-4 text-slate-500 text-lg md:text-xl max-w-2xl mx-auto font-medium">
-              من المتجر إلى الطلبات إلى التحليلات — كل شيء يعمل مع بعضه بسهولة.
+              {t('business.features.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
             <OfferCard
               icon={<Layout className="w-6 h-6" />}
-              title="مصمم الصفحات الذكي"
-              description="اسحب وأفلت لتبني واجهة متجر تعكس هوية علامتك التجارية بلمسات احترافية — بدون مبرمج."
+              title={t('business.features.pageBuilder')}
+              description={t('business.features.pageBuilderDesc')}
               accent="cyan"
             />
             <OfferCard
               icon={<PackageCheck className="w-6 h-6" />}
-              title="إدارة المنتجات والطلبات"
-              description="أضف منتجاتك، حدّث المخزون، وتابع الطلبات من لوحة تحكم واحدة بشكل واضح وسريع."
+              title={t('business.features.productMgmt')}
+              description={t('business.features.productMgmtDesc')}
               accent="purple"
             />
             <OfferCard
               icon={<BellRing className="w-6 h-6" />}
-              title="تنبيه فوري للتاجر"
-              description="إشعار تلقائي فوري عند وصول طلب أو حجز جديد — لا يفوتك أي عميل."
+              title={t('business.features.instantNotif')}
+              description={t('business.features.instantNotifDesc')}
               accent="cyan"
             />
             <OfferCard
               icon={<BarChart3 className="w-6 h-6" />}
-              title="تحليلات وتقارير"
-              description="تتبع مبيعاتك، أعلى المنتجات أداءً، وسلوك العملاء بتحليلات واضحة وسهلة."
+              title={t('business.features.analytics')}
+              description={t('business.features.analyticsDesc')}
               accent="purple"
             />
             <OfferCard
               icon={<Smartphone className="w-6 h-6" />}
-              title="تجربة موبايل مثالية"
-              description="متجرك يعمل بسلاسة على أي جهاز — موبايل، تابلت، أو كمبيوتر — بدون إعدادات."
+              title={t('business.features.mobileExp')}
+              description={t('business.features.mobileExpDesc')}
               accent="cyan"
             />
             <OfferCard
               icon={<Shield className="w-6 h-6" />}
-              title="أمان وحماية بيانات"
-              description="بياناتك ومبيعاتك محمية بأحدث تقنيات التشفير والأمان — راحة بالك مطلبنا."
+              title={t('business.features.security')}
+              description={t('business.features.securityDesc')}
               accent="purple"
             />
           </div>
@@ -271,29 +273,29 @@ const BusinessLanding: React.FC = () => {
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
           <div className="text-center mb-12 md:mb-16">
-            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">كيف يعمل</span>
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">{t('business.steps.badge')}</span>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
-              ثلاث خطوات <span className="text-[#0097A7]">فقط.</span>
+              {t('business.steps.title1')} <span className="text-[#0097A7]">{t('business.steps.title2')}</span>
             </h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
             <StepCard
-              step="١"
-              title="سجّل متجرك"
-              description="أنشئ حسابك في أقل من دقيقة — أدخل بياناتك واختر نوع نشاطك التجاري."
+              step="1"
+              title={t('business.steps.step1Title')}
+              description={t('business.steps.step1Desc')}
               icon={<Zap className="w-7 h-7" />}
             />
             <StepCard
-              step="٢"
-              title="صمم واجهتك"
-              description="استخدم مصمم الصفحات لإنشاء متجر يعكس هويتك — ألوان، صور، وتصنيفات مخصصة."
+              step="2"
+              title={t('business.steps.step2Title')}
+              description={t('business.steps.step2Desc')}
               icon={<Layout className="w-7 h-7" />}
             />
             <StepCard
-              step="٣"
-              title="ابدأ البيع"
-              description="أضف منتجاتك، فعّل طرق الدفع، وابدأ استقبال الطلبات فوراً."
+              step="3"
+              title={t('business.steps.step3Title')}
+              description={t('business.steps.step3Desc')}
               icon={<Store className="w-7 h-7" />}
             />
           </div>
@@ -303,7 +305,7 @@ const BusinessLanding: React.FC = () => {
               to="/business/onboarding"
               className="inline-flex items-center gap-3 bg-slate-900 text-white px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-slate-800 transition-colors"
             >
-              ابدأ الآن مجاناً
+              {t('business.startNowFree')}
               <ArrowLeft className="w-6 h-6" />
             </Link>
           </div>
@@ -317,26 +319,26 @@ const BusinessLanding: React.FC = () => {
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div>
-              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">لوحة التحكم</span>
+              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">{t('business.dashboard.badge')}</span>
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900 mb-6 md:mb-8">
-                كل اللي تحتاجه لإدارة <span className="text-[#0097A7]">متجرك.</span>
+                {t('business.dashboard.title1')} <span className="text-[#0097A7]">{t('business.dashboard.title2')}</span>
               </h2>
               <div className="space-y-5 md:space-y-6">
-                <CheckItem text="لوحة تحكم واضحة — تابع المنتجات، الطلبات، والحجوزات من مكان واحد" />
-                <CheckItem text="إدارة الطلبات والحجوزات — استقبل وحدّث الحالة بضغطة واحدة" />
-                <CheckItem text="تنبيه فوري — إشعار صوتي ومرئي عند أي طلب أو حجز جديد" />
-                <CheckItem text="تحليلات ذكية — تقارير مبيعات وسلوك عملاء مفصلة" />
+                <CheckItem text={t('business.dashboard.check1')} />
+                <CheckItem text={t('business.dashboard.check2')} />
+                <CheckItem text={t('business.dashboard.check3')} />
+                <CheckItem text={t('business.dashboard.check4')} />
               </div>
               <div className="mt-10 md:mt-14">
                 <Link to="/business/onboarding" className="inline-flex items-center gap-3 font-black text-xl md:text-2xl text-[#0097A7] hover:text-[#00796B] transition-colors">
-                  سجّل متجرك الآن <ArrowLeft className="w-7 h-7 md:w-8 md:h-8" />
+                  {t('business.registerStore')} <ArrowLeft className="w-7 h-7 md:w-8 md:h-8" />
                 </Link>
               </div>
             </div>
             <div className="relative">
               <div className="absolute -inset-4 bg-gradient-to-br from-[#00E5FF]/8 via-transparent to-[#BD00FF]/8 rounded-[2rem] blur-2xl hidden md:block" />
               <div className="relative bg-white rounded-2xl md:rounded-3xl shadow-xl md:shadow-2xl border border-slate-100 overflow-hidden">
-                <img src="/images/business/dashboard-hero.png" className="w-full" alt="لوحة التحكم" />
+                <img src="/images/business/dashboard-hero.png" className="w-full" alt={t('business.dashboard.altImg')} />
               </div>
             </div>
           </div>
@@ -349,28 +351,28 @@ const BusinessLanding: React.FC = () => {
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
           <div className="text-center mb-12 md:mb-16">
-            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">صناعات مدعومة</span>
+            <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/10 text-[#0097A7] rounded-full text-xs font-black uppercase tracking-widest mb-4">{t('business.industries.badge')}</span>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter text-slate-900">
-              متجرك <span className="text-[#0097A7]">لأي نشاط.</span>
+              {t('business.industries.title1')} <span className="text-[#0097A7]">{t('business.industries.title2')}</span>
             </h2>
             <p className="mt-4 text-slate-500 text-lg md:text-xl max-w-2xl mx-auto font-medium">
-              سواء كنت تبيع ملابس أو تدير صيدلية أو تقدم خدمات حجز — المنصة تتكيف مع نشاطك.
+              {t('business.industries.subtitle')}
             </p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <IndustryPill icon={<Store className="w-5 h-5" />} label="متاجر عامة" />
-            <IndustryPill icon={<PackageCheck className="w-5 h-5" />} label="سوبرماركت" />
-            <IndustryPill icon={<Globe className="w-5 h-5" />} label="مطاعم" />
-            <IndustryPill icon={<Smartphone className="w-5 h-5" />} label="إلكترونيات" />
-            <IndustryPill icon={<Users className="w-5 h-5" />} label="عيادات" />
-            <IndustryPill icon={<Shield className="w-5 h-5" />} label="صيدليات" />
-            <IndustryPill icon={<Clock className="w-5 h-5" />} label="حجوزات فنادق" />
-            <IndustryPill icon={<Star className="w-5 h-5" />} label="أزياء" />
-            <IndustryPill icon={<BarChart3 className="w-5 h-5" />} label="عقارات" />
-            <IndustryPill icon={<Zap className="w-5 h-5" />} label="سيارات" />
-            <IndustryPill icon={<Layout className="w-5 h-5" />} label="خدمات" />
-            <IndustryPill icon={<BellRing className="w-5 h-5" />} label="أخرى" />
+            <IndustryPill icon={<Store className="w-5 h-5" />} label={t('business.industries.generalStores')} />
+            <IndustryPill icon={<PackageCheck className="w-5 h-5" />} label={t('business.industries.supermarket')} />
+            <IndustryPill icon={<Globe className="w-5 h-5" />} label={t('business.industries.restaurants')} />
+            <IndustryPill icon={<Smartphone className="w-5 h-5" />} label={t('business.industries.electronics')} />
+            <IndustryPill icon={<Users className="w-5 h-5" />} label={t('business.industries.clinics')} />
+            <IndustryPill icon={<Shield className="w-5 h-5" />} label={t('business.industries.pharmacies')} />
+            <IndustryPill icon={<Clock className="w-5 h-5" />} label={t('business.industries.hotelBookings')} />
+            <IndustryPill icon={<Star className="w-5 h-5" />} label={t('business.industries.fashion')} />
+            <IndustryPill icon={<BarChart3 className="w-5 h-5" />} label={t('business.industries.realEstate')} />
+            <IndustryPill icon={<Zap className="w-5 h-5" />} label={t('business.industries.cars')} />
+            <IndustryPill icon={<Layout className="w-5 h-5" />} label={t('business.industries.services')} />
+            <IndustryPill icon={<BellRing className="w-5 h-5" />} label={t('business.industries.other')} />
           </div>
         </div>
       </section>
@@ -382,37 +384,37 @@ const BusinessLanding: React.FC = () => {
         <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 md:gap-16 items-center">
             <div>
-              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/15 text-[#00E5FF] rounded-full text-xs font-black uppercase tracking-widest mb-4">من نحن</span>
+              <span className="inline-block px-4 py-1.5 bg-[#00E5FF]/15 text-[#00E5FF] rounded-full text-xs font-black uppercase tracking-widest mb-4">{t('business.about.badge')}</span>
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter mb-6 md:mb-8">
-                نبني مستقبل <span className="text-[#00E5FF]">التجارة الرقمية.</span>
+                {t('business.about.title1')} <span className="text-[#00E5FF]">{t('business.about.title2')}</span>
               </h2>
               <p className="text-white/70 text-lg md:text-xl leading-relaxed font-medium mb-6">
-                نحن فريق MNMKNK — منصة عربية متكاملة تمكّن التجار من إدارة أعمالهم بسهولة واحترافية. نؤمن أن كل تاجر يستحق أدوات عالمية بلغته وبسعر يناسبه.
+                {t('business.about.desc1')}
               </p>
               <p className="text-white/60 text-base md:text-lg leading-relaxed font-medium mb-8">
-                من المتجر الإلكتروني إلى نقطة البيع، من إدارة المنتجات إلى التحليلات المتقدمة — نوفر لك كل ما تحتاجه لتنمية مشروعك في مكان واحد.
+                {t('business.about.desc2')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Link
                   to="/business/onboarding"
                   className="inline-flex items-center justify-center gap-2 bg-[#00E5FF] text-slate-900 px-8 py-4 rounded-2xl font-black text-base hover:bg-[#00D4EE] transition-colors"
                 >
-                  ابدأ تجربتك المجانية
+                  {t('business.startFreeTrial')}
                   <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <Link
                   to="/contact"
                   className="inline-flex items-center justify-center gap-2 border border-white/20 text-white px-8 py-4 rounded-2xl font-black text-base hover:bg-white/5 transition-colors"
                 >
-                  تواصل معنا
+                  {t('common.contactUs')}
                 </Link>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 md:gap-5">
-              <AboutCard icon={<Globe className="w-8 h-8" />} title="منصة عربية" description="مصممة خصيصاً للسوق العربي" />
-              <AboutCard icon={<Zap className="w-8 h-8" />} title="سهولة الاستخدام" description="بدون تعقيد أو حاجة لخبرة تقنية" />
-              <AboutCard icon={<Shield className="w-8 h-8" />} title="أمان عالمي" description="تشفير وحماية بمعايير عالمية" />
-              <AboutCard icon={<Users className="w-8 h-8" />} title="دعم متواصل" description="فريق دعم متاح على مدار الساعة" />
+              <AboutCard icon={<Globe className="w-8 h-8" />} title={t('business.about.arabicPlatform')} description={t('business.about.arabicPlatformDesc')} />
+              <AboutCard icon={<Zap className="w-8 h-8" />} title={t('business.about.easeOfUse')} description={t('business.about.easeOfUseDesc')} />
+              <AboutCard icon={<Shield className="w-8 h-8" />} title={t('business.about.globalSecurity')} description={t('business.about.globalSecurityDesc')} />
+              <AboutCard icon={<Users className="w-8 h-8" />} title={t('business.about.continuousSupport')} description={t('business.about.continuousSupportDesc')} />
             </div>
           </div>
         </div>
@@ -428,17 +430,17 @@ const BusinessLanding: React.FC = () => {
             <div className="absolute bottom-0 right-0 w-64 h-64 bg-[#BD00FF]/10 rounded-full blur-3xl" />
             <div className="relative z-10">
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter text-white mb-4 md:mb-6">
-                جاهز تبدأ؟
+                {t('business.readyToStart')}
               </h2>
               <p className="text-white/60 text-lg md:text-xl max-w-xl mx-auto mb-8 md:mb-10 font-medium">
-                أنشئ متجرك الآن مجاناً — بدون بطاقة ائتمانية، بدون التزامات.
+                {t('business.noCreditCard')}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   to="/business/onboarding"
                   className="inline-flex items-center gap-3 bg-[#00E5FF] text-slate-900 px-10 md:px-14 py-5 md:py-6 rounded-2xl font-black text-lg md:text-xl hover:bg-[#00D4EE] transition-colors"
                 >
-                  ابدأ مجاناً الآن
+                  {t('business.startFreeNow')}
                   <ArrowLeft className="w-6 h-6" />
                 </Link>
                 <button
@@ -446,7 +448,7 @@ const BusinessLanding: React.FC = () => {
                   onClick={scrollToAbout}
                   className="inline-flex items-center gap-2 border border-white/20 text-white px-8 py-5 rounded-2xl font-black text-lg hover:bg-white/5 transition-colors"
                 >
-                  تعرف علينا
+                  {t('business.getToKnowUs')}
                   <ChevronLeft className="w-5 h-5" />
                 </button>
               </div>
@@ -463,7 +465,7 @@ const BusinessLanding: React.FC = () => {
             to="/business/onboarding"
             className="block w-full bg-[#00E5FF] text-slate-900 py-4 rounded-2xl font-black text-base text-center shadow-lg shadow-cyan-500/25"
           >
-            ابدأ مجاناً الآن
+            {t('business.startFreeNow')}
           </Link>
         </div>
       </div>
@@ -473,7 +475,7 @@ const BusinessLanding: React.FC = () => {
         type="button"
         onClick={scrollToTop}
         className={`fixed bottom-20 md:bottom-8 left-6 z-[85] w-11 h-11 rounded-xl bg-slate-900/80 backdrop-blur-sm text-white flex items-center justify-center shadow-lg border border-white/10 transition-all duration-300 ${showBackToTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'}`}
-        aria-label="الرجوع للأعلى"
+        aria-label={t('common.backToTop')}
       >
         <ChevronUp size={20} />
       </button>
@@ -491,37 +493,37 @@ const BusinessLanding: React.FC = () => {
                 <span className="text-xl font-black tracking-tighter text-white uppercase">MNMKNK</span>
               </div>
               <p className="text-slate-400 leading-relaxed text-sm">
-                منصة متكاملة لتجار العصر الجديد. صمم متجرك، أدر منتجاتك، واربح بسهولة.
+                {t('business.platformDesc')}
               </p>
             </div>
 
             {/* Product */}
             <div>
-              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">المنتج</h4>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">{t('business.product')}</h4>
               <ul className="space-y-2.5 text-sm">
-                <li><Link to="/business/onboarding" className="text-slate-400 hover:text-[#00E5FF] transition-colors">إنشاء متجر</Link></li>
-                <li><Link to="/courier" className="text-slate-400 hover:text-[#00E5FF] transition-colors">مندوب توصيل</Link></li>
+                <li><Link to="/business/onboarding" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('business.createStore')}</Link></li>
+                <li><Link to="/courier" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('business.courierSignup')}</Link></li>
               </ul>
             </div>
 
             {/* Company */}
             <div>
-              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">الشركة</h4>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">{t('business.company')}</h4>
               <ul className="space-y-2.5 text-sm">
-                <li><button type="button" onClick={scrollToAbout} className="text-slate-400 hover:text-[#00E5FF] transition-colors">من نحن</button></li>
-                <li><Link to="/" className="text-slate-400 hover:text-[#00E5FF] transition-colors">الرئيسية</Link></li>
-                <li><Link to="/blog" className="text-slate-400 hover:text-[#00E5FF] transition-colors">المدونة</Link></li>
+                <li><button type="button" onClick={scrollToAbout} className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.aboutUs')}</button></li>
+                <li><Link to="/" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.home')}</Link></li>
+                <li><Link to="/blog" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('business.blog')}</Link></li>
               </ul>
             </div>
 
             {/* Support */}
             <div>
-              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">الدعم والشروط</h4>
+              <h4 className="text-sm font-black text-white mb-4 uppercase tracking-wider">{t('business.supportAndTerms')}</h4>
               <ul className="space-y-2.5 text-sm">
-                <li><Link to="/support" className="text-slate-400 hover:text-[#00E5FF] transition-colors">مركز المساعدة</Link></li>
-                <li><Link to="/terms" className="text-slate-400 hover:text-[#00E5FF] transition-colors">شروط الخدمة</Link></li>
-                <li><Link to="/privacy" className="text-slate-400 hover:text-[#00E5FF] transition-colors">سياسة الخصوصية</Link></li>
-                <li><Link to="/contact" className="text-slate-400 hover:text-[#00E5FF] transition-colors">تواصل معنا</Link></li>
+                <li><Link to="/support" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.helpCenter')}</Link></li>
+                <li><Link to="/terms" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.terms')}</Link></li>
+                <li><Link to="/privacy" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.privacy')}</Link></li>
+                <li><Link to="/contact" className="text-slate-400 hover:text-[#00E5FF] transition-colors">{t('common.contactUs')}</Link></li>
               </ul>
             </div>
           </div>
@@ -576,8 +578,8 @@ const BusinessLanding: React.FC = () => {
           </div>
 
           <div className="mt-8 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-sm">
-            <p>© {new Date().getFullYear()} MNMKNK. جميع الحقوق محفوظة.</p>
-            <p className="font-medium">من مكانك للأعمال</p>
+            <p>© {new Date().getFullYear()} MNMKNK. {t('common.allRightsReserved')}</p>
+            <p className="font-medium">{t('brand.nameBusiness')}</p>
           </div>
         </div>
       </footer>

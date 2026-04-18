@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CartIconWithAnimationProps {
   count: number;
@@ -10,6 +11,7 @@ interface CartIconWithAnimationProps {
 }
 
 export const CartIconWithAnimation: React.FC<CartIconWithAnimationProps> = ({ count, className, onClick, ariaLabel }) => {
+  const { t } = useTranslation();
   const [isAnimating, setIsAnimating] = useState(false);
   const [prevCount, setPrevCount] = useState(count);
 
@@ -27,8 +29,8 @@ export const CartIconWithAnimation: React.FC<CartIconWithAnimationProps> = ({ co
       type="button"
       onClick={onClick}
       className={`relative transition-transform active:scale-95 ${className}`}
-      aria-label={ariaLabel || `سلة المشتريات (${count})`}
-      title={ariaLabel || 'سلة المشتريات'}
+      aria-label={ariaLabel || t('common.cartIcon.ariaLabel', { count })}
+      title={ariaLabel || t('common.cartIcon.title')}
     >
       <motion.div
         animate={isAnimating ? { scale: [1, 1.3, 1], rotate: [0, 10, -10, 0] } : {}}

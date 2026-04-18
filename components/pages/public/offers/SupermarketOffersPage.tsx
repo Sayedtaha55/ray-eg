@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
 import { Sparkles, TrendingUp, Loader2, MapPin, ShoppingCart } from 'lucide-react';
@@ -16,6 +17,7 @@ const ReservationModal = lazy(() => import('../../shared/ReservationModal'));
 const MotionDiv = motion.div as any;
 
 const SupermarketOffersPage: React.FC = () => {
+  const { t } = useTranslation();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -179,7 +181,7 @@ const SupermarketOffersPage: React.FC = () => {
           <div className="mt-10 md:mt-16 flex items-center justify-center">
             <button
               type="button"
-              aria-label="تحميل المزيد من العروض"
+              aria-label={t('supermarket.loadMoreAria')}
               onClick={() => {
                 loadMoreOffersRef.current?.();
               }}
@@ -187,7 +189,7 @@ const SupermarketOffersPage: React.FC = () => {
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+              <span>{loadingMore ? t('supermarket.loading') : t('supermarket.loadMore')}</span>
             </button>
           </div>
         )}
@@ -204,32 +206,32 @@ const SupermarketOffersPage: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 md:px-6 py-2 md:py-2.5 bg-green-700 text-white rounded-full font-black text-[9px] md:text-[10px] md:text-xs uppercase tracking-[0.2em] mb-6 md:mb-10 shadow-2xl"
          >
             <ShoppingCart className="w-3 h-3 text-white fill-current" />
-            عروض السوبر ماركت
+            {t('supermarket.badge')}
          </MotionDiv>
-         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">عروض<br/><span className="text-green-700">السوبر ماركت.</span></h1>
+         <h1 className="text-2xl md:text-4xl lg:text-8xl font-black tracking-tighter mb-4 md:mb-8 leading-[0.85]">{t('supermarket.title')}<br/><span className="text-green-700">{t('supermarket.subtitle')}</span></h1>
          <p className="text-slate-600 text-sm md:text-lg md:text-2xl font-bold max-w-2xl px-4 leading-relaxed mb-8 md:mb-12">
-            اكتشف أفضل عروض السوبر ماركت مع خصومات حصرية على منتجات البقالة والمواد الغذائية والمنزلية.
+            {t('supermarket.description')}
          </p>
 
          <Link
            to="/map"
            className="inline-flex items-center gap-2 px-6 py-3 md:px-8 md:py-4 bg-green-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base hover:bg-green-800 transition-all shadow-xl"
          >
-           الخريطة <MapPin className="w-4 h-4" />
+           {t('supermarket.mapBtn')} <MapPin className="w-4 h-4" />
          </Link>
       </div>
 
       {/* Offers Grid */}
       <section className="mb-16 md:mb-24">
         <div className="flex items-center justify-between mb-8 md:mb-20 flex-row-reverse px-2">
-           <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">أحدث عروض السوبر ماركت</h2>
+           <h2 className="text-xl md:text-3xl lg:text-5xl font-black tracking-tighter">{t('supermarket.sectionTitle')}</h2>
            <Link to="/map" className="flex items-center gap-2 text-slate-600 font-black text-xs md:text-sm hover:text-black transition-all group">
-             مشاهدة الكل <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
+             {t('supermarket.viewAll')} <TrendingUp className="w-4 h-4 group-hover:translate-x-[-4px] transition-transform" />
            </Link>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-8 lg:gap-12">
           {offers.length === 0 ? (
-            <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض سوبر ماركت نشطة حالياً.</div>
+            <div className="col-span-full py-20 text-center text-slate-500 font-bold">{t('supermarket.noOffers')}</div>
           ) : offers.map((offer, idx) => (
             <div key={offer.id} className="cv-auto">
               <OfferCard
@@ -252,13 +254,13 @@ const SupermarketOffersPage: React.FC = () => {
           <div className="mt-10 md:mt-16 flex items-center justify-center">
             <button
               type="button"
-              aria-label="تحميل المزيد من العروض"
+              aria-label={t('supermarket.loadMoreAria')}
               onClick={() => loadMoreOffersRef.current?.()}
               className="px-8 py-3 md:px-10 md:py-4 bg-green-700 text-white rounded-xl md:rounded-2xl font-black text-sm md:text-base flex items-center justify-center gap-3 hover:bg-green-800 transition-all shadow-xl"
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+              <span>{loadingMore ? t('supermarket.loading') : t('supermarket.loadMore')}</span>
             </button>
           </div>
         )}

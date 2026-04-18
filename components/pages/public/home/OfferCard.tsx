@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
 
@@ -31,6 +32,7 @@ interface OfferCardProps {
 }
 
 const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelectedItem, playSound }) => {
+  const { t } = useTranslation();
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -101,13 +103,13 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
         <h3 className="text-sm md:text-xl lg:text-2xl font-black mb-3 md:mb-6 line-clamp-1 leading-tight">{offer.title}</h3>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:flex-row-reverse">
            <div className="text-right">
-              <p className="text-slate-300 line-through text-[9px] md:text-xs font-bold">ج.م {offer.oldPrice}</p>
-              <p className="text-base md:text-2xl lg:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
+              <p className="text-slate-300 line-through text-[9px] md:text-xs font-bold">{t('home.topSelling.currency')} {offer.oldPrice}</p>
+              <p className="text-base md:text-2xl lg:text-3xl font-black text-[#BD00FF] tracking-tighter">{t('home.topSelling.currency')} {offer.newPrice}</p>
            </div>
            <div className="flex items-center justify-between gap-2 sm:justify-start">
               <button
                 type="button"
-                aria-label="حجز"
+                aria-label={t('home.topSelling.reserve')}
                 onClick={() => setSelectedItem(offer)}
                 className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-[#00E5FF] rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
               >
@@ -115,7 +117,7 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
               </button>
               <button 
                 type="button"
-                aria-label="إضافة للسلة"
+                aria-label={t('home.topSelling.addToCart')}
                 onClick={handleAddToCart}
                 className="w-8 h-8 md:w-10 md:h-12 bg-slate-900 text-white rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
               >

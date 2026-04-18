@@ -1,20 +1,22 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Shield } from 'lucide-react';
 
 const PrivacyPage: React.FC = () => {
+  const { t } = useTranslation();
   const sections = [
     {
-      title: 'المعلومات التي نجمعها',
-      content: 'نجمع المعلومات التي تقدمها لنا مباشرة، مثل الاسم، رقم الهاتف، والبريد الإلكتروني عند إنشاء حساب أو إجراء طلب.'
+      title: t('privacy.s1Title'),
+      content: t('privacy.s1Content')
     },
     {
-      title: 'كيف نستخدم معلوماتك',
-      content: 'نستخدم معلوماتك لمعالجة طلباتك، تحسين خدماتنا، والتواصل معك بشأن التحديثات والعروض.'
+      title: t('privacy.s2Title'),
+      content: t('privacy.s2Content')
     },
     {
-      title: 'حماية البيانات',
-      content: 'نحن نتخذ تدابير أمنية تقنية وتنظيمية مناسبة لحماية بياناتك الشخصية من الوصول غير المصرح به.'
+      title: t('privacy.s3Title'),
+      content: t('privacy.s3Content')
     }
   ];
 
@@ -29,12 +31,12 @@ const PrivacyPage: React.FC = () => {
           <div className="w-12 h-12 bg-[#00E5FF]/20 text-[#00E5FF] rounded-2xl flex items-center justify-center">
             <Shield size={24} />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900">سياسة الخصوصية</h1>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-900">{t('privacy.title')}</h1>
         </div>
 
         <div className="prose prose-slate max-w-none">
           <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-            نحن في "من مكانك" نلتزم بحماية خصوصيتك وبياناتك الشخصية. توضح هذه السياسة كيفية تعاملنا مع معلوماتك.
+            {t('privacy.intro')}
           </p>
 
           <div className="space-y-12">

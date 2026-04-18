@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '../ui';
 import { Store, Phone, MapPin, FileText, Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ShopFormProps {
   onSubmit: (shopData: ShopFormData) => void;
@@ -23,6 +24,7 @@ const ShopForm: React.FC<ShopFormProps> = ({
   error,
   initialData,
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<ShopFormData>({
     name: '',
     email: '',
@@ -45,8 +47,8 @@ const ShopForm: React.FC<ShopFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Input
         type="text"
-        label="اسم المتجر"
-        placeholder="أدخل اسم المتجر"
+        label={t('common.forms.shop.nameLabel')}
+        placeholder={t('common.forms.shop.namePlaceholder')}
         value={formData.name}
         onChange={handleChange('name')}
         required
@@ -55,7 +57,7 @@ const ShopForm: React.FC<ShopFormProps> = ({
 
       <Input
         type="email"
-        label="البريد الإلكتروني"
+        label={t('common.forms.shop.emailLabel')}
         placeholder="shop@example.com"
         value={formData.email}
         onChange={handleChange('email')}
@@ -65,7 +67,7 @@ const ShopForm: React.FC<ShopFormProps> = ({
       
       <Input
         type="tel"
-        label="رقم الهاتف"
+        label={t('common.forms.shop.phoneLabel')}
         placeholder="+20 123 456 7890"
         value={formData.phone}
         onChange={handleChange('phone')}
@@ -75,8 +77,8 @@ const ShopForm: React.FC<ShopFormProps> = ({
 
       <Input
         type="text"
-        label="العنوان"
-        placeholder="أدخل العنوان الكامل"
+        label={t('common.forms.shop.addressLabel')}
+        placeholder={t('common.forms.shop.addressPlaceholder')}
         value={formData.address}
         onChange={handleChange('address')}
         required
@@ -85,12 +87,12 @@ const ShopForm: React.FC<ShopFormProps> = ({
 
       <div className="space-y-2">
         <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-          الوصف
+          {t('common.forms.shop.descriptionLabel')}
         </label>
         <textarea
           value={formData.description}
           onChange={(e) => handleChange('description')(e.target.value)}
-          placeholder="اكتب وصفاً للمتجر..."
+          placeholder={t('common.forms.shop.descriptionPlaceholder')}
           rows={4}
           className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all resize-none"
         />
@@ -108,7 +110,7 @@ const ShopForm: React.FC<ShopFormProps> = ({
         disabled={!formData.name || !formData.email || !formData.phone || !formData.address}
         className="w-full py-4"
       >
-        حفظ بيانات المتجر
+        {t('common.forms.shop.submit')}
       </Button>
     </form>
   );

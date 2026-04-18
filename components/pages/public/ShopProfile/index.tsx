@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { RayDB } from '@/constants';
 import { Shop, Product, ShopDesign, Offer, Category, ShopGallery } from '@/types';
@@ -35,6 +36,7 @@ const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const ShopProfile: React.FC = () => {
+  const { t } = useTranslation();
   const { slug } = useParams();
   const location = useLocation();
   const [shop, setShop] = useState<Shop | null>(null);
@@ -51,7 +53,7 @@ const ShopProfile: React.FC = () => {
   const [hasActiveImageMap, setHasActiveImageMap] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('الكل');
+  const [activeCategory, setActiveCategory] = useState(t('shopProfile.all'));
   const [hasFollowed, setHasFollowed] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [selectedProductForRes, setSelectedProductForRes] = useState<any | null>(null);
@@ -381,7 +383,7 @@ const ShopProfile: React.FC = () => {
     const key = `products:${shopId}`;
     tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
     setProductsTabError(null);
-    setActiveCategory('الكل');
+    setActiveCategory(t('shopProfile.all'));
     setActiveTab('products');
     try {
       setProductsTabLoading(true);
@@ -405,7 +407,7 @@ const ShopProfile: React.FC = () => {
       setOffers(Array.isArray(shopOffers) ? shopOffers : []);
       tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
     } catch (err: any) {
-      setProductsTabError(String(err?.message || 'فشل تحميل المنتجات'));
+      setProductsTabError(String(err?.message || t('shopProfile.loadProductsFailed')));
       tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
     } finally {
       setProductsTabLoading(false);
@@ -425,7 +427,7 @@ const ShopProfile: React.FC = () => {
       setGalleryImages(Array.isArray(galleryData) ? galleryData : []);
       tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
     } catch (err: any) {
-      setGalleryTabError(String(err?.message || 'فشل تحميل معرض الصور'));
+      setGalleryTabError(String(err?.message || t('shopProfile.loadGalleryFailed')));
       tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
     } finally {
       setGalleryTabLoading(false);
@@ -482,7 +484,7 @@ const ShopProfile: React.FC = () => {
       productsPagingRef.current.hasMore = list.length >= limit;
       setHasMoreProducts(list.length >= limit);
     } catch (err: any) {
-      addToast(String(err?.message || 'فشل تحميل المزيد من المنتجات'), 'error');
+      addToast(String(err?.message || t('shopProfile.loadMoreFailed')), 'error');
     } finally {
       productsPagingRef.current.loadingMore = false;
       setLoadingMoreProducts(false);
@@ -493,14 +495,14 @@ const ShopProfile: React.FC = () => {
     if (!shop) return;
     const shareData = {
       title: shop.name,
-      text: `شوفوا المحل ده على منصة من مكانك: ${shop.name}`,
+      text: `${t('shopProfile.shareText')}: ${shop.name}`,
       url: window.location.href,
     };
     try {
       if (navigator.share) await navigator.share(shareData);
       else {
         await navigator.clipboard.writeText(window.location.href);
-        addToast('تم نسخ الرابط لمشاركته!', 'info');
+        addToast(t('shopProfile.linkCopied'), 'info');
       }
     } catch (e) {}
   };
@@ -508,10 +510,10 @@ const ShopProfile: React.FC = () => {
   const categories = useMemo(() => {
     const cats = new Set<string>();
     for (const p of products) {
-      cats.add(String((p as any)?.category || 'عام'));
+      cats.add(String((p as any)?.category || t('shopProfile.general')));
     }
-    return ['الكل', ...Array.from(cats)];
-  }, [products]);
+    return [t('shopProfile.all'), ...Array.from(cats)];
+  }, [products, t]);
 
   const offersByProductId = useMemo(() => {
     const map = new Map<string, Offer>();
@@ -579,7 +581,7 @@ const ShopProfile: React.FC = () => {
       const q = new URLSearchParams();
       q.set('returnTo', `${location.pathname}${location.search || ''}`);
       q.set('followShopId', String(shop.id));
-      addToast('سجّل الدخول لمتابعة المتجر', 'info');
+      addToast(t('shopProfile.loginToFollow'), 'info');
       navigate(`/login?${q.toString()}`);
       return;
     }
@@ -595,11 +597,11 @@ const ShopProfile: React.FC = () => {
         const q = new URLSearchParams();
         q.set('returnTo', `${location.pathname}${location.search || ''}`);
         q.set('followShopId', String(shop.id));
-        addToast('سجّل الدخول لمتابعة المتجر', 'info');
+        addToast(t('shopProfile.loginToFollow'), 'info');
         navigate(`/login?${q.toString()}`);
         return;
       }
-      addToast('تعذر متابعة المتجر', 'error');
+      addToast(t('shopProfile.followFailed'), 'error');
     } finally {
       setFollowLoading(false);
     }
@@ -676,9 +678,9 @@ const ShopProfile: React.FC = () => {
   if (shop && (shop as any)?.publicDisabled === true) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
       <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />
-      <h2 className="text-2xl md:text-3xl font-black mb-4">المحل متوقف مؤقتًا</h2>
+      <h2 className="text-2xl md:text-3xl font-black mb-4">{t('shopProfile.disabledTitle')}</h2>
       <p className="text-sm md:text-base font-bold text-slate-500 max-w-xl mb-8 leading-relaxed">
-        تم تعطيل صفحة العرض مؤقتًا بواسطة صاحب المحل. يمكنك المحاولة لاحقًا.
+        {t('shopProfile.disabledDesc')}
       </p>
       <div className="flex items-center gap-3 flex-wrap justify-center">
         <button
@@ -686,14 +688,14 @@ const ShopProfile: React.FC = () => {
           onClick={() => window.location.reload()}
           className="px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-sm"
         >
-          تحديث
+          {t('shopProfile.refresh')}
         </button>
         <button
           type="button"
           onClick={() => navigate('/')}
           className="px-6 py-4 rounded-2xl bg-white border border-slate-200 text-slate-800 font-black text-sm"
         >
-          الصفحة الرئيسية
+          {t('shopProfile.homePage')}
         </button>
       </div>
     </div>
@@ -702,9 +704,9 @@ const ShopProfile: React.FC = () => {
   if (error || !shop || !currentDesign) return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center" dir="rtl">
       <AlertCircle className="w-16 h-16 md:w-20 md:h-20 text-slate-300 mb-8" />
-      <h2 className="text-2xl md:text-3xl font-black mb-4">المحل غير متاح حالياً</h2>
+      <h2 className="text-2xl md:text-3xl font-black mb-4">{t('shopProfile.unavailableTitle')}</h2>
       <button onClick={() => navigate('/')} className="px-8 py-4 md:px-10 md:py-5 bg-slate-900 text-white rounded-full font-black flex items-center gap-3 shadow-xl">
-        <Home size={20} /> العودة للرئيسية
+        <Home size={20} /> {t('shopProfile.backHome')}
       </button>
     </div>
   );
@@ -739,7 +741,7 @@ const ShopProfile: React.FC = () => {
   const showFloatingChatButton = isVisible('floatingChatButton', true);
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
-  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`مرحبا ${shop.name}`)}` : '';
+  const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`${t('shopProfile.whatsappGreeting')} ${shop.name}`)}` : '';
 
   const isPharmacy = String((shop as any)?.category || '').trim().toUpperCase() === 'HEALTH';
   const prescriptionHref = (() => {
@@ -747,7 +749,7 @@ const ShopProfile: React.FC = () => {
     if (!base) return '';
     try {
       const u = new URL(base);
-      u.searchParams.set('text', `مرحبا ${shop?.name || ''}، عايز أضيف روشتة`);
+      u.searchParams.set('text', `${t('shopProfile.whatsappGreeting')} ${shop?.name || ''}${t('shopProfile.addressSeparator')}${t('shopProfile.prescriptionMsg')}`);
       return u.toString();
     } catch {
       return base;
@@ -840,7 +842,7 @@ const ShopProfile: React.FC = () => {
               className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-black text-sm md:text-base text-white shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
               style={{ backgroundColor: String(currentDesign?.primaryColor || '').trim() || '#00E5FF' }}
             >
-              <FilePlus size={18} /> إضافة روشتة
+              <FilePlus size={18} /> {t('shopProfile.prescriptionMsg')}
             </a>
           </div>
         </div>
@@ -923,7 +925,7 @@ const ShopProfile: React.FC = () => {
                   className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavHome ? '' : 'hidden'} ${activeTab === 'products' ? 'text-slate-900 bg-slate-50' : 'text-slate-500'}`}
                 >
                   <Home size={18} />
-                  الرئيسية
+                  {t('shopProfile.home')}
                 </button>
 
                 {hasSalesModule ? (
@@ -933,7 +935,7 @@ const ShopProfile: React.FC = () => {
                     className={`relative py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavCart ? '' : 'hidden'} text-slate-500`}
                   >
                     <ShoppingCart size={18} />
-                    السلة
+                    {t('shopProfile.cart')}
                     {Array.isArray(cartItems) && cartItems.length > 0 ? (
                       <span className="absolute top-2 right-6 w-5 h-5 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center">
                         {cartItems.length}
@@ -960,7 +962,7 @@ const ShopProfile: React.FC = () => {
                   className={`py-3.5 flex flex-col items-center justify-center gap-1 font-black text-[10px] ${showMobileBottomNavAccount ? '' : 'hidden'} text-slate-500`}
                 >
                   <User size={18} />
-                  حسابي
+                  {t('shopProfile.account')}
                 </button>
               </div>
             </div>

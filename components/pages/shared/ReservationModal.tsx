@@ -6,6 +6,7 @@ import { RayDB } from '@/constants';
 import { Reservation } from '@/types';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ interface ReservationModalProps {
 }
 
 const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, item }) => {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [step, setStep] = useState<'form' | 'success'>('form');
@@ -60,7 +62,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
         const returnTo = `${location.pathname}${location.search || ''}`;
         window.dispatchEvent(new CustomEvent('ray-auth-required', {
           detail: {
-            message: 'قبل الحجز لازم تسجل حساب.',
+            message: t('public.reservation.authRequired'),
             returnTo,
           },
         }));
@@ -89,7 +91,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
         onClose();
       }, 2500);
     } catch (err: any) {
-      setError(err?.message || 'فشل إرسال الحجز، يرجى المحاولة مرة أخرى');
+      setError(err?.message || t('public.reservation.submitFailed'));
     } finally {
       setIsSubmitting(false);
     }
@@ -113,7 +115,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
           >
             {step === 'form' ? (
               <div className="p-8 md:p-12">
-                <button type="button" aria-label="إغلاق" onClick={onClose} className="absolute top-8 left-8 p-2 hover:bg-slate-100 rounded-full transition-all">
+                <button type="button" aria-label={t('public.reservation.close')} onClick={onClose} className="absolute top-8 left-8 p-2 hover:bg-slate-100 rounded-full transition-all">
                   <X size={24} className="text-slate-400" />
                 </button>
 
@@ -121,7 +123,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                    <div className="w-12 h-12 bg-[#00E5FF]/10 rounded-2xl flex items-center justify-center text-[#00E5FF]">
                       <Clock size={24} />
                    </div>
-                   <h2 className="text-3xl font-black tracking-tighter">حجز سريع لمدة ٢٤ ساعة</h2>
+                   <h2 className="text-3xl font-black tracking-tighter">{t('public.reservation.title')}</h2>
                 </div>
 
                 <div className="bg-slate-50 p-6 rounded-3xl mb-8 flex items-center gap-4 flex-row-reverse">
@@ -129,15 +131,15 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                      <img
                        src={String(item?.image || '').trim()}
                        className="w-20 h-20 rounded-2xl object-cover shadow-sm"
-                       alt={String(item?.name || 'صنف')}
+                       alt={String(item?.name || t('public.reservation.itemFallback'))}
                      />
                    ) : (
                      <div className="w-20 h-20 rounded-2xl bg-white/70 border border-slate-200 shadow-sm" />
                    )}
                    <div className="flex-1">
-                      <p className="font-black text-lg">{String(item?.name || 'صنف')}</p>
-                      <p className="text-[#00E5FF] font-black">ج.م {Number(item?.price || 0)}</p>
-                      <p className="text-[10px] text-slate-400 font-bold mt-1">متجر: {String(item?.shopName || '')}</p>
+                      <p className="font-black text-lg">{String(item?.name || t('public.reservation.itemFallback'))}</p>
+                      <p className="text-[#00E5FF] font-black">{t('business.pos.egp')} {Number(item?.price || 0)}</p>
+                      <p className="text-[10px] text-slate-400 font-bold mt-1">{t('public.reservation.shopLabel')}: {String(item?.shopName || '')}</p>
                    </div>
                 </div>
 
@@ -146,7 +148,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                     <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 flex-row-reverse">
                       <ShieldCheck size={20} className="text-amber-500 shrink-0" />
                       <p className="text-xs font-bold text-amber-700 leading-relaxed">
-                        لازم تسجل دخول الأول علشان نضمن الأمان ونربط الحجز بحسابك.
+                        {t('public.reservation.loginHint')}
                       </p>
                     </div>
 
@@ -157,7 +159,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                           const returnTo = `${location.pathname}${location.search || ''}`;
                           window.dispatchEvent(new CustomEvent('ray-auth-required', {
                             detail: {
-                              message: 'قبل الحجز لازم تسجل حساب.',
+                              message: t('public.reservation.authRequired'),
                               returnTo,
                             },
                           }));
@@ -166,19 +168,19 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                       }}
                       className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl"
                     >
-                      تسجيل الدخول للحجز
+                      {t('public.reservation.loginToReserve')}
                     </button>
                   </div>
                 ) : (
                 <form onSubmit={handleReserve} className="space-y-6">
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4">اسم المستلم</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4">{t('public.reservation.nameLabel')}</label>
                     <div className="relative">
                       <User className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
                         disabled={isSubmitting}
                         className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-14 pl-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-bold text-right"
-                        placeholder="الاسم بالكامل"
+                        placeholder={t('public.reservation.namePlaceholder')}
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                       />
@@ -186,7 +188,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4">رقم الموبايل للتواصل</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest mr-4">{t('public.reservation.phoneLabel')}</label>
                     <div className="relative">
                       <Phone className="absolute right-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" />
                       <input 
@@ -210,12 +212,12 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                   <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 mb-4 flex gap-3 flex-row-reverse">
                      <ShieldCheck size={20} className="text-amber-500 shrink-0" />
                      <p className="text-[10px] font-bold text-amber-700 leading-relaxed">
-                        الدفع كاش عند الاستلام من المحل. سيتم إلغاء الحجز تلقائياً بعد ٢٤ ساعة إذا لم يتم الاستلام.
+                        {t('public.reservation.cashNote')}
                      </p>
                   </div>
 
                   <button disabled={isSubmitting} className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xl hover:bg-black transition-all shadow-xl disabled:opacity-50 disabled:cursor-not-allowed">
-                    {isSubmitting ? 'جاري إرسال الحجز...' : 'تأكيد الحجز مجاناً'}
+                    {isSubmitting ? t('public.reservation.submitting') : t('public.reservation.confirmFree')}
                   </button>
                 </form>
                 )}
@@ -225,10 +227,10 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
                 <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-2xl shadow-green-100">
                   <CheckCircle2 size={48} className="text-white" />
                 </div>
-                <h2 className="text-4xl font-black mb-4">تم الحجز بنجاح!</h2>
-                <p className="text-slate-400 font-bold text-lg mb-8">توجه للمحل خلال ٢٤ ساعة لاستلام طلبك.</p>
+                <h2 className="text-4xl font-black mb-4">{t('public.reservation.successTitle')}</h2>
+                <p className="text-slate-400 font-bold text-lg mb-8">{t('public.reservation.successSubtitle')}</p>
                 <div className="bg-slate-50 p-6 rounded-3xl inline-block">
-                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">رقم الحجز</p>
+                   <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1">{t('public.reservation.reservationNumber')}</p>
                    <p className="text-2xl font-black text-slate-900">#RA-{Math.floor(Math.random()*9000)+1000}</p>
                 </div>
               </div>

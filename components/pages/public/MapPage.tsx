@@ -1,5 +1,6 @@
 
 import React, { useCallback, useEffect, useMemo, useState, lazy, Suspense } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
@@ -32,6 +33,7 @@ function haversineDistanceKm(a: Coords, b: Coords) {
 }
 
 const MapPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -127,12 +129,12 @@ const MapPage: React.FC = () => {
   const handleLocateMe = async () => {
     setLocationError('');
     if (!navigator.geolocation) {
-      setLocationError('المتصفح لا يدعم تحديد الموقع');
+      setLocationError(t('map.geoUnsupported'));
       return;
     }
 
     if (typeof window !== 'undefined' && !(window as any).isSecureContext) {
-      setLocationError('تحديد الموقع يحتاج فتح الموقع عبر HTTPS.');
+      setLocationError(t('map.geoInsecure'));
       return;
     }
 
@@ -144,9 +146,9 @@ const MapPage: React.FC = () => {
     } catch (err) {
       const message = String((err as any)?.message || '').trim();
       if (message === 'GEO_UNSUPPORTED') {
-        setLocationError('المتصفح لا يدعم تحديد الموقع');
+        setLocationError(t('map.geoUnsupported'));
       } else if (message === 'GEO_INSECURE_CONTEXT') {
-        setLocationError('تحديد الموقع يحتاج فتح الموقع عبر HTTPS.');
+        setLocationError(t('map.geoInsecure'));
       } else {
         setLocationError(explainGeoError(err));
       }
@@ -159,14 +161,14 @@ const MapPage: React.FC = () => {
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-10 text-right" dir="rtl">
       <div className="flex items-start justify-between gap-6 mb-6 md:mb-10">
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tighter">الخريطة</h1>
-          <p className="text-slate-400 font-bold mt-2">بتعرض المحلات/الأنشطة المسجّلة عندنا فقط.</p>
+          <h1 className="text-3xl md:text-5xl font-black tracking-tighter">{t('map.title')}</h1>
+          <p className="text-slate-400 font-bold mt-2">{t('map.subtitle')}</p>
         </div>
         <Link
           to="/"
           className="px-5 py-3 bg-slate-100 rounded-2xl font-black text-xs md:text-sm text-slate-900 hover:bg-slate-200 transition-all"
         >
-          رجوع
+          {t('map.back')}
         </Link>
       </div>
 
@@ -218,7 +220,7 @@ const MapPage: React.FC = () => {
               className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50"
               style={{ touchAction: 'manipulation' }}
             >
-              {locating ? <Loader2 className="animate-spin" size={16} /> : <><MapPin size={16} /> تحديد موقعي</>}
+              {locating ? <Loader2 className="animate-spin" size={16} /> : <><MapPin size={16} /> {t('map.locateMe')}</>}
             </button>
 
             <div className="text-xs font-black text-slate-500 text-center">
@@ -227,7 +229,7 @@ const MapPage: React.FC = () => {
                   <Skeleton className="h-4 w-40" />
                 </div>
               ) : (
-                `عدد الأنشطة الظاهرة: ${visibleShops.length}`
+                `${t('map.visibleCount')} ${visibleShops.length}`
               )}
             </div>
           </div>

@@ -3,11 +3,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ShieldAlert, CheckCircle2, User, Mail, Phone, Lock } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate, useLocation, Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const CourierSignupPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -50,7 +52,7 @@ const CourierSignupPage: React.FC = () => {
 
       setSubmitted(true);
     } catch (err: any) {
-      setError(String(err?.message || 'فشل إرسال طلب التسجيل'));
+      setError(String(err?.message || t('business.courierSignupPage.requestFailed')));
     } finally {
       setLoading(false);
     }
@@ -70,12 +72,10 @@ const CourierSignupPage: React.FC = () => {
             </div>
             <div className="flex-1">
               <h1 className="text-3xl md:text-4xl font-black tracking-tighter">
-                {showPending ? 'طلبك قيد المراجعة' : 'تسجيل مندوب توصيل'}
+                {showPending ? t('business.courierSignupPage.pendingTitle') : t('business.courierSignupPage.title')}
               </h1>
               <p className="text-slate-500 font-bold text-sm mt-2">
-                {showPending
-                  ? 'تم استلام طلبك. سيتم تفعيل حسابك بعد مراجعة الأدمن، ثم يمكنك تسجيل الدخول إلى لوحة المندوب.'
-                  : 'املأ البيانات التالية لإرسال طلب انضمام كمندوب توصيل. سيتم تفعيل حسابك بعد موافقة الأدمن.'}
+                {showPending ? t('business.courierSignupPage.pendingSubtitle') : t('business.courierSignupPage.subtitle')}
               </p>
             </div>
           </div>
@@ -96,7 +96,7 @@ const CourierSignupPage: React.FC = () => {
             <div className="bg-slate-50 border border-slate-100 rounded-[2rem] p-6 space-y-4">
               <div className="flex items-center gap-3 text-slate-500 font-bold text-xs flex-row-reverse">
                 <CheckCircle2 size={16} className="text-slate-400" />
-                بعد الموافقة، سجّل الدخول من صفحة تسجيل الدخول وسيتم تحويلك تلقائياً للوحة المندوب.
+                {t('business.courierSignupPage.pendingHint')}
               </div>
 
               <div className="flex flex-col md:flex-row gap-4">
@@ -105,28 +105,28 @@ const CourierSignupPage: React.FC = () => {
                   onClick={() => navigate('/login')}
                   className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black"
                 >
-                  تسجيل الدخول
+                  {t('business.courierSignupPage.login')}
                 </button>
                 <button
                   type="button"
                   onClick={() => navigate('/')}
                   className="flex-1 py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black"
                 >
-                  العودة للرئيسية
+                  {t('business.courierSignupPage.backHome')}
                 </button>
               </div>
 
               <div className="pt-2 text-center text-xs font-bold text-slate-400">
-                ليس لديك حساب؟{' '}
+                {t('business.courierSignupPage.noAccount')}{' '}
                 <Link to="/business/courier-signup" className="text-slate-900 hover:underline">
-                  إرسال طلب جديد
+                  {t('business.courierSignupPage.newRequest')}
                 </Link>
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">الاسم بالكامل</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('business.courierSignupPage.fullNameLabel')}</label>
                 <div className="relative">
                   <User className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
@@ -135,13 +135,13 @@ const CourierSignupPage: React.FC = () => {
                     className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pr-12 pl-5 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="مثال: أحمد محمد"
+                    placeholder={t('business.courierSignupPage.fullNamePlaceholder')}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">البريد الإلكتروني</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('business.courierSignupPage.emailLabel')}</label>
                 <div className="relative">
                   <Mail className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
@@ -157,7 +157,7 @@ const CourierSignupPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">رقم الهاتف (اختياري)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('business.courierSignupPage.phoneLabel')}</label>
                 <div className="relative">
                   <Phone className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
@@ -171,7 +171,7 @@ const CourierSignupPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">كلمة المرور</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('business.courierSignupPage.passwordLabel')}</label>
                 <div className="relative">
                   <Lock className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                   <input
@@ -184,7 +184,7 @@ const CourierSignupPage: React.FC = () => {
                     placeholder="********"
                   />
                 </div>
-                <div className="text-[11px] text-slate-400 font-bold">لا تقل عن 8 أحرف.</div>
+                <div className="text-[11px] text-slate-400 font-bold">{t('business.courierSignupPage.passwordHint')}</div>
               </div>
 
               <button
@@ -193,13 +193,13 @@ const CourierSignupPage: React.FC = () => {
                 className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black flex items-center justify-center gap-3 disabled:bg-slate-300"
               >
                 {loading ? <Loader2 className="animate-spin" size={18} /> : null}
-                {loading ? 'جاري الإرسال...' : 'إرسال طلب التسجيل'}
+                {loading ? t('business.courierSignupPage.sending') : t('business.courierSignupPage.sendRequest')}
               </button>
 
               <div className="pt-2 text-center text-xs font-bold text-slate-400">
-                لديك حساب بالفعل؟{' '}
+                {t('business.courierSignupPage.haveAccount')}{' '}
                 <Link to="/login" className="text-slate-900 hover:underline">
-                  تسجيل الدخول
+                  {t('business.courierSignupPage.login')}
                 </Link>
               </div>
             </form>

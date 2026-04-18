@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Download, Share2, Smartphone } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type BeforeInstallPromptEventLike = Event & {
   prompt: () => Promise<void>;
@@ -28,6 +29,7 @@ function isIosSafari() {
 }
 
 const PwaInstallPrompt: React.FC = () => {
+  const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEventLike | null>(null);
   const [dismissed, setDismissed] = useState(false);
   const [installing, setInstalling] = useState(false);
@@ -109,16 +111,16 @@ const PwaInstallPrompt: React.FC = () => {
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 justify-end mb-1">
-              <span className="text-sm md:text-base font-black text-slate-900">ثبّت التطبيق على موبايلك</span>
+              <span className="text-sm md:text-base font-black text-slate-900">{t('common.pwaInstallPrompt.title')}</span>
               <Smartphone size={16} className="text-slate-500" />
             </div>
             {iosSafari ? (
               <p className="text-xs md:text-sm text-slate-600 leading-7">
-                على iPhone أو iPad: افتح قائمة <span className="font-black">مشاركة</span> ثم اختر <span className="font-black">إضافة إلى الشاشة الرئيسية</span> لتحصل على تجربة تطبيق أسرع وأسهل.
+                {t('common.pwaInstallPrompt.iosDescPrefix')} <span className="font-black">{t('common.pwaInstallPrompt.iosShare')}</span> {t('common.pwaInstallPrompt.iosDescMiddle')} <span className="font-black">{t('common.pwaInstallPrompt.iosAddToHome')}</span> {t('common.pwaInstallPrompt.iosDescSuffix')}
               </p>
             ) : (
               <p className="text-xs md:text-sm text-slate-600 leading-7">
-                ثبت التطبيق للوصول الأسرع، شاشة كاملة، وتجربة أقرب لتطبيق موبايل حقيقي مع تحميل أفضل للزيارات المتكررة.
+                {t('common.pwaInstallPrompt.desc')}
               </p>
             )}
             <div className="mt-3 flex items-center gap-2 justify-end">
@@ -129,7 +131,7 @@ const PwaInstallPrompt: React.FC = () => {
                   disabled={installing}
                   className="rounded-full bg-slate-900 text-white px-4 py-2 text-xs md:text-sm font-black disabled:opacity-60"
                 >
-                  {installing ? 'جاري التثبيت...' : 'تثبيت الآن'}
+                  {installing ? t('common.pwaInstallPrompt.installing') : t('common.pwaInstallPrompt.installNow')}
                 </button>
               ) : null}
               <button
@@ -137,7 +139,7 @@ const PwaInstallPrompt: React.FC = () => {
                 onClick={closePrompt}
                 className="rounded-full bg-slate-100 text-slate-700 px-4 py-2 text-xs md:text-sm font-black"
               >
-                لاحقًا
+                {t('common.pwaInstallPrompt.later')}
               </button>
             </div>
           </div>

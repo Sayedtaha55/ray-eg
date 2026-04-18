@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
@@ -38,6 +39,7 @@ const ProductCard = React.memo(function ProductCard({
   isPreview?: boolean;
   onProductClick?: () => void;
 }) {
+  const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
   const isLowEndDevice = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -211,7 +213,7 @@ const ProductCard = React.memo(function ProductCard({
         ? (product as any).track_stock
         : true;
   const rawStock = typeof (product as any)?.stock === 'number' ? (product as any).stock : undefined;
-  const stockLabel = !trackStock ? 'متاح' : (rawStock ?? 0) <= 0 ? 'نفد' : String(rawStock);
+  const stockLabel = !trackStock ? t('shopProfile.available') : (rawStock ?? 0) <= 0 ? t('shopProfile.soldOut') : String(rawStock);
   const stockCls = !trackStock
     ? 'bg-emerald-50 text-emerald-700'
     : (rawStock ?? 0) <= 0
@@ -308,9 +310,9 @@ const ProductCard = React.memo(function ProductCard({
             </p>
             {showPrice && (
               <div className="mt-1 flex items-center justify-center gap-3">
-                {offer ? <span className="text-white/70 line-through text-[10px] font-bold">ج.م {product.price}</span> : null}
+                {offer ? <span className="text-white/70 line-through text-[10px] font-bold">{t('shopProfile.currency')} {product.price}</span> : null}
                 <span className="font-black text-sm md:text-base" style={{ color: priceColor }}>
-                  {isFashion && typeof fashionMinPrice === 'number' ? `يبدأ من ج.م ${fashionMinPrice}` : `ج.م ${currentPrice}`}
+                  {isFashion && typeof fashionMinPrice === 'number' ? `${t('shopProfile.startsFrom')} ${t('shopProfile.currency')} ${fashionMinPrice}` : `${t('shopProfile.currency')} ${currentPrice}`}
                 </span>
               </div>
             )}
@@ -336,7 +338,7 @@ const ProductCard = React.memo(function ProductCard({
         <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
           <DialogContent dir="rtl" className="overflow-hidden">
             <DialogHeader>
-              <DialogTitle>صورة المنتج</DialogTitle>
+              <DialogTitle>{t('shopProfile.imagePreview')}</DialogTitle>
             </DialogHeader>
 
             <div className="p-4 bg-slate-50">
@@ -356,14 +358,14 @@ const ProductCard = React.memo(function ProductCard({
                   }}
                   className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm"
                 >
-                  فتح صفحة المنتج
+                  {t('shopProfile.openProductPage')}
                 </button>
                 <button
                   type="button"
                   onClick={() => setImagePreviewOpen(false)}
                   className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
                 >
-                  إغلاق
+                  {t('shopProfile.close')}
                 </button>
               </div>
             </div>
@@ -439,7 +441,7 @@ const ProductCard = React.memo(function ProductCard({
 
           <button
             type="button"
-            aria-label="معاينة الصورة"
+            aria-label={t('shopProfile.imagePreviewAria')}
             onClick={openImagePreview}
             className="absolute inset-0"
             style={{ background: 'transparent' }}
@@ -447,7 +449,7 @@ const ProductCard = React.memo(function ProductCard({
 
           <button
             type="button"
-            aria-label={isFavorite ? "إزالة من المفضلة" : "إضافة للمفضلة"}
+            aria-label={isFavorite ? t('shopProfile.removeFav') : t('shopProfile.addFav')}
             onClick={toggleFav}
             className={`absolute top-2 left-2 p-1.5 sm:p-2 md:p-2.5 transition-all z-10 shadow-sm ${
               isFavorite ? 'bg-red-500 text-white' : 'bg-white/80 backdrop-blur-sm text-slate-900'
@@ -490,12 +492,12 @@ const ProductCard = React.memo(function ProductCard({
               className={`flex items-center justify-between flex-row-reverse mb-2 md:mb-3 ${isMinimal ? 'flex-col items-end gap-1' : ''}`}
             >
               <div className="text-right">
-                {offer && <p className="text-slate-300 line-through text-[8px] md:text-[10px] font-bold">ج.م {product.price}</p>}
+                {offer && <p className="text-slate-300 line-through text-[8px] md:text-[10px] font-bold">{t('shopProfile.currency')} {product.price}</p>}
                 <span
                   className={`font-black tracking-tighter ${isBold ? 'text-base md:text-2xl' : 'text-sm md:text-xl'}`}
                   style={{ color: offer ? secondaryColor : primaryColor }}
                 >
-                  {isFashion && typeof fashionMinPrice === 'number' ? `يبدأ من ج.م ${fashionMinPrice}` : `ج.م ${currentPrice}`}
+                  {isFashion && typeof fashionMinPrice === 'number' ? `${t('shopProfile.startsFrom')} ${t('shopProfile.currency')} ${fashionMinPrice}` : `${t('shopProfile.currency')} ${currentPrice}`}
                 </span>
               </div>
             </div>
@@ -526,7 +528,7 @@ const ProductCard = React.memo(function ProductCard({
               {showAddToCart && (
                 <button
                   type="button"
-                  aria-label={isAdded ? "تمت الإضافة للسلة" : "إضافة للسلة"}
+                  aria-label={isAdded ? t('shopProfile.addedToCart') : t('shopProfile.addToCart')}
                   onClick={(e) => {
                     e.stopPropagation();
                     onAdd(product, currentPrice);
@@ -537,13 +539,13 @@ const ProductCard = React.memo(function ProductCard({
                   style={isAdded || !usePrimarySolidColor ? undefined : { backgroundColor: primaryColor }}
                 >
                   {isAdded ? <Check size={11} className="sm:w-3 sm:h-3" /> : <Plus size={11} className="sm:w-3 sm:h-3" />}
-                  <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? 'تم' : 'للسلة'}</span>
+                  <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? t('shopProfile.added') : t('shopProfile.toCart')}</span>
                 </button>
               )}
               {showReserve && (
                 <button
                   type="button"
-                  aria-label="حجز المنتج"
+                  aria-label={t('shopProfile.reserveAria')}
                   onClick={(e) => {
                     e.stopPropagation();
                     onReserve({ ...product, price: currentPrice });
@@ -553,7 +555,7 @@ const ProductCard = React.memo(function ProductCard({
                   } ${buttonShape} ${buttonPadding} ${buttonPresetCls}`}
                   style={usePrimarySolidColor ? { backgroundColor: primaryColor } : undefined}
                 >
-                  <CalendarCheck size={11} className="sm:w-3 sm:h-3" /> حجز
+                  <CalendarCheck size={11} className="sm:w-3 sm:h-3" /> {t('shopProfile.reserve')}
                 </button>
               )}
             </div>
@@ -565,7 +567,7 @@ const ProductCard = React.memo(function ProductCard({
       <Dialog open={imagePreviewOpen} onOpenChange={setImagePreviewOpen}>
         <DialogContent dir="rtl" className="overflow-hidden">
           <DialogHeader>
-            <DialogTitle>صورة المنتج</DialogTitle>
+            <DialogTitle>{t('shopProfile.imagePreview')}</DialogTitle>
           </DialogHeader>
 
           <div className="p-4 bg-slate-50">
@@ -585,14 +587,14 @@ const ProductCard = React.memo(function ProductCard({
                 }}
                 className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm"
               >
-                فتح صفحة المنتج
+                {t('shopProfile.openProductPage')}
               </button>
               <button
                 type="button"
                 onClick={() => setImagePreviewOpen(false)}
                 className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
               >
-                إغلاق
+                {t('shopProfile.close')}
               </button>
             </div>
           </div>

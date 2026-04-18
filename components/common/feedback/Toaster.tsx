@@ -1,6 +1,7 @@
 
 import React, { useState, createContext, useContext } from 'react';
 import { CheckCircle2, AlertCircle, X, Info } from 'lucide-react';
+import i18n from '@/i18n';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -34,8 +35,8 @@ const safeStringify = (value: any) => {
 const normalizeToastMessage = (message: any, type: ToastType) => {
   const trimmed = String(safeStringify(message) || '').trim();
 
-  if (type === 'success' && /(تم\s*حفظ|تم\s*تحديث|تم\s*التحديث|نجاح)/.test(trimmed)) {
-    return 'تم الحفظ';
+  if (type === 'success' && (!trimmed || /^(ok|success|saved|updated)$/i.test(trimmed))) {
+    return i18n.t('common.toaster.saved');
   }
 
   return trimmed || '...';

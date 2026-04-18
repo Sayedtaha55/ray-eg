@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Sparkles, X, Send, ExternalLink, Loader2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
@@ -12,6 +13,7 @@ interface RayAssistantProps {
 }
 
 const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai', content: string, links?: any[] }[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,10 +35,10 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
 
       const currentContext = {
         shops: shops.map((s: any) => s.name).join(', '),
-        offers: offers.map((o: any) => `${o.title} بخصم ${o.discount}%`).join(', ')
+        offers: offers.map((o: any) => t('public.assistant.offerContext', { title: o.title, discount: o.discount })).join(', ')
       };
 
-      const safeText = `حالياً المساعد الذكي متوقف.\n\nطلبك: ${userMsg}\n\nعندنا دلوقت: محلات (${currentContext.shops || 'غير متاح'})، وعروض (${currentContext.offers || 'غير متاح'}).`;
+      const safeText = t('public.assistant.offlineFallback', { query: userMsg, shops: currentContext.shops || t('public.assistant.unavailable'), offers: currentContext.offers || t('public.assistant.unavailable') });
 
       setMessages(prev => [...prev, {
         role: 'ai',
@@ -44,7 +46,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
       }]);
     } catch (error) {
       // Network error - handled gracefully
-      setMessages(prev => [...prev, { role: 'ai', content: "حصلت مشكلة بسيطة في الشبكة، جرب تسألني تاني يا بطل." }]);
+      setMessages(prev => [...prev, { role: 'ai', content: t('public.assistant.networkError') }]);
     } finally {
       setLoading(false);
     }
@@ -63,7 +65,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
           <header className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white flex-row-reverse">
             <div className="flex items-center gap-2 flex-row-reverse">
               <Sparkles className="w-5 h-5 text-[#00E5FF]" />
-              <h2 className="font-black text-sm uppercase tracking-wider">مساعد MNMKNK الذكي</h2>
+              <h2 className="font-black text-sm uppercase tracking-wider">{t('public.assistant.title')}</h2>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-full transition-colors">
               <X className="w-5 h-5" />
@@ -76,8 +78,8 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6">
                   <Sparkles className="w-8 h-8 text-[#00E5FF]" />
                 </div>
-                <p className="font-black text-lg text-slate-400">أي عرض بتدور عليه في مصر؟</p>
-                <p className="text-xs mt-2 max-w-[220px]">اسألني عن أرخص موبايل، أو أحسن مطعم بيتزا قريب منك.</p>
+                <p className="font-black text-lg text-slate-400">{t('public.assistant.emptyTitle')}</p>
+                <p className="text-xs mt-2 max-w-[220px]">{t('public.assistant.emptyHint')}</p>
               </div>
             )}
             {messages.map((msg, i) => (
@@ -93,7 +95,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
                   {msg.links && msg.links.length > 0 && (
                     <div className="mt-4 pt-3 border-t border-slate-200 space-y-2">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                        <Globe size={12} className="text-[#00E5FF]" /> مصادر خارجية:
+                        <Globe size={12} className="text-[#00E5FF]" /> {t('public.assistant.externalSources')}:
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {msg.links.map((link, idx) => (
@@ -118,7 +120,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
               <div className="flex justify-end">
                 <div className="bg-slate-50 p-4 rounded-2xl flex items-center gap-3 flex-row-reverse shadow-sm">
                    <Loader2 className="w-4 h-4 animate-spin text-[#00E5FF]" />
-                   <span className="text-xs font-black text-slate-400">بجمعلك أحسن الصفقات...</span>
+                   <span className="text-xs font-black text-slate-400">{t('public.assistant.searching')}</span>
                 </div>
               </div>
             )}
@@ -128,7 +130,7 @@ const RayAssistant: React.FC<RayAssistantProps> = ({ isOpen, onClose }) => {
             <div className="relative">
               <input 
                 type="text" 
-                placeholder="اسأل MNMKNK عن أي حاجة..." 
+                placeholder={t('public.assistant.inputPlaceholder')} 
                 className="w-full bg-slate-50 rounded-full py-4 pr-6 pl-14 outline-none border-2 border-transparent focus:border-[#00E5FF] transition-all font-bold text-sm text-right"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

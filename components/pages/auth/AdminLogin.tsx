@@ -4,11 +4,13 @@ import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin, Eye, EyeOff 
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 import { persistSession } from '@/services/authStorage';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const AdminLogin: React.FC = () => {
+  const { t } = useTranslation();
   const allowBootstrapUi =
     !Boolean((import.meta as any)?.env?.PROD) &&
     String(((import.meta as any)?.env?.VITE_SHOW_ADMIN_BOOTSTRAP_UI as string) || '').toLowerCase() === 'true';
@@ -54,10 +56,10 @@ const AdminLogin: React.FC = () => {
           navigate('/admin/dashboard');
         }
       } else {
-        throw new Error('هذه المنطقة للمشرفين فقط!');
+        throw new Error(t('auth.admin.adminsOnly'));
       }
     } catch (err: any) {
-      setError(err.message || 'بيانات الدخول غير صحيحة');
+      setError(err.message || t('auth.admin.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -79,7 +81,7 @@ const AdminLogin: React.FC = () => {
       }
       navigate('/business/dashboard');
     } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المطور');
+      setError(err?.message || t('auth.admin.devMerchantLoginFailed'));
     } finally {
       setLoading(false);
     }
@@ -105,7 +107,7 @@ const AdminLogin: React.FC = () => {
       }
       navigate('/business/dashboard');
     } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المطور');
+      setError(err?.message || t('auth.admin.devMerchantLoginFailed'));
     } finally {
       setLoading(false);
     }
@@ -123,7 +125,7 @@ const AdminLogin: React.FC = () => {
       }, 'dev-courier-login');
       navigate('/courier/orders');
     } catch (err: any) {
-      setError(err?.message || 'تعذر تسجيل دخول المندوب (تطوير)');
+      setError(err?.message || t('auth.login.devCourierLoginFailed'));
     } finally {
       setLoading(false);
     }
@@ -143,9 +145,9 @@ const AdminLogin: React.FC = () => {
       setEmail(bootstrapEmail);
       setPassword(bootstrapPassword);
       setBootstrapOpen(false);
-      setError('تم تهيئة الأدمن. يمكنك تسجيل الدخول الآن.');
+      setError(t('auth.admin.bootstrapped'));
     } catch (err: any) {
-      setError(err?.message || 'فشل تهيئة الأدمن');
+      setError(err?.message || t('auth.admin.bootstrapFailed'));
     } finally {
       setBootstrapLoading(false);
     }
@@ -162,8 +164,8 @@ const AdminLogin: React.FC = () => {
           <div className="w-20 h-20 bg-[#BD00FF] rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_50px_rgba(189,0,255,0.4)]">
             <ShieldAlert size={40} className="text-white" />
           </div>
-          <h1 className="text-3xl font-black text-white tracking-tighter">بوابة الآدمن</h1>
-          <p className="text-slate-500 font-bold mt-2">يرجى إثبات هويتك للوصول لبيانات السيرفر.</p>
+          <h1 className="text-3xl font-black text-white tracking-tighter">{t('auth.admin.title')}</h1>
+          <p className="text-slate-500 font-bold mt-2">{t('auth.admin.subtitle')}</p>
         </div>
 
         {error && (
@@ -174,7 +176,7 @@ const AdminLogin: React.FC = () => {
 
         <form onSubmit={handleAdminLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">اسم المستخدم</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">{t('auth.admin.usernameLabel')}</label>
             <input
               required
               type="text"
@@ -185,7 +187,7 @@ const AdminLogin: React.FC = () => {
             />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">كلمة المرور</label>
+            <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest mr-4">{t('auth.admin.passwordLabel')}</label>
             <div className="relative">
               <input
                 required
@@ -209,7 +211,7 @@ const AdminLogin: React.FC = () => {
             className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3"
           >
             {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
-            دخول للنظام
+            {t('auth.admin.login')}
           </button>
 
           {showDevMerchantLogin && (
@@ -222,7 +224,7 @@ const AdminLogin: React.FC = () => {
                   className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
                 >
                   <Store size={18} />
-                  دخول المطور
+                  {t('auth.admin.devLogin')}
                 </button>
 
                 {isDevActivityMenuOpen && (
@@ -235,7 +237,7 @@ const AdminLogin: React.FC = () => {
                         onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLogin(); }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        تاجر (Retail)
+                        {t('auth.admin.devActivity.retail')}
                       </button>
                       <button
                         type="button"
@@ -243,7 +245,7 @@ const AdminLogin: React.FC = () => {
                         onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('RESTAURANT'); }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        مطعم
+                        {t('auth.admin.devActivity.restaurant')}
                       </button>
                       <button
                         type="button"
@@ -251,7 +253,7 @@ const AdminLogin: React.FC = () => {
                         onClick={() => { setIsDevActivityMenuOpen(false); handleDevMerchantLoginWithCategory('FASHION'); }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        ملابس / أحذية
+                        {t('auth.admin.devActivity.fashion')}
                       </button>
                       <button
                         type="button"
@@ -266,7 +268,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        المفروشات والسجاد
+                        {t('auth.admin.devActivity.homeTextiles')}
                       </button>
                       <button
                         type="button"
@@ -281,7 +283,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        سوبر ماركت / بقالة / عطارة
+                        {t('auth.admin.devActivity.grocery')}
                       </button>
                       <button
                         type="button"
@@ -296,7 +298,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        كمبيوترات وموبايلات
+                        {t('auth.admin.devActivity.electronics')}
                       </button>
                       <button
                         type="button"
@@ -311,7 +313,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        صيدلية / مستحضرات
+                        {t('auth.admin.devActivity.health')}
                       </button>
                                             <button
                         type="button"
@@ -326,7 +328,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        أثاث / معارض
+                        {t('auth.admin.devActivity.furniture')}
                       </button>
                       <button
                         type="button"
@@ -341,7 +343,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        مستلزمات المنزل
+                        {t('auth.admin.devActivity.homeGoods')}
                       </button>
                       <button
                         type="button"
@@ -356,7 +358,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        حجوزات
+                        {t('auth.admin.devActivity.reservations')}
                       </button>
                       <button
                         type="button"
@@ -371,7 +373,7 @@ const AdminLogin: React.FC = () => {
                         }}
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
-                        أخرى
+                        {t('auth.admin.devActivity.other')}
                       </button>
                     </div>
                   </>
@@ -385,7 +387,7 @@ const AdminLogin: React.FC = () => {
                 className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
               >
                 <MapPin size={18} />
-                دخول المندوب (تطوير)
+                {t('auth.admin.devCourierLogin')}
               </button>
             </>
           )}
@@ -397,12 +399,12 @@ const AdminLogin: React.FC = () => {
                 onClick={() => setBootstrapOpen((v) => !v)}
                 className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all"
               >
-                تهيئة الأدمن (Bootstrap)
+                {t('auth.admin.bootstrap')}
               </button>
 
               {bootstrapOpen && (
                 <div className="p-6 bg-slate-950/40 border border-white/5 rounded-[2.5rem] space-y-4">
-                  <div className="text-[11px] font-black text-slate-400">استخدم ADMIN_BOOTSTRAP_TOKEN من Railway لعمل/تحديث حساب الأدمن على الإنتاج.</div>
+                  <div className="text-[11px] font-black text-slate-400">{t('auth.admin.bootstrapHelp')}</div>
                   <form onSubmit={handleBootstrap} className="space-y-4">
                     <div className="relative">
                       <input
@@ -435,7 +437,7 @@ const AdminLogin: React.FC = () => {
                         type={showBootstrapPassword ? 'text' : 'password'}
                         value={bootstrapPassword}
                         onChange={(e) => setBootstrapPassword(e.target.value)}
-                        placeholder="كلمة مرور الأدمن (8 أحرف على الأقل)"
+                        placeholder={t('auth.admin.adminPasswordPlaceholder')}
                         className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
                       />
                       <button
@@ -450,7 +452,7 @@ const AdminLogin: React.FC = () => {
                       type="text"
                       value={bootstrapName}
                       onChange={(e) => setBootstrapName(e.target.value)}
-                      placeholder="اسم الأدمن"
+                      placeholder={t('auth.admin.adminNamePlaceholder')}
                       className="w-full bg-slate-800 border-none rounded-2xl py-4 px-6 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all"
                     />
                     <button
@@ -458,7 +460,7 @@ const AdminLogin: React.FC = () => {
                       className="w-full py-4 bg-[#BD00FF] text-white rounded-[2rem] font-black text-sm hover:brightness-110 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
                     >
                       {bootstrapLoading ? <Loader2 className="animate-spin" size={18} /> : <ShieldAlert size={18} />}
-                      تنفيذ التهيئة
+                      {t('auth.admin.runBootstrap')}
                     </button>
                   </form>
                 </div>
@@ -471,7 +473,7 @@ const AdminLogin: React.FC = () => {
             onClick={() => navigate('/login')}
             className="w-full py-4 text-slate-500 font-bold text-sm flex items-center justify-center gap-2 hover:text-white transition-colors"
           >
-            <ArrowRight size={16} /> العودة لتسجيل دخول المستخدمين
+            <ArrowRight size={16} /> {t('auth.admin.backToUsersLogin')}
           </button>
         </form>
       </MotionDiv>

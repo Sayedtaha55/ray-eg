@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
 import { Offer } from '@/types';
@@ -12,6 +13,7 @@ const { useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const OffersPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -84,9 +86,9 @@ const OffersPage: React.FC = () => {
         <div className="flex flex-col items-center text-center mb-10 md:mb-16">
           <div className="flex items-center gap-3 mb-4">
             <Sparkles className="w-6 h-6 text-[#BD00FF]" />
-            <h1 className="text-4xl md:text-7xl font-black tracking-tighter">العروض</h1>
+            <h1 className="text-4xl md:text-7xl font-black tracking-tighter">{t('offersPage.title')}</h1>
           </div>
-          <p className="text-slate-400 font-bold">أحدث العروض النشطة — تحميل تدريجي لتخفيف الضغط</p>
+          <p className="text-slate-400 font-bold">{t('offersPage.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
@@ -103,7 +105,7 @@ const OffersPage: React.FC = () => {
             </div>
           ))
         ) : offers.length === 0 ? (
-          <div className="col-span-full py-20 text-center text-slate-500 font-bold">لا توجد عروض نشطة حالياً.</div>
+          <div className="col-span-full py-20 text-center text-slate-500 font-bold">{t('offersPage.noOffers')}</div>
         ) : (
           offers.map((offer: any, idx: number) => (
             <div
@@ -145,12 +147,12 @@ const OffersPage: React.FC = () => {
                 <h3 className="text-xl md:text-2xl font-black mb-4 line-clamp-1 leading-tight">{offer.title}</h3>
                 <div className="flex items-center justify-between flex-row-reverse">
                   <div className="text-right">
-                    <p className="text-slate-300 line-through text-xs font-bold">ج.م {offer.oldPrice}</p>
-                    <p className="text-2xl md:text-3xl font-black text-[#BD00FF] tracking-tighter">ج.م {offer.newPrice}</p>
+                    <p className="text-slate-300 line-through text-xs font-bold">{t('offersPage.currency')} {offer.oldPrice}</p>
+                    <p className="text-2xl md:text-3xl font-black text-[#BD00FF] tracking-tighter">{t('offersPage.currency')} {offer.newPrice}</p>
                   </div>
                   <div className="bg-slate-900 text-white px-4 py-2 rounded-2xl font-black text-xs md:text-sm flex items-center gap-2">
                     <TrendingUp size={16} />
-                    {offer.shopName || 'متجر'}
+                    {offer.shopName || t('offersPage.shop')}
                   </div>
                 </div>
               </div>
@@ -167,7 +169,7 @@ const OffersPage: React.FC = () => {
               disabled={loadingMore}
             >
               {loadingMore ? <Loader2 className="animate-spin" size={18} /> : null}
-              <span>{loadingMore ? 'تحميل...' : 'تحميل المزيد'}</span>
+              <span>{loadingMore ? t('offersPage.loading') : t('offersPage.loadMore')}</span>
             </button>
           </div>
         )}

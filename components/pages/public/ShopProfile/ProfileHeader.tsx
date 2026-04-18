@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone
@@ -48,6 +49,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   purchaseModeButton,
   isBuilderPreview = false,
 }) => {
+  const { t } = useTranslation();
   const bannerRef = useRef<HTMLDivElement | null>(null);
   const headerRef = useRef<HTMLElement | null>(null);
   const [stuck, setStuck] = useState(false);
@@ -244,7 +246,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <h1 className="font-black text-sm md:text-xl leading-none mb-1">{shop?.name}</h1>
                 {showShopFollowersCount && (
                   <p className="text-[10px] md:text-xs opacity-70 flex items-center gap-1 justify-end">
-                    {shop?.followers || 0} متابع <Users size={10} />
+                    {shop?.followers || 0} {t('shopProfile.followers')} <Users size={10} />
                   </p>
                 )}
               </div>
@@ -257,7 +259,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   active={activeTab === 'products'} 
                   onClick={() => setActiveTab('products')}
                   icon={<ShoppingBag size={18} />}
-                  label="المنتجات"
+                  label={t('shopProfile.productsTab')}
                   design={currentDesign}
                 />
               )}
@@ -266,7 +268,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   active={activeTab === 'gallery'} 
                   onClick={() => setActiveTab('gallery')}
                   icon={<Utensils size={18} />}
-                  label="المعرض"
+                  label={t('shopProfile.galleryTab')}
                   design={currentDesign}
                 />
               )}
@@ -275,7 +277,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                   active={activeTab === 'info'} 
                   onClick={() => setActiveTab('info')}
                   icon={<Info size={18} />}
-                  label="عن المحل"
+                  label={t('shopProfile.infoTab')}
                   design={currentDesign}
                 />
               )}
@@ -287,7 +289,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <button
                   onClick={handleShare}
                   className="p-2 rounded-full transition-all hover:bg-white/20"
-                  aria-label="مشاركة"
+                  aria-label={t('shopProfile.shareAria')}
                 >
                   <Share2 size={18} />
                 </button>
@@ -300,7 +302,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     hasFollowed ? 'bg-white/20' : buttonShape
                   } ${buttonPadding}`}
                 >
-                  {followLoading ? '...' : hasFollowed ? 'متابع' : 'تابع'}
+                  {followLoading ? '...' : hasFollowed ? t('shopProfile.following') : t('shopProfile.follow')}
                 </button>
               )}
               <button
@@ -331,7 +333,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             >
               <div className="p-6 flex flex-col h-full text-right" dir="rtl">
                 <div className="flex items-center justify-between mb-10">
-                  <h2 className="font-black text-xl">القائمة</h2>
+                  <h2 className="font-black text-xl">{t('shopProfile.menu')}</h2>
                   <button onClick={() => setIsHeaderMenuOpen(false)} className="p-2">
                     <X size={24} />
                   </button>
@@ -343,7 +345,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
                       className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
                     >
-                      <ShoppingBag /> المنتجات
+                      <ShoppingBag /> {t('shopProfile.productsTab')}
                     </button>
                   )}
                   {showHeaderNavGallery && (
@@ -351,7 +353,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       onClick={() => { setActiveTab('gallery'); setIsHeaderMenuOpen(false); }}
                       className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'gallery' ? 'bg-slate-100' : ''}`}
                     >
-                      <Utensils /> المعرض
+                      <Utensils /> {t('shopProfile.galleryTab')}
                     </button>
                   )}
                   {showHeaderNavInfo && (
@@ -359,7 +361,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                       onClick={() => { setActiveTab('info'); setIsHeaderMenuOpen(false); }}
                       className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'info' ? 'bg-slate-100' : ''}`}
                     >
-                      <Info /> عن المحل
+                      <Info /> {t('shopProfile.infoTab')}
                     </button>
                   )}
                 </div>
@@ -373,7 +375,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     }`}
                     style={!hasFollowed ? { backgroundColor: primaryColor } : undefined}
                   >
-                    {hasFollowed ? 'أنت تتابع هذا المحل' : 'متابعة المحل'}
+                    {hasFollowed ? t('shopProfile.followingShop') : t('shopProfile.followShop')}
                   </button>
                 )}
               </div>

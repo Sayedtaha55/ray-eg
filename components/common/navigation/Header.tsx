@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Menu, X, Search, ShoppingCart, User } from 'lucide-react';
 import { Button, Input } from '../ui';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   onMenuToggle?: () => void;
@@ -16,6 +17,7 @@ const Header: React.FC<HeaderProps> = ({
   cartItemsCount = 0,
   userName,
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
 
   return (
@@ -30,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({
           >
             <button
               type="button"
-              aria-label={isMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+              aria-label={isMenuOpen ? t('common.closeMenu') : t('common.openMenu')}
               onClick={onMenuToggle}
               className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden"
             >
@@ -46,7 +48,7 @@ const Header: React.FC<HeaderProps> = ({
           <div className="hidden md:flex flex-1 max-w-md mx-8">
             <Input
               type="text"
-              placeholder="ابحث عن متاجر، منتجات، أو خدمات..."
+              placeholder={t('common.headerSearch')}
               value={searchQuery}
               onChange={setSearchQuery}
               icon={<Search size={20} />}
@@ -61,12 +63,12 @@ const Header: React.FC<HeaderProps> = ({
             className="flex items-center gap-3"
           >
             {/* Mobile Search */}
-            <button type="button" aria-label="بحث" className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden">
+            <button type="button" aria-label={t('common.headerSearchAria')} className="p-2 text-white hover:bg-white/10 rounded-xl transition-all md:hidden">
               <Search size={18} className="sm:w-5 sm:h-5" />
             </button>
 
             {/* Cart */}
-            <button type="button" aria-label="السلة" className="relative p-2 text-white hover:bg-white/10 rounded-xl transition-all">
+            <button type="button" aria-label={t('common.headerCartAria')} className="relative p-2 text-white hover:bg-white/10 rounded-xl transition-all">
               <ShoppingCart size={18} className="sm:w-5 sm:h-5" />
               {cartItemsCount > 0 && (
                 <span className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-[#00E5FF] text-black text-[10px] sm:text-xs font-black rounded-full flex items-center justify-center">
@@ -85,7 +87,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
             ) : (
               <Button size="sm" variant="ghost">
-                تسجيل الدخول
+                {t('common.headerLogin')}
               </Button>
             )}
           </motion.div>

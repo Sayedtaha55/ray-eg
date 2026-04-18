@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '../ui';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface LoginFormProps {
   onSubmit: (email: string, password: string) => void;
@@ -13,6 +14,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
   loading = false,
   error,
 }) => {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -26,7 +28,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
     <form onSubmit={handleSubmit} className="space-y-6">
       <Input
         type="email"
-        label="البريد الإلكتروني"
+        label={t('common.forms.login.emailLabel')}
         placeholder="example@email.com"
         value={email}
         onChange={setEmail}
@@ -37,7 +39,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
       
       <Input
         type={showPassword ? 'text' : 'password'}
-        label="كلمة المرور"
+        label={t('common.forms.login.passwordLabel')}
         placeholder="••••••••"
         value={password}
         onChange={setPassword}
@@ -59,7 +61,7 @@ const LoginForm: React.FC<LoginFormProps> = ({
         disabled={!email || !password}
         className="w-full py-4"
       >
-        تسجيل الدخول
+        {t('common.forms.login.submit')}
       </Button>
     </form>
   );

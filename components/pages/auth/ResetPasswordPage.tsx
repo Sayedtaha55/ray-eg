@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertCircle, Loader2, Lock, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 
@@ -9,6 +10,7 @@ const { useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const ResetPasswordPage: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -30,27 +32,27 @@ const ResetPasswordPage: React.FC = () => {
 
     const t = String(token || '').trim();
     if (!t) {
-      setError('رابط غير صالح. يرجى التأكد من التوكن.');
+      setError(t('auth.resetPassword.invalidLink'));
       return;
     }
 
     if (!password || password.length < 8) {
-      setError('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+      setError(t('auth.resetPassword.minPassword'));
       return;
     }
 
     if (password !== confirmPassword) {
-      setError('كلمتا المرور غير متطابقتين');
+      setError(t('auth.resetPassword.passwordsMismatch'));
       return;
     }
 
     setLoading(true);
     try {
       await ApiService.resetPassword({ token: t, newPassword: password });
-      addToast('تم تحديث كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.', 'success');
+      addToast(t('auth.resetPassword.success'), 'success');
       navigate('/login');
     } catch (e2: any) {
-      setError(e2?.message || 'فشل تحديث كلمة المرور');
+      setError(e2?.message || t('auth.resetPassword.failed'));
     } finally {
       setLoading(false);
     }
@@ -67,8 +69,8 @@ const ResetPasswordPage: React.FC = () => {
           <div className="w-20 h-20 bg-slate-900 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl">
             <Lock className="text-[#00E5FF]" size={34} />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">تعيين كلمة مرور جديدة</h1>
-          <p className="text-slate-400 font-bold text-sm">اكتب كلمة مرور جديدة قوية لحماية حسابك.</p>
+          <h1 className="text-3xl md:text-4xl font-black tracking-tighter mb-4">{t('auth.resetPassword.title')}</h1>
+          <p className="text-slate-400 font-bold text-sm">{t('auth.resetPassword.subtitle')}</p>
         </div>
 
         <AnimatePresence>
@@ -87,19 +89,19 @@ const ResetPasswordPage: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">التوكن</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">{t('auth.resetPassword.tokenLabel')}</label>
             <input
               type="text"
               disabled={loading}
               className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
               value={token}
               onChange={(e) => setToken(e.target.value)}
-              placeholder="الصق التوكن هنا"
+              placeholder={t('auth.resetPassword.tokenPlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">كلمة المرور الجديدة</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">{t('auth.resetPassword.newPasswordLabel')}</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -120,7 +122,7 @@ const ResetPasswordPage: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">تأكيد كلمة المرور</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mr-4">{t('auth.resetPassword.confirmPasswordLabel')}</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -146,7 +148,7 @@ const ResetPasswordPage: React.FC = () => {
             className="w-full py-6 bg-slate-900 text-white rounded-[2rem] font-black text-xl hover:bg-black transition-all shadow-2xl flex items-center justify-center gap-3 disabled:opacity-70"
           >
             {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={24} className="text-[#00E5FF]" />}
-            {loading ? 'جاري التحديث...' : 'تحديث كلمة المرور'}
+            {loading ? t('auth.resetPassword.updating') : t('auth.resetPassword.update')}
           </button>
         </form>
       </MotionDiv>

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Ruler, SlidersHorizontal } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
@@ -28,6 +29,7 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
   getProductStock,
   isProductTrackStockEnabled,
 }) => {
+  const { t } = useTranslation();
   const stock = getProductStock(product);
   const isOutOfStock = stock <= 0;
   const hasVariants = isProductHasMenuVariants(product) || isProductHasFashionDifferentSizePrices(product);
@@ -51,7 +53,7 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
           {showConfigureIcon && typeof onConfigure === 'function' ? (
             <button
               type="button"
-              aria-label="إعدادات المنتج"
+              aria-label={t('business.pos.productCard.configureAria')}
               onClick={(e) => {
                 e.stopPropagation();
                 onConfigure(product);
@@ -82,11 +84,11 @@ const POSProductCard: React.FC<POSProductCardProps> = ({
             </h3>
             <div className="flex items-center justify-between flex-row-reverse">
               <span className="text-[#00E5FF] font-black text-[9px] md:text-sm">
-                ج.م {getProductEffectivePrice(product).toFixed(0)}
+                {t('business.pos.egp')} {getProductEffectivePrice(product).toFixed(0)}
               </span>
               {isProductTrackStockEnabled(product) && (
                 <span className={`text-[8px] md:text-[10px] font-bold px-1.5 py-0.5 rounded-md ${isOutOfStock ? 'bg-red-500/20 text-red-400' : 'bg-white/10 text-white/60'}`}>
-                  {isOutOfStock ? 'نفذ' : `${stock} ق`}
+                  {isOutOfStock ? t('business.pos.productCard.outOfStock') : t('business.pos.productCard.stockShort', { count: stock })}
                 </span>
               )}
             </div>

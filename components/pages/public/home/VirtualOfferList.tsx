@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import OfferCard from './OfferCard';
 import { Offer } from '@/types';
 
@@ -16,6 +17,7 @@ const VirtualOfferList: React.FC<VirtualOfferListProps> = ({
   onSelectedItem, 
   playSound 
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [viewport, setViewport] = useState({ width: 0, height: 0, scrollTop: 0 });
 
@@ -112,7 +114,7 @@ const VirtualOfferList: React.FC<VirtualOfferListProps> = ({
       </div>
       <div style={{ height: bottomSpacer }} />
       {loadingMore ? (
-        <div className="py-6 text-center text-slate-400 font-bold">جاري التحميل...</div>
+        <div className="py-6 text-center text-slate-400 font-bold">{t('home.loading')}</div>
       ) : null}
     </div>
   );

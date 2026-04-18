@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Store, Mail, Lock, Phone, ShieldCheck, Loader2, AlertCircle, MapPin, UtensilsCrossed, Package, ChevronRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
 import { Category } from '@/types';
 import { clearSession, persistMerchantContext, persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
@@ -14,6 +15,7 @@ const MotionDiv = motion.div as any;
 const MERCHANT_ONBOARDING_STORAGE_KEY = 'ray_merchant_onboarding';
 
 const SignupPage: React.FC = () => {
+  const { t } = useTranslation();
   const [role, setRole] = useState<'customer' | 'merchant'>('customer');
   const [formData, setFormData] = useState({
     name: '',
@@ -22,7 +24,7 @@ const SignupPage: React.FC = () => {
     phone: '',
     shopName: '',
     category: Category.RETAIL,
-    governorate: 'القاهرة',
+    governorate: '',
     city: '',
     shopEmail: '',
     shopPhone: '',
@@ -104,13 +106,13 @@ const SignupPage: React.FC = () => {
   }, [categoryParam]);
 
   const categoryLabelMap: Record<string, string> = {
-    [Category.RETAIL]: 'محل تجاري / ملابس / إلكترونيات',
-    [Category.RESTAURANT]: 'مطعم / أكلات',
-    [Category.FASHION]: 'ملابس وأزياء',
-    [Category.ELECTRONICS]: 'إلكترونيات وموبايلات',
-    [Category.HEALTH]: 'صيدلية / مستحضرات تجميل',
-    [Category.FOOD]: 'سوبر ماركت / بقالة / عطارة',
-    [Category.OTHER]: 'أخرى',
+    [Category.RETAIL]: t('auth.signup.category.retail'),
+    [Category.RESTAURANT]: t('auth.signup.category.restaurant'),
+    [Category.FASHION]: t('auth.signup.category.fashion'),
+    [Category.ELECTRONICS]: t('auth.signup.category.electronics'),
+    [Category.HEALTH]: t('auth.signup.category.health'),
+    [Category.FOOD]: t('auth.signup.category.food'),
+    [Category.OTHER]: t('auth.signup.category.other'),
   };
 
   const buildLoginLink = () => {
@@ -249,7 +251,7 @@ const SignupPage: React.FC = () => {
 
       navigate(targetRoute, { replace: true } as any);
     } catch (err: any) {
-      setError(err.message || 'حدث خطأ أثناء التسجيل');
+      setError(err.message || t('auth.signup.signupFailed'));
     } finally {
       setLoading(false);
     }
@@ -263,8 +265,8 @@ const SignupPage: React.FC = () => {
         className="w-full max-w-2xl bg-white border border-slate-100 p-8 md:p-12 rounded-[3.5rem] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)] text-right"
       >
         <header className="text-center mb-10">
-          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">انضم إلى <span className="text-[#00E5FF]">عالم ري.</span></h1>
-          <p className="text-slate-400 font-bold">ابدأ تجربتك المجانية واحصل على ميزات حصرية.</p>
+          <h1 className="text-4xl md:text-5xl font-black tracking-tighter mb-4">{t('auth.signup.title')} <span className="text-[#00E5FF]">{t('auth.signup.titleHighlight')}</span></h1>
+          <p className="text-slate-400 font-bold">{t('auth.signup.subtitle')}</p>
         </header>
 
         <div className="flex p-2 bg-slate-50 rounded-[2rem] mb-10">
@@ -273,7 +275,7 @@ const SignupPage: React.FC = () => {
              onClick={() => setRole('customer')}
              className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'customer' ? 'bg-white shadow-xl text-slate-900' : 'text-slate-400'}`}
            >
-              <User size={18} /> زبون
+              <User size={18} /> {t('auth.signup.roleCustomer')}
            </button>
            {allowMerchantSignup && (
              <button
@@ -281,7 +283,7 @@ const SignupPage: React.FC = () => {
                onClick={() => setRole('merchant')}
                className={`flex-1 py-4 rounded-[1.5rem] font-black text-sm flex items-center justify-center gap-3 transition-all ${role === 'merchant' ? 'bg-white shadow-xl text-[#00E5FF]' : 'text-slate-400'}`}
              >
-                <Store size={18} /> تاجر / صاحب عمل
+                <Store size={18} /> {t('auth.signup.roleMerchant')}
              </button>
            )}
         </div>
@@ -297,22 +299,22 @@ const SignupPage: React.FC = () => {
         <form onSubmit={handleSignup} className="space-y-6">
            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">الاسم بالكامل</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.fullNameLabel')}</label>
                 <input
                   required
                   className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                  placeholder="أحمد محمد"
+                  placeholder={t('auth.signup.fullNamePlaceholder')}
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">رقم الموبايل</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.mobileLabel')}</label>
                 <input
                   required
                   type="tel"
                   className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                  placeholder="01x xxxx xxxx"
+                  placeholder={t('auth.signup.mobilePlaceholder')}
                   value={formData.phone}
                   onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 />
@@ -327,11 +329,11 @@ const SignupPage: React.FC = () => {
              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest mr-4">اسم المحل أو المطعم</label>
+                     <label className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest mr-4">{t('auth.signup.shopNameLabel')}</label>
                      <input
                        required={role === 'merchant'}
                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                       placeholder="مثلاً: محل الهدى"
+                       placeholder={t('auth.signup.shopNamePlaceholder')}
                        value={formData.shopName}
                        onChange={(e) => setFormData({...formData, shopName: e.target.value})}
                      />
@@ -340,21 +342,21 @@ const SignupPage: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">المحافظة</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.governorateLabel')}</label>
                      <input
                        required={role === 'merchant'}
                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                       placeholder="القاهرة"
+                       placeholder={t('auth.signup.governoratePlaceholder')}
                        value={formData.governorate}
                        onChange={(e) => setFormData({...formData, governorate: e.target.value})}
                      />
                    </div>
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">المدينة / المنطقة</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.cityLabel')}</label>
                      <input
                        required={role === 'merchant'}
                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                       placeholder="مدينة نصر"
+                       placeholder={t('auth.signup.cityPlaceholder')}
                        value={formData.city}
                        onChange={(e) => setFormData({...formData, city: e.target.value})}
                      />
@@ -363,21 +365,21 @@ const SignupPage: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">موبايل المحل</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.shopPhoneLabel')}</label>
                      <input
                        required={role === 'merchant'}
                        type="tel"
                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                       placeholder="01x xxxx xxxx"
+                       placeholder={t('auth.signup.mobilePlaceholder')}
                        value={formData.shopPhone}
                        onChange={(e) => setFormData({...formData, shopPhone: e.target.value})}
                      />
                    </div>
                    <div className="space-y-2">
-                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">مواعيد العمل</label>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.openingHoursLabel')}</label>
                      <input
                        className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                       placeholder="مثال: ١٠ صباحاً - ١١ مساءً"
+                       placeholder={t('auth.signup.openingHoursPlaceholder')}
                        value={formData.openingHours}
                        onChange={(e) => setFormData({...formData, openingHours: e.target.value})}
                      />
@@ -385,33 +387,33 @@ const SignupPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">بريد المحل (اختياري)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.shopEmailLabel')}</label>
                   <input
                     type="email"
                     className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                    placeholder="name@gmail.com"
+                    placeholder={t('auth.signup.shopEmailPlaceholder')}
                     value={formData.shopEmail}
                     onChange={(e) => setFormData({ ...formData, shopEmail: e.target.value })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">العنوان التفصيلي</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.addressLabel')}</label>
                   <textarea
                     className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none resize-none"
                     rows={3}
-                    placeholder="مثال: شارع ... بجوار ..."
+                    placeholder={t('auth.signup.addressPlaceholder')}
                     value={formData.addressDetailed}
                     onChange={(e) => setFormData({...formData, addressDetailed: e.target.value})}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">وصف المحل</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.descriptionLabel')}</label>
                   <textarea
                     className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none resize-none"
                     rows={3}
-                    placeholder="نبذة مختصرة عن المحل..."
+                    placeholder={t('auth.signup.descriptionPlaceholder')}
                     value={formData.shopDescription}
                     onChange={(e) => setFormData({...formData, shopDescription: e.target.value})}
                   />
@@ -420,19 +422,19 @@ const SignupPage: React.FC = () => {
            )}
 
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">البريد الإلكتروني</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.emailLabel')}</label>
               <input
                 required
                 type="email"
                 className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-8 font-black text-right focus:bg-white focus:border-[#00E5FF]/20 transition-all outline-none"
-                placeholder="name@gmail.com"
+                placeholder={t('auth.signup.emailPlaceholder')}
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
               />
            </div>
 
            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">كلمة المرور</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{t('auth.signup.passwordLabel')}</label>
               <div className="relative">
                 <input
                   required
@@ -446,7 +448,7 @@ const SignupPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
                   disabled={loading}
-                  aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+                  aria-label={showPassword ? t('auth.signup.hidePasswordAria') : t('auth.signup.showPasswordAria')}
                   className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors disabled:opacity-50"
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -455,29 +457,18 @@ const SignupPage: React.FC = () => {
            </div>
 
            <button
-             type="submit"
-             disabled={loading}
-             className="w-full py-6 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl hover:bg-black transition-all shadow-2xl mt-6 flex items-center justify-center gap-4 disabled:bg-slate-300"
-           >
-             {loading ? <Loader2 className="animate-spin" /> : <ShieldCheck size={24} className="text-[#00E5FF]" />}
-             {loading ? 'جاري إنشاء حسابك الآمن...' : role === 'merchant' ? 'ابدأ كتاجر الآن' : 'تأكيد التسجيل'}
-           </button>
-         </form>
-
-        <div className="mt-6">
-          <button
             type="button"
             disabled={loading}
             onClick={handleGoogleLogin}
             className="w-full py-5 bg-white border-2 border-slate-100 text-slate-900 rounded-[2rem] font-black text-sm hover:bg-slate-50 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
           >
             <Sparkles size={20} className="text-[#BD00FF]" />
-            تسجيل الدخول عبر Google
+            {t('auth.signup.googleLogin')}
           </button>
-        </div>
+        </form>
 
         <div className="mt-10 text-center">
-           <p className="text-slate-400 font-bold">لديك حساب بالفعل؟ <Link to={buildLoginLink()} className="text-[#00E5FF] hover:underline">سجل دخولك</Link></p>
+           <p className="text-slate-400 font-bold">{t('auth.signup.haveAccount')} <Link to={buildLoginLink()} className="text-[#00E5FF] hover:underline">{t('auth.signup.loginNow')}</Link></p>
         </div>
       </MotionDiv>
     </div>

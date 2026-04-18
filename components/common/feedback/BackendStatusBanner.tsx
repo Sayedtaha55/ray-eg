@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 type BackendStatusDetail = {
   status?: 'up' | 'down';
@@ -10,6 +11,7 @@ type BackendStatusDetail = {
 
 export default function BackendStatusBanner() {
   const { Link } = ReactRouterDOM as any;
+  const { t } = useTranslation();
   const [isOnline, setIsOnline] = useState<boolean>(() => {
     if (typeof navigator === 'undefined') return true;
     return navigator.onLine;
@@ -76,18 +78,18 @@ export default function BackendStatusBanner() {
   const shouldShow = showOfflinePanel || showBackendPanel || showReconnectingHint;
 
   const message = showReconnectingHint
-    ? 'جاري إعادة الاتصال تلقائيًا...'
+    ? t('common.backendStatusBanner.reconnecting')
     : !isOnline
-    ? 'تم فصل الإنترنت مؤقتًا.'
-    : 'الخدمة غير متاحة مؤقتًا.';
+    ? t('common.backendStatusBanner.offline')
+    : t('common.backendStatusBanner.serviceUnavailable');
 
   const subMessage = showReconnectingHint
-    ? 'ثواني بسيطة وبنرجع نكمل من نفس المكان بدون مقاطعة.'
+    ? t('common.backendStatusBanner.reconnectingHint')
     : !isOnline
-    ? 'ارجع افتح الصفحة بعد ما الاتصال يرجع، أو جرّب تاني بعد لحظات.'
+    ? t('common.backendStatusBanner.offlineHint')
     : lastPath
-      ? `آخر محاولة: ${lastPath}`
-      : 'جرب تاني بعد شوية.';
+      ? t('common.backendStatusBanner.lastAttempt', { path: lastPath })
+      : t('common.backendStatusBanner.tryAgainLater');
 
   const handleRetry = () => {
     window.dispatchEvent(new Event('ray-backend-retry'));
@@ -99,10 +101,10 @@ export default function BackendStatusBanner() {
     return (
       <div className="fixed inset-0 z-[999] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-6" dir="rtl">
         <div className="w-full max-w-xl rounded-[2.5rem] bg-white border border-slate-100 shadow-2xl p-8 md:p-10 text-right">
-          <div className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">الخدمة غير متاحة الآن</div>
-          <div className="mt-3 text-slate-600 font-bold leading-relaxed">بنحاول نوصل للسيرفر… من فضلك جرّب تاني بعد شوية.</div>
+          <div className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">{t('common.backendStatusBanner.panelTitle')}</div>
+          <div className="mt-3 text-slate-600 font-bold leading-relaxed">{t('common.backendStatusBanner.panelDesc')}</div>
           {lastPath ? (
-            <div className="mt-3 text-xs text-slate-400 font-bold break-words">آخر محاولة: {lastPath}</div>
+            <div className="mt-3 text-xs text-slate-400 font-bold break-words">{t('common.backendStatusBanner.lastAttempt', { path: lastPath })}</div>
           ) : null}
 
           <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -111,13 +113,13 @@ export default function BackendStatusBanner() {
               onClick={handleRetry}
               className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm hover:opacity-95 transition-opacity"
             >
-              إعادة المحاولة
+              {t('common.backendStatusBanner.retry')}
             </button>
             <Link
               to="/"
               className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center"
             >
-              الرئيسية
+              {t('common.backendStatusBanner.home')}
             </Link>
           </div>
 
@@ -127,7 +129,7 @@ export default function BackendStatusBanner() {
               onClick={() => window.location.reload()}
               className="text-slate-500 font-black text-xs hover:text-slate-900 transition-colors"
             >
-              تحديث الصفحة
+              {t('common.backendStatusBanner.refreshPage')}
             </button>
           </div>
         </div>
@@ -152,7 +154,7 @@ export default function BackendStatusBanner() {
             onClick={handleRetry}
             className="shrink-0 rounded-xl bg-amber-600 text-white font-black px-4 py-2 hover:opacity-90 transition-opacity"
           >
-            إعادة المحاولة
+            {t('common.backendStatusBanner.retry')}
           </button>
         )}
       </div>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, Info, Users, Clock, ShoppingBag } from 'lucide-react';
@@ -22,6 +23,7 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
   isVisible,
   isBold,
 }) => {
+  const { t } = useTranslation();
   const showFooter = isVisible('footer', true);
   const showFooterQuickLinks = isVisible('footerQuickLinks', true);
   const showFooterContact = isVisible('footerContact', true);
@@ -50,15 +52,15 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
               </h4>
             </div>
             <p className="opacity-70 text-sm leading-relaxed font-bold">
-              {shop.description || `أفضل ${shop.category === 'RESTAURANT' ? 'الأكلات' : 'المنتجات'} تجدها هنا في ${shop.name}.`}
+              {shop.description || `${t('shopProfile.bestDishes')} ${t('shopProfile.foundIn')} ${shop.name}.`}
             </p>
             <div className="flex items-center justify-center md:justify-start gap-4 pt-2">
               <div className="bg-white/10 p-3 rounded-2xl">
                 <Users size={20} />
               </div>
               <div className="text-right">
-                <p className="text-[10px] opacity-50 font-black">المتابعون</p>
-                <p className="text-sm font-black">{shop.followers || 0} متابع</p>
+                <p className="text-[10px] opacity-50 font-black">{t('shopProfile.followersLabel')}</p>
+                <p className="text-sm font-black">{shop.followers || 0} {t('shopProfile.followers')}</p>
               </div>
             </div>
           </div>
@@ -66,12 +68,12 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
           {/* Quick Links Column */}
           {showFooterQuickLinks && (
             <div className="text-center md:text-right space-y-6">
-              <h5 className="font-black text-lg">روابط سريعة</h5>
+              <h5 className="font-black text-lg">{t('shopProfile.quickLinks')}</h5>
               <ul className="space-y-4 font-bold opacity-70 text-sm">
-                <li><a href="#" className="hover:opacity-100 transition-opacity">الرئيسية</a></li>
-                <li><a href="#" className="hover:opacity-100 transition-opacity">العروض</a></li>
-                <li><Link to="/return-policy" className="hover:opacity-100 transition-opacity">سياسة الاسترجاع</Link></li>
-                <li><Link to="/terms" className="hover:opacity-100 transition-opacity">الشروط والأحكام</Link></li>
+                <li><a href="#" className="hover:opacity-100 transition-opacity">{t('shopProfile.home')}</a></li>
+                <li><a href="#" className="hover:opacity-100 transition-opacity">{t('shopProfile.offers')}</a></li>
+                <li><Link to="/return-policy" className="hover:opacity-100 transition-opacity">{t('shopProfile.returnPolicy')}</Link></li>
+                <li><Link to="/terms" className="hover:opacity-100 transition-opacity">{t('shopProfile.terms')}</Link></li>
               </ul>
             </div>
           )}
@@ -79,7 +81,7 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
           {/* Contact Column */}
           {showFooterContact && (
             <div className="text-center md:text-right space-y-6">
-              <h5 className="font-black text-lg">تواصل معنا</h5>
+              <h5 className="font-black text-lg">{t('shopProfile.contactUs')}</h5>
               <div className="space-y-4">
                 <div className="flex items-center justify-center md:justify-start gap-3 opacity-70 hover:opacity-100 transition-opacity">
                   <span className="text-sm font-bold">{shop.phone}</span>
@@ -92,7 +94,7 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
                   </div>
                 )}
                 <div className="flex items-center justify-center md:justify-start gap-3 opacity-70">
-                  <span className="text-sm font-bold">{shop.city}، {shop.governorate}</span>
+                  <span className="text-sm font-bold">{t('shopProfile.cityGovSeparator', { city: shop.city, governorate: shop.governorate })}</span>
                   <MapPin size={18} />
                 </div>
               </div>
@@ -101,7 +103,7 @@ const ProfileFooter: React.FC<ProfileFooterProps> = ({
         </div>
 
         <div className="mt-20 pt-8 border-t border-white/10 text-center text-[10px] md:text-xs font-bold opacity-40">
-          <p>© {new Date().getFullYear()} {shop.name}. جميع الحقوق محفوظة. تم التطوير بواسطة MNMKNK</p>
+          <p>© {new Date().getFullYear()} {shop.name}. {t('shopProfile.copyright')}</p>
         </div>
       </div>
     </footer>

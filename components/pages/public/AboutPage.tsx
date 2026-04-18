@@ -1,11 +1,13 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Info, Target, Rocket, AlertTriangle, Cpu, Users } from 'lucide-react';
 
 const MotionDiv = motion.div as any;
 
 const AboutPage: React.FC = () => {
+  const { t } = useTranslation();
   return (
     <div className="max-w-5xl mx-auto px-6 py-20 text-right" dir="rtl">
       <div className="text-center mb-24">
@@ -15,27 +17,27 @@ const AboutPage: React.FC = () => {
             className="inline-flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-full font-black text-xs uppercase tracking-widest mb-8"
          >
             <Info className="w-4 h-4 text-[#00E5FF]" />
-            قصة من مكانك
+            {t('about.badge')}
          </MotionDiv>
-         <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-tight">نحن نبني <br/><span className="text-[#00E5FF]">مستقبل التجارة.</span></h1>
+         <h1 className="text-5xl md:text-8xl font-black tracking-tighter mb-8 leading-tight">{t('about.title')} <br/><span className="text-[#00E5FF]">{t('about.subtitle')}</span></h1>
          <p className="text-slate-400 text-xl md:text-2xl font-bold max-w-2xl mx-auto leading-relaxed">
-            من مكانك هو منصة مصرية لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات وتجربة استخدام بسيطة وسريعة.
+            {t('about.description')}
          </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-12 mb-32">
         <div className="p-12 bg-slate-50 rounded-[3.5rem] space-y-6">
            <Target className="w-12 h-12 text-[#BD00FF]" />
-           <h3 className="text-3xl font-black">رؤيتنا</h3>
+           <h3 className="text-3xl font-black">{t('about.vision')}</h3>
            <p className="text-slate-500 font-bold leading-loose">
-              أن يصبح كل محل في مصر قادراً على امتلاك واجهة رقمية عالمية ونظام إدارة ذكي في دقائق، دون تعقيدات تقنية.
+              {t('about.visionText')}
            </p>
         </div>
         <div className="p-12 bg-slate-900 text-white rounded-[3.5rem] space-y-6">
            <Cpu className="w-12 h-12 text-[#00E5FF]" />
-           <h3 className="text-3xl font-black">تقنياتنا</h3>
+           <h3 className="text-3xl font-black">{t('about.tech')}</h3>
            <p className="text-slate-400 font-bold leading-loose">
-              نستخدم أحدث تقنيات الذكاء الاصطناعي (Gemini) لنضمن لك عروضاً حقيقية وتجربة تسوق مخصصة لكل مستخدم.
+              {t('about.techText')}
            </p>
         </div>
       </div>
@@ -51,11 +53,10 @@ const AboutPage: React.FC = () => {
          </div>
          <div className="relative z-10">
             <h2 className="text-4xl font-black text-amber-900 mb-8 flex items-center justify-center gap-4">
-              نحن في مرحلة التجربة <AlertTriangle className="text-amber-500" />
+              {t('about.betaTitle')} <AlertTriangle className="text-amber-500" />
             </h2>
             <p className="text-amber-800 text-lg md:text-xl font-bold leading-loose max-w-3xl mx-auto">
-               منصة من مكانك حالياً في مرحلة الـ <span className="underline">Beta Test</span>. هذا يعني أن بعض الميزات قد لا تعمل بأفضل أداء ممكن، ونحن نعمل ليل نهار لتحسين التجربة. 
-               رأيك واقتراحاتك هي الوقود الذي يحركنا لنكون النسخة الأفضل دائماً.
+               {t('about.betaText')}
             </p>
          </div>
       </MotionDiv>
@@ -63,15 +64,15 @@ const AboutPage: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
          <div className="space-y-4">
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-900"><Rocket /></div>
-            <h4 className="font-black text-xl">سرعة فائقة</h4>
+            <h4 className="font-black text-xl">{t('about.speed')}</h4>
          </div>
          <div className="space-y-4">
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-900"><Users /></div>
-            <h4 className="font-black text-xl">فريق مصري</h4>
+            <h4 className="font-black text-xl">{t('about.team')}</h4>
          </div>
          <div className="space-y-4">
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto text-slate-900"><ShieldCheck /></div>
-            <h4 className="font-black text-xl">أمان كامل</h4>
+            <h4 className="font-black text-xl">{t('about.security')}</h4>
          </div>
       </div>
     </div>

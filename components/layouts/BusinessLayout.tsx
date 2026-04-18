@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { clearSession, getStoredUser, persistSession } from '@/services/authStorage';
 import { RayDB } from '@/constants';
 import { useToast } from '@/components/common/feedback/Toaster';
 import BrandLogo from '@/components/common/BrandLogo';
+import LanguageToggle from '@/components/common/LanguageToggle';
 import { Category } from '@/types';
 import {
   MerchantDashboardTabId,
@@ -22,6 +24,7 @@ const MotionDiv = motion.div as any;
 
 
 const BusinessLayout: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
@@ -116,9 +119,9 @@ const BusinessLayout: React.FC = () => {
         } catch {
         }
       }, 50);
-      addToast('تم تبديل النشاط', 'success');
+      addToast(t('dashboard.devActivity.switched'), 'success');
     } catch (err: any) {
-      addToast(err?.message || 'تعذر تبديل النشاط', 'error');
+      addToast(err?.message || t('dashboard.devActivity.switchFailed'), 'error');
     } finally {
       setDevSwitchLoading(false);
       setIsDevActivityMenuOpen(false);
@@ -235,17 +238,17 @@ const BusinessLayout: React.FC = () => {
 
   const sidebarNavSections = useMemo(() => {
     const byId = new Map<string, any>();
-    for (const t of visibleMainTabs) byId.set(String(t.id), t);
+    for (const tab of visibleMainTabs) byId.set(String(tab.id), tab);
 
     const pick = (...ids: MerchantDashboardTabId[]) =>
       ids.map((id) => byId.get(String(id))).filter(Boolean);
 
     return [
-      { title: 'اللوحة', items: pick('overview') },
-      { title: 'التشغيل', items: pick('products', 'pos', 'reservations', 'invoice') },
-      { title: 'المبيعات', items: pick('sales') },
-      { title: 'النمو', items: pick('promotions', 'customers', 'reports', 'gallery') },
-      { title: 'الإعداد', items: pick('builder', 'settings') },
+      { title: t('dashboard.sections.dashboard'), items: pick('overview') },
+      { title: t('dashboard.sections.operations'), items: pick('products', 'pos', 'reservations', 'invoice') },
+      { title: t('dashboard.sections.sales'), items: pick('sales') },
+      { title: t('dashboard.sections.growth'), items: pick('promotions', 'customers', 'reports', 'gallery') },
+      { title: t('dashboard.sections.setup'), items: pick('builder', 'settings') },
     ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
   }, [visibleMainTabs]);
 
@@ -428,9 +431,9 @@ const BusinessLayout: React.FC = () => {
 
         if (!isPosOrigin) {
           try {
-            const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+            const title = String((normalized as any)?.title || t('common.newNotification')).trim();
             const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
-            addToast([title, body].filter(Boolean).join(' - ') || 'إشعار جديد', 'info');
+            addToast([title, body].filter(Boolean).join(' - ') || t('common.newNotification'), 'info');
           } catch {
           }
         }
@@ -445,7 +448,7 @@ const BusinessLayout: React.FC = () => {
               const key = String((normalized as any)?.id || '').trim();
               if (key && !shownBrowserNotificationIdsRef.current.has(key)) {
                 shownBrowserNotificationIdsRef.current.add(key);
-                const title = String((normalized as any)?.title || 'إشعار جديد').trim();
+                const title = String((normalized as any)?.title || t('common.newNotification')).trim();
                 const body = String((normalized as any)?.content || (normalized as any)?.message || '').trim();
                 const n = new Notification(title, {
                   body,
@@ -464,13 +467,13 @@ const BusinessLayout: React.FC = () => {
           }
         }
 
-        const t = String((normalized as any)?.type || '').trim().toUpperCase();
+        const notifType = String((normalized as any)?.type || '').trim().toUpperCase();
         const shouldRing =
-          t === 'ORDER' ||
-          t === 'NEW_ORDER' ||
-          t === 'RESERVATION' ||
-          t === 'NEW_RESERVATION' ||
-          t === 'BOOKING';
+          notifType === 'ORDER' ||
+          notifType === 'NEW_ORDER' ||
+          notifType === 'RESERVATION' ||
+          notifType === 'NEW_RESERVATION' ||
+          notifType === 'BOOKING';
 
         if (shouldRing && !isPosOrigin) {
           try {
@@ -620,14 +623,14 @@ const BusinessLayout: React.FC = () => {
       <>
         <Link to="/" className={`flex items-center gap-2 md:gap-3 transition-colors ${headerTextCls}`}>
           <BrandLogo variant="business" iconOnly />
-          <span className="text-lg md:text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
+          <span className="text-lg md:text-2xl font-black tracking-tighter uppercase">{t('brand.nameBusiness')}</span>
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
           {isBusinessLanding && (
-            <a href="#about" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>من نحن</a>
+            <a href="#about" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>{t('common.aboutUs')}</a>
           )}
-          <Link to="/business/login" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>دخول التجار</Link>
-          <Link to="/signup?role=merchant" className={`px-5 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-lg ${ctaBtnCls}`}>ابدأ مجاناً</Link>
+          <Link to="/business/login" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>{t('business.merchantLogin')}</Link>
+          <Link to="/signup?role=merchant" className={`px-5 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-lg ${ctaBtnCls}`}>{t('business.startFree')}</Link>
         </div>
       </>
     );
@@ -694,7 +697,7 @@ const BusinessLayout: React.FC = () => {
           <div className="p-10 flex items-center justify-between">
             <Link to="/" className="flex items-center gap-3">
               <BrandLogo variant="business" iconOnly />
-              <span className="text-2xl font-black tracking-tighter uppercase">من مكانك للأعمال</span>
+              <span className="text-2xl font-black tracking-tighter uppercase">{t('brand.nameBusiness')}</span>
             </Link>
             {isSettingsTab ? (
               <button
@@ -708,7 +711,7 @@ const BusinessLayout: React.FC = () => {
                 disabled={settingsSaving || settingsDirtyCount <= 0}
                 className={`relative px-5 py-3 rounded-2xl font-black text-xs transition-all ${settingsSaving || settingsDirtyCount <= 0 ? 'bg-slate-100 text-slate-400' : 'bg-slate-900 text-white hover:bg-black'}`}
               >
-                حفظ الإعدادات
+                {t('dashboard.saveSettings')}
                 {settingsDirtyCount > 0 && (
                   <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#BD00FF] text-white text-[10px] font-black flex items-center justify-center ring-2 ring-white">
                     {settingsDirtyCount}
@@ -723,7 +726,7 @@ const BusinessLayout: React.FC = () => {
         ) : (
           <div className="p-10 flex items-center justify-between">
             <div className="flex flex-col">
-              <div className="text-2xl font-black tracking-tighter">هوية المتجر</div>
+              <div className="text-2xl font-black tracking-tighter">{t('dashboard.storeIdentity')}</div>
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Page Builder</div>
             </div>
             <div className="flex items-center gap-3">
@@ -737,7 +740,7 @@ const BusinessLayout: React.FC = () => {
                 }}
                 className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all"
               >
-                حفظ التصميم
+                {t('dashboard.saveDesign')}
               </button>
               <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
                 <X className="w-6 h-6" />
@@ -777,26 +780,26 @@ const BusinessLayout: React.FC = () => {
               <div className="space-y-6">
                 <div className="space-y-2">
                   <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                    الإعدادات
+                    {t('dashboard.settings.title')}
                   </div>
                   <div className="space-y-2">
-                    <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="رجوع للوحة" active={false} />
-                    <NavItem to={buildSettingsUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="نظرة عامة" active={String(settingsTab) === 'overview'} />
-                    <NavItem to={buildSettingsUrl('account')} onClick={handleNavItemClick} icon={<User size={20} />} showIcon={false} label="الحساب" active={String(settingsTab) === 'account'} />
-                    <NavItem to={buildSettingsUrl('security')} onClick={handleNavItemClick} icon={<Shield size={20} />} showIcon={false} label="الأمان" active={String(settingsTab) === 'security'} />
-                    <NavItem to={buildSettingsUrl('store')} onClick={handleNavItemClick} icon={<Store size={20} />} showIcon={false} label="إعدادات المتجر" active={String(settingsTab) === 'store'} />
+                    <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label={t('dashboard.backToDashboard')} active={false} />
+                    <NavItem to={buildSettingsUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label={t('dashboard.settings.overview')} active={String(settingsTab) === 'overview'} />
+                    <NavItem to={buildSettingsUrl('account')} onClick={handleNavItemClick} icon={<User size={20} />} showIcon={false} label={t('dashboard.settings.account')} active={String(settingsTab) === 'account'} />
+                    <NavItem to={buildSettingsUrl('security')} onClick={handleNavItemClick} icon={<Shield size={20} />} showIcon={false} label={t('dashboard.settings.security')} active={String(settingsTab) === 'security'} />
+                    <NavItem to={buildSettingsUrl('store')} onClick={handleNavItemClick} icon={<Store size={20} />} showIcon={false} label={t('dashboard.settings.storeSettings')} active={String(settingsTab) === 'store'} />
                   </div>
                 </div>
 
                 <div className="space-y-2">
                   <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                    الفوترة والتنبيهات
+                    {t('dashboard.settings.billingAndAlerts')}
                   </div>
                   <div className="space-y-2">
-                    <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label="ترقية" active={String(settingsTab) === 'modules'} />
-                    <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label="ثيم الفاتورة" active={String(settingsTab) === 'receipt_theme'} />
-                    <NavItem to={buildSettingsUrl('payments')} onClick={handleNavItemClick} icon={<CreditCard size={20} />} showIcon={false} label="المدفوعات" active={String(settingsTab) === 'payments'} />
-                    <NavItem to={buildSettingsUrl('notifications')} onClick={handleNavItemClick} icon={<Bell size={20} />} showIcon={false} label="التنبيهات" active={String(settingsTab) === 'notifications'} />
+                    <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label={t('dashboard.settings.upgrade')} active={String(settingsTab) === 'modules'} />
+                    <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label={t('dashboard.settings.receiptTheme')} active={String(settingsTab) === 'receipt_theme'} />
+                    <NavItem to={buildSettingsUrl('payments')} onClick={handleNavItemClick} icon={<CreditCard size={20} />} showIcon={false} label={t('dashboard.settings.payments')} active={String(settingsTab) === 'payments'} />
+                    <NavItem to={buildSettingsUrl('notifications')} onClick={handleNavItemClick} icon={<Bell size={20} />} showIcon={false} label={t('dashboard.settings.notifications')} active={String(settingsTab) === 'notifications'} />
                   </div>
                 </div>
               </div>
@@ -853,14 +856,14 @@ const BusinessLayout: React.FC = () => {
             if (focusMode) {
               return (
                 <>
-                  <NavItem to={buildBuilderIndexUrl()} onClick={handleNavItemClick} icon={<ChevronRight size={20} />} showIcon={false} label="رجوع" active={false} />
-                  {activeBuilderId === 'products' ? item('products', 'عرض المعروضات', <Layout size={20} />) : null}
-                  {activeBuilderId === 'productCard' ? item('productCard', 'كارت المنتج', <Palette size={20} />) : null}
-                  {activeBuilderId === 'imageShape' ? item('imageShape', 'أشكال الصور', <Layout size={20} />) : null}
-                  {activeBuilderId === 'categories' ? item('categories', 'الأقسام', <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'productEditor' ? item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'header' ? item('header', 'اللوجو', <Layout size={20} />) : null}
-                  {activeBuilderId === 'headerFooter' ? item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />) : null}
+                  <NavItem to={buildBuilderIndexUrl()} onClick={handleNavItemClick} icon={<ChevronRight size={20} />} showIcon={false} label={t('common.back')} active={false} />
+                  {activeBuilderId === 'products' ? item('products', t('dashboard.builder.products'), <Layout size={20} />) : null}
+                  {activeBuilderId === 'productCard' ? item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />) : null}
+                  {activeBuilderId === 'imageShape' ? item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />) : null}
+                  {activeBuilderId === 'categories' ? item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />) : null}
+                  {activeBuilderId === 'productEditor' ? item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />) : null}
+                  {activeBuilderId === 'header' ? item('header', t('dashboard.builder.logo'), <Layout size={20} />) : null}
+                  {activeBuilderId === 'headerFooter' ? item('headerFooter', t('dashboard.builder.headerFooter'), <Layout size={20} />) : null}
                   {activeBuilderId === 'products' || activeBuilderId === 'productCard' ? (
                     <>
                       <NavItem
@@ -868,7 +871,7 @@ const BusinessLayout: React.FC = () => {
                         onClick={handleNavItemClick}
                         icon={<Layout size={20} />}
                         showIcon={false}
-                        label="عرض المعروضات"
+                        label={t('dashboard.builder.products')}
                         active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
                       />
                       <div
@@ -880,35 +883,35 @@ const BusinessLayout: React.FC = () => {
                       >
                         <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
                       </div>
-                      {subItem('productCard', 'كارت المنتج', <Palette size={20} />, 'products')}
-                      {subItem('imageShape', 'أشكال الصور', <Layout size={20} />, 'products')}
+                      {subItem('productCard', t('dashboard.builder.productCard'), <Palette size={20} />, 'products')}
+                      {subItem('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />, 'products')}
                     </>
                   ) : null}
-                  {activeBuilderId === 'productEditor' ? item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'layout' ? item('layout', 'النمط', <Layout size={20} />) : null}
-                  {activeBuilderId === 'typography' ? item('typography', 'الخطوط', <Type size={20} />) : null}
-                  {activeBuilderId === 'buttons' ? item('buttons', 'شكل وحجم الزر', <Layout size={20} />) : null}
-                  {activeBuilderId === 'visibility' ? item('visibility', 'إظهار / إخفاء', <Sliders size={20} />) : null}
-                  {activeBuilderId === 'customCss' ? item('customCss', 'CSS مخصص', <Sliders size={20} />) : null}
+                  {activeBuilderId === 'productEditor' ? item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />) : null}
+                  {activeBuilderId === 'layout' ? item('layout', t('dashboard.builder.layout'), <Layout size={20} />) : null}
+                  {activeBuilderId === 'typography' ? item('typography', t('dashboard.builder.typography'), <Type size={20} />) : null}
+                  {activeBuilderId === 'buttons' ? item('buttons', t('dashboard.builder.buttons'), <Layout size={20} />) : null}
+                  {activeBuilderId === 'visibility' ? item('visibility', t('dashboard.builder.visibility'), <Sliders size={20} />) : null}
+                  {activeBuilderId === 'customCss' ? item('customCss', t('dashboard.builder.customCss'), <Sliders size={20} />) : null}
                 </>
               );
             }
 
             return (
               <>
-                <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label="رجوع للوحة" active={false} />
-                {item('colors', 'الألوان', <Palette size={20} />)}
-                {item('background', 'صورة الخلفية', <Palette size={20} />)}
-                {item('banner', 'البانر', <Layout size={20} />)}
-                {item('header', 'اللوجو', <Layout size={20} />)}
-                {item('headerFooter', 'أعلى وأسفل العرض', <Layout size={20} />)}
+                <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label={t('dashboard.backToDashboard')} active={false} />
+                {item('colors', t('dashboard.builder.colors'), <Palette size={20} />)}
+                {item('background', t('dashboard.builder.background'), <Palette size={20} />)}
+                {item('banner', t('dashboard.builder.banner'), <Layout size={20} />)}
+                {item('header', t('dashboard.builder.logo'), <Layout size={20} />)}
+                {item('headerFooter', t('dashboard.builder.headerFooter'), <Layout size={20} />)}
                 <>
                   <NavItem
                     to={buildBuilderToggleUrl('products')}
                     onClick={handleNavItemClick}
                     icon={<Layout size={20} />}
                     showIcon={false}
-                    label="عرض المعروضات"
+                    label={t('dashboard.builder.products')}
                     active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
                   />
                   <div
@@ -920,16 +923,16 @@ const BusinessLayout: React.FC = () => {
                   >
                     <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
                   </div>
-                  {subItem('productCard', 'كارت المنتج', <Palette size={20} />, 'products')}
-                  {subItem('imageShape', 'أشكال الصور', <Layout size={20} />, 'products')}
+                  {subItem('productCard', t('dashboard.builder.productCard'), <Palette size={20} />, 'products')}
+                  {subItem('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />, 'products')}
                 </>
-                {item('categories', 'الأقسام', <ShoppingBag size={20} />)}
-                {item('productEditor', 'تحرير المنتجات', <ShoppingBag size={20} />)}
-                {item('layout', 'النمط', <Layout size={20} />)}
-                {item('typography', 'الخطوط', <Type size={20} />)}
-                {item('buttons', 'شكل وحجم الزر', <Layout size={20} />)}
-                {item('visibility', 'إظهار / إخفاء', <Sliders size={20} />)}
-                {item('customCss', 'CSS مخصص', <Sliders size={20} />)}
+                {item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />)}
+                {item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />)}
+                {item('layout', t('dashboard.builder.layout'), <Layout size={20} />)}
+                {item('typography', t('dashboard.builder.typography'), <Type size={20} />)}
+                {item('buttons', t('dashboard.builder.buttons'), <Layout size={20} />)}
+                {item('visibility', t('dashboard.builder.visibility'), <Sliders size={20} />)}
+                {item('customCss', t('dashboard.builder.customCss'), <Sliders size={20} />)}
               </>
             );
           })()}
@@ -940,7 +943,7 @@ const BusinessLayout: React.FC = () => {
              onClick={handleLogout}
              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-black group"
            >
-             <span>تسجيل الخروج</span>
+             <span>{t('common.logout')}</span>
            </button>
         </div>
       </aside>
@@ -958,14 +961,14 @@ const BusinessLayout: React.FC = () => {
               className="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-[160] shadow-2xl flex flex-col p-8 text-right"
             >
                 <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-2xl font-black">التنبيهات</h3>
+                   <h3 className="text-2xl font-black">{t('dashboard.notifications')}</h3>
                    <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20} /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar">
                    {notifications.length === 0 ? (
                      <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
                         <Bell size={48} className="opacity-10" />
-                        <p className="font-bold">لا توجد تنبيهات جديدة</p>
+                        <p className="font-bold">{t('dashboard.noNotifications')}</p>
                      </div>
                    ) : (
                      notifications.map((n: any) => (
@@ -985,7 +988,7 @@ const BusinessLayout: React.FC = () => {
                      ))
                    )}
                 </div>
-                <button onClick={() => setNotifOpen(false)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">إغلاق القائمة</button>
+                <button onClick={() => setNotifOpen(false)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">{t('common.close')}</button>
             </NotifPanelWrapper>
           </>
         )}
@@ -1003,8 +1006,8 @@ const BusinessLayout: React.FC = () => {
                    {effectiveUser?.name?.charAt(0)}
                  </div>
                  <div className="text-right">
-                   <p className="font-black text-sm text-slate-900 leading-none">{effectiveUser?.name || 'حساب التاجر'}</p>
-                   <p className="text-[10px] text-slate-400 font-bold mt-1">التاجر</p>
+                   <p className="font-black text-sm text-slate-900 leading-none">{effectiveUser?.name || t('dashboard.merchantAccount')}</p>
+                   <p className="text-[10px] text-slate-400 font-bold mt-1">{t('dashboard.merchant')}</p>
                  </div>
                  <ChevronDown size={16} className="text-slate-400" />
                </div>
@@ -1024,21 +1027,21 @@ const BusinessLayout: React.FC = () => {
                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
                        >
                          <User size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">الملف الشخصي</span>
+                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.profile')}</span>
                        </button>
                        <button
                          onClick={() => { navigate(buildSettingsUrl('store')); setIsUserMenuOpen(false); }}
                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
                        >
                          <Store size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">إعدادات المتجر</span>
+                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.storeSettings')}</span>
                        </button>
                        <button
                          onClick={() => { navigate(buildSettingsUrl('notifications')); setIsUserMenuOpen(false); }}
                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
                        >
                          <Bell size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">الإشعارات</span>
+                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.notifications')}</span>
                        </button>
                      </div>
                      <div className="p-2 border-t border-slate-100">
@@ -1047,7 +1050,7 @@ const BusinessLayout: React.FC = () => {
                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-right transition-all group"
                        >
                          <LogOut size={18} className="text-red-500" />
-                         <span className="text-sm font-bold text-red-500 group-hover:text-red-600">تسجيل الخروج</span>
+                         <span className="text-sm font-bold text-red-500 group-hover:text-red-600">{t('common.logout')}</span>
                        </button>
                      </div>
                    </div>
@@ -1062,11 +1065,11 @@ const BusinessLayout: React.FC = () => {
                   disabled={devSwitchLoading}
                   onClick={() => setIsDevActivityMenuOpen((v) => !v)}
                   className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all font-black text-xs"
-                  title="تبديل النشاط (تطوير)"
-                  aria-label="تبديل النشاط (تطوير)"
+                  title={t('dashboard.devActivity.switchLabel')}
+                  aria-label={t('dashboard.devActivity.switchLabel')}
                 >
                   <Store size={16} />
-                  <span>النشاط</span>
+                  <span>{t('dashboard.devActivity.title')}</span>
                   <ChevronDown size={14} className="text-slate-500" />
                 </button>
 
@@ -1080,7 +1083,7 @@ const BusinessLayout: React.FC = () => {
                         onClick={() => switchDevActivity(undefined)}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        تاجر (Retail)
+                        {t('dashboard.devActivity.retail')}
                       </button>
                       <button
                         type="button"
@@ -1088,7 +1091,7 @@ const BusinessLayout: React.FC = () => {
                         onClick={() => switchDevActivity('RESTAURANT')}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        مطعم
+                        {t('dashboard.devActivity.restaurant')}
                       </button>
                       <button
                         type="button"
@@ -1096,7 +1099,7 @@ const BusinessLayout: React.FC = () => {
                         onClick={() => switchDevActivity('FASHION')}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        ملابس / أحذية
+                        {t('dashboard.devActivity.fashion')}
                       </button>
                       <button
                         type="button"
@@ -1110,7 +1113,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        المفروشات والسجاد
+                        {t('dashboard.devActivity.homeTextiles')}
                       </button>
                       <button
                         type="button"
@@ -1124,7 +1127,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        سوبر ماركت / بقالة / عطارة
+                        {t('dashboard.devActivity.supermarketGrocery')}
                       </button>
                       <button
                         type="button"
@@ -1138,7 +1141,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        كمبيوترات وموبايلات
+                        {t('dashboard.devActivity.computersMobiles')}
                       </button>
                       <button
                         type="button"
@@ -1152,7 +1155,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        صيدلية / مستحضرات
+                        {t('dashboard.devActivity.pharmacy')}
                       </button>
                       <button
                         type="button"
@@ -1166,7 +1169,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        أثاث / معارض
+                        {t('dashboard.devActivity.furniture')}
                       </button>
                       <button
                         type="button"
@@ -1180,7 +1183,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        مستلزمات المنزل
+                        {t('dashboard.devActivity.homeGoods')}
                       </button>
                       <button
                         type="button"
@@ -1194,7 +1197,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        حجوزات
+                        {t('dashboard.devActivity.bookings')}
                       </button>
                       <button
                         type="button"
@@ -1208,7 +1211,7 @@ const BusinessLayout: React.FC = () => {
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
-                        أخرى
+                        {t('dashboard.devActivity.other')}
                       </button>
                     </div>
                   </>
@@ -1228,8 +1231,8 @@ const BusinessLayout: React.FC = () => {
             {hasPosTab && (
               <button
                 onClick={() => navigate(buildDashboardUrl('pos'))}
-                aria-label="نظام الكاشير"
-                title="نظام الكاشير"
+                aria-label={t('dashboard.posSystem')}
+                title={t('dashboard.posSystem')}
                 className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
               >
                 <Store className="w-5 h-5" />
@@ -1237,8 +1240,8 @@ const BusinessLayout: React.FC = () => {
             )}
             <button
               onClick={() => navigate(buildBuilderIndexUrl())}
-              aria-label="هوية المتجر"
-              title="هوية المتجر"
+              aria-label={t('dashboard.storeIdentity')}
+              title={t('dashboard.storeIdentity')}
               className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
             >
               <Palette className="w-5 h-5" />
@@ -1250,16 +1253,16 @@ const BusinessLayout: React.FC = () => {
                 } catch {
                 }
               }}
-              aria-label="تحديث البيانات"
-              title="تحديث البيانات"
+              aria-label={t('dashboard.refreshData')}
+              title={t('dashboard.refreshData')}
               className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
           </div>
           <div className="flex flex-col text-right">
-             <h2 className="font-black text-slate-900 text-xl leading-none">لوحة التاجر</h2>
-             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">مركز العمليات</p>
+             <h2 className="font-black text-slate-900 text-xl leading-none">{t('dashboard.title')}</h2>
+             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">{t('dashboard.subtitle')}</p>
           </div>
         </header>
 
