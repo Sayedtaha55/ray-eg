@@ -43,7 +43,8 @@ interface SettingsProps {
 
 const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ shop, adminShopId }) => {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const receiptLogoInputRef = useRef<HTMLInputElement>(null);
   const receiptShopId = String(adminShopId || shop?.id || '');
   const [receiptShopName, setReceiptShopName] = useState('');
@@ -219,7 +220,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
   }, [receiptShopId, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent]);
 
   return (
-    <div className="space-y-6 text-right" dir="rtl">
+    <div className={`space-y-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <h3 className="text-2xl font-black">{t('settingsIndex.receiptTheme')}</h3>
       <Card className="border-0 shadow-sm">
         <CardHeader>
@@ -301,7 +302,8 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 
 const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
 
   const SettingsTabs = SETTINGS_TAB_IDS.map(item => ({
     ...item,
@@ -539,7 +541,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         return <Payments shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       case 'notifications':
         return (
-          <div className="space-y-6 text-right" dir="rtl">
+          <div className={`space-y-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
             <h3 className="text-2xl font-black">{t('settingsIndex.notifications')}</h3>
             <div className="space-y-6">
               <h3 className="text-2xl font-black">{t('settingsIndex.notificationSounds')}</h3>

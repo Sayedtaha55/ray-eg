@@ -1,0 +1,77 @@
+{
+  "hero": {
+    "badge": "عروض حصرية",
+    "title": "من مكانك",
+    "subtitle": "دليل المحلات والمطاعم.",
+    "description": "منصة من مكانك لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات.",
+    "mapBtn": "الخريطة"
+  },
+  "stores": {
+    "title": "المتاجر المتاحة الآن",
+    "showMore": "عرض المزيد",
+    "visitShop": "زيارة المحل",
+    "scrollRight": "يمين",
+    "scrollLeft": "يسار",
+    "sendPrescription": "إرسال روشتة",
+    "viaWhatsApp": "عبر واتساب",
+    "specialOffer": "عرض خاص",
+    "browseStore": "تصفح المتجر",
+    "whatsappPrescription": "مرحبا {{shopName}}، عايز أضيف روشتة"
+  },
+  "offers": {
+    "title": "أحدث الانفجارات السعرية",
+    "viewAll": "مشاهدة الكل",
+    "noOffers": "لا توجد عروض نشطة حالياً.",
+    "loadMoreAria": "تحميل المزيد من العروض",
+    "loading": "تحميل...",
+    "loadMore": "تحميل المزيد"
+  },
+  "categories": {
+    "title": "استكشف العروض حسب الفئة",
+    "subtitle": "اختر الفئة اللي تهمك وشوف أحدث العروض المتخصصة",
+    "restaurants": "عروض المطاعم",
+    "restaurantsDesc": "أفضل عروض المطاعم والمطابخ",
+    "fashion": "عروض الأزياء",
+    "fashionDesc": "ملابس وأحذية بأسعار مميزة",
+    "supermarket": "عروض السوبر ماركت",
+    "supermarketDesc": "منتجات بقالة ومواد غذائية",
+    "previous": "السابق",
+    "next": "التالي",
+    "category": "الفئة"
+  },
+  "topVisited": {
+    "title": "الأنشطة الأكثر زيارة",
+    "noData": "لا توجد أنشطة متاحة حالياً.",
+    "subtitle": "اكتشف المحلات الأكثر شعبية بين عملائنا",
+    "viewAll": "عرض الكل",
+    "next": "التالي",
+    "previous": "السابق"
+  },
+  "topSelling": {
+    "bestSellers": "الأكثر مبيعًا",
+    "featuredOffers": "عروض مميزة",
+    "bestSellersDesc": "المنتجات الأكثر طلبًا من عملائنا",
+    "featuredOffersDesc": "اكتشف أحدث العروض والتخفيضات",
+    "noData": "لا توجد بيانات متاحة حالياً.",
+    "viewAll": "عرض الكل",
+    "next": "التالي",
+    "previous": "السابق",
+    "sold": "مبيع",
+    "reserve": "حجز",
+    "addToCart": "إضافة للسلة",
+    "currency": "ج.م",
+    "product": "منتج"
+  },
+  "feedback": {
+    "title": "مساعد تحسين MNMKNK",
+    "close": "إغلاق",
+    "thanksSuccess": "شكراً ليك يا بطل، اقتراحك وصل وهنراجعه قريب!",
+    "thanksError": "حصل مشكلة بسيطة بس اقتراحك وصل لمهندسينا!",
+    "thanksBtn": "شكراً يا MNMKNK!",
+    "prompt": "عندك فكرة أو شايف حاجة مش عجباك؟ احنا لسه بنجرب ومحتاجين رأيك.",
+    "placeholder": "اكتب اقتراحك هنا يا بطل...",
+    "send": "إرسال لمهندسينا",
+    "openAssistant": "فتح المساعد"
+  },
+  "loading": "جاري التحميل..."
+}

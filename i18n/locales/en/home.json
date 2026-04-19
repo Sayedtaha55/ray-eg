@@ -1,0 +1,77 @@
+{
+  "hero": {
+    "badge": "Exclusive Deals",
+    "title": "MNMKNK",
+    "subtitle": "Your Local Shops & Restaurants Guide.",
+    "description": "The MNMKNK platform to discover the best shops and restaurants near you with deals and ratings.",
+    "mapBtn": "Map"
+  },
+  "stores": {
+    "title": "Available Stores Now",
+    "showMore": "Show More",
+    "visitShop": "Visit Shop",
+    "scrollRight": "Right",
+    "scrollLeft": "Left",
+    "sendPrescription": "Send Prescription",
+    "viaWhatsApp": "Via WhatsApp",
+    "specialOffer": "Special Offer",
+    "browseStore": "Browse Store",
+    "whatsappPrescription": "Hi {{shopName}}, I'd like to add a prescription"
+  },
+  "offers": {
+    "title": "Latest Price Drops",
+    "viewAll": "View All",
+    "noOffers": "No active offers at the moment.",
+    "loadMoreAria": "Load more offers",
+    "loading": "Loading...",
+    "loadMore": "Load More"
+  },
+  "categories": {
+    "title": "Explore Deals by Category",
+    "subtitle": "Choose the category that interests you and see the latest specialized deals",
+    "restaurants": "Restaurant Deals",
+    "restaurantsDesc": "Best restaurant and kitchen deals",
+    "fashion": "Fashion Deals",
+    "fashionDesc": "Clothes and shoes at great prices",
+    "supermarket": "Supermarket Deals",
+    "supermarketDesc": "Grocery and food products",
+    "previous": "Previous",
+    "next": "Next",
+    "category": "Category"
+  },
+  "topVisited": {
+    "title": "Most Visited Activities",
+    "noData": "No activities available at the moment.",
+    "subtitle": "Discover the most popular shops among our customers",
+    "viewAll": "View All",
+    "next": "Next",
+    "previous": "Previous"
+  },
+  "topSelling": {
+    "bestSellers": "Best Sellers",
+    "featuredOffers": "Featured Offers",
+    "bestSellersDesc": "Most requested products by our customers",
+    "featuredOffersDesc": "Discover the latest deals and discounts",
+    "noData": "No data available at the moment.",
+    "viewAll": "View All",
+    "next": "Next",
+    "previous": "Previous",
+    "sold": "sold",
+    "reserve": "Reserve",
+    "addToCart": "Add to Cart",
+    "currency": "EGP",
+    "product": "Product"
+  },
+  "feedback": {
+    "title": "MNMKNK Improvement Assistant",
+    "close": "Close",
+    "thanksSuccess": "Thanks champ, your suggestion arrived and we'll review it soon!",
+    "thanksError": "A minor issue occurred, but your suggestion reached our engineers!",
+    "thanksBtn": "Thanks MNMKNK!",
+    "prompt": "Got an idea or see something you don't like? We're still testing and need your opinion.",
+    "placeholder": "Write your suggestion here champ...",
+    "send": "Send to our engineers",
+    "openAssistant": "Open Assistant"
+  },
+  "loading": "Loading..."
+}

@@ -509,7 +509,7 @@ const PublicLayout: React.FC = () => {
                 )}
               </nav>
               <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
-                <LanguageToggle variant="public" className="w-full" />
+                <LanguageToggle variant="public" mode="options" className="w-full justify-center" />
                 <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
                   <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
                     <Phone size={16} />

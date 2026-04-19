@@ -92,7 +92,8 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
 };
 
 const MerchantDashboardPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const activeTab = (tabParam as MerchantDashboardTabId) || 'overview';
@@ -568,7 +569,7 @@ const MerchantDashboardPage: React.FC = () => {
 
   if (!currentShop) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 text-right px-6" dir="rtl">
+      <div className={`h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 px-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
         <p className="font-black text-slate-600">{t('business.dashboard.noShopFound')}</p>
         <button
           onClick={() => {
@@ -592,7 +593,7 @@ const MerchantDashboardPage: React.FC = () => {
   ).trim();
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-5 md:space-y-10 text-right pb-28 md:pb-32 px-3 sm:px-4 md:px-6 font-sans" dir="rtl">
+    <div className={`max-w-[1600px] mx-auto space-y-5 md:space-y-10 pb-28 md:pb-32 px-3 sm:px-4 md:px-6 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       {effectiveTab !== 'builder' && effectiveTab !== 'settings' && (
         <div className="relative overflow-hidden bg-gradient-to-l from-cyan-50 via-white to-slate-50 p-4 sm:p-6 md:p-12 rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-cyan-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 md:gap-8">
           {bannerImageUrl ? (

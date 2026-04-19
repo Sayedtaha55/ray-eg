@@ -17,7 +17,8 @@ interface AccountProps {
 
 const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const [, setIsSaving] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -166,7 +167,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
         const d = new Date(String(scheduled));
         if (Number.isNaN(d.getTime())) return '';
         try {
-          return d.toLocaleString('ar-EG');
+          return d.toLocaleString(locale);
         } catch {
           return d.toISOString();
         }

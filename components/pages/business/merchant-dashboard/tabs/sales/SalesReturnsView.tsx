@@ -21,7 +21,8 @@ type Row = {
 };
 
 const SalesReturnsView: React.FC<Props> = ({ sales }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const orders = useMemo(() => (Array.isArray(sales) ? sales : []), [sales]);
   const orderIds = useMemo(() => orders.map((o: any) => String(o?.id || '').trim()).filter(Boolean), [orders]);
 
@@ -165,7 +166,7 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
               <tr key={r.returnId} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
                 <td className="p-5 font-black text-slate-900">#{r.orderShortId}</td>
                 <td className="p-5 text-slate-500 font-bold text-sm">
-                  {r.returnCreatedAt ? new Date(r.returnCreatedAt as any).toLocaleString('ar-EG') : '-'}
+                  {r.returnCreatedAt ? new Date(r.returnCreatedAt as any).toLocaleString(locale) : '-'}
                 </td>
                 <td className="p-5 text-slate-500 font-black text-sm">{Array.isArray(r.items) ? r.items.length : 0}</td>
                 <td className="p-5 text-slate-500 font-bold text-sm">{r.reason ? t('business.sales.returnsExist') : '—'}</td>

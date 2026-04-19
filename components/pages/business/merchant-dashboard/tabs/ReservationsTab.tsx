@@ -17,7 +17,8 @@ const normalizeReservationStatus = (status: any): 'pending' | 'completed' | 'exp
 };
 
 export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'expired'>('pending');
 
   const filteredReservations = reservations.filter((res) => {
@@ -130,7 +131,7 @@ export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus 
                     </p>
                   </div>
                   <p className="text-[10px] text-[#00E5FF] font-black mt-3 uppercase tracking-tighter flex items-center justify-end gap-1">
-                    <Clock size={12} /> {new Date((res as any).createdAt).toLocaleString('ar-EG')}
+                    <Clock size={12} /> {new Date((res as any).createdAt).toLocaleString(locale)}
                   </p>
                 </div>
               </div>
@@ -161,7 +162,7 @@ export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus 
                     ) : (
                       <span className="bg-red-100 text-red-600 px-4 py-2 rounded-xl font-black text-xs">{t('business.reservations.cancelled')}</span>
                     )}
-                    <span className="text-slate-400 font-black text-xs">{new Date((res as any).createdAt).toLocaleDateString('ar-EG')}</span>
+                    <span className="text-slate-400 font-black text-xs">{new Date((res as any).createdAt).toLocaleDateString(locale)}</span>
                   </div>
                 )}
               </div>

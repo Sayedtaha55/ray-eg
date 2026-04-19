@@ -1,10 +1,14 @@
 import React from 'react';
 import { CalendarCheck, ChevronRight, Clock, ShoppingCart, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type Props = { n: any };
 
-const ActivityItem: React.FC<Props> = ({ n }) => (
-  <div className="flex items-center gap-3 sm:gap-6 flex-row-reverse group cursor-pointer">
+const ActivityItem: React.FC<Props> = ({ n }) => {
+  const { i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
+  return (
+    <div className="flex items-center gap-3 sm:gap-6 flex-row-reverse group cursor-pointer">
     <div
       className={`w-11 h-11 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 ${
         n.type === 'sale'
@@ -25,11 +29,12 @@ const ActivityItem: React.FC<Props> = ({ n }) => (
     <div className="flex-1 text-right">
       <p className="font-black text-base text-slate-800 mb-1 leading-tight">{n.title}</p>
       <div className="flex items-center justify-end gap-2 text-[11px] text-slate-400 font-black uppercase">
-        <Clock size={12} /> {new Date(n.created_at).toLocaleTimeString('ar-EG')}
+        <Clock size={12} /> {new Date(n.created_at).toLocaleTimeString(locale)}
       </div>
     </div>
     <ChevronRight size={14} className="text-slate-200 rotate-180 sm:w-4 sm:h-4" />
   </div>
-);
+  );
+};
 
 export default ActivityItem;

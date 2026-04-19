@@ -7,7 +7,8 @@ import { useTranslation } from 'react-i18next';
 type Props = { shopId: string };
 
 const CustomersTab: React.FC<Props> = ({ shopId }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const [searchTerm, setSearchTerm] = useState('');
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +119,7 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
                   <td className="p-6">
                     <div>
                       <p className="text-xs text-slate-400 font-black">
-                        {c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString('ar-EG') : '---'}
+                        {c.lastPurchaseDate ? new Date(c.lastPurchaseDate).toLocaleDateString(locale) : '---'}
                       </p>
                       {c.firstPurchaseItem && <p className="text-[10px] text-slate-500">{c.firstPurchaseItem}</p>}
                     </div>

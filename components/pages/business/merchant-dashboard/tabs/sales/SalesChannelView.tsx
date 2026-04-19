@@ -182,7 +182,8 @@ const OrderRow = memo(({
   actionsEnabled,
   statusMeta, 
   renderDeliveryFee,
-  t
+  t,
+  locale,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -259,7 +260,7 @@ const OrderRow = memo(({
         <div className="min-w-0">
           <div className="font-black text-slate-900 whitespace-normal break-words">{itemsSummary || '-'}</div>
           <div className="text-slate-500 font-bold text-xs mt-1">
-            {new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}
+            {new Date(sale.created_at || sale.createdAt).toLocaleString(locale)}
           </div>
         </div>
         <div className="shrink-0 flex items-center gap-2">
@@ -408,6 +409,7 @@ const OrderTableRow = memo(({
   renderDeliveryFee,
   onPrintInvoice,
   t,
+  locale,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -488,7 +490,7 @@ const OrderTableRow = memo(({
           </div>
         ) : null}
       </td>
-      <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
+      <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString(locale)}</td>
       <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} {t('business.sales.item')}</td>
       <td className="p-6">
         <div className="flex items-center justify-end gap-2">
@@ -637,7 +639,9 @@ const OrderTableRow = memo(({
 });
 
 const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+  const locale = isArabic ? 'ar-EG' : 'en-US';
   const [filter, setFilter] = useState<'all' | 'pending' | 'successful' | 'rejected'>('all');
   const [localSales, setLocalSales] = useState<any[]>(Array.isArray(sales) ? sales : []);
   const [updatingId, setUpdatingId] = useState<string>('');
@@ -725,7 +729,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
     const createdAtRaw = (sale as any)?.created_at || (sale as any)?.createdAt;
     const createdAt = createdAtRaw ? new Date(createdAtRaw) : null;
-    const createdAtLabel = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString('ar-EG') : '';
+    const createdAtLabel = createdAt && !Number.isNaN(createdAt.getTime()) ? createdAt.toLocaleString(locale) : '';
 
     const items = Array.isArray((sale as any)?.items) ? (sale as any).items : [];
 
@@ -779,13 +783,13 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
     const html = `
       <!doctype html>
-      <html lang="ar" dir="rtl">
+      <html lang="${isArabic ? 'ar' : 'en'}" dir="${isArabic ? 'rtl' : 'ltr'}">
         <head>
           <meta charset="utf-8" />
           <title>Receipt</title>
           <style>
             @page { margin: 8mm; }
-            body { font-family: Arial, sans-serif; direction: rtl; }
+            body { font-family: Arial, sans-serif; direction: ${isArabic ? 'rtl' : 'ltr'}; }
             .wrap { max-width: 80mm; margin: 0 auto; }
             h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
             .meta { font-size: 11px; color: #111; text-align: center; margin-bottom: 10px; }
@@ -1059,6 +1063,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             statusMeta={statusMeta}
             renderDeliveryFee={renderDeliveryFee}
             t={t}
+            locale={locale}
           />
         )) : (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm font-black text-slate-400">
@@ -1096,6 +1101,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 renderDeliveryFee={renderDeliveryFee}
                 onPrintInvoice={channel === 'shop' || channel === 'pos' ? printSaleInvoice : undefined}
                 t={t}
+                locale={locale}
               />
             ))}
           </tbody>
@@ -1115,7 +1121,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colDateTime')}</div>
-              <div className="mt-2 text-slate-900 font-black text-sm leading-6">{selectedSale ? new Date(selectedSale?.created_at || selectedSale?.createdAt).toLocaleString('ar-EG') : '-'}</div>
+              <div className="mt-2 text-slate-900 font-black text-sm leading-6">{selectedSale ? new Date(selectedSale?.created_at || selectedSale?.createdAt).toLocaleString(locale) : '-'}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</div>

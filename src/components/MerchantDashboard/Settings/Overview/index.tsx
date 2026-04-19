@@ -2,24 +2,26 @@ import React from 'react';
 import { CheckCircle, Clock, AlertTriangle, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
+import LanguageToggle from '@/components/common/LanguageToggle';
 
 interface OverviewProps {
   shop: any;
 }
 
 const Overview: React.FC<OverviewProps> = ({ shop }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const formatEGP = (value: unknown) => {
     const n = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(n)) return t('overviewSettings.notAvailable');
     try {
-      return new Intl.NumberFormat('ar-EG', {
+      return new Intl.NumberFormat(locale, {
         style: 'currency',
         currency: 'EGP',
         maximumFractionDigits: 0,
       }).format(n);
     } catch {
-      return `${t('storeViewer.egp')} ${Math.round(n).toLocaleString('ar-EG')}`;
+      return `${t('storeViewer.egp')} ${Math.round(n).toLocaleString(locale)}`;
     }
   };
 
@@ -31,7 +33,7 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
   const paidUntilRaw = shop?.paidUntil ?? shop?.paid_until ?? shop?.subscriptionPaidUntil ?? shop?.subscription_paid_until;
   const paidUntilDate = paidUntilRaw ? new Date(paidUntilRaw) : null;
   const paidUntilText = paidUntilDate && !Number.isNaN(paidUntilDate.getTime())
-    ? paidUntilDate.toLocaleDateString('ar-EG')
+    ? paidUntilDate.toLocaleDateString(locale)
     : '';
   const nextDueAmount = shop?.nextDueAmount ?? shop?.next_due_amount ?? shop?.billing?.nextDueAmount ?? shop?.billing?.next_due_amount;
 
@@ -126,6 +128,16 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
           ))}
         </div>
       </div>
+
+      <Card className="border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle>{t('admin.settings.defaultLanguage')}</CardTitle>
+          <CardDescription>{t('overviewSettings.dashboardDesc')}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <LanguageToggle variant="public" mode="options" className="w-full sm:w-auto" />
+        </CardContent>
+      </Card>
 
       {/* Recent Activity */}
       <div className="space-y-4">

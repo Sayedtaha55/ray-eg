@@ -263,7 +263,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                   />
                   <div className="text-right">
                     <p className="font-black text-sm">{(product as any).name}</p>
-                    <p className="text-slate-400 font-bold text-xs">{t('pos.egpShort')} {(product as any).price}</p>
+                    <p className="text-slate-400 font-bold text-xs">{t('business.pos.egpShort')} {(product as any).price}</p>
                   </div>
                 </div>
               ) : (
@@ -324,7 +324,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                             />
                             <div className="text-right">
                               <div className="font-black text-xs text-slate-900">{p?.name}</div>
-                              <div className="font-bold text-[10px] text-slate-400">{t('pos.egpShort')} {p?.price}</div>
+                              <div className="font-bold text-[10px] text-slate-400">{t('business.pos.egpShort')} {p?.price}</div>
                             </div>
                           </div>
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${checked ? 'bg-[#BD00FF] text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -390,7 +390,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                           />
                           <div>
                             <div className="text-[11px] font-black text-slate-800">{r.typeName} - {r.sizeLabel}</div>
-                            <div className="text-[10px] font-black text-slate-400">{t('business.offers.original')}: {t('pos.egpShort')} {Math.round(Number(r.oldPrice || 0) * 100) / 100}</div>
+                            <div className="text-[10px] font-black text-slate-400">{t('business.offers.original')}: {t('business.pos.egpShort')} {Math.round(Number(r.oldPrice || 0) * 100) / 100}</div>
                           </div>
                         </label>
 
@@ -416,8 +416,8 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
               <div className="p-6 bg-purple-50 rounded-2xl text-center border border-purple-100">
                 <p className="text-[10px] font-black text-purple-400 uppercase mb-2">{t('business.offers.priceAfterDiscount')}</p>
                 <div className="flex items-center justify-center gap-4">
-                  <span className="text-slate-300 line-through font-black">{t('pos.egpShort')} {Math.round(previewForFirst.oldPrice * 100) / 100}</span>
-                  <span className="text-4xl font-black text-[#BD00FF]">{t('pos.egpShort')} {Number.isFinite(previewForFirst.newPrice) ? previewForFirst.newPrice : '--'}</span>
+                  <span className="text-slate-300 line-through font-black">{t('business.pos.egpShort')} {Math.round(previewForFirst.oldPrice * 100) / 100}</span>
+                  <span className="text-4xl font-black text-[#BD00FF]">{t('business.pos.egpShort')} {Number.isFinite(previewForFirst.newPrice) ? previewForFirst.newPrice : '--'}</span>
                 </div>
                 {validationError ? (
                   <div className="mt-3 text-xs font-black text-red-500">{validationError}</div>

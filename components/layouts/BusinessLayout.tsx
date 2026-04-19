@@ -24,7 +24,9 @@ const MotionDiv = motion.div as any;
 
 
 const BusinessLayout: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+  const locale = isArabic ? 'ar-EG' : 'en-US';
   const location = useLocation();
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
@@ -636,7 +638,7 @@ const BusinessLayout: React.FC = () => {
     );
 
     return (
-      <div className="min-h-screen bg-slate-900 text-white selection:bg-[#00E5FF] selection:text-slate-900 text-right font-sans" dir="rtl">
+      <div className={`min-h-screen bg-slate-900 text-white selection:bg-[#00E5FF] selection:text-slate-900 font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
         {isBusinessLanding ? (
           <header className={`fixed top-0 left-0 right-0 z-[80] transition-all duration-300 ${scrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-transparent'}`}>
             <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between">
@@ -656,7 +658,7 @@ const BusinessLayout: React.FC = () => {
   const isPosTab = String(activeTab || '').toLowerCase() === 'pos';
   if (isPosTab) {
     return (
-      <div className="min-h-screen bg-[#F8F9FA] text-right font-sans" dir="rtl">
+      <div className={`min-h-screen bg-[#F8F9FA] font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
         <main className="w-full">
           <Outlet />
         </main>
@@ -665,7 +667,7 @@ const BusinessLayout: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row text-right font-sans" dir="rtl">
+    <div className={`min-h-screen bg-[#F8F9FA] flex flex-col md:flex-row font-sans ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <Suspense fallback={<div className="h-20 bg-white border-b border-slate-100 animate-pulse" />}>
         <DashboardHeader
           hasPosTab={hasPosTab}
@@ -982,7 +984,7 @@ const BusinessLayout: React.FC = () => {
                           <div className="flex-1 text-right">
                              <p className="font-black text-sm text-slate-900 leading-tight mb-1">{n.title}</p>
                              <p className="text-xs text-slate-500 font-bold mb-2">{n.message}</p>
-                             <span className="text-[9px] text-slate-400 font-black flex items-center gap-1 justify-end"><Clock size={10} /> {new Date(n.created_at).toLocaleTimeString('ar-EG')}</span>
+                             <span className="text-[9px] text-slate-400 font-black flex items-center gap-1 justify-end"><Clock size={10} /> {new Date(n.created_at).toLocaleTimeString(locale)}</span>
                           </div>
                        </div>
                      ))

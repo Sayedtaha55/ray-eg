@@ -30,6 +30,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 logs/
+reports/i18n-dashboard-report.csv
 prisma/dev.db
 backend/prisma/dev.db
 
