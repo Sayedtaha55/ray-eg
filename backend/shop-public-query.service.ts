@@ -45,6 +45,52 @@ export class ShopPublicQueryService {
     };
   }
 
+  private async filterShopProducts(shop: any) {
+    if (!shop || !Array.isArray(shop.products)) return shop;
+
+    const sid = shop.id ? String(shop.id).trim() : '';
+    if (!sid) return shop;
+
+    let linkedIds = new Set<string>();
+    let labelKeys = new Set<string>();
+
+    try {
+      const rows = await (this.prisma as any).shopImageHotspot.findMany({
+        where: { productId: { not: null }, map: { shopId: sid } },
+        select: { productId: true },
+      });
+      linkedIds = new Set(
+        (Array.isArray(rows) ? rows : [])
+          .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
+          .filter(Boolean),
+      );
+    } catch {}
+
+    try {
+      const rows = await (this.prisma as any).shopImageHotspot.findMany({
+        where: { map: { shopId: sid, isActive: true } },
+        select: { label: true },
+      });
+      labelKeys = new Set(
+        (Array.isArray(rows) ? rows : [])
+          .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
+          .filter(Boolean),
+      );
+    } catch {}
+
+    const deduped = this.dedupeProductsById(shop.products);
+    shop.products = deduped.filter((p: any) => {
+      const id = p?.id != null ? String(p.id).trim() : '';
+      if (id && linkedIds.has(id)) return false;
+      if (this.isImageMapCategory((p as any)?.category)) return false;
+      const nameKey = this.normalizeProductNameKey((p as any)?.name);
+      if (nameKey && labelKeys.has(nameKey)) return false;
+      return true;
+    });
+
+    return shop;
+  }
+
   async getShopBySlug(slug: string) {
     const startTime = Date.now();
 
@@ -55,65 +101,38 @@ export class ShopPublicQueryService {
       const shouldTryIdLookup = isProbablyUuid || isProbablyCuid;
 
       try {
-        const cachedShop = await this.redis.getShopBySlug(slug);
+        const cachedShop = shouldTryIdLookup
+          ? await this.redis.getShop(raw)
+          : await this.redis.getShopBySlug(slug);
+
         if (cachedShop) {
           if ((cachedShop as any)?.isActive === false) {
             return null;
           }
 
-          const normalizedCached = this.stripPublicDisabledShop(cachedShop);
-          if (normalizedCached && Array.isArray((normalizedCached as any).products)) {
-            const sid = (normalizedCached as any)?.id ? String((normalizedCached as any).id).trim() : '';
-            let linkedIds = new Set<string>();
-            let labelKeys = new Set<string>();
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { productId: { not: null }, map: { shopId: sid } },
-                select: { productId: true },
-              });
-              linkedIds = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
+          // Important: Only use the zero-DB path if the cached object actually has products.
+          if (Array.isArray((cachedShop as any).products)) {
+            const normalizedCached = this.stripPublicDisabledShop(cachedShop);
 
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { map: { shopId: sid, isActive: true } },
-                select: { label: true },
-              });
-              labelKeys = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
-
-            const deduped = this.dedupeProductsById((normalizedCached as any).products);
-            (normalizedCached as any).products = deduped.filter((p: any) => {
-              const id = p?.id != null ? String(p.id).trim() : '';
-              if (id && linkedIds.has(id)) return false;
+            // High-performance path: 0 DB queries for image hotspots.
+            // Data is pre-filtered before it hits Redis.
+            normalizedCached.products = normalizedCached.products.filter((p: any) => {
               if (this.isImageMapCategory((p as any)?.category)) return false;
-              const nameKey = this.normalizeProductNameKey((p as any)?.name);
-              if (nameKey && labelKeys.has(nameKey)) return false;
               return true;
             });
+
+            const owner = (cachedShop as any)?.owner;
+            if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
+              return null;
+            }
+            const duration = Date.now() - startTime;
+            this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
+            this.monitoring.trackPerformance('getShopBySlug_cached', duration);
+            return normalizedCached;
           }
-          const owner = (cachedShop as any)?.owner;
-          if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
-            return null;
-          }
-          const duration = Date.now() - startTime;
-          this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
-          this.monitoring.trackPerformance('getShopBySlug_cached', duration);
-          return normalizedCached;
         }
         this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, false, Date.now() - startTime);
-      } catch {
-      }
+      } catch {}
 
       const include = {
         owner: {
@@ -169,51 +188,13 @@ export class ShopPublicQueryService {
             })
           : null;
 
-      if ((shop as any)?.isActive === false) {
+      if (!shop || (shop as any)?.isActive === false) {
         return null;
       }
 
-      const normalizedShop = this.stripPublicDisabledShop(shop);
-
-      if (normalizedShop && Array.isArray((normalizedShop as any).products)) {
-        const sid = (normalizedShop as any)?.id ? String((normalizedShop as any).id).trim() : '';
-        let linkedIds = new Set<string>();
-        let labelKeys = new Set<string>();
-        try {
-          const rows = await (this.prisma as any).shopImageHotspot.findMany({
-            where: { productId: { not: null }, map: { shopId: sid } },
-            select: { productId: true },
-          });
-          linkedIds = new Set(
-            (Array.isArray(rows) ? rows : [])
-              .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
-              .filter(Boolean),
-          );
-        } catch {
-        }
-
-        try {
-          const rows = await (this.prisma as any).shopImageHotspot.findMany({
-            where: { map: { shopId: sid, isActive: true } },
-            select: { label: true },
-          });
-          labelKeys = new Set(
-            (Array.isArray(rows) ? rows : [])
-              .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
-              .filter(Boolean),
-          );
-        } catch {
-        }
-
-        const deduped = this.dedupeProductsById((normalizedShop as any).products);
-        (normalizedShop as any).products = deduped.filter((p: any) => {
-          const id = p?.id != null ? String(p.id).trim() : '';
-          if (id && linkedIds.has(id)) return false;
-          if (this.isImageMapCategory((p as any)?.category)) return false;
-          const nameKey = this.normalizeProductNameKey((p as any)?.name);
-          if (nameKey && labelKeys.has(nameKey)) return false;
-          return true;
-        });
+      let normalizedShop = this.stripPublicDisabledShop(shop);
+      if (normalizedShop) {
+        normalizedShop = await this.filterShopProducts(normalizedShop);
       }
 
       const owner = (shop as any)?.owner;
@@ -224,8 +205,7 @@ export class ShopPublicQueryService {
       if (normalizedShop) {
         try {
           await this.redis.cacheShop((normalizedShop as any).id, normalizedShop as any, 3600);
-        } catch {
-        }
+        } catch {}
       }
 
       const duration = Date.now() - startTime;

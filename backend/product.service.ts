@@ -200,17 +200,15 @@ export class ProductService {
     }
 
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const sid = String((product as any)?.shopId || '').trim();
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(sid),
+        this.getActiveImageMapHotspotLabelKeys(sid),
+      ]);
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
-
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
@@ -238,7 +236,7 @@ export class ProductService {
     });
     try {
       const cached = await this.redis.get<any[]>(cacheKey);
-      if (cached) return cached;
+      if (Array.isArray(cached)) return cached;
     } catch {
     }
 
@@ -292,22 +290,24 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
     const [linkedIds, labelKeys] = await Promise.all([
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -405,7 +405,7 @@ export class ProductService {
     });
     try {
       const cached = await this.redis.get<any[]>(cacheKey);
-      if (cached) return cached;
+      if (Array.isArray(cached)) return cached;
     } catch {
     }
 
@@ -449,17 +449,19 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
     const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    const filtered = products.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
