@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -8,11 +9,13 @@ type Props = {
 const HeaderFooterSection: React.FC<Props> = ({
   config,
   setConfig,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-6">
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="font-black text-sm">أعلى العرض شفاف</span>
+        <span className="font-black text-sm">{t('business.builder.headerFooter.headerTransparent')}</span>
         <input
           type="checkbox"
           checked={Boolean(config.headerTransparent)}
@@ -23,7 +26,7 @@ const HeaderFooterSection: React.FC<Props> = ({
         />
       </div>
       <div className="flex items-center justify-between">
-        <span className="font-black text-sm">مكان الهيدر فوق البنر</span>
+        <span className="font-black text-sm">{t('business.builder.headerFooter.headerOverlayBanner')}</span>
         <input
           type="checkbox"
           checked={Boolean(config.headerOverlayBanner)}
@@ -32,7 +35,7 @@ const HeaderFooterSection: React.FC<Props> = ({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون الخلفية</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.backgroundColor')}</label>
           <input
             type="color"
             value={String(config.headerBackgroundColor || '#FFFFFF')}
@@ -41,7 +44,7 @@ const HeaderFooterSection: React.FC<Props> = ({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون النص</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.textColor')}</label>
           <input
             type="color"
             value={String(config.headerTextColor || '#0F172A')}
@@ -51,7 +54,7 @@ const HeaderFooterSection: React.FC<Props> = ({
         </div>
       </div>
       <div className="space-y-1">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">شفافية الخلفية</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.backgroundOpacity')}</label>
         <input
           type="range"
           min={0}
@@ -70,7 +73,7 @@ const HeaderFooterSection: React.FC<Props> = ({
 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <span className="font-black text-sm">أسفل العرض شفاف</span>
+        <span className="font-black text-sm">{t('business.builder.headerFooter.footerTransparent')}</span>
         <input
           type="checkbox"
           checked={Boolean(config.footerTransparent)}
@@ -82,7 +85,7 @@ const HeaderFooterSection: React.FC<Props> = ({
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون الخلفية</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.backgroundColor')}</label>
           <input
             type="color"
             value={String(config.footerBackgroundColor || '#FFFFFF')}
@@ -91,7 +94,7 @@ const HeaderFooterSection: React.FC<Props> = ({
           />
         </div>
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون النص</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.textColor')}</label>
           <input
             type="color"
             value={String(config.footerTextColor || '#0F172A')}
@@ -101,7 +104,7 @@ const HeaderFooterSection: React.FC<Props> = ({
         </div>
       </div>
       <div className="space-y-1">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">شفافية الخلفية</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.headerFooter.backgroundOpacity')}</label>
         <input
           type="range"
           min={0}
@@ -114,6 +117,7 @@ const HeaderFooterSection: React.FC<Props> = ({
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default HeaderFooterSection;

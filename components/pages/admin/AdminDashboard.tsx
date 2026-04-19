@@ -5,10 +5,12 @@ import { Users, Store, ShoppingCart, DollarSign, Loader2, Eye } from 'lucide-rea
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
 const AdminDashboard: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<any>(null);
   const [chartData, setChartData] = useState<any[]>([]);
   const [activity, setActivity] = useState<any[]>([]);
@@ -32,18 +34,18 @@ const AdminDashboard: React.FC = () => {
     };
   }, []);
 
-  const timeAgoAr = (input: any) => {
-    const t = input ? new Date(String(input)) : new Date();
-    const ms = Date.now() - t.getTime();
-    if (!Number.isFinite(ms) || ms < 0) return 'الآن';
+  const timeAgo = (input: any) => {
+    const d = input ? new Date(String(input)) : new Date();
+    const ms = Date.now() - d.getTime();
+    if (!Number.isFinite(ms) || ms < 0) return t('admin.dashboard.justNow');
     const sec = Math.floor(ms / 1000);
-    if (sec < 60) return 'منذ لحظات';
+    if (sec < 60) return t('admin.dashboard.momentsAgo');
     const min = Math.floor(sec / 60);
-    if (min < 60) return `منذ ${min} دقيقة`;
+    if (min < 60) return t('admin.dashboard.minutesAgo', { count: min });
     const hr = Math.floor(min / 60);
-    if (hr < 24) return `منذ ${hr} ساعة`;
+    if (hr < 24) return t('admin.dashboard.hoursAgo', { count: hr });
     const day = Math.floor(hr / 24);
-    return `منذ ${day} يوم`;
+    return t('admin.dashboard.daysAgo', { count: day });
   };
 
   const loadData = async (silent = false) => {
@@ -74,7 +76,7 @@ const AdminDashboard: React.FC = () => {
       }));
       setActivity(actMapped);
     } catch (e) {
-      addToast('خطأ في جلب البيانات السحابية', 'error');
+      addToast(t('admin.dashboard.loadError'), 'error');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -97,11 +99,11 @@ const AdminDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col gap-4 p-6 md:p-8 bg-slate-900/50 rounded-[2rem] md:rounded-[3rem] border border-white/5">
         <div>
-          <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter">نظام إدارة <span className="text-[#00E5FF]">MNMKNK</span></h1>
-          <p className="text-slate-400 font-bold mt-2 text-sm md:text-base">تحكم كامل في المنصة والتجار والمستخدمين.</p>
+          <h1 className="text-2xl md:text-4xl font-black text-white tracking-tighter">{t('admin.dashboard.title')} <span className="text-[#00E5FF]">MNMKNK</span></h1>
+          <p className="text-slate-400 font-bold mt-2 text-sm md:text-base">{t('admin.dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center justify-between w-full">
-           <button onClick={() => loadData()} className="px-4 py-2 md:px-6 md:py-3 bg-white/5 text-white rounded-xl md:rounded-2xl hover:bg-white/10 transition-all font-bold text-sm md:text-base flex items-center gap-2">تحديث البيانات</button>
+           <button onClick={() => loadData()} className="px-4 py-2 md:px-6 md:py-3 bg-white/5 text-white rounded-xl md:rounded-2xl hover:bg-white/10 transition-all font-bold text-sm md:text-base flex items-center gap-2">{t('admin.dashboard.refreshData')}</button>
            <div className="relative">
               <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-[#00E5FF] text-black font-black flex items-center justify-center text-sm md:text-base">A</div>
               <span className="absolute -top-1 -right-1 w-3 h-3 md:w-4 md:h-4 bg-red-500 rounded-full border-2 border-slate-900" />
@@ -111,18 +113,18 @@ const AdminDashboard: React.FC = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-6">
-         <AdminStatCard label="إجمالي المبيعات" value={`ج.م ${stats.totalRevenue}`} icon={<DollarSign />} color="cyan" />
-         <AdminStatCard label="المستخدمين" value={stats.totalUsers} icon={<Users />} color="purple" />
-         <AdminStatCard label="المحلات النشطة" value={stats.totalShops} icon={<Store />} color="blue" />
-         <AdminStatCard label="الطلبات" value={stats.totalOrders} icon={<ShoppingCart />} color="amber" />
-         <AdminStatCard label="إجمالي الزيارات" value={(stats.totalVisits ?? 0)} icon={<Eye />} color="amber" />
+         <AdminStatCard label={t('admin.dashboard.totalSales')} value={`${t('admin.dashboard.egp')} ${stats.totalRevenue}`} icon={<DollarSign />} color="cyan" />
+         <AdminStatCard label={t('admin.dashboard.users')} value={stats.totalUsers} icon={<Users />} color="purple" />
+         <AdminStatCard label={t('admin.dashboard.activeShops')} value={stats.totalShops} icon={<Store />} color="blue" />
+         <AdminStatCard label={t('admin.dashboard.orders')} value={stats.totalOrders} icon={<ShoppingCart />} color="amber" />
+         <AdminStatCard label={t('admin.dashboard.totalVisits')} value={(stats.totalVisits ?? 0)} icon={<Eye />} color="amber" />
       </div>
 
       <AnimatePresence mode="wait">
         <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
             <div className="lg:col-span-2 bg-slate-900 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl h-[300px] md:h-[400px] flex flex-col">
               <div className="flex items-center justify-between mb-4 md:mb-6">
-                <h3 className="text-lg md:text-xl font-black text-white">إيراد آخر 7 أيام</h3>
+                <h3 className="text-lg md:text-xl font-black text-white">{t('admin.dashboard.revenue7days')}</h3>
                 <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">System</span>
               </div>
 
@@ -135,7 +137,7 @@ const AdminDashboard: React.FC = () => {
                   if (!hasNonZero) {
                     return (
                       <div className="h-full flex items-center justify-center text-slate-500 font-bold text-sm md:text-base">
-                        لا توجد إيرادات خلال آخر 7 أيام.
+                        {t('admin.dashboard.noRevenue7days')}
                       </div>
                     );
                   }
@@ -172,14 +174,14 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="bg-slate-900 p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border border-white/5 shadow-2xl">
-              <h3 className="text-lg md:text-xl font-black text-white mb-6 md:mb-8">أحدث العمليات</h3>
+              <h3 className="text-lg md:text-xl font-black text-white mb-6 md:mb-8">{t('admin.dashboard.recentOperations')}</h3>
               <div className="space-y-4 md:space-y-6">
                 {Array.isArray(activity) && activity.length ? (
                   activity.slice(0, 6).map((a: any) => (
-                    <ActivityItem key={a.id} title={a.title} time={timeAgoAr(a.createdAt)} color={a.color} />
+                    <ActivityItem key={a.id} title={a.title} time={timeAgo(a.createdAt)} color={a.color} />
                   ))
                 ) : (
-                  <div className="text-slate-500 font-bold text-sm">لا توجد عمليات حديثة حالياً.</div>
+                  <div className="text-slate-500 font-bold text-sm">{t('admin.dashboard.noRecentOps')}</div>
                 )}
               </div>
             </div>

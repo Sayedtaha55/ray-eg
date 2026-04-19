@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -9,10 +10,12 @@ const SHAPES = ['rounded-none', 'rounded-xl', 'rounded-2xl', 'rounded-3xl', 'rou
 const PADDINGS = ['px-3 py-2', 'px-4 py-2.5', 'px-6 py-3', 'px-8 py-4'];
 const PRESETS = ['primary', 'ghost', 'premium', 'urgent'] as const;
 
-const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
+const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-4">
     <div>
-      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">شكل الزر</label>
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">{t('business.builder.buttons.buttonShape')}</label>
       <div className="grid grid-cols-3 gap-2">
         {SHAPES.map((shape) => (
           <button
@@ -27,7 +30,7 @@ const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
     </div>
 
     <div>
-      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">حجم الحشو</label>
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">{t('business.builder.buttons.buttonPadding')}</label>
       <div className="grid grid-cols-2 gap-2">
         {PADDINGS.map((padding) => (
           <button
@@ -42,7 +45,7 @@ const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
     </div>
 
     <div>
-      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">نمط الزر</label>
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">{t('business.builder.buttons.buttonStyle')}</label>
       <div className="grid grid-cols-2 gap-2">
         {PRESETS.map((preset) => (
           <button
@@ -59,6 +62,7 @@ const ButtonsSection: React.FC<Props> = ({ config, setConfig }) => (
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default ButtonsSection;

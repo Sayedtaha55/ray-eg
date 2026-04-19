@@ -1,6 +1,7 @@
 import React from 'react';
 import { X } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 interface AdditionalImagesSectionProps {
   extraImagePreviews: string[];
@@ -18,16 +19,17 @@ const AdditionalImagesSection: React.FC<AdditionalImagesSectionProps> = ({
   setExtraImagePreviews,
   setExtraImageUploadFiles
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-3">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صور إضافية (اختياري)</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.additionalImagesOptional')}</label>
       <div className="flex flex-col gap-4">
         <button
           type="button"
           onClick={() => extraFilesInputRef.current?.click()}
           className="w-full py-5 bg-slate-50 border-2 border-dashed border-slate-200 rounded-[1.5rem] font-black text-slate-500 hover:border-[#00E5FF]/40 hover:bg-white transition-all"
         >
-          إضافة صور (حد أقصى 5)
+          {t('business.products.addImagesMax5')}
         </button>
         <input
           type="file"

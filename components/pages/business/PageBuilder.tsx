@@ -895,7 +895,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <PreviewRendererAny
                 page={previewPage}
                 config={config}
-                shop={{ id: shopId, name: 'معاينة المتجر' }}
+                shop={{ id: shopId, name: t('business.pageBuilder.previewShopName') }}
                 logoDataUrl={logoDataUrl}
                 isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}

@@ -6,6 +6,7 @@ import { useToast } from '@/components/common/feedback/Toaster';
 import { Loader2, Truck, Users, UserPlus, Search, Check, X, Eye, Phone, Mail, MapPin, ShieldCheck, ShieldOff, Clock3, PackageCheck } from 'lucide-react';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 import Modal from '@/components/common/ui/Modal';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 type TabKey = 'couriers' | 'pending' | 'create';
@@ -19,6 +20,7 @@ const fmtDate = (value: any) => {
 };
 
 const AdminDelivery: React.FC = () => {
+  const { t } = useTranslation();
   const { addToast } = useToast();
   const location = useLocation();
 
@@ -101,7 +103,7 @@ const AdminDelivery: React.FC = () => {
       const data = await (ApiService as any).getCourierAdminDetails(String(courier?.id || ''));
       setDetails(data || null);
     } catch (e: any) {
-      addToast(String(e?.message || 'فشل تحميل تفاصيل المندوب'), 'error');
+      addToast(String(e?.message || t('admin.delivery.loadDetailsFailed')), 'error');
       setDetails(null);
     } finally {
       setDetailsLoading(false);
@@ -112,13 +114,13 @@ const AdminDelivery: React.FC = () => {
     try {
       setActionId(id);
       await ApiService.approveCourier(id);
-      addToast('تم قبول المندوب وتفعيله', 'success');
+      addToast(t('admin.delivery.courierApproved'), 'success');
       await Promise.all([loadCouriers({ silent: true }), loadPendingCouriers({ silent: true })]);
       if (selectedCourier?.id === id) {
         setDetails((prev: any) => prev ? ({ ...prev, courier: { ...prev.courier, isActive: true } }) : prev);
       }
     } catch {
-      addToast('حدث خطأ في العملية', 'error');
+      addToast(t('admin.delivery.actionError'), 'error');
     } finally {
       setActionId('');
     }
@@ -128,7 +130,7 @@ const AdminDelivery: React.FC = () => {
     try {
       setActionId(id);
       await ApiService.rejectCourier(id);
-      addToast('تم رفض طلب المندوب', 'success');
+      addToast(t('admin.delivery.courierRejected'), 'success');
       await loadPendingCouriers({ silent: true });
       if (selectedCourier?.id === id) {
         setDetailsOpen(false);
@@ -136,7 +138,7 @@ const AdminDelivery: React.FC = () => {
         setSelectedCourier(null);
       }
     } catch {
-      addToast('حدث خطأ في العملية', 'error');
+      addToast(t('admin.delivery.actionError'), 'error');
     } finally {
       setActionId('');
     }
@@ -146,14 +148,14 @@ const AdminDelivery: React.FC = () => {
     try {
       setActionId(id);
       await (ApiService as any).setCourierActiveStatus(id, { isActive });
-      addToast(isActive ? 'تم تفعيل المندوب' : 'تم إيقاف المندوب مؤقتاً', 'success');
+      addToast(isActive ? t('admin.delivery.courierActivated') : t('admin.delivery.courierPaused'), 'success');
       await loadCouriers({ silent: true });
       if (selectedCourier?.id === id) {
         const data = await (ApiService as any).getCourierAdminDetails(id);
         setDetails(data || null);
       }
     } catch (e: any) {
-      addToast(String(e?.message || 'فشلت العملية'), 'error');
+      addToast(String(e?.message || t('admin.delivery.actionFailed')), 'error');
     } finally {
       setActionId('');
     }
@@ -174,11 +176,11 @@ const AdminDelivery: React.FC = () => {
       setCreateEmail('');
       setCreatePhone('');
       setCreatePassword('');
-      addToast('تم إنشاء المندوب بنجاح', 'success');
+      addToast(t('admin.delivery.courierCreated'), 'success');
       setTab('couriers');
       await loadCouriers({ silent: true });
     } catch (e: any) {
-      addToast(String(e?.message || 'فشل إنشاء المندوب'), 'error');
+      addToast(String(e?.message || t('admin.delivery.createFailed')), 'error');
     } finally {
       setCreating(false);
     }
@@ -195,16 +197,16 @@ const AdminDelivery: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="p-3 bg-[#00E5FF]/10 text-[#00E5FF] rounded-2xl"><Truck size={24} /></div>
           <div>
-            <h2 className="text-3xl font-black text-white">إدارة التوصيل</h2>
-            <p className="text-slate-500 text-sm font-bold">مراجعة كاملة للمندوبين، حالاتهم، ونشاطهم الأخير.</p>
+            <h2 className="text-3xl font-black text-white">{t('admin.delivery.title')}</h2>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.delivery.subtitle')}</p>
           </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
           {[
-            ['couriers', 'المندوبين', Users],
-            ['pending', 'طلبات المندوبين', Check],
-            ['create', 'إضافة مندوب', UserPlus],
+            ['couriers', t('admin.delivery.tabCouriers'), Users],
+            ['pending', t('admin.delivery.tabPending'), Check],
+            ['create', t('admin.delivery.tabCreate'), UserPlus],
           ].map(([id, label, Icon]: any) => (
             <button key={id} onClick={() => setTab(id)} className={`px-5 py-3 rounded-2xl text-xs font-black transition ${tab === id ? 'bg-[#00E5FF] text-black' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}>
               <Icon size={14} className="inline ml-2" /> {label}
@@ -219,12 +221,12 @@ const AdminDelivery: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative w-full md:col-span-2">
               <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-              <input className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm" placeholder="ابحث بالاسم أو البريد أو الهاتف..." value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm" placeholder={t('admin.delivery.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
             </div>
             <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">إجمالي</div><div className="mt-2 text-white font-black text-xl">{couriers.length}</div></div>
-              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">نشط</div><div className="mt-2 text-emerald-400 font-black text-xl">{couriers.filter((c: any) => c?.isActive).length}</div></div>
-              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">موقوف</div><div className="mt-2 text-amber-400 font-black text-xl">{couriers.filter((c: any) => !c?.isActive).length}</div></div>
+              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.delivery.total')}</div><div className="mt-2 text-white font-black text-xl">{couriers.length}</div></div>
+              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.delivery.active')}</div><div className="mt-2 text-emerald-400 font-black text-xl">{couriers.filter((c: any) => c?.isActive).length}</div></div>
+              <div className="rounded-2xl bg-slate-900 border border-white/5 p-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.delivery.paused')}</div><div className="mt-2 text-amber-400 font-black text-xl">{couriers.filter((c: any) => !c?.isActive).length}</div></div>
             </div>
           </div>
 
@@ -232,17 +234,17 @@ const AdminDelivery: React.FC = () => {
             {loadingCouriers ? (
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
             ) : filteredCouriers.length === 0 ? (
-              <div className="py-24 text-center"><Users size={48} className="mx-auto text-slate-700 mb-4 opacity-20" /><p className="text-slate-500 font-bold">لا يوجد مندوبين حالياً.</p></div>
+              <div className="py-24 text-center"><Users size={48} className="mx-auto text-slate-700 mb-4 opacity-20" /><p className="text-slate-500 font-bold">{t('admin.delivery.noCouriers')}</p></div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-right border-collapse min-w-[980px]">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/5">
-                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المندوب</th>
-                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التواصل</th>
-                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الإنشاء</th>
-                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
-                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">إجراءات</th>
+                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.delivery.table.courier')}</th>
+                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.delivery.table.contact')}</th>
+                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.delivery.table.created')}</th>
+                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.delivery.table.status')}</th>
+                      <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.delivery.table.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -252,7 +254,7 @@ const AdminDelivery: React.FC = () => {
                           <div className="flex items-center gap-3">
                             <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-[#00E5FF] font-black">{String(c?.name || 'C').charAt(0)}</div>
                             <div className="min-w-0">
-                              <div className="text-white font-black">{c?.name || 'مندوب'}</div>
+                              <div className="text-white font-black">{c?.name || t('admin.delivery.courier')}</div>
                               <div className="text-slate-500 text-xs font-bold truncate">#{String(c?.id || '').slice(0, 8).toUpperCase()}</div>
                             </div>
                           </div>
@@ -263,13 +265,13 @@ const AdminDelivery: React.FC = () => {
                         </td>
                         <td className="p-6 text-slate-400 text-sm font-bold">{fmtDate(c?.createdAt)}</td>
                         <td className="p-6">
-                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${c?.isActive ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>{c?.isActive ? 'مفعل' : 'موقوف'}</span>
+                          <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase ${c?.isActive ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>{c?.isActive ? t('admin.delivery.statusActive') : t('admin.delivery.statusPaused')}</span>
                         </td>
                         <td className="p-6">
                           <div className="flex gap-2 justify-end">
-                            <button onClick={() => openCourierDetails(c)} className="p-3 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="عرض التفاصيل"><Eye className="w-4 h-4" /></button>
+                            <button onClick={() => openCourierDetails(c)} className="p-3 rounded-xl bg-white/5 text-slate-300 hover:text-white" title={t('admin.delivery.viewDetails')}><Eye className="w-4 h-4" /></button>
                             <button disabled={actionId === String(c?.id)} onClick={() => handleSetCourierStatus(String(c?.id), !Boolean(c?.isActive))} className={`px-4 py-2 rounded-xl font-black text-xs ${c?.isActive ? 'bg-amber-500/10 text-amber-300' : 'bg-emerald-500/10 text-emerald-300'}`}>
-                              {c?.isActive ? 'إيقاف' : 'تفعيل'}
+                              {c?.isActive ? t('admin.delivery.pause') : t('admin.delivery.activate')}
                             </button>
                           </div>
                         </td>
@@ -289,7 +291,7 @@ const AdminDelivery: React.FC = () => {
             {loadingPending ? (
               <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
             ) : pendingCouriers.length === 0 ? (
-              <div className="py-24 text-center"><Truck size={48} className="mx-auto text-slate-700 mb-4 opacity-20" /><p className="text-slate-500 font-bold">لا توجد طلبات مندوبين معلقة حالياً.</p></div>
+              <div className="py-24 text-center"><Truck size={48} className="mx-auto text-slate-700 mb-4 opacity-20" /><p className="text-slate-500 font-bold">{t('admin.delivery.noPendingCouriers')}</p></div>
             ) : (
               <div className="grid grid-cols-1 gap-4 p-6">
                 {pendingCouriers.map((c: any) => (
@@ -297,16 +299,16 @@ const AdminDelivery: React.FC = () => {
                     <div className="flex items-center gap-6 flex-row-reverse">
                       <div className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center font-black text-[#00E5FF] text-2xl">{String(c?.name || 'C').charAt(0)}</div>
                       <div className="text-right">
-                        <h4 className="text-xl font-black text-white">{c?.name || 'مندوب'}</h4>
+                        <h4 className="text-xl font-black text-white">{c?.name || t('admin.delivery.courier')}</h4>
                         <div className="text-slate-400 text-xs font-bold mt-1">{c?.email}</div>
                         {c?.phone ? <div className="text-slate-500 text-xs font-bold mt-1">{c.phone}</div> : null}
-                        <div className="text-slate-600 text-[11px] font-bold mt-2">تاريخ الطلب: {fmtDate(c?.createdAt)}</div>
+                        <div className="text-slate-600 text-[11px] font-bold mt-2">{t('admin.delivery.requestDate')}: {fmtDate(c?.createdAt)}</div>
                       </div>
                     </div>
                     <div className="flex flex-wrap gap-3">
-                      <button onClick={() => openCourierDetails(c)} className="px-5 py-4 bg-white/5 text-slate-200 rounded-2xl font-black text-sm flex items-center gap-2"><Eye size={18} /> عرض التفاصيل</button>
-                      <button disabled={actionId === String(c?.id)} onClick={() => handleApprove(String(c.id))} className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"><Check size={18} /> قبول المندوب</button>
-                      <button disabled={actionId === String(c?.id)} onClick={() => handleReject(String(c.id))} className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"><X size={18} /> رفض الطلب</button>
+                      <button onClick={() => openCourierDetails(c)} className="px-5 py-4 bg-white/5 text-slate-200 rounded-2xl font-black text-sm flex items-center gap-2"><Eye size={18} /> {t('admin.delivery.viewDetailsBtn')}</button>
+                      <button disabled={actionId === String(c?.id)} onClick={() => handleApprove(String(c.id))} className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"><Check size={18} /> {t('admin.delivery.acceptCourier')}</button>
+                      <button disabled={actionId === String(c?.id)} onClick={() => handleReject(String(c.id))} className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"><X size={18} /> {t('admin.delivery.rejectRequest')}</button>
                     </div>
                   </MotionDiv>
                 ))}
@@ -322,31 +324,31 @@ const AdminDelivery: React.FC = () => {
             <div className="flex items-center gap-4 mb-8">
               <div className="p-3 bg-[#00E5FF]/10 text-[#00E5FF] rounded-2xl"><UserPlus size={22} /></div>
               <div>
-                <h3 className="text-2xl font-black text-white">إضافة مندوب جديد</h3>
-                <p className="text-slate-500 text-sm font-bold">إنشاء حساب مندوب مباشر مع بيانات كاملة من الأدمن.</p>
+                <h3 className="text-2xl font-black text-white">{t('admin.delivery.createTitle')}</h3>
+                <p className="text-slate-500 text-sm font-bold">{t('admin.delivery.createSubtitle')}</p>
               </div>
             </div>
             <form onSubmit={handleCreateCourier} className="space-y-5">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {[
-                  ['الاسم', createName, setCreateName, 'text', 'اسم المندوب'],
-                  ['البريد الإلكتروني', createEmail, setCreateEmail, 'email', 'email@example.com'],
-                  ['الهاتف', createPhone, setCreatePhone, 'text', '01xxxxxxxxx'],
-                  ['كلمة المرور', createPassword, setCreatePassword, 'password', '8 أحرف على الأقل'],
+                  [t('admin.delivery.form.name'), createName, setCreateName, 'text', t('admin.delivery.form.namePlaceholder')],
+                  [t('admin.delivery.form.email'), createEmail, setCreateEmail, 'email', 'email@example.com'],
+                  [t('admin.delivery.form.phone'), createPhone, setCreatePhone, 'text', '01xxxxxxxxx'],
+                  [t('admin.delivery.form.password'), createPassword, setCreatePassword, 'password', t('admin.delivery.form.passwordPlaceholder')],
                 ].map(([label, value, setter, type, placeholder]: any, index) => (
                   <div className="space-y-2" key={index}>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-4">{label}</label>
-                    <input required={label !== 'الهاتف'} type={type} disabled={creating} className="w-full bg-slate-950/40 border border-white/5 rounded-2xl py-4 px-5 font-black text-right text-white focus:border-[#00E5FF]/30 transition-all outline-none" value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} />
+                    <input required={label !== t('admin.delivery.form.phone')} type={type} disabled={creating} className="w-full bg-slate-950/40 border border-white/5 rounded-2xl py-4 px-5 font-black text-right text-white focus:border-[#00E5FF]/30 transition-all outline-none" value={value} onChange={(e) => setter(e.target.value)} placeholder={placeholder} />
                   </div>
                 ))}
               </div>
-              <button disabled={creating} className="px-8 py-4 bg-[#00E5FF] text-black rounded-2xl font-black text-sm disabled:opacity-60">{creating ? 'جاري الإنشاء...' : 'إنشاء المندوب'}</button>
+              <button disabled={creating} className="px-8 py-4 bg-[#00E5FF] text-black rounded-2xl font-black text-sm disabled:opacity-60">{creating ? t('admin.delivery.creating') : t('admin.delivery.createCourierBtn')}</button>
             </form>
           </div>
         </div>
       ) : null}
 
-      <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title="تفاصيل المندوب" size="xl">
+      <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title={t('admin.delivery.courierDetails')} size="xl">
         {detailsLoading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
         ) : selectedCourierData ? (
@@ -355,31 +357,31 @@ const AdminDelivery: React.FC = () => {
               <div className="lg:col-span-2 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="text-right">
-                    <h3 className="text-2xl font-black text-white">{selectedCourierData?.name || 'مندوب'}</h3>
+                    <h3 className="text-2xl font-black text-white">{selectedCourierData?.name || t('admin.delivery.courier')}</h3>
                     <div className="mt-2 space-y-2 text-sm font-bold text-slate-300">
                       <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-500" /> {selectedCourierData?.email || '-'}</div>
                       <div className="flex items-center gap-2 justify-end"><Phone size={14} className="text-slate-500" /> {selectedCourierData?.phone || '-'}</div>
-                      <div className="flex items-center gap-2 justify-end"><Clock3 size={14} className="text-slate-500" /> آخر دخول: {fmtDate(selectedCourierData?.lastLogin)}</div>
-                      <div className="flex items-center gap-2 justify-end"><Users size={14} className="text-slate-500" /> تاريخ الإنشاء: {fmtDate(selectedCourierData?.createdAt)}</div>
+                      <div className="flex items-center gap-2 justify-end"><Clock3 size={14} className="text-slate-500" /> {t('admin.delivery.lastLogin')}: {fmtDate(selectedCourierData?.lastLogin)}</div>
+                      <div className="flex items-center gap-2 justify-end"><Users size={14} className="text-slate-500" /> {t('admin.delivery.createdAt')}: {fmtDate(selectedCourierData?.createdAt)}</div>
                     </div>
                   </div>
                   <div className="w-16 h-16 rounded-3xl bg-[#00E5FF]/10 text-[#00E5FF] flex items-center justify-center font-black text-2xl">{String(selectedCourierData?.name || 'C').charAt(0)}</div>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2 justify-end">
-                  <span className={`px-4 py-2 rounded-full text-xs font-black ${selectedCourierData?.isActive ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'}`}>{selectedCourierData?.isActive ? 'الحساب مفعل' : 'الحساب موقوف/بانتظار التفعيل'}</span>
-                  {state ? <span className={`px-4 py-2 rounded-full text-xs font-black ${state?.isAvailable ? 'bg-sky-500/10 text-sky-300 border border-sky-500/20' : 'bg-slate-500/10 text-slate-300 border border-white/10'}`}>{state?.isAvailable ? 'متاح حالياً' : 'غير متاح حالياً'}</span> : null}
+                  <span className={`px-4 py-2 rounded-full text-xs font-black ${selectedCourierData?.isActive ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-300 border border-amber-500/20'}`}>{selectedCourierData?.isActive ? t('admin.delivery.accountActive') : t('admin.delivery.accountPaused')}</span>
+                  {state ? <span className={`px-4 py-2 rounded-full text-xs font-black ${state?.isAvailable ? 'bg-sky-500/10 text-sky-300 border border-sky-500/20' : 'bg-slate-500/10 text-slate-300 border border-white/10'}`}>{state?.isAvailable ? t('admin.delivery.availableNow') : t('admin.delivery.unavailableNow')}</span> : null}
                 </div>
               </div>
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 text-right">
-                <div className="text-slate-400 text-xs font-black">إجراءات سريعة</div>
+                <div className="text-slate-400 text-xs font-black">{t('admin.delivery.quickActions')}</div>
                 <div className="mt-4 space-y-3">
                   {!selectedCourierData?.isActive ? (
-                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleSetCourierStatus(String(selectedCourierData?.id), true)} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> تفعيل المندوب</button>
+                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleSetCourierStatus(String(selectedCourierData?.id), true)} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> {t('admin.delivery.activateCourier')}</button>
                   ) : (
-                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleSetCourierStatus(String(selectedCourierData?.id), false)} className="w-full px-4 py-3 rounded-2xl bg-amber-500/15 text-amber-300 font-black text-sm flex items-center justify-center gap-2"><ShieldOff size={16} /> إيقاف مؤقت</button>
+                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleSetCourierStatus(String(selectedCourierData?.id), false)} className="w-full px-4 py-3 rounded-2xl bg-amber-500/15 text-amber-300 font-black text-sm flex items-center justify-center gap-2"><ShieldOff size={16} /> {t('admin.delivery.pauseTemporarily')}</button>
                   )}
                   {!selectedCourierData?.isActive && pendingCouriers.some((x: any) => String(x?.id) === String(selectedCourierData?.id)) ? (
-                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleApprove(String(selectedCourierData?.id))} className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"><Check size={16} /> قبول الطلب</button>
+                    <button disabled={actionId === String(selectedCourierData?.id)} onClick={() => handleApprove(String(selectedCourierData?.id))} className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"><Check size={16} /> {t('admin.delivery.acceptRequest')}</button>
                   ) : null}
                 </div>
               </div>
@@ -387,11 +389,11 @@ const AdminDelivery: React.FC = () => {
 
             <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
               {[
-                ['إجمالي الطلبات', stats.totalOrders || 0],
-                ['النشطة', stats.activeOrders || 0],
-                ['المسلمة', stats.deliveredOrders || 0],
-                ['الملغاة', stats.cancelledOrders || 0],
-                ['قيمة المسلم', `ج.م ${Number(stats.deliveredRevenue || 0).toLocaleString()}`],
+                [t('admin.delivery.stats.totalOrders'), stats.totalOrders || 0],
+                [t('admin.delivery.stats.activeOrders'), stats.activeOrders || 0],
+                [t('admin.delivery.stats.deliveredOrders'), stats.deliveredOrders || 0],
+                [t('admin.delivery.stats.cancelledOrders'), stats.cancelledOrders || 0],
+                [t('admin.delivery.stats.deliveredRevenue'), `${t('admin.delivery.egp')} ${Number(stats.deliveredRevenue || 0).toLocaleString()}`],
               ].map(([label, value]: any) => (
                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
                   <div className="text-slate-500 text-[11px] font-black">{label}</div>
@@ -402,27 +404,27 @@ const AdminDelivery: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 text-right">
-                <div className="flex items-center gap-2 justify-end text-white font-black"><MapPin size={16} /> حالة الموقع</div>
+                <div className="flex items-center gap-2 justify-end text-white font-black"><MapPin size={16} /> {t('admin.delivery.locationStatus')}</div>
                 <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">آخر ظهور</span><span>{fmtDate(state?.lastSeenAt)}</span></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">خط العرض</span><span>{state?.lastLat ?? '-'}</span></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">خط الطول</span><span>{state?.lastLng ?? '-'}</span></div>
-                  <div className="flex justify-between gap-3"><span className="text-slate-500">الدقة</span><span>{state?.accuracy != null ? `${state.accuracy}m` : '-'}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">{t('admin.delivery.lastSeen')}</span><span>{fmtDate(state?.lastSeenAt)}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">{t('admin.delivery.latitude')}</span><span>{state?.lastLat ?? '-'}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">{t('admin.delivery.longitude')}</span><span>{state?.lastLng ?? '-'}</span></div>
+                  <div className="flex justify-between gap-3"><span className="text-slate-500">{t('admin.delivery.accuracy')}</span><span>{state?.accuracy != null ? `${state.accuracy}m` : '-'}</span></div>
                 </div>
               </div>
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 text-right">
-                <div className="flex items-center gap-2 justify-end text-white font-black"><PackageCheck size={16} /> آخر الطلبات</div>
+                <div className="flex items-center gap-2 justify-end text-white font-black"><PackageCheck size={16} /> {t('admin.delivery.recentOrders')}</div>
                 <div className="mt-4 space-y-3 max-h-[320px] overflow-y-auto pr-1">
-                  {recentOrders.length === 0 ? <div className="text-slate-500 font-bold text-sm">لا توجد طلبات مرتبطة بهذا المندوب حتى الآن.</div> : recentOrders.map((order: any) => (
+                  {recentOrders.length === 0 ? <div className="text-slate-500 font-bold text-sm">{t('admin.delivery.noLinkedOrders')}</div> : recentOrders.map((order: any) => (
                     <div key={String(order?.id)} className="rounded-2xl border border-white/10 bg-black/20 p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div className="text-right min-w-0">
-                          <div className="text-white font-black">طلب #{String(order?.id || '').slice(0, 8).toUpperCase()}</div>
-                          <div className="text-slate-400 text-xs font-bold mt-1">{order?.shop?.name || 'متجر'}{order?.customer?.name ? ` • ${order.customer.name}` : ''}</div>
+                          <div className="text-white font-black">{t('admin.delivery.order')} #{String(order?.id || '').slice(0, 8).toUpperCase()}</div>
+                          <div className="text-slate-400 text-xs font-bold mt-1">{order?.shop?.name || t('admin.delivery.shop')}{order?.customer?.name ? ` • ${order.customer.name}` : ''}</div>
                           <div className="text-slate-500 text-[11px] font-bold mt-1">{fmtDate(order?.createdAt)}</div>
                         </div>
                         <div className="text-left shrink-0">
-                          <div className="text-[#00E5FF] font-black">ج.م {Number(order?.total || 0).toLocaleString()}</div>
+                          <div className="text-[#00E5FF] font-black">{t('admin.delivery.egp')} {Number(order?.total || 0).toLocaleString()}</div>
                           <div className="text-[11px] text-slate-400 font-bold mt-1">{String(order?.status || '-').toUpperCase()}</div>
                         </div>
                       </div>
@@ -433,7 +435,7 @@ const AdminDelivery: React.FC = () => {
             </div>
           </div>
         ) : (
-          <div className="text-slate-400 font-bold text-center py-16">لا توجد بيانات لعرضها.</div>
+          <div className="text-slate-400 font-bold text-center py-16">{t('admin.delivery.noData')}</div>
         )}
       </Modal>
     </div>

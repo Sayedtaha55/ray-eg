@@ -29,10 +29,10 @@ const SeoDirectoryPage: React.FC = () => {
       <section className="rounded-2xl bg-slate-900 text-white p-6 md:p-8 mb-10">
         <h2 className="text-2xl font-black mb-3">{t('seo.quickLinks')}</h2>
         <div className="flex flex-wrap gap-3 text-sm font-bold">
-          <Link to="/" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.home')}</Link>
-          <Link to="/map" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.map')}</Link>
-          <Link to="/offers" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.offers')}</Link>
-          <Link to="/about" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.about')}</Link>
+          <Link to="/" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.homeLink')}</Link>
+          <Link to="/map" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.mapLink')}</Link>
+          <Link to="/offers" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.offersLink')}</Link>
+          <Link to="/about" className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 transition">{t('seo.aboutLink')}</Link>
         </div>
       </section>
 

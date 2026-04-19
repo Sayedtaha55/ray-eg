@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
+import { useTranslation } from 'react-i18next';
 import Overview from './Overview';
 import Account from './Account';
 import Security from './Security';
@@ -23,16 +24,16 @@ type SaveHandler = () => Promise<boolean>;
 
 type SectionChangesHandlerDetail = { sectionId: string; count: number };
 
-const SettingsTabs = [
-  { id: 'overview' as const, label: 'نظرة عامة', icon: <Home className="w-5 h-5" /> },
-  { id: 'account' as const, label: 'الحساب', icon: <User className="w-5 h-5" /> },
-  { id: 'security' as const, label: 'الأمان', icon: <Shield className="w-5 h-5" /> },
-  { id: 'store' as const, label: 'إعدادات المتجر', icon: <Store className="w-5 h-5" /> },
-  { id: 'modules' as const, label: 'ترقية', icon: <Puzzle className="w-5 h-5" /> },
-  { id: 'receipt_theme' as const, label: 'ثيم الفاتورة', icon: <FileText className="w-5 h-5" /> },
-  { id: 'payments' as const, label: 'المدفوعات', icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'notifications' as const, label: 'التنبيهات', icon: <Bell className="w-5 h-5" /> },
-];
+const SETTINGS_TAB_IDS = [
+  { id: 'overview' as const, icon: <Home className="w-5 h-5" /> },
+  { id: 'account' as const, icon: <User className="w-5 h-5" /> },
+  { id: 'security' as const, icon: <Shield className="w-5 h-5" /> },
+  { id: 'store' as const, icon: <Store className="w-5 h-5" /> },
+  { id: 'modules' as const, icon: <Puzzle className="w-5 h-5" /> },
+  { id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" /> },
+  { id: 'payments' as const, icon: <CreditCard className="w-5 h-5" /> },
+  { id: 'notifications' as const, icon: <Bell className="w-5 h-5" /> },
+] as const;
 
 interface SettingsProps {
   shop: any;
@@ -42,6 +43,7 @@ interface SettingsProps {
 
 const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ shop, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const receiptLogoInputRef = useRef<HTMLInputElement>(null);
   const receiptShopId = String(adminShopId || shop?.id || '');
   const [receiptShopName, setReceiptShopName] = useState('');
@@ -155,7 +157,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > 2 * 1024 * 1024) {
-      toast({ title: 'خطأ', description: 'الصورة كبيرة جداً، يرجى اختيار صورة أقل من 2 ميجابايت', variant: 'destructive' });
+      toast({ title: t('settingsIndex.error'), description: t('settingsIndex.imageTooLarge'), variant: 'destructive' });
       return;
     }
     const reader = new FileReader();
@@ -167,7 +169,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 
   const handleSaveReceiptTheme = async () => {
     if (!receiptShopId) {
-      toast({ title: 'خطأ', description: 'لا يمكن حفظ ثيم الفاتورة بدون متجر', variant: 'destructive' });
+      toast({ title: t('settingsIndex.error'), description: t('settingsIndex.noShopForReceipt'), variant: 'destructive' });
       return;
     }
     setSavingReceiptTheme(true);
@@ -192,10 +194,10 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
         vatRatePercent: String(receiptVatRatePercent),
       };
       emitReceiptChanges(0);
-      toast({ title: 'تم الحفظ', description: 'تم حفظ ثيم الفاتورة بنجاح' });
+      toast({ title: t('settingsIndex.saved'), description: t('settingsIndex.receiptThemeSaved') });
       return true;
     } catch {
-      toast({ title: 'خطأ', description: 'فشل حفظ ثيم الفاتورة', variant: 'destructive' });
+      toast({ title: t('settingsIndex.error'), description: t('settingsIndex.receiptThemeSaveFailed'), variant: 'destructive' });
       return false;
     } finally {
       setSavingReceiptTheme(false);
@@ -218,31 +220,31 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 
   return (
     <div className="space-y-6 text-right" dir="rtl">
-      <h3 className="text-2xl font-black">ثيم الفاتورة</h3>
+      <h3 className="text-2xl font-black">{t('settingsIndex.receiptTheme')}</h3>
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>ثيم الفاتورة</CardTitle>
-          <CardDescription>خصّص بيانات الفاتورة (محليًا على هذا الجهاز).</CardDescription>
+          <CardTitle>{t('settingsIndex.receiptTheme')}</CardTitle>
+          <CardDescription>{t('settingsIndex.receiptThemeDesc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="receiptShopName">اسم المتجر على الفاتورة</Label>
+              <Label htmlFor="receiptShopName">{t('settingsIndex.receiptShopName')}</Label>
               <Input id="receiptShopName" value={receiptShopName} onChange={(e) => setReceiptShopName(e.target.value)} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="receiptPhone">هاتف الفاتورة</Label>
+              <Label htmlFor="receiptPhone">{t('settingsIndex.receiptPhone')}</Label>
               <Input id="receiptPhone" value={receiptPhone} onChange={(e) => setReceiptPhone(e.target.value)} />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="receiptCity">مدينة الفاتورة</Label>
-            <Input id="receiptCity" value={receiptCity} onChange={(e) => setReceiptCity(e.target.value)} placeholder="مثال: القاهرة" />
+            <Label htmlFor="receiptCity">{t('settingsIndex.receiptCity')}</Label>
+            <Input id="receiptCity" value={receiptCity} onChange={(e) => setReceiptCity(e.target.value)} placeholder={t('settingsIndex.receiptCityPlaceholder')} />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="receiptVatRatePercent">نسبة الضريبة (%)</Label>
+            <Label htmlFor="receiptVatRatePercent">{t('settingsIndex.vatRatePercent')}</Label>
             <Input
               id="receiptVatRatePercent"
               type="number"
@@ -255,13 +257,13 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="receiptAddress">عنوان الفاتورة</Label>
+            <Label htmlFor="receiptAddress">{t('settingsIndex.receiptAddress')}</Label>
             <Input id="receiptAddress" value={receiptAddress} onChange={(e) => setReceiptAddress(e.target.value)} />
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label>شعار الفاتورة (اختياري)</Label>
+              <Label>{t('settingsIndex.receiptLogoOptional')}</Label>
               <div className="flex items-center gap-3">
                 <div
                   onClick={handlePickReceiptLogo}
@@ -274,20 +276,20 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
                   )}
                 </div>
                 <div className="flex-1 flex flex-col gap-2">
-                  <Button type="button" onClick={handlePickReceiptLogo} variant="outline">اختيار شعار</Button>
-                  <Button type="button" onClick={() => setReceiptLogoDataUrl('')} variant="secondary">حذف الشعار</Button>
+                  <Button type="button" onClick={handlePickReceiptLogo} variant="outline">{t('settingsIndex.chooseLogo')}</Button>
+                  <Button type="button" onClick={() => setReceiptLogoDataUrl('')} variant="secondary">{t('settingsIndex.deleteLogo')}</Button>
                 </div>
                 <input ref={receiptLogoInputRef} type="file" hidden accept="image/*" onChange={handleReceiptLogoChange} />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="receiptFooterNote">ملاحظة أسفل الفاتورة</Label>
+              <Label htmlFor="receiptFooterNote">{t('settingsIndex.receiptFooterNote')}</Label>
               <Input
                 id="receiptFooterNote"
                 value={receiptFooterNote}
                 onChange={(e) => setReceiptFooterNote(e.target.value)}
-                placeholder="شكراً لزيارتكم"
+                placeholder={t('settingsIndex.receiptFooterNotePlaceholder')}
               />
             </div>
           </div>
@@ -299,6 +301,12 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 
 const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const SettingsTabs = SETTINGS_TAB_IDS.map(item => ({
+    ...item,
+    label: t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
+  }));
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
   const [savedSoundId, setSavedSoundId] = useState(RayDB.getSelectedNotificationSoundId());
   const [pendingSoundId, setPendingSoundId] = useState(RayDB.getSelectedNotificationSoundId());
@@ -313,7 +321,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
 
   const params = new URLSearchParams(String(location?.search || ''));
   const requestedSettingsTabRaw = String(params.get('settingsTab') || '').trim().toLowerCase();
-  const allowedTabs = new Set(SettingsTabs.map((t) => String(t.id)));
+  const allowedTabs = new Set(SettingsTabs.map((tab) => String(tab.id)));
   const activeSettingsTab = (allowedTabs.has(requestedSettingsTabRaw) ? requestedSettingsTabRaw : 'overview') as SettingsTab;
   const sidebarMode = Boolean(requestedSettingsTabRaw);
 
@@ -389,7 +397,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       const ids = Object.keys(snapshot).filter((k) => Number(snapshot[k] || 0) > 0);
       if (ids.length === 0) {
         try {
-          toast({ title: 'لا توجد تغييرات', description: 'قم بتعديل أي إعداد ثم اضغط حفظ.' });
+          toast({ title: t('settingsIndex.noChanges'), description: t('settingsIndex.noChangesDesc') });
         } catch {
         }
         return;
@@ -403,7 +411,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         if (!fn) {
           okAll = false;
           failedIds.push(id);
-          failedReasons[id] = 'لم يتم تحميل هذا القسم بعد';
+          failedReasons[id] = t('settingsIndex.sectionNotLoaded');
           continue;
         }
         try {
@@ -411,7 +419,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
           if (!ok) {
             okAll = false;
             failedIds.push(id);
-            if (!failedReasons[id]) failedReasons[id] = 'تعذر حفظ التغييرات';
+            if (!failedReasons[id]) failedReasons[id] = t('settingsIndex.couldNotSaveChanges');
           }
         } catch (e: any) {
           okAll = false;
@@ -419,7 +427,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
           const status = typeof e?.status === 'number' ? e.status : undefined;
           const msg = e?.message ? String(e.message) : '';
           const details = msg ? (status ? `${msg} (${status})` : msg) : status ? `(${status})` : '';
-          failedReasons[id] = details || failedReasons[id] || 'تعذر حفظ التغييرات';
+          failedReasons[id] = details || failedReasons[id] || t('settingsIndex.couldNotSaveChanges');
         }
       }
 
@@ -432,8 +440,8 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       try {
         const resolveLabel = (sectionId: string) => {
           const idNorm = String(sectionId || '').trim();
-          const known = SettingsTabs.find((t) => String(t.id) === idNorm);
-          return String((known as any)?.label || idNorm || 'قسم');
+          const known = SettingsTabs.find((tab) => String(tab.id) === idNorm);
+          return String((known as any)?.label || idNorm || t('settingsIndex.section'));
         };
 
         const resolveFailure = (sectionId: string) => {
@@ -445,13 +453,13 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
 
         toast(
           okAll
-            ? { title: 'تم الحفظ', description: 'تم حفظ الإعدادات بنجاح' }
+            ? { title: t('settingsIndex.saved'), description: t('settingsIndex.settingsSaved') }
             : {
-                title: 'فشل الحفظ',
+                title: t('settingsIndex.saveFailed'),
                 description:
                   failedIds.length > 0
-                    ? `تعذر حفظ: ${failedIds.map(resolveFailure).join(' | ')}.`
-                    : 'تعذر حفظ بعض الإعدادات. راجع الحقول وحاول مرة أخرى.',
+                    ? t('settingsIndex.couldNotSaveSections', { sections: failedIds.map(resolveFailure).join(' | ') })
+                    : t('settingsIndex.couldNotSaveSomeSettings'),
                 variant: 'destructive',
               },
         );
@@ -532,12 +540,12 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       case 'notifications':
         return (
           <div className="space-y-6 text-right" dir="rtl">
-            <h3 className="text-2xl font-black">التنبيهات</h3>
+            <h3 className="text-2xl font-black">{t('settingsIndex.notifications')}</h3>
             <div className="space-y-6">
-              <h3 className="text-2xl font-black">أصوات التنبيهات</h3>
+              <h3 className="text-2xl font-black">{t('settingsIndex.notificationSounds')}</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اختيار الصوت</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('settingsIndex.chooseSound')}</label>
                   <div className="space-y-3">
                     {sounds.map((s: any) => (
                       <button
@@ -547,9 +555,9 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                         }}
                         className={`w-full px-6 py-4 rounded-2xl border font-black text-sm flex items-center justify-between ${pendingSoundId === String(s.id) ? 'bg-slate-900 text-white border-slate-900' : 'bg-slate-50 text-slate-900 border-slate-100 hover:bg-slate-100'}`}
                       >
-                        <span>{String(s.name || 'صوت')}</span>
+                        <span>{String(s.name || t('settingsIndex.sound'))}</span>
                         <span className="text-[10px] opacity-70">
-                          {savedSoundId === String(s.id) ? 'محفوظ' : pendingSoundId === String(s.id) ? 'محدد' : ''}
+                          {savedSoundId === String(s.id) ? t('settingsIndex.savedLabel') : pendingSoundId === String(s.id) ? t('settingsIndex.selected') : ''}
                         </span>
                       </button>
                     ))}
@@ -566,7 +574,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                       }}
                       className="flex-1 py-4 bg-[#00E5FF] text-slate-900 rounded-2xl font-black text-sm"
                     >
-                      تجربة الصوت
+                      {t('settingsIndex.testSound')}
                     </button>
                   </div>
                 </div>
@@ -585,7 +593,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       <div className="p-4 md:p-6 space-y-4">
         <div className="flex items-center space-x-3 p-4 bg-white border border-gray-200 rounded-lg">
           <SettingsIcon className="w-6 h-6 text-primary" />
-          <h2 className="text-xl font-bold">الإعدادات</h2>
+          <h2 className="text-xl font-bold">{t('settingsIndex.settings')}</h2>
         </div>
 
         <div className="space-y-3">
@@ -654,7 +662,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
             )}
           >
             <span className="ml-2"><User className="w-5 h-5" /></span>
-            <span className="font-medium">ملف التاجر</span>
+            <span className="font-medium">{t('settingsIndex.merchantProfile')}</span>
           </Link>
         </div>
       </div>

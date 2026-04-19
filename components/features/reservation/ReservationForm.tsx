@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Card, Input, Button } from '../../common/ui';
 import { Calendar, Clock, Users, MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ReservationFormProps {
   onSubmit: (data: ReservationData) => void;
@@ -24,6 +25,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
   loading = false,
   error,
 }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState<ReservationData>({
     name: '',
     email: '',
@@ -54,15 +56,15 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="text-center mb-6">
-          <h3 className="text-2xl font-black text-white mb-2">حجز طاولة</h3>
-          <p className="text-slate-400">احجز طاولتك الآن واستمتع بتجربة مميزة</p>
+          <h3 className="text-2xl font-black text-white mb-2">{t('reservationForm.title')}</h3>
+          <p className="text-slate-400">{t('reservationForm.subtitle')}</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             type="text"
-            label="الاسم الكامل"
-            placeholder="أدخل اسمك الكامل"
+            label={t('reservationForm.fullName')}
+            placeholder={t('reservationForm.enterFullName')}
             value={formData.name}
             onChange={handleChange('name')}
             required
@@ -70,7 +72,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
           <Input
             type="email"
-            label="البريد الإلكتروني"
+            label={t('reservationForm.email')}
             placeholder="example@email.com"
             value={formData.email}
             onChange={handleChange('email')}
@@ -79,7 +81,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
           <Input
             type="tel"
-            label="رقم الهاتف"
+            label={t('reservationForm.phone')}
             placeholder="+20 123 456 7890"
             value={formData.phone}
             onChange={handleChange('phone')}
@@ -88,7 +90,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
           <Input
             type="number"
-            label="عدد الأشخاص"
+            label={t('reservationForm.guests')}
             placeholder="2"
             value={formData.guests.toString()}
             onChange={(value) => handleChange('guests')(parseInt(value) || 1)}
@@ -102,7 +104,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             type="date"
-            label="التاريخ"
+            label={t('reservationForm.date')}
             value={formData.date}
             onChange={handleChange('date')}
             required
@@ -112,7 +114,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
           <div className="space-y-2">
             <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-              الوقت
+              {t('reservationForm.time')}
             </label>
             <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
               {timeSlots.map((time) => (
@@ -137,12 +139,12 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
 
         <div className="space-y-2">
           <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
-            طلبات خاصة
+            {t('reservationForm.specialRequests')}
           </label>
           <textarea
             value={formData.specialRequests}
             onChange={(e) => handleChange('specialRequests')(e.target.value)}
-            placeholder="أي طلبات خاصة أو ملاحظات..."
+            placeholder={t('reservationForm.specialRequestsPlaceholder')}
             rows={4}
             className="w-full bg-slate-800 border-none rounded-2xl py-5 px-8 text-white font-bold outline-none focus:ring-2 focus:ring-[#BD00FF]/50 transition-all resize-none"
           />
@@ -160,7 +162,7 @@ const ReservationForm: React.FC<ReservationFormProps> = ({
           disabled={!formData.name || !formData.email || !formData.phone || !formData.date || !formData.time}
           className="w-full py-4"
         >
-          تأكيد الحجز
+          {t('reservationForm.confirmReservation')}
         </Button>
       </form>
     </Card>

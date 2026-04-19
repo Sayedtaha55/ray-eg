@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -8,10 +9,12 @@ type Props = {
 
 const COLORS = ['#1A1A1A', '#00E5FF', '#BD00FF', '#FF0055', '#FFCC00', '#00FF77', '#0077FF', '#FF6600', '#7C3AED', '#EC4899'];
 
-const ColorsSection: React.FC<Props> = ({ config, setConfig }) => (
+const ColorsSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-3">
     <div className="space-y-1">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">اختيار لون</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.colors.chooseColor')}</label>
       <input
         type="color"
         value={String(config.primaryColor || '#00E5FF')}
@@ -32,6 +35,7 @@ const ColorsSection: React.FC<Props> = ({ config, setConfig }) => (
       ))}
     </div>
   </div>
-);
+  );
+};
 
 export default ColorsSection;

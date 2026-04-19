@@ -3,6 +3,7 @@ import type { Category } from '@/types';
 import AddProductModalShell from './AddProductModalShell';
 import RestaurantExtras, { buildRestaurantExtrasPayload } from './activities/RestaurantExtras';
 import type { RestaurantMenuVariantItem } from '../AddProduct/RestaurantMenuSection';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -12,6 +13,7 @@ type Props = {
 };
 
 const RestaurantAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+  const { t } = useTranslation();
   const [menuVariantItems, setMenuVariantItems] = React.useState<RestaurantMenuVariantItem[]>([]);
   const [restaurantBaseSizesEnabled, setRestaurantBaseSizesEnabled] = React.useState(false);
   const [restaurantPriceSmall, setRestaurantPriceSmall] = React.useState('');
@@ -41,7 +43,7 @@ const RestaurantAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, s
       isRestaurant={true}
       isFashion={false}
       allowExtraImages={false}
-      title="إضافة صنف (مطعم)"
+      title={t('business.products.addRestaurantItem')}
       shopCategory={shopCategory}
       renderExtras={({ parseNumberInput }) => (
         <RestaurantExtras
@@ -51,7 +53,7 @@ const RestaurantAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, s
         />
       )}
       buildExtrasPayload={({ parseNumberInput, basePrice }) => {
-        const { payload } = buildRestaurantExtrasPayload({ menuVariantItems, parseNumberInput });
+        const { payload } = buildRestaurantExtrasPayload({ menuVariantItems, parseNumberInput, t });
         return { payload, resolvedBasePrice: basePrice };
       }}
       restaurantBaseSizesEnabled={restaurantBaseSizesEnabled}

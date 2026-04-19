@@ -2,6 +2,7 @@ import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { User, ExternalLink } from 'lucide-react';
 import { getMerchantDashboardTabsForShop } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
+import { useTranslation } from 'react-i18next';
 
 const { Link } = ReactRouterDOM as any;
 
@@ -13,6 +14,7 @@ interface ProfileSummaryProps {
 }
 
 const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDashboardUrl, shop }) => {
+  const { t } = useTranslation();
   const allowedTabIds = new Set(getMerchantDashboardTabsForShop(shop).map((t) => t.id));
   const canOpenSettings = allowedTabIds.has('settings');
 
@@ -25,10 +27,10 @@ const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDa
           </div>
           <div className="text-right">
             <h1 className="text-2xl md:text-4xl font-black text-slate-900 tracking-tighter leading-tight">
-              {user?.name || 'صاحب العمل'}
+              {user?.name || t('business.merchantProfile.profileSummary.defaultName')}
             </h1>
             <div className="flex items-center gap-3 justify-end mt-2">
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">تاجر</span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{t('business.merchantProfile.profileSummary.role')}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-slate-200" />
               <span className="text-xs font-bold text-slate-500">{user?.email || ''}</span>
             </div>
@@ -41,7 +43,7 @@ const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDa
               to={buildDashboardUrl('settings')}
               className="px-6 py-4 rounded-2xl bg-slate-900 text-white font-black text-sm text-center hover:bg-black transition-all"
             >
-              إعدادات المتجر
+              {t('business.merchantProfile.profileSummary.storeSettings')}
             </Link>
           ) : null}
 
@@ -51,7 +53,7 @@ const ProfileSummary: React.FC<ProfileSummaryProps> = ({ user, shopSlug, buildDa
               className="px-6 py-4 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm text-center hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
             >
               <ExternalLink className="w-4 h-4" />
-              فتح صفحة المتجر
+              {t('business.merchantProfile.profileSummary.openStorePage')}
             </Link>
           ) : null}
         </div>

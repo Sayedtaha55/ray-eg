@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = { analytics: any; sales: any[]; reservations?: any[] };
 
 const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
+  const { t } = useTranslation();
   const [range, setRange] = useState<'30d' | '6m' | '12m'>('6m');
 
   const [recharts, setRecharts] = useState<any>(null);
@@ -57,7 +59,12 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   });
 
   const rangeMonths = range === '12m' ? 12 : 6;
-  const monthNames = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const monthNames = [
+    t('business.reports.months.jan'), t('business.reports.months.feb'), t('business.reports.months.mar'),
+    t('business.reports.months.apr'), t('business.reports.months.may'), t('business.reports.months.jun'),
+    t('business.reports.months.jul'), t('business.reports.months.aug'), t('business.reports.months.sep'),
+    t('business.reports.months.oct'), t('business.reports.months.nov'), t('business.reports.months.dec'),
+  ];
   const monthlyBuckets: Record<string, number> = {};
 
   if (range !== '30d') {
@@ -161,7 +168,7 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   const SummaryCard = ({ label, value, growth }: any) => {
     const growthNum = typeof growth === 'number' ? growth : Number(growth || 0);
     const sign = growthNum > 0 ? '+' : '';
-    const text = `${sign}${Math.round(growthNum)}٪`;
+    const text = `${sign}${Math.round(growthNum)}${t('business.reports.percent')}`;
     const cls = growthNum >= 0 ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50';
     return (
       <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 text-right">
@@ -178,16 +185,16 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
     <div className="space-y-6 md:space-y-10">
       <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-12">
-          <h3 className="text-2xl md:text-3xl font-black">أداء الإيرادات الشهرية</h3>
+          <h3 className="text-2xl md:text-3xl font-black">{t('business.reports.monthlyRevenuePerformance')}</h3>
           <div className="flex gap-2">
-            <button onClick={() => setRange('30d')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '30d' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٣٠ يوم</button>
-            <button onClick={() => setRange('6m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '6m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>٦ شهور</button>
-            <button onClick={() => setRange('12m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '12m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>١٢ شهر</button>
+            <button onClick={() => setRange('30d')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '30d' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.30days')}</button>
+            <button onClick={() => setRange('6m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '6m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.6months')}</button>
+            <button onClick={() => setRange('12m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '12m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.12months')}</button>
           </div>
         </div>
 
         {range === '30d' ? (
-          <div className="py-16 md:py-24 text-center text-slate-300 font-bold">اختر ٦ شهور أو ١٢ شهر لعرض الرسم الشهري</div>
+          <div className="py-16 md:py-24 text-center text-slate-300 font-bold">{t('business.reports.selectRangeForChart')}</div>
         ) : (
           <div className="w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">
             {chartBody}
@@ -196,9 +203,9 @@ const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
-        <SummaryCard label="متوسط قيمة السلة" value={`ج.م ${Math.round(avgBasket).toLocaleString('ar-EG')}`} growth={avgBasketGrowth} />
-        <SummaryCard label="نسبة التحويل" value={`${conversion.toFixed(1)}٪`} growth={conversionGrowth} />
-        <SummaryCard label="إيراد الفترة" value={`ج.م ${Math.round(totalRevenue).toLocaleString('ar-EG')}`} growth={revenueGrowth} />
+        <SummaryCard label={t('business.reports.avgBasketValue')} value={`${t('business.reports.currency')} ${Math.round(avgBasket).toLocaleString()}`} growth={avgBasketGrowth} />
+        <SummaryCard label={t('business.reports.conversionRate')} value={`${conversion.toFixed(1)}%`} growth={conversionGrowth} />
+        <SummaryCard label={t('business.reports.periodRevenue')} value={`${t('business.reports.currency')} ${Math.round(totalRevenue).toLocaleString()}`} growth={revenueGrowth} />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Category } from '@/types';
+import { useTranslation } from 'react-i18next';
 
 import ImageUploadSection from '../AddProduct/ImageUploadSection';
 import BasicInfoSection from '../AddProduct/BasicInfoSection';
@@ -55,6 +56,7 @@ const AddProductModalShell: React.FC<Props> = ({
   restaurantPriceLarge: externalRestaurantPriceLarge,
   setRestaurantPriceLarge: externalSetRestaurantPriceLarge,
 }) => {
+  const { t } = useTranslation();
   const RESTAURANT_SIZE_NONE = '__NONE__';
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
@@ -64,7 +66,7 @@ const AddProductModalShell: React.FC<Props> = ({
   const [restaurantPriceMedium, setRestaurantPriceMedium] = React.useState(externalRestaurantPriceMedium || '');
   const [restaurantPriceLarge, setRestaurantPriceLarge] = React.useState(externalRestaurantPriceLarge || '');
   const [stock, setStock] = React.useState('');
-  const [cat, setCat] = React.useState('عام');
+  const [cat, setCat] = React.useState(''); // default category label, overridden by t() in UI
   const [description, setDescription] = React.useState('');
   const [imagePreview, setImagePreview] = React.useState<string | null>(null);
   const [imageUploadFile, setImageUploadFile] = React.useState<File | null>(null);
@@ -124,64 +126,64 @@ const AddProductModalShell: React.FC<Props> = ({
   const basicPlaceholders = (() => {
     if (shopCategoryUpper === 'RESTAURANT') {
       return {
-        name: 'مثلاً: بيتزا مارجريتا',
-        cat: 'مثلاً: وجبات - مشروبات - إضافات',
-        desc: 'مثلاً: مكونات الوجبة...',
+        name: t('business.products.placeholders.restaurant.name'),
+        cat: t('business.products.placeholders.restaurant.cat'),
+        desc: t('business.products.placeholders.restaurant.desc'),
       };
     }
 
     if (shopCategoryUpper === 'FASHION') {
       return {
-        name: 'مثلاً: قميص أبيض قطن',
-        cat: 'مثلاً: ملابس صيفية',
-        desc: 'مثلاً: خامات المنتج، المقاس، طريقة الغسيل...',
+        name: t('business.products.placeholders.fashion.name'),
+        cat: t('business.products.placeholders.fashion.cat'),
+        desc: t('business.products.placeholders.fashion.desc'),
       };
     }
 
     if (shopCategoryUpper === 'HEALTH') {
       return {
-        name: 'مثلاً: كريم مرطب / فيتامين سي',
-        cat: 'مثلاً: مستحضرات - فيتامينات - أدوية',
-        desc: 'مثلاً: طريقة الاستخدام، التحذيرات، العمر المناسب...',
+        name: t('business.products.placeholders.health.name'),
+        cat: t('business.products.placeholders.health.cat'),
+        desc: t('business.products.placeholders.health.desc'),
       };
     }
 
     if (shopCategoryUpper === 'ELECTRONICS') {
       return {
-        name: 'مثلاً: جراب موبايل / سماعات',
-        cat: 'مثلاً: موبايلات - إكسسوارات - كمبيوتر',
-        desc: 'مثلاً: المواصفات، الضمان، التوافق...',
+        name: t('business.products.placeholders.electronics.name'),
+        cat: t('business.products.placeholders.electronics.cat'),
+        desc: t('business.products.placeholders.electronics.desc'),
       };
     }
 
     if (shopCategoryUpper === 'FOOD') {
       return {
-        name: 'مثلاً: زيت 1 لتر / أرز 5 كيلو',
-        cat: 'مثلاً: بقالة - منظفات - عطارة',
-        desc: 'مثلاً: الوزن/الحجم، المكونات، ملاحظات...',
+        name: t('business.products.placeholders.food.name'),
+        cat: t('business.products.placeholders.food.cat'),
+        desc: t('business.products.placeholders.food.desc'),
       };
     }
 
     if (shopCategoryUpper === 'RETAIL') {
       if (devActivityId === 'home-goods') {
         return {
-          name: 'مثلاً: سلة غسيل / أدوات مطبخ',
-          cat: 'مثلاً: مطبخ - تنظيف - تنظيم',
-          desc: 'مثلاً: الخامة، المقاس، الاستخدام...',
+          name: t('business.products.placeholders.homeGoods.name'),
+          cat: t('business.products.placeholders.homeGoods.cat'),
+          desc: t('business.products.placeholders.homeGoods.desc'),
         };
       }
 
       return {
-        name: 'مثلاً: سجادة 2×3 / مفرش سرير',
-        cat: 'مثلاً: سجاد - مفروشات - ستائر',
-        desc: 'مثلاً: المقاس، الخامة، تعليمات الغسيل...',
+        name: t('business.products.placeholders.retail.name'),
+        cat: t('business.products.placeholders.retail.cat'),
+        desc: t('business.products.placeholders.retail.desc'),
       };
     }
 
     return {
-      name: 'مثلاً: منتج جديد',
-      cat: 'مثلاً: قسم المنتجات',
-      desc: 'مثلاً: تفاصيل المنتج، طريقة الاستخدام...',
+      name: t('business.products.placeholders.default.name'),
+      cat: t('business.products.placeholders.default.cat'),
+      desc: t('business.products.placeholders.default.desc'),
     };
   })();
 
@@ -226,7 +228,7 @@ const AddProductModalShell: React.FC<Props> = ({
       const mime = String(file.type || '').toLowerCase().trim();
       const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
         return;
       }
       try {
@@ -251,7 +253,7 @@ const AddProductModalShell: React.FC<Props> = ({
     for (const file of files) {
       const mime = String(file.type || '').toLowerCase().trim();
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم', 'error');
+        addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
         continue;
       }
       nextFiles.push(file);
@@ -270,7 +272,7 @@ const AddProductModalShell: React.FC<Props> = ({
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (!imageUploadFile) {
-      addToast('يرجى اختيار صورة للمنتج أولاً', 'info');
+      addToast(t('business.products.selectImageFirst'), 'info');
       return;
     }
 
@@ -287,19 +289,19 @@ const AddProductModalShell: React.FC<Props> = ({
       if (smallEnabled) {
         const ps = parseNumberInput(restaurantPriceSmall);
         if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
-        sizes.push({ id: 'small', label: 'صغير', price: ps });
+        sizes.push({ id: 'small', label: t('business.dashboard.products.sizeSmall'), price: ps });
       }
 
       if (mediumEnabled) {
         const pm = parseNumberInput(restaurantPriceMedium);
         if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
-        sizes.push({ id: 'medium', label: 'وسط', price: pm });
+        sizes.push({ id: 'medium', label: t('business.dashboard.products.sizeMedium'), price: pm });
       }
 
       if (largeEnabled) {
         const pl = parseNumberInput(restaurantPriceLarge);
         if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
-        sizes.push({ id: 'large', label: 'كبير', price: pl });
+        sizes.push({ id: 'large', label: t('business.dashboard.products.sizeLarge'), price: pl });
       }
 
       if (sizes.length === 0) return '__INVALID__' as const;
@@ -307,7 +309,7 @@ const AddProductModalShell: React.FC<Props> = ({
     })();
 
     if (baseSizes === '__INVALID__') {
-      addToast('يرجى إدخال سعر صحيح للأحجام المتاحة (واختر "لا يوجد" للأحجام غير المتوفرة)', 'error');
+      addToast(t('business.products.enterValidSizePrice'), 'error');
       return;
     }
 
@@ -321,7 +323,7 @@ const AddProductModalShell: React.FC<Props> = ({
 
     const parsedStock = isRestaurant ? 0 : parseNumberInput(stock);
     if (!isRestaurant && (!Number.isFinite(parsedStock) || parsedStock < 0)) {
-      addToast('الكمية غير صحيحة', 'error');
+      addToast(t('business.products.invalidQuantity'), 'error');
       return;
     }
 
@@ -338,14 +340,14 @@ const AddProductModalShell: React.FC<Props> = ({
           const existing = merged?.menuVariants;
           const list = Array.isArray(existing) ? existing : [];
           merged.menuVariants = [
-            { id: 'base', name: String(name || '').trim() || 'المنتج', sizes: baseSizes },
+            { id: 'base', name: String(name || '').trim() || t('business.products.product'), sizes: baseSizes },
             ...list,
           ];
         }
 
         return { ...res, payload: merged };
       } catch (e: any) {
-        const msg = e?.message ? String(e.message) : 'بيانات النشاط غير صحيحة';
+        const msg = e?.message ? String(e.message) : t('business.products.invalidActivityData');
         addToast(msg, 'error');
         return '__INVALID__' as const;
       }
@@ -373,14 +375,14 @@ const AddProductModalShell: React.FC<Props> = ({
 
     if (!isPackEnabledByExtras) {
       if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
-        addToast('السعر غير صحيح', 'error');
+        addToast(t('business.products.invalidPrice'), 'error');
         return;
       }
     }
 
     if (isPackEnabledByExtras) {
       if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice <= 0) {
-        addToast('يرجى إدخال سعر صحيح للباقة', 'error');
+        addToast(t('business.products.enterValidPackPrice'), 'error');
         return;
       }
     }
@@ -414,7 +416,7 @@ const AddProductModalShell: React.FC<Props> = ({
         name,
         price: resolvedBasePrice,
         stock: isRestaurant ? 0 : parsedStock,
-        category: String(cat || '').trim() || 'عام',
+        category: String(cat || '').trim() || t('business.dashboard.products.generalCategory'),
         imageUrl: finalImageUrl,
         description: description ? description : null,
         trackStock: !isRestaurant,
@@ -426,14 +428,14 @@ const AddProductModalShell: React.FC<Props> = ({
         ...(extras?.payload && typeof extras.payload === 'object' ? extras.payload : {}),
       });
 
-      addToast('تم إضافة المنتج بنجاح!', 'success');
+      addToast(t('business.products.productAdded'), 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId } }));
       } catch {
       }
       onClose();
     } catch (err: any) {
-      const msg = err?.message ? String(err.message) : 'فشل في إضافة المنتج';
+      const msg = err?.message ? String(err.message) : t('business.products.addProductFailed');
       addToast(msg, 'error');
     } finally {
       setLoading(false);
@@ -509,8 +511,8 @@ const AddProductModalShell: React.FC<Props> = ({
             loading={loading}
             isCompressing={isCompressing}
             compressionProgress={compressionProgress}
-            submitLabel="تأكيد إضافة الصنف"
-            processingLabel="جاري إضافة الصنف..."
+            submitLabel={t('business.products.confirmAddItem')}
+            processingLabel={t('business.products.addingItem')}
           />
         </form>
       </MotionDiv>

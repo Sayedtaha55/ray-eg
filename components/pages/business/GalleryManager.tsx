@@ -8,6 +8,7 @@ import { ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 interface GalleryManagerProps {
   shopId: string;
@@ -28,6 +29,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addToast } = useToast();
+  const { t } = useTranslation();
 
   const refreshFromBackend = useCallback(async () => {
     try {
@@ -79,7 +81,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
           }
         } catch (error) {
           console.error('Upload failed:', error);
-          addToast('فشل رفع الملف', 'error');
+          addToast(t('business.gallery.uploadFailed'), 'error');
         }
       }
     }
@@ -92,9 +94,9 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
         });
       }, 1000);
       
-      addToast(`تم إضافة ${newImages.length} ملف بنجاح`, 'success');
+      addToast(t('business.gallery.filesAdded', { count: newImages.length }), 'success');
     } else {
-      addToast('يرجى اختيار صور أو فيديو فقط', 'error');
+      addToast(t('business.gallery.imagesOrVideoOnly'), 'error');
     }
 
     setUploading(false);
@@ -121,11 +123,11 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه الصورة؟')) return;
+    if (!confirm(t('business.gallery.confirmDelete'))) return;
     
     try {
       await ApiService.deleteShopGalleryImage(imageId);
-      addToast('تم حذف الصورة', 'success');
+      addToast(t('business.gallery.imageDeleted'), 'success');
       
       // Refresh gallery from backend
       setTimeout(() => {
@@ -134,7 +136,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
         });
       }, 500);
     } catch (error) {
-      addToast('فشل حذف الصورة', 'error');
+      addToast(t('business.gallery.deleteFailed'), 'error');
     }
   };
 
@@ -145,11 +147,11 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
     onImagesChange(updatedImages);
     setEditingImage(null);
     setCaption('');
-    addToast('تم حفظ الوصف', 'success');
+    addToast(t('business.gallery.captionSaved'), 'success');
   };
 
   const handleAddFromUrl = () => {
-    const url = prompt('أدخل رابط الصورة:');
+    const url = prompt(t('business.gallery.enterImageUrl'));
     if (url && url.trim()) {
       const newImage: ShopGallery = {
         id: `url_${Date.now()}`,
@@ -160,7 +162,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
       };
       
       onImagesChange([...images, newImage]);
-      addToast('تم إضافة الصورة', 'success');
+      addToast(t('business.gallery.imageAdded'), 'success');
     }
   };
 
@@ -170,7 +172,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
       <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
         <h3 className="text-xl md:text-2xl font-black mb-6 flex items-center gap-3">
           <Camera className="text-[#00E5FF]" />
-          إدارة معرض الصور
+          {t('business.gallery.title')}
         </h3>
 
         {/* Upload Area */}
@@ -207,10 +209,10 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
             
             <div>
               <h4 className="text-lg md:text-xl font-black mb-2">
-                {uploading ? 'جاري الرفع...' : 'اسحب وأفلت الصور هنا'}
+                {uploading ? t('business.gallery.uploading') : t('business.gallery.dragAndDrop')}
               </h4>
               <p className="text-slate-500 text-sm md:text-base mb-4">
-                أو اختر من جهازك
+                {t('business.gallery.orChooseFromDevice')}
               </p>
               
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -219,7 +221,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                   disabled={uploading}
                   className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all disabled:opacity-50"
                 >
-                  اختر ملفات
+                  {t('business.gallery.chooseFiles')}
                 </button>
                 
                 <button
@@ -227,7 +229,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                   disabled={uploading}
                   className="px-6 py-3 border border-slate-200 rounded-xl font-black text-sm hover:bg-slate-50 transition-all disabled:opacity-50"
                 >
-                  إضافة من رابط
+                  {t('business.gallery.addFromUrl')}
                 </button>
               </div>
             </div>
@@ -239,12 +241,12 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
             <div className="text-right">
-              <h4 className="font-black text-sm text-blue-900 mb-1">نصائح هامة:</h4>
+              <h4 className="font-black text-sm text-blue-900 mb-1">{t('business.gallery.importantTips')}</h4>
               <ul className="text-xs text-blue-700 space-y-1">
-                <li>• الصور الموصى بها: 1080x1080 بكسل أو أعلى</li>
-                <li>• الحجم الأقصى: 5 ميجابايت للصورة الواحدة</li>
-                <li>• الصيغ المدعومة: JPG, PNG, WebP</li>
-                <li>• يمكنك إضافة وصف لكل صورة لتوضيحها للعملاء</li>
+                <li>• {t('business.gallery.tipResolution')}</li>
+                <li>• {t('business.gallery.tipMaxSize')}</li>
+                <li>• {t('business.gallery.tipFormats')}</li>
+                <li>• {t('business.gallery.tipCaption')}</li>
               </ul>
             </div>
           </div>
@@ -256,10 +258,10 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
         <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
             <h4 className="text-lg md:text-xl font-black">
-              الصور المضافة ({images.length})
+              {t('business.gallery.addedImages', { count: images.length })}
             </h4>
             <div className="text-sm text-slate-500">
-              الحد الأقصى: 200 صورة
+              {t('business.gallery.maxImages')}
             </div>
           </div>
 
@@ -274,7 +276,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                 <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200">
                   <img 
                     src={image.thumbUrl || image.imageUrl} 
-                    alt={`صورة ${index + 1}`}
+                    alt={t('business.gallery.imageAlt', { num: index + 1 })}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
@@ -284,7 +286,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                   <button
                     onClick={() => window.open(image.imageUrl, '_blank')}
                     className="p-2 bg-white/90 rounded-lg hover:bg-white transition-all"
-                    title="معاينة"
+                    title={t('business.gallery.preview')}
                   >
                     <Eye size={16} />
                   </button>
@@ -295,7 +297,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                       setCaption(image.caption || '');
                     }}
                     className="p-2 bg-white/90 rounded-lg hover:bg-white transition-all"
-                    title="تعديل الوصف"
+                    title={t('business.gallery.editCaption')}
                   >
                     <Edit2 size={16} />
                   </button>
@@ -303,7 +305,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                   <button
                     onClick={() => handleDeleteImage(image.id)}
                     className="p-2 bg-red-500/90 text-white rounded-lg hover:bg-red-500 transition-all"
-                    title="حذف"
+                    title={t('business.gallery.delete')}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -321,7 +323,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                       <textarea
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
-                        placeholder="أضف وصفاً للصورة..."
+                        placeholder={t('business.gallery.captionPlaceholder')}
                         className="flex-1 p-2 text-xs border border-slate-200 rounded-lg resize-none outline-none focus:border-[#00E5FF]"
                         dir="rtl"
                       />
@@ -330,7 +332,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                           onClick={() => handleSaveCaption(image.id)}
                           className="flex-1 py-1.5 bg-[#00E5FF] text-white rounded-lg text-xs font-black"
                         >
-                          حفظ
+                          {t('business.gallery.save')}
                         </button>
                         <button
                           onClick={() => {
@@ -339,7 +341,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                           }}
                           className="flex-1 py-1.5 bg-slate-200 rounded-lg text-xs font-black"
                         >
-                          إلغاء
+                          {t('business.gallery.cancel')}
                         </button>
                       </div>
                     </motion.div>
@@ -356,7 +358,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
               className="mt-6 w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl hover:border-[#00E5FF] hover:bg-[#00E5FF]/5 transition-all flex items-center justify-center gap-3"
             >
               <Plus size={20} className="text-slate-400" />
-              <span className="font-black text-slate-400">إضافة المزيد من الصور</span>
+              <span className="font-black text-slate-400">{t('business.gallery.addMoreImages')}</span>
             </button>
           )}
         </div>

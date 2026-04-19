@@ -1,5 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface SidebarProps {
   selected: any;
@@ -48,6 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   setAddingMode,
   fileInputRef
 }) => {
+  const { t } = useTranslation();
   const [productQuery, setProductQuery] = useState('');
 
   const filteredProductOptions = useMemo(() => {
@@ -68,18 +70,18 @@ const Sidebar: React.FC<SidebarProps> = ({
     <div className="border-t lg:border-t-0 lg:border-l border-slate-100 p-4 overflow-y-auto bg-white">
       <div className="space-y-4">
         <div className="space-y-2">
-          <div className="text-xs font-black text-slate-500">الصورة</div>
+          <div className="text-xs font-black text-slate-500">{t('business.imageMap.image')}</div>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="w-full px-4 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm transition-all active:scale-95 shadow-lg"
             type="button"
           >
-            رفع/تغيير صورة الخريطة
+            {t('business.imageMap.uploadChangeImage')}
           </button>
         </div>
 
         <div className="space-y-2">
-          <div className="text-xs font-black text-slate-500">اختيار خريطة</div>
+          <div className="text-xs font-black text-slate-500">{t('business.imageMap.selectMap')}</div>
           <select
             value={String(activeMap?.id || '')}
             onChange={(e) => {
@@ -92,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({
             }}
             className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF]"
           >
-            <option value="">بدون</option>
+            <option value="">{t('business.imageMap.none')}</option>
             {maps.map((m: any) => (
               <option key={m.id} value={String(m.id)}>
                 {String(m.title || m.imageUrl || m.image_url || '').slice(0, 40)}{m.isActive ? ' (Active)' : ''}
@@ -103,10 +105,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {selected ? (
           <div className="space-y-3 p-4 rounded-3xl bg-slate-50 border border-slate-100 animate-in fade-in slide-in-from-bottom-2">
-            <div className="font-black text-sm text-slate-900">تعديل النقطة</div>
+            <div className="font-black text-sm text-slate-900">{t('business.imageMap.editHotspot')}</div>
 
             <div className="space-y-1">
-              <div className="text-[10px] font-black text-slate-500">الاسم الظاهر</div>
+              <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.displayLabel')}</div>
               <input
                 value={selected.label || ''}
                 onChange={(e) => updateSelected({ label: e.target.value })}
@@ -115,12 +117,12 @@ const Sidebar: React.FC<SidebarProps> = ({
             </div>
 
             <div className="space-y-1">
-              <div className="text-[10px] font-black text-slate-500">ربط بمنتج من المخزون</div>
+              <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.linkToProduct')}</div>
               <input
                 value={productQuery}
                 onChange={(e) => setProductQuery(e.target.value)}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF] bg-white mb-2"
-                placeholder="بحث بالاسم"
+                placeholder={t('business.imageMap.searchByName')}
               />
               <select
                 value={selected.productId || ''}
@@ -136,7 +138,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF] bg-white"
               >
-                <option value="">بدون</option>
+                <option value="">{t('business.imageMap.none')}</option>
                 {filteredProductOptions.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -145,10 +147,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 
             {selectedProduct ? (
               <div className="space-y-3 p-4 rounded-3xl bg-white border border-slate-200 shadow-sm">
-                <div className="font-black text-[10px] text-[#00E5FF] uppercase tracking-widest">تعديل بيانات المنتج الأصلية</div>
+                <div className="font-black text-[10px] text-[#00E5FF] uppercase tracking-widest">{t('business.imageMap.editOriginalProductData')}</div>
 
                 <div className="space-y-1">
-                  <div className="text-[10px] font-black text-slate-500">اسم المنتج</div>
+                  <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.productName')}</div>
                   <input
                     value={productEditName}
                     onChange={(e) => setProductEditName(e.target.value)}
@@ -158,7 +160,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <div className="text-[10px] font-black text-slate-500">السعر</div>
+                    <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.price')}</div>
                     <input
                       type="number"
                       value={productEditPrice}
@@ -167,7 +169,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                     />
                   </div>
                   <div className="space-y-1">
-                    <div className="text-[10px] font-black text-slate-500">المخزون</div>
+                    <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.stock')}</div>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -185,13 +187,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                   disabled={productSaving}
                 >
                   {productSaving ? <Loader2 size={14} className="animate-spin inline ml-2" /> : null}
-                  حفظ في المخزون
+                  {t('business.imageMap.saveToInventory')}
                 </button>
               </div>
             ) : null}
 
             <div className="space-y-1">
-              <div className="text-[10px] font-black text-slate-500">سعر خاص لهذه النقطة (اختياري)</div>
+              <div className="text-[10px] font-black text-slate-500">{t('business.imageMap.specialPriceOptional')}</div>
               <input
                 type="number"
                 value={typeof selected.priceOverride === 'number' ? String(selected.priceOverride) : ''}
@@ -200,7 +202,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   updateSelected({ priceOverride: Number.isFinite(n) ? n : null });
                 }}
                 className="w-full px-4 py-3 rounded-2xl border border-slate-200 font-bold outline-none focus:border-[#00E5FF] bg-white"
-                placeholder="اتركه فاضي لاستخدام سعر المنتج"
+                placeholder={t('business.imageMap.leaveEmptyForProductPrice')}
               />
             </div>
 
@@ -213,20 +215,20 @@ const Sidebar: React.FC<SidebarProps> = ({
                 }}
                 className="px-4 py-3 rounded-2xl bg-red-50 text-red-600 font-black border border-red-100 text-xs transition-all active:scale-95"
               >
-                حذف النقطة
+                {t('business.imageMap.deleteHotspot')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedId('')}
                 className="px-4 py-3 rounded-2xl bg-white text-slate-700 font-black border border-slate-200 text-xs transition-all active:scale-95"
               >
-                إلغاء التحديد
+                {t('business.imageMap.deselect')}
               </button>
             </div>
           </div>
         ) : (
           <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-slate-500 font-bold text-sm text-center">
-            اختر نقطة من الصورة لتعديلها أو اضغط "إضافة نقطة".
+            {t('business.imageMap.selectHotspotHint')}
           </div>
         )}
       </div>

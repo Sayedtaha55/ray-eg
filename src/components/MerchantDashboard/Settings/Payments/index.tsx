@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 interface PaymentsProps {
   shop: any;
@@ -13,6 +14,7 @@ interface PaymentsProps {
 
 const Payments: React.FC<PaymentsProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [, setSaving] = useState(false);
   const [merchantId, setMerchantId] = useState(String(shop?.paymentConfig?.merchantId || ''));
   const [publicKey, setPublicKey] = useState(String(shop?.paymentConfig?.publicKey || ''));
@@ -48,7 +50,7 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved, adminShopId }) => {
           publicKey: String(publicKey || ''),
         },
       });
-      toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات المدفوعات بنجاح' });
+      toast({ title: t('paymentsSettings.saved'), description: t('paymentsSettings.paymentSettingsUpdated') });
       baselineRef.current = { merchantId, publicKey };
       try {
         window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'payments', count: 0 } }));
@@ -57,7 +59,7 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved, adminShopId }) => {
       onSaved();
       return true;
     } catch {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ التغييرات', variant: 'destructive' });
+      toast({ title: t('paymentsSettings.error'), description: t('paymentsSettings.saveChangesFailed'), variant: 'destructive' });
       return false;
     } finally {
       setSaving(false);
@@ -78,15 +80,15 @@ const Payments: React.FC<PaymentsProps> = ({ shop, onSaved, adminShopId }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">المدفوعات</h1>
-        <p className="text-muted-foreground">إعداد بوابة الدفع وبيانات التاجر</p>
+        <h1 className="text-2xl font-bold">{t('paymentsSettings.title')}</h1>
+        <p className="text-muted-foreground">{t('paymentsSettings.subtitle')}</p>
       </div>
 
       <form onSubmit={onSubmit}>
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>بيانات بوابة الدفع</CardTitle>
-            <CardDescription>أضف مفاتيح بوابة الدفع الخاصة بك.</CardDescription>
+            <CardTitle>{t('paymentsSettings.paymentGatewayDetails')}</CardTitle>
+            <CardDescription>{t('paymentsSettings.paymentGatewayDetailsDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

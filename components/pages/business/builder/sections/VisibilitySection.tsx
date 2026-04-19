@@ -1,5 +1,6 @@
 import React from 'react';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -33,35 +34,36 @@ type VisibilityKey =
   | 'footerQuickLinks'
   | 'footerContact';
 
-const VISIBILITY_ITEMS: { key: VisibilityKey; label: string }[] = [
-  { key: 'headerNavHome', label: 'إظهار زر (المعروضات)' },
-  { key: 'headerNavGallery', label: 'إظهار زر (معرض الصور)' },
-  { key: 'headerNavInfo', label: 'إظهار زر (معلومات المتجر)' },
-  { key: 'headerChatButton', label: 'إظهار زر المحادثة في الهيدر' },
-  { key: 'headerShareButton', label: 'إظهار زر المشاركة في الهيدر' },
-  { key: 'purchaseModeButton', label: 'إظهار زر (وضع الشراء)' },
-  { key: 'profileBanner', label: 'إظهار البنر (صورة الغلاف)' },
-  { key: 'floatingChatButton', label: 'إظهار زر المحادثة العائم' },
-  { key: 'shopFollowersCount', label: 'إظهار عدد المتابعين' },
-  { key: 'shopFollowButton', label: 'إظهار زر متابعة المتجر' },
-  { key: 'productCardPrice', label: 'إظهار السعر في كارت المنتج' },
-  { key: 'productCardStock', label: 'إظهار المخزون في كارت المنتج' },
-  { key: 'productCardAddToCart', label: 'إظهار زر (إضافة للسلة)' },
-  { key: 'productCardReserve', label: 'إظهار زر (حجز)' },
-  { key: 'productTabs', label: 'إظهار تبويبات صفحة المنتج' },
-  { key: 'productShareButton', label: 'إظهار زر المشاركة في صفحة المنتج' },
-  { key: 'productQuickSpecs', label: 'إظهار (مواصفات سريعة) في صفحة المنتج' },
-  { key: 'mobileBottomNav', label: 'إظهار فوتر الموبايل (هوم/سلة/حساب)' },
-  { key: 'mobileBottomNavHome', label: 'إظهار زر (الرئيسية) في فوتر الموبايل' },
-  { key: 'mobileBottomNavCart', label: 'إظهار زر (السلة) في فوتر الموبايل' },
-  { key: 'mobileBottomNavAccount', label: 'إظهار زر (حسابي) في فوتر الموبايل' },
-  { key: 'footer', label: 'إظهار الفوتر بالكامل' },
-  { key: 'footerQuickLinks', label: 'إظهار روابط سريعة في الفوتر' },
-  { key: 'footerContact', label: 'إظهار بيانات التواصل في الفوتر' },
+const VISIBILITY_KEYS: VisibilityKey[] = [
+  'headerNavHome',
+  'headerNavGallery',
+  'headerNavInfo',
+  'headerChatButton',
+  'headerShareButton',
+  'purchaseModeButton',
+  'profileBanner',
+  'floatingChatButton',
+  'shopFollowersCount',
+  'shopFollowButton',
+  'productCardPrice',
+  'productCardStock',
+  'productCardAddToCart',
+  'productCardReserve',
+  'productTabs',
+  'productShareButton',
+  'productQuickSpecs',
+  'mobileBottomNav',
+  'mobileBottomNavHome',
+  'mobileBottomNavCart',
+  'mobileBottomNavAccount',
+  'footer',
+  'footerQuickLinks',
+  'footerContact',
 ];
 
 const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
   const { addToast } = useToast();
+  const { t } = useTranslation();
   const current = (config?.elementsVisibility || {}) as Record<string, any>;
 
   const hasSalesModule = (() => {
@@ -96,11 +98,11 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
 
   const setValue = (key: VisibilityKey, value: boolean) => {
     if (value && isCartToggle(key) && !hasSalesModule) {
-      addToast('لتفعيل السلة لازم تفعيل (المبيعات) من لوحة التاجر أولاً', 'info');
+      addToast(t('business.builder.visibility.enableCartRequiresSales'), 'info');
       return;
     }
     if (value && isReserveToggle(key) && !hasReservationsModule) {
-      addToast('لتفعيل الحجز لازم تفعيل (الحجوزات) من لوحة التاجر أولاً', 'info');
+      addToast(t('business.builder.visibility.enableReserveRequiresReservations'), 'info');
       return;
     }
     setConfig((prev: any) => {
@@ -114,21 +116,21 @@ const VisibilitySection: React.FC<Props> = ({ config, setConfig, shop }) => {
 
   return (
     <div className="space-y-3">
-      {VISIBILITY_ITEMS.map((item) => (
+      {VISIBILITY_KEYS.map((key) => (
         <label
-          key={item.key}
+          key={key}
           className={`flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white ${
-            (isCartToggle(item.key) && !hasSalesModule) || (isReserveToggle(item.key) && !hasReservationsModule)
+            (isCartToggle(key) && !hasSalesModule) || (isReserveToggle(key) && !hasReservationsModule)
               ? 'opacity-60'
               : ''
           }`}
         >
-          <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
+          <span className="font-black text-xs md:text-sm text-slate-700">{t(`business.builder.visibility.items.${key}`)}</span>
           <input
             type="checkbox"
-            checked={getValue(item.key)}
-            disabled={(isCartToggle(item.key) && !hasSalesModule) || (isReserveToggle(item.key) && !hasReservationsModule)}
-            onChange={(e) => setValue(item.key, e.target.checked)}
+            checked={getValue(key)}
+            disabled={(isCartToggle(key) && !hasSalesModule) || (isReserveToggle(key) && !hasReservationsModule)}
+            onChange={(e) => setValue(key, e.target.checked)}
           />
         </label>
       ))}

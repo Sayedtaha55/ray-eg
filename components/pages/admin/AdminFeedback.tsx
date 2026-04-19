@@ -3,10 +3,12 @@ import { motion } from 'framer-motion';
 import { MessageSquare, User, Clock, CheckCircle2, Sparkles, Filter, Trash2, Loader2, Smile, Frown, MessageCircle } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
 const AdminFeedback: React.FC = () => {
+  const { t } = useTranslation();
   const [feedback, setFeedback] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { addToast } = useToast();
@@ -17,7 +19,7 @@ const AdminFeedback: React.FC = () => {
       const data = await ApiService.getFeedback();
       setFeedback(data);
     } catch (e) {
-      addToast('فشل تحميل التعليقات', 'error');
+      addToast(t('admin.feedback.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -28,7 +30,7 @@ const AdminFeedback: React.FC = () => {
   }, []);
 
   const normalizeItem = (item: any) => {
-    const userName = item?.user?.name || item?.userName || item?.user_name || 'مستخدم مجهول';
+    const userName = item?.user?.name || item?.userName || item?.user_name || t('admin.feedback.anonymousUser');
     const userEmail = item?.user?.email || item?.userEmail || item?.user_email || '';
     const content = item?.comment || item?.content || item?.text || '';
     const createdAt = item?.createdAt || item?.created_at || new Date().toISOString();
@@ -53,14 +55,14 @@ const AdminFeedback: React.FC = () => {
             <MessageSquare size={24} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white">مركز الاقتراحات</h2>
-            <p className="text-slate-500 text-sm font-bold">صوت المستخدمين لمستقبل "MNMKNK".</p>
+            <h2 className="text-3xl font-black text-white">{t('admin.feedback.title')}</h2>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.feedback.subtitle')}</p>
           </div>
         </div>
         
         <div className="flex gap-3">
            <button className="px-6 py-3 bg-white/5 text-white rounded-xl font-bold text-xs flex items-center gap-2 hover:bg-white/10 transition-all border border-white/5">
-             <Filter size={14} /> تصفية النتائج
+             <Filter size={14} /> {t('admin.feedback.filterResults')}
            </button>
         </div>
       </div>
@@ -70,7 +72,7 @@ const AdminFeedback: React.FC = () => {
       ) : normalizedFeedback.length === 0 ? (
         <div className="bg-slate-900/50 border border-white/5 rounded-[3.5rem] p-24 text-center">
            <MessageCircle size={48} className="mx-auto text-slate-700 mb-6" />
-           <p className="text-slate-500 font-bold text-xl">لا توجد رسائل من المستخدمين حتى الآن.</p>
+           <p className="text-slate-500 font-bold text-xl">{t('admin.feedback.noMessages')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -87,7 +89,7 @@ const AdminFeedback: React.FC = () => {
                        <User size={18} />
                     </div>
                     <div className="text-right">
-                       <p className="font-black text-white">{item.user_name || 'مستخدم مجهول'}</p>
+                       <p className="font-black text-white">{item.user_name || t('admin.feedback.anonymousUser')}</p>
                        <p className="text-[10px] text-slate-500 font-bold">{item.user_email}</p>
                     </div>
                  </div>
@@ -105,7 +107,7 @@ const AdminFeedback: React.FC = () => {
                  </div>
                  <div className="flex items-center gap-2">
                     <Sparkles size={14} className="text-[#00E5FF]" />
-                    <span className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest">تنبيه ذكي</span>
+                    <span className="text-[10px] font-black text-[#00E5FF] uppercase tracking-widest">{t('admin.feedback.smartAlert')}</span>
                  </div>
               </div>
             </MotionDiv>

@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import ProductCard from './ProductCard';
 import { Input, Loading } from '../../common/ui';
 import { Search, Filter, Grid, List } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Product {
   id: string;
@@ -32,6 +33,7 @@ const ProductList: React.FC<ProductListProps> = ({
   onToggleFavorite,
   favoriteProducts,
 }) => {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -58,7 +60,7 @@ const ProductList: React.FC<ProductListProps> = ({
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
-        <Loading text="جاري تحميل المنتجات..." />
+        <Loading text={t('productList.loadingProducts')} />
       </div>
     );
   }
@@ -70,7 +72,7 @@ const ProductList: React.FC<ProductListProps> = ({
         <div className="flex-1">
           <Input
             type="text"
-            placeholder="ابحث عن منتجات..."
+            placeholder={t('productList.searchProducts')}
             value={searchQuery}
             onChange={setSearchQuery}
             icon={<Search size={20} />}
@@ -93,7 +95,7 @@ const ProductList: React.FC<ProductListProps> = ({
       {/* Results Count */}
       <div className="flex items-center justify-between">
         <p className="text-slate-400 text-sm">
-          تم العثور على {filteredProducts.length} منتج
+          {t('productList.foundProducts', { count: filteredProducts.length })}
         </p>
       </div>
 
@@ -101,7 +103,7 @@ const ProductList: React.FC<ProductListProps> = ({
       {filteredProducts.length === 0 ? (
         <div className="text-center py-20">
           <p className="text-slate-400 text-lg font-bold">
-            لم يتم العثور على منتجات مطابقة
+            {t('productList.noMatchingProducts')}
           </p>
         </div>
       ) : (

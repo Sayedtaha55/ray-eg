@@ -173,7 +173,7 @@ const LoginPage: React.FC = () => {
       if (status === 403) {
         const msg = String(err?.message || '').trim();
         if (isBusinessLogin) {
-          if (msg.includes('courier') || msg.includes('المندوب')) {
+          if (msg.includes('courier') || msg.includes(t('auth.login.courierKeyword'))) {
             navigate('/business/courier-signup?pending=1');
             return;
           }

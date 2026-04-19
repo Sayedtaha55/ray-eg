@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -6,11 +7,12 @@ type Props = {
 };
 
 const CustomCssSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
   const value = typeof config?.customCss === 'string' ? config.customCss : '';
 
   return (
     <div className="space-y-3">
-      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">CSS مخصص (اختياري)</label>
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block text-right">{t('business.builder.customCss.label')}</label>
       <textarea
         value={value}
         onChange={(e) => setConfig({ ...config, customCss: e.target.value })}
@@ -19,7 +21,7 @@ const CustomCssSection: React.FC<Props> = ({ config, setConfig }) => {
         placeholder={`#shop-profile-root h1 {\n  font-size: 32px;\n}\n\n#shop-profile-root .my-class {\n  opacity: 0.9;\n}`}
       />
       <p className="text-[11px] md:text-xs text-slate-500 font-bold leading-relaxed">
-        يتم تطبيق الـ CSS داخل صفحة المتجر فقط.
+        {t('business.builder.customCss.hint')}
       </p>
     </div>
   );

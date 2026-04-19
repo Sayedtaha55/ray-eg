@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 
 interface StoreSettingsProps {
@@ -15,6 +16,7 @@ interface StoreSettingsProps {
 
 const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const baselineFormRef = useRef<any>(null);
@@ -284,7 +286,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   const handleUseMyLocation = async () => {
     setLocationError('');
     if (!navigator.geolocation) {
-      setLocationError('المتصفح لا يدعم تحديد الموقع');
+      setLocationError(t('storeSettings.browserNoGeolocation'));
       return;
     }
     setLocatingShop(true);
@@ -299,7 +301,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       },
       () => {
         setLocatingShop(false);
-        setLocationError('فشل تحديد موقعك. تأكد من السماح بالوصول للموقع.');
+        setLocationError(t('storeSettings.geolocationFailed'));
       },
       { enableHighAccuracy: true, timeout: 8000 },
     );
@@ -318,11 +320,11 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
         isActive: next,
       });
       setIsActive(next);
-      toast({ title: 'تم التحديث', description: next ? 'تم فتح المتجر' : 'تم قفل المتجر' });
+      toast({ title: t('storeSettings.updated'), description: next ? t('storeSettings.shopOpened') : t('storeSettings.shopClosed') });
       onSaved();
     } catch (e: any) {
       const msg = e?.message ? String(e.message) : '';
-      toast({ title: 'خطأ', description: msg ? `فشل تحديث حالة المتجر: ${msg}` : 'فشل تحديث حالة المتجر', variant: 'destructive' });
+      toast({ title: t('storeSettings.error'), description: msg ? t('storeSettings.updateShopStatusFailed', { msg }) : t('storeSettings.updateShopStatusFailedShort'), variant: 'destructive' });
     } finally {
       setTogglingActive(false);
     }
@@ -338,15 +340,15 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       });
       setPublicDisabled(next);
       toast({
-        title: 'تم التحديث',
-        description: next ? 'تم تعطيل صفحة العرض والخريطة' : 'تم تفعيل صفحة العرض والخريطة',
+        title: t('storeSettings.updated'),
+        description: next ? t('storeSettings.publicPageDisabled') : t('storeSettings.publicPageEnabled'),
       });
       onSaved();
     } catch (e: any) {
       const msg = e?.message ? String(e.message) : '';
       toast({
-        title: 'خطأ',
-        description: msg ? `فشل تحديث تعطيل صفحة العرض: ${msg}` : 'فشل تحديث تعطيل صفحة العرض',
+        title: t('storeSettings.error'),
+        description: msg ? t('storeSettings.updatePublicPageFailed', { msg }) : t('storeSettings.updatePublicPageFailedShort'),
         variant: 'destructive',
       });
     } finally {
@@ -365,15 +367,15 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       pendingDeliveryDisabledRef.current = next;
       setDeliveryDisabled(next);
       toast({
-        title: 'تم التحديث',
-        description: next ? 'تم تعطيل التوصيل - الطلبات لن تصل للمندوبين' : 'تم تفعيل التوصيل - الطلبات ستصل للمندوبين',
+        title: t('storeSettings.updated'),
+        description: next ? t('storeSettings.deliveryDisabled') : t('storeSettings.deliveryEnabled'),
       });
       onSaved();
     } catch (e: any) {
       const msg = e?.message ? String(e.message) : '';
       toast({
-        title: 'خطأ',
-        description: msg ? `فشل تحديث حالة التوصيل: ${msg}` : 'فشل تحديث حالة التوصيل',
+        title: t('storeSettings.error'),
+        description: msg ? t('storeSettings.updateDeliveryFailed', { msg }) : t('storeSettings.updateDeliveryFailedShort'),
         variant: 'destructive',
       });
     } finally {
@@ -419,7 +421,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
         window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count: 0 } }));
       } catch {
       }
-      toast({ title: 'تم الحفظ', description: 'تم حفظ إعدادات المتجر بنجاح' });
+      toast({ title: t('storeSettings.saved'), description: t('storeSettings.storeSettingsSaved') });
       onSaved();
       return true;
     } catch (e: any) {
@@ -427,8 +429,8 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       const msg = e?.message ? String(e.message) : '';
       const details = msg ? (status ? `${msg} (${status})` : msg) : status ? `(${status})` : '';
       toast({
-        title: 'خطأ',
-        description: details ? `فشل حفظ إعدادات المتجر: ${details}` : 'فشل حفظ إعدادات المتجر',
+        title: t('storeSettings.error'),
+        description: details ? t('storeSettings.saveStoreSettingsFailed', { details }) : t('storeSettings.saveStoreSettingsFailedShort'),
         variant: 'destructive',
       });
       throw e;
@@ -451,31 +453,31 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">إعدادات المتجر</h1>
-        <p className="text-muted-foreground">إعدادات الظهور ومعلومات التواصل</p>
+        <h1 className="text-2xl font-bold">{t('storeSettings.title')}</h1>
+        <p className="text-muted-foreground">{t('storeSettings.subtitle')}</p>
       </div>
 
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>حالة المتجر</CardTitle>
+          <CardTitle>{t('storeSettings.shopStatus')}</CardTitle>
           <CardDescription>
-            {isActive ? 'المتجر مفتوح ويظهر للعملاء' : 'المتجر مقفول ولن يظهر للعملاء'}
+            {isActive ? t('storeSettings.shopOpenDesc') : t('storeSettings.shopClosedDesc')}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end border-t px-6 py-4">
           <Button type="button" onClick={handleToggleActive} disabled={togglingActive} variant={isActive ? 'destructive' : 'default'}>
-            {togglingActive ? 'جارٍ التحديث...' : isActive ? 'قفل المتجر' : 'فتح المتجر'}
+            {togglingActive ? t('storeSettings.updating') : isActive ? t('storeSettings.closeShop') : t('storeSettings.openShop')}
           </Button>
         </CardFooter>
       </Card>
 
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>صفحة العرض والخريطة</CardTitle>
+          <CardTitle>{t('storeSettings.publicPageAndMap')}</CardTitle>
           <CardDescription>
             {publicDisabled
-              ? 'صفحة العرض والخريطة متعطلة (لوحة التحكم تظل تعمل)'
-              : 'صفحة العرض والخريطة تعمل بشكل طبيعي'}
+              ? t('storeSettings.publicPageDisabledDesc')
+              : t('storeSettings.publicPageEnabledDesc')}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end border-t px-6 py-4">
@@ -485,18 +487,18 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
             disabled={togglingPublicDisabled}
             variant={publicDisabled ? 'default' : 'destructive'}
           >
-            {togglingPublicDisabled ? 'جارٍ التحديث...' : publicDisabled ? 'تفعيل صفحة العرض' : 'تعطيل صفحة العرض'}
+            {togglingPublicDisabled ? t('storeSettings.updating') : publicDisabled ? t('storeSettings.enablePublicPage') : t('storeSettings.disablePublicPage')}
           </Button>
         </CardFooter>
       </Card>
 
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>التوصيل</CardTitle>
+          <CardTitle>{t('storeSettings.delivery')}</CardTitle>
           <CardDescription>
             {deliveryDisabled
-              ? 'التوصيل معطل - الطلبات الجديدة لن تصل للمندوبين'
-              : 'التوصيل مفعل - الطلبات ستصل للمندوبين بشكل طبيعي'}
+              ? t('storeSettings.deliveryDisabledDesc')
+              : t('storeSettings.deliveryEnabledDesc')}
           </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end border-t px-6 py-4">
@@ -506,7 +508,7 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
             disabled={togglingDeliveryDisabled}
             variant={deliveryDisabled ? 'default' : 'destructive'}
           >
-            {togglingDeliveryDisabled ? 'جارٍ التحديث...' : deliveryDisabled ? 'تفعيل التوصيل' : 'تعطيل التوصيل'}
+            {togglingDeliveryDisabled ? t('storeSettings.updating') : deliveryDisabled ? t('storeSettings.enableDelivery') : t('storeSettings.disableDelivery')}
           </Button>
         </CardFooter>
       </Card>
@@ -514,23 +516,23 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
       <form onSubmit={onSubmit}>
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>التواصل</CardTitle>
-            <CardDescription>حدّث بيانات التواصل التي تظهر للعملاء.</CardDescription>
+            <CardTitle>{t('storeSettings.contact')}</CardTitle>
+            <CardDescription>{t('storeSettings.contactDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="whatsapp">واتساب</Label>
+                <Label htmlFor="whatsapp">{t('storeSettings.whatsapp')}</Label>
                 <Input id="whatsapp" value={form.whatsapp} onChange={onChange('whatsapp')} placeholder="+2010..." />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="customDomain">دومين مخصص</Label>
+                <Label htmlFor="customDomain">{t('storeSettings.customDomain')}</Label>
                 <Input id="customDomain" value={form.customDomain} onChange={onChange('customDomain')} placeholder="shop.example.com" />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="openingHours">ساعات العمل</Label>
+              <Label htmlFor="openingHours">{t('storeSettings.openingHours')}</Label>
               <Input id="openingHours" value={form.openingHours} onChange={onChange('openingHours')} placeholder="10:00 - 22:00" />
             </div>
           </CardContent>
@@ -540,18 +542,18 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
 
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>العنوان</CardTitle>
-            <CardDescription>البيانات التي تظهر على صفحة المتجر.</CardDescription>
+            <CardTitle>{t('storeSettings.address')}</CardTitle>
+            <CardDescription>{t('storeSettings.addressDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="displayAddress">العنوان المختصر</Label>
-                <Input id="displayAddress" value={form.displayAddress} onChange={onChange('displayAddress')} placeholder="القاهرة - ..." />
+                <Label htmlFor="displayAddress">{t('storeSettings.shortAddress')}</Label>
+                <Input id="displayAddress" value={form.displayAddress} onChange={onChange('displayAddress')} placeholder={t('storeSettings.cairoPlaceholder')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="mapLabel">اسم الموقع على الخريطة</Label>
-                <Input id="mapLabel" value={form.mapLabel} onChange={onChange('mapLabel')} placeholder="اسم المتجر" />
+                <Label htmlFor="mapLabel">{t('storeSettings.mapLocationName')}</Label>
+                <Input id="mapLabel" value={form.mapLabel} onChange={onChange('mapLabel')} placeholder={t('storeSettings.shopNamePlaceholder')} />
               </div>
             </div>
           </CardContent>
@@ -561,13 +563,13 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
 
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>موقع المتجر على الخريطة</CardTitle>
-            <CardDescription>اضغط على الخريطة أو اسحب العلامة لتحديد المكان.</CardDescription>
+            <CardTitle>{t('storeSettings.shopLocationOnMap')}</CardTitle>
+            <CardDescription>{t('storeSettings.shopLocationOnMapDesc')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-end">
               <Button type="button" onClick={handleUseMyLocation} disabled={locatingShop} variant="outline">
-                {locatingShop ? 'جاري تحديد موقعي...' : 'استخدم موقعي'}
+                {locatingShop ? t('storeSettings.locatingMe') : t('storeSettings.useMyLocation')}
               </Button>
             </div>
 
@@ -582,11 +584,11 @@ const StoreSettings: React.FC<StoreSettingsProps> = ({ shop, onSaved, adminShopI
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="rounded-md border border-slate-200 bg-white p-3 text-right">
                 <div className="text-xs text-slate-500">Latitude</div>
-                <div className="font-bold text-slate-900">{latitude == null ? 'غير محدد' : latitude.toFixed(6)}</div>
+                <div className="font-bold text-slate-900">{latitude == null ? t('storeSettings.undefined') : latitude.toFixed(6)}</div>
               </div>
               <div className="rounded-md border border-slate-200 bg-white p-3 text-right">
                 <div className="text-xs text-slate-500">Longitude</div>
-                <div className="font-bold text-slate-900">{longitude == null ? 'غير محدد' : longitude.toFixed(6)}</div>
+                <div className="font-bold text-slate-900">{longitude == null ? t('storeSettings.undefined') : longitude.toFixed(6)}</div>
               </div>
             </div>
           </CardContent>

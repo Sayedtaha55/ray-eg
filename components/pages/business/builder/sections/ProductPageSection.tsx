@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -7,13 +8,10 @@ type Props = {
 
 type ProductVisibilityKey = 'productTabs' | 'productShareButton' | 'productQuickSpecs';
 
-const PRODUCT_ITEMS: { key: ProductVisibilityKey; label: string }[] = [
-  { key: 'productTabs', label: 'إظهار تبويبات صفحة المنتج (التفاصيل / المواصفات / الشحن)' },
-  { key: 'productShareButton', label: 'إظهار زر المشاركة في صفحة المنتج' },
-  { key: 'productQuickSpecs', label: 'إظهار صندوق المواصفات السريعة' },
-];
+const PRODUCT_VISIBILITY_KEYS: ProductVisibilityKey[] = ['productTabs', 'productShareButton', 'productQuickSpecs'];
 
 const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
   const current = (config?.elementsVisibility || {}) as Record<string, any>;
 
   const getValue = (key: ProductVisibilityKey) => {
@@ -32,7 +30,7 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون الخلفية</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.backgroundColor')}</label>
             <input
               type="color"
               value={String(config.productPageBackgroundColor || '#FFFFFF')}
@@ -41,7 +39,7 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون النص</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.textColor')}</label>
             <input
               type="color"
               value={String(config.productPageTextColor || '#0F172A')}
@@ -52,7 +50,7 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون السعر</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.priceColor')}</label>
             <input
               type="color"
               value={String(config.productPagePriceColor || '#00E5FF')}
@@ -61,7 +59,7 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
             />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">لون الزر</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.buttonColor')}</label>
             <input
               type="color"
               value={String(config.productPageButtonColor || config.primaryColor || '#00E5FF')}
@@ -76,19 +74,19 @@ const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
 
       {/* Visibility */}
       <div className="space-y-3">
-        <h3 className="font-black text-sm text-slate-900">إظهار / إخفاء</h3>
-        {PRODUCT_ITEMS.map((item) => (
+        <h3 className="font-black text-sm text-slate-900">{t('business.builder.productPage.showHide')}</h3>
+        {PRODUCT_VISIBILITY_KEYS.map((key) => (
           <label
-            key={item.key}
+            key={key}
             className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
+            <span className="font-black text-xs md:text-sm text-slate-700">{t(`business.builder.productPage.visibility.${key}`)}</span>
             <input
               type="checkbox"
-              checked={getValue(item.key)}
+              checked={getValue(key)}
               onClick={(e) => e.stopPropagation()}
-              onChange={(e) => setValue(item.key, e.target.checked)}
+              onChange={(e) => setValue(key, e.target.checked)}
             />
           </label>
         ))}

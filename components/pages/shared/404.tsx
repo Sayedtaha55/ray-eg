@@ -1,10 +1,12 @@
 
 import React, { useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const { Link, useLocation } = ReactRouterDOM as any;
 
 const Page404: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
 
   const search = String(location?.search || '');
@@ -18,20 +20,20 @@ const Page404: React.FC = () => {
   })();
 
   const title = reason === 'offline'
-    ? 'لا يوجد اتصال بالإنترنت'
+    ? t('page404.offlineTitle')
     : reason === 'service'
-      ? 'الخدمة غير متاحة مؤقتًا'
+      ? t('page404.serviceTitle')
       : reason === 'error'
-        ? 'حدث خطأ غير متوقع'
-        : '404 - الصفحة غير موجودة';
+        ? t('page404.errorTitle')
+        : t('page404.notFoundTitle');
 
   const message = reason === 'offline'
-    ? 'الإنترنت مفصول'
+    ? t('page404.offlineMessage')
     : reason === 'service'
-      ? 'الخدمة غير متاحة الآن'
+      ? t('page404.serviceMessage')
       : reason === 'error'
-        ? 'حصل خطأ غير متوقع'
-        : 'الصفحة غير موجودة';
+        ? t('page404.errorMessage')
+        : t('page404.notFoundMessage');
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -442,7 +444,7 @@ const Page404: React.FC = () => {
           <div className="error-code">404</div>
           <div className="error-msg">{message}</div>
           <Link className="home-btn" to="/">
-            العودة للرئيسية
+            {t('page404.backHome')}
           </Link>
           <div style={{ marginTop: '1rem', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
             {String(location?.pathname || '')}

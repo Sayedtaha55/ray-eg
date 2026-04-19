@@ -1,12 +1,14 @@
 import React from 'react';
 import { Calendar, CheckCircle2, Clock, User2, XCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const ClinicOverviewPage: React.FC = () => {
+  const { t } = useTranslation();
   const stats = [
-    { label: 'حجوزات اليوم', value: '0', icon: <Calendar size={18} /> },
-    { label: 'قيد الانتظار', value: '0', icon: <Clock size={18} /> },
-    { label: 'مؤكد', value: '0', icon: <CheckCircle2 size={18} /> },
-    { label: 'ملغي', value: '0', icon: <XCircle size={18} /> },
+    { label: t('business.clinic.overview.stats.todayBookings'), value: '0', icon: <Calendar size={18} /> },
+    { label: t('business.clinic.overview.stats.pending'), value: '0', icon: <Clock size={18} /> },
+    { label: t('business.clinic.overview.stats.confirmed'), value: '0', icon: <CheckCircle2 size={18} /> },
+    { label: t('business.clinic.overview.stats.cancelled'), value: '0', icon: <XCircle size={18} /> },
   ];
 
   const todaySchedule = [
@@ -16,9 +18,9 @@ const ClinicOverviewPage: React.FC = () => {
   ];
 
   const recentBookings = [
-    { id: '1', name: '—', phone: '—', time: 'اليوم 10:00', status: 'PENDING' },
-    { id: '2', name: '—', phone: '—', time: 'اليوم 11:30', status: 'CONFIRMED' },
-    { id: '3', name: '—', phone: '—', time: 'أمس 18:15', status: 'CANCELLED' },
+    { id: '1', name: '—', phone: '—', time: t('business.clinic.overview.recentBookings.t1Time'), status: 'PENDING' },
+    { id: '2', name: '—', phone: '—', time: t('business.clinic.overview.recentBookings.t2Time'), status: 'CONFIRMED' },
+    { id: '3', name: '—', phone: '—', time: t('business.clinic.overview.recentBookings.t3Time'), status: 'CANCELLED' },
   ];
 
   const statusBadge = (s: string) => {
@@ -31,18 +33,18 @@ const ClinicOverviewPage: React.FC = () => {
 
   const statusLabel = (s: string) => {
     const v = String(s || '').toUpperCase();
-    if (v === 'CONFIRMED') return 'مؤكد';
-    if (v === 'COMPLETED') return 'مكتمل';
-    if (v === 'CANCELLED') return 'ملغي';
-    return 'قيد الانتظار';
+    if (v === 'CONFIRMED') return t('business.clinic.overview.status.confirmed');
+    if (v === 'COMPLETED') return t('business.clinic.overview.status.completed');
+    if (v === 'CANCELLED') return t('business.clinic.overview.status.cancelled');
+    return t('business.clinic.overview.status.pending');
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <div className="text-lg md:text-xl font-black text-slate-900">نظرة عامة</div>
-          <div className="mt-1 text-sm font-bold text-slate-500">ملخص سريع لإدارة حجوزات العيادة (جاهز للربط مع البيانات لاحقًا).</div>
+          <div className="text-lg md:text-xl font-black text-slate-900">{t('business.clinic.overview.title')}</div>
+          <div className="mt-1 text-sm font-bold text-slate-500">{t('business.clinic.overview.subtitle')}</div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -50,19 +52,19 @@ const ClinicOverviewPage: React.FC = () => {
             type="button"
             className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all"
           >
-            إضافة حجز
+            {t('business.clinic.overview.addBooking')}
           </button>
           <button
             type="button"
             className="px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-sm hover:bg-slate-50 transition-all"
           >
-            إدارة الأطباء
+            {t('business.clinic.overview.manageDoctors')}
           </button>
           <button
             type="button"
             className="px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-sm hover:bg-slate-50 transition-all"
           >
-            إعدادات المواعيد
+            {t('business.clinic.overview.scheduleSettings')}
           </button>
         </div>
       </div>
@@ -75,7 +77,7 @@ const ClinicOverviewPage: React.FC = () => {
               <div className="text-slate-500">{s.icon}</div>
             </div>
             <div className="mt-3 text-2xl font-black text-slate-900">{s.value}</div>
-            <div className="mt-1 text-xs font-bold text-slate-400">آخر 24 ساعة</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">{t('business.clinic.overview.last24h')}</div>
           </div>
         ))}
       </div>
@@ -84,23 +86,23 @@ const ClinicOverviewPage: React.FC = () => {
         <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
-              <div className="text-sm font-black text-slate-900">مواعيد اليوم</div>
-              <div className="mt-1 text-xs font-bold text-slate-400">عرض سريع للمواعيد القادمة (Placeholder)</div>
+              <div className="text-sm font-black text-slate-900">{t('business.clinic.overview.todaySchedule')}</div>
+              <div className="mt-1 text-xs font-bold text-slate-400">{t('business.clinic.overview.todayScheduleSubtitle')}</div>
             </div>
             <button
               type="button"
               className="px-4 py-2 rounded-2xl bg-slate-50 text-slate-700 font-black text-xs hover:bg-slate-100 transition-all"
             >
-              فتح إدارة الحجوزات
+              {t('business.clinic.overview.openBookingMgmt')}
             </button>
           </div>
 
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
             <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
-              <div className="col-span-2">الوقت</div>
-              <div className="col-span-4">المريض</div>
-              <div className="col-span-4">الطبيب</div>
-              <div className="col-span-2">الحالة</div>
+              <div className="col-span-2">{t('business.clinic.overview.table.time')}</div>
+              <div className="col-span-4">{t('business.clinic.overview.table.patient')}</div>
+              <div className="col-span-4">{t('business.clinic.overview.table.doctor')}</div>
+              <div className="col-span-2">{t('business.clinic.overview.table.status')}</div>
             </div>
             <div className="divide-y divide-slate-100">
               {todaySchedule.map((row, idx) => (
@@ -124,8 +126,8 @@ const ClinicOverviewPage: React.FC = () => {
 
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
           <div>
-            <div className="text-sm font-black text-slate-900">آخر الحجوزات</div>
-            <div className="mt-1 text-xs font-bold text-slate-400">آخر العمليات (Placeholder)</div>
+            <div className="text-sm font-black text-slate-900">{t('business.clinic.overview.recentBookings.title')}</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">{t('business.clinic.overview.recentBookings.subtitle')}</div>
           </div>
 
           <div className="mt-5 space-y-3">

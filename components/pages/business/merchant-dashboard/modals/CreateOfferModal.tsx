@@ -5,6 +5,7 @@ import { ApiService } from '@/services/api.service';
 import { Product } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -17,9 +18,10 @@ type Props = {
 const MotionDiv = motion.div as any;
 
 const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, products }) => {
+  const { t } = useTranslation();
   const [pricingMode, setPricingMode] = useState<'PERCENT' | 'AMOUNT' | 'NEW_PRICE'>('PERCENT');
   const [pricingValue, setPricingValue] = useState('20');
-  const [title, setTitle] = useState('عرض خاص');
+  const [title, setTitle] = useState(t('business.offers.specialOffer')); // default, overridden by t() in UI
   const [description, setDescription] = useState('');
   const [expiresDays, setExpiresDays] = useState('7');
   const [search, setSearch] = useState('');
@@ -43,8 +45,8 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
     if (!isOpen) return;
     const id = String((product as any)?.id || '').trim();
     setSelectedIds(id ? [id] : []);
-    setTitle('عرض خاص');
-    setDescription(id ? `عرض خاص وحصري على ${(product as any).name}` : '');
+    setTitle(t('business.offers.specialOffer'));
+    setDescription(id ? t('business.offers.exclusiveOfferOn', { name: (product as any).name }) : '');
     setPricingMode('PERCENT');
     setPricingValue('20');
     setExpiresDays('7');
@@ -169,31 +171,31 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
 
   const validationError = (() => {
     const v = Number(pricingValue);
-    if (!selectedIds.length) return 'اختر منتج واحد على الأقل';
-    if (!Number.isFinite(v) || v < 0) return 'القيمة غير صحيحة';
-    if (pricingMode === 'PERCENT' && v > 100) return 'النسبة يجب أن تكون من 0 إلى 100';
+    if (!selectedIds.length) return t('business.offers.selectAtLeastOneProduct');
+    if (!Number.isFinite(v) || v < 0) return t('business.offers.invalidValue');
+    if (pricingMode === 'PERCENT' && v > 100) return t('business.offers.percentRange0To100');
 
     if (isVariantModeEligible) {
       const chosen = (variantRows || []).filter((r) => r?.selected);
-      if (chosen.length === 0) return 'اختر حجم واحد على الأقل';
+      if (chosen.length === 0) return t('business.offers.selectAtLeastOneSize');
       for (const r of chosen) {
         const np = Number(r?.newPrice);
-        if (!Number.isFinite(np)) return 'سعر العرض للحجم غير صحيح';
-        if (np < 0) return 'سعر العرض للحجم غير صحيح';
-        if (np > Number(r?.oldPrice || 0)) return 'سعر العرض للحجم لا يمكن أن يكون أكبر من السعر الأصلي';
+        if (!Number.isFinite(np)) return t('business.offers.invalidVariantPrice');
+        if (np < 0) return t('business.offers.invalidVariantPrice');
+        if (np > Number(r?.oldPrice || 0)) return t('business.offers.variantPriceCannotExceedOriginal');
       }
     }
 
     const first = selectedProducts[0];
-    if (!first) return 'اختر منتج واحد على الأقل';
+    if (!first) return t('business.offers.selectAtLeastOneProduct');
     const oldP = Number((first as any)?.price || 0);
     const newP = computeNewPrice(oldP);
-    if (!Number.isFinite(newP)) return 'القيمة غير صحيحة';
-    if (newP < 0) return 'السعر بعد الخصم لا يمكن أن يكون أقل من 0';
-    if (newP > oldP) return 'السعر بعد الخصم لا يمكن أن يكون أكبر من السعر الأصلي';
+    if (!Number.isFinite(newP)) return t('business.offers.invalidValue');
+    if (newP < 0) return t('business.offers.discountPriceCannotBeBelow0');
+    if (newP > oldP) return t('business.offers.discountPriceCannotExceedOriginal');
 
     const days = Number(expiresDays);
-    if (!Number.isFinite(days) || days <= 0 || days > 365) return 'عدد الأيام غير صحيح';
+    if (!Number.isFinite(days) || days <= 0 || days > 365) return t('business.offers.invalidDays');
     return '';
   })();
 
@@ -222,7 +224,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
         shopId,
         productIds: selectedIds,
         variantPricing,
-        title: String(title || '').trim() || 'عرض خاص',
+        title: String(title || '').trim() || t('business.offers.specialOffer'),
         description: String(description || '').trim() || null,
         pricingMode,
         pricingValue: Number(pricingValue),
@@ -230,10 +232,10 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
       });
 
       const count = Array.isArray(created) ? created.length : 1;
-      addToast(count > 1 ? `تم إنشاء ${count} عروض بنجاح` : 'تم نشر العرض بنجاح!', 'success');
+      addToast(count > 1 ? t('business.offers.offersCreated', { count }) : t('business.offers.offerPublished'), 'success');
       onClose();
     } catch {
-      addToast('فشل في إنشاء العرض', 'error');
+      addToast(t('business.offers.createOfferFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -246,7 +248,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
       <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={onClose} className="absolute inset-0 bg-black/80 backdrop-blur-md" />
       <MotionDiv initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="relative bg-white w-full max-w-2xl rounded-[3rem] p-10 text-right shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto no-scrollbar">
         <h2 className="text-3xl font-black mb-8">
-          إنشاء عرض فلاش <Zap className="text-[#BD00FF] inline" />
+          {t('business.offers.createFlashOffer')} <Zap className="text-[#BD00FF] inline" />
         </h2>
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -261,41 +263,41 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                   />
                   <div className="text-right">
                     <p className="font-black text-sm">{(product as any).name}</p>
-                    <p className="text-slate-400 font-bold text-xs">ج.م {(product as any).price}</p>
+                    <p className="text-slate-400 font-bold text-xs">{t('pos.egpShort')} {(product as any).price}</p>
                   </div>
                 </div>
               ) : (
                 <div className="bg-slate-50 p-4 rounded-2xl text-slate-500 font-black text-sm text-right">
-                  اختر المنتجات من القائمة
+                  {t('business.offers.selectProductsFromList')}
                 </div>
               )}
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">عنوان العرض</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.offers.offerTitle')}</label>
                 <input value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-slate-50 rounded-2xl p-4 font-black text-right" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">وصف العرض (اختياري)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.offers.offerDescriptionOptional')}</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} className="w-full bg-slate-50 rounded-2xl p-4 font-bold text-right min-h-[110px]" />
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">مدة العرض (بالأيام)</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.offers.offerDurationDays')}</label>
                 <input type="number" value={expiresDays} onChange={(e) => setExpiresDays(e.target.value)} className="w-full bg-slate-50 rounded-2xl p-4 font-black text-center" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">المنتجات</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.dashboard.products.products')}</label>
                 <div className="bg-slate-50 rounded-2xl p-4">
                   <div className="relative mb-3">
                     <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="ابحث عن منتج..."
+                      placeholder={t('business.offers.searchProduct')}
                       className="w-full bg-white rounded-xl py-3 pr-11 pl-4 font-bold text-right outline-none"
                     />
                   </div>
@@ -322,7 +324,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                             />
                             <div className="text-right">
                               <div className="font-black text-xs text-slate-900">{p?.name}</div>
-                              <div className="font-bold text-[10px] text-slate-400">ج.م {p?.price}</div>
+                              <div className="font-bold text-[10px] text-slate-400">{t('pos.egpShort')} {p?.price}</div>
                             </div>
                           </div>
                           <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${checked ? 'bg-[#BD00FF] text-white' : 'bg-slate-100 text-slate-400'}`}>
@@ -333,22 +335,22 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                     })}
                   </div>
 
-                  <div className="mt-3 text-xs font-black text-slate-500">تم اختيار: {selectedIds.length} منتج</div>
+                  <div className="mt-3 text-xs font-black text-slate-500">{t('business.offers.selectedCount', { count: selectedIds.length })}</div>
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">نوع الخصم</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.offers.discountType')}</label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => setPricingMode('PERCENT')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'PERCENT' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>نسبة %</button>
-                  <button type="button" onClick={() => setPricingMode('AMOUNT')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'AMOUNT' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>مبلغ</button>
-                  <button type="button" onClick={() => setPricingMode('NEW_PRICE')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'NEW_PRICE' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>سعر جديد</button>
+                  <button type="button" onClick={() => setPricingMode('PERCENT')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'PERCENT' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.offers.percent')}</button>
+                  <button type="button" onClick={() => setPricingMode('AMOUNT')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'AMOUNT' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.offers.amount')}</button>
+                  <button type="button" onClick={() => setPricingMode('NEW_PRICE')} className={`py-3 rounded-xl font-black text-xs ${pricingMode === 'NEW_PRICE' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.offers.newPrice')}</button>
                 </div>
               </div>
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">
-                  {pricingMode === 'PERCENT' ? 'قيمة الخصم (%)' : pricingMode === 'AMOUNT' ? 'قيمة الخصم (ج.م)' : 'السعر الجديد (ج.م)'}
+                  {pricingMode === 'PERCENT' ? t('business.offers.discountValuePercent') : pricingMode === 'AMOUNT' ? t('business.offers.discountValueEgp') : t('business.offers.newPriceEgp')}
                 </label>
                 <input
                   type="number"
@@ -362,15 +364,15 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                 <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100 space-y-3">
                   <div className="flex items-center justify-between">
                     <div className="text-right">
-                      <div className="text-xs font-black text-slate-700">تسعير حسب الحجم</div>
-                      <div className="text-[10px] font-black text-slate-400">اختر الأحجام وحدد سعر العرض لكل حجم</div>
+                      <div className="text-xs font-black text-slate-700">{t('business.offers.pricingBySize')}</div>
+                      <div className="text-[10px] font-black text-slate-400">{t('business.offers.selectSizesSetPrice')}</div>
                     </div>
                     <button
                       type="button"
                       onClick={applyPricingToSelectedVariants}
                       className="px-3 py-2 rounded-xl bg-white border border-slate-200 text-[10px] font-black hover:bg-slate-100"
                     >
-                      تطبيق القاعدة
+                      {t('business.offers.applyRule')}
                     </button>
                   </div>
 
@@ -388,12 +390,12 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
                           />
                           <div>
                             <div className="text-[11px] font-black text-slate-800">{r.typeName} - {r.sizeLabel}</div>
-                            <div className="text-[10px] font-black text-slate-400">الأصلي: ج.م {Math.round(Number(r.oldPrice || 0) * 100) / 100}</div>
+                            <div className="text-[10px] font-black text-slate-400">{t('business.offers.original')}: {t('pos.egpShort')} {Math.round(Number(r.oldPrice || 0) * 100) / 100}</div>
                           </div>
                         </label>
 
                         <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-400">سعر العرض</span>
+                          <span className="text-[10px] font-black text-slate-400">{t('business.offers.offerPrice')}</span>
                           <input
                             type="number"
                             value={r.newPrice}
@@ -412,10 +414,10 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
               )}
 
               <div className="p-6 bg-purple-50 rounded-2xl text-center border border-purple-100">
-                <p className="text-[10px] font-black text-purple-400 uppercase mb-2">السعر بعد الخصم (مثال أول منتج)</p>
+                <p className="text-[10px] font-black text-purple-400 uppercase mb-2">{t('business.offers.priceAfterDiscount')}</p>
                 <div className="flex items-center justify-center gap-4">
-                  <span className="text-slate-300 line-through font-black">ج.م {Math.round(previewForFirst.oldPrice * 100) / 100}</span>
-                  <span className="text-4xl font-black text-[#BD00FF]">ج.م {Number.isFinite(previewForFirst.newPrice) ? previewForFirst.newPrice : '--'}</span>
+                  <span className="text-slate-300 line-through font-black">{t('pos.egpShort')} {Math.round(previewForFirst.oldPrice * 100) / 100}</span>
+                  <span className="text-4xl font-black text-[#BD00FF]">{t('pos.egpShort')} {Number.isFinite(previewForFirst.newPrice) ? previewForFirst.newPrice : '--'}</span>
                 </div>
                 {validationError ? (
                   <div className="mt-3 text-xs font-black text-red-500">{validationError}</div>
@@ -425,7 +427,7 @@ const CreateOfferModal: React.FC<Props> = ({ isOpen, product, onClose, shopId, p
           </div>
 
           <button onClick={handleCreate} disabled={loading} className="w-full py-5 bg-[#BD00FF] text-white rounded-2xl font-black text-xl shadow-xl disabled:opacity-60">
-            {loading ? <Loader2 className="animate-spin mx-auto" /> : 'نشر العرض الآن'}
+            {loading ? <Loader2 className="animate-spin mx-auto" /> : t('business.offers.publishOfferNow')}
           </button>
         </div>
       </MotionDiv>

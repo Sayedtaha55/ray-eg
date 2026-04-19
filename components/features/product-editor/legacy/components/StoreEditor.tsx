@@ -3,6 +3,8 @@ import { Plus, Save, Edit3, Trash2, Loader2, X, Move, ChevronDown, ChevronUp } f
 import { Product, StockStatus, StoreSection } from '../types';
 import { backendPost } from '@/services/api/httpClient';
 import { ApiService } from '@/services/api.service';
+import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
 type MetaChip = { label: string; value: string };
 
@@ -10,13 +12,13 @@ const formatMetaValue = (value: any): string | null => {
   if (value == null) return null;
   if (typeof value === 'string') return value.trim() ? value.trim() : null;
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
-  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'boolean') return value ? i18n.t('storeEditor.yes') : i18n.t('storeEditor.no');
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
     const allStrings = value.every((v) => typeof v === 'string');
-    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join('، ');
+    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join(i18n.t('storeEditor.arabicComma'));
     if (value.every((v) => v && typeof v === 'object' && typeof v.label === 'string')) {
-      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join('، ');
+      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join(i18n.t('storeEditor.arabicComma'));
     }
     return `(${value.length})`;
   }
@@ -106,15 +108,15 @@ const getProductMetaChips = (product: any): MetaChip[] => {
   ]);
 
   const labelMap: Record<string, string> = {
-    unit: 'الوحدة',
-    packOptions: 'باقات',
-    colors: 'الألوان',
-    sizes: 'المقاسات',
-    furnitureMeta: 'الأبعاد',
-    addons: 'إضافات',
-    menuVariants: 'اختيارات',
-    images: 'صور',
-    imageUrl: 'صورة',
+    unit: i18n.t('storeEditor.labels.unit'),
+    packOptions: i18n.t('storeEditor.labels.packOptions'),
+    colors: i18n.t('storeEditor.labels.colors'),
+    sizes: i18n.t('storeEditor.labels.sizes'),
+    furnitureMeta: i18n.t('storeEditor.labels.furnitureMeta'),
+    addons: i18n.t('storeEditor.labels.addons'),
+    menuVariants: i18n.t('storeEditor.labels.menuVariants'),
+    images: i18n.t('storeEditor.labels.images'),
+    imageUrl: i18n.t('storeEditor.labels.imageUrl'),
   };
 
   const preferred = ['unit', 'furnitureMeta', 'colors', 'sizes', 'packOptions', 'addons', 'menuVariants'];
@@ -191,7 +193,7 @@ async function base64ToFile(base64: string, filename: string) {
 
 const analyzeStoreImage = async (base64Image: string, shopId: string): Promise<{ products: Product[]; summary: string }> => {
   const sid = String(shopId || '').trim();
-  if (!sid) throw new Error('shopId مطلوب');
+  if (!sid) throw new Error(i18n.t('storeEditor.errors.shopIdRequired'));
 
   const file = await base64ToFile(base64Image, `ai-section-${Date.now()}.jpg`);
   const uploaded = await ApiService.uploadMedia({ file, purpose: 'shop-image-map', shopId: sid });
@@ -205,10 +207,10 @@ const analyzeStoreImage = async (base64Image: string, shopId: string): Promise<{
 
   const hotspots = Array.isArray(data?.hotspots) ? data.hotspots : [];
   const products: Product[] = hotspots.map((h: any, index: number) => {
-    const name = String(h?.label || h?.name || '').trim() || `منتج ${index + 1}`;
+    const name = String(h?.label || h?.name || '').trim() || i18n.t('storeEditor.defaultProductName', { index: index + 1 });
     const x = typeof h?.x === 'number' ? h.x : 20 + Math.random() * 60;
     const y = typeof h?.y === 'number' ? h.y : 20 + Math.random() * 60;
-    const category = typeof h?.category === 'string' ? h.category : 'عام';
+    const category = typeof h?.category === 'string' ? h.category : i18n.t('storeEditor.defaultCategory');
     const confidence = typeof h?.confidence === 'number' ? h.confidence : 1;
 
     return {
@@ -225,7 +227,7 @@ const analyzeStoreImage = async (base64Image: string, shopId: string): Promise<{
     };
   });
 
-  const summary = typeof data?.summary === 'string' && data.summary.trim() ? data.summary : 'تم تحليل القسم بنجاح';
+  const summary = typeof data?.summary === 'string' && data.summary.trim() ? data.summary : i18n.t('storeEditor.analysisSuccess');
   return { products, summary };
 };
 
@@ -239,7 +241,7 @@ interface StoreEditorProps {
   onCancel: () => void;
 }
 
-export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
+export const StoreEditor = React.memo(({
   initialSections,
   initialStoreName = '',
   initialStoreType = '',
@@ -247,7 +249,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   shopCategory = '',
   onSave,
   onCancel,
-}) => {
+}: StoreEditorProps) => {
+  const { t } = useTranslation();
   const shopCategoryUpper = String(shopCategory || '').toUpperCase();
   const isFood = shopCategoryUpper === 'FOOD';
   const isRestaurant = shopCategoryUpper === 'RESTAURANT';
@@ -313,7 +316,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
   const createNewSection = (base64: string, products: Product[]) => {
     const newSection: StoreSection = {
       id: `sec_${Date.now()}`,
-      name: `قسم جديد ${sections.length + 1}`,
+      name: t('storeEditor.newSection', { num: sections.length + 1 }),
       image: `data:image/jpeg;base64,${base64}`,
       products,
     };
@@ -333,7 +336,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
         setPendingNewSectionBase64(base64);
         setIsNewSectionModePickerOpen(true);
       } catch (error) {
-        alert('فشل تحليل الصورة، حاول مرة أخرى');
+        alert(t('storeEditor.errors.analysisFailed'));
       } finally {
         e.target.value = '';
       }
@@ -356,7 +359,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
       createNewSection(pendingNewSectionBase64, analysis.products);
       setPendingNewSectionBase64(null);
     } catch (error) {
-      alert('فشل تحليل الصورة، حاول مرة أخرى');
+      alert(t('storeEditor.errors.analysisFailed'));
     } finally {
       setIsAnalyzingNewImage(false);
     }
@@ -370,7 +373,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
     const sid = String(sectionId || '').trim();
     if (!sid) return;
 
-    if (!window.confirm('هل أنت متأكد من حذف هذا القسم نهائياً؟ ستفقد جميع المنتجات بداخله.')) {
+    if (!window.confirm(t('storeEditor.confirmDeleteSection'))) {
       return;
     }
 
@@ -412,7 +415,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
       const isFashion = String(shopCategory).toUpperCase() === 'FASHION';
       const newProduct: Product = {
         id: `manual_${Date.now()}`,
-        name: 'منتج جديد',
+        name: t('storeEditor.newProduct'),
         description: '',
         price: 0,
         stock: 0,
@@ -469,7 +472,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
   const deleteProduct = (id: string) => {
     // تأكيد حذف المنتج
-    if (!window.confirm('هل أنت متأكد من حذف هذا المنتج؟')) {
+    if (!window.confirm(t('storeEditor.confirmDeleteProduct'))) {
       return;
     }
     setSections((prev) =>
@@ -513,8 +516,8 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-slate-900 text-white">
         <Loader2 className="w-12 h-12 text-cyan-400 animate-spin mb-4" />
-        <h3 className="text-xl font-bold">جاري تحليل القسم الجديد...</h3>
-        <p className="text-slate-400">يقوم الذكاء الاصطناعي بتحديد المنتجات في الصورة</p>
+        <h3 className="text-xl font-bold">{t('storeEditor.analyzingNewSection')}</h3>
+        <p className="text-slate-400">{t('storeEditor.aiDetectingProducts')}</p>
       </div>
     );
   }
@@ -525,21 +528,21 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
         <div className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-lg flex items-center justify-center p-4">
           <div className="w-full max-w-md rounded-3xl bg-slate-900/95 backdrop-blur-2xl border border-slate-700/50 shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] overflow-hidden">
             <div className="p-6 border-b border-slate-800/50 bg-gradient-to-r from-slate-800/50 to-slate-900/50">
-              <div className="text-white font-bold text-lg">إضافة قسم جديد</div>
-              <div className="text-slate-400 text-sm mt-1">هل تريد تعديل يدوي أم استخدام الذكاء الاصطناعي؟</div>
+              <div className="text-white font-bold text-lg">{t('storeEditor.addNewSection')}</div>
+              <div className="text-slate-400 text-sm mt-1">{t('storeEditor.manualOrAI')}</div>
             </div>
             <div className="p-6 space-y-3 bg-slate-900/30">
               <button
                 onClick={confirmNewSectionManual}
                 className="w-full px-4 py-3 rounded-2xl bg-slate-800/80 border border-slate-700/50 text-white font-bold hover:bg-slate-700/80 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-lg"
               >
-                تعديل يدوي
+                {t('storeEditor.manualEdit')}
               </button>
               <button
                 onClick={confirmNewSectionAI}
                 className="w-full px-4 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 border border-cyan-400/40 text-white font-bold hover:from-cyan-500 hover:to-blue-500 transition-all duration-300 transform hover:scale-[1.02] hover:shadow-cyan-500/25 shadow-lg"
               >
-                ذكاء صناعي (تحليل تلقائي)
+                {t('storeEditor.aiAutoAnalysis')}
               </button>
               <button
                 onClick={() => {
@@ -548,7 +551,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                 }}
                 className="w-full px-4 py-3 rounded-2xl bg-transparent border border-slate-700/50 text-slate-300 font-bold hover:bg-slate-800/50 transition-all duration-300"
               >
-                إلغاء
+                {t('storeEditor.cancel')}
               </button>
             </div>
           </div>
@@ -563,12 +566,12 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
             <Edit3 size={18} className="text-cyan-400 hidden sm:block" />
           </div>
           <div>
-            <h2 className="font-bold text-white text-[12px] sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">محرر الصور</h2>
+            <h2 className="font-bold text-white text-[12px] sm:text-base bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">{t('storeEditor.imageEditor')}</h2>
           </div>
         </div>
         <div className="flex gap-1.5 sm:gap-3">
           <button onClick={onCancel} className="px-2 sm:px-4 py-1.5 sm:py-2 text-slate-300 hover:text-white transition-all duration-300 text-[10px] sm:text-sm hover:bg-slate-800/50 rounded-lg">
-            إلغاء
+            {t('storeEditor.cancel')}
           </button>
           <button
             onClick={() => {
@@ -591,7 +594,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
             <span className="flex items-center gap-2">
               <Plus size={11} className="sm:hidden" />
               <Plus size={14} className="hidden sm:block" />
-              {isAddingMode ? 'انقر على الصورة لإضافة المنتج' : 'إضافة منتج'}
+              {isAddingMode ? t('storeEditor.clickToAddProduct') : t('storeEditor.addProduct')}
             </span>
           </button>
           <button
@@ -610,7 +613,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                 <Save className="hidden sm:block" size={16} />
               </>
             )}
-            حفظ التغييرات
+            {t('storeEditor.saveChanges')}
           </button>
         </div>
       </div>
@@ -644,7 +647,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                     deleteSectionById(section.id);
                   }}
                   className="p-2 rounded-lg border border-slate-700 bg-slate-800 text-red-400 hover:bg-red-900/20 hover:border-red-900/50 transition-colors"
-                  aria-label="حذف القسم"
+                  aria-label={t('storeEditor.deleteSection')}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -656,7 +659,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
               className="flex flex-col items-center justify-center px-4 min-w-[80px] rounded-lg border border-dashed border-slate-600 hover:border-cyan-500 hover:bg-slate-800/50 text-slate-400 hover:text-cyan-400 transition-all"
             >
               <Plus size={16} />
-              <span className="text-[10px] mt-1">صورة جديدة</span>
+              <span className="text-[10px] mt-1">{t('storeEditor.newImage')}</span>
             </button>
             <input type="file" ref={sectionInputRef} onChange={handleAddSection} accept="image/*" className="hidden" />
           </div>
@@ -666,17 +669,17 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
               <div className="flex-1 min-w-0">
                 <input
                   className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1.5 text-sm text-white focus:border-cyan-500 outline-none"
-                  placeholder="اسم القسم (مثلاً: رف الأدوية)"
+                  placeholder={t('storeEditor.sectionNamePlaceholder')}
                   value={activeSection.name}
                   onChange={(e) => updateActiveSectionName(e.target.value)}
                 />
-                <div className="text-[10px] text-slate-500 mt-1">{activeProducts.length} منتجات في هذا القسم</div>
+                <div className="text-[10px] text-slate-500 mt-1">{t('storeEditor.productsInSection', { count: activeProducts.length })}</div>
               </div>
               <button
                 onClick={deleteActiveSection}
                 className="px-3 py-2 bg-red-900/20 text-red-400 border border-red-900/50 rounded text-xs hover:bg-red-900/40 flex items-center gap-1"
               >
-                <Trash2 size={12} /> حذف القسم
+                <Trash2 size={12} /> {t('storeEditor.deleteSection')}
               </button>
             </div>
           )}
@@ -703,7 +706,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                   />
                 ) : (
                   <div className="w-full h-[55vh] sm:h-[75vh] bg-slate-800 flex items-center justify-center text-slate-500">
-                    لا توجد صورة للقسم
+                    {t('storeEditor.noSectionImage')}
                   </div>
                 )}
                 {activeProducts.map((product) => (
@@ -745,7 +748,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                       transitionTimingFunction: 'ease',
                     }}
                   >
-                    {isAddingMode && !selectedProduct && <div className="text-slate-200 text-sm font-bold">انقر على الصورة لإضافة المنتج</div>}
+                    {isAddingMode && !selectedProduct && <div className="text-slate-200 text-sm font-bold">{t('storeEditor.clickToAddProduct')}</div>}
 
                     {selectedProduct && (
                       <div className={`bg-slate-800/70 rounded-xl border border-slate-700 ${isProductSheetCollapsed ? 'p-2' : 'p-3'} `}>
@@ -779,13 +782,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                           }}
                         />
                         <div className="flex items-center justify-between gap-2">
-                          <h3 className="text-xs font-bold text-slate-300 uppercase">تعديل المنتج</h3>
+                          <h3 className="text-xs font-bold text-slate-300 uppercase">{t('storeEditor.editProduct')}</h3>
                           <div className="flex items-center gap-1 sm:gap-2">
                             <button
                               type="button"
                               onClick={() => setIsProductSheetCollapsed((v) => !v)}
                               className="p-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white"
-                              aria-label={isProductSheetCollapsed ? 'فتح' : 'تصغير'}
+                              aria-label={isProductSheetCollapsed ? t('storeEditor.open') : t('storeEditor.collapse')}
                             >
                               {isProductSheetCollapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                             </button>
@@ -800,7 +803,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                             >
                               <span className="flex items-center gap-1">
                                 <Move size={11} />
-                                تحريك
+                                {t('storeEditor.move')}
                               </span>
                             </button>
                             <button
@@ -809,7 +812,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               disabled={isSaving}
                               className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold disabled:opacity-60"
                             >
-                              حفظ
+                              {t('storeEditor.save')}
                             </button>
                             <button
                               onClick={() => {
@@ -818,7 +821,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               }}
                               className="text-slate-400 hover:text-white text-[11px] sm:text-xs"
                             >
-                              إغلاق
+                              {t('storeEditor.close')}
                             </button>
                           </div>
                         </div>
@@ -832,13 +835,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               value={selectedProduct.name}
                               onChange={(e) => updateProductDetails(selectedProduct.id, { name: e.target.value })}
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                              placeholder="اسم المنتج"
+                              placeholder={t('storeEditor.productName')}
                             />
                             <textarea
                               value={selectedProduct.description || ''}
                               onChange={(e) => updateProductDetails(selectedProduct.id, { description: e.target.value })}
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm resize-none"
-                              placeholder="وصف المنتج"
+                              placeholder={t('storeEditor.productDescription')}
                               rows={3}
                             />
 
@@ -863,7 +866,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               return (
                                 <>
                                   <div className="flex items-center justify-between">
-                                    <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
+                                    <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.price')}</div>
                                     {isFood && (
                                       <button
                                         type="button"
@@ -887,14 +890,14 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                         }}
                                         className={`px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold ${packEnabled ? 'opacity-80' : ''}`}
                                       >
-                                        باقة
+                                        {t('storeEditor.pack')}
                                       </button>
                                     )}
                                   </div>
 
                                   {packEnabled ? (
                                     <div className="w-full bg-slate-900/40 border border-slate-700 rounded px-2 py-2 text-slate-300 text-xs">
-                                      تم تفعيل الباقة
+                                      {t('storeEditor.packEnabled')}
                                     </div>
                                   ) : (
                                     <input
@@ -902,7 +905,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                       value={selectedProduct.price}
                                       onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
                                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                                      placeholder="السعر"
+                                      placeholder={t('storeEditor.price')}
                                     />
                                   )}
                                 </>
@@ -911,40 +914,40 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
                             {shouldShowHomeTextiles && (
                               <div className="space-y-2 pt-2 border-t border-slate-700">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase">المفروشات والسجاد</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.homeTextiles')}</div>
 
                                 <select
                                   value={String((selectedProduct as any)?.unit || '')}
                                   onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                                   className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                                 >
-                                  <option value="">بدون وحدة</option>
-                                  <option value="PIECE">قطعة</option>
-                                  <option value="M2">متر مربع</option>
+                                  <option value="">{t('storeEditor.noUnit')}</option>
+                                  <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                                  <option value="M2">{t('storeEditor.units.m2')}</option>
                                 </select>
                               </div>
                             )}
 
                             {shouldShowHomeGoods && (
                               <div className="space-y-2 pt-2 border-t border-slate-700">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase">مستلزمات المنزل</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.homeGoods')}</div>
 
                                 <select
                                   value={String((selectedProduct as any)?.unit || '')}
                                   onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                                   className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                                 >
-                                  <option value="">بدون وحدة</option>
-                                  <option value="PIECE">قطعة</option>
-                                  <option value="SET">طقم</option>
-                                  <option value="PACK">باك</option>
+                                  <option value="">{t('storeEditor.noUnit')}</option>
+                                  <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                                  <option value="SET">{t('storeEditor.units.set')}</option>
+                                  <option value="PACK">{t('storeEditor.units.pack')}</option>
                                 </select>
                               </div>
                             )}
 
                             {shouldShowFurniture && (
                               <div className="space-y-2 pt-2 border-t border-slate-700">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase">الأثاث</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.furniture')}</div>
 
                                 <input
                                   type="text"
@@ -956,7 +959,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                     updateProductDetails(selectedProduct.id, { unit: u || undefined, furnitureMeta: nextMeta } as any);
                                   }}
                                   className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                                  placeholder="الوحدة (مثال: قطعة)"
+                                  placeholder={t('storeEditor.unitPlaceholder')}
                                 />
 
                                 <div className="grid grid-cols-3 gap-2">
@@ -971,7 +974,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                       updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                                     }}
                                     className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                                    placeholder="الطول (سم)"
+                                    placeholder={t('storeEditor.lengthCm')}
                                   />
                                   <input
                                     type="number"
@@ -984,7 +987,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                       updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                                     }}
                                     className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                                    placeholder="العرض (سم)"
+                                    placeholder={t('storeEditor.widthCm')}
                                   />
                                   <input
                                     type="number"
@@ -997,7 +1000,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                       updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                                     }}
                                     className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                                    placeholder="الارتفاع (سم)"
+                                    placeholder={t('storeEditor.heightCm')}
                                   />
                                 </div>
                               </div>
@@ -1007,30 +1010,30 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
                         {isFood && !isProductSheetCollapsed && (
                           <div className="space-y-2 pt-2 border-t border-slate-700">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">سوبر ماركت</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.supermarket')}</div>
 
                             <select
                               value={String((selectedProduct as any)?.unit || '')}
                               onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                             >
-                              <option value="">بدون وحدة</option>
-                              <option value="PIECE">قطعة</option>
-                              <option value="CARTON">كرتونة</option>
-                              <option value="BOX">علبة</option>
-                              <option value="BOTTLE">عبوة</option>
-                              <option value="PACK">باك</option>
-                              <option value="BAG">كيس</option>
-                              <option value="CAN">كانز</option>
-                              <option value="KG">كيلو</option>
-                              <option value="G">جرام</option>
-                              <option value="L">لتر</option>
-                              <option value="ML">ملّي</option>
+                              <option value="">{t('storeEditor.noUnit')}</option>
+                              <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                              <option value="CARTON">{t('storeEditor.units.carton')}</option>
+                              <option value="BOX">{t('storeEditor.units.box')}</option>
+                              <option value="BOTTLE">{t('storeEditor.units.bottle')}</option>
+                              <option value="PACK">{t('storeEditor.units.pack')}</option>
+                              <option value="BAG">{t('storeEditor.units.bag')}</option>
+                              <option value="CAN">{t('storeEditor.units.can')}</option>
+                              <option value="KG">{t('storeEditor.units.kg')}</option>
+                              <option value="G">{t('storeEditor.units.g')}</option>
+                              <option value="L">{t('storeEditor.units.l')}</option>
+                              <option value="ML">{t('storeEditor.units.ml')}</option>
                             </select>
 
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
-                                <div className="text-[10px] font-bold text-slate-400 uppercase">باقات البيع</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.salePacks')}</div>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1048,14 +1051,14 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                   }}
                                   className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold"
                                 >
-                                  + إضافة باقة
+                                  + {t('storeEditor.addPack')}
                                 </button>
                               </div>
 
                               {(Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : []).map((p: any, idx: number) => (
                                 <div key={String(p?.id || idx)} className="p-2 rounded border border-slate-700 bg-slate-900/40">
                                   <div className="flex items-center justify-between mb-2">
-                                    <div className="text-xs font-bold text-slate-300">باقة #{idx + 1}</div>
+                                    <div className="text-xs font-bold text-slate-300">{t('storeEditor.packNum', { num: idx + 1 })}</div>
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1082,7 +1085,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                         );
                                         updateProductDetails(selectedProduct.id, { packOptions: next } as any);
                                       }}
-                                      placeholder="الكمية"
+                                      placeholder={t('storeEditor.quantity')}
                                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                     />
                                     <input
@@ -1097,7 +1100,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                         );
                                         updateProductDetails(selectedProduct.id, { packOptions: next } as any);
                                       }}
-                                      placeholder="السعر"
+                                      placeholder={t('storeEditor.price')}
                                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                     />
                                   </div>
@@ -1107,7 +1110,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                           </div>
                         )}
 
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">المخزون</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.stock')}</div>
                         <input
                           type="number"
                           inputMode="numeric"
@@ -1120,24 +1123,24 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                             updateProductDetails(selectedProduct.id, { stock: nextStock, stockStatus: nextStatus } as any);
                           }}
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                          placeholder="المخزون"
+                          placeholder={t('storeEditor.stock')}
                         />
 
                         <button
                           onClick={() => deleteProduct(selectedProduct.id)}
                           className="w-full py-1.5 bg-red-900/20 text-red-400 border border-red-900/50 rounded text-xs hover:bg-red-900/40"
                         >
-                          حذف المنتج
+                          {t('storeEditor.deleteProduct')}
                         </button>
 
                         {/* Fashion-specific: Colors */}
                         {String(shopCategory).toUpperCase() === 'FASHION' && (
                           <div className="space-y-2 pt-2 border-t border-slate-700">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">الألوان المتاحة</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.availableColors')}</div>
                             <div className="flex flex-wrap gap-2">
-                              {(['أسود', 'أبيض', 'رمادي', 'أحمر', 'أزرق', 'أخضر', 'أصفر', 'بني'] as const).map((color) => (
+                              {([t('storeEditor.colors.black'), t('storeEditor.colors.white'), t('storeEditor.colors.gray'), t('storeEditor.colors.red'), t('storeEditor.colors.blue'), t('storeEditor.colors.green'), t('storeEditor.colors.yellow'), t('storeEditor.colors.brown')]).map((color, ci) => (
                                 <button
-                                  key={color}
+                                  key={ci}
                                   type="button"
                                   onClick={() => {
                                     const currentColors = selectedProduct.colors || [];
@@ -1162,7 +1165,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                         {/* Fashion-specific: Size Variants */}
                         {String(shopCategory).toUpperCase() === 'FASHION' && (
                           <div className="space-y-2 pt-2 border-t border-slate-700">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">المقاسات والأسعار</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.sizesAndPrices')}</div>
                             <div className="space-y-2">
                               {(selectedProduct.sizes || []).map((size, idx) => {
                                 const isCustom = size.label === 'custom' || size.label === '';
@@ -1182,11 +1185,11 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                       }}
                                       className="flex-1 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                     >
-                                      <option value="">اختر المقاس</option>
+                                      <option value="">{t('storeEditor.selectSize')}</option>
                                       {['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'].map((s) => (
                                         <option key={s} value={s}>{s}</option>
                                       ))}
-                                      <option value="custom">✏️ مقاس مخصص...</option>
+                                      <option value="custom">✏️ {t('storeEditor.customSize')}</option>
                                     </select>
                                     {isCustom && (
                                       <input
@@ -1197,7 +1200,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                           newSizes[idx] = { ...size, customValue: Number(e.target.value) };
                                           updateProductDetails(selectedProduct.id, { sizes: newSizes });
                                         }}
-                                        placeholder="رقم"
+                                        placeholder={t('storeEditor.number')}
                                         className="w-16 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                         min={1}
                                       />
@@ -1210,7 +1213,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                         newSizes[idx] = { ...size, price: Number(e.target.value) };
                                         updateProductDetails(selectedProduct.id, { sizes: newSizes });
                                       }}
-                                      placeholder="السعر"
+                                      placeholder={t('storeEditor.price')}
                                       className="w-20 bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                     />
                                     <button
@@ -1234,7 +1237,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                 }}
                                 className="w-full py-1.5 bg-slate-800 border border-slate-700 rounded text-xs text-slate-300 hover:bg-slate-700"
                               >
-                                + إضافة مقاس
+                                + {t('storeEditor.addSize')}
                               </button>
                             </div>
                           </div>
@@ -1245,7 +1248,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                 )}
               </div>
             ) : (
-              <div className="text-slate-500">قم بإضافة صورة للبدء</div>
+              <div className="text-slate-500">{t('storeEditor.addImageToStart')}</div>
             )}
           </div>
         </div>
@@ -1258,17 +1261,17 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
           <div className="flex-1 overflow-y-auto p-2 sm:p-4">
             <div className="hidden md:block">
               {isAddingMode && !selectedProduct && (
-                <div className="text-center text-slate-600 text-xs mt-2">انقر على الصورة لإضافة المنتج</div>
+                <div className="text-center text-slate-600 text-xs mt-2">{t('storeEditor.clickToAddProduct')}</div>
               )}
 
               {!isAddingMode && !selectedProduct && (
-                <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>
+                <div className="text-center text-slate-600 text-xs mt-2">{t('storeEditor.editProductBelowImage')}</div>
               )}
 
               {selectedProduct && !isMoveMode && (
                 <div className="bg-slate-800/70 rounded-xl border border-slate-700 p-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-xs font-bold text-slate-300 uppercase">تعديل المنتج</h3>
+                    <h3 className="text-xs font-bold text-slate-300 uppercase">{t('storeEditor.editProduct')}</h3>
                     <div className="flex items-center gap-1 sm:gap-2">
                       <button
                         type="button"
@@ -1281,7 +1284,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                       >
                         <span className="flex items-center gap-1">
                           <Move size={11} />
-                          تحريك
+                          {t('storeEditor.move')}
                         </span>
                       </button>
                       <button
@@ -1290,7 +1293,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                         disabled={isSaving}
                         className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-[11px] sm:text-xs font-bold disabled:opacity-60"
                       >
-                        حفظ
+                        {t('storeEditor.save')}
                       </button>
                       <button
                         onClick={() => {
@@ -1299,7 +1302,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                         }}
                         className="text-slate-400 hover:text-white text-[11px] sm:text-xs"
                       >
-                        إغلاق
+                        {t('storeEditor.close')}
                       </button>
                     </div>
                   </div>
@@ -1310,13 +1313,13 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                       value={selectedProduct.name}
                       onChange={(e) => updateProductDetails(selectedProduct.id, { name: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                      placeholder="اسم المنتج"
+                      placeholder={t('storeEditor.productName')}
                     />
                     <textarea
                       value={selectedProduct.description || ''}
                       onChange={(e) => updateProductDetails(selectedProduct.id, { description: e.target.value })}
                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm resize-none"
-                      placeholder="وصف المنتج"
+                      placeholder={t('storeEditor.productDescription')}
                       rows={3}
                     />
 
@@ -1328,7 +1331,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                       return (
                         <>
                           <div className="flex items-center justify-between">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">السعر</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.price')}</div>
                             {isFood && (
                               <button
                                 type="button"
@@ -1352,14 +1355,14 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                 }}
                                 className={`px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold ${packEnabled ? 'opacity-80' : ''}`}
                               >
-                                باقة
+                                {t('storeEditor.pack')}
                               </button>
                             )}
                           </div>
 
                           {packEnabled ? (
                             <div className="w-full bg-slate-900/40 border border-slate-700 rounded px-2 py-2 text-slate-300 text-xs">
-                              تم تفعيل الباقة
+                              {t('storeEditor.packEnabled')}
                             </div>
                           ) : (
                             <input
@@ -1367,7 +1370,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               value={selectedProduct.price}
                               onChange={(e) => updateProductDetails(selectedProduct.id, { price: Number(e.target.value) })}
                               className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                              placeholder="السعر"
+                              placeholder={t('storeEditor.price')}
                             />
                           )}
                         </>
@@ -1376,40 +1379,40 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
                     {shouldShowHomeTextiles && (
                       <div className="space-y-2 pt-2 border-t border-slate-700">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">المفروشات والسجاد</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.homeTextiles')}</div>
 
                         <select
                           value={String((selectedProduct as any)?.unit || '')}
                           onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                         >
-                          <option value="">بدون وحدة</option>
-                          <option value="PIECE">قطعة</option>
-                          <option value="M2">متر مربع</option>
+                          <option value="">{t('storeEditor.noUnit')}</option>
+                          <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                          <option value="M2">{t('storeEditor.units.m2')}</option>
                         </select>
                       </div>
                     )}
 
                     {shouldShowHomeGoods && (
                       <div className="space-y-2 pt-2 border-t border-slate-700">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">مستلزمات المنزل</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.homeGoods')}</div>
 
                         <select
                           value={String((selectedProduct as any)?.unit || '')}
                           onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                         >
-                          <option value="">بدون وحدة</option>
-                          <option value="PIECE">قطعة</option>
-                          <option value="SET">طقم</option>
-                          <option value="PACK">باك</option>
+                          <option value="">{t('storeEditor.noUnit')}</option>
+                          <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                          <option value="SET">{t('storeEditor.units.set')}</option>
+                          <option value="PACK">{t('storeEditor.units.pack')}</option>
                         </select>
                       </div>
                     )}
 
                     {shouldShowFurniture && (
                       <div className="space-y-2 pt-2 border-t border-slate-700">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">الأثاث</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.furniture')}</div>
 
                         <input
                           type="text"
@@ -1421,7 +1424,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                             updateProductDetails(selectedProduct.id, { unit: u || undefined, furnitureMeta: nextMeta } as any);
                           }}
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                          placeholder="الوحدة (مثال: قطعة)"
+                          placeholder={t('storeEditor.unitPlaceholder')}
                         />
 
                         <div className="grid grid-cols-3 gap-2">
@@ -1438,7 +1441,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                             }}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                            placeholder="الطول (سم)"
+                            placeholder={t('storeEditor.lengthCm')}
                           />
                           <input
                             type="number"
@@ -1453,7 +1456,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                             }}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                            placeholder="العرض (سم)"
+                            placeholder={t('storeEditor.widthCm')}
                           />
                           <input
                             type="number"
@@ -1468,7 +1471,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               updateProductDetails(selectedProduct.id, { furnitureMeta: nextMeta } as any);
                             }}
                             className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-xs"
-                            placeholder="الارتفاع (سم)"
+                            placeholder={t('storeEditor.heightCm')}
                           />
                         </div>
                       </div>
@@ -1476,30 +1479,30 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
 
                     {isFood && (
                       <div className="space-y-2 pt-2 border-t border-slate-700">
-                        <div className="text-[10px] font-bold text-slate-400 uppercase">سوبر ماركت</div>
+                        <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.supermarket')}</div>
 
                         <select
                           value={String((selectedProduct as any)?.unit || '')}
                           onChange={(e) => updateProductDetails(selectedProduct.id, { unit: e.target.value } as any)}
                           className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
                         >
-                          <option value="">بدون وحدة</option>
-                          <option value="PIECE">قطعة</option>
-                          <option value="CARTON">كرتونة</option>
-                          <option value="BOX">علبة</option>
-                          <option value="BOTTLE">عبوة</option>
-                          <option value="PACK">باك</option>
-                          <option value="BAG">كيس</option>
-                          <option value="CAN">كانز</option>
-                          <option value="KG">كيلو</option>
-                          <option value="G">جرام</option>
-                          <option value="L">لتر</option>
-                          <option value="ML">ملّي</option>
+                          <option value="">{t('storeEditor.noUnit')}</option>
+                          <option value="PIECE">{t('storeEditor.units.piece')}</option>
+                          <option value="CARTON">{t('storeEditor.units.carton')}</option>
+                          <option value="BOX">{t('storeEditor.units.box')}</option>
+                          <option value="BOTTLE">{t('storeEditor.units.bottle')}</option>
+                          <option value="PACK">{t('storeEditor.units.pack')}</option>
+                          <option value="BAG">{t('storeEditor.units.bag')}</option>
+                          <option value="CAN">{t('storeEditor.units.can')}</option>
+                          <option value="KG">{t('storeEditor.units.kg')}</option>
+                          <option value="G">{t('storeEditor.units.g')}</option>
+                          <option value="L">{t('storeEditor.units.l')}</option>
+                          <option value="ML">{t('storeEditor.units.ml')}</option>
                         </select>
 
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <div className="text-[10px] font-bold text-slate-400 uppercase">باقات البيع</div>
+                            <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.salePacks')}</div>
                             <button
                               type="button"
                               onClick={() => {
@@ -1517,14 +1520,14 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                               }}
                               className="px-2 py-1 rounded border border-slate-700 bg-slate-900 text-slate-200 hover:text-white text-xs font-bold"
                             >
-                              + إضافة باقة
+                              + {t('storeEditor.addPack')}
                             </button>
                           </div>
 
                           {(Array.isArray((selectedProduct as any)?.packOptions) ? (selectedProduct as any).packOptions : []).map((p: any, idx: number) => (
                             <div key={String(p?.id || idx)} className="p-2 rounded border border-slate-700 bg-slate-900/40">
                               <div className="flex items-center justify-between mb-2">
-                                <div className="text-xs font-bold text-slate-300">باقة #{idx + 1}</div>
+                                <div className="text-xs font-bold text-slate-300">{t('storeEditor.packNum', { num: idx + 1 })}</div>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1551,7 +1554,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                     );
                                     updateProductDetails(selectedProduct.id, { packOptions: next } as any);
                                   }}
-                                  placeholder="الكمية"
+                                  placeholder={t('storeEditor.quantity')}
                                   className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                 />
                                 <input
@@ -1566,7 +1569,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                                     );
                                     updateProductDetails(selectedProduct.id, { packOptions: next } as any);
                                   }}
-                                  placeholder="السعر"
+                                  placeholder={t('storeEditor.price')}
                                   className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-white text-xs"
                                 />
                               </div>
@@ -1576,7 +1579,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                       </div>
                     )}
 
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">المخزون</div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">{t('storeEditor.stock')}</div>
                     <input
                       type="number"
                       inputMode="numeric"
@@ -1589,26 +1592,26 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
                         updateProductDetails(selectedProduct.id, { stock: nextStock, stockStatus: nextStatus } as any);
                       }}
                       className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
-                      placeholder="المخزون"
+                      placeholder={t('storeEditor.stock')}
                     />
 
                     <button
                       onClick={() => deleteProduct(selectedProduct.id)}
                       className="w-full py-1.5 bg-red-900/20 text-red-400 border border-red-900/50 rounded text-xs hover:bg-red-900/40"
                     >
-                      حذف المنتج
+                      {t('storeEditor.deleteProduct')}
                     </button>
                   </div>
                 </div>
               )}
 
               {selectedProduct && isMoveMode && (
-                <div className="text-center text-slate-600 text-xs mt-2">وضع التحريك مفعل - انقر على الصورة لتحديد مكان المنتج</div>
+                <div className="text-center text-slate-600 text-xs mt-2">{t('storeEditor.moveModeActive')}</div>
               )}
             </div>
 
             <div className="md:hidden">
-              {selectedProduct && <div className="text-center text-slate-600 text-xs mt-2">يتم تعديل المنتج أسفل الصورة</div>}
+              {selectedProduct && <div className="text-center text-slate-600 text-xs mt-2">{t('storeEditor.editProductBelowImage')}</div>}
             </div>
           </div>
         </div>

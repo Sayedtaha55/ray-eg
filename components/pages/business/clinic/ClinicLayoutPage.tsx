@@ -1,7 +1,9 @@
 import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 const ClinicLayoutPage: React.FC = () => {
+  const { t } = useTranslation();
   const { NavLink, Outlet, useLocation } = ReactRouterDOM as any;
   const location = useLocation();
 
@@ -20,13 +22,13 @@ const ClinicLayoutPage: React.FC = () => {
     <div className="p-6 md:p-12">
       <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm p-8 md:p-10">
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div className="text-xl md:text-2xl font-black text-slate-900">العيادة</div>
+          <div className="text-xl md:text-2xl font-black text-slate-900">{t('business.clinic.layout.title')}</div>
           <div className="flex items-center gap-2 flex-wrap">
-            <NavLink to="/business/clinic/overview" className={tabClass(isActive('overview'))}>نظرة عامة</NavLink>
-            <NavLink to="/business/clinic/booking-management" className={tabClass(isActive('booking-management'))}>إدارة الحجوزات</NavLink>
-            <NavLink to="/business/clinic/design" className={tabClass(isActive('design'))}>التصميم</NavLink>
-            <NavLink to="/business/builder/preview?page=clinic" className={tabClass(false)}>معاينة صفحة العرض</NavLink>
-            <NavLink to="/business/dashboard?tab=settings&settingsTab=overview" className={tabClass(isActive('settings'))}>الإعدادات</NavLink>
+            <NavLink to="/business/clinic/overview" className={tabClass(isActive('overview'))}>{t('business.clinic.layout.overview')}</NavLink>
+            <NavLink to="/business/clinic/booking-management" className={tabClass(isActive('booking-management'))}>{t('business.clinic.layout.bookingManagement')}</NavLink>
+            <NavLink to="/business/clinic/design" className={tabClass(isActive('design'))}>{t('business.clinic.layout.design')}</NavLink>
+            <NavLink to="/business/builder/preview?page=clinic" className={tabClass(false)}>{t('business.clinic.layout.previewPage')}</NavLink>
+            <NavLink to="/business/dashboard?tab=settings&settingsTab=overview" className={tabClass(isActive('settings'))}>{t('business.clinic.layout.settings')}</NavLink>
           </div>
         </div>
         <div className="mt-8">

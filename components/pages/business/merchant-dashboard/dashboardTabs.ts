@@ -1,6 +1,7 @@
 import { Category } from '@/types';
 import { getAllowedTabIdsForCategory } from './activities';
 import { CORE_MERCHANT_MODULES } from './coreModules';
+import i18n from '@/i18n';
 
 export type MerchantDashboardTabId =
   | 'overview'
@@ -26,24 +27,24 @@ export type MerchantDashboardTabDefinition = {
 
 export const getProductTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'RESTAURANT') return 'المنيو';
-  return 'المخزون';
+  if (cat === 'RESTAURANT') return i18n.t('business.dashboardTabs.menu');
+  return i18n.t('business.dashboardTabs.inventory');
 };
 
 export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
-  { id: 'overview', label: 'نظرة عامة' },
-  { id: 'notifications', label: 'الإشعارات' },
-  { id: 'gallery', label: 'معرض الصور' },
-  { id: 'reports', label: 'التقارير' },
-  { id: 'customers', label: 'العملاء' },
-  { id: 'products', label: 'المخزون', dynamicLabel: getProductTabLabel },
-  { id: 'promotions', label: 'العروض' },
-  { id: 'reservations', label: 'الحجوزات' },
-  { id: 'invoice', label: 'فاتورة' },
-  { id: 'sales', label: 'المبيعات' },
-  { id: 'pos', label: 'الكاشير' },
-  { id: 'builder', label: 'التصميم' },
-  { id: 'settings', label: 'الإعدادات' },
+  { id: 'overview', label: i18n.t('business.dashboardTabs.overview') },
+  { id: 'notifications', label: i18n.t('business.dashboardTabs.notifications') },
+  { id: 'gallery', label: i18n.t('business.dashboardTabs.gallery') },
+  { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+  { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
+  { id: 'products', label: i18n.t('business.dashboardTabs.inventory'), dynamicLabel: getProductTabLabel },
+  { id: 'promotions', label: i18n.t('business.dashboardTabs.promotions') },
+  { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations') },
+  { id: 'invoice', label: i18n.t('business.dashboardTabs.invoice') },
+  { id: 'sales', label: i18n.t('business.dashboardTabs.sales') },
+  { id: 'pos', label: i18n.t('business.dashboardTabs.pos') },
+  { id: 'builder', label: i18n.t('business.dashboardTabs.builder') },
+  { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
 ];
 
 export type ShopDashboardMode = 'showcase' | 'manage';

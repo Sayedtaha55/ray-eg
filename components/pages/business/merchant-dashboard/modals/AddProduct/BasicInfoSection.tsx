@@ -1,6 +1,7 @@
 import React from 'react';
 import { Label } from '@/components/ui/label';
 import { Ruler } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const RESTAURANT_SIZE_NONE = '__NONE__';
 
@@ -58,12 +59,13 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   categoryPlaceholder,
   descriptionPlaceholder,
 }) => {
+  const { t } = useTranslation();
   const resolvedNamePlaceholder =
-    String(namePlaceholder || '').trim() || (isRestaurant ? 'مثلاً: بيتزا مارجريتا' : isFashion ? 'مثلاً: قميص أبيض قطن' : 'مثلاً: منتج جديد');
+    String(namePlaceholder || '').trim() || (isRestaurant ? t('business.products.placeholders.restaurant.name') : isFashion ? t('business.products.placeholders.fashion.name') : t('business.products.placeholders.default.name'));
   const resolvedCategoryPlaceholder =
-    String(categoryPlaceholder || '').trim() || (isRestaurant ? 'مثلاً: وجبات - مشروبات - إضافات' : isFashion ? 'مثلاً: ملابس صيفية' : 'مثلاً: منتجات منزلية');
+    String(categoryPlaceholder || '').trim() || (isRestaurant ? t('business.products.placeholders.restaurant.cat') : isFashion ? t('business.products.placeholders.fashion.cat') : t('business.products.placeholders.default.cat'));
   const resolvedDescriptionPlaceholder =
-    String(descriptionPlaceholder || '').trim() || (isRestaurant ? 'مثلاً: مكونات الوجبة...' : 'مثلاً: تفاصيل المنتج، طريقة الاستخدام...');
+    String(descriptionPlaceholder || '').trim() || (isRestaurant ? t('business.products.placeholders.restaurant.desc') : isFashion ? t('business.products.placeholders.fashion.desc') : t('business.products.placeholders.default.desc'));
 
   const canToggleRestaurantBaseSizes = Boolean(
     isRestaurant &&
@@ -88,7 +90,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">اسم الصنف</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.itemName')}</label>
         <input
           required
           placeholder={resolvedNamePlaceholder}
@@ -101,7 +103,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       <div className={`grid grid-cols-1 ${isRestaurant || hideStock ? '' : 'md:grid-cols-2'} gap-6`}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">السعر (ج.م)</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.priceEgp')}</label>
             {canToggleRestaurantBaseSizes ? (
               <button
                 type="button"
@@ -119,7 +121,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 className={`flex items-center gap-2 text-[10px] font-black px-3 py-2 rounded-xl border transition-colors ${baseSizesEnabled ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-900 border-slate-200'}`}
               >
                 <Ruler size={14} />
-                {baseSizesEnabled ? 'لا يوجد' : 'أحجام'}
+                {baseSizesEnabled ? t('business.products.none') : t('business.dashboard.products.sizes')}
               </button>
             ) : canToggleGroceryPack ? (
               <button
@@ -133,7 +135,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                 }}
                 className={`flex items-center gap-2 text-[10px] font-black px-3 py-2 rounded-xl border transition-colors ${packEnabled ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-900 border-slate-200'}`}
               >
-                باقة
+                {t('business.products.pack')}
               </button>
             ) : null}
           </div>
@@ -142,7 +144,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">صغير</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.dashboard.products.sizeSmall')}</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -151,13 +153,13 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                     }}
                     className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                   >
-                    {hasSmall ? 'لا يوجد' : 'موجود'}
+                    {hasSmall ? t('business.products.none') : t('business.products.available')}
                   </button>
                 </div>
                 <input
                   type="number"
                   disabled={!hasSmall}
-                  placeholder={hasSmall ? '0' : 'لا يوجد'}
+                  placeholder={hasSmall ? '0' : t('business.products.none')}
                   value={hasSmall ? String(restaurantPriceSmall ?? '') : ''}
                   onChange={(e) => setRestaurantPriceSmall?.(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
@@ -165,7 +167,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">وسط</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.dashboard.products.sizeMedium')}</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -174,13 +176,13 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                     }}
                     className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                   >
-                    {hasMedium ? 'لا يوجد' : 'موجود'}
+                    {hasMedium ? t('business.products.none') : t('business.products.available')}
                   </button>
                 </div>
                 <input
                   type="number"
                   disabled={!hasMedium}
-                  placeholder={hasMedium ? '0' : 'لا يوجد'}
+                  placeholder={hasMedium ? '0' : t('business.products.none')}
                   value={hasMedium ? String(restaurantPriceMedium ?? '') : ''}
                   onChange={(e) => setRestaurantPriceMedium?.(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
@@ -188,7 +190,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">كبير</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.dashboard.products.sizeLarge')}</label>
                   <button
                     type="button"
                     onClick={() => {
@@ -197,13 +199,13 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
                     }}
                     className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                   >
-                    {hasLarge ? 'لا يوجد' : 'موجود'}
+                    {hasLarge ? t('business.products.none') : t('business.products.available')}
                   </button>
                 </div>
                 <input
                   type="number"
                   disabled={!hasLarge}
-                  placeholder={hasLarge ? '0' : 'لا يوجد'}
+                  placeholder={hasLarge ? '0' : t('business.products.none')}
                   value={hasLarge ? String(restaurantPriceLarge ?? '') : ''}
                   onChange={(e) => setRestaurantPriceLarge?.(e.target.value)}
                   className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-4 px-6 font-black text-right outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all disabled:opacity-60"
@@ -212,7 +214,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
             </div>
           ) : packEnabled && !isRestaurant ? (
             <div className="w-full bg-slate-50 border-2 border-transparent rounded-[1.5rem] py-5 px-8 font-black text-lg text-right opacity-60">
-              تم تفعيل الباقة
+              {t('business.products.packEnabled')}
             </div>
           ) : (
             <input
@@ -226,12 +228,12 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
           )}
 
           {packEnabled && !isRestaurant ? (
-            <div className="text-[10px] font-black text-slate-400 pr-4">سيتم الاعتماد على سعر الباقة بدلاً من السعر الأساسي.</div>
+            <div className="text-[10px] font-black text-slate-400 pr-4">{t('business.products.packPriceNote')}</div>
           ) : null}
         </div>
         {!isRestaurant && !hideStock && (
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية المتوفرة</label>
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.availableQuantity')}</label>
             <input
               required
               type="number"
@@ -245,7 +247,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       </div>
 
       <div className="space-y-3">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">القسم</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.section')}</label>
         <input
           placeholder={resolvedCategoryPlaceholder}
           value={cat}
@@ -255,7 +257,7 @@ const BasicInfoSection: React.FC<BasicInfoSectionProps> = ({
       </div>
 
       <div className="space-y-3">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الوصف</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.description')}</label>
         <textarea
           placeholder={resolvedDescriptionPlaceholder}
           value={description}

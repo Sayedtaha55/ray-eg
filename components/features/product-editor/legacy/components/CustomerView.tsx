@@ -6,6 +6,7 @@ import { RayDB } from '@/constants';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
 import ReservationModal from '@/components/pages/shared/ReservationModal';
+import { useTranslation } from 'react-i18next';
 
 interface CustomerViewProps {
   shop: Shop;
@@ -16,6 +17,7 @@ interface CustomerViewProps {
 }
 
 export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory = '', productEditorVisibility, imageMapVisibility, onExit }) => {
+  const { t } = useTranslation();
   const [cart, setCart] = useState<any[]>([]);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -270,7 +272,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                 <div className="bg-black/60 backdrop-blur px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl border border-white/10 flex items-center gap-2 sm:gap-3 max-w-[62vw] sm:max-w-none">
                   <MapIcon size={14} className="text-cyan-400 sm:hidden" />
                   <MapIcon size={16} className="text-cyan-400 hidden sm:block" />
-                  <span className="text-white font-bold text-sm sm:text-base truncate">{activeSection?.name || 'القسم'}</span>
+                  <span className="text-white font-bold text-sm sm:text-base truncate">{activeSection?.name || t('customerView.section')}</span>
                   <span className="text-[11px] sm:text-xs text-slate-500 whitespace-nowrap">({activeSectionIndex + 1}/{shop.sections.length})</span>
                 </div>
                 <button 
@@ -341,10 +343,10 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
           >
             <div className="flex items-center gap-2 text-cyan-400">
               <ShoppingCart size={18} />
-              <span className="font-bold text-sm tracking-widest uppercase">سلة ثلاثية الأبعاد</span>
+              <span className="font-bold text-sm tracking-widest uppercase">{t('customerView.cart3d')}</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="bg-cyan-900 text-cyan-200 text-xs px-2 py-0.5 rounded border border-cyan-500/30">{count} منتجات</span>
+              <span className="bg-cyan-900 text-cyan-200 text-xs px-2 py-0.5 rounded border border-cyan-500/30">{t('customerView.productCount', { count })}</span>
               {isCartOpen ? <ChevronDown size={16} className="text-cyan-300" /> : <ChevronUp size={16} className="text-cyan-300" />}
             </div>
           </button>
@@ -354,8 +356,8 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
               <div className="max-h-48 overflow-y-auto p-4 space-y-3 scrollbar-hide">
                 {cart.length === 0 ? (
                   <div className="text-center py-4 opacity-50 text-xs">
-                    <div className="mb-2">السلة فارغة</div>
-                    <div>انظر للمنتج لإضافته</div>
+                    <div className="mb-2">{t('customerView.cartEmpty')}</div>
+                    <div>{t('customerView.lookToAdd')}</div>
                   </div>
                 ) : (
                   cart.map((item, idx) => (
@@ -368,7 +370,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             {typeof (item as any)?.furnitureMeta?.widthCm === 'number' ? `${(item as any).furnitureMeta.widthCm}` : ''}
                             {typeof (item as any)?.furnitureMeta?.heightCm === 'number' ? `×${(item as any).furnitureMeta.heightCm}` : ''}
                             {((item as any)?.furnitureMeta?.lengthCm != null || (item as any)?.furnitureMeta?.widthCm != null || (item as any)?.furnitureMeta?.heightCm != null)
-                              ? ' سم'
+                              ? ` ${t('storeViewer.cm')}`
                               : ''}
                           </div>
                         )}
@@ -384,7 +386,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-cyan-200 hover:text-white"
-                          aria-label="تقليل"
+                          aria-label={t('customerView.decrease')}
                         >
                           <Minus size={14} />
                         </button>
@@ -399,7 +401,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-cyan-200 hover:text-white"
-                          aria-label="زيادة"
+                          aria-label={t('customerView.increase')}
                         >
                           <Plus size={14} />
                         </button>
@@ -413,7 +415,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-slate-400 hover:text-red-400"
-                          aria-label="حذف"
+                          aria-label={t('customerView.remove')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -425,15 +427,15 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
               </div>
               <div className="p-4 bg-gradient-to-t from-cyan-900/40 to-transparent border-t border-white/5">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-slate-400 text-xs">المجموع</span>
-                  <span className="text-xl font-bold text-white font-mono">{total} ج.م</span>
+                  <span className="text-slate-400 text-xs">{t('customerView.total')}</span>
+                  <span className="text-xl font-bold text-white font-mono">{total} {t('storeViewer.egp')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCartDrawerOpen(true)}
                   className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all"
                 >
-                  إتمام الشراء
+                  {t('customerView.checkout')}
                 </button>
               </div>
             </>
@@ -449,7 +451,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
               <div className="p-4 border-b border-white/10 flex justify-between items-center">
                 <div className="flex items-center gap-2 text-cyan-400">
                   <ShoppingCart size={18} />
-                  <span className="font-bold text-sm tracking-widest uppercase">سلة ثلاثية الأبعاد</span>
+                  <span className="font-bold text-sm tracking-widest uppercase">{t('customerView.cart3d')}</span>
                 </div>
                 <button
                   onClick={() => setIsCartOpen(false)}
@@ -462,8 +464,8 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
               <div className="max-h-48 overflow-y-auto p-4 space-y-3 scrollbar-hide">
                 {cart.length === 0 ? (
                   <div className="text-center py-4 opacity-50 text-xs">
-                    <div className="mb-2">السلة فارغة</div>
-                    <div>انظر للمنتج لإضافته</div>
+                    <div className="mb-2">{t('customerView.cartEmpty')}</div>
+                    <div>{t('customerView.lookToAdd')}</div>
                   </div>
                 ) : (
                   cart.map((item, idx) => (
@@ -476,7 +478,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             {typeof (item as any)?.furnitureMeta?.widthCm === 'number' ? `${(item as any).furnitureMeta.widthCm}` : ''}
                             {typeof (item as any)?.furnitureMeta?.heightCm === 'number' ? `×${(item as any).furnitureMeta.heightCm}` : ''}
                             {((item as any)?.furnitureMeta?.lengthCm != null || (item as any)?.furnitureMeta?.widthCm != null || (item as any)?.furnitureMeta?.heightCm != null)
-                              ? ' سم'
+                              ? ` ${t('storeViewer.cm')}`
                               : ''}
                           </div>
                         )}
@@ -492,7 +494,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-cyan-200 hover:text-white"
-                          aria-label="تقليل"
+                          aria-label={t('customerView.decrease')}
                         >
                           <Minus size={14} />
                         </button>
@@ -507,7 +509,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-cyan-200 hover:text-white"
-                          aria-label="زيادة"
+                          aria-label={t('customerView.increase')}
                         >
                           <Plus size={14} />
                         </button>
@@ -521,7 +523,7 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
                             }
                           }}
                           className="text-slate-400 hover:text-red-400"
-                          aria-label="حذف"
+                          aria-label={t('customerView.remove')}
                         >
                           <Trash2 size={14} />
                         </button>
@@ -534,15 +536,15 @@ export const CustomerView: React.FC<CustomerViewProps> = ({ shop, shopCategory =
               
               <div className="p-4 bg-gradient-to-t from-cyan-900/40 to-transparent border-t border-white/5">
                 <div className="flex justify-between items-center mb-3">
-                  <span className="text-slate-400 text-xs">المجموع</span>
-                  <span className="text-xl font-bold text-white font-mono">{total} ج.م</span>
+                  <span className="text-slate-400 text-xs">{t('customerView.total')}</span>
+                  <span className="text-xl font-bold text-white font-mono">{total} {t('storeViewer.egp')}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsCartDrawerOpen(true)}
                   className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-sm font-bold shadow-[0_0_15px_rgba(8,145,178,0.5)] transition-all"
                 >
-                  إتمام الشراء
+                  {t('customerView.checkout')}
                 </button>
               </div>
             </div>

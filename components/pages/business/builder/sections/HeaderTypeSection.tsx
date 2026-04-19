@@ -1,5 +1,6 @@
 import React from 'react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -21,10 +22,12 @@ const HeaderTypeSection: React.FC<Props> = ({
   setLogoFile,
   logoSaving,
   onSaveLogo,
-}) => (
+}) => {
+  const { t } = useTranslation();
+  return (
   <div className="space-y-3">
     <div className="space-y-3">
-      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">لوجو المتجر</label>
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.builder.headerType.storeLogo')}</label>
       <div className="flex gap-4 items-center flex-row-reverse">
         <label
           className="w-28 h-28 rounded-[2rem] overflow-hidden bg-slate-50 border border-slate-100 shrink-0 cursor-pointer"
@@ -66,10 +69,10 @@ const HeaderTypeSection: React.FC<Props> = ({
             disabled={logoSaving || !logoFile}
             className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all disabled:opacity-60 disabled:pointer-events-none"
           >
-            {logoSaving ? 'جاري حفظ اللوجو...' : 'حفظ اللوجو'}
+            {logoSaving ? t('business.builder.headerType.savingLogo') : t('business.builder.headerType.saveLogo')}
           </button>
           <label className="w-full py-4 bg-slate-900 text-white rounded-[1.5rem] font-black text-sm hover:bg-black transition-all cursor-pointer text-center">
-            اختيار صورة من الجهاز
+            {t('business.builder.headerType.chooseFromDevice')}
             <input
               type="file"
               hidden
@@ -106,12 +109,13 @@ const HeaderTypeSection: React.FC<Props> = ({
             }}
             className="w-full py-4 bg-slate-50 text-slate-500 rounded-[1.5rem] font-black text-sm hover:bg-slate-100 transition-all"
           >
-            حذف الصورة
+            {t('business.builder.headerType.deleteImage')}
           </button>
         </div>
       </div>
     </div>
   </div>
-);
+  );
+};
 
 export default HeaderTypeSection;

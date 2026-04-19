@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Eye, Loader2, RefreshCw } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import Modal from '@/components/common/ui/Modal';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   sales: any[];
@@ -20,6 +21,7 @@ type Row = {
 };
 
 const SalesReturnsView: React.FC<Props> = ({ sales }) => {
+  const { t } = useTranslation();
   const orders = useMemo(() => (Array.isArray(sales) ? sales : []), [sales]);
   const orderIds = useMemo(() => orders.map((o: any) => String(o?.id || '').trim()).filter(Boolean), [orders]);
 
@@ -84,7 +86,7 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
 
       setRows(out);
     } catch (e: any) {
-      setError(String(e?.message || 'فشل تحميل المرتجعات'));
+      setError(String(e?.message || t('business.sales.returnsLoadFailed')));
       setRows([]);
     } finally {
       setLoading(false);
@@ -109,7 +111,7 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between flex-row-reverse">
-        <div className="text-slate-900 font-black text-xl">المرتجعات</div>
+        <div className="text-slate-900 font-black text-xl">{t('business.sales.returns')}</div>
         <button
           type="button"
           onClick={fetchAll}
@@ -117,7 +119,7 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
           className="px-4 py-2 rounded-full font-black text-xs bg-slate-50 text-slate-700 flex items-center gap-2"
         >
           {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
-          تحديث
+          {t('business.sales.returnsRefresh')}
         </button>
       </div>
 
@@ -127,35 +129,35 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">عدد المرتجعات</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnsCount')}</div>
           <div className="mt-2 text-slate-900 font-black text-lg">{summary.count}</div>
         </div>
         <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي المرتجع</div>
-          <div className="mt-2 text-slate-900 font-black text-lg">ج.م {Number(summary.totalReturnedAmount || 0).toLocaleString()}</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnsTotal')}</div>
+          <div className="mt-2 text-slate-900 font-black text-lg">{t('business.sales.currency')} {Number(summary.totalReturnedAmount || 0).toLocaleString()}</div>
         </div>
         <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">حالة المرتجعات</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnsStatus')}</div>
           <div className="mt-2 text-slate-900 font-black text-lg">
-            {summary.hasReturns ? 'يوجد مرتجعات' : 'لا يوجد'}
+            {summary.hasReturns ? t('business.sales.returnsExist') : t('business.sales.returnsNone')}
           </div>
         </div>
       </div>
 
       {rows.length === 0 && !loading ? (
-        <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-slate-600 font-black text-sm">لا يوجد مرتجعات</div>
+        <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100 text-slate-600 font-black text-sm">{t('business.sales.noReturns')}</div>
       ) : null}
 
       <div className="overflow-x-auto touch-auto no-scrollbar" style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}>
         <table className="w-full text-right border-collapse min-w-[900px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الطلب</th>
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">تاريخ المرتجع</th>
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">عدد الأصناف</th>
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">السبب</th>
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</th>
-              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">عرض</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colOrderNumber')}</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnsDate')}</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnsItemCount')}</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colReason')}</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</th>
+              <th className="p-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">{t('business.sales.colDetails')}</th>
             </tr>
           </thead>
           <tbody>
@@ -166,9 +168,9 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
                   {r.returnCreatedAt ? new Date(r.returnCreatedAt as any).toLocaleString('ar-EG') : '-'}
                 </td>
                 <td className="p-5 text-slate-500 font-black text-sm">{Array.isArray(r.items) ? r.items.length : 0}</td>
-                <td className="p-5 text-slate-500 font-bold text-sm">{r.reason ? 'يوجد' : '—'}</td>
+                <td className="p-5 text-slate-500 font-bold text-sm">{r.reason ? t('business.sales.returnsExist') : '—'}</td>
                 <td className="p-5">
-                  <span className="font-black text-slate-900 text-sm">ج.م {Number(r.totalAmount || 0).toLocaleString()}</span>
+                  <span className="font-black text-slate-900 text-sm">{t('business.sales.currency')} {Number(r.totalAmount || 0).toLocaleString()}</span>
                 </td>
                 <td className="p-5 text-left">
                   <button
@@ -185,37 +187,37 @@ const SalesReturnsView: React.FC<Props> = ({ sales }) => {
         </table>
       </div>
 
-      <Modal isOpen={detailsOpen} onClose={closeDetails} title="تفاصيل المرتجع" size="lg">
+      <Modal isOpen={detailsOpen} onClose={closeDetails} title={t('business.sales.returnsDetails')} size="lg">
         <div className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5">
-              <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">رقم الطلب</div>
+              <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colOrderNumber')}</div>
               <div className="mt-2 text-white font-black text-base sm:text-lg">#{selectedRow?.orderShortId || '-'}</div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5">
-              <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
-              <div className="mt-2 text-white font-black text-base sm:text-lg">ج.م {Number(selectedRow?.totalAmount || 0).toLocaleString()}</div>
+              <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</div>
+              <div className="mt-2 text-white font-black text-base sm:text-lg">{t('business.sales.currency')} {Number(selectedRow?.totalAmount || 0).toLocaleString()}</div>
             </div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5">
-            <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">السبب</div>
+            <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colReason')}</div>
             <div className="mt-3 text-slate-200 font-bold text-base sm:text-lg whitespace-pre-wrap">{selectedRow?.reason ? String(selectedRow.reason) : '—'}</div>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 sm:p-5">
-            <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">الأصناف المرتجعة</div>
+            <div className="text-[10px] sm:text-xs font-black text-slate-400 uppercase tracking-widest">{t('business.sales.returnedItems')}</div>
             <div className="mt-3 space-y-2">
               {(Array.isArray(selectedRow?.items) ? selectedRow?.items : []).map((it: any, idx: number) => (
                 <div key={idx} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 bg-black/20 border border-white/10 rounded-xl p-3 sm:p-4">
-                  <div className="text-white font-bold text-base sm:text-sm truncate">{it?.product?.name || 'منتج'}</div>
+                  <div className="text-white font-bold text-base sm:text-sm truncate">{it?.product?.name || t('business.sales.productFallback')}</div>
                   <div className="text-slate-200 font-black text-sm sm:text-xs shrink-0">
-                    {Number(it?.quantity || 0)} x ج.م {Number(it?.unitPrice || 0)}
+                    {Number(it?.quantity || 0)} x {t('business.sales.currency')} {Number(it?.unitPrice || 0)}
                   </div>
                 </div>
               ))}
               {!Array.isArray(selectedRow?.items) || selectedRow?.items?.length === 0 ? (
-                <div className="text-slate-300 font-bold text-base sm:text-sm">لا توجد أصناف</div>
+                <div className="text-slate-300 font-bold text-base sm:text-sm">{t('business.sales.noReturnedItems')}</div>
               ) : null}
             </div>
           </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ApiService } from '@/services/api.service';
 import { compressImage } from '@/lib/image-utils';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -9,6 +10,7 @@ type Props = {
 };
 
 const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
+  const { t } = useTranslation();
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploadingCategory, setUploadingCategory] = useState<string | null>(null);
@@ -83,33 +85,33 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
     <div className="space-y-6">
       <div className="space-y-3">
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">شكل الأيقونة</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.category.iconShape')}</label>
           <select
             value={String(config.categoryIconShape || 'circular')}
             onChange={(e) => setConfig({ ...config, categoryIconShape: e.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white font-black text-sm"
           >
-            <option value="circular">دائري</option>
-            <option value="square">مربع</option>
-            <option value="large">كبير</option>
+            <option value="circular">{t('business.builder.category.shapeCircular')}</option>
+            <option value="square">{t('business.builder.category.shapeSquare')}</option>
+            <option value="large">{t('business.builder.category.shapeLarge')}</option>
           </select>
         </div>
 
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">حجم الأيقونة</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.category.iconSize')}</label>
           <select
             value={String(config.categoryIconSize || 'medium')}
             onChange={(e) => setConfig({ ...config, categoryIconSize: e.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white font-black text-sm"
           >
-            <option value="small">صغير</option>
-            <option value="medium">متوسط</option>
-            <option value="large">كبير</option>
+            <option value="small">{t('business.builder.category.sizeSmall')}</option>
+            <option value="medium">{t('business.builder.category.sizeMedium')}</option>
+            <option value="large">{t('business.builder.category.sizeLarge')}</option>
           </select>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="font-black text-sm">عرض المنتجات داخل الفئات فقط</span>
+          <span className="font-black text-sm">{t('business.builder.category.showProductsInCategoriesOnly')}</span>
           <input
             type="checkbox"
             checked={Boolean(config.showProductsInCategories)}
@@ -121,11 +123,11 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
       <div className="h-px bg-slate-100" />
 
       <div className="space-y-4">
-        <div className="font-black text-sm text-slate-900">صورة الأقسام الافتراضية</div>
+        <div className="font-black text-sm text-slate-900">{t('business.builder.category.defaultCategoryImage')}</div>
 
-        {(['الكل'] as const).map((key) => (
+        {(['__ALL__'] as const).map((key) => (
           <div key={key} className="border border-slate-200 rounded-xl p-4 space-y-3">
-            <div className="font-black text-sm text-slate-900">الكل</div>
+            <div className="font-black text-sm text-slate-900">{t('business.builder.category.allCategories')}</div>
 
             {categoryImages[key] ? (
               <div className="space-y-2">
@@ -139,14 +141,14 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
                   onClick={() => handleRemoveImage(key)}
                   className="text-xs font-black text-red-600 hover:text-red-700"
                 >
-                  حذف الصورة
+                  {t('business.builder.category.deleteImage')}
                 </button>
               </div>
             ) : (
               <div className="space-y-2">
                 <label className="block">
                   <span className="inline-block px-4 py-2 rounded-xl border border-slate-200 bg-white font-black text-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                    {uploadingCategory === key ? 'جاري الرفع...' : 'رفع صورة من الجهاز'}
+                    {uploadingCategory === key ? t('business.builder.category.uploading') : t('business.builder.category.uploadFromDevice')}
                   </span>
                   <input
                     type="file"
@@ -159,7 +161,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
                     disabled={uploadingCategory === key}
                   />
                 </label>
-                <p className="text-[10px] text-slate-400">تُستخدم كصورة افتراضية للأقسام</p>
+                <p className="text-[10px] text-slate-400">{t('business.builder.category.usedAsDefaultImage')}</p>
               </div>
             )}
           </div>
@@ -167,12 +169,12 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
       </div>
 
       <div className="space-y-4">
-        <div className="font-black text-sm text-slate-900">صور الأقسام من المخزون</div>
+        <div className="font-black text-sm text-slate-900">{t('business.builder.category.inventoryCategoryImages')}</div>
         
         {loading ? (
-          <div className="text-xs text-slate-400">جاري تحميل الأقسام...</div>
+          <div className="text-xs text-slate-400">{t('business.builder.category.loadingCategories')}</div>
         ) : categories.length === 0 ? (
-          <div className="text-xs text-slate-400">لا توجد أقسام في المخزون</div>
+          <div className="text-xs text-slate-400">{t('business.builder.category.noCategories')}</div>
         ) : (
           <div className="space-y-3">
             {categories.map((category) => (
@@ -191,14 +193,14 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
                       onClick={() => handleRemoveImage(category)}
                       className="text-xs font-black text-red-600 hover:text-red-700"
                     >
-                      حذف الصورة
+                      {t('business.builder.category.deleteImage')}
                     </button>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <label className="block">
                       <span className="inline-block px-4 py-2 rounded-xl border border-slate-200 bg-white font-black text-sm cursor-pointer hover:bg-slate-50 transition-colors">
-                        {uploadingCategory === category ? 'جاري الرفع...' : 'إضافة صورة'}
+                        {uploadingCategory === category ? t('business.builder.category.uploading') : t('business.builder.category.addImage')}
                       </span>
                       <input
                         type="file"
@@ -211,7 +213,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
                         disabled={uploadingCategory === category}
                       />
                     </label>
-                    <p className="text-[10px] text-slate-400">ارفع صورة من جهازك</p>
+                    <p className="text-[10px] text-slate-400">{t('business.builder.category.uploadFromDeviceHint')}</p>
                   </div>
                 )}
               </div>

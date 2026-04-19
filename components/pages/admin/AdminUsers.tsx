@@ -3,10 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Users, Search, MoreVertical, Shield, User, Trash2, ShieldCheck, ArrowLeftRight, Loader2, X, RefreshCw } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
 const AdminUsers: React.FC = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -22,7 +24,7 @@ const AdminUsers: React.FC = () => {
       const data = await ApiService.getAllUsers();
       setUsers(data);
     } catch (e) {
-      addToast('فشل تحميل قائمة المستخدمين', 'error');
+      addToast(t('admin.users.loadFailed'), 'error');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -34,14 +36,14 @@ const AdminUsers: React.FC = () => {
   }, []);
 
   const handleDelete = async (userId: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الحساب نهائياً؟')) return;
+    if (!confirm(t('admin.users.confirmDelete'))) return;
     try {
       await ApiService.deleteUser(userId);
-      addToast('تم حذف المستخدم بنجاح', 'success');
+      addToast(t('admin.users.userDeleted'), 'success');
       // تحديث فوري للقائمة
       await loadUsers(true);
     } catch (e) {
-      addToast('فشل حذف المستخدم', 'error');
+      addToast(t('admin.users.deleteFailed'), 'error');
     }
     setActiveMenu(null);
   };
@@ -50,11 +52,11 @@ const AdminUsers: React.FC = () => {
     const newRole = currentRole === 'customer' ? 'merchant' : 'customer';
     try {
       await ApiService.updateUserRole(userId, newRole);
-      addToast(`تم تغيير دور المستخدم إلى ${newRole === 'merchant' ? 'تاجر' : 'عميل'}`, 'success');
+      addToast(t('admin.users.roleChanged', { role: newRole === 'merchant' ? t('admin.users.merchant') : t('admin.users.customer') }), 'success');
       // تحديث فوري للقائمة
       await loadUsers(true);
     } catch (e) {
-      addToast('فشل تغيير الصلاحيات', 'error');
+      addToast(t('admin.users.roleChangeFailed'), 'error');
     }
     setActiveMenu(null);
   };
@@ -74,10 +76,10 @@ const AdminUsers: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-white">إدارة المستخدمين</h2>
+              <h2 className="text-3xl font-black text-white">{t('admin.users.title')}</h2>
               {isRefreshing && <RefreshCw size={16} className="text-[#00E5FF] animate-spin" />}
             </div>
-            <p className="text-slate-500 text-sm font-bold">عرض وإدارة صلاحيات كافة أعضاء المنصة.</p>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.users.subtitle')}</p>
           </div>
         </div>
         
@@ -85,7 +87,7 @@ const AdminUsers: React.FC = () => {
           <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
           <input 
             className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm" 
-            placeholder="ابحث بالاسم أو البريد..." 
+            placeholder={t('admin.users.searchPlaceholder')} 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -98,17 +100,17 @@ const AdminUsers: React.FC = () => {
         ) : filteredUsers.length === 0 ? (
           <div className="py-24 text-center">
             <User size={48} className="mx-auto text-slate-700 mb-4 opacity-20" />
-            <p className="text-slate-500 font-bold">لم يتم العثور على مستخدمين يطابقون بحثك.</p>
+            <p className="text-slate-500 font-bold">{t('admin.users.noResults')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-right border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-white/5 bg-white/5">
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المستخدم</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">نوع الحساب</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">البريد الإلكتروني</th>
-                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest text-left">التحكم</th>
+                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.users.table.user')}</th>
+                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.users.table.role')}</th>
+                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.users.table.email')}</th>
+                  <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest text-left">{t('admin.users.table.control')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,7 +129,7 @@ const AdminUsers: React.FC = () => {
                         user.role === 'admin' ? 'bg-red-500/10 text-red-500 border border-red-500/20' : 
                         user.role === 'merchant' ? 'bg-[#00E5FF]/10 text-[#00E5FF] border border-[#00E5FF]/20' : 'bg-slate-800 text-slate-400'
                       }`}>
-                        {user.role === 'admin' ? 'مدير' : user.role === 'merchant' ? 'تاجر' : 'عميل'}
+                        {user.role === 'admin' ? t('admin.users.admin') : user.role === 'merchant' ? t('admin.users.merchant') : t('admin.users.customer')}
                       </span>
                     </td>
                     <td className="p-6 text-slate-500 text-sm font-medium">{user.email}</td>
@@ -153,14 +155,14 @@ const AdminUsers: React.FC = () => {
                                 onClick={() => handleChangeRole(user.id, user.role)}
                                 className="w-full flex items-center justify-between p-4 hover:bg-white/5 text-slate-300 text-xs font-bold transition-all"
                               >
-                                {user.role === 'customer' ? 'ترقية لتاجر' : 'تنزيل لعميل'} 
+                                {user.role === 'customer' ? t('admin.users.promoteToMerchant') : t('admin.users.demoteToCustomer')} 
                                 <ArrowLeftRight size={14} className="text-[#00E5FF]" />
                               </button>
                               <button 
                                 onClick={() => handleDelete(user.id)}
                                 className="w-full flex items-center justify-between p-4 hover:bg-red-500/10 text-red-400 text-xs font-bold transition-all border-t border-white/5"
                               >
-                                حذف الحساب نهائياً <Trash2 size={14} />
+                                {t('admin.users.deletePermanently')} <Trash2 size={14} />
                               </button>
                             </MotionDiv>
                           </>

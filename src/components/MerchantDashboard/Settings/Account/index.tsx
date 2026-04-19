@@ -7,6 +7,7 @@ import { ApiService } from '@/services/api.service';
 import { clearSession } from '@/services/authStorage';
 import { User, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 
 interface AccountProps {
   shop: any;
@@ -16,6 +17,7 @@ interface AccountProps {
 
 const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [, setIsSaving] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -96,8 +98,8 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       });
       
       toast({
-        title: "تم الحفظ",
-        description: "تم تحديث معلومات الحساب بنجاح",
+        title: t('accountSettings.saved'),
+        description: t('accountSettings.accountUpdated'),
       });
       
       baselineRef.current = { ...current };
@@ -106,8 +108,8 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       return true;
     } catch (error) {
       toast({
-        title: "خطأ",
-        description: "حدث خطأ أثناء حفظ التغييرات",
+        title: t('accountSettings.error'),
+        description: t('accountSettings.saveChangesFailed'),
         variant: "destructive",
       });
       return false;
@@ -134,8 +136,8 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   const deactivateAccount = async () => {
     if (adminShopId) {
       toast({
-        title: 'غير متاح',
-        description: 'لا يمكن حذف الحساب أثناء وضع الإدارة/الانتحال',
+        title: t('accountSettings.notAvailable'),
+        description: t('accountSettings.cannotDeleteInAdminMode'),
         variant: 'destructive',
       });
       return;
@@ -143,11 +145,11 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
 
     if (isDeleting) return;
 
-    const expected = 'حذف';
+    const expected = t('accountSettings.deleteKeyword');
     if (String(deleteConfirmText || '').trim() !== expected) {
       toast({
-        title: 'تأكيد مطلوب',
-        description: `اكتب كلمة "${expected}" للتأكيد`,
+        title: t('accountSettings.confirmRequired'),
+        description: t('accountSettings.typeKeywordToConfirm', { keyword: expected }),
         variant: 'destructive',
       });
       return;
@@ -171,10 +173,10 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       })();
 
       toast({
-        title: 'تم حذف الحساب',
+        title: t('accountSettings.accountDeleted'),
         description: scheduledText
-          ? `تم تعطيل حسابك وإخفاء المتجر فوراً. إذا لم تقم بتسجيل الدخول خلال 30 يوم سيتم حذف الحساب نهائياً تلقائياً بتاريخ: ${scheduledText}`
-          : 'تم تعطيل حسابك وإخفاء المتجر فوراً. إذا لم تقم بتسجيل الدخول خلال 30 يوم سيتم حذف الحساب نهائياً تلقائياً.',
+          ? t('accountSettings.accountDisabledWithDate', { date: scheduledText })
+          : t('accountSettings.accountDisabled'),
       });
 
       try {
@@ -182,9 +184,9 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
       } catch {
       }
     } catch (error: any) {
-      const msg = error?.message ? String(error.message) : 'حدث خطأ أثناء حذف الحساب';
+      const msg = error?.message ? String(error.message) : t('accountSettings.deleteAccountFailed');
       toast({
-        title: 'خطأ',
+        title: t('accountSettings.error'),
         description: msg,
         variant: 'destructive',
       });
@@ -196,22 +198,22 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">معلومات الحساب</h1>
-        <p className="text-muted-foreground">إدارة معلومات الحساب وتفاصيل الاتصال</p>
+        <h1 className="text-2xl font-bold">{t('accountSettings.title')}</h1>
+        <p className="text-muted-foreground">{t('accountSettings.subtitle')}</p>
       </div>
 
       <form onSubmit={handleSubmit}>
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle>البيانات الأساسية</CardTitle>
+            <CardTitle>{t('accountSettings.basicInfo')}</CardTitle>
             <CardDescription>
-              قم بتحديث معلومات الحساب الأساسية مثل الاسم والبريد الإلكتروني ورقم الهاتف.
+              {t('accountSettings.basicInfoDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="name">اسم المتجر</Label>
+                <Label htmlFor="name">{t('accountSettings.shopName')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                     <User className="w-4 h-4" />
@@ -227,7 +229,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Label htmlFor="email">{t('accountSettings.email')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                     <Mail className="w-4 h-4" />
@@ -247,18 +249,18 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="governorate">المحافظة</Label>
+                <Label htmlFor="governorate">{t('accountSettings.governorate')}</Label>
                 <Input id="governorate" name="governorate" value={formData.governorate} onChange={handleChange} />
               </div>
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="city">المدينة</Label>
+                <Label htmlFor="city">{t('accountSettings.city')}</Label>
                 <Input id="city" name="city" value={formData.city} onChange={handleChange} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">رقم الجوال</Label>
+                <Label htmlFor="phone">{t('accountSettings.phone')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                     <Phone className="w-4 h-4" />
@@ -275,7 +277,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address">العنوان</Label>
+                <Label htmlFor="address">{t('accountSettings.address')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-start pt-3 pr-3 text-muted-foreground">
                     <MapPin className="w-4 h-4" />
@@ -293,7 +295,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="description">وصف المتجر</Label>
+              <Label htmlFor="description">{t('accountSettings.description')}</Label>
               <textarea
                 id="description"
                 name="description"
@@ -301,7 +303,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
                 onChange={handleChange}
                 rows={4}
                 className="flex w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="أدخل وصفاً لمتجرك"
+                placeholder={t('accountSettings.descriptionPlaceholder')}
               />
             </div>
           </CardContent>
@@ -309,14 +311,14 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
 
         <Card className="border-0 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-red-600">حذف الحساب</CardTitle>
+            <CardTitle className="text-red-600">{t('accountSettings.deleteAccount')}</CardTitle>
             <CardDescription>
-              سيتم تعطيل الحساب والمتجر. هذا الإجراء لا يمكن التراجع عنه بسهولة.
+              {t('accountSettings.deleteAccountDesc')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="delete-confirm">لتأكيد الحذف اكتب: حذف</Label>
+              <Label htmlFor="delete-confirm">{t('accountSettings.typeDeleteToConfirm', { keyword: t('accountSettings.deleteKeyword') })}</Label>
               <Input
                 id="delete-confirm"
                 value={deleteConfirmText}
@@ -330,7 +332,7 @@ const Account: React.FC<AccountProps> = ({ shop, onSaved, adminShopId }) => {
               onClick={deactivateAccount}
               disabled={isDeleting}
             >
-              {isDeleting ? 'جاري الحذف...' : 'حذف الحساب'}
+              {isDeleting ? t('accountSettings.deleting') : t('accountSettings.deleteAccount')}
             </Button>
           </CardContent>
         </Card>

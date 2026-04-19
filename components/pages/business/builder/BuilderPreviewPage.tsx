@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import ShopProfilePreview from '@/components/pages/business/builder/ShopProfilePreview';
+import { useTranslation } from 'react-i18next';
 
 const { useLocation } = ReactRouterDOM as any;
 
 const BuilderPreviewPage: React.FC = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const query = useMemo(() => new URLSearchParams(String(location?.search || '')), [location?.search]);
   const page = ((): 'home' | 'product' | 'gallery' | 'info' => {
@@ -55,7 +57,7 @@ const BuilderPreviewPage: React.FC = () => {
       <ShopProfilePreview
         page={page}
         config={config}
-        shop={{ id: 'preview', name: 'معاينة المتجر' }}
+        shop={{ id: 'preview', name: t('business.builder.previewPage.shopName') }}
         logoDataUrl={logoDataUrl}
         isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
         setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}

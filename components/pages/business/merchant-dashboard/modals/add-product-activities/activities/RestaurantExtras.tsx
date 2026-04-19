@@ -20,33 +20,34 @@ const RestaurantExtras: React.FC<Props> = ({ menuVariantItems, setMenuVariantIte
 export function buildRestaurantExtrasPayload(args: {
   menuVariantItems: Props['menuVariantItems'];
   parseNumberInput: (v: any) => number;
+  t: (key: string) => string;
 }) {
-  const { menuVariantItems, parseNumberInput } = args;
+  const { menuVariantItems, parseNumberInput, t } = args;
 
   const menuVariants = (() => {
     const list = Array.isArray(menuVariantItems) ? menuVariantItems : [];
     if (list.length === 0) return undefined;
     const mapped = list
-      .map((t) => {
-        const tid = String(t?.id || '').trim();
-        const tname = String(t?.name || '').trim();
+      .map((variant) => {
+        const tid = String(variant?.id || '').trim();
+        const tname = String(variant?.name || '').trim();
         if (!tid || !tname) return null;
         const sizes: Array<{ id: string; label: string; price: number }> = [];
 
-        if (t?.hasSmall) {
-          const ps = parseNumberInput(t.priceSmall);
+        if (variant?.hasSmall) {
+          const ps = parseNumberInput(variant.priceSmall);
           if (!Number.isFinite(ps) || ps <= 0) return null;
-          sizes.push({ id: 'small', label: 'صغير', price: ps });
+          sizes.push({ id: 'small', label: t('business.dashboard.products.sizeSmall'), price: ps });
         }
-        if (t?.hasMedium) {
-          const pm = parseNumberInput(t.priceMedium);
+        if (variant?.hasMedium) {
+          const pm = parseNumberInput(variant.priceMedium);
           if (!Number.isFinite(pm) || pm <= 0) return null;
-          sizes.push({ id: 'medium', label: 'وسط', price: pm });
+          sizes.push({ id: 'medium', label: t('business.dashboard.products.sizeMedium'), price: pm });
         }
-        if (t?.hasLarge) {
-          const pl = parseNumberInput(t.priceLarge);
+        if (variant?.hasLarge) {
+          const pl = parseNumberInput(variant.priceLarge);
           if (!Number.isFinite(pl) || pl <= 0) return null;
-          sizes.push({ id: 'large', label: 'كبير', price: pl });
+          sizes.push({ id: 'large', label: t('business.dashboard.products.sizeLarge'), price: pl });
         }
 
         if (sizes.length === 0) return null;
@@ -58,7 +59,7 @@ export function buildRestaurantExtrasPayload(args: {
   })();
 
   if (menuVariants === '__INVALID__') {
-    throw new Error('يرجى إدخال النوع والسعر للمقاسات المتاحة');
+    throw new Error(t('business.products.enterValidVariantSizePrice'));
   }
 
   return { payload: { menuVariants } };

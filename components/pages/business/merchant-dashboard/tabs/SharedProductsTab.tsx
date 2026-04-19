@@ -6,6 +6,7 @@ import SmartImage from '@/components/common/ui/SmartImage';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import EditProductModal from '../modals/EditProductModal';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   products: Product[];
@@ -34,8 +35,9 @@ const SharedProductsTab: React.FC<Props> = ({
   const [renderCount, setRenderCount] = React.useState(0);
   const { addToast } = useToast();
 
+  const { t } = useTranslation();
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
-  const pageTitle = isRestaurant ? 'المنيو' : 'المخزون';
+  const pageTitle = isRestaurant ? t('business.sharedProducts.menu') : t('business.sharedProducts.inventory');
 
   const isLowEndDevice = useMemo(() => {
     try {
@@ -77,9 +79,9 @@ const SharedProductsTab: React.FC<Props> = ({
         isActive: !product.isActive 
       });
       onUpdate({ ...product, isActive: !product.isActive });
-      addToast(product.isActive ? 'تم إخفاء المنتج' : 'تم إظهار المنتج', 'success');
+      addToast(product.isActive ? t('business.sharedProducts.productHidden') : t('business.sharedProducts.productShown'), 'success');
     } catch (err) {
-      addToast('تعذر تحديث حالة المنتج', 'error');
+      addToast(t('business.sharedProducts.updateStatusFailed'), 'error');
     } finally {
       setTogglingId('');
     }
@@ -94,18 +96,18 @@ const SharedProductsTab: React.FC<Props> = ({
           className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-bold hover:bg-black transition-all"
         >
           <Plus size={20} />
-          إضافة منتج
+          {t('business.sharedProducts.addProduct')}
         </button>
       </div>
 
       {products.length === 0 ? (
         <div className="text-center py-20 text-slate-400">
-          <p className="font-bold">لا توجد منتجات حالياً</p>
+          <p className="font-bold">{t('business.sharedProducts.noProducts')}</p>
           <button
             onClick={onAdd}
             className="mt-4 px-6 py-3 bg-[#00E5FF] text-black rounded-xl font-black hover:brightness-110 transition-all"
           >
-            أضف أول منتج
+            {t('business.sharedProducts.addFirstProduct')}
           </button>
         </div>
       ) : (
@@ -134,7 +136,7 @@ const SharedProductsTab: React.FC<Props> = ({
                     onClick={() => handleToggleActive(product)}
                     disabled={togglingId === product.id}
                     className="p-2 bg-white/90 backdrop-blur rounded-lg shadow-sm hover:bg-white transition-all"
-                    title={product.isActive ? 'إخفاء' : 'إظهار'}
+                    title={product.isActive ? t('business.sharedProducts.hide') : t('business.sharedProducts.show')}
                   >
                     {togglingId === product.id ? (
                       <Loader2 size={16} className="animate-spin" />
@@ -148,7 +150,7 @@ const SharedProductsTab: React.FC<Props> = ({
               </div>
 
               <h3 className="font-black text-lg mb-2 line-clamp-1">{product.name}</h3>
-              <p className="text-slate-500 font-bold mb-4">ج.م {product.price}</p>
+              <p className="text-slate-500 font-bold mb-4">{t('business.sharedProducts.currency')} {product.price}</p>
 
               <div className="flex gap-2">
                 <button
@@ -159,14 +161,14 @@ const SharedProductsTab: React.FC<Props> = ({
                   className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-100 rounded-xl font-bold hover:bg-slate-200 transition-all"
                 >
                   <Edit size={16} />
-                  تعديل
+                  {t('business.sharedProducts.edit')}
                 </button>
                 <button
                   onClick={() => onMakeOffer(product)}
                   className="flex-1 flex items-center justify-center gap-2 py-2 bg-[#BD00FF]/10 text-[#BD00FF] rounded-xl font-bold hover:bg-[#BD00FF]/20 transition-all"
                 >
                   <Tag size={16} />
-                  عرض
+                  {t('business.sharedProducts.offer')}
                 </button>
                 <button
                   onClick={() => onDelete(product.id)}

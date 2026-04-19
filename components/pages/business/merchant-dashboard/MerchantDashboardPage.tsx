@@ -27,6 +27,7 @@ import { Category, Offer, Product, Reservation, ShopGallery } from '@/types';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { useSmartRefresh } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 // Lazy load components
 const MerchantSettings = lazy(() => import('@/src/components/MerchantDashboard/Settings'));
@@ -91,6 +92,7 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
 };
 
 const MerchantDashboardPage: React.FC = () => {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const activeTab = (tabParam as MerchantDashboardTabId) || 'overview';
@@ -194,7 +196,7 @@ const MerchantDashboardPage: React.FC = () => {
       const savedUser = JSON.parse(savedUserStr);
       const role = String(savedUser?.role || '').toLowerCase();
       if (role !== 'merchant' && !(role === 'admin' && impersonateShopId)) {
-        addToastRef.current('هذه الصفحة للتجار فقط', 'error');
+        addToastRef.current(t('business.dashboard.merchantsOnly'), 'error');
         navigate('/login');
         return;
       }
@@ -224,7 +226,7 @@ const MerchantDashboardPage: React.FC = () => {
         navigate('/login');
         return;
       }
-      const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
+      const message = (e as any)?.message || t('business.dashboard.dataLoadError');
       addToastRef.current(message, 'error');
     } finally {
       if (!redirected && !isStale()) {
@@ -294,7 +296,7 @@ const MerchantDashboardPage: React.FC = () => {
         setGalleryImages(images || []);
       }
     } catch (e) {
-      const message = (e as any)?.message || 'حدث خطأ أثناء تحميل البيانات';
+      const message = (e as any)?.message || t('business.dashboard.dataLoadError');
       addToastRef.current(message, 'error');
     } finally {
       tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
@@ -374,21 +376,21 @@ const MerchantDashboardPage: React.FC = () => {
   }, [currentShop, searchParams, setTab]);
 
   const handleDeleteProduct = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المنتج؟')) return;
+    if (!confirm(t('business.dashboard.confirmDeleteProduct'))) return;
     try {
       await ApiService.deleteProduct(id);
-      addToast('تم حذف المنتج', 'success');
+      addToast(t('business.dashboard.productDeleted'), 'success');
       if (currentShop) {
         await ensureTabData('products', currentShop, true);
       }
     } catch {
-      addToast('فشل حذف المنتج', 'error');
+      addToast(t('business.dashboard.productDeleteFailed'), 'error');
     }
   };
 
   const handleUpdateProduct = async (updatedProduct: any) => {
     try {
-      addToast('تم تحديث المنتج بنجاح', 'success');
+      addToast(t('business.dashboard.productUpdated'), 'success');
       // Refresh products list
       if (currentShop?.id) {
         const list = await (ApiService as any).getProductsForManage(currentShop.id);
@@ -404,7 +406,7 @@ const MerchantDashboardPage: React.FC = () => {
         setProducts(out);
       }
     } catch (err: any) {
-      const msg = err?.message ? String(err.message) : 'فشل في تحديث المنتج';
+      const msg = err?.message ? String(err.message) : t('business.dashboard.productUpdateFailed');
       addToast(msg, 'error');
     }
   };
@@ -424,23 +426,23 @@ const MerchantDashboardPage: React.FC = () => {
             firstPurchaseAmount: reservation.itemPrice,
             firstPurchaseItem: reservation.itemName,
           });
-          addToast('تم تحويل العميل لقاعدة العملاء بنجاح', 'success');
+          addToast(t('business.dashboard.customerConverted'), 'success');
         }
       }
 
-      addToast('تم تحديث حالة الحجز', 'success');
+      addToast(t('business.dashboard.reservationStatusUpdated'), 'success');
       if (currentShop) {
         await ensureTabData('reservations', currentShop, true);
       }
     } catch {
-      addToast('فشل التحديث', 'error');
+      addToast(t('business.dashboard.updateFailed'), 'error');
     }
   };
 
   const TabFallback = (
     <div className="py-20 flex flex-col items-center justify-center gap-4">
       <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-      <p className="font-bold text-slate-400">جاري تحميل القسم...</p>
+      <p className="font-bold text-slate-400">{t('business.dashboard.loadingSection')}</p>
     </div>
   );
 
@@ -559,7 +561,7 @@ const MerchantDashboardPage: React.FC = () => {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
         <Loader2 className="animate-spin text-[#00E5FF] w-12 h-12" />
-        <p className="font-black text-slate-400">تحميل مركز العمليات...</p>
+        <p className="font-black text-slate-400">{t('business.dashboard.loadingOperations')}</p>
       </div>
     );
   }
@@ -567,7 +569,7 @@ const MerchantDashboardPage: React.FC = () => {
   if (!currentShop) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 text-right px-6" dir="rtl">
-        <p className="font-black text-slate-600">لم يتم العثور على متجر مرتبط بهذا الحساب.</p>
+        <p className="font-black text-slate-600">{t('business.dashboard.noShopFound')}</p>
         <button
           onClick={() => {
             clearSession('merchant-dashboard-empty-shop');
@@ -575,7 +577,7 @@ const MerchantDashboardPage: React.FC = () => {
           }}
           className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black"
         >
-          تسجيل الدخول
+          {t('business.dashboard.login')}
         </button>
       </div>
     );
@@ -637,7 +639,7 @@ const MerchantDashboardPage: React.FC = () => {
               onClick={() => navigate(`/shop/${currentShop.slug}`)}
               className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-[#00E5FF] text-black rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] hover:brightness-110 transition-all shadow-md sm:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300"
             >
-              <Eye size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> <span>معاينة المحل</span>
+              <Eye size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> <span>{t('business.dashboard.previewShop')}</span>
             </button>
             {hasPosTab && (
               <button
@@ -645,7 +647,7 @@ const MerchantDashboardPage: React.FC = () => {
                 onClick={() => setTab('pos')}
                 className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-slate-900 text-white rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
               >
-                <Smartphone size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">الكاشير الذكي</span>
+                <Smartphone size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">{t('business.dashboard.smartPOS')}</span>
               </button>
             )}
           </div>

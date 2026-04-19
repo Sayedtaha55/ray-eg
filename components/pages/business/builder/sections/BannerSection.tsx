@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { Layout, Move, X } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 const isVideoUrl = (url: string) => {
   const u = String(url || '').toLowerCase();
@@ -26,6 +27,7 @@ const BannerSection: React.FC<Props> = ({
   bannerPreview,
   setBannerPreview,
 }) => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [moveMode, setMoveMode] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number; pointerId: number | null }>({
@@ -79,7 +81,7 @@ const BannerSection: React.FC<Props> = ({
         htmlFor="banner-upload"
         className="w-full bg-slate-50 rounded-2xl py-4 px-5 font-bold outline-none border border-slate-100 text-right cursor-pointer hover:bg-slate-100 transition-colors flex items-center justify-between"
       >
-        <span className="text-slate-400">{bannerFile ? bannerFile.name : 'اختر صورة أو فيديو من الجهاز'}</span>
+        <span className="text-slate-400">{bannerFile ? bannerFile.name : t('business.builder.banner.chooseImageOrVideo')}</span>
         <Layout size={20} className="text-slate-400" />
       </label>
     </div>
@@ -155,7 +157,7 @@ const BannerSection: React.FC<Props> = ({
                   backgroundSize: '24px 24px',
                 }} />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="px-3 py-1.5 rounded-full bg-black/40 text-white text-xs font-black">اسحب الصورة لضبط المكان</div>
+                  <div className="px-3 py-1.5 rounded-full bg-black/40 text-white text-xs font-black">{t('business.builder.banner.dragToAdjust')}</div>
                 </div>
               </div>
             )}
@@ -181,7 +183,7 @@ const BannerSection: React.FC<Props> = ({
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-white/50 text-slate-700 text-xs font-black shadow"
               >
                 <Move size={14} />
-                {moveMode ? 'إنهاء التحريك' : 'تحريك الصورة'}
+                {moveMode ? t('business.builder.banner.endMove') : t('business.builder.banner.moveImage')}
               </button>
               <div className="px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-white/50 text-slate-700 text-[11px] font-black shadow">
                 X: {Math.round(posX)}% • Y: {Math.round(posY)}%
@@ -191,13 +193,13 @@ const BannerSection: React.FC<Props> = ({
                 onClick={() => setPos(50, 50)}
                 className="px-3 py-2 rounded-xl bg-white/90 backdrop-blur-sm border border-white/50 text-slate-700 text-xs font-black shadow"
               >
-                توسيط
+                {t('business.builder.banner.center')}
               </button>
             </div>
 
             <div className="bg-white/90 backdrop-blur-sm border border-white/50 rounded-2xl px-3 py-2 shadow">
               <div className="flex items-center gap-3">
-                <span className="text-[11px] font-black text-slate-700">أفقي</span>
+                <span className="text-[11px] font-black text-slate-700">{t('business.builder.banner.horizontal')}</span>
                 <input
                   type="range"
                   min={0}
@@ -208,7 +210,7 @@ const BannerSection: React.FC<Props> = ({
                 />
               </div>
               <div className="flex items-center gap-3 mt-2">
-                <span className="text-[11px] font-black text-slate-700">رأسي</span>
+                <span className="text-[11px] font-black text-slate-700">{t('business.builder.banner.vertical')}</span>
                 <input
                   type="range"
                   min={0}

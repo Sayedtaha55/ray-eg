@@ -2,6 +2,8 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom';
 import { Product, StoreSection, SizeVariant } from '../types';
 import { Eye, AlertCircle, Lock, ChevronLeft, ChevronRight, Map, X, ShoppingBag, CalendarCheck, ShoppingCart } from 'lucide-react';
+import i18n from '@/i18n';
+import { useTranslation } from 'react-i18next';
 
 interface StoreViewerProps {
   sections: StoreSection[];
@@ -32,12 +34,12 @@ const coerceBoolean = (value: any, fallback: boolean = true): boolean => {
 const formatUnitLabel = (raw: string): string => {
   const u = String(raw || '').trim();
   const up = u.toUpperCase();
-  if (up === 'PIECE') return 'قطعة';
-  if (up === 'KG') return 'كيلو';
-  if (up === 'G') return 'جرام';
-  if (up === 'L') return 'لتر';
-  if (up === 'ML') return 'ملّي';
-  if (up === 'PACK') return 'عبوة';
+  if (up === 'PIECE') return i18n.t('storeEditor.units.piece');
+  if (up === 'KG') return i18n.t('storeEditor.units.kg');
+  if (up === 'G') return i18n.t('storeEditor.units.g');
+  if (up === 'L') return i18n.t('storeEditor.units.l');
+  if (up === 'ML') return i18n.t('storeEditor.units.ml');
+  if (up === 'PACK') return i18n.t('storeEditor.units.pack');
   return u;
 };
 
@@ -45,13 +47,13 @@ const formatMetaValue = (value: any): string | null => {
   if (value == null) return null;
   if (typeof value === 'string') return value.trim() ? value.trim() : null;
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
-  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'boolean') return value ? i18n.t('storeEditor.yes') : i18n.t('storeEditor.no');
   if (Array.isArray(value)) {
     if (value.length === 0) return null;
     const allStrings = value.every((v) => typeof v === 'string');
-    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join('، ');
+    if (allStrings) return value.map((v) => String(v).trim()).filter(Boolean).join(i18n.t('storeEditor.arabicComma'));
     if (value.every((v) => v && typeof v === 'object' && typeof v.label === 'string')) {
-      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join('، ');
+      return value.map((v: any) => String(v.label).trim()).filter(Boolean).join(i18n.t('storeEditor.arabicComma'));
     }
     return `(${value.length})`;
   }
@@ -132,16 +134,16 @@ const getProductMetaChips = (product: any): MetaChip[] => {
   ]);
 
   const labelMap: Record<string, string> = {
-    unit: 'الوحدة',
-    stock: 'المتاح',
-    packOptions: 'باقات',
-    colors: 'الألوان',
-    sizes: 'المقاسات',
-    furnitureMeta: 'الأبعاد',
-    addons: 'إضافات',
-    menuVariants: 'اختيارات',
-    images: 'صور',
-    imageUrl: 'صورة',
+    unit: i18n.t('storeEditor.labels.unit'),
+    stock: i18n.t('storeViewer.labels.stock'),
+    packOptions: i18n.t('storeEditor.labels.packOptions'),
+    colors: i18n.t('storeEditor.labels.colors'),
+    sizes: i18n.t('storeEditor.labels.sizes'),
+    furnitureMeta: i18n.t('storeEditor.labels.furnitureMeta'),
+    addons: i18n.t('storeEditor.labels.addons'),
+    menuVariants: i18n.t('storeEditor.labels.menuVariants'),
+    images: i18n.t('storeEditor.labels.images'),
+    imageUrl: i18n.t('storeEditor.labels.imageUrl'),
   };
 
   const preferred = ['unit', 'furnitureMeta', 'colors', 'sizes', 'packOptions', 'addons', 'menuVariants'];
@@ -168,9 +170,9 @@ const getProductMetaChips = (product: any): MetaChip[] => {
       const w = fmWidth == null ? NaN : Number(fmWidth);
       const h = fmHeight == null ? NaN : Number(fmHeight);
 
-      if (Number.isFinite(l)) out.push({ label: 'الطول', value: `${l} سم` });
-      if (Number.isFinite(w)) out.push({ label: 'العرض', value: `${w} سم` });
-      if (Number.isFinite(h)) out.push({ label: 'الارتفاع', value: `${h} سم` });
+      if (Number.isFinite(l)) out.push({ label: i18n.t('storeEditor.lengthCm'), value: `${l} ${i18n.t('storeViewer.cm')}` });
+      if (Number.isFinite(w)) out.push({ label: i18n.t('storeEditor.widthCm'), value: `${w} ${i18n.t('storeViewer.cm')}` });
+      if (Number.isFinite(h)) out.push({ label: i18n.t('storeEditor.heightCm'), value: `${h} ${i18n.t('storeViewer.cm')}` });
       continue;
     }
     const val = normalized[key];
@@ -200,6 +202,7 @@ interface ProductNodeProps {
 const ProductNode: React.FC<ProductNodeProps> = React.memo(({
   product, coverMetrics, containerSize, isOpen, onToggle, onAddToCart, onReserve, isFood, productEditorVisibility, imageMapVisibility, performanceMode = false
 }) => {
+  const { t } = useTranslation();
   const isGhost = product.stockStatus === 'OUT_OF_STOCK';
   const isLowStock = product.stockStatus === 'LOW_STOCK';
   const [justAdded, setJustAdded] = useState(false);
@@ -254,7 +257,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
   const metaChips = useMemo(() => {
     const all = getProductMetaChips(product as any);
     if (showStock) return all;
-    return all.filter((c) => c.label !== 'المتاح');
+    return all.filter((c) => c.label !== t('storeViewer.labels.stock'));
   }, [product, showStock]);
 
   const unitRaw = typeof (product as any)?.unit === 'string' ? String((product as any).unit).trim() : '';
@@ -278,17 +281,17 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
     const u = String(raw || '').trim().toUpperCase();
     if (!u) return '';
     const map: Record<string, string> = {
-      PIECE: 'قطعة',
-      CARTON: 'كرتونة',
-      BOX: 'علبة',
-      BOTTLE: 'عبوة',
-      PACK: 'باك',
-      BAG: 'كيس',
-      CAN: 'كانز',
-      G: 'جرام',
-      KG: 'كيلو',
-      ML: 'مل',
-      L: 'لتر',
+      PIECE: t('storeEditor.units.piece'),
+      CARTON: t('storeEditor.units.carton'),
+      BOX: t('storeEditor.units.box'),
+      BOTTLE: t('storeEditor.units.bottle'),
+      PACK: t('storeEditor.units.pack'),
+      BAG: t('storeEditor.units.bag'),
+      CAN: t('storeEditor.units.can'),
+      G: t('storeEditor.units.g'),
+      KG: t('storeEditor.units.kg'),
+      ML: t('storeEditor.units.ml'),
+      L: t('storeEditor.units.l'),
     };
     return map[u] || u;
   }, []);
@@ -352,7 +355,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
         const def = packDefs.find((p: any) => String(p?.id || '').trim() === String(selectedPackId || '').trim());
         const qty = def ? (typeof def?.qty === 'number' ? def.qty : Number(def?.qty || NaN)) : NaN;
         const u = String(def?.unit || unitRaw || '').trim();
-        const label = String(def?.label || def?.name || '').trim() || (Number.isFinite(qty) && qty > 0 ? `${qty} ${u}` : 'باقة');
+        const label = String(def?.label || def?.name || '').trim() || (Number.isFinite(qty) && qty > 0 ? `${qty} ${u}` : t('storeEditor.pack'));
         return {
           selectedPackId,
           variantSelection: { kind: 'pack', packId: selectedPackId, label, qty: Number.isFinite(qty) ? qty : undefined, unit: u || undefined },
@@ -395,7 +398,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
           <div className="w-1 h-1 bg-white rounded-full"></div>
         </div>
         <div className={`absolute top-full left-1/2 -translate-x-1/2 mt-2 px-2 py-1 bg-black/70 ${performanceMode ? '' : 'backdrop-blur'} rounded text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none`}>
-          {showPrice && <div className="leading-tight">{product.price} ج.م</div>}
+          {showPrice && <div className="leading-tight">{product.price} {t('storeViewer.egp')}</div>}
           {compactDimsLabel && <div className="leading-tight text-slate-200">{compactDimsLabel}</div>}
         </div>
       </div>
@@ -416,12 +419,12 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                 </div>
               )}
               {isGhost ? (
-                <div className="inline-flex items-center gap-1 text-xs text-red-400 bg-red-900/30 px-2 py-1 rounded-full mt-2"><Lock size={12} /> <span>غير متوفر</span></div>
+                <div className="inline-flex items-center gap-1 text-xs text-red-400 bg-red-900/30 px-2 py-1 rounded-full mt-2"><Lock size={12} /> <span>{t('storeViewer.unavailable')}</span></div>
               ) : (
                 <div className="space-y-3 mt-2">
                   {hasPacks && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">الباقة</span></div>
+                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">{t('storeViewer.packLabel')}</span></div>
                       <select value={selectedPackId} onChange={(e) => setSelectedPackId(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-2 text-white text-sm">
                         {packDefs.map((p: any) => {
                           const label = packLineLabel(p);
@@ -429,7 +432,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                           const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? priceRaw : NaN;
                           return (
                             <option key={String(p?.id)} value={String(p?.id)}>
-                              {label && Number.isFinite(price) ? `${label} = ${price} ج.م` : (Number.isFinite(price) ? `${price} ج.م` : 'باقة')}
+                              {label && Number.isFinite(price) ? `${label} = ${price} ${t('storeViewer.egp')}` : (Number.isFinite(price) ? `${price} ${t('storeViewer.egp')}` : t('storeEditor.pack'))}
                             </option>
                           );
                         })}
@@ -438,7 +441,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                   )}
                   {Array.isArray(product.colors) && product.colors.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">اللون</span>{selectedColor && <span className="text-[10px] text-cyan-400">{selectedColor}</span>}</div>
+                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">{t('storeViewer.color')}</span>{selectedColor && <span className="text-[10px] text-cyan-400">{selectedColor}</span>}</div>
                       <div className="flex flex-wrap gap-1.5 justify-center">
                         {product.colors.map((color) => (
                           <button key={color} type="button" onClick={() => setSelectedColor(color)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all ${selectedColor === color ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-slate-500'}`}>{color}</button>
@@ -448,7 +451,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                   )}
                   {Array.isArray(product.sizes) && product.sizes.length > 0 && (
                     <div className="space-y-2">
-                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">المقاس</span>{selectedSize && <span className="text-[10px] text-cyan-400">{selectedSize.label === 'custom' ? selectedSize.customValue : selectedSize.label} - {selectedSize.price}ج</span>}</div>
+                      <div className="flex items-center justify-between px-1"><span className="text-[10px] text-slate-400">{t('storeViewer.size')}</span>{selectedSize && <span className="text-[10px] text-cyan-400">{selectedSize.label === 'custom' ? selectedSize.customValue : selectedSize.label} - {selectedSize.price}{t('storeViewer.egpShort')}</span>}</div>
                       <div className="flex flex-wrap gap-1.5 justify-center">
                         {product.sizes.map((size, idx) => (
                           <button key={idx} type="button" onClick={() => setSelectedSize(size)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold border transition-all min-w-[3rem] ${selectedSize === size ? 'bg-cyan-600 border-cyan-400 text-white shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-slate-500'}`}>{size.label === 'custom' ? size.customValue : size.label}</button>
@@ -462,7 +465,7 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                       {selectedSize && selectedSize.price !== product.price && <div className="text-[10px] text-slate-500 line-through">{product.price} EGP</div>}
                     </div>
                   )}
-                  {isLowStock && <div className="flex items-center justify-center gap-1 text-[10px] text-amber-400 bg-amber-900/20 py-1 rounded"><AlertCircle size={10} /> <span>كمية محدودة</span></div>}
+                  {isLowStock && <div className="flex items-center justify-center gap-1 text-[10px] text-amber-400 bg-amber-900/20 py-1 rounded"><AlertCircle size={10} /> <span>{t('storeViewer.limitedQuantity')}</span></div>}
                   {(selectedColor || selectedSize) && (
                     <div className="text-[10px] text-slate-400 bg-slate-800/50 rounded-lg py-2 px-3 mt-2">
                       {selectedColor && <span className="text-cyan-400">{selectedColor}</span>}
@@ -475,13 +478,13 @@ const ProductNode: React.FC<ProductNodeProps> = React.memo(({
                       {showAddToCart && (
                         <button onClick={handleAddToCart} className={`w-full py-3.5 rounded-2xl font-black text-xs uppercase tracking-widest transition-all duration-300 flex items-center justify-center gap-2 shadow-lg ${justAdded ? 'bg-green-500 text-white scale-95 shadow-green-500/20' : 'bg-[#00E5FF] text-slate-900 hover:bg-cyan-400 active:scale-95 shadow-cyan-500/20'}`} type="button">
                           {justAdded ? <ShoppingBag size={16} /> : <ShoppingCart size={16} />}
-                          <span>{justAdded ? 'تمت الإضافة' : 'إضافة للسلة'}</span>
+                          <span>{justAdded ? t('storeViewer.added') : t('storeViewer.addToCart')}</span>
                         </button>
                       )}
                       {showReserve && (
                         <button onClick={handleReserve} className="w-full py-3.5 rounded-2xl font-black text-xs bg-white text-slate-900 flex items-center justify-center gap-2 hover:bg-slate-100 active:scale-95 transition-all shadow-xl" type="button">
                           <CalendarCheck size={16} />
-                          <span>حجز</span>
+                          <span>{t('storeViewer.reserve')}</span>
                         </button>
                       )}
                     </div>

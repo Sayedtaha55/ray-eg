@@ -1,5 +1,6 @@
 import { Layout, Palette, Sliders, ShoppingBag } from 'lucide-react';
 import React from 'react';
+import i18n from '@/i18n';
 
 import {
   BackgroundSection,
@@ -70,13 +71,13 @@ export type BuilderSectionConfig = {
 export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   {
     id: 'colors',
-    title: 'الألوان',
+    title: i18n.t('business.builder.sections.colors'),
     icon: React.createElement(Palette as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ColorsSection as any, { config, setConfig }),
   },
   {
     id: 'background',
-    title: 'صورة الخلفية',
+    title: i18n.t('business.builder.sections.background'),
     icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) =>
       React.createElement(BackgroundSection as any, {
@@ -90,7 +91,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'banner',
-    title: 'صورة البانر',
+    title: i18n.t('business.builder.sections.banner'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig, bannerFile, setBannerFile, bannerPreview, setBannerPreview }) =>
       React.createElement(BannerSection as any, {
@@ -104,7 +105,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'header',
-    title: 'اللوجو',
+    title: i18n.t('business.builder.sections.logo'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({
       config,
@@ -129,79 +130,79 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'headerFooter',
-    title: 'أعلى وأسفل العرض',
+    title: i18n.t('business.builder.sections.headerFooter'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }),
   },
   {
     id: 'products',
-    title: 'عرض المعروضات',
+    title: i18n.t('business.builder.sections.products'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ProductsSection as any, { config, setConfig }),
   },
   {
     id: 'productCard',
-    title: 'كارت المنتج',
+    title: i18n.t('business.builder.sections.productCard'),
     icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(ProductCardSection as any, { config, setConfig }),
   },
   {
     id: 'categories',
-    title: 'الأقسام',
+    title: i18n.t('business.builder.sections.categories'),
     icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig, shop }) => React.createElement(CategorySection as any, { config, setConfig, shopId: shop?.id }),
   },
   {
     id: 'productEditor',
-    title: 'تحرير المنتجات',
+    title: i18n.t('business.builder.sections.productEditor'),
     icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(ProductEditorSection as any, { config, setConfig }),
   },
   {
     id: 'productPage',
-    title: 'صفحة المنتج',
+    title: i18n.t('business.builder.sections.productPage'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(ProductPageSection as any, { config, setConfig }),
   },
   {
     id: 'imageShape',
-    title: 'أشكال الصور',
+    title: i18n.t('business.builder.sections.imageShape'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ImageShapeSection as any, { config, setConfig }),
   },
   {
     id: 'layout',
-    title: 'النمط',
+    title: i18n.t('business.builder.sections.layout'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({ config, setConfig }) => React.createElement(LayoutSection as any, { config, setConfig }),
   },
   {
     id: 'typography',
-    title: 'الخطوط',
+    title: i18n.t('business.builder.sections.typography'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(TypographySection as any, { config, setConfig }),
   },
   {
     id: 'buttons',
-    title: 'الأزرار',
+    title: i18n.t('business.builder.sections.buttons'),
     icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({ config, setConfig }) => React.createElement(ButtonsSection as any, { config, setConfig }),
   },
   {
     id: 'visibility',
-    title: 'إظهار / إخفاء',
+    title: i18n.t('business.builder.sections.visibility'),
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig, shop }) => React.createElement(VisibilitySection as any, { config, setConfig, shop }),
   },
   {
     id: 'imageMapVisibility',
-    title: 'إظهار / إخفاء (خريطة الصور)',
+    title: i18n.t('business.builder.sections.imageMapVisibility'),
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ImageMapVisibilitySection as any, { config, setConfig }),
   },
   {
     id: 'customCss',
-    title: 'CSS مخصص',
+    title: i18n.t('business.builder.sections.customCss'),
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({ config, setConfig }) => React.createElement(CustomCssSection as any, { config, setConfig }),
   },

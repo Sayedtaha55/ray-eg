@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import i18n from '@/i18n';
 
 type RouteSeo = {
   title: string;
@@ -10,46 +11,42 @@ type RouteSeo = {
 };
 
 const SITE_URL = 'https://mnmknk.com';
-const SITE_NAME = 'من مكانك';
+const SITE_NAME = i18n.t('brand.name');
 const DEFAULT_IMAGE = `${SITE_URL}/brand/logo.png`;
 
-const routeSeoMap: Record<string, RouteSeo> = {
+const getRouteSeoMap = (): Record<string, RouteSeo> => ({
   '/': {
-    title: 'من مكانك | دليل المحلات والمطاعم والأنشطة في مصر',
-    description:
-      'من مكانك هو دليل المحلات ودليل المطاعم ودليل الأنشطة في مصر لاكتشاف الأماكن القريبة منك مع العروض والتقييمات.',
-    keywords:
-      'من مكانك, منمكانك, مكانك, دليل المحلات, دليل المطاعم, دليل الأنشطة, محلات قريبة, مطاعم قريبة, أنشطة قريبة',
+    title: i18n.t('seo.routes.home.title'),
+    description: i18n.t('seo.routes.home.description'),
+    keywords: i18n.t('seo.routes.home.keywords'),
     canonicalPath: '/',
   },
   '/dalil': {
-    title: 'من مكانك | دليل المحلات ودليل المطاعم ودليل الأنشطة في مصر',
-    description:
-      'اكتشف أفضل المحلات والمطاعم والأنشطة القريبة منك على من مكانك مع عروض وتقييمات ومعلومات تساعدك تختار بسرعة.',
-    keywords:
-      'من مكانك, منمكانك, دليل المحلات, دليل المطاعم, دليل الأنشطة, دليل الاماكن, أماكن قريبة, محلات قريبة, مطاعم قريبة',
+    title: i18n.t('seo.routes.dalil.title'),
+    description: i18n.t('seo.routes.dalil.description'),
+    keywords: i18n.t('seo.routes.dalil.keywords'),
     canonicalPath: '/dalil',
     includeFaqSchema: true,
   },
   '/map': {
-    title: 'خريطة من مكانك | اكتشف المحلات والمطاعم القريبة',
-    description: 'خريطة تفاعلية لاكتشاف المحلات والمطاعم والأنشطة القريبة منك في مصر على منصة من مكانك.',
-    keywords: 'خريطة المحلات, خريطة المطاعم, محلات قريبة مني, مطاعم قريبة مني, من مكانك',
+    title: i18n.t('seo.routes.map.title'),
+    description: i18n.t('seo.routes.map.description'),
+    keywords: i18n.t('seo.routes.map.keywords'),
     canonicalPath: '/map',
   },
   '/offers': {
-    title: 'عروض من مكانك | أحدث عروض المحلات والمطاعم',
-    description: 'تابع أحدث عروض وتخفيضات المحلات والمطاعم القريبة منك على منصة من مكانك.',
-    keywords: 'عروض المحلات, عروض المطاعم, خصومات قريبة, من مكانك عروض',
+    title: i18n.t('seo.routes.offers.title'),
+    description: i18n.t('seo.routes.offers.description'),
+    keywords: i18n.t('seo.routes.offers.keywords'),
     canonicalPath: '/offers',
   },
   '/about': {
-    title: 'عن من مكانك | دليل المحلات والمطاعم في مصر',
-    description: 'تعرف على منصة من مكانك ورسالتها في تسهيل اكتشاف المحلات والمطاعم والأنشطة القريبة في مصر.',
-    keywords: 'عن من مكانك, منصة من مكانك, دليل المحلات في مصر',
+    title: i18n.t('seo.routes.about.title'),
+    description: i18n.t('seo.routes.about.description'),
+    keywords: i18n.t('seo.routes.about.keywords'),
     canonicalPath: '/about',
   },
-};
+});
 
 const upsertMeta = (name: string, content: string) => {
   let tag = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -104,6 +101,7 @@ const RouteSeoManager: React.FC = () => {
     if (typeof document === 'undefined') return;
 
     const path = String(location?.pathname || '/');
+    const routeSeoMap = getRouteSeoMap();
     const seo = routeSeoMap[path] || routeSeoMap['/'];
     const canonicalUrl = `${SITE_URL}${seo.canonicalPath}`;
 
@@ -130,7 +128,7 @@ const RouteSeoManager: React.FC = () => {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
       name: SITE_NAME,
-      alternateName: ['منمكانك', 'مكانك', 'دليل المحلات', 'دليل المطاعم', 'دليل الأنشطة'],
+      alternateName: i18n.t('seo.alternateNames', { returnObjects: true }) as string[],
       url: SITE_URL,
       inLanguage: 'ar',
       potentialAction: {
@@ -155,18 +153,18 @@ const RouteSeoManager: React.FC = () => {
         mainEntity: [
           {
             '@type': 'Question',
-            name: 'يعني ايه من مكانك؟',
+            name: i18n.t('seo.faq.q1'),
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'من مكانك منصة دليل تساعدك تكتشف المحلات والمطاعم والأنشطة القريبة منك بسهولة.',
+              text: i18n.t('seo.faq.a1'),
             },
           },
           {
             '@type': 'Question',
-            name: 'هل من مكانك هو دليل المحلات والمطاعم؟',
+            name: i18n.t('seo.faq.q2'),
             acceptedAnswer: {
               '@type': 'Answer',
-              text: 'نعم، من مكانك يوفر دليل المحلات ودليل المطاعم ودليل الأنشطة في مكان واحد.',
+              text: i18n.t('seo.faq.a2'),
             },
           },
         ],

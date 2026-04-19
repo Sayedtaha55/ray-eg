@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, Check, Loader2, RefreshCw } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 const AdminNotifications: React.FC = () => {
+  const { t } = useTranslation();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -21,7 +23,7 @@ const AdminNotifications: React.FC = () => {
       setItems(Array.isArray(list) ? list : []);
       setUnreadCount(Math.max(0, Number(unread?.count || 0)));
     } catch (e: any) {
-      addToast(e?.message || 'فشل تحميل الإشعارات', 'error');
+      addToast(e?.message || t('admin.notifications.loadFailed'), 'error');
       setItems([]);
       setUnreadCount(0);
     } finally {
@@ -38,9 +40,9 @@ const AdminNotifications: React.FC = () => {
     try {
       await ApiService.markMyNotificationsRead();
       await loadData(true);
-      addToast('تم تعليم كل الإشعارات كمقروءة', 'success');
+      addToast(t('admin.notifications.allMarkedRead'), 'success');
     } catch (e: any) {
-      addToast(e?.message || 'فشل تحديث الإشعارات', 'error');
+      addToast(e?.message || t('admin.notifications.markAllReadFailed'), 'error');
     }
   };
 
@@ -50,7 +52,7 @@ const AdminNotifications: React.FC = () => {
       setItems((prev) => prev.map((n) => (String(n?.id) === String(id) ? { ...n, isRead: true, is_read: true } : n)));
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch (e: any) {
-      addToast(e?.message || 'فشل تعليم الإشعار كمقروء', 'error');
+      addToast(e?.message || t('admin.notifications.markReadFailed'), 'error');
     }
   };
 
@@ -77,12 +79,12 @@ const AdminNotifications: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-black text-white">الإشعارات</h2>
+              <h2 className="text-3xl font-black text-white">{t('admin.notifications.title')}</h2>
               <span className="text-xs font-black px-3 py-1 rounded-full bg-slate-900 border border-white/5 text-slate-200">
-                غير مقروء: {unreadCount.toLocaleString('ar-EG')}
+                {t('admin.notifications.unread')}: {unreadCount.toLocaleString('ar-EG')}
               </span>
             </div>
-            <p className="text-slate-500 text-sm font-bold">إشعارات حساب الأدمن</p>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.notifications.subtitle')}</p>
           </div>
         </div>
 
@@ -93,7 +95,7 @@ const AdminNotifications: React.FC = () => {
             className="px-4 py-2 rounded-2xl text-xs font-black bg-slate-900 border border-white/5 text-slate-200 hover:bg-slate-800 disabled:opacity-60 flex items-center gap-2"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            تحديث
+            {t('admin.notifications.refresh')}
           </button>
 
           <button
@@ -102,7 +104,7 @@ const AdminNotifications: React.FC = () => {
             className="px-4 py-2 rounded-2xl text-xs font-black bg-amber-500/10 border border-amber-500/20 text-amber-300 hover:bg-amber-500/15 disabled:opacity-60 flex items-center gap-2"
           >
             <Check size={16} />
-            تعليم الكل كمقروء
+            {t('admin.notifications.markAllRead')}
           </button>
         </div>
       </div>
@@ -110,12 +112,12 @@ const AdminNotifications: React.FC = () => {
       {loading ? (
         <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-10 text-slate-400 font-bold flex items-center gap-3">
           <Loader2 className="animate-spin" size={18} />
-          جاري تحميل الإشعارات...
+          {t('admin.notifications.loading')}
         </div>
       ) : (
         <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] overflow-hidden">
           {normalized.length === 0 ? (
-            <div className="p-10 text-slate-500 font-bold">لا توجد إشعارات حالياً.</div>
+            <div className="p-10 text-slate-500 font-bold">{t('admin.notifications.noNotifications')}</div>
           ) : (
             <div className="divide-y divide-white/5">
               {normalized.map((n: any) => (
@@ -124,7 +126,7 @@ const AdminNotifications: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className={`w-2 h-2 rounded-full ${n.isRead ? 'bg-slate-700' : 'bg-amber-400'}`} />
                       <div className="text-slate-200 font-black text-sm">
-                        {n.title || n.type || 'إشعار'}
+                        {n.title || n.type || t('admin.notifications.notification')}
                       </div>
                       <div className="text-slate-600 font-bold text-xs">{n.createdAtText}</div>
                     </div>
@@ -138,7 +140,7 @@ const AdminNotifications: React.FC = () => {
                       onClick={() => markOneRead(String(n?.id))}
                       className="px-4 py-2 rounded-2xl text-xs font-black bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10"
                     >
-                      تعليم كمقروء
+                      {t('admin.notifications.markRead')}
                     </button>
                   ) : null}
                 </div>

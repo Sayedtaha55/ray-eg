@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import * as ReactRouterDOM from 'react-router-dom';
 import { getMerchantDashboardTabsForShop } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
+import { useTranslation } from 'react-i18next';
 
 const { Link } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -12,6 +13,7 @@ interface QuickLinksCardProps {
 }
 
 const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl, shop }) => {
+  const { t } = useTranslation();
   const allowedTabIds = new Set(getMerchantDashboardTabsForShop(shop).map((t) => t.id));
   const canOpenBuilder = allowedTabIds.has('builder');
 
@@ -22,14 +24,14 @@ const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl, shop
       transition={{ delay: 0.05 }}
       className="lg:col-span-5 bg-white rounded-[3rem] border border-slate-100 shadow-sm p-8 md:p-10"
     >
-      <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-6">روابط سريعة</h2>
+      <h2 className="text-xl md:text-2xl font-black text-slate-900 mb-6">{t('business.merchantProfile.quickLinks.title')}</h2>
 
       <div className="space-y-3">
         <Link
           to={buildDashboardUrl()}
           className="w-full flex items-center justify-between flex-row-reverse gap-3 px-6 py-5 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all"
         >
-          <span>لوحة التحكم</span>
+          <span>{t('business.merchantProfile.quickLinks.dashboard')}</span>
           <span className="text-white/70">→</span>
         </Link>
 
@@ -38,7 +40,7 @@ const QuickLinksCard: React.FC<QuickLinksCardProps> = ({ buildDashboardUrl, shop
             to={buildDashboardUrl('builder')}
             className="w-full flex items-center justify-between flex-row-reverse gap-3 px-6 py-5 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm hover:bg-black group transition-all"
           >
-            <span className="group-hover:text-white transition-colors">هوية المتجر (Page Builder)</span>
+            <span className="group-hover:text-white transition-colors">{t('business.merchantProfile.quickLinks.storeIdentity')}</span>
             <span className="text-slate-500 group-hover:text-white transition-colors">→</span>
           </Link>
         ) : null}

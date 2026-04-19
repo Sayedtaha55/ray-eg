@@ -1,15 +1,17 @@
 import React from 'react';
 import { CheckCircle, Clock, AlertTriangle, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useTranslation } from 'react-i18next';
 
 interface OverviewProps {
   shop: any;
 }
 
 const Overview: React.FC<OverviewProps> = ({ shop }) => {
+  const { t } = useTranslation();
   const formatEGP = (value: unknown) => {
     const n = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(n)) return 'غير متاح';
+    if (!Number.isFinite(n)) return t('overviewSettings.notAvailable');
     try {
       return new Intl.NumberFormat('ar-EG', {
         style: 'currency',
@@ -17,7 +19,7 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
         maximumFractionDigits: 0,
       }).format(n);
     } catch {
-      return `ج.م ${Math.round(n).toLocaleString('ar-EG')}`;
+      return `${t('storeViewer.egp')} ${Math.round(n).toLocaleString('ar-EG')}`;
     }
   };
 
@@ -35,46 +37,46 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
 
   const stats = [
     {
-      title: 'حالة الحساب',
-      value: isApproved ? 'نشط' : isPending ? 'قيد المراجعة' : isRejected ? 'مرفوض' : 'غير معروف',
+      title: t('overviewSettings.accountStatus'),
+      value: isApproved ? t('overviewSettings.active') : isPending ? t('overviewSettings.underReview') : isRejected ? t('overviewSettings.rejected') : t('overviewSettings.unknown'),
       icon: isApproved ? CheckCircle : isPending ? Clock : isRejected ? AlertTriangle : Info,
       color: isApproved ? 'text-green-500' : isPending ? 'text-blue-500' : isRejected ? 'text-red-500' : 'text-slate-400',
       description: isApproved
-        ? 'متجرك معتمد وجاهز لاستقبال الطلبات'
+        ? t('overviewSettings.approvedDesc')
         : isPending
-          ? 'متجرك قيد المراجعة حالياً'
+          ? t('overviewSettings.pendingDesc')
           : isRejected
-            ? 'تم رفض المتجر، راجع بيانات المتجر'
-            : 'لم يتم تحديد حالة المتجر',
+            ? t('overviewSettings.rejectedDesc')
+            : t('overviewSettings.unknownDesc'),
     },
     {
-      title: 'حالة الدفع',
-      value: hasPaymentConfig ? 'مفعّلة' : 'غير مفعّلة',
+      title: t('overviewSettings.paymentStatus'),
+      value: hasPaymentConfig ? t('overviewSettings.enabled') : t('overviewSettings.notEnabled'),
       icon: hasPaymentConfig ? CheckCircle : AlertTriangle,
       color: hasPaymentConfig ? 'text-green-500' : 'text-yellow-500',
       description: hasPaymentConfig
-        ? (paidUntilText ? `الاشتراك/الدفع ساري حتى ${paidUntilText}` : 'تم ربط بيانات الدفع بنجاح')
-        : 'لم يتم ربط بيانات الدفع بعد',
+        ? (paidUntilText ? t('overviewSettings.subscriptionValidUntil', { date: paidUntilText }) : t('overviewSettings.paymentLinked'))
+        : t('overviewSettings.paymentNotLinked'),
     },
     {
-      title: 'المستحقات القادمة',
+      title: t('overviewSettings.upcomingDues'),
       value: formatEGP(nextDueAmount ?? 0),
       icon: Clock,
       color: 'text-blue-500',
-      description: Number(nextDueAmount) > 0 ? 'يوجد مبلغ مستحق قادم' : 'لا توجد مدفوعات معلقة',
+      description: Number(nextDueAmount) > 0 ? t('overviewSettings.amountDue') : t('overviewSettings.noPendingPayments'),
     },
   ];
 
   const quickActions = [
     {
-      title: 'تحديث معلومات الحساب',
-      description: 'قم بتحديث معلوماتك الشخصية وبيانات الاتصال',
+      title: t('overviewSettings.updateAccountInfo'),
+      description: t('overviewSettings.updateAccountInfoDesc'),
       icon: <Info className="w-5 h-5 text-blue-500" />,
       onClick: () => {},
     },
     {
-      title: 'تغيير كلمة المرور',
-      description: 'قم بتحديث كلمة المرور الخاصة بك',
+      title: t('overviewSettings.changePassword'),
+      description: t('overviewSettings.changePasswordDesc'),
       icon: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
       onClick: () => {},
     },
@@ -83,8 +85,8 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">لوحة التحكم</h1>
-        <p className="text-muted-foreground">نظرة عامة على إعدادات متجرك</p>
+        <h1 className="text-2xl font-bold">{t('overviewSettings.dashboard')}</h1>
+        <p className="text-muted-foreground">{t('overviewSettings.dashboardDesc')}</p>
       </div>
 
       {/* Stats Cards */}
@@ -105,7 +107,7 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
 
       {/* Quick Actions */}
       <div className="grid gap-4">
-        <h2 className="text-lg font-semibold">إجراءات سريعة</h2>
+        <h2 className="text-lg font-semibold">{t('overviewSettings.quickActions')}</h2>
         <div className="grid gap-4 md:grid-cols-2">
           {quickActions.map((action, index) => (
             <Card 
@@ -127,11 +129,11 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
 
       {/* Recent Activity */}
       <div className="space-y-4">
-        <h2 className="text-lg font-semibold">النشاط الأخير</h2>
+        <h2 className="text-lg font-semibold">{t('overviewSettings.recentActivity')}</h2>
         <Card className="border-0 shadow-sm">
           <CardContent className="p-6">
             <div className="text-center text-muted-foreground text-sm">
-              لا توجد أنشطة حديثة
+              {t('overviewSettings.noRecentActivity')}
             </div>
           </CardContent>
         </Card>

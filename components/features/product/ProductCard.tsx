@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Card, Badge, Button } from '../../common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 interface ProductCardProps {
   product: {
@@ -28,6 +29,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
   onToggleFavorite,
   isFavorite = false,
 }) => {
+  const { t } = useTranslation();
   const discountPercentage = product.originalPrice 
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : product.discount || 0;
@@ -77,7 +79,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             {product.category}
           </span>
           {!product.inStock && (
-            <Badge variant="error" size="sm">نفد المخزون</Badge>
+            <Badge variant="error" size="sm">{t('productCard.outOfStock')}</Badge>
           )}
         </div>
 
@@ -92,17 +94,17 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
             <Star size={14} className="text-yellow-400 fill-current" />
             <span className="text-white text-sm font-bold">{product.rating}</span>
           </div>
-          <span className="text-slate-400 text-xs">({product.reviews} تقييم)</span>
+          <span className="text-slate-400 text-xs">({product.reviews} {t('productCard.reviews')})</span>
         </div>
 
         {/* Price */}
         <div className="flex items-center gap-3">
           <span className="text-xl font-black text-white">
-            {product.price} ج.م
+            {product.price} {t('storeViewer.egp')}
           </span>
           {product.originalPrice && (
             <span className="text-sm text-slate-400 line-through">
-              {product.originalPrice} ج.م
+              {product.originalPrice} {t('storeViewer.egp')}
             </span>
           )}
         </div>
@@ -115,7 +117,7 @@ const ProductCard: React.FC<ProductCardProps> = memo(({
           className="w-full"
         >
           <ShoppingCart size={16} />
-          {product.inStock ? 'أضف للسلة' : 'غير متوفر'}
+          {product.inStock ? t('productCard.addToCart') : t('productCard.unavailable')}
         </Button>
       </div>
     </Card>

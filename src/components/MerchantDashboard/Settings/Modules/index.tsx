@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 type ModuleId =
   | 'overview'
@@ -22,23 +23,7 @@ type ModuleDef = {
   kind: 'core' | 'optional';
 };
 
-const MODULES: ModuleDef[] = [
-  { id: 'overview', label: 'نظرة عامة', kind: 'core' },
-  { id: 'products', label: 'المنتجات', kind: 'core' },
-  { id: 'promotions', label: 'العروض', kind: 'core' },
-  { id: 'builder', label: 'التصميم', kind: 'core' },
-  { id: 'settings', label: 'الإعدادات', kind: 'core' },
-
-  { id: 'gallery', label: 'معرض الصور', kind: 'optional' },
-  { id: 'reservations', label: 'الحجوزات', kind: 'optional' },
-  { id: 'invoice', label: 'فاتورة', kind: 'optional' },
-  { id: 'pos', label: 'الكاشير', kind: 'optional' },
-  { id: 'sales', label: 'الطلبات / المبيعات', kind: 'optional' },
-  { id: 'customers', label: 'العملاء', kind: 'optional' },
-  { id: 'reports', label: 'التقارير', kind: 'optional' },
-];
-
-const CORE_IDS: ModuleId[] = MODULES.filter((m) => m.kind === 'core').map((m) => m.id);
+const CORE_IDS: ModuleId[] = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
 type SaveHandler = () => Promise<boolean>;
 
@@ -52,6 +37,22 @@ type Props = {
 
 const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
+
+  const MODULES: ModuleDef[] = useMemo(() => [
+    { id: 'overview', label: t('modulesSettings.moduleOverview'), kind: 'core' },
+    { id: 'products', label: t('modulesSettings.moduleProducts'), kind: 'core' },
+    { id: 'promotions', label: t('modulesSettings.modulePromotions'), kind: 'core' },
+    { id: 'builder', label: t('modulesSettings.moduleBuilder'), kind: 'core' },
+    { id: 'settings', label: t('modulesSettings.moduleSettings'), kind: 'core' },
+    { id: 'gallery', label: t('modulesSettings.moduleGallery'), kind: 'optional' },
+    { id: 'reservations', label: t('modulesSettings.moduleReservations'), kind: 'optional' },
+    { id: 'invoice', label: t('modulesSettings.moduleInvoice'), kind: 'optional' },
+    { id: 'pos', label: t('modulesSettings.modulePos'), kind: 'optional' },
+    { id: 'sales', label: t('modulesSettings.moduleSales'), kind: 'optional' },
+    { id: 'customers', label: t('modulesSettings.moduleCustomers'), kind: 'optional' },
+    { id: 'reports', label: t('modulesSettings.moduleReports'), kind: 'optional' },
+  ], [t]);
 
   const baselineRef = useRef<string[]>([]);
 
@@ -109,25 +110,25 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     const details = (() => {
       switch (id) {
         case 'invoice':
-          return 'سيتم حذف كل فواتير الحسابات وبنودها الخاصة بهذا المتجر.';
+          return t('modulesSettings.removeInvoiceDetail');
         case 'reservations':
-          return 'سيتم حذف كل بيانات الحجوزات الخاصة بهذا المتجر.';
+          return t('modulesSettings.removeReservationsDetail');
         case 'gallery':
-          return 'سيتم حذف صور المعرض الخاصة بهذا المتجر.';
+          return t('modulesSettings.removeGalleryDetail');
         case 'customers':
-          return 'سيتم حذف سجل العملاء المسجلين لهذا المتجر.';
+          return t('modulesSettings.removeCustomersDetail');
         case 'reports':
-          return 'سيتم حذف الإعدادات/البيانات المرتبطة بالتقارير (إن وجدت).';
+          return t('modulesSettings.removeReportsDetail');
         case 'pos':
-          return 'قد يتم حذف/إخفاء بيانات مرتبطة بالكاشير لهذا المتجر (حسب الإعدادات).';
+          return t('modulesSettings.removePosDetail');
         case 'sales':
-          return 'سيتم تعطيل المبيعات، وقد يتم حذف بيانات مرتبطة بالمبيعات والعملاء والتقارير (حسب الإعدادات).';
+          return t('modulesSettings.removeSalesDetail');
         default:
-          return 'سيتم حذف البيانات المرتبطة بهذا الزر.';
+          return t('modulesSettings.removeDefaultDetail');
       }
     })();
 
-    return `هل أنت متأكد من حذف زر "${label}"؟\n\n${details}\n\nتنبيه: في حالة حذف الزر سيتم حذف البيانات المرتبطة به ولا يمكن استرجاعها.`;
+    return t('modulesSettings.removeConfirm', { label, details });
   };
 
   const removeActiveModule = useCallback(
@@ -152,13 +153,13 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         baselineRef.current = list;
         emitChanges(0);
         setEnabled(new Set(list as any));
-        toast({ title: 'تم الحذف', description: 'تم حذف الزر وتحديث لوحة التحكم.' });
+        toast({ title: t('modulesSettings.deleted'), description: t('modulesSettings.moduleDeletedDesc') });
         onSaved();
       } catch (e: any) {
         const msg = e?.message ? String(e.message) : '';
         toast({
-          title: 'خطأ',
-          description: msg ? `فشل حذف الزر: ${msg}` : 'فشل حذف الزر',
+          title: t('modulesSettings.error'),
+          description: msg ? t('modulesSettings.removeModuleFailed', { msg }) : t('modulesSettings.removeModuleFailedShort'),
           variant: 'destructive',
         });
       } finally {
@@ -190,8 +191,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       if ((id === 'customers' || id === 'reports') && !canEnableCustomersOrReports(next)) {
         try {
           toast({
-            title: 'غير مسموح',
-            description: 'لا يمكن تفعيل العملاء أو التقارير قبل تفعيل الطلبات / المبيعات.',
+            title: t('modulesSettings.notAllowed'),
+            description: t('modulesSettings.customersRequiresSales'),
             variant: 'destructive',
           });
         } catch {
@@ -217,7 +218,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
 
         baselineRef.current = list;
         emitChanges(0);
-        toast({ title: 'تم الحفظ', description: 'تم حفظ الأزرار والإضافات بنجاح' });
+        toast({ title: t('modulesSettings.saved'), description: t('modulesSettings.modulesSavedDesc') });
         onSaved();
         return true;
       }
@@ -240,7 +241,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         .filter((id) => !CORE_IDS.includes(id as any));
 
       if (requestedModules.length === 0) {
-        toast({ title: 'لا يوجد جديد', description: 'لم يتم اختيار أزرار إضافية جديدة لإرسالها للأدمن' });
+        toast({ title: t('modulesSettings.nothingNew'), description: t('modulesSettings.noNewModulesSelected') });
         baselineRef.current = toSortedArray(latestActiveSet as any);
         emitChanges(0);
         setEnabled(new Set(latestActiveSet as any));
@@ -252,8 +253,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       });
 
       toast({
-        title: 'تم إرسال الطلب',
-        description: 'جاري معالجة طلبك من الأدمن. ستظهر الأزرار بعد الموافقة.',
+        title: t('modulesSettings.requestSent'),
+        description: t('modulesSettings.requestSentDesc'),
       });
 
       const baseline = toSortedArray(latestActiveSet as any);
@@ -268,8 +269,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
 
       if (status === 400 && msg.includes('مفعلة بالفعل')) {
         toast({
-          title: 'لا يوجد جديد',
-          description: 'الأزرار المختارة مفعلة بالفعل.',
+          title: t('modulesSettings.nothingNew'),
+          description: t('modulesSettings.alreadyEnabled'),
         });
         try {
           const fresh = await ApiService.getMyShop();
@@ -289,8 +290,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       }
 
       toast({
-        title: 'خطأ',
-        description: msg ? `فشل حفظ الأزرار: ${msg}` : 'فشل حفظ الأزرار',
+        title: t('modulesSettings.error'),
+        description: msg ? t('modulesSettings.saveModulesFailed', { msg }) : t('modulesSettings.saveModulesFailedShort'),
         variant: 'destructive',
       });
       throw e;
@@ -316,14 +317,14 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   return (
     <div className="space-y-6 text-right" dir="rtl">
       <div>
-        <h3 className="text-2xl font-black">ترقية</h3>
+        <h3 className="text-2xl font-black">{t('modulesSettings.upgrade')}</h3>
         <p className="text-sm font-black text-slate-500 mt-2">
-          الأزرار الأساسية موجودة دائمًا. فعّل الإضافي اللي تحتاجه.
+          {t('modulesSettings.upgradeDesc')}
         </p>
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl p-5">
-        <div className="font-black text-slate-900 mb-4">الأزرار الأساسية</div>
+        <div className="font-black text-slate-900 mb-4">{t('modulesSettings.coreModules')}</div>
         <div className="space-y-2">
           {coreModules.map((m) => (
             <div
@@ -331,14 +332,14 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
               className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50"
             >
               <span className="font-black text-slate-900">{m.label}</span>
-              <span className="text-[10px] font-black text-slate-400">أساسي</span>
+              <span className="text-[10px] font-black text-slate-400">{t('modulesSettings.core')}</span>
             </div>
           ))}
         </div>
       </div>
 
       <div className="bg-white border border-slate-100 rounded-2xl p-5">
-        <div className="font-black text-slate-900 mb-4">الأزرار الإضافية</div>
+        <div className="font-black text-slate-900 mb-4">{t('modulesSettings.optionalModules')}</div>
         <div className="space-y-3">
           {optionalModules.map((m) => {
             const checked = enabled.has(m.id);
@@ -374,7 +375,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                     disabled={saving}
                     className="shrink-0 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-black text-xs hover:bg-slate-50 disabled:opacity-60"
                   >
-                    حذف
+                    {t('modulesSettings.delete')}
                   </button>
                 ) : null}
               </div>
@@ -391,7 +392,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
             }}
             className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all disabled:opacity-60"
           >
-            {saving ? 'جاري الحفظ...' : 'حفظ الأزرار'}
+            {saving ? t('modulesSettings.saving') : t('modulesSettings.saveModules')}
           </button>
         </div>
       </div>

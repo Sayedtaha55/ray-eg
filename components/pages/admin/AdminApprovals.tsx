@@ -6,12 +6,14 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { BackendRequestError } from '@/services/api/httpClient';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
 const { Link } = ReactRouterDOM as any;
 
 const AdminApprovals: React.FC = () => {
+  const { t } = useTranslation();
   const [shops, setShops] = useState<any[]>([]);
   const [moduleRequests, setModuleRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,7 +28,7 @@ const AdminApprovals: React.FC = () => {
       ]);
       setShops(data);
     } catch {
-      if (!silent) addToast('فشل تحميل الطلبات', 'error');
+      if (!silent) addToast(t('admin.approvals.loadFailed'), 'error');
     } finally {
       if (!silent) setLoading(false);
     }
@@ -41,9 +43,9 @@ const AdminApprovals: React.FC = () => {
       if (!silent) {
         const status = e instanceof BackendRequestError ? e.status : undefined;
         if (status === 401 || status === 403) {
-          addToast('لا تملك صلاحية عرض طلبات ترقية الأزرار', 'error');
+          addToast(t('admin.approvals.noPermissionModuleRequests'), 'error');
         } else {
-          addToast('فشل تحميل طلبات ترقية الأزرار', 'error');
+          addToast(t('admin.approvals.loadModuleRequestsFailed'), 'error');
         }
       }
     } finally {
@@ -66,31 +68,31 @@ const AdminApprovals: React.FC = () => {
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     try {
       await ApiService.updateShopStatus(id, action);
-      addToast(action === 'approved' ? 'تم تفعيل المحل بنجاح' : 'تم رفض الطلب', 'success');
+      addToast(action === 'approved' ? t('admin.approvals.shopApproved') : t('admin.approvals.requestRejected'), 'success');
       loadShops();
     } catch (e) {
-      addToast('حدث خطأ في العملية', 'error');
+      addToast(t('admin.approvals.actionError'), 'error');
     }
   };
 
   const handleModuleRequestApprove = async (id: string) => {
     try {
       await (ApiService as any).adminApproveModuleUpgradeRequest?.(id);
-      addToast('تمت الموافقة على الترقية وتفعيل الأزرار فورًا', 'success');
+      addToast(t('admin.approvals.moduleApproved'), 'success');
       loadModuleRequests();
     } catch {
-      addToast('حدث خطأ في الموافقة على الترقية', 'error');
+      addToast(t('admin.approvals.moduleApproveError'), 'error');
     }
   };
 
   const handleModuleRequestReject = async (id: string) => {
-    const note = prompt('سبب الرفض (اختياري):') || '';
+    const note = prompt(t('admin.approvals.rejectReasonPrompt')) || '';
     try {
       await (ApiService as any).adminRejectModuleUpgradeRequest?.(id, { note: note || null });
-      addToast('تم رفض طلب الترقية', 'success');
+      addToast(t('admin.approvals.moduleRejected'), 'success');
       loadModuleRequests();
     } catch {
-      addToast('حدث خطأ في رفض طلب الترقية', 'error');
+      addToast(t('admin.approvals.moduleRejectError'), 'error');
     }
   };
 
@@ -101,8 +103,8 @@ const AdminApprovals: React.FC = () => {
           <ShieldAlert size={24} />
         </div>
         <div>
-          <h2 className="text-3xl font-black text-white">طلبات الانضمام</h2>
-          <p className="text-slate-500 text-sm font-bold">مراجعة وتفعيل حسابات التجار الجدد.</p>
+          <h2 className="text-3xl font-black text-white">{t('admin.approvals.title')}</h2>
+          <p className="text-slate-500 text-sm font-bold">{t('admin.approvals.subtitle')}</p>
         </div>
       </div>
 
@@ -111,12 +113,12 @@ const AdminApprovals: React.FC = () => {
       ) : (
         <div className="space-y-10">
           <div className="space-y-4">
-            <h3 className="text-white font-black text-lg">طلبات ترقية الأزرار</h3>
+            <h3 className="text-white font-black text-lg">{t('admin.approvals.moduleRequestsTitle')}</h3>
             {moduleLoading ? (
               <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
             ) : moduleRequests.length === 0 ? (
               <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
-                <p className="text-slate-500 font-bold">لا توجد طلبات ترقية معلقة حالياً.</p>
+                <p className="text-slate-500 font-bold">{t('admin.approvals.noModuleRequests')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
@@ -135,7 +137,7 @@ const AdminApprovals: React.FC = () => {
                       <div className="text-right flex-1">
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <h4 className="text-xl font-black text-white">{shopName || 'متجر'}</h4>
+                            <h4 className="text-xl font-black text-white">{shopName || t('admin.approvals.shop')}</h4>
                             <div className="text-slate-500 text-xs font-bold mt-1">{shopSlug ? `/${shopSlug}` : ''}</div>
                           </div>
                           <div className="text-slate-500 text-xs font-bold">{createdAt ? new Date(createdAt).toLocaleString() : ''}</div>
@@ -155,13 +157,13 @@ const AdminApprovals: React.FC = () => {
                           onClick={() => handleModuleRequestApprove(String(r.id))}
                           className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
                         >
-                          <Check size={18} /> موافقة
+                          <Check size={18} /> {t('admin.approvals.approve')}
                         </button>
                         <button
                           onClick={() => handleModuleRequestReject(String(r.id))}
                           className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
                         >
-                          <X size={18} /> رفض
+                          <X size={18} /> {t('admin.approvals.reject')}
                         </button>
                       </div>
                     </MotionDiv>
@@ -172,10 +174,10 @@ const AdminApprovals: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-white font-black text-lg">طلبات انضمام التجار</h3>
+            <h3 className="text-white font-black text-lg">{t('admin.approvals.merchantRequestsTitle')}</h3>
             {shops.length === 0 ? (
               <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
-                <p className="text-slate-500 font-bold">لا توجد طلبات تجار معلقة حالياً.</p>
+                <p className="text-slate-500 font-bold">{t('admin.approvals.noMerchantRequests')}</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
@@ -202,13 +204,13 @@ const AdminApprovals: React.FC = () => {
                         onClick={() => handleAction(shop.id, 'approved')}
                         className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
                       >
-                        <Check size={18} /> قبول التاجر
+                        <Check size={18} /> {t('admin.approvals.acceptMerchant')}
                       </button>
                       <button
                         onClick={() => handleAction(shop.id, 'rejected')}
                         className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
                       >
-                        <X size={18} /> رفض الطلب
+                        <X size={18} /> {t('admin.approvals.rejectRequest')}
                       </button>
                     </div>
                   </MotionDiv>
@@ -218,17 +220,17 @@ const AdminApprovals: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-white font-black text-lg">طلبات تسجيل المندوبين</h3>
+            <h3 className="text-white font-black text-lg">{t('admin.approvals.courierRequestsTitle')}</h3>
             <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
               <div className="flex items-center justify-center gap-3 flex-row-reverse text-slate-300 font-black">
                 <Truck size={18} className="text-[#00E5FF]" />
-                إدارة طلبات المندوبين أصبحت في صفحة إدارة التوصيل
+                {t('admin.approvals.courierRequestsMoved')}
               </div>
               <Link
                 to="/admin/delivery?tab=pending"
                 className="inline-flex items-center gap-2 px-6 py-3 mt-6 rounded-2xl bg-[#00E5FF] text-black font-black text-sm"
               >
-                فتح إدارة التوصيل
+                {t('admin.approvals.openDeliveryMgmt')}
               </Link>
             </div>
           </div>

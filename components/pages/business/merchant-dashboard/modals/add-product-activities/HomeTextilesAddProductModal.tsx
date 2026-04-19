@@ -2,6 +2,7 @@ import React from 'react';
 import type { Category } from '@/types';
 import AddProductModalShell from './AddProductModalShell';
 import HomeTextilesExtras, { buildHomeTextilesExtrasPayload } from './activities/HomeTextilesExtras';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 const HomeTextilesAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+  const { t } = useTranslation();
   const [unit, setUnit] = React.useState('');
 
   return (
@@ -21,7 +23,7 @@ const HomeTextilesAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId,
       isRestaurant={false}
       isFashion={false}
       allowExtraImages={true}
-      title="إضافة صنف (مفروشات/سجاد)"
+      title={t('business.products.addHomeTextilesItem')}
       shopCategory={shopCategory}
       renderExtras={() => <HomeTextilesExtras unit={unit} setUnit={setUnit} />}
       buildExtrasPayload={() => {

@@ -2,6 +2,7 @@ import React from 'react';
 import type { Category } from '@/types';
 import AddProductModalShell from './AddProductModalShell';
 import FurnitureExtras, { buildFurnitureExtrasPayload } from './activities/FurnitureExtras';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 const FurnitureAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+  const { t } = useTranslation();
   const [unit, setUnit] = React.useState('');
   const [furnitureUnit, setFurnitureUnit] = React.useState('');
   const [furnitureLengthCm, setFurnitureLengthCm] = React.useState('');
@@ -25,7 +27,7 @@ const FurnitureAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, sh
       isRestaurant={false}
       isFashion={false}
       allowExtraImages={true}
-      title="إضافة صنف (أثاث)"
+      title={t('business.products.addFurnitureItem')}
       shopCategory={shopCategory}
       renderExtras={({ parseNumberInput }) => (
         <FurnitureExtras

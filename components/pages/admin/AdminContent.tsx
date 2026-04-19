@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { FileText, Loader2, RefreshCw, Search, Trash2, CheckCircle2, Clock3, Wrench, XCircle } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 const AdminContent: React.FC = () => {
+  const { t } = useTranslation();
   const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -18,7 +20,7 @@ const AdminContent: React.FC = () => {
       const data = await ApiService.getFeedback({ take: 50, skip: 0, status, q });
       setItems(Array.isArray(data) ? data : []);
     } catch (e: any) {
-      addToast(e?.message || 'فشل تحميل التذاكر', 'error');
+      addToast(e?.message || t('admin.content.loadFailed'), 'error');
       setItems([]);
     } finally {
       setLoading(false);
@@ -47,29 +49,29 @@ const AdminContent: React.FC = () => {
     try {
       await ApiService.updateFeedbackStatus(id, next);
       setItems((prev) => prev.map((x) => (String(x?.id) === String(id) ? { ...x, status: next } : x)));
-      addToast('تم تحديث حالة التذكرة', 'success');
+      addToast(t('admin.content.statusUpdated'), 'success');
     } catch (e: any) {
-      addToast(e?.message || 'فشل تحديث الحالة', 'error');
+      addToast(e?.message || t('admin.content.statusUpdateFailed'), 'error');
     }
   };
 
   const deleteTicket = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذه التذكرة؟')) return;
+    if (!confirm(t('admin.content.confirmDelete'))) return;
     try {
       await ApiService.deleteFeedback(id);
       setItems((prev) => prev.filter((x) => String(x?.id) !== String(id)));
-      addToast('تم حذف التذكرة', 'success');
+      addToast(t('admin.content.ticketDeleted'), 'success');
     } catch (e: any) {
-      addToast(e?.message || 'فشل حذف التذكرة', 'error');
+      addToast(e?.message || t('admin.content.deleteFailed'), 'error');
     }
   };
 
   const statusBadge = (stRaw: any) => {
     const st = String(stRaw || 'PENDING').toUpperCase();
-    if (st === 'RESOLVED') return { label: 'تم الحل', cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20', icon: <CheckCircle2 size={14} /> };
-    if (st === 'IN_PROGRESS') return { label: 'قيد التنفيذ', cls: 'bg-sky-500/10 text-sky-300 border-sky-500/20', icon: <Wrench size={14} /> };
-    if (st === 'REJECTED') return { label: 'مرفوض', cls: 'bg-red-500/10 text-red-300 border-red-500/20', icon: <XCircle size={14} /> };
-    return { label: 'جديد', cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20', icon: <Clock3 size={14} /> };
+    if (st === 'RESOLVED') return { label: t('admin.content.statusResolved'), cls: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/20', icon: <CheckCircle2 size={14} /> };
+    if (st === 'IN_PROGRESS') return { label: t('admin.content.statusInProgress'), cls: 'bg-sky-500/10 text-sky-300 border-sky-500/20', icon: <Wrench size={14} /> };
+    if (st === 'REJECTED') return { label: t('admin.content.statusRejected'), cls: 'bg-red-500/10 text-red-300 border-red-500/20', icon: <XCircle size={14} /> };
+    return { label: t('admin.content.statusNew'), cls: 'bg-amber-500/10 text-amber-300 border-amber-500/20', icon: <Clock3 size={14} /> };
   };
 
   return (
@@ -80,8 +82,8 @@ const AdminContent: React.FC = () => {
             <FileText size={24} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white">التذاكر والملاحظات</h2>
-            <p className="text-slate-500 text-sm font-bold">إدارة اقتراحات ومشاكل المستخدمين</p>
+            <h2 className="text-3xl font-black text-white">{t('admin.content.title')}</h2>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.content.subtitle')}</p>
           </div>
         </div>
 
@@ -92,7 +94,7 @@ const AdminContent: React.FC = () => {
             className="px-4 py-2 rounded-2xl text-xs font-black bg-slate-900 border border-white/5 text-slate-200 hover:bg-slate-800 disabled:opacity-60 flex items-center gap-2"
           >
             {refreshing ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-            تحديث
+            {t('admin.content.refresh')}
           </button>
         </div>
       </div>
@@ -105,7 +107,7 @@ const AdminContent: React.FC = () => {
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="بحث بالاسم/الإيميل/نص الرسالة..."
+                placeholder={t('admin.content.searchPlaceholder')}
                 className="w-full bg-slate-950 border border-white/5 rounded-2xl py-3 pr-11 pl-4 text-slate-200 text-sm font-bold outline-none"
               />
             </div>
@@ -113,13 +115,13 @@ const AdminContent: React.FC = () => {
               onClick={() => loadData(true)}
               className="px-4 py-3 rounded-2xl text-xs font-black bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10"
             >
-              تطبيق
+              {t('admin.content.apply')}
             </button>
           </div>
         </div>
 
         <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-4 sm:p-6">
-          <div className="text-slate-500 text-xs font-black uppercase tracking-widest mb-3">الحالة</div>
+          <div className="text-slate-500 text-xs font-black uppercase tracking-widest mb-3">{t('admin.content.statusLabel')}</div>
           <div className="grid grid-cols-2 gap-2">
             {(['ALL', 'PENDING', 'IN_PROGRESS', 'RESOLVED', 'REJECTED'] as const).map((s) => (
               <button
@@ -127,7 +129,7 @@ const AdminContent: React.FC = () => {
                 onClick={() => setStatus(s)}
                 className={`px-3 py-2 rounded-2xl text-xs font-black border ${status === s ? 'bg-white text-slate-900 border-white/10' : 'bg-slate-950 text-slate-200 border-white/5'}`}
               >
-                {s === 'ALL' ? 'الكل' : s === 'PENDING' ? 'جديد' : s === 'IN_PROGRESS' ? 'قيد التنفيذ' : s === 'RESOLVED' ? 'تم الحل' : 'مرفوض'}
+                {s === 'ALL' ? t('admin.content.filterAll') : s === 'PENDING' ? t('admin.content.statusNew') : s === 'IN_PROGRESS' ? t('admin.content.statusInProgress') : s === 'RESOLVED' ? t('admin.content.statusResolved') : t('admin.content.statusRejected')}
               </button>
             ))}
           </div>
@@ -137,19 +139,19 @@ const AdminContent: React.FC = () => {
       {loading ? (
         <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] p-10 text-slate-400 font-bold flex items-center gap-3">
           <Loader2 className="animate-spin" size={18} />
-          جاري تحميل التذاكر...
+          {t('admin.content.loading')}
         </div>
       ) : (
         <div className="bg-slate-900 border border-white/5 rounded-[2.5rem] overflow-hidden">
           {filtered.length === 0 ? (
-            <div className="p-10 text-slate-500 font-bold">لا توجد تذاكر بهذه المعايير.</div>
+            <div className="p-10 text-slate-500 font-bold">{t('admin.content.noTickets')}</div>
           ) : (
             <div className="divide-y divide-white/5">
               {filtered.map((x: any) => {
                 const badge = statusBadge(x?.status);
                 const created = new Date(x?.createdAt || x?.created_at || 0);
                 const createdText = !Number.isNaN(created.getTime()) ? created.toLocaleString('ar-EG') : '';
-                const userName = x?.user?.name || x?.userName || x?.user_name || 'مستخدم';
+                const userName = x?.user?.name || x?.userName || x?.user_name || t('admin.content.user');
                 const userEmail = x?.user?.email || x?.userEmail || x?.user_email || '';
                 const msg = x?.comment || x?.content || x?.text || '';
 
@@ -177,25 +179,25 @@ const AdminContent: React.FC = () => {
                           onClick={() => setTicketStatus(String(x?.id), 'IN_PROGRESS')}
                           className="px-4 py-2 rounded-2xl text-xs font-black bg-sky-500/10 border border-sky-500/20 text-sky-300 hover:bg-sky-500/15"
                         >
-                          قيد التنفيذ
+                          {t('admin.content.statusInProgress')}
                         </button>
                         <button
                           onClick={() => setTicketStatus(String(x?.id), 'RESOLVED')}
                           className="px-4 py-2 rounded-2xl text-xs font-black bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/15"
                         >
-                          تم الحل
+                          {t('admin.content.statusResolved')}
                         </button>
                         <button
                           onClick={() => setTicketStatus(String(x?.id), 'REJECTED')}
                           className="px-4 py-2 rounded-2xl text-xs font-black bg-red-500/10 border border-red-500/20 text-red-300 hover:bg-red-500/15"
                         >
-                          رفض
+                          {t('admin.content.reject')}
                         </button>
                         <button
                           onClick={() => deleteTicket(String(x?.id))}
                           className="px-4 py-2 rounded-2xl text-xs font-black bg-white/5 border border-white/10 text-slate-200 hover:bg-white/10 flex items-center justify-center gap-2"
                         >
-                          <Trash2 size={14} /> حذف
+                          <Trash2 size={14} /> {t('admin.content.delete')}
                         </button>
                       </div>
                     </div>

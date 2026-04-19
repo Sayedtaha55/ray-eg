@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, FileDown, Loader2, Plus, Printer, Save, Trash2 } from 'lucide-react';
 import { RayDB } from '@/constants';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 type InvoiceLine = {
   id: string;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
+  const { t } = useTranslation();
   const [view, setView] = useState<'manage' | 'edit'>('manage');
 
   const [loadingManage, setLoadingManage] = useState(false);
@@ -132,7 +134,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
       setSummary(sum || null);
       setInvoiceList(Array.isArray(listRes?.items) ? listRes.items : (Array.isArray(listRes) ? listRes : []));
     } catch (e: any) {
-      setManageError(String(e?.message || 'حدث خطأ أثناء تحميل الفواتير'));
+      setManageError(String(e?.message || t('business.invoice.loadError')));
     } finally {
       setLoadingManage(false);
     }
@@ -181,7 +183,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
 
       setView('edit');
     } catch (e: any) {
-      setManageError(String(e?.message || 'تعذر فتح الفاتورة'));
+      setManageError(String(e?.message || t('business.invoice.openError')));
       setView('manage');
     } finally {
       setSaving(false);
@@ -217,13 +219,13 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
     const address = String(effectiveReceiptTheme?.address || '').trim();
     const footerNote = String(effectiveReceiptTheme?.footerNote || '').trim();
 
-    linesOut.push('فاتورة حسابات');
+    linesOut.push(t('business.invoice.invoiceTitle'));
     if (shopName) linesOut.push(shopName);
-    if (phone) linesOut.push(`هاتف: ${phone}`);
-    if (city) linesOut.push(`المدينة: ${city}`);
-    if (address) linesOut.push(`العنوان: ${address}`);
+    if (phone) linesOut.push(`${t('business.invoice.phone')}: ${phone}`);
+    if (city) linesOut.push(`${t('business.invoice.city')}: ${city}`);
+    if (address) linesOut.push(`${t('business.invoice.address')}: ${address}`);
     linesOut.push('--------------------------');
-    if (invoiceDate) linesOut.push(`التاريخ: ${invoiceDate}`);
+    if (invoiceDate) linesOut.push(`${t('business.invoice.date')}: ${invoiceDate}`);
     linesOut.push('--------------------------');
 
     for (const item of lines) {
@@ -231,15 +233,15 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
       const qty = Number(item?.quantity) || 0;
       const price = Number(item?.price) || 0;
       const lineTotal = qty * price;
-      linesOut.push(`${name} x${qty} = ج.م ${lineTotal.toFixed(2)}`);
+      linesOut.push(`${name} x${qty} = ${t('business.pos.egp')} ${lineTotal.toFixed(2)}`);
     }
 
     linesOut.push('--------------------------');
-    linesOut.push(`الإجمالي قبل الخصم: ج.م ${subtotal.toFixed(2)}`);
-    if (discount > 0) linesOut.push(`خصم: ج.م ${discount.toFixed(2)}`);
-    linesOut.push(`الصافي قبل الضريبة: ج.م ${netBeforeVat.toFixed(2)}`);
-    if (showVat) linesOut.push(`ضريبة (${vatRatePct}%): ج.م ${vatAmount.toFixed(2)}`);
-    linesOut.push(`الإجمالي: ج.م ${total.toFixed(2)}`);
+    linesOut.push(`${t('business.invoice.totalBeforeDiscount')}: ${t('business.pos.egp')} ${subtotal.toFixed(2)}`);
+    if (discount > 0) linesOut.push(`${t('business.invoice.discount')}: ${t('business.pos.egp')} ${discount.toFixed(2)}`);
+    linesOut.push(`${t('business.invoice.netBeforeVat')}: ${t('business.pos.egp')} ${netBeforeVat.toFixed(2)}`);
+    if (showVat) linesOut.push(`${t('business.invoice.vat')} (${vatRatePct}%): ${t('business.pos.egp')} ${vatAmount.toFixed(2)}`);
+    linesOut.push(`${t('business.invoice.total')}: ${t('business.pos.egp')} ${total.toFixed(2)}`);
 
     if (footerNote) {
       linesOut.push('--------------------------');
@@ -312,13 +314,13 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
           <div class="wrap">
             <div class="top">
               <div class="brand">
-                <p class="title">فاتورة حسابات</p>
-                ${selectedInvoiceId ? `<div class="meta">رقم: ${selectedInvoiceId}</div>` : ''}
+                <p class="title">${t('business.invoice.invoiceTitle')}</p>
+                ${selectedInvoiceId ? `<div class="meta">${t('business.invoice.number')}: ${selectedInvoiceId}</div>` : ''}
                 ${shopName ? `<div class="meta">${shopName}</div>` : ''}
-                ${phone ? `<div class="meta">هاتف: ${phone}</div>` : ''}
-                ${city ? `<div class="meta">المدينة: ${city}</div>` : ''}
-                ${address ? `<div class="meta">العنوان: ${address}</div>` : ''}
-                ${invoiceDate ? `<div class="meta">التاريخ: ${invoiceDate}</div>` : ''}
+                ${phone ? `<div class="meta">${t('business.invoice.phone')}: ${phone}</div>` : ''}
+                ${city ? `<div class="meta">${t('business.invoice.city')}: ${city}</div>` : ''}
+                ${address ? `<div class="meta">${t('business.invoice.address')}: ${address}</div>` : ''}
+                ${invoiceDate ? `<div class="meta">${t('business.invoice.date')}: ${invoiceDate}</div>` : ''}
               </div>
               ${logoDataUrl ? `<img class="logo" src="${logoDataUrl}" alt="logo" />` : '<div style="width:56px;height:56px"></div>'}
             </div>
@@ -328,10 +330,10 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
             <table>
               <thead>
                 <tr>
-                  <th style="text-align:right">الصنف</th>
-                  <th style="text-align:left">الكمية</th>
-                  <th style="text-align:left">السعر</th>
-                  <th style="text-align:left">الإجمالي</th>
+                  <th style="text-align:right">${t('business.invoice.item')}</th>
+                  <th style="text-align:left">${t('business.invoice.qty')}</th>
+                  <th style="text-align:left">${t('business.invoice.price')}</th>
+                  <th style="text-align:left">${t('business.invoice.total')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -340,11 +342,11 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
             </table>
 
             <div class="totals">
-              <div class="row"><span>الإجمالي قبل الخصم</span><span>ج.م ${subtotal.toFixed(2)}</span></div>
-              ${discount > 0 ? `<div class="row"><span>خصم</span><span>ج.م ${discount.toFixed(2)}</span></div>` : ''}
-              <div class="row"><span>الصافي قبل الضريبة</span><span>ج.م ${netBeforeVat.toFixed(2)}</span></div>
-              ${showVat ? `<div class="row"><span>ضريبة ${vatRatePct}%</span><span>ج.م ${vatAmount.toFixed(2)}</span></div>` : ''}
-              <div class="row"><span>الإجمالي</span><span>ج.م ${total.toFixed(2)}</span></div>
+              <div class="row"><span>${t('business.invoice.totalBeforeDiscount')}</span><span>${t('business.pos.egp')} ${subtotal.toFixed(2)}</span></div>
+              ${discount > 0 ? `<div class="row"><span>${t('business.invoice.discount')}</span><span>${t('business.pos.egp')} ${discount.toFixed(2)}</span></div>` : ''}
+              <div class="row"><span>${t('business.invoice.netBeforeVat')}</span><span>${t('business.pos.egp')} ${netBeforeVat.toFixed(2)}</span></div>
+              ${showVat ? `<div class="row"><span>${t('business.invoice.vat')} ${vatRatePct}%</span><span>${t('business.pos.egp')} ${vatAmount.toFixed(2)}</span></div>` : ''}
+              <div class="row"><span>${t('business.invoice.total')}</span><span>${t('business.pos.egp')} ${total.toFixed(2)}</span></div>
             </div>
 
             ${footerNote ? `<div class="note">${footerNote}</div>` : ''}
@@ -396,7 +398,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
   const saveInvoice = async () => {
     if (!shopId) return;
     if (!lines || lines.length === 0) {
-      setSaveError('ضيف أصناف الأول');
+      setSaveError(t('business.invoice.addItemsFirst'));
       return;
     }
 
@@ -426,17 +428,17 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
 
       if (selectedInvoiceId) {
         await (ApiService as any).updateInvoice(selectedInvoiceId, payload);
-        setSaveOk('تم حفظ التعديل');
+        setSaveOk(t('business.invoice.editSaved'));
       } else {
         const created = await (ApiService as any).createInvoice(payload);
         const newId = String(created?.id || '').trim();
         if (newId) setSelectedInvoiceId(newId);
-        setSaveOk('تم حفظ الفاتورة');
+        setSaveOk(t('business.invoice.invoiceSaved'));
       }
 
       await loadManage();
     } catch (e: any) {
-      setSaveError(String(e?.message || 'تعذر حفظ الفاتورة'));
+      setSaveError(String(e?.message || t('business.invoice.saveError')));
     } finally {
       setSaving(false);
     }
@@ -447,9 +449,9 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
       <div className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="text-right">
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900">إدارة الفواتير</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900">{t('business.invoice.manageTitle')}</h2>
             <p className="mt-2 text-sm font-black text-slate-500">
-              احفظ الفواتير، راجع سجل الفواتير، وعدّل/اطبع أي فاتورة في أي وقت.
+              {t('business.invoice.manageSubtitle')}
             </p>
           </div>
 
@@ -464,7 +466,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                 }}
                 className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center gap-2"
               >
-                <ArrowRight size={18} /> رجوع
+                <ArrowRight size={18} /> {t('common.back')}
               </button>
             ) : null}
 
@@ -474,7 +476,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                 onClick={openNewInvoice}
                 className="px-4 py-3 rounded-2xl bg-[#00E5FF] text-black font-black text-sm flex items-center justify-center gap-2"
               >
-                <Plus size={18} /> فاتورة جديدة
+                <Plus size={18} /> {t('business.invoice.newInvoice')}
               </button>
             ) : null}
           </div>
@@ -490,23 +492,23 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
           <div className="mt-6 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-500 mb-2">عدد الفواتير</div>
+                <div className="text-[11px] font-black text-slate-500 mb-2">{t('business.invoice.invoiceCount')}</div>
                 <div className="text-2xl font-black text-slate-900">{summary ? Number(summary?.count || 0) : (loadingManage ? '...' : '0')}</div>
               </div>
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-500 mb-2">إجمالي الفواتير</div>
-                <div className="text-2xl font-black text-slate-900">ج.م {summary ? formatMoney(summary?.sumTotal) : (loadingManage ? '...' : '0.00')}</div>
-                <div className="mt-1 text-[11px] font-black text-slate-500">خصم: {summary ? formatMoney(summary?.sumDiscount) : (loadingManage ? '...' : '0.00')}</div>
+                <div className="text-[11px] font-black text-slate-500 mb-2">{t('business.invoice.invoicesTotal')}</div>
+                <div className="text-2xl font-black text-slate-900">{t('business.pos.egp')} {summary ? formatMoney(summary?.sumTotal) : (loadingManage ? '...' : '0.00')}</div>
+                <div className="mt-1 text-[11px] font-black text-slate-500">{t('business.invoice.discount')}: {summary ? formatMoney(summary?.sumDiscount) : (loadingManage ? '...' : '0.00')}</div>
               </div>
               <div className="bg-slate-900 text-white rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-200 mb-2">ضريبة مجمعة</div>
-                <div className="text-2xl font-black">ج.م {summary ? formatMoney(summary?.sumVat) : (loadingManage ? '...' : '0.00')}</div>
+                <div className="text-[11px] font-black text-slate-200 mb-2">{t('business.invoice.vatCollected')}</div>
+                <div className="text-2xl font-black">{t('business.pos.egp')} {summary ? formatMoney(summary?.sumVat) : (loadingManage ? '...' : '0.00')}</div>
               </div>
             </div>
 
             <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 md:p-6 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                <div className="font-black text-slate-900">سجل الفواتير</div>
+                <div className="font-black text-slate-900">{t('business.invoice.invoiceLog')}</div>
                 <button
                   type="button"
                   onClick={loadManage}
@@ -514,25 +516,25 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                   className="px-4 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center gap-2 disabled:opacity-60"
                 >
                   {loadingManage ? <Loader2 size={18} className="animate-spin" /> : null}
-                  تحديث
+                  {t('business.invoice.refresh')}
                 </button>
               </div>
 
               <div className="p-4 md:p-6">
                 {loadingManage ? (
-                  <div className="text-sm font-black text-slate-500 text-right">جاري التحميل...</div>
+                  <div className="text-sm font-black text-slate-500 text-right">{t('common.loading')}</div>
                 ) : invoiceList.length === 0 ? (
-                  <div className="text-sm font-black text-slate-500 text-right">لا توجد فواتير محفوظة بعد.</div>
+                  <div className="text-sm font-black text-slate-500 text-right">{t('business.invoice.noInvoices')}</div>
                 ) : (
                   <div className="overflow-auto">
                     <table className="min-w-[720px] w-full">
                       <thead>
                         <tr className="text-right">
-                          <th className="text-[12px] font-black text-slate-500 pb-3">رقم</th>
-                          <th className="text-[12px] font-black text-slate-500 pb-3">التاريخ</th>
-                          <th className="text-[12px] font-black text-slate-500 pb-3">الإجمالي</th>
-                          <th className="text-[12px] font-black text-slate-500 pb-3">خصم</th>
-                          <th className="text-[12px] font-black text-slate-500 pb-3">إجراءات</th>
+                          <th className="text-[12px] font-black text-slate-500 pb-3">{t('business.invoice.number')}</th>
+                          <th className="text-[12px] font-black text-slate-500 pb-3">{t('business.invoice.date')}</th>
+                          <th className="text-[12px] font-black text-slate-500 pb-3">{t('business.invoice.total')}</th>
+                          <th className="text-[12px] font-black text-slate-500 pb-3">{t('business.invoice.discount')}</th>
+                          <th className="text-[12px] font-black text-slate-500 pb-3">{t('business.sales.colActions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -546,8 +548,8 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                             <tr key={id} className="border-t border-slate-100">
                               <td className="py-3 text-right font-black text-slate-900">{typeof seq === 'number' ? seq : '-'}</td>
                               <td className="py-3 text-right font-black text-slate-700">{dateLabel}</td>
-                              <td className="py-3 text-right font-black text-slate-900">ج.م {formatMoney(inv?.total)}</td>
-                              <td className="py-3 text-right font-black text-slate-700">ج.م {formatMoney(inv?.discount)}</td>
+                              <td className="py-3 text-right font-black text-slate-900">{t('business.pos.egp')} {formatMoney(inv?.total)}</td>
+                              <td className="py-3 text-right font-black text-slate-700">{t('business.pos.egp')} {formatMoney(inv?.discount)}</td>
                               <td className="py-3 text-right">
                                 <div className="flex gap-2 justify-end">
                                   <button
@@ -555,7 +557,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                                     onClick={() => openInvoiceForEdit(id)}
                                     className="px-3 py-2 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm"
                                   >
-                                    تعديل
+                                    {t('business.invoice.edit')}
                                   </button>
                                 </div>
                               </td>
@@ -581,7 +583,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                 className="px-4 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-                حفظ
+                {t('common.save')}
               </button>
               <button
                 type="button"
@@ -589,7 +591,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                 disabled={!lines || lines.length === 0}
                 className="px-4 py-3 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                <Printer size={18} /> طباعة
+                <Printer size={18} /> {t('business.invoice.print')}
               </button>
               <button
                 type="button"
@@ -614,7 +616,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-500 mb-2">التاريخ</div>
+                <div className="text-[11px] font-black text-slate-500 mb-2">{t('business.invoice.date')}</div>
                 <input
                   type="date"
                   value={invoiceDate}
@@ -624,7 +626,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
               </div>
 
               <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-500 mb-2">خصم (جنيه)</div>
+                <div className="text-[11px] font-black text-slate-500 mb-2">{t('business.invoice.discountEgp')}</div>
                 <input
                   type="number"
                   min={0}
@@ -636,22 +638,22 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
               </div>
 
               <div className="bg-slate-900 text-white rounded-2xl p-4">
-                <div className="text-[11px] font-black text-slate-200 mb-2">الإجمالي (=)</div>
-                <div className="text-2xl font-black">ج.م {total.toFixed(2)}</div>
+                <div className="text-[11px] font-black text-slate-200 mb-2">{t('business.invoice.totalEq')}</div>
+                <div className="text-2xl font-black">{t('business.pos.egp')} {total.toFixed(2)}</div>
                 <div className="mt-1 text-[11px] font-black text-slate-300">
-                  قبل الخصم: {subtotal.toFixed(2)} {discount > 0 ? ` • خصم: ${discount.toFixed(2)}` : ''}
+                  {t('business.invoice.beforeDiscount')}: {subtotal.toFixed(2)} {discount > 0 ? ` • ${t('business.invoice.discount')}: ${discount.toFixed(2)}` : ''}
                 </div>
               </div>
             </div>
 
             <div className="bg-white border border-slate-100 rounded-[2.5rem] overflow-hidden">
               <div className="p-4 md:p-6 bg-slate-50 border-b border-slate-100">
-                <div className="font-black text-slate-900">إضافة صنف</div>
+                <div className="font-black text-slate-900">{t('business.invoice.addItem')}</div>
                 <div className="mt-4 grid grid-cols-1 md:grid-cols-12 gap-3">
                   <input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
-                    placeholder="اسم الصنف"
+                    placeholder={t('business.invoice.itemName')}
                     className="md:col-span-6 bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-900 text-right"
                   />
                   <input
@@ -660,7 +662,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                     type="number"
                     min={1}
                     step={1}
-                    placeholder="الكمية"
+                    placeholder={t('business.invoice.qty')}
                     className="md:col-span-2 bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-900 text-right"
                   />
                   <input
@@ -669,7 +671,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                     type="number"
                     min={0}
                     step={0.25}
-                    placeholder="السعر"
+                    placeholder={t('business.invoice.price')}
                     className="md:col-span-3 bg-white border border-slate-200 rounded-2xl px-4 py-3 font-black text-slate-900 text-right"
                   />
                   <button
@@ -684,7 +686,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
 
               <div className="p-4 md:p-6">
                 {lines.length === 0 ? (
-                  <div className="text-sm font-black text-slate-500 text-right">ضيف أصناف عشان تبدأ الفاتورة.</div>
+                  <div className="text-sm font-black text-slate-500 text-right">{t('business.invoice.addItemsHint')}</div>
                 ) : (
                   <div className="space-y-3">
                     {lines.map((l) => {
@@ -704,7 +706,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                             type="button"
                             onClick={() => removeLine(l.id)}
                             className="p-3 rounded-2xl bg-white border border-slate-200 hover:border-red-300 text-slate-900"
-                            title="حذف"
+                            title={t('business.invoice.delete')}
                           >
                             <Trash2 size={18} />
                           </button>
@@ -715,40 +717,40 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                     <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
                         <div className="flex items-center justify-between font-black text-slate-900">
-                          <span>الإجمالي قبل الخصم</span>
-                          <span>ج.م {subtotal.toFixed(2)}</span>
+                          <span>{t('business.invoice.totalBeforeDiscount')}</span>
+                          <span>{t('business.pos.egp')} {subtotal.toFixed(2)}</span>
                         </div>
                         {discount > 0 ? (
                           <div className="mt-2 flex items-center justify-between font-black text-slate-700">
-                            <span>خصم</span>
-                            <span>ج.م {discount.toFixed(2)}</span>
+                            <span>{t('business.invoice.discount')}</span>
+                            <span>{t('business.pos.egp')} {discount.toFixed(2)}</span>
                           </div>
                         ) : null}
                         <div className="mt-2 flex items-center justify-between font-black text-slate-900">
-                          <span>الصافي قبل الضريبة</span>
-                          <span>ج.م {netBeforeVat.toFixed(2)}</span>
+                          <span>{t('business.invoice.netBeforeVat')}</span>
+                          <span>{t('business.pos.egp')} {netBeforeVat.toFixed(2)}</span>
                         </div>
                         {showVat ? (
                           <div className="mt-2 flex items-center justify-between font-black text-slate-700">
-                            <span>ضريبة {vatRatePct}%</span>
-                            <span>ج.م {vatAmount.toFixed(2)}</span>
+                            <span>{t('business.invoice.vat')} {vatRatePct}%</span>
+                            <span>{t('business.pos.egp')} {vatAmount.toFixed(2)}</span>
                           </div>
                         ) : null}
                         <div className="mt-3 flex items-center justify-between font-black text-slate-900 text-lg">
-                          <span>الإجمالي (=)</span>
-                          <span>ج.م {total.toFixed(2)}</span>
+                          <span>{t('business.invoice.totalEq')}</span>
+                          <span>{t('business.pos.egp')} {total.toFixed(2)}</span>
                         </div>
                       </div>
 
                       <div className="bg-white border border-slate-100 rounded-2xl p-4">
-                        <div className="font-black text-slate-900">ثيم الفاتورة</div>
+                        <div className="font-black text-slate-900">{t('business.invoice.receiptTheme')}</div>
                         <div className="mt-2 text-sm font-black text-slate-500 leading-relaxed">
-                          البيانات دي بتتسحب من إعدادات <span className="text-slate-900">ثيم الفاتورة</span> (نفس الثيم المستخدم في الريسيت).
+                          {t('business.invoice.receiptThemeHint')}
                         </div>
                         <div className="mt-3 text-[12px] font-black text-slate-700">
-                          <div>{effectiveReceiptTheme?.shopName ? `المحل: ${effectiveReceiptTheme.shopName}` : ''}</div>
-                          <div>{effectiveReceiptTheme?.phone ? `هاتف: ${effectiveReceiptTheme.phone}` : ''}</div>
-                          <div>{(effectiveReceiptTheme as any)?.city ? `مدينة: ${String((effectiveReceiptTheme as any).city)}` : ''}</div>
+                          <div>{effectiveReceiptTheme?.shopName ? `${t('business.invoice.shop')}: ${effectiveReceiptTheme.shopName}` : ''}</div>
+                          <div>{effectiveReceiptTheme?.phone ? `${t('business.invoice.phone')}: ${effectiveReceiptTheme.phone}` : ''}</div>
+                          <div>{(effectiveReceiptTheme as any)?.city ? `${t('business.invoice.city')}: ${String((effectiveReceiptTheme as any).city)}` : ''}</div>
                         </div>
                       </div>
                     </div>

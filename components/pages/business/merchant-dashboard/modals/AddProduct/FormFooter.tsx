@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FormFooterProps {
   loading: boolean;
@@ -16,12 +17,13 @@ const FormFooter: React.FC<FormFooterProps> = ({
   submitLabel,
   processingLabel
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="sticky bottom-0 left-0 right-0 -mx-4 sm:mx-0 bg-white pt-4 pb-4 sm:pb-0 border-t border-slate-100">
       {isCompressing && (
         <div className="mb-4 px-4">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-black text-slate-500">جاري معالجة ورفع الوسائط...</span>
+            <span className="text-xs font-black text-slate-500">{t('business.products.processingMedia')}</span>
             <span className="text-xs font-black text-[#00E5FF]">{compressionProgress}%</span>
           </div>
           <div className="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden">

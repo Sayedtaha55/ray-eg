@@ -7,6 +7,7 @@ import CourierOffersTab from './CourierOffersTab';
 import CourierOrdersTab from './CourierOrdersTab';
 import CourierSettingsTab from './CourierSettingsTab';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate } = ReactRouterDOM as any;
 
@@ -100,6 +101,7 @@ function readNumberFromStorage(key: string, fallback: number) {
 }
 
 const CourierOrders: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,7 +156,7 @@ const CourierOrders: React.FC = () => {
     const name = String(profileName || '').trim();
     const phone = String(profilePhone || '').trim();
     if (!name) {
-      window.alert('الاسم مطلوب');
+      window.alert(t('courier.ordersPage.nameRequired'));
       return;
     }
 
@@ -166,9 +168,9 @@ const CourierOrders: React.FC = () => {
       });
       const merged = { ...(courierUser as any), ...(updated || {}) };
       persistLocalUser(merged);
-      window.alert('تم حفظ البيانات بنجاح');
+      window.alert(t('courier.ordersPage.profileSaved'));
     } catch (err: any) {
-      window.alert(String(err?.message || 'فشل حفظ البيانات'));
+      window.alert(String(err?.message || t('courier.ordersPage.profileSaveFailed')));
     } finally {
       setProfileSaving(false);
     }
@@ -183,19 +185,19 @@ const CourierOrders: React.FC = () => {
     const conf = String(confirmNewPassword || '');
 
     if (!cur) {
-      window.alert('اكتب كلمة المرور الحالية');
+      window.alert(t('courier.ordersPage.enterCurrentPassword'));
       return;
     }
     if (!next || next.length < 8) {
-      window.alert('كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل');
+      window.alert(t('courier.ordersPage.passwordMinLength'));
       return;
     }
     if (next !== conf) {
-      window.alert('تأكيد كلمة المرور غير مطابق');
+      window.alert(t('courier.ordersPage.passwordConfirmMismatch'));
       return;
     }
 
-    const ok = window.confirm('تأكيد تغيير كلمة المرور؟');
+    const ok = window.confirm(t('courier.ordersPage.confirmChangePassword'));
     if (!ok) return;
 
     setPasswordSaving(true);
@@ -204,9 +206,9 @@ const CourierOrders: React.FC = () => {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
-      window.alert('تم تغيير كلمة المرور بنجاح');
+      window.alert(t('courier.ordersPage.passwordChanged'));
     } catch (err: any) {
-      window.alert(String(err?.message || 'فشل تغيير كلمة المرور'));
+      window.alert(String(err?.message || t('courier.ordersPage.passwordChangeFailed')));
     } finally {
       setPasswordSaving(false);
     }
@@ -532,7 +534,7 @@ const CourierOrders: React.FC = () => {
       setDrawerOpen(false);
     } catch (e: any) {
       try {
-        window.alert(String(e?.message || 'فشل قبول الطلب'));
+        window.alert(String(e?.message || t('courier.ordersPage.acceptFailed')));
       } catch {
       }
     } finally {
@@ -557,7 +559,7 @@ const CourierOrders: React.FC = () => {
           <button
             className="absolute inset-0 bg-black/70"
             onClick={closeDrawer}
-            aria-label="close"
+            aria-label={t('courier.ordersPage.close')}
           />
           <div
             className="absolute top-0 bottom-0 right-0 w-[85%] max-w-sm bg-slate-900 border-l border-white/10 p-6 flex flex-col"
@@ -565,13 +567,13 @@ const CourierOrders: React.FC = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <div className="text-right">
-                <p className="text-xs text-slate-400 font-bold">مرحباً</p>
-                <p className="text-lg font-black">{String(courierUser?.name || 'مندوب')}</p>
+                <p className="text-xs text-slate-400 font-bold">{t('courier.ordersPage.hello')}</p>
+                <p className="text-lg font-black">{String(courierUser?.name || t('courier.ordersPage.courierFallback'))}</p>
               </div>
               <button
                 onClick={closeDrawer}
                 className="p-2 rounded-xl bg-white/5 hover:bg-white/10"
-                aria-label="close"
+                aria-label={t('courier.ordersPage.close')}
               >
                 <X size={18} />
               </button>
@@ -585,7 +587,7 @@ const CourierOrders: React.FC = () => {
                 }}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm ${activeTab === 'orders' ? 'bg-[#00E5FF] text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
               >
-                <span>الطلبات</span>
+                <span>{t('courier.ordersPage.tabs.orders')}</span>
                 <ClipboardList size={18} />
               </button>
               <button
@@ -596,7 +598,7 @@ const CourierOrders: React.FC = () => {
                 }}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm ${activeTab === 'offers' ? 'bg-amber-300 text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
               >
-                <span>عروض جديدة</span>
+                <span>{t('courier.ordersPage.tabs.offers')}</span>
                 <Bell size={18} />
               </button>
               <button
@@ -606,7 +608,7 @@ const CourierOrders: React.FC = () => {
                 }}
                 className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm ${activeTab === 'settings' ? 'bg-white text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
               >
-                <span>الإعدادات</span>
+                <span>{t('courier.ordersPage.tabs.settings')}</span>
                 <Settings size={18} />
               </button>
             </div>
@@ -616,7 +618,7 @@ const CourierOrders: React.FC = () => {
                 onClick={handleLogout}
                 className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm bg-red-500/10 text-red-300 hover:bg-red-500/15"
               >
-                <span>تسجيل خروج</span>
+                <span>{t('courier.ordersPage.logout')}</span>
                 <LogOut size={18} />
               </button>
             </div>
@@ -627,8 +629,8 @@ const CourierOrders: React.FC = () => {
       <div className="flex min-h-[100dvh]">
         <aside className="hidden md:flex md:w-80 bg-slate-900 border-l border-white/10 p-8 flex-col">
           <div className="mb-8">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">لوحة المندوب</p>
-            <p className="text-xl font-black mt-2">{String(courierUser?.name || 'مندوب')}</p>
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('courier.ordersPage.badge')}</p>
+            <p className="text-xl font-black mt-2">{String(courierUser?.name || t('courier.ordersPage.courierFallback'))}</p>
             <p className="text-xs text-slate-500 font-bold mt-1 break-all">{String(courierUser?.email || '')}</p>
           </div>
 
@@ -637,7 +639,7 @@ const CourierOrders: React.FC = () => {
               onClick={() => setActiveTab('orders')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'orders' ? 'bg-[#00E5FF] text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
             >
-              <span>الطلبات</span>
+              <span>{t('courier.ordersPage.tabs.orders')}</span>
               <ClipboardList size={18} />
             </button>
             <button
@@ -647,14 +649,14 @@ const CourierOrders: React.FC = () => {
               }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'offers' ? 'bg-amber-300 text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
             >
-              <span>عروض جديدة</span>
+              <span>{t('courier.ordersPage.tabs.offers')}</span>
               <Bell size={18} />
             </button>
             <button
               onClick={() => setActiveTab('settings')}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm transition-colors ${activeTab === 'settings' ? 'bg-white text-slate-900' : 'bg-white/5 text-slate-200 hover:bg-white/10'}`}
             >
-              <span>الإعدادات</span>
+              <span>{t('courier.ordersPage.tabs.settings')}</span>
               <Settings size={18} />
             </button>
           </div>
@@ -664,7 +666,7 @@ const CourierOrders: React.FC = () => {
               onClick={handleLogout}
               className="w-full flex items-center justify-between px-4 py-3 rounded-2xl font-black text-sm bg-red-500/10 text-red-300 hover:bg-red-500/15"
             >
-              <span>تسجيل خروج</span>
+              <span>{t('courier.ordersPage.logout')}</span>
               <LogOut size={18} />
             </button>
           </div>
@@ -680,20 +682,20 @@ const CourierOrders: React.FC = () => {
                 <button
                   className="md:hidden p-3 rounded-2xl bg-white/5 hover:bg-white/10"
                   onClick={() => setDrawerOpen(true)}
-                  aria-label="menu"
+                  aria-label={t('courier.ordersPage.menu')}
                 >
                   <Menu size={18} />
                 </button>
                 <div>
-                  <h1 className="text-2xl md:text-3xl md:text-4xl font-black">لوحة المندوب</h1>
+                  <h1 className="text-2xl md:text-3xl md:text-4xl font-black">{t('courier.ordersPage.title')}</h1>
                   <p className="text-slate-400 text-xs md:text-sm font-bold">
                     {activeTab === 'orders'
-                      ? 'طلباتك المعيّنة وتحديث حالتها وتحصيل الكاش.'
+                      ? t('courier.ordersPage.tabDesc.orders')
                       : activeTab === 'offers'
-                        ? 'طلبات جديدة قريبة منك. أول من يوافق يتم إسناد الطلب له.'
+                        ? t('courier.ordersPage.tabDesc.offers')
                         : activeTab === 'delivered'
-                          ? 'مراجعة الطلبات التي تم توصيلها.'
-                          : 'إعدادات المندوب وتفضيلات التحديث.'}
+                          ? t('courier.ordersPage.tabDesc.delivered')
+                          : t('courier.ordersPage.tabDesc.settings')}
                   </p>
                 </div>
               </div>
@@ -704,34 +706,34 @@ const CourierOrders: React.FC = () => {
                   className="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-2xl bg-white/5 hover:bg-white/10 text-xs md:text-sm font-black whitespace-nowrap"
                 >
                   <RefreshCw size={14} className={isRefreshing ? 'animate-spin' : ''} />
-                  تحديث
+                  {t('courier.common.refresh')}
                 </button>
                 <button
                   onClick={handleLogout}
                   className="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-3 rounded-2xl bg-red-500/10 hover:bg-red-500/15 text-red-300 text-xs md:text-sm font-black whitespace-nowrap"
                 >
                   <LogOut size={14} />
-                  خروج
+                  {t('courier.ordersPage.exit')}
                 </button>
               </div>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">إجمالي الطلبات</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">{t('courier.ordersPage.kpis.totalOrders')}</p>
                 <p className="text-lg md:text-2xl font-black text-[#00E5FF]">{summary.totalOrders}</p>
               </div>
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">تم التوصيل</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">{t('courier.ordersPage.kpis.delivered')}</p>
                 <p className="text-lg md:text-2xl font-black text-emerald-400">{summary.delivered}</p>
               </div>
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">طلبات قيد التنفيذ</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">{t('courier.ordersPage.kpis.inProgress')}</p>
                 <p className="text-lg md:text-2xl font-black text-white">{kpis.activeCount}</p>
               </div>
               <div className="bg-slate-900 border border-white/5 rounded-2xl px-3 md:px-5 py-3">
-                <p className="text-[10px] text-slate-500 font-black uppercase">كاش معلّق</p>
-                <p className="text-sm md:text-base font-black text-white">{kpis.pendingCodCount ? `ج.م ${Math.round(kpis.pendingCodAmount).toLocaleString()}` : 'لا يوجد'}</p>
+                <p className="text-[10px] text-slate-500 font-black uppercase">{t('courier.ordersPage.kpis.pendingCash')}</p>
+                <p className="text-sm md:text-base font-black text-white">{kpis.pendingCodCount ? `${t('courier.common.egpAbbr')} ${Math.round(kpis.pendingCodAmount).toLocaleString()}` : t('courier.ordersPage.none')}</p>
               </div>
             </div>
 

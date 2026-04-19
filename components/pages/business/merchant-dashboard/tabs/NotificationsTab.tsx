@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellRing, CheckCircle, Clock, DollarSign, MessageSquare, Package, ShoppingCart, TrendingUp, User, X } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 enum NotificationType {
   // Shop notifications (for merchants)
@@ -57,6 +58,7 @@ interface NotificationsTabProps {
 }
 
 const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<NotificationType | 'ALL'>('ALL');
@@ -169,12 +171,12 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'الآن';
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    if (diffMins < 1) return t('business.notifications.justNow');
+    if (diffMins < 60) return t('business.notifications.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('business.notifications.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('business.notifications.daysAgo', { count: diffDays });
     
-    return date.toLocaleDateString('ar-EG');
+    return date.toLocaleDateString();
   };
 
   const filteredNotifications = notifications.filter(n => 
@@ -182,11 +184,11 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
   );
 
   const notificationTypes = [
-    { value: 'ALL', label: 'الكل', count: notifications.length },
-    { value: NotificationType.NEW_FOLLOWER, label: 'متابعون جدد', count: notifications.filter(n => n.type === NotificationType.NEW_FOLLOWER).length },
-    { value: NotificationType.NEW_ORDER, label: 'طلبات جديدة', count: notifications.filter(n => n.type === NotificationType.NEW_ORDER).length },
-    { value: NotificationType.NEW_MESSAGE, label: 'رسائل', count: notifications.filter(n => n.type === NotificationType.NEW_MESSAGE).length },
-    { value: NotificationType.PAYMENT_RECEIVED, label: 'مدفوعات', count: notifications.filter(n => n.type === NotificationType.PAYMENT_RECEIVED).length },
+    { value: 'ALL', label: t('business.notifications.all'), count: notifications.length },
+    { value: NotificationType.NEW_FOLLOWER, label: t('business.notifications.newFollowers'), count: notifications.filter(n => n.type === NotificationType.NEW_FOLLOWER).length },
+    { value: NotificationType.NEW_ORDER, label: t('business.notifications.newOrders'), count: notifications.filter(n => n.type === NotificationType.NEW_ORDER).length },
+    { value: NotificationType.NEW_MESSAGE, label: t('business.notifications.messages'), count: notifications.filter(n => n.type === NotificationType.NEW_MESSAGE).length },
+    { value: NotificationType.PAYMENT_RECEIVED, label: t('business.notifications.payments'), count: notifications.filter(n => n.type === NotificationType.PAYMENT_RECEIVED).length },
   ];
 
   if (loading) {
@@ -204,11 +206,11 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <BellRing className="w-6 h-6 text-cyan-500" />
-            <h2 className="text-2xl font-black text-slate-900">الإشعارات</h2>
+            <h2 className="text-2xl font-black text-slate-900">{t('business.notifications.title')}</h2>
           </div>
           {unreadCount > 0 && (
             <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-              {unreadCount} غير مقروء
+              {unreadCount} {t('business.notifications.unread')}
             </span>
           )}
         </div>
@@ -218,7 +220,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
             onClick={markAllAsRead}
             className="text-cyan-600 hover:text-cyan-700 font-medium text-sm"
           >
-            تعليم الكل كمقروء
+            {t('business.notifications.markAllRead')}
           </button>
         )}
       </div>
@@ -251,7 +253,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
           <div className="text-center py-12">
             <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
             <p className="text-slate-500 font-medium">
-              {filter === 'ALL' ? 'لا توجد إشعارات' : `لا توجد إشعارات ${notificationTypes.find(t => t.value === filter)?.label}`}
+              {filter === 'ALL' ? t('business.notifications.noNotifications') : t('business.notifications.noNotificationsForType', { type: notificationTypes.find(nt => nt.value === filter)?.label })}
             </p>
           </div>
         ) : (
@@ -286,7 +288,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
                       <button
                         onClick={() => markAsRead(notification.id)}
                         className="mr-4 text-cyan-600 hover:text-cyan-700"
-                        title="تعليم كمقروء"
+                        title={t('business.notifications.markAsRead')}
                       >
                         <CheckCircle className="w-5 h-5" />
                       </button>

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Navigation, RefreshCw, Settings, Eye, EyeOff } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CourierSettingsTab: React.FC<any> = (props) => {
+  const { t } = useTranslation();
   const {
     courierUser,
     profileName,
@@ -43,19 +45,19 @@ const CourierSettingsTab: React.FC<any> = (props) => {
 
   const showLocationWarning = !shareLocation || geoStatus === 'blocked' || geoStatus === 'unsupported';
   const locationWarningText = !shareLocation
-    ? 'مشاركة الموقع غير مفعّلة. فعّلها علشان يجيلك عروض قريبة منك تلقائيًا.'
+    ? t('courier.settingsTab.locationNotShared')
     : geoStatus === 'blocked'
-      ? 'إذن الموقع مرفوض. فعّل إذن الموقع من إعدادات المتصفح/الهاتف علشان يجيلك عروض.'
+      ? t('courier.settingsTab.locationBlocked')
       : geoStatus === 'unsupported'
-        ? 'الموقع غير مدعوم على هذا الجهاز/المتصفح.'
+        ? t('courier.settingsTab.locationUnsupported')
         : '';
 
   return (
     <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-5 md:p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-xl md:text-2xl font-black">إعدادات المندوب</h3>
-          <p className="text-slate-400 text-xs md:text-sm font-bold mt-1">تحكم في تفضيلات التحديث وبيانات الحساب.</p>
+          <h3 className="text-xl md:text-2xl font-black">{t('courier.settingsTab.title')}</h3>
+          <p className="text-slate-400 text-xs md:text-sm font-bold mt-1">{t('courier.settingsTab.subtitle')}</p>
         </div>
         <Settings size={20} className="text-slate-400" />
       </div>
@@ -70,7 +72,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
               className="shrink-0 inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-amber-500/15 text-amber-200 hover:bg-amber-500/25 text-xs font-black"
             >
               <Navigation size={14} />
-              تفعيل الآن
+              {t('courier.settingsTab.enableNow')}
             </button>
           </div>
         </div>
@@ -78,21 +80,21 @@ const CourierSettingsTab: React.FC<any> = (props) => {
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
-          <p className="text-xs text-slate-500 font-black">بيانات الحساب</p>
+          <p className="text-xs text-slate-500 font-black">{t('courier.settingsTab.accountInfo')}</p>
           <form onSubmit={onSaveProfile} className="space-y-3">
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الاسم</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{t('courier.settingsTab.name')}</label>
               <input
                 value={String(profileName || '')}
                 onChange={(e) => onProfileNameChange?.(e.target.value)}
                 disabled={!!profileSaving}
                 className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                placeholder="اسم المندوب"
+                placeholder={t('courier.settingsTab.namePlaceholder')}
               />
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">الهاتف</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{t('courier.settingsTab.phone')}</label>
               <input
                 value={String(profilePhone || '')}
                 onChange={(e) => onProfilePhoneChange?.(e.target.value)}
@@ -102,24 +104,28 @@ const CourierSettingsTab: React.FC<any> = (props) => {
               />
             </div>
 
-            <div className="text-[11px] text-slate-500 font-bold">البريد: {String(courierUser?.email || '')}</div>
+            <div className="text-[11px] text-slate-500 font-bold">{t('courier.settingsTab.emailLabel')}: {String(courierUser?.email || '')}</div>
 
             <button
               type="submit"
               disabled={!!profileSaving}
               className="w-full py-3 rounded-2xl bg-[#00E5FF] text-slate-900 font-black text-sm disabled:opacity-60"
             >
-              {profileSaving ? 'جاري الحفظ...' : 'حفظ البيانات'}
+              {profileSaving ? t('courier.settingsTab.saving') : t('courier.settingsTab.saveProfile')}
             </button>
           </form>
 
           <div className="pt-3 border-t border-white/10 space-y-2">
-            <p className="text-xs text-slate-500 font-black">الحالة من السيرفر</p>
+            <p className="text-xs text-slate-500 font-black">{t('courier.settingsTab.serverState')}</p>
             <div className="flex items-center justify-between gap-3">
               <div className="text-xs font-bold text-slate-300">
                 {stateLoading
-                  ? 'جاري المزامنة...'
-                  : `متاح: ${typeof lastState?.isAvailable === 'boolean' ? (lastState.isAvailable ? 'نعم' : 'لا') : 'غير معروف'}`}
+                  ? t('courier.settingsTab.syncing')
+                  : t('courier.settingsTab.availableLabel', {
+                    value: typeof lastState?.isAvailable === 'boolean'
+                      ? (lastState.isAvailable ? t('courier.common.yes') : t('courier.common.no'))
+                      : t('courier.common.unknown'),
+                  })}
               </div>
               <button
                 type="button"
@@ -127,20 +133,20 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-black"
               >
                 <RefreshCw size={14} className={stateLoading ? 'animate-spin' : ''} />
-                مزامنة
+                {t('courier.common.sync')}
               </button>
             </div>
             {lastState?.lastSeenAt ? (
-              <div className="text-[11px] text-slate-500 font-bold">آخر ظهور: {new Date(lastState.lastSeenAt).toLocaleString('ar-EG')}</div>
+              <div className="text-[11px] text-slate-500 font-bold">{t('courier.settingsTab.lastSeen')}: {new Date(lastState.lastSeenAt).toLocaleString('ar-EG')}</div>
             ) : null}
           </div>
         </div>
 
         <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-4 space-y-4">
-          <p className="text-xs text-slate-500 font-black">التحديث التلقائي</p>
+          <p className="text-xs text-slate-500 font-black">{t('courier.settingsTab.autoUpdate')}</p>
 
           <label className="flex items-center justify-between gap-3">
-            <span className="text-sm font-black">متاح لاستلام الطلبات</span>
+            <span className="text-sm font-black">{t('courier.settingsTab.availableForOrders')}</span>
             <input
               type="checkbox"
               checked={!!isAvailable}
@@ -150,7 +156,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
           </label>
 
           <label className="flex items-center justify-between gap-3">
-            <span className="text-sm font-black">مشاركة الموقع</span>
+            <span className="text-sm font-black">{t('courier.settingsTab.shareLocation')}</span>
             <input
               type="checkbox"
               checked={!!shareLocation}
@@ -162,16 +168,16 @@ const CourierSettingsTab: React.FC<any> = (props) => {
           <div className="bg-slate-900/40 border border-white/5 rounded-2xl p-3">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-xs font-black text-slate-200">حالة GPS</p>
+                <p className="text-xs font-black text-slate-200">{t('courier.settingsTab.gpsStatus')}</p>
                 <p className="text-[11px] font-bold text-slate-500 mt-1">
                   {geoStatus === 'unsupported'
-                    ? 'غير مدعوم'
+                    ? t('courier.settingsTab.gpsUnsupported')
                     : geoStatus === 'blocked'
-                      ? 'مرفوض'
+                      ? t('courier.settingsTab.gpsBlocked')
                       : geoStatus === 'ok'
-                        ? 'شغال'
-                        : 'غير معروف'}
-                  {geoLastFixAt ? ` • آخر تحديث: ${new Date(geoLastFixAt).toLocaleTimeString('ar-EG')}` : ''}
+                        ? t('courier.settingsTab.gpsWorking')
+                        : t('courier.common.unknown')}
+                  {geoLastFixAt ? ` • ${t('courier.settingsTab.lastUpdate')}: ${new Date(geoLastFixAt).toLocaleTimeString('ar-EG')}` : ''}
                 </p>
               </div>
               <button
@@ -180,13 +186,13 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                 className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] hover:bg-[#00E5FF]/20 text-xs font-black"
               >
                 <Navigation size={14} />
-                تحديث الموقع
+                {t('courier.settingsTab.updateLocation')}
               </button>
             </div>
           </div>
           
           <label className="flex items-center justify-between gap-3">
-            <span className="text-sm font-black">تفعيل التحديث التلقائي</span>
+            <span className="text-sm font-black">{t('courier.settingsTab.enableAutoRefresh')}</span>
             <input
               type="checkbox"
               checked={!!autoRefresh}
@@ -196,7 +202,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
           </label>
 
           <label className="flex items-center justify-between gap-3">
-            <span className="text-sm font-black">كل (ثانية)</span>
+            <span className="text-sm font-black">{t('courier.settingsTab.everySeconds')}</span>
             <select
               value={String(refreshSeconds || '')}
               disabled={!autoRefresh}
@@ -216,14 +222,14 @@ const CourierSettingsTab: React.FC<any> = (props) => {
             onClick={onOpenOrdersNow}
             className="w-full mt-2 py-3 rounded-2xl bg-[#00E5FF] text-slate-900 font-black text-sm"
           >
-            فتح الطلبات الآن
+            {t('courier.settingsTab.openOrdersNow')}
           </button>
 
           <div className="pt-4 border-t border-white/10">
-            <p className="text-xs text-slate-500 font-black mb-3">تغيير كلمة المرور</p>
+            <p className="text-xs text-slate-500 font-black mb-3">{t('courier.settingsTab.changePassword')}</p>
             <form onSubmit={onChangePassword} className="space-y-3">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">كلمة المرور الحالية</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{t('courier.settingsTab.currentPassword')}</label>
                 <div className="relative">
                   <input
                     type={showCurrentPassword ? 'text' : 'password'}
@@ -231,7 +237,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                     onChange={(e) => onCurrentPasswordChange?.(e.target.value)}
                     disabled={!!passwordSaving}
                     className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                    placeholder="كلمة المرور الحالية"
+                    placeholder={t('courier.settingsTab.currentPasswordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -243,7 +249,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">كلمة المرور الجديدة</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{t('courier.settingsTab.newPassword')}</label>
                 <div className="relative">
                   <input
                     type={showNewPassword ? 'text' : 'password'}
@@ -251,7 +257,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                     onChange={(e) => onNewPasswordChange?.(e.target.value)}
                     disabled={!!passwordSaving}
                     className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                    placeholder="كلمة المرور الجديدة"
+                    placeholder={t('courier.settingsTab.newPasswordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -263,7 +269,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">تأكيد كلمة المرور الجديدة</label>
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mr-1">{t('courier.settingsTab.confirmNewPassword')}</label>
                 <div className="relative">
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
@@ -271,7 +277,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                     onChange={(e) => onConfirmNewPasswordChange?.(e.target.value)}
                     disabled={!!passwordSaving}
                     className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-3 pr-10 pl-10 text-sm font-black text-right outline-none focus:border-[#00E5FF]/50 disabled:opacity-60"
-                    placeholder="تأكيد كلمة المرور الجديدة"
+                    placeholder={t('courier.settingsTab.confirmNewPasswordPlaceholder')}
                   />
                   <button
                     type="button"
@@ -287,7 +293,7 @@ const CourierSettingsTab: React.FC<any> = (props) => {
                 disabled={!!passwordSaving}
                 className="w-full py-3 rounded-2xl bg-white text-slate-900 font-black text-sm disabled:opacity-60"
               >
-                {passwordSaving ? 'جاري التغيير...' : 'تغيير كلمة المرور'}
+                {passwordSaving ? t('courier.settingsTab.changing') : t('courier.settingsTab.changePasswordAction')}
               </button>
             </form>
           </div>

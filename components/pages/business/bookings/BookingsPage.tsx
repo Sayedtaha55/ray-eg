@@ -3,8 +3,10 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import ReservationsTab from '@/components/pages/business/merchant-dashboard/tabs/ReservationsTab';
+import { useTranslation } from 'react-i18next';
 
 const BookingsPage: React.FC = () => {
+  const { t } = useTranslation();
   const { useLocation } = ReactRouterDOM as any;
   const location = useLocation();
 
@@ -41,7 +43,7 @@ const BookingsPage: React.FC = () => {
       setReservations(Array.isArray(data) ? data : []);
     } catch (e: any) {
       setReservations([]);
-      setError(String(e?.message || 'تعذر تحميل الحجوزات'));
+      setError(String(e?.message || t('business.bookings.loadFailed')));
     } finally {
       setLoading(false);
       refreshInFlightRef.current = false;
@@ -57,7 +59,7 @@ const BookingsPage: React.FC = () => {
       await ApiService.updateBookingStatus(id, status);
       await load();
     } catch (e: any) {
-      setError(String(e?.message || 'تعذر تحديث حالة الحجز'));
+      setError(String(e?.message || t('business.bookings.updateFailed')));
     }
   }, [load]);
 
@@ -72,7 +74,7 @@ const BookingsPage: React.FC = () => {
       {loading ? (
         <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm flex items-center justify-center gap-3 text-slate-500 font-bold">
           <Loader2 className="animate-spin" size={20} />
-          جاري تحميل الحجوزات...
+          {t('business.bookings.loading')}
         </div>
       ) : (
         <ReservationsTab reservations={reservations as any} onUpdateStatus={handleUpdateStatus} />

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -12,15 +13,10 @@ type ImageMapCardVisibilityKey =
   | 'imageMapCardReserve'
   | 'imageMapCardDescription';
 
-const IMAGE_MAP_ITEMS: { key: ImageMapCardVisibilityKey; label: string }[] = [
-  { key: 'imageMapCardPrice', label: 'كارت منتج الخريطة: إظهار السعر' },
-  { key: 'imageMapCardStock', label: 'كارت منتج الخريطة: إظهار المخزون' },
-  { key: 'imageMapCardDescription', label: 'كارت منتج الخريطة: إظهار الوصف' },
-  { key: 'imageMapCardAddToCart', label: 'كارت منتج الخريطة: إظهار زر (إضافة للسلة)' },
-  { key: 'imageMapCardReserve', label: 'كارت منتج الخريطة: إظهار زر (حجز)' },
-];
+const IMAGE_MAP_KEYS: ImageMapCardVisibilityKey[] = ['imageMapCardPrice', 'imageMapCardStock', 'imageMapCardDescription', 'imageMapCardAddToCart', 'imageMapCardReserve'];
 
 const ProductEditorSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
   const imageMapCurrent = (config?.imageMapVisibility || {}) as Record<string, any>;
 
   const getImageMapValue = (key: ImageMapCardVisibilityKey) => {
@@ -40,18 +36,18 @@ const ProductEditorSection: React.FC<Props> = ({ config, setConfig }) => {
 
   return (
     <div className="space-y-3">
-      {IMAGE_MAP_ITEMS.map((item) => (
+      {IMAGE_MAP_KEYS.map((key) => (
         <label
-          key={item.key}
+          key={key}
           className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
+          <span className="font-black text-xs md:text-sm text-slate-700">{t(`business.builder.productEditor.${key}`)}</span>
           <input
             type="checkbox"
-            checked={getImageMapValue(item.key)}
+            checked={getImageMapValue(key)}
             onClick={(e) => e.stopPropagation()}
-            onChange={(e) => setImageMapValue(item.key, e.target.checked)}
+            onChange={(e) => setImageMapValue(key, e.target.checked)}
           />
         </label>
       ))}

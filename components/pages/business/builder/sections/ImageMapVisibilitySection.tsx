@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -11,14 +12,10 @@ type ImageMapVisibilityKey =
   | 'imageMapCardAddToCart'
   | 'imageMapCardDescription';
 
-const ITEMS: { key: ImageMapVisibilityKey; label: string }[] = [
-  { key: 'imageMapCardPrice', label: 'إظهار السعر في كارت التحرير بالصور' },
-  { key: 'imageMapCardStock', label: 'إظهار المخزون في كارت التحرير بالصور' },
-  { key: 'imageMapCardAddToCart', label: 'إظهار زر (إضافة للسلة) في كارت التحرير' },
-  { key: 'imageMapCardDescription', label: 'إظهار الوصف المختصر في كارت التحرير' },
-];
+const IMAGE_MAP_VIS_KEYS: ImageMapVisibilityKey[] = ['imageMapCardPrice', 'imageMapCardStock', 'imageMapCardAddToCart', 'imageMapCardDescription'];
 
 const ImageMapVisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
   const current = (config?.imageMapVisibility || {}) as Record<string, any>;
 
   const getValue = (key: ImageMapVisibilityKey) => {
@@ -38,19 +35,19 @@ const ImageMapVisibilitySection: React.FC<Props> = ({ config, setConfig }) => {
 
   return (
     <div className="space-y-3">
-      {ITEMS.map((item) => (
+      {IMAGE_MAP_VIS_KEYS.map((key) => (
         <label
-          key={item.key}
+          key={key}
           className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white cursor-pointer hover:bg-slate-50 transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
-          <span className="font-black text-xs md:text-sm text-slate-700">{item.label}</span>
+          <span className="font-black text-xs md:text-sm text-slate-700">{t(`business.builder.imageMapVisibility.${key}`)}</span>
           <input 
             type="checkbox" 
             className="w-5 h-5 rounded-lg border-slate-300 text-[#00E5FF] focus:ring-[#00E5FF]"
-            checked={getValue(item.key)} 
+            checked={getValue(key)} 
             onClick={(e) => e.stopPropagation()}
-            onChange={(e) => setValue(item.key, e.target.checked)} 
+            onChange={(e) => setValue(key, e.target.checked)} 
           />
         </label>
       ))}

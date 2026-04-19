@@ -11,6 +11,7 @@ import {
   Stethoscope,
   User2,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
+  const { t } = useTranslation();
   const primary = String((config as any)?.primaryColor || '#00E5FF');
   const secondary = String((config as any)?.secondaryColor || '#BD00FF');
   const pageBg = String((config as any)?.pageBackgroundColor || '#FFFFFF');
@@ -26,63 +28,63 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
 
   const specialties = useMemo(
     () => [
-      { id: 'dentistry', name: 'أسنان', icon: <Stethoscope size={18} /> },
-      { id: 'dermatology', name: 'جلدية', icon: <Shield size={18} /> },
-      { id: 'pediatrics', name: 'أطفال', icon: <User2 size={18} /> },
-      { id: 'orthopedics', name: 'عظام', icon: <CheckCircle2 size={18} /> },
+      { id: 'dentistry', name: t('business.builder.clinicPreview.specialties.dentistry'), icon: <Stethoscope size={18} /> },
+      { id: 'dermatology', name: t('business.builder.clinicPreview.specialties.dermatology'), icon: <Shield size={18} /> },
+      { id: 'pediatrics', name: t('business.builder.clinicPreview.specialties.pediatrics'), icon: <User2 size={18} /> },
+      { id: 'orthopedics', name: t('business.builder.clinicPreview.specialties.orthopedics'), icon: <CheckCircle2 size={18} /> },
     ],
-    []
+    [t]
   );
 
   const doctors = useMemo(
     () => [
       {
         id: 'd1',
-        name: 'د. أحمد علي',
-        title: 'أخصائي أسنان',
+        name: t('business.builder.clinicPreview.doctors.d1.name'),
+        title: t('business.builder.clinicPreview.doctors.d1.title'),
         rating: 4.9,
         reviews: 320,
-        next: 'اليوم 6:30 م',
+        next: t('business.builder.clinicPreview.doctors.d1.next'),
       },
       {
         id: 'd2',
-        name: 'د. منى إبراهيم',
-        title: 'أخصائية جلدية',
+        name: t('business.builder.clinicPreview.doctors.d2.name'),
+        title: t('business.builder.clinicPreview.doctors.d2.title'),
         rating: 4.8,
         reviews: 210,
-        next: 'غداً 11:00 ص',
+        next: t('business.builder.clinicPreview.doctors.d2.next'),
       },
       {
         id: 'd3',
-        name: 'د. يوسف حسن',
-        title: 'أخصائي أطفال',
+        name: t('business.builder.clinicPreview.doctors.d3.name'),
+        title: t('business.builder.clinicPreview.doctors.d3.title'),
         rating: 4.7,
         reviews: 185,
-        next: 'اليوم 8:15 م',
+        next: t('business.builder.clinicPreview.doctors.d3.next'),
       },
     ],
-    []
+    [t]
   );
 
   const slots = useMemo(
     () => [
-      { time: '05:30', label: '5:30 م', available: true },
-      { time: '06:00', label: '6:00 م', available: true },
-      { time: '06:30', label: '6:30 م', available: false },
-      { time: '07:00', label: '7:00 م', available: true },
-      { time: '07:30', label: '7:30 م', available: true },
-      { time: '08:00', label: '8:00 م', available: true },
+      { time: '05:30', label: t('business.builder.clinicPreview.slots.s0530'), available: true },
+      { time: '06:00', label: t('business.builder.clinicPreview.slots.s0600'), available: true },
+      { time: '06:30', label: t('business.builder.clinicPreview.slots.s0630'), available: false },
+      { time: '07:00', label: t('business.builder.clinicPreview.slots.s0700'), available: true },
+      { time: '07:30', label: t('business.builder.clinicPreview.slots.s0730'), available: true },
+      { time: '08:00', label: t('business.builder.clinicPreview.slots.s0800'), available: true },
     ],
-    []
+    [t]
   );
 
   const testimonials = useMemo(
     () => [
-      { id: 't1', name: 'مريم', rating: 5, text: 'حجز سريع وتعامل ممتاز. التجربة كانت مريحة جداً.' },
-      { id: 't2', name: 'أحمد', rating: 5, text: 'مواعيد دقيقة وخدمة محترفة. أنصح بها.' },
-      { id: 't3', name: 'سارة', rating: 4, text: 'التنظيم رائع وسهولة في اختيار الموعد.' },
+      { id: 't1', name: t('business.builder.clinicPreview.testimonials.t1.name'), rating: 5, text: t('business.builder.clinicPreview.testimonials.t1.text') },
+      { id: 't2', name: t('business.builder.clinicPreview.testimonials.t2.name'), rating: 5, text: t('business.builder.clinicPreview.testimonials.t2.text') },
+      { id: 't3', name: t('business.builder.clinicPreview.testimonials.t3.name'), rating: 4, text: t('business.builder.clinicPreview.testimonials.t3.text') },
     ],
-    []
+    [t]
   );
 
   const filteredDoctors = useMemo(() => {
@@ -104,8 +106,8 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
               )}
             </div>
             <div>
-              <div className="text-sm md:text-base font-black text-slate-900">مركز طبي (معاينة)</div>
-              <div className="text-[11px] font-bold text-slate-400">حجز مواعيد الأطباء أونلاين</div>
+              <div className="text-sm md:text-base font-black text-slate-900">{t('business.builder.clinicPreview.header.title')}</div>
+              <div className="text-[11px] font-bold text-slate-400">{t('business.builder.clinicPreview.header.subtitle')}</div>
             </div>
           </div>
 
@@ -114,13 +116,13 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
               type="button"
               className="px-5 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-black transition-all"
             >
-              احجز الآن
+              {t('business.builder.clinicPreview.header.bookNow')}
             </button>
             <button
               type="button"
               className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
             >
-              تواصل معنا
+              {t('business.builder.clinicPreview.header.contactUs')}
             </button>
           </div>
         </div>
@@ -131,29 +133,29 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
           <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
             <div className="inline-flex items-center gap-2 bg-slate-50 border border-slate-100 rounded-2xl px-4 py-2 text-xs font-black text-slate-600">
               <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: primary }} />
-              منصة حجوزات للعيادات
+              {t('business.builder.clinicPreview.hero.badge')}
             </div>
 
             <div className="mt-5 text-2xl md:text-4xl font-black leading-tight text-slate-900">
-              احجز موعدك مع الطبيب المناسب
-              <span className="block" style={{ color: secondary }}>بخطوات بسيطة</span>
+              {t('business.builder.clinicPreview.hero.title')}
+              <span className="block" style={{ color: secondary }}>{t('business.builder.clinicPreview.hero.titleAccent')}</span>
             </div>
             <div className="mt-4 text-sm md:text-base font-bold text-slate-500 leading-relaxed">
-              ابحث عن التخصص أو الطبيب، اختر الموعد المتاح، ثم أكد الحجز. تجربة تصميم شبيهة بالتطبيقات العالمية.
+              {t('business.builder.clinicPreview.hero.description')}
             </div>
 
             <div className="mt-6 flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2 text-xs font-black text-slate-500">
                 <CheckCircle2 size={16} style={{ color: primary }} />
-                تأكيد فوري
+                {t('business.builder.clinicPreview.hero.points.instantConfirmation')}
               </div>
               <div className="flex items-center gap-2 text-xs font-black text-slate-500">
                 <Clock size={16} style={{ color: primary }} />
-                مواعيد دقيقة
+                {t('business.builder.clinicPreview.hero.points.preciseTimes')}
               </div>
               <div className="flex items-center gap-2 text-xs font-black text-slate-500">
                 <Shield size={16} style={{ color: primary }} />
-                بيانات آمنة
+                {t('business.builder.clinicPreview.hero.points.secureData')}
               </div>
             </div>
 
@@ -164,7 +166,7 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
                   <input
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="ابحث باسم الطبيب أو التخصص"
+                    placeholder={t('business.builder.clinicPreview.search.placeholder')}
                     className="w-full pr-10 pl-4 py-3 rounded-2xl border border-slate-200 bg-white font-bold text-sm outline-none focus:border-slate-900"
                   />
                 </div>
@@ -173,7 +175,7 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
                   className="px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
                   style={{ backgroundColor: primary }}
                 >
-                  بحث
+                  {t('business.builder.clinicPreview.search.button')}
                 </button>
               </div>
 
@@ -195,24 +197,24 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
           <div className="bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-sm font-black text-slate-900">حجز سريع</div>
-                <div className="mt-1 text-xs font-bold text-slate-400">اختر أقرب موعد متاح</div>
+                <div className="text-sm font-black text-slate-900">{t('business.builder.clinicPreview.quickBooking.title')}</div>
+                <div className="mt-1 text-xs font-bold text-slate-400">{t('business.builder.clinicPreview.quickBooking.subtitle')}</div>
               </div>
               <div className="flex items-center gap-2 text-xs font-black text-slate-500">
                 <MapPin size={16} />
-                القاهرة
+                {t('business.builder.clinicPreview.quickBooking.location')}
               </div>
             </div>
 
             <div className="mt-5 rounded-[2rem] bg-slate-50 border border-slate-100 p-5">
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <div className="text-sm font-black text-slate-900">اليوم</div>
-                  <div className="mt-1 text-xs font-bold text-slate-400">الأقرب</div>
+                  <div className="text-sm font-black text-slate-900">{t('business.builder.clinicPreview.quickBooking.today')}</div>
+                  <div className="mt-1 text-xs font-bold text-slate-400">{t('business.builder.clinicPreview.quickBooking.nearest')}</div>
                 </div>
                 <div className="flex items-center gap-2 text-xs font-black text-slate-500">
                   <Calendar size={16} />
-                  مواعيد
+                  {t('business.builder.clinicPreview.quickBooking.appointments')}
                 </div>
               </div>
 
@@ -239,13 +241,13 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
                   className="px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
                   style={{ backgroundColor: primary }}
                 >
-                  تأكيد الموعد
+                  {t('business.builder.clinicPreview.quickBooking.confirmAppointment')}
                 </button>
                 <button
                   type="button"
                   className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
                 >
-                  اختر طبيب
+                  {t('business.builder.clinicPreview.quickBooking.chooseDoctor')}
                 </button>
               </div>
             </div>
@@ -253,14 +255,14 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
             <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-3xl border border-slate-100 p-5">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-black text-slate-400">رقم الهاتف</div>
+                  <div className="text-xs font-black text-slate-400">{t('business.builder.clinicPreview.quickBooking.phoneLabel')}</div>
                   <Phone size={16} className="text-slate-400" />
                 </div>
                 <div className="mt-2 text-sm font-black text-slate-900">+20 10 0000 0000</div>
               </div>
               <div className="rounded-3xl border border-slate-100 p-5">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-black text-slate-400">متوسط التقييم</div>
+                  <div className="text-xs font-black text-slate-400">{t('business.builder.clinicPreview.quickBooking.avgRatingLabel')}</div>
                   <Star size={16} className="text-slate-400" />
                 </div>
                 <div className="mt-2 text-sm font-black text-slate-900">4.8 / 5</div>
@@ -272,10 +274,10 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
         <section className="mt-8 md:mt-12">
           <div className="flex items-end justify-between gap-3 flex-wrap">
             <div>
-              <div className="text-lg md:text-xl font-black text-slate-900">الأطباء المتاحون</div>
-              <div className="mt-1 text-sm font-bold text-slate-500">اختر طبيبًا واستعرض أقرب موعد</div>
+              <div className="text-lg md:text-xl font-black text-slate-900">{t('business.builder.clinicPreview.doctorsSection.title')}</div>
+              <div className="mt-1 text-sm font-bold text-slate-500">{t('business.builder.clinicPreview.doctorsSection.subtitle')}</div>
             </div>
-            <div className="text-xs font-black text-slate-400">{filteredDoctors.length} نتيجة</div>
+            <div className="text-xs font-black text-slate-400">{t('business.builder.clinicPreview.doctorsSection.results', { count: filteredDoctors.length })}</div>
           </div>
 
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -297,7 +299,7 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
                     <span className="text-slate-900">{d.rating}</span>
                     <span className="text-slate-400">({d.reviews})</span>
                   </div>
-                  <div className="text-xs font-black text-slate-500">أقرب: {d.next}</div>
+                  <div className="text-xs font-black text-slate-500">{t('business.builder.clinicPreview.doctorsSection.next', { time: d.next })}</div>
                 </div>
 
                 <div className="mt-4 flex items-center gap-2 flex-wrap">
@@ -306,13 +308,13 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
                     className="flex-1 px-5 py-3 rounded-2xl font-black text-sm text-slate-900"
                     style={{ backgroundColor: primary }}
                   >
-                    حجز
+                    {t('business.builder.clinicPreview.doctorsSection.book')}
                   </button>
                   <button
                     type="button"
                     className="px-5 py-3 rounded-2xl font-black text-sm bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-all"
                   >
-                    الملف
+                    {t('business.builder.clinicPreview.doctorsSection.profile')}
                   </button>
                 </div>
               </div>
@@ -323,8 +325,8 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
         <section className="mt-8 md:mt-12 bg-white border border-slate-100 rounded-[2.5rem] shadow-sm p-7 md:p-10">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
-              <div className="text-lg md:text-xl font-black text-slate-900">آراء العملاء</div>
-              <div className="mt-1 text-sm font-bold text-slate-500">تجربة شبيهة بالتطبيقات العالمية</div>
+              <div className="text-lg md:text-xl font-black text-slate-900">{t('business.builder.clinicPreview.testimonialsSection.title')}</div>
+              <div className="mt-1 text-sm font-bold text-slate-500">{t('business.builder.clinicPreview.testimonialsSection.subtitle')}</div>
             </div>
             <div className="flex items-center gap-2 text-sm font-black" style={{ color: primary }}>
               <Star size={18} />
@@ -359,21 +361,21 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
           <div className="rounded-[2.5rem] p-7 md:p-10 text-slate-900 border border-slate-100" style={{ background: `linear-gradient(135deg, ${primary}20, ${secondary}20)` }}>
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <div className="text-lg md:text-2xl font-black">ابدأ الحجز الآن</div>
-                <div className="mt-2 text-sm font-bold text-slate-600">اختر الطبيب والموعد المناسبين، ثم أكد الحجز.</div>
+                <div className="text-lg md:text-2xl font-black">{t('business.builder.clinicPreview.cta.title')}</div>
+                <div className="mt-2 text-sm font-bold text-slate-600">{t('business.builder.clinicPreview.cta.subtitle')}</div>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   className="px-6 py-3 rounded-2xl font-black text-sm bg-slate-900 text-white hover:bg-black transition-all"
                 >
-                  احجز موعد
+                  {t('business.builder.clinicPreview.cta.bookAppointment')}
                 </button>
                 <button
                   type="button"
                   className="px-6 py-3 rounded-2xl font-black text-sm bg-white/70 border border-slate-100 text-slate-800 hover:bg-white transition-all"
                 >
-                  استفسار
+                  {t('business.builder.clinicPreview.cta.inquiry')}
                 </button>
               </div>
             </div>
@@ -383,8 +385,8 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl }) => {
 
       <footer className="border-t border-slate-100 bg-white">
         <div className="max-w-[1200px] mx-auto px-4 md:px-8 py-8 flex items-center justify-between gap-4 flex-wrap">
-          <div className="text-xs font-bold text-slate-500">© معاينة صفحة عرض العيادة</div>
-          <div className="text-xs font-black text-slate-400">مواعيد - أطباء - حجوزات</div>
+          <div className="text-xs font-bold text-slate-500">{t('business.builder.clinicPreview.footer.copyright')}</div>
+          <div className="text-xs font-black text-slate-400">{t('business.builder.clinicPreview.footer.tags')}</div>
         </div>
       </footer>
     </div>

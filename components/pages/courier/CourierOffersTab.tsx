@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, Loader2, CheckCircle, RefreshCw, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const CourierOffersTab: React.FC<{
   offers: any[];
@@ -24,6 +25,7 @@ const CourierOffersTab: React.FC<{
   getDeliveryFeeFromNotes,
   buildGoogleMapsLink,
 }) => {
+  const { t } = useTranslation();
   if (offersLoading) {
     return <div className="flex justify-center py-20"><Loader2 className="animate-spin text-amber-300" /></div>;
   }
@@ -31,7 +33,7 @@ const CourierOffersTab: React.FC<{
   if ((offers || []).length === 0) {
     return (
       <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-10 md:p-12 text-center text-slate-400 font-bold">
-        لا توجد عروض جديدة حالياً.
+        {t('courier.offersTab.noOffers')}
       </div>
     );
   }
@@ -39,13 +41,13 @@ const CourierOffersTab: React.FC<{
   return (
     <div className="space-y-3 md:space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg md:text-xl font-black">عروض جديدة</h3>
+        <h3 className="text-lg md:text-xl font-black">{t('courier.offersTab.title')}</h3>
         <button
           onClick={onRefresh}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 text-xs font-black"
         >
           <RefreshCw size={14} className={offersRefreshing ? 'animate-spin' : ''} />
-          تحديث
+          {t('courier.common.refresh')}
         </button>
       </div>
 
@@ -64,14 +66,14 @@ const CourierOffersTab: React.FC<{
             <div key={String(offer.id)} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500 font-black uppercase">عرض طلب</p>
-                  <h3 className="text-lg font-black">{order?.shop?.name || 'متجر غير معروف'}</h3>
+                  <p className="text-xs text-slate-500 font-black uppercase">{t('courier.offersTab.orderOffer')}</p>
+                  <h3 className="text-lg font-black">{order?.shop?.name || t('courier.common.unknownShop')}</h3>
                   <p className="text-xs text-slate-400 font-bold">
-                    العميل: {order?.user?.name || 'غير معروف'} {order?.user?.phone ? `• ${order.user.phone}` : ''}
+                    {t('courier.common.customer')}: {order?.user?.name || t('courier.common.unknown')} {order?.user?.phone ? `• ${order.user.phone}` : ''}
                   </p>
                   <div className="flex flex-wrap gap-2 pt-1">
                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
-                      الإجمالي: ج.م {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
+                      {t('courier.common.total')}: {t('courier.common.egpAbbr')} {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
                     </span>
                   </div>
                 </div>
@@ -88,7 +90,7 @@ const CourierOffersTab: React.FC<{
                       rel="noreferrer"
                       className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
                     >
-                      <MapPin size={12} /> فتح الخريطة
+                      <MapPin size={12} /> {t('courier.common.openMap')}
                     </a>
                   )}
 
@@ -102,14 +104,14 @@ const CourierOffersTab: React.FC<{
                     ) : (
                       <CheckCircle size={12} />
                     )}
-                    {acceptingOfferId === String(offer.id) ? 'جاري القبول...' : 'قبول'}
+                    {acceptingOfferId === String(offer.id) ? t('courier.offersTab.accepting') : t('courier.common.accept')}
                   </button>
 
                   <button
                     onClick={() => onReject(String(offer.id))}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-red-500/10 text-red-300 hover:bg-red-500/15 font-black text-xs"
                   >
-                    <X size={12} /> رفض
+                    <X size={12} /> {t('courier.common.reject')}
                   </button>
                 </div>
               </div>

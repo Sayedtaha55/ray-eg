@@ -6,6 +6,7 @@ import type { Shop, StoreSection } from './types';
 import { useToast } from '@/components';
 import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 import { ApiService } from '@/services/api.service';
+import i18n from '@/i18n';
 
 type Props = {
   shopId: string;
@@ -100,8 +101,8 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
     if (!sid) return;
     const nextShop: Shop = {
       id: sid,
-      name: String(payload?.name || shop?.name || 'المخزون'),
-      type: String(payload?.type || shop?.type || 'عام'),
+      name: String(payload?.name || shop?.name || i18n.t('productEditorApp.defaultShopName')),
+      type: String(payload?.type || shop?.type || i18n.t('productEditorApp.defaultShopType')),
       coverImage: String(shop?.coverImage || payload?.sections?.[0]?.image || ''),
       sections: Array.isArray(payload?.sections) ? payload.sections : [],
     };
@@ -111,9 +112,9 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
       // Reload fresh data from backend to get updated productIds and stock
       const freshData = await db.getCurrentShop({ shopId: sid });
       if (freshData) setShop(freshData);
-      addToast('تم الحفظ', 'success');
+      addToast(i18n.t('productEditorApp.saved'), 'success');
     } catch (e: any) {
-      const msg = e?.message ? String(e.message) : 'فشل الحفظ';
+      const msg = e?.message ? String(e.message) : i18n.t('productEditorApp.saveFailed');
       addToast(msg, 'error');
       throw e;
     }
@@ -126,12 +127,12 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
       const data = await db.getCurrentShop({ shopId: sid });
       setShop(data);
       if (!data) {
-        addToast('لا يوجد بيانات محفوظة لعرضها في وضع الشراء', 'error');
+        addToast(i18n.t('productEditorApp.noDataForCustomerMode'), 'error');
         return;
       }
       setMode('customer');
     } catch (e: any) {
-      const msg = e?.message ? String(e.message) : 'فشل تحميل البيانات';
+      const msg = e?.message ? String(e.message) : i18n.t('productEditorApp.loadDataFailed');
       addToast(msg, 'error');
     } finally {
       setLoading(false);
@@ -144,15 +145,15 @@ const App: React.FC<Props> = ({ shopId, onClose }) => {
       await db.deleteCurrentShop({ shopId: sid });
       const data = await db.getCurrentShop({ shopId: sid });
       setShop(data);
-      addToast('تم المسح', 'success');
+      addToast(i18n.t('productEditorApp.deleted'), 'success');
     } catch (e: any) {
-      const msg = e?.message ? String(e.message) : 'فشل المسح';
+      const msg = e?.message ? String(e.message) : i18n.t('productEditorApp.deleteFailed');
       addToast(msg, 'error');
     }
   };
 
   if (!sid) {
-    return <div className="p-6 text-white">shopId مطلوب</div>;
+    return <div className="p-6 text-white">{i18n.t('productEditorApp.shopIdRequired')}</div>;
   }
 
   if (loading) {

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight, Heart, Share2, Eye } from 'lucide-react';
 import { ShopGallery } from '@/types';
 import { useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface ShopGalleryProps {
   images: ShopGallery[];
@@ -17,6 +18,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
   primaryColor, 
   layout 
 }) => {
+  const { t } = useTranslation();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isFavorite, setIsFavorite] = useState(false);
 
@@ -69,8 +71,8 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
         isMinimal ? 'border-slate-200 bg-slate-50' : 'border-slate-100 bg-white'
       }`}>
         <Eye className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-slate-300" />
-        <h3 className="text-lg md:text-2xl font-black mb-2 text-slate-400">لا توجد صور معروضة</h3>
-        <p className="text-sm md:text-base text-slate-300">سيتم إضافة معرض الصور قريباً</p>
+        <h3 className="text-lg md:text-2xl font-black mb-2 text-slate-400">{t('shopGallery.noImages')}</h3>
+        <p className="text-sm md:text-base text-slate-300">{t('shopGallery.galleryComingSoon')}</p>
       </div>
     );
   }

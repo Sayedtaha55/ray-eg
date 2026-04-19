@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageCircle, Send } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { useTranslation } from 'react-i18next';
 
 type Props = { shopId: string };
 
 const ChatsTab: React.FC<Props> = ({ shopId }) => {
+  const { t } = useTranslation();
   const [chats, setChats] = useState<any[]>([]);
   const [selectedChat, setSelectedChat] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
@@ -93,11 +95,11 @@ const ChatsTab: React.FC<Props> = ({ shopId }) => {
     <div className="bg-white rounded-[2rem] sm:rounded-[3rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm h-[700px] flex flex-col md:flex-row overflow-hidden">
       <div className="w-full md:w-80 border-b md:border-b-0 md:border-l border-slate-100 flex flex-col">
         <div className="p-4 sm:p-6 md:p-8 border-b border-slate-50">
-          <h3 className="text-xl font-black">الرسائل الواردة</h3>
+          <h3 className="text-xl font-black">{t('business.chats.incomingMessages')}</h3>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar">
           {chats.length === 0 ? (
-            <div className="p-6 sm:p-8 md:p-10 text-center text-slate-300 font-bold">لا يوجد محادثات حالياً.</div>
+            <div className="p-6 sm:p-8 md:p-10 text-center text-slate-300 font-bold">{t('business.chats.noChats')}</div>
           ) : (
             chats.map((chat) => (
               <button
@@ -133,7 +135,7 @@ const ChatsTab: React.FC<Props> = ({ shopId }) => {
                 </div>
                 <div className="text-right">
                   <p className="font-black">{selectedChat.userName}</p>
-                  <p className="text-[10px] text-slate-400 font-black">عميل المنصة</p>
+                  <p className="text-[10px] text-slate-400 font-black">{t('business.chats.platformCustomer')}</p>
                 </div>
               </div>
             </header>
@@ -151,7 +153,7 @@ const ChatsTab: React.FC<Props> = ({ shopId }) => {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="اكتب ردك هنا..."
+                placeholder={t('business.chats.writeReply')}
                 className="flex-1 bg-slate-50 rounded-2xl py-3 sm:py-4 px-4 sm:px-8 font-bold outline-none border-none text-right"
               />
               <button onClick={handleSend} className="w-12 h-12 sm:w-16 sm:h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-xl hover:bg-black transition-all">
@@ -162,7 +164,7 @@ const ChatsTab: React.FC<Props> = ({ shopId }) => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center text-slate-300">
             <MessageCircle size={56} className="mb-6 opacity-10 sm:w-20 sm:h-20" />
-            <p className="text-xl sm:text-2xl font-black">اختر محادثة للرد عليها</p>
+            <p className="text-xl sm:text-2xl font-black">{t('business.chats.selectChatToReply')}</p>
           </div>
         )}
       </div>

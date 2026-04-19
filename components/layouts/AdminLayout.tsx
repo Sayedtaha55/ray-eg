@@ -6,11 +6,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
 import { clearSession, getStoredUser } from '@/services/authStorage';
+import { useTranslation } from 'react-i18next';
 
 const { Link, Outlet, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
 const AdminLayout: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -54,23 +56,23 @@ const AdminLayout: React.FC = () => {
         </div>
 
         <nav className="flex-1 px-6 space-y-2 py-6 overflow-y-auto no-scrollbar">
-           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label="لوحة التحكم" active={location.pathname.startsWith('/admin/dashboard')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label="طلبات الموافقة" active={location.pathname.startsWith('/admin/approvals')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label="إدارة المتاجر" active={location.pathname.startsWith('/admin/shops')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label="إدارة المستخدمين" active={location.pathname.startsWith('/admin/users')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label="كافة العمليات" active={location.pathname.startsWith('/admin/orders')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/delivery" icon={<Truck size={20} />} label="إدارة التوصيل" active={location.pathname.startsWith('/admin/delivery')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label="مركز الاقتراحات" active={location.pathname.startsWith('/admin/feedback')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label="التحليلات" active={location.pathname.startsWith('/admin/analytics')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label="الإشعارات" active={location.pathname.startsWith('/admin/notifications')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/content" icon={<FileText size={20} />} label="إدارة المحتوى" active={location.pathname.startsWith('/admin/content')} onNavigate={() => setSidebarOpen(false)} />
-           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label="إعدادات النظام" active={location.pathname.startsWith('/admin/settings')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/dashboard" icon={<LayoutDashboard size={20} />} label={t('adminLayout.dashboard')} active={location.pathname.startsWith('/admin/dashboard')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/approvals" icon={<ShieldAlert size={20} />} label={t('adminLayout.approvals')} active={location.pathname.startsWith('/admin/approvals')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/shops" icon={<Store size={20} />} label={t('adminLayout.shops')} active={location.pathname.startsWith('/admin/shops')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/users" icon={<Users size={20} />} label={t('adminLayout.users')} active={location.pathname.startsWith('/admin/users')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/orders" icon={<CreditCard size={20} />} label={t('adminLayout.operations')} active={location.pathname.startsWith('/admin/orders')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/delivery" icon={<Truck size={20} />} label={t('adminLayout.delivery')} active={location.pathname.startsWith('/admin/delivery')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/feedback" icon={<MessageSquare size={20} />} label={t('adminLayout.feedback')} active={location.pathname.startsWith('/admin/feedback')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/analytics" icon={<BarChart3 size={20} />} label={t('adminLayout.analytics')} active={location.pathname.startsWith('/admin/analytics')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/notifications" icon={<Bell size={20} />} label={t('adminLayout.notifications')} active={location.pathname.startsWith('/admin/notifications')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/content" icon={<FileText size={20} />} label={t('adminLayout.content')} active={location.pathname.startsWith('/admin/content')} onNavigate={() => setSidebarOpen(false)} />
+           <AdminNavItem to="/admin/settings" icon={<Settings size={20} />} label={t('adminLayout.settings')} active={location.pathname.startsWith('/admin/settings')} onNavigate={() => setSidebarOpen(false)} />
         </nav>
 
         <div className="p-8 border-t border-white/5">
            <button onClick={handleLogout} className="w-full flex items-center gap-4 px-6 py-4 rounded-2xl text-red-400 hover:bg-red-500/10 transition-all font-bold">
              <LogOut size={20} />
-             <span>خروج الآدمن</span>
+             <span>{t('adminLayout.adminLogout')}</span>
            </button>
         </div>
       </aside>
@@ -86,7 +88,7 @@ const AdminLayout: React.FC = () => {
                <div className="w-10 h-10 rounded-full bg-slate-800 border border-white/10 flex items-center justify-center font-black text-[#00E5FF]">S</div>
             </div>
             <div className="hidden md:block">
-               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">MNMKNK سيستم v1.1 - Root Access</p>
+               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest">{t('adminLayout.systemVersion')}</p>
             </div>
          </header>
 

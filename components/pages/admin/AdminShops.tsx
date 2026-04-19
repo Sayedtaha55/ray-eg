@@ -5,6 +5,7 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 import Modal from '@/components/common/ui/Modal';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
@@ -16,6 +17,7 @@ const fmtDate = (value: any) => {
 };
 
 const AdminShops: React.FC = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [shops, setShops] = useState<any[]>([]);
   const [pendingShops, setPendingShops] = useState<any[]>([]);
@@ -36,7 +38,7 @@ const AdminShops: React.FC = () => {
       setPendingShops(Array.isArray(p) ? p : []);
     } catch {
       if (!silent) {
-        addToast('فشل تحميل المتاجر', 'error');
+        addToast(t('admin.shops.loadFailed'), 'error');
         setShops([]);
         setPendingShops([]);
       }
@@ -63,19 +65,19 @@ const AdminShops: React.FC = () => {
   const editShopDeliveryFee = async (shop: any) => {
     try {
       const current = getShopDeliveryFee(shop);
-      const raw = window.prompt('رسوم التوصيل الثابتة (ج.م)', current != null ? String(current) : '');
+      const raw = window.prompt(t('admin.shops.deliveryFeePrompt'), current != null ? String(current) : '');
       if (raw == null) return;
       const fee = Number(String(raw).trim());
       if (Number.isNaN(fee) || fee < 0) return;
       await ApiService.updateMyShop({ shopId: String(shop.id), deliveryFee: fee });
-      addToast('تم تحديث رسوم التوصيل', 'success');
+      addToast(t('admin.shops.deliveryFeeUpdated'), 'success');
       await loadData({ silent: true });
       if (selectedShop?.id === shop?.id) {
         const refreshed = await ApiService.getShopAdminById(String(shop.id));
         setSelectedShopDetails(refreshed);
       }
     } catch {
-      addToast('فشل تحديث رسوم التوصيل', 'error');
+      addToast(t('admin.shops.deliveryFeeUpdateFailed'), 'error');
     }
   };
 
@@ -83,14 +85,21 @@ const AdminShops: React.FC = () => {
     try {
       setActionId(id);
       await (ApiService as any).updateShopStatus(id, action);
-      addToast(action === 'approved' ? 'تمت الموافقة على المتجر' : action === 'rejected' ? 'تم رفض الطلب' : 'تمت إعادة المتجر للمراجعة', 'success');
+      addToast(
+        action === 'approved'
+          ? t('admin.shops.approved')
+          : action === 'rejected'
+            ? t('admin.shops.rejected')
+            : t('admin.shops.backToReview'),
+        'success',
+      );
       await loadData({ silent: true });
       if (selectedShop?.id === id) {
         const refreshed = await ApiService.getShopAdminById(String(id));
         setSelectedShopDetails(refreshed);
       }
     } catch {
-      addToast('فشلت العملية', 'error');
+      addToast(t('admin.shops.actionFailed'), 'error');
     } finally {
       setActionId('');
     }
@@ -100,14 +109,14 @@ const AdminShops: React.FC = () => {
     try {
       setActionId(String(shop?.id || ''));
       await (ApiService as any).updateShopStatus(String(shop?.id || ''), nextStatus === 'approved' ? 'approved' : 'suspended');
-      addToast(nextStatus === 'approved' ? 'تمت إعادة تفعيل المتجر' : 'تم تعليق المتجر', 'success');
+      addToast(nextStatus === 'approved' ? t('admin.shops.reactivated') : t('admin.shops.suspended'), 'success');
       await loadData({ silent: true });
       if (selectedShop?.id === shop?.id) {
         const refreshed = await ApiService.getShopAdminById(String(shop.id));
         setSelectedShopDetails(refreshed);
       }
     } catch {
-      addToast('فشلت العملية', 'error');
+      addToast(t('admin.shops.actionFailed'), 'error');
     } finally {
       setActionId('');
     }
@@ -117,14 +126,14 @@ const AdminShops: React.FC = () => {
     try {
       setActionId(String(shop?.id || ''));
       await ApiService.updateMyShop({ shopId: String(shop?.id || ''), [key]: nextValue });
-      addToast(key === 'publicDisabled' ? 'تم تحديث ظهور المتجر' : 'تم تحديث حالة التوصيل', 'success');
+      addToast(key === 'publicDisabled' ? t('admin.shops.publicVisibilityUpdated') : t('admin.shops.deliveryStatusUpdated'), 'success');
       await loadData({ silent: true });
       if (selectedShop?.id === shop?.id) {
         const refreshed = await ApiService.getShopAdminById(String(shop.id));
         setSelectedShopDetails(refreshed);
       }
     } catch (e: any) {
-      addToast(String(e?.message || 'فشل حفظ التعديل'), 'error');
+      addToast(String(e?.message || t('admin.shops.saveFailed')), 'error');
     } finally {
       setActionId('');
     }
@@ -133,21 +142,23 @@ const AdminShops: React.FC = () => {
   const toggleShopActive = async (shop: any, nextActive: boolean) => {
     const id = String(shop?.id || '').trim();
     if (!id) return;
-    const name = String(shop?.name || '').trim() || 'المتجر';
-    const ok = window.confirm(nextActive ? `تأكيد إعادة تفعيل ${name}؟` : `تأكيد حذف ${name} من التطبيق (تعطيل)؟`);
+    const name = String(shop?.name || '').trim() || t('admin.shops.shop');
+    const ok = window.confirm(
+      nextActive ? t('admin.shops.confirmReactivate', { name }) : t('admin.shops.confirmDisable', { name }),
+    );
     if (!ok) return;
 
     try {
       setActionId(id);
       await ApiService.updateMyShop({ shopId: id, isActive: nextActive });
-      addToast(nextActive ? 'تمت إعادة تفعيل المتجر' : 'تم حذف المتجر من التطبيق (تم تعطيله)', 'success');
+      addToast(nextActive ? t('admin.shops.reactivated') : t('admin.shops.disabled'), 'success');
       await loadData({ silent: true });
       if (selectedShop?.id === id) {
         const refreshed = await ApiService.getShopAdminById(String(id));
         setSelectedShopDetails(refreshed);
       }
     } catch (e: any) {
-      addToast(String(e?.message || 'فشلت العملية'), 'error');
+      addToast(String(e?.message || t('admin.shops.actionFailed')), 'error');
     } finally {
       setActionId('');
     }
@@ -162,7 +173,7 @@ const AdminShops: React.FC = () => {
       const data = await ApiService.getShopAdminById(String(shop?.id || ''));
       setSelectedShopDetails(data || null);
     } catch (e: any) {
-      addToast(String(e?.message || 'فشل تحميل تفاصيل المتجر'), 'error');
+      addToast(String(e?.message || t('admin.shops.loadDetailsFailed')), 'error');
     } finally {
       setDetailsLoading(false);
     }
@@ -192,21 +203,21 @@ const AdminShops: React.FC = () => {
         <div className="flex items-center gap-4">
           <div className="p-3 bg-blue-500/10 text-blue-400 rounded-2xl"><Store size={24} /></div>
           <div>
-            <h2 className="text-3xl font-black text-white">إدارة المتاجر</h2>
-            <p className="text-slate-500 text-sm font-bold">تفاصيل كاملة للمتاجر مع إجراءات مباشرة من شاشة الأدمن.</p>
+            <h2 className="text-3xl font-black text-white">{t('admin.shops.title')}</h2>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.shops.subtitle')}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3 w-full md:w-auto">
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">الإجمالي</div><div className="mt-2 text-white text-2xl font-black">{shops.length}</div></div>
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">معلق</div><div className="mt-2 text-amber-400 text-2xl font-black">{pendingShops.length}</div></div>
-          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">نشط</div><div className="mt-2 text-emerald-400 text-2xl font-black">{shops.filter((s: any) => String(s?.status || '').toUpperCase() === 'APPROVED').length}</div></div>
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.shops.total')}</div><div className="mt-2 text-white text-2xl font-black">{shops.length}</div></div>
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.shops.pending')}</div><div className="mt-2 text-amber-400 text-2xl font-black">{pendingShops.length}</div></div>
+          <div className="rounded-2xl bg-slate-900/70 border border-white/5 px-5 py-4 text-center"><div className="text-slate-500 text-xs font-black">{t('admin.shops.active')}</div><div className="mt-2 text-emerald-400 text-2xl font-black">{shops.filter((s: any) => String(s?.status || '').toUpperCase() === 'APPROVED').length}</div></div>
         </div>
       </div>
 
       {pendingShops.length > 0 && (
         <MotionDiv initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="bg-slate-900/60 border border-white/5 rounded-[2.5rem] p-6">
-          <h3 className="text-white font-black text-lg mb-4">طلبات موافقة متاجر ({pendingShops.length})</h3>
+          <h3 className="text-white font-black text-lg mb-4">{t('admin.shops.pendingApprovalsTitle', { count: pendingShops.length })}</h3>
           <div className="space-y-3">
             {pendingShops.slice(0, 6).map((shop: any) => (
               <div key={shop.id} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
@@ -218,9 +229,9 @@ const AdminShops: React.FC = () => {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <button onClick={() => openShopDetails(shop)} className="px-4 py-2 bg-white/5 text-slate-200 rounded-xl font-black text-xs flex items-center gap-2"><Eye size={16} /> تفاصيل</button>
-                  <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="px-4 py-2 bg-green-500 text-white rounded-xl font-black text-xs flex items-center gap-2"><Check size={16} /> موافقة</button>
-                  <button onClick={() => handleApprovalAction(shop.id, 'rejected')} className="px-4 py-2 bg-red-500/10 text-red-400 rounded-xl font-black text-xs flex items-center gap-2"><X size={16} /> رفض</button>
+                  <button onClick={() => openShopDetails(shop)} className="px-4 py-2 bg-white/5 text-slate-200 rounded-xl font-black text-xs flex items-center gap-2"><Eye size={16} /> {t('admin.shops.details')}</button>
+                  <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="px-4 py-2 bg-green-500 text-white rounded-xl font-black text-xs flex items-center gap-2"><Check size={16} /> {t('admin.shops.approve')}</button>
+                  <button onClick={() => handleApprovalAction(shop.id, 'rejected')} className="px-4 py-2 bg-red-500/10 text-red-400 rounded-xl font-black text-xs flex items-center gap-2"><X size={16} /> {t('admin.shops.reject')}</button>
                 </div>
               </div>
             ))}
@@ -232,14 +243,14 @@ const AdminShops: React.FC = () => {
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1 relative">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input type="text" placeholder="ابحث بالاسم / المدينة / السلاج / البريد..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+            <input type="text" placeholder={t('admin.shops.searchPlaceholder')} value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
           </div>
           <select value={shopStatusFilter} onChange={(e) => setShopStatusFilter(e.target.value as any)} className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30">
-            <option value="all">جميع الحالات</option>
-            <option value="APPROVED">نشط</option>
-            <option value="PENDING">معلق</option>
-            <option value="REJECTED">مرفوض</option>
-            <option value="SUSPENDED">معطل</option>
+            <option value="all">{t('admin.shops.allStatuses')}</option>
+            <option value="APPROVED">{t('admin.shops.statusActive')}</option>
+            <option value="PENDING">{t('admin.shops.statusPending')}</option>
+            <option value="REJECTED">{t('admin.shops.statusRejected')}</option>
+            <option value="SUSPENDED">{t('admin.shops.statusSuspended')}</option>
           </select>
         </div>
 
@@ -247,13 +258,13 @@ const AdminShops: React.FC = () => {
           <table className="w-full text-right border-collapse min-w-[1180px]">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المتجر</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">المالك</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">التوصيل</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الأزرار</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
-                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">إجراءات</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.shop')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.owner')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.location')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.delivery')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.buttons')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.status')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -277,22 +288,22 @@ const AdminShops: React.FC = () => {
                     </td>
                     <td className="p-4 text-slate-300 font-bold text-sm">{shop.governorate || '-'}<div className="text-slate-500 text-xs mt-1">{shop.city || '-'}</div></td>
                     <td className="p-4 text-slate-300 font-bold text-sm">
-                      <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">{getShopDeliveryFee(shop) ?? 0} ج.م</button>
-                      <div className="text-slate-500 text-xs mt-1">{Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled) ? 'التوصيل معطل' : 'التوصيل مفعل'}</div>
+                      <button onClick={() => editShopDeliveryFee(shop)} className="hover:text-[#00E5FF] transition-colors">{getShopDeliveryFee(shop) ?? 0} {t('admin.shops.egp')}</button>
+                      <div className="text-slate-500 text-xs mt-1">{Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled) ? t('admin.shops.deliveryDisabled') : t('admin.shops.deliveryEnabled')}</div>
                     </td>
-                    <td className="p-4 text-slate-300 font-bold text-sm">{getEnabledModulesCount(shop)} زر</td>
-                    <td className="p-4"><span className={`px-3 py-1 rounded-xl text-xs font-black ${status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : status === 'REJECTED' ? 'bg-red-500/20 text-red-400' : status === 'SUSPENDED' ? 'bg-fuchsia-500/20 text-fuchsia-300' : 'bg-amber-500/20 text-amber-400'}`}>{status === 'APPROVED' ? 'نشط' : status === 'REJECTED' ? 'مرفوض' : status === 'SUSPENDED' ? 'معلق إدارياً' : 'معلق'}</span></td>
+                    <td className="p-4 text-slate-300 font-bold text-sm">{t('admin.shops.buttonsCount', { count: getEnabledModulesCount(shop) })}</td>
+                    <td className="p-4"><span className={`px-3 py-1 rounded-xl text-xs font-black ${status === 'APPROVED' ? 'bg-green-500/20 text-green-400' : status === 'REJECTED' ? 'bg-red-500/20 text-red-400' : status === 'SUSPENDED' ? 'bg-fuchsia-500/20 text-fuchsia-300' : 'bg-amber-500/20 text-amber-400'}`}>{status === 'APPROVED' ? t('admin.shops.statusActive') : status === 'REJECTED' ? t('admin.shops.statusRejected') : status === 'SUSPENDED' ? t('admin.shops.statusAdminSuspended') : t('admin.shops.statusPending')}</span></td>
                     <td className="p-4">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => openShopDetails(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="عرض"><Eye className="w-4 h-4" /></button>
-                        <button onClick={() => editShopDeliveryFee(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title="تعديل رسوم التوصيل"><Edit className="w-4 h-4" /></button>
-                        {status === 'PENDING' ? <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300" title="موافقة"><Check className="w-4 h-4" /></button> : null}
+                        <button onClick={() => openShopDetails(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title={t('admin.shops.view')}><Eye className="w-4 h-4" /></button>
+                        <button onClick={() => editShopDeliveryFee(shop)} className="p-2 rounded-xl bg-white/5 text-slate-300 hover:text-white" title={t('admin.shops.editDeliveryFee')}><Edit className="w-4 h-4" /></button>
+                        {status === 'PENDING' ? <button onClick={() => handleApprovalAction(shop.id, 'approved')} className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300" title={t('admin.shops.approve')}><Check className="w-4 h-4" /></button> : null}
                         {isActive ? (
                           <button
                             disabled={actionId === String(shop?.id)}
                             onClick={() => toggleShopActive(shop, false)}
                             className="p-2 rounded-xl bg-red-500/10 text-red-300"
-                            title="حذف من التطبيق"
+                            title={t('admin.shops.disableFromApp')}
                           >
                             <Ban className="w-4 h-4" />
                           </button>
@@ -301,7 +312,7 @@ const AdminShops: React.FC = () => {
                             disabled={actionId === String(shop?.id)}
                             onClick={() => toggleShopActive(shop, true)}
                             className="p-2 rounded-xl bg-emerald-500/10 text-emerald-300"
-                            title="إعادة تفعيل"
+                            title={t('admin.shops.reactivate')}
                           >
                             <ShieldCheck className="w-4 h-4" />
                           </button>
@@ -315,10 +326,10 @@ const AdminShops: React.FC = () => {
           </table>
         </div>
 
-        {filteredShops.length === 0 && <div className="text-center py-12 text-slate-500 font-bold">{searchTerm || shopStatusFilter !== 'all' ? 'لا توجد نتائج مطابقة للبحث' : 'لا توجد متاجر'}</div>}
+        {filteredShops.length === 0 && <div className="text-center py-12 text-slate-500 font-bold">{searchTerm || shopStatusFilter !== 'all' ? t('admin.shops.noResults') : t('admin.shops.noShops')}</div>}
       </div>
 
-      <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title="تفاصيل المتجر" size="xl">
+      <Modal isOpen={detailsOpen} onClose={() => setDetailsOpen(false)} title={t('admin.shops.shopDetails')} size="xl">
         {detailsLoading ? (
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
         ) : selected ? (
@@ -327,7 +338,7 @@ const AdminShops: React.FC = () => {
               <div className="lg:col-span-2 rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h3 className="text-2xl font-black text-white">{selected?.name || 'متجر'}</h3>
+                    <h3 className="text-2xl font-black text-white">{selected?.name || t('admin.shops.shop')}</h3>
                     <div className="mt-2 space-y-2 text-sm font-bold text-slate-300">
                       <div className="flex items-center gap-2 justify-end"><Globe size={14} className="text-slate-500" /> /{selected?.slug || '-'}</div>
                       <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-500" /> {selected?.email || selected?.owner?.email || '-'}</div>
@@ -341,20 +352,20 @@ const AdminShops: React.FC = () => {
               </div>
 
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black">إجراءات مباشرة</div>
+                <div className="text-white font-black">{t('admin.shops.quickActions')}</div>
                 <div className="mt-4 space-y-3">
-                  <button onClick={() => window.open(`/shop/${selected?.slug || selected?.id}`, '_blank')} className="w-full px-4 py-3 rounded-2xl bg-white/5 text-slate-100 font-black text-sm flex items-center justify-center gap-2"><ExternalLink size={16} /> فتح صفحة المتجر</button>
-                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'approved')} className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"><Check size={16} /> قبول المتجر</button> : null}
-                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'rejected')} className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"><X size={16} /> رفض الطلب</button> : null}
-                  {selectedStatus === 'APPROVED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'suspended')} className="w-full px-4 py-3 rounded-2xl bg-fuchsia-500/15 text-fuchsia-300 font-black text-sm flex items-center justify-center gap-2"><Ban size={16} /> تعليق المتجر</button> : null}
-                  {selectedStatus === 'SUSPENDED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'approved')} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> إعادة التفعيل</button> : null}
+                  <button onClick={() => window.open(`/shop/${selected?.slug || selected?.id}`, '_blank')} className="w-full px-4 py-3 rounded-2xl bg-white/5 text-slate-100 font-black text-sm flex items-center justify-center gap-2"><ExternalLink size={16} /> {t('admin.shops.openShopPage')}</button>
+                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'approved')} className="w-full px-4 py-3 rounded-2xl bg-green-500 text-white font-black text-sm flex items-center justify-center gap-2"><Check size={16} /> {t('admin.shops.acceptShop')}</button> : null}
+                  {selectedStatus === 'PENDING' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleApprovalAction(String(selected?.id), 'rejected')} className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"><X size={16} /> {t('admin.shops.rejectRequest')}</button> : null}
+                  {selectedStatus === 'APPROVED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'suspended')} className="w-full px-4 py-3 rounded-2xl bg-fuchsia-500/15 text-fuchsia-300 font-black text-sm flex items-center justify-center gap-2"><Ban size={16} /> {t('admin.shops.suspendShop')}</button> : null}
+                  {selectedStatus === 'SUSPENDED' ? <button disabled={actionId === String(selected?.id)} onClick={() => handleSuspendToggle(selected, 'approved')} className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"><ShieldCheck size={16} /> {t('admin.shops.reactivate')}</button> : null}
                   {selectedIsActive ? (
                     <button
                       disabled={actionId === String(selected?.id)}
                       onClick={() => toggleShopActive(selected, false)}
                       className="w-full px-4 py-3 rounded-2xl bg-red-500/15 text-red-300 font-black text-sm flex items-center justify-center gap-2"
                     >
-                      <Ban size={16} /> حذف من التطبيق
+                      <Ban size={16} /> {t('admin.shops.disableFromApp')}
                     </button>
                   ) : (
                     <button
@@ -362,7 +373,7 @@ const AdminShops: React.FC = () => {
                       onClick={() => toggleShopActive(selected, true)}
                       className="w-full px-4 py-3 rounded-2xl bg-emerald-500 text-white font-black text-sm flex items-center justify-center gap-2"
                     >
-                      <ShieldCheck size={16} /> إعادة تفعيل المتجر
+                      <ShieldCheck size={16} /> {t('admin.shops.reactivateShop')}
                     </button>
                   )}
                 </div>
@@ -371,10 +382,10 @@ const AdminShops: React.FC = () => {
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                ['الحالة', selectedStatus || '-'],
-                ['رسوم التوصيل', `ج.م ${Number(getShopDeliveryFee(selected) || 0).toLocaleString()}`],
-                ['عدد الأزرار', enabledModules.length],
-                ['تاريخ الإنشاء', fmtDate(selected?.createdAt)],
+                [t('admin.shops.summary.status'), selectedStatus || '-'],
+                [t('admin.shops.summary.deliveryFee'), `${t('admin.shops.egp')} ${Number(getShopDeliveryFee(selected) || 0).toLocaleString()}`],
+                [t('admin.shops.summary.buttonsCount'), enabledModules.length],
+                [t('admin.shops.summary.createdAt'), fmtDate(selected?.createdAt)],
               ].map(([label, value]: any) => (
                 <div key={label} className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center"><div className="text-slate-500 text-[11px] font-black">{label}</div><div className="mt-2 text-white font-black">{value}</div></div>
               ))}
@@ -382,35 +393,35 @@ const AdminShops: React.FC = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black flex items-center gap-2 justify-end"><LayoutGrid size={16} /> إعدادات الظهور والخدمات</div>
+                <div className="text-white font-black flex items-center gap-2 justify-end"><LayoutGrid size={16} /> {t('admin.shops.visibilityAndServices')}</div>
                 <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">ظهور المتجر للعامة</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'publicDisabled', !selectedPublicDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedPublicDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{selectedPublicDisabled ? 'مخفي - إظهار' : 'ظاهر - إخفاء'}</button></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">خدمة التوصيل</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'deliveryDisabled', !selectedDeliveryDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedDeliveryDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-sky-500/15 text-sky-300'}`}>{selectedDeliveryDisabled ? 'معطلة - تفعيل' : 'مفعلة - تعطيل'}</button></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">لوحة التحكم</span><span>{String((selected?.layoutConfig as any)?.dashboardMode || '-')}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">صاحب المتجر</span><span>{selected?.owner?.name || '-'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.publicVisibility')}</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'publicDisabled', !selectedPublicDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedPublicDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{selectedPublicDisabled ? t('admin.shops.hiddenShow') : t('admin.shops.visibleHide')}</button></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.deliveryService')}</span><button disabled={actionId === String(selected?.id)} onClick={() => toggleFlag(selected, 'deliveryDisabled', !selectedDeliveryDisabled)} className={`px-4 py-2 rounded-xl text-xs font-black ${selectedDeliveryDisabled ? 'bg-amber-500/15 text-amber-300' : 'bg-sky-500/15 text-sky-300'}`}>{selectedDeliveryDisabled ? t('admin.shops.disabledEnable') : t('admin.shops.enabledDisable')}</button></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.dashboardMode')}</span><span>{String((selected?.layoutConfig as any)?.dashboardMode || '-')}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.shopOwner')}</span><span>{selected?.owner?.name || '-'}</span></div>
                 </div>
               </div>
 
               <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-black flex items-center gap-2 justify-end"><Truck size={16} /> تفاصيل إضافية</div>
+                <div className="text-white font-black flex items-center gap-2 justify-end"><Truck size={16} /> {t('admin.shops.extraDetails')}</div>
                 <div className="mt-4 space-y-3 text-sm font-bold text-slate-300">
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">العنوان الظاهر</span><span>{selected?.displayAddress || selected?.addressDetailed || '-'}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">واتساب</span><span>{selected?.whatsapp || '-'}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">عدد الزيارات</span><span>{Number(selected?.visitors || 0).toLocaleString()}</span></div>
-                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">آخر تحديث</span><span>{fmtDate(selected?.updatedAt)}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.displayAddress')}</span><span>{selected?.displayAddress || selected?.addressDetailed || '-'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.whatsapp')}</span><span>{selected?.whatsapp || '-'}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.visitsCount')}</span><span>{Number(selected?.visitors || 0).toLocaleString()}</span></div>
+                  <div className="flex items-center justify-between gap-3"><span className="text-slate-500">{t('admin.shops.lastUpdated')}</span><span>{fmtDate(selected?.updatedAt)}</span></div>
                 </div>
               </div>
             </div>
 
             <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5">
-              <div className="text-white font-black mb-4">الأزرار / الموديولات المفعلة</div>
+              <div className="text-white font-black mb-4">{t('admin.shops.enabledModulesTitle')}</div>
               <div className="flex flex-wrap gap-2 justify-end">
-                {enabledModules.length === 0 ? <span className="text-slate-500 font-bold">لا توجد أزرار مفعلة بعد.</span> : enabledModules.map((moduleId: any) => <span key={String(moduleId)} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">{String(moduleId)}</span>)}
+                {enabledModules.length === 0 ? <span className="text-slate-500 font-bold">{t('admin.shops.noEnabledModulesYet')}</span> : enabledModules.map((moduleId: any) => <span key={String(moduleId)} className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">{String(moduleId)}</span>)}
               </div>
             </div>
           </div>
         ) : (
-          <div className="text-slate-400 font-bold text-center py-16">لا توجد بيانات لعرضها.</div>
+          <div className="text-slate-400 font-bold text-center py-16">{t('admin.shops.noData')}</div>
         )}
       </Modal>
     </div>

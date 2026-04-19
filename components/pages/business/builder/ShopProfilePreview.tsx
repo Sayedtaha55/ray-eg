@@ -4,6 +4,7 @@ import TabRenderer from '@/components/pages/public/ShopProfile/TabRenderer';
 import ProfileFooter from '@/components/pages/public/ShopProfile/ProfileFooter';
 import ProductPagePreview from './ProductPagePreview';
 import { coerceBoolean } from '@/components/pages/public/ShopProfile/utils';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   page: 'home' | 'product' | 'gallery' | 'info';
@@ -26,6 +27,7 @@ const ShopProfilePreview: React.FC<Props> = ({
   isMobilePreview,
   onProductClick,
 }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>(() => {
     if (page === 'gallery') return 'gallery';
     if (page === 'info') return 'info';
@@ -53,8 +55,8 @@ const ShopProfilePreview: React.FC<Props> = ({
 
   const previewShop = useMemo(() => ({
     ...(shop && typeof shop === 'object' ? shop : {}),
-    name: (shop && (shop as any).name) ? (shop as any).name : 'معاينة المتجر',
-    description: (shop && (shop as any).description) ? (shop as any).description : 'وصف بسيط للمتجر يظهر للعملاء',
+    name: (shop && (shop as any).name) ? (shop as any).name : t('business.builder.shopPreview.defaultShopName'),
+    description: (shop && (shop as any).description) ? (shop as any).description : t('business.builder.shopPreview.defaultShopDescription'),
     logoUrl: logoDataUrl || (shop as any)?.logoUrl || (shop as any)?.logo_url || '',
   }), [shop, logoDataUrl]);
 
@@ -86,63 +88,63 @@ const ShopProfilePreview: React.FC<Props> = ({
   const products = useMemo(() => ([
     {
       id: 'preview-1',
-      name: 'منتج تجريبي 1',
-      description: 'وصف تجريبي قابل للتخصيص',
+      name: t('business.builder.shopPreview.products.p1.name'),
+      description: t('business.builder.shopPreview.products.p1.description'),
       price: 129,
       imageUrl: '',
       stock: 12,
-      category: 'منتجات',
+      category: t('business.builder.shopPreview.categories.products'),
     },
     {
       id: 'preview-2',
-      name: 'منتج تجريبي 2',
-      description: 'نموذج عرض للمعاينة',
+      name: t('business.builder.shopPreview.products.p2.name'),
+      description: t('business.builder.shopPreview.products.p2.description'),
       price: 199,
       imageUrl: '',
       stock: 7,
-      category: 'تجربة',
+      category: t('business.builder.shopPreview.categories.trial'),
     },
     {
       id: 'preview-3',
-      name: 'منتج تجريبي 3',
-      description: 'تفاصيل قصيرة للمنتج',
+      name: t('business.builder.shopPreview.products.p3.name'),
+      description: t('business.builder.shopPreview.products.p3.description'),
       price: 259,
       imageUrl: '',
       stock: 4,
-      category: 'منتجات',
+      category: t('business.builder.shopPreview.categories.products'),
     },
     {
       id: 'preview-4',
-      name: 'منتج تجريبي 4',
-      description: 'خيار عرض متعدد الاستخدام',
+      name: t('business.builder.shopPreview.products.p4.name'),
+      description: t('business.builder.shopPreview.products.p4.description'),
       price: 319,
       imageUrl: '',
       stock: 9,
-      category: 'تجربة',
+      category: t('business.builder.shopPreview.categories.trial'),
     },
     {
       id: 'preview-5',
-      name: 'منتج تجريبي 5',
-      description: 'مناسب لأي نشاط تجاري',
+      name: t('business.builder.shopPreview.products.p5.name'),
+      description: t('business.builder.shopPreview.products.p5.description'),
       price: 89,
       imageUrl: '',
       stock: 14,
-      category: 'عام',
+      category: t('business.builder.shopPreview.categories.general'),
     },
     {
       id: 'preview-6',
-      name: 'منتج تجريبي 6',
-      description: 'بيانات افتراضية للمعاينة',
+      name: t('business.builder.shopPreview.products.p6.name'),
+      description: t('business.builder.shopPreview.products.p6.description'),
       price: 149,
       imageUrl: '',
       stock: 6,
-      category: 'عام',
+      category: t('business.builder.shopPreview.categories.general'),
     },
-  ]), []);
+  ]), [t]);
 
   const offersByProductId = useMemo(() => new Map<string, any>(), []);
 
-  const categories = useMemo(() => ['الكل', 'منتجات', 'تجربة', 'عام'], []);
+  const categories = useMemo(() => [t('business.builder.shopPreview.categories.all'), t('business.builder.shopPreview.categories.products'), t('business.builder.shopPreview.categories.trial'), t('business.builder.shopPreview.categories.general')], [t]);
 
   const prefersReducedMotion = true;
 
@@ -190,7 +192,7 @@ const ShopProfilePreview: React.FC<Props> = ({
           currentDesign={currentDesign}
           products={products}
           offersByProductId={offersByProductId}
-          activeCategory={'الكل'}
+          activeCategory={t('business.builder.shopPreview.categories.all')}
           categories={categories}
           setActiveCategory={() => {}}
           productsTabLoading={false}

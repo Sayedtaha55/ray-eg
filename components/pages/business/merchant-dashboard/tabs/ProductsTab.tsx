@@ -6,6 +6,7 @@ import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
 import { backendPostWithOptions } from '@/services/api/httpClient';
+import { useTranslation } from 'react-i18next';
 
 const EditProductModal = lazy(() => import('../modals/EditProductModal'));
 const ProductEditorLegacyModal = lazy(() => import('../modals/ProductEditorLegacyModal'));
@@ -16,7 +17,8 @@ const ProductRow = memo(({
   handleEdit, 
   handleToggleActive, 
   onDelete, 
-  setPreviewImageSrc 
+  setPreviewImageSrc,
+  t 
 }: any) => {
   const imgSrc = String(((product as any).imageUrl || (product as any).image_url || '')).trim();
   const isInactive = (product as any)?.isActive === false;
@@ -43,10 +45,10 @@ const ProductRow = memo(({
       </div>
       <div className="col-span-4 pr-4">
         <div className="font-black text-slate-900 text-xs sm:text-sm truncate">{product.name}</div>
-        <div className="text-[10px] font-bold text-slate-400">{product.category?.name || 'بدون تصنيف'}</div>
+        <div className="text-[10px] font-bold text-slate-400">{product.category?.name || t('business.dashboard.products.noCategory')}</div>
       </div>
       <div className="col-span-2 font-black text-slate-900 text-xs sm:text-sm">
-        ج.م {Number(product.price || 0).toLocaleString()}
+        {t('business.pos.egp')} {Number(product.price || 0).toLocaleString()}
       </div>
       <div className="col-span-2 font-black text-slate-900 text-xs sm:text-sm">
         {product.stock ?? 0}
@@ -87,6 +89,7 @@ type Props = {
 };
 
 const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, shopId, shopCategory, shop }) => {
+  const { t } = useTranslation();
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [togglingId, setTogglingId] = useState<string>('');
@@ -137,7 +140,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       return true;
     }
   })();
-  const pageTitle = isRestaurant ? 'المنيو' : 'المخزون والمنتجات';
+  const pageTitle = isRestaurant ? t('business.dashboard.products.menuTitle') : t('business.dashboard.products.inventoryTitle');
 
   const normalizeNumber = (v: any, fallback: number) => {
     const n = typeof v === 'number' ? v : v == null ? NaN : Number(v);
@@ -165,7 +168,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         name: cols[iName] || '',
         price: Number(cols[iPrice] || 0),
         stock: iStock >= 0 ? Number(cols[iStock] || 0) : 0,
-        category: iCategory >= 0 ? cols[iCategory] || 'عام' : 'عام',
+        category: iCategory >= 0 ? cols[iCategory] || t('business.dashboard.products.generalCategory') : t('business.dashboard.products.generalCategory'),
         description: iDesc >= 0 ? (cols[iDesc] || null) : null,
       };
     }).filter((x) => x.name && Number.isFinite(x.price) && x.price >= 0);
@@ -178,7 +181,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       const raw = await file.text();
       const items = parseCsvLike(raw);
       if (!items.length) {
-        addToast('الملف لا يحتوي بيانات صالحة. استخدم الأعمدة: name,price,stock,category,description', 'error');
+        addToast(t('business.dashboard.products.invalidCsvFile'), 'error');
         return;
       }
       await backendPostWithOptions<any>(
@@ -186,13 +189,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         { source: 'excel_bulk', items },
         { timeoutMs: 180_000 },
       );
-      addToast(`تم استيراد ${items.length} منتج بنجاح`, 'success');
+      addToast(t('business.dashboard.products.importSuccess', { count: items.length }), 'success');
       try {
         window.dispatchEvent(new Event('ray-db-update'));
       } catch {
       }
     } catch {
-      addToast('فشل استيراد ملف المنتجات', 'error');
+      addToast(t('business.dashboard.products.importFailed'), 'error');
     } finally {
       setBulkImporting(false);
     }
@@ -205,7 +208,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         String((p as any)?.name || '').replace(/[;,]/g, ' '),
         String(Number((p as any)?.price || 0)),
         String(Number((p as any)?.stock || 0)),
-        String((p as any)?.category || 'عام').replace(/[;,]/g, ' '),
+        String((p as any)?.category || t('business.dashboard.products.generalCategory')).replace(/[;,]/g, ' '),
         String((p as any)?.description || '').replace(/[\n\r;,]/g, ' '),
       ]);
       const csv = ['name,price,stock,category,description', ...rows.map((r) => r.join(','))].join('\n');
@@ -218,9 +221,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-      addToast('تم تصدير المخزون بنجاح', 'success');
+      addToast(t('business.dashboard.products.exportSuccess'), 'success');
     } catch {
-      addToast('فشل تصدير المخزون', 'error');
+      addToast(t('business.dashboard.products.exportFailed'), 'error');
     } finally {
       setBulkExporting(false);
     }
@@ -313,14 +316,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       const rows = buildRowsFromMap(current, idx);
       setImageMapRows(rows);
       if (!current) {
-        setImageMapError('لا يوجد خريطة صورة مفعلة لهذا المتجر');
+        setImageMapError(t('business.dashboard.products.noActiveImageMap'));
       } else if (!Array.isArray((current as any)?.hotspots)) {
-        setImageMapError('تعذر تحميل نقاط المنتجات من خريطة الصورة');
+        setImageMapError(t('business.dashboard.products.hotspotsLoadFailed'));
       } else if (rows.length === 0) {
-        setImageMapError('لا يوجد منتجات مضافة على الصورة');
+        setImageMapError(t('business.dashboard.products.noProductsOnImage'));
       }
     } catch (e: any) {
-      setImageMapError(String(e?.message || 'فشل تحميل منتجات الصورة'));
+      setImageMapError(String(e?.message || t('business.dashboard.products.imageMapLoadFailed')));
     } finally {
       setImageMapLoading(false);
     }
@@ -354,7 +357,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     if (!shopId) return;
     const mapId = normalizeText(activeMap?.id);
     if (!mapId) {
-      setImageMapError('لا يوجد خريطة صورة مفعلة');
+      setImageMapError(t('business.dashboard.products.noActiveImageMap'));
       return;
     }
 
@@ -371,7 +374,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       .filter((r) => r.name && Number.isFinite(r.price) && r.price >= 0);
 
     if (items.length === 0) {
-      setImageMapError('لا يوجد منتجات صالحة للاعتماد');
+      setImageMapError(t('business.dashboard.products.noValidProductsToSync'));
       return;
     }
 
@@ -400,7 +403,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       const currentHotspots = Array.isArray(currentMap?.hotspots) ? currentMap.hotspots : [];
       const currentSections = Array.isArray(currentMap?.sections) ? currentMap.sections : [];
       if (currentHotspots.length === 0) {
-        throw new Error('لا يوجد نقاط لحفظها');
+        throw new Error(t('business.dashboard.products.noHotspotsToSave'));
       }
 
       const nextHotspots = currentHotspots.map((h: any) => {
@@ -427,14 +430,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       });
 
       const nextSections = currentSections.map((s: any, idx: number) => ({
-        name: normalizeText(s?.name) || `قسم ${idx + 1}`,
+        name: normalizeText(s?.name) || t('business.dashboard.products.sectionFallback', { index: idx + 1 }),
         sortOrder: typeof s?.sortOrder === 'number' ? s.sortOrder : (typeof s?.sort_order === 'number' ? s.sort_order : idx),
         imageUrl: normalizeText(s?.imageUrl ?? s?.image_url) || null,
       }));
 
       await ApiService.saveShopImageMapLayout(String(shopId), String(mapId), {
         imageUrl: normalizeText(currentMap?.imageUrl ?? currentMap?.image_url) || '',
-        title: normalizeText(currentMap?.title) || 'خريطة الصورة',
+        title: normalizeText(currentMap?.title) || t('business.dashboard.products.imageMapTitle'),
         sections: nextSections,
         hotspots: nextHotspots,
       });
@@ -452,11 +455,11 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       } catch {
       }
 
-      addToast('تم اعتماد وربط منتجات الصورة', 'success');
+      addToast(t('business.dashboard.products.syncSuccess'), 'success');
       await loadImageMapProducts();
     } catch (e: any) {
-      setImageMapError(String(e?.message || 'فشل اعتماد منتجات الصورة'));
-      addToast(String(e?.message || 'فشل اعتماد منتجات الصورة'), 'error');
+      setImageMapError(String(e?.message || t('business.dashboard.products.syncFailed')));
+      addToast(String(e?.message || t('business.dashboard.products.syncFailed')), 'error');
     } finally {
       setImageMapSyncing(false);
     }
@@ -556,25 +559,25 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           const variants: Array<{ id: string; label: string; price: number }> = [];
           if ((a as any)?.hasSmall) {
             if (!Number.isFinite(pSmall) || pSmall <= 0) {
-              throw new Error(`سعر غير صحيح للإضافة: ${optName} (صغير)`);
+              throw new Error(t('business.dashboard.products.invalidAddonPrice', { name: optName, size: t('business.dashboard.products.sizeSmall') }));
             }
-            variants.push({ id: 'small', label: 'صغير', price: pSmall });
+            variants.push({ id: 'small', label: t('business.dashboard.products.sizeSmall'), price: pSmall });
           }
           if ((a as any)?.hasMedium) {
             if (!Number.isFinite(pMed) || pMed <= 0) {
-              throw new Error(`سعر غير صحيح للإضافة: ${optName} (وسط)`);
+              throw new Error(t('business.dashboard.products.invalidAddonPrice', { name: optName, size: t('business.dashboard.products.sizeMedium') }));
             }
-            variants.push({ id: 'medium', label: 'وسط', price: pMed });
+            variants.push({ id: 'medium', label: t('business.dashboard.products.sizeMedium'), price: pMed });
           }
           if ((a as any)?.hasLarge) {
             if (!Number.isFinite(pLarge) || pLarge <= 0) {
-              throw new Error(`سعر غير صحيح للإضافة: ${optName} (كبير)`);
+              throw new Error(t('business.dashboard.products.invalidAddonPrice', { name: optName, size: t('business.dashboard.products.sizeLarge') }));
             }
-            variants.push({ id: 'large', label: 'كبير', price: pLarge });
+            variants.push({ id: 'large', label: t('business.dashboard.products.sizeLarge'), price: pLarge });
           }
 
           if (variants.length === 0) {
-            throw new Error(`اختر مقاس واحد على الأقل للإضافة: ${optName}`);
+            throw new Error(t('business.dashboard.products.selectOneSize', { name: optName }));
           }
 
           return {
@@ -591,9 +594,9 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         ? [
             {
               id: 'addons',
-              name: 'منتجات إضافية',
-              label: 'منتجات إضافية',
-              title: 'منتجات إضافية',
+              name: t('business.dashboard.products.extraProducts'),
+              label: t('business.dashboard.products.extraProducts'),
+              title: t('business.dashboard.products.extraProducts'),
               options,
             },
           ]
@@ -604,7 +607,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
         window.dispatchEvent(new Event('ray-db-update'));
       } catch {
       }
-      addToast('تم حفظ إضافات المطعم', 'success');
+      addToast(t('business.dashboard.products.addonsSaved'), 'success');
       return true;
     } catch (e: any) {
       try {
@@ -618,7 +621,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
       } catch {
       }
       const backendMsg = typeof e?.data?.message === 'string' ? e.data.message : undefined;
-      const msg = backendMsg || (e?.message ? String(e.message) : 'فشل حفظ الإضافات');
+      const msg = backendMsg || (e?.message ? String(e.message) : t('business.dashboard.products.addonsSaveFailed'));
       addToast(msg, 'error');
       return false;
     } finally {
@@ -628,10 +631,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
 
   const getAddonSummary = (a: any) => {
     const sizes: string[] = [];
-    if (a?.hasSmall) sizes.push('صغير');
-    if (a?.hasMedium) sizes.push('وسط');
-    if (a?.hasLarge) sizes.push('كبير');
-    const label = sizes.length ? sizes.join(' - ') : 'بدون مقاسات';
+    if (a?.hasSmall) sizes.push(t('business.dashboard.products.sizeSmall'));
+    if (a?.hasMedium) sizes.push(t('business.dashboard.products.sizeMedium'));
+    if (a?.hasLarge) sizes.push(t('business.dashboard.products.sizeLarge'));
+    const label = sizes.length ? sizes.join(' - ') : t('business.dashboard.products.noSizes');
     const n = String(a?.name || '').trim();
     return { name: n, sizesLabel: label };
   };
@@ -749,7 +752,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                 className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-[#00E5FF] text-black rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:scale-105 transition-all"
                 type="button"
               >
-                تحرير المنتجات بالصورة
+                {t('business.dashboard.products.editImageMapProducts')}
               </button>
             )}
             {canUseImageMapEditor && canShowPurchaseMode && (
@@ -761,7 +764,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                 className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-slate-100 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-200 transition-all"
                 type="button"
               >
-                قائمة منتجات الصورة
+                {t('business.dashboard.products.imageMapProductList')}
               </button>
             )}
             <button
@@ -769,11 +772,11 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
               className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-slate-900 text-white rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:bg-black transition-all"
               type="button"
             >
-              <Plus size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" /> إضافة صنف جديد
+              <Plus size={18} className="sm:w-5 sm:h-5 md:w-6 md:h-6" /> {t('business.dashboard.products.addNewItem')}
             </button>
             <label className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-white border border-slate-200 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-50 transition-all cursor-pointer">
               {bulkImporting ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-              استيراد CSV/Excel
+              {t('business.dashboard.products.importCsv')}
               <input
                 type="file"
                 accept=".csv,text/csv,application/vnd.ms-excel"
@@ -792,7 +795,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
               className="px-4 sm:px-8 md:px-10 py-3 sm:py-4 md:py-5 bg-white border border-slate-200 text-slate-900 rounded-[1.5rem] sm:rounded-[2rem] font-black text-xs sm:text-sm flex items-center justify-center gap-2 sm:gap-3 shadow-sm hover:bg-slate-50 transition-all disabled:opacity-60"
             >
               {bulkExporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              تصدير المخزون
+              {t('business.dashboard.products.exportInventory')}
             </button>
           </div>
         </div>
@@ -801,8 +804,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           <div className="mb-12 p-6 md:p-8 rounded-[2.5rem] bg-slate-50 border border-slate-100 space-y-6" data-component-name="ProductsTab">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between flex-row-reverse gap-4">
               <div className="text-right">
-                <h4 className="text-xl font-black">إضافات المطعم</h4>
-                <p className="text-xs font-bold text-slate-400">تتضاف مرة واحدة وتظهر تحت كل المنتجات</p>
+                <h4 className="text-xl font-black">{t('business.dashboard.products.restaurantAddons')}</h4>
+                <p className="text-xs font-bold text-slate-400">{t('business.dashboard.products.addonsHint')}</p>
               </div>
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 <button
@@ -834,7 +837,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                   }}
                   className="px-4 py-3 rounded-2xl font-black text-xs bg-slate-900 text-white w-full sm:w-auto"
                 >
-                  + إضافة صنف
+                  + {t('business.dashboard.products.addItem')}
                 </button>
               </div>
             </div>
@@ -856,7 +859,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                       >
                         <div className="text-right min-w-0">
                           <div className="font-black text-sm truncate">
-                            {summary.name || `إضافة #${idx + 1}`}
+                            {summary.name || t('business.dashboard.products.addonFallback', { index: idx + 1 })}
                           </div>
                           <div className="text-[10px] font-bold text-slate-400 truncate">
                             {summary.sizesLabel}
@@ -865,7 +868,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                         <div className="flex items-center gap-2">
                           <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${isLocked ? 'bg-slate-100 text-slate-700' : 'bg-amber-50 text-amber-700'}`}>
                             {isLocked ? <Lock size={12} /> : <Unlock size={12} />}
-                            {isLocked ? 'محفوظ' : 'غير محفوظ'}
+                            {isLocked ? t('business.dashboard.products.saved') : t('business.dashboard.products.unsaved')}
                           </span>
                           <ChevronDown size={18} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                         </div>
@@ -875,7 +878,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                         <div className="p-4 space-y-4" dir="rtl">
                           <div className="flex items-center justify-between flex-row-reverse gap-3">
                             <div className="text-right">
-                              <div className="text-xs font-black text-slate-500">تفاصيل الإضافة</div>
+                              <div className="text-xs font-black text-slate-500">{t('business.dashboard.products.addonDetails')}</div>
                             </div>
                             <button
                               type="button"
@@ -905,7 +908,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">اسم الإضافة</label>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">{t('business.dashboard.products.addonName')}</label>
                               <input
                                 value={a.name}
                                 onChange={(e) => {
@@ -917,13 +920,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                     return next;
                                   });
                                 }}
-                                placeholder="مثلاً: بطاطس"
+                                placeholder={t('business.dashboard.products.addonNamePlaceholder')}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none"
                               />
                             </div>
 
                             <div>
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صورة صغيرة</label>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">{t('business.dashboard.products.smallImage')}</label>
                               <div className="flex items-center gap-3">
                                 <div className="w-12 h-12 rounded-xl overflow-hidden bg-white border border-slate-200">
                                   {a.imagePreview ? (
@@ -939,7 +942,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                     const mime = String(file.type || '').toLowerCase().trim();
                                     const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
                                     if (!mime || !allowed.has(mime)) {
-                                      addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+                                      addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
                                       return;
                                     }
                                     setAddonItems((prev) =>
@@ -967,7 +970,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">صغير (ج.م)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">{t('business.dashboard.products.sizeSmall')} ({t('business.pos.egp')})</label>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -986,7 +989,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                   }}
                                   className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                                 >
-                                  {a.hasSmall ? 'لا يوجد' : 'موجود'}
+                                  {a.hasSmall ? t('business.dashboard.products.unavailable') : t('business.dashboard.products.available')}
                                 </button>
                               </div>
                               <input
@@ -1001,13 +1004,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                     return next;
                                   });
                                 }}
-                                placeholder={a.hasSmall ? '' : 'لا يوجد'}
+                                placeholder={a.hasSmall ? '' : t('business.dashboard.products.unavailable')}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                               />
                             </div>
                             <div>
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">وسط (ج.م)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">{t('business.dashboard.products.sizeMedium')} ({t('business.pos.egp')})</label>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1026,7 +1029,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                   }}
                                   className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                                 >
-                                  {a.hasMedium ? 'لا يوجد' : 'موجود'}
+                                  {a.hasMedium ? t('business.dashboard.products.unavailable') : t('business.dashboard.products.available')}
                                 </button>
                               </div>
                               <input
@@ -1041,13 +1044,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                     return next;
                                   });
                                 }}
-                                placeholder={a.hasMedium ? '' : 'لا يوجد'}
+                                placeholder={a.hasMedium ? '' : t('business.dashboard.products.unavailable')}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                               />
                             </div>
                             <div>
                               <div className="flex items-center justify-between">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">كبير (ج.م)</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4 mb-2">{t('business.dashboard.products.sizeLarge')} ({t('business.pos.egp')})</label>
                                 <button
                                   type="button"
                                   onClick={() => {
@@ -1066,7 +1069,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                   }}
                                   className="text-[10px] font-black px-2 py-1 rounded-lg bg-white border border-slate-200"
                                 >
-                                  {a.hasLarge ? 'لا يوجد' : 'موجود'}
+                                  {a.hasLarge ? t('business.dashboard.products.unavailable') : t('business.dashboard.products.available')}
                                 </button>
                               </div>
                               <input
@@ -1081,7 +1084,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                                     return next;
                                   });
                                 }}
-                                placeholder={a.hasLarge ? '' : 'لا يوجد'}
+                                placeholder={a.hasLarge ? '' : t('business.dashboard.products.unavailable')}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 font-bold text-right outline-none disabled:opacity-60"
                               />
                             </div>
@@ -1095,14 +1098,14 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                               disabled={savingAddons}
                             >
                               {savingAddons ? <Loader2 size={18} className="animate-spin" /> : null}
-                              حفظ
+                              {t('common.save')}
                             </button>
                             <button
                               type="button"
                               onClick={() => setOpenAddonId('')}
                               className="px-5 py-3 rounded-2xl bg-slate-100 text-slate-900 font-black text-sm"
                             >
-                              إغلاق
+                              {t('common.close')}
                             </button>
                           </div>
                         </div>
@@ -1119,11 +1122,11 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           <div className="overflow-x-auto touch-auto">
             <div className="min-w-[720px]">
               <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
-                <div className="col-span-2 text-right">الصورة</div>
-                <div className="col-span-4 text-right pr-4">الاسم</div>
-                <div className="col-span-2 text-right">السعر</div>
-                <div className="col-span-2 text-right">المخزون</div>
-                <div className="col-span-2 text-right">تحكم</div>
+                <div className="col-span-2 text-right">{t('business.dashboard.products.colImage')}</div>
+                <div className="col-span-4 text-right pr-4">{t('business.dashboard.products.colName')}</div>
+                <div className="col-span-2 text-right">{t('business.dashboard.products.colPrice')}</div>
+                <div className="col-span-2 text-right">{t('business.dashboard.products.colStock')}</div>
+                <div className="col-span-2 text-right">{t('business.dashboard.products.colControls')}</div>
               </div>
 
               <div className="divide-y divide-slate-100">
@@ -1136,6 +1139,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                     handleToggleActive={handleToggleActive}
                     onDelete={onDelete}
                     setPreviewImageSrc={setPreviewImageSrc}
+                    t={t}
                   />
                 ))}
               </div>
@@ -1153,13 +1157,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
           <div className="absolute inset-0 flex items-center justify-center p-4" dir="rtl">
             <div className="w-full max-w-4xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden">
               <div className="p-4 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
-                <div className="font-black text-sm">صورة المنتج</div>
+                <div className="font-black text-sm">{t('business.dashboard.products.productImage')}</div>
                 <button
                   type="button"
                   onClick={() => setPreviewImageSrc('')}
                   className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-sm"
                 >
-                  إغلاق
+                  {t('common.close')}
                 </button>
               </div>
               <div className="p-4 bg-slate-50">
@@ -1189,8 +1193,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
             <div className="w-full max-w-3xl bg-white rounded-[2.5rem] shadow-2xl border border-slate-100 overflow-hidden" dir="rtl">
               <div className="p-6 md:p-8 border-b border-slate-100 flex items-center justify-between flex-row-reverse">
                 <div className="text-right">
-                  <h3 className="text-xl md:text-2xl font-black">قائمة منتجات الصورة</h3>
-                  <p className="text-xs font-bold text-slate-400 mt-1">المنتجات الموجودة على خريطة الصورة (للاستخدام في الشراء فقط)</p>
+                  <h3 className="text-xl md:text-2xl font-black">{t('business.dashboard.products.imageMapProductList')}</h3>
+                  <p className="text-xs font-bold text-slate-400 mt-1">{t('business.dashboard.products.imageMapProductListHint')}</p>
                 </div>
                 <button
                   type="button"
@@ -1200,7 +1204,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                   }}
                   className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-sm"
                 >
-                  إغلاق
+                  {t('common.close')}
                 </button>
               </div>
 
@@ -1212,7 +1216,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                     disabled={imageMapLoading || imageMapSyncing}
                     className="px-4 py-2 rounded-2xl bg-slate-100 font-black text-xs hover:bg-slate-200 disabled:opacity-50"
                   >
-                    {imageMapLoading ? <Loader2 size={16} className="animate-spin" /> : 'تحديث'}
+                    {imageMapLoading ? <Loader2 size={16} className="animate-spin" /> : t('business.dashboard.products.refresh')}
                   </button>
                   <button
                     type="button"
@@ -1220,7 +1224,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                     disabled={imageMapLoading || imageMapSyncing}
                     className="px-5 py-3 rounded-2xl bg-[#00E5FF] text-black font-black text-sm disabled:opacity-50"
                   >
-                    {imageMapSyncing ? <Loader2 size={18} className="animate-spin" /> : 'اعتماد/مزامنة المنتجات'}
+                    {imageMapSyncing ? <Loader2 size={18} className="animate-spin" /> : t('business.dashboard.products.syncProducts')}
                   </button>
                 </div>
 
@@ -1232,10 +1236,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
 
                 <div className="rounded-3xl border border-slate-100 overflow-hidden">
                   <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
-                    <div className="col-span-5 text-right">الاسم</div>
-                    <div className="col-span-3 text-right">السعر</div>
-                    <div className="col-span-2 text-right">المخزون</div>
-                    <div className="col-span-2 text-right">الربط</div>
+                    <div className="col-span-5 text-right">{t('business.dashboard.products.colName')}</div>
+                    <div className="col-span-3 text-right">{t('business.dashboard.products.colPrice')}</div>
+                    <div className="col-span-2 text-right">{t('business.dashboard.products.colStock')}</div>
+                    <div className="col-span-2 text-right">{t('business.dashboard.products.colLink')}</div>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {(imageMapRows || []).map((r) => (
@@ -1246,17 +1250,17 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                             <div className="mt-1 space-y-1">
                               {Array.isArray(r.colors) && r.colors.length > 0 && (
                                 <div className="text-[10px] font-bold text-slate-500">
-                                  الألوان: {r.colors.join(' - ')}
+                                  {t('business.dashboard.products.colors')}: {r.colors.join(' - ')}
                                 </div>
                               )}
                               {Array.isArray(r.sizes) && r.sizes.length > 0 && (
                                 <div className="text-[10px] font-bold text-slate-500">
-                                  المقاسات: {(r.sizes as any[])
+                                  {t('business.dashboard.products.sizes')}: {(r.sizes as any[])
                                     .map((s: any) => {
                                       const label = String(s?.label || '').trim();
                                       const value = label === 'custom' ? String(s?.customValue ?? '') : label;
                                       const price = typeof s?.price === 'number' ? s.price : Number(s?.price || 0);
-                                      return value ? `${value} (${Number.isFinite(price) ? price : 0}ج)` : '';
+                                      return value ? `${value} (${Number.isFinite(price) ? price : 0}${t('business.pos.egpShort')})` : '';
                                     })
                                     .filter(Boolean)
                                     .join(' - ')}
@@ -1265,7 +1269,7 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                             </div>
                           ) : null}
                         </div>
-                        <div className="col-span-3 font-black text-right text-slate-700">ج.م {r.price}</div>
+                        <div className="col-span-3 font-black text-right text-slate-700">{t('business.pos.egp')} {r.price}</div>
                         <div className="col-span-2 text-right">
                           <input
                             type="number"
@@ -1278,13 +1282,13 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
                         </div>
                         <div className="col-span-2 text-right">
                           <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black ${r.linked ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700'}`}>
-                            {r.linked ? 'مربوط' : 'غير مربوط'}
+                            {r.linked ? t('business.dashboard.products.linked') : t('business.dashboard.products.unlinked')}
                           </span>
                         </div>
                       </div>
                     ))}
                     {(imageMapRows || []).length === 0 && !imageMapLoading && !imageMapError && (
-                      <div className="p-6 text-center text-slate-400 font-black">لا يوجد منتجات</div>
+                      <div className="p-6 text-center text-slate-400 font-black">{t('business.dashboard.products.noProducts')}</div>
                     )}
                   </div>
                 </div>

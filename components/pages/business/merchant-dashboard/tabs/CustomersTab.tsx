@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { Megaphone, Search as SearchIcon, UserCheck, UserMinus } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
+import { useTranslation } from 'react-i18next';
 
 type Props = { shopId: string };
 
 const CustomersTab: React.FC<Props> = ({ shopId }) => {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
       const data = await ApiService.getShopCustomers(shopId);
       setCustomers(data);
     } catch {
-      addToast('فشل تحميل بيانات العملاء', 'error');
+      addToast(t('business.customers.loadFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -32,18 +34,18 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
       const newStatus = customer.status === 'active' ? 'blocked' : 'active';
       await ApiService.updateCustomerStatus(id, newStatus);
       setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c)));
-      addToast(`تم ${newStatus === 'active' ? 'تفعيل' : 'إيقاف'} حساب العميل`, 'success');
+      addToast(t(`business.customers.${newStatus === 'active' ? 'activated' : 'deactivated'}`), 'success');
     } catch {
-      addToast('فشل تحديث حالة العميل', 'error');
+      addToast(t('business.customers.updateStatusFailed'), 'error');
     }
   };
 
   const sendPromotion = async (customerId: string) => {
     try {
       await ApiService.sendCustomerPromotion(customerId, shopId);
-      addToast('تم إرسال العرض الترويجي بنجاح', 'success');
+      addToast(t('business.customers.promotionSent'), 'success');
     } catch {
-      addToast('فشل إرسال العرض', 'error');
+      addToast(t('business.customers.promotionFailed'), 'error');
     }
   };
 
@@ -53,7 +55,7 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
     return (
       <div className="bg-white p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
         <div className="flex items-center justify-center py-20">
-          <span className="text-slate-400 font-black">تحميل بيانات العملاء...</span>
+          <span className="text-slate-400 font-black">{t('business.customers.loading')}</span>
         </div>
       </div>
     );
@@ -62,13 +64,13 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
   return (
     <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
       <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-12 flex-row-reverse">
-        <h3 className="text-3xl font-black">قاعدة بيانات العملاء</h3>
+        <h3 className="text-3xl font-black">{t('business.customers.database')}</h3>
         <div className="relative w-full md:w-96">
           <SearchIcon className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="بحث باسم العميل أو بريده..."
+            placeholder={t('business.customers.searchPlaceholder')}
             className="w-full bg-slate-50 rounded-2xl py-4 pr-14 pl-6 font-bold outline-none border-none text-right focus:ring-2 focus:ring-[#00E5FF]/20 transition-all"
           />
         </div>
@@ -78,19 +80,19 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
         <table className="w-full text-right border-collapse min-w-[1000px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">العميل</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الهاتف</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">إجمالي المشتريات</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">عدد الطلبات</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">آخر عملية</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">التحكم</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.customers.customer')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.customers.phone')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.customers.totalPurchases')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.customers.orderCount')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.customers.lastTransaction')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">{t('business.customers.actions')}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={6} className="p-10 text-center text-slate-300 font-bold">
-                  {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد بيانات عملاء حالياً. العملاء سيظهرون هنا عند تحويل الحجوزات المكتملة'}
+                  {searchTerm ? t('business.customers.noSearchResults') : t('business.customers.noData')}
                 </td>
               </tr>
             ) : (
@@ -99,20 +101,20 @@ const CustomersTab: React.FC<Props> = ({ shopId }) => {
                   <td className="p-6">
                     <div className="flex items-center gap-4 flex-row-reverse">
                       <div className="w-12 h-12 rounded-2xl bg-slate-100 flex items-center justify-center font-black text-slate-400">
-                        {c.name?.charAt(0) || 'ع'}
+                        {c.name?.charAt(0) || 'U'}
                       </div>
                       <div>
-                        <p className="font-black">{c.name || 'عميل غير محدد'}</p>
-                        <p className="text-xs text-slate-400 font-bold">{c.email || 'لا يوجد بريد'}</p>
+                        <p className="font-black">{c.name || t('business.customers.unnamed')}</p>
+                        <p className="text-xs text-slate-400 font-bold">{c.email || t('business.customers.noEmail')}</p>
                         {c.convertedFromReservation && (
-                          <span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-black">محول من حجز</span>
+                          <span className="text-[10px] bg-green-100 text-green-600 px-2 py-1 rounded-full font-black">{t('business.customers.convertedFromReservation')}</span>
                         )}
                       </div>
                     </div>
                   </td>
                   <td className="p-6 font-black text-slate-900">{c.phone || '---'}</td>
-                  <td className="p-6 font-black text-slate-900">ج.م {(c.totalSpent || 0).toLocaleString()}</td>
-                  <td className="p-6 font-black text-slate-500">{c.orders || 0} طلبات</td>
+                  <td className="p-6 font-black text-slate-900">{t('business.customers.currency')} {(c.totalSpent || 0).toLocaleString()}</td>
+                  <td className="p-6 font-black text-slate-500">{c.orders || 0} {t('business.customers.orders')}</td>
                   <td className="p-6">
                     <div>
                       <p className="text-xs text-slate-400 font-black">

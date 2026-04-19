@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import FashionOptionsSection from '../../AddProduct/FashionOptionsSection';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   selectedColors: Array<{ name: string; value: string }>;
@@ -22,22 +23,23 @@ const FashionExtras: React.FC<Props> = ({
   customSize,
   setCustomSize,
 }) => {
+  const { t } = useTranslation();
   const presetColors: Array<{ name: string; value: string }> = useMemo(
     () => [
-      { name: 'أسود', value: '#111827' },
-      { name: 'أبيض', value: '#ffffff' },
-      { name: 'رمادي', value: '#9ca3af' },
-      { name: 'أحمر', value: '#ef4444' },
-      { name: 'وردي', value: '#ec4899' },
-      { name: 'بنفسجي', value: '#a855f7' },
-      { name: 'أزرق', value: '#3b82f6' },
-      { name: 'سماوي', value: '#06b6d4' },
-      { name: 'أخضر', value: '#22c55e' },
-      { name: 'أصفر', value: '#eab308' },
-      { name: 'برتقالي', value: '#f97316' },
-      { name: 'بني', value: '#a16207' },
+      { name: t('business.products.colors.black'), value: '#111827' },
+      { name: t('business.products.colors.white'), value: '#ffffff' },
+      { name: t('business.products.colors.gray'), value: '#9ca3af' },
+      { name: t('business.products.colors.red'), value: '#ef4444' },
+      { name: t('business.products.colors.pink'), value: '#ec4899' },
+      { name: t('business.products.colors.purple'), value: '#a855f7' },
+      { name: t('business.products.colors.blue'), value: '#3b82f6' },
+      { name: t('business.products.colors.cyan'), value: '#06b6d4' },
+      { name: t('business.products.colors.green'), value: '#22c55e' },
+      { name: t('business.products.colors.yellow'), value: '#eab308' },
+      { name: t('business.products.colors.orange'), value: '#f97316' },
+      { name: t('business.products.colors.brown'), value: '#a16207' },
     ],
-    [],
+    [t],
   );
 
   const presetSizes: string[] = useMemo(() => ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'], []);
@@ -63,8 +65,9 @@ export function buildFashionExtrasPayload(args: {
   fashionSizeItems: Array<{ label: string; price: string }>;
   parseNumberInput: (v: any) => number;
   basePrice: number;
+  t: (key: string) => string;
 }) {
-  const { selectedColors, fashionSizeItems, parseNumberInput, basePrice } = args;
+  const { selectedColors, fashionSizeItems, parseNumberInput, basePrice, t } = args;
 
   const colors = (selectedColors || [])
     .map((c) => ({ name: String(c?.name || '').trim(), value: String(c?.value || '').trim() }))
@@ -86,15 +89,15 @@ export function buildFashionExtrasPayload(args: {
   })();
 
   if (colors.length === 0) {
-    throw new Error('يرجى اختيار لون واحد على الأقل');
+    throw new Error(t('business.products.selectAtLeastOneColor'));
   }
 
   if (sizes === '__INVALID__') {
-    throw new Error('يرجى إدخال المقاسات والأسعار بشكل صحيح');
+    throw new Error(t('business.products.enterValidSizesPrices'));
   }
 
   if (Array.isArray(sizes) && sizes.length === 0) {
-    throw new Error('يرجى إضافة مقاس واحد على الأقل مع السعر');
+    throw new Error(t('business.products.addAtLeastOneSizeWithPrice'));
   }
 
   const resolvedBasePrice = (() => {

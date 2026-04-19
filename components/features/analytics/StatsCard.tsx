@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from '../../common/ui';
 import { LucideIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface StatsCardProps {
   title: string;
@@ -21,6 +22,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
   icon,
   color = 'primary',
 }) => {
+  const { t } = useTranslation();
   const colorClasses = {
     primary: 'bg-[#00E5FF]/20 text-[#00E5FF]',
     success: 'bg-green-500/20 text-green-500',
@@ -47,7 +49,7 @@ const StatsCard: React.FC<StatsCardProps> = ({
               >
                 {change.type === 'increase' ? '↑' : '↓'} {Math.abs(change.value)}%
               </span>
-              <span className="text-slate-400 text-sm">من الشهر الماضي</span>
+              <span className="text-slate-400 text-sm">{t('statsCard.fromLastMonth')}</span>
             </div>
           )}
         </div>

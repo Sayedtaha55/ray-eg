@@ -5,6 +5,7 @@ import { RayDB } from '@/constants';
 import Modal from '@/components/common/ui/Modal';
 import OrderReturnsPanel from './OrderReturnsPanel';
 import { formatPackLabelArabic, toArabicUnitLabel } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   sales: any[];
@@ -17,7 +18,7 @@ const asCleanText = (v: any) => {
   return t ? t : '';
 };
 
-const formatVariantSelection = (raw: any) => {
+const formatVariantSelection = (raw: any, t?: any) => {
   if (!raw || typeof raw !== 'object') return '';
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
@@ -27,26 +28,26 @@ const formatVariantSelection = (raw: any) => {
     const unit = toArabicUnitLabel(asCleanText((raw as any)?.unit));
     const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
     const fallback = [qtyText, unit].filter(Boolean).join(' ');
-    return label || fallback ? `باقة: ${label || fallback}` : '';
+    return label || fallback ? `${t('business.sales.pack')}: ${label || fallback}` : '';
   }
 
   if (kind === 'fashion') {
     const color = asCleanText((raw as any)?.colorName || (raw as any)?.color || (raw as any)?.colorValue);
     const size = asCleanText((raw as any)?.size);
-    const parts = [color ? `لون: ${color}` : '', size ? `مقاس: ${size}` : ''].filter(Boolean);
+    const parts = [color ? `${t('business.sales.color')}: ${color}` : '', size ? `${t('business.sales.size')}: ${size}` : ''].filter(Boolean);
     return parts.join(' - ');
   }
 
   const size = asCleanText((raw as any)?.sizeLabel || (raw as any)?.sizeName || (raw as any)?.size);
   const type = asCleanText((raw as any)?.typeLabel || (raw as any)?.typeName || (raw as any)?.type);
   const parts = [type, size].filter(Boolean);
-  if (parts.length) return `اختيار: ${parts.join(' - ')}`;
+  if (parts.length) return `${t('business.sales.selection')}: ${parts.join(' - ')}`;
 
   const label = asCleanText((raw as any)?.label || (raw as any)?.name);
-  return label ? `اختيار: ${label}` : '';
+  return label ? `${t('business.sales.selection')}: ${label}` : '';
 };
 
-const formatAddons = (raw: any) => {
+const formatAddons = (raw: any, t?: any) => {
   if (!raw) return '';
 
   const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
@@ -63,7 +64,7 @@ const formatAddons = (raw: any) => {
         return '';
       })
       .filter(Boolean);
-    return out.length ? `إضافات: ${out.join('، ')}` : '';
+    return out.length ? `${t('business.sales.addons')}: ${out.join(t('business.common.listSeparator'))}` : '';
   }
 
   if (raw && typeof raw === 'object') {
@@ -77,14 +78,14 @@ const formatAddons = (raw: any) => {
         return val ? `${key}: ${val}` : '';
       })
       .filter(Boolean);
-    return labels.length ? `إضافات: ${labels.join('، ')}` : '';
+    return labels.length ? `${t('business.sales.addons')}: ${labels.join(t('business.common.listSeparator'))}` : '';
   }
 
   const s = asCleanText(raw);
-  return s ? `إضافات: ${s}` : '';
+  return s ? `${t('business.sales.addons')}: ${s}` : '';
 };
 
-const formatAddonsCompactParts = (raw: any): string[] => {
+const formatAddonsCompactParts = (raw: any, t?: any): string[] => {
   if (!raw) return [];
 
   const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
@@ -97,7 +98,7 @@ const formatAddonsCompactParts = (raw: any): string[] => {
         const name = asCleanText(a?.optionName || a?.name || a?.title || a?.label);
         const size = asCleanText(a?.variantLabel || a?.variant || a?.size || a?.sizeLabel || a?.sizeName);
         const priceRaw = typeof a?.price === 'number' ? a.price : Number(a?.price ?? NaN);
-        const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ج.م ${Math.round(priceRaw * 100) / 100}` : '';
+        const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ${t('business.pos.egp')} ${Math.round(priceRaw * 100) / 100}` : '';
         const core = [name, size].filter(Boolean).join(' ');
         if (!core) return '';
         return `${core}${priceText}`.trim();
@@ -142,7 +143,7 @@ const isDeliveryDisabledOrder = (order: any) => {
   );
 };
 
-const formatOrderItemsSummary = (sale: any) => {
+const formatOrderItemsSummary = (sale: any, t?: any) => {
   const items = Array.isArray(sale?.items) ? sale.items : [];
   if (items.length === 0) return '';
 
@@ -157,7 +158,7 @@ const formatOrderItemsSummary = (sale: any) => {
       if (!Number.isFinite(unitPrice) || unitPrice < 0) return '';
       const useTotal = Number.isFinite(lineTotal) && safeQty > 1;
       const n = useTotal ? lineTotal : unitPrice;
-      return ` ج.م ${Math.round(n * 100) / 100}`;
+      return ` ${t('business.pos.egp')} ${Math.round(n * 100) / 100}`;
     })();
     const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection);
     const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns);
@@ -180,7 +181,8 @@ const OrderRow = memo(({
   openDetails, 
   actionsEnabled,
   statusMeta, 
-  renderDeliveryFee 
+  renderDeliveryFee,
+  t
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -263,7 +265,7 @@ const OrderRow = memo(({
         <div className="shrink-0 flex items-center gap-2">
           {isRefunded ? (
             <span className="px-3 py-2 rounded-full text-[10px] font-black bg-fuchsia-50 text-fuchsia-800 border border-fuchsia-200">
-              مرتجع
+              {t('business.sales.statusRefunded')}
             </span>
           ) : null}
           <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
@@ -272,17 +274,17 @@ const OrderRow = memo(({
 
       <div className="grid grid-cols-2 gap-2.5 mt-4">
         <div className="bg-slate-50 rounded-2xl p-4">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</div>
-          <div className="mt-2 font-black text-slate-900 text-sm">{sale.items?.length || 0} صنف</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colCount')}</div>
+          <div className="mt-2 font-black text-slate-900 text-sm">{sale.items?.length || 0} {t('business.sales.item')}</div>
         </div>
         <div className="bg-slate-50 rounded-2xl p-4">
-          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
-          <div className="mt-2 font-black text-slate-900 text-sm">ج.م {Number(sale.total || 0).toLocaleString()}</div>
+          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</div>
+          <div className="mt-2 font-black text-slate-900 text-sm">{t('business.pos.egp')} {Number(sale.total || 0).toLocaleString()}</div>
         </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 mt-4 flex-wrap">
-        <div className="text-slate-500 font-bold text-[11px] leading-5">{deliveryManagedByShop ? 'موقع العميل متاح للتوصيل الذاتي' : `رسوم التوصيل: ${renderDeliveryFee(sale)}`}</div>
+        <div className="text-slate-500 font-bold text-[11px] leading-5">{deliveryManagedByShop ? t('business.sales.selfDeliveryLocation') : `${t('business.sales.deliveryFee')}: ${renderDeliveryFee(sale)}`}</div>
 
         <div className="flex items-center gap-2" data-sales-actions-menu="1">
           {deliveryManagedByShop && hasLocation && (
@@ -292,7 +294,7 @@ const OrderRow = memo(({
                 openMapLink();
               }}
               className="p-3 bg-white border border-slate-200 rounded-xl transition-all text-slate-400 hover:text-emerald-600"
-              title="عرض على الخريطة"
+              title={t('business.sales.showOnMap')}
             >
               <MapPin size={18} />
             </button>
@@ -336,7 +338,7 @@ const OrderRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canAccept ? '...' : 'قبول'}
+                    {busy && canAccept ? '...' : t('business.sales.accept')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -348,7 +350,7 @@ const OrderRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canInProgress ? '...' : 'قيد التنفيذ'}
+                    {busy && canInProgress ? '...' : t('business.sales.statusPreparing')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -360,7 +362,7 @@ const OrderRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReady || busy ? 'text-slate-300 cursor-not-allowed' : 'text-blue-700 hover:bg-blue-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canReady ? '...' : 'جاهز'}
+                    {busy && canReady ? '...' : t('business.sales.statusReady')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -371,7 +373,7 @@ const OrderRow = memo(({
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canHandToCourier || busy ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-700 hover:bg-indigo-50'}`}
                   >
-                    {busy && canHandToCourier ? '...' : 'تم تسليمه للتوصيل'}
+                    {busy && canHandToCourier ? '...' : t('business.sales.handedToCourier')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -382,7 +384,7 @@ const OrderRow = memo(({
                     }}
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
                   >
-                    {busy && canReject ? '...' : 'رفض'}
+                    {busy && canReject ? '...' : t('business.sales.reject')}
                   </button>
                 </div>
               )}
@@ -405,6 +407,7 @@ const OrderTableRow = memo(({
   statusMeta, 
   renderDeliveryFee,
   onPrintInvoice,
+  t,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -481,17 +484,17 @@ const OrderTableRow = memo(({
         <div className="whitespace-normal break-words" title={itemsSummary || ''}>{itemsSummary || '-'}</div>
         {customerNote ? (
           <div className="mt-2 text-[10px] font-black text-slate-500 whitespace-normal break-words">
-            ملاحظة: {customerNote}
+            {t('business.sales.customerNote')}: {customerNote}
           </div>
         ) : null}
       </td>
       <td className="p-6 text-slate-500 font-bold text-sm">{new Date(sale.created_at || sale.createdAt).toLocaleString('ar-EG')}</td>
-      <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} صنف</td>
+      <td className="p-6 text-slate-500 font-black text-sm">{sale.items?.length || 0} {t('business.sales.item')}</td>
       <td className="p-6">
         <div className="flex items-center justify-end gap-2">
           {isRefunded ? (
             <span className="px-3 py-2 rounded-full text-[10px] font-black bg-fuchsia-50 text-fuchsia-800 border border-fuchsia-200">
-              مرتجع
+              {t('business.sales.statusRefunded')}
             </span>
           ) : null}
           <span className={`px-4 py-2 rounded-full text-[10px] font-black ${meta.cls}`}>{meta.label}</span>
@@ -501,7 +504,7 @@ const OrderTableRow = memo(({
         {renderDeliveryFee(sale)}
       </td>
       <td className="p-6">
-        <span className="text-xl font-black text-[#00E5FF]">ج.م {Number(sale.total || 0).toLocaleString()}</span>
+        <span className="text-xl font-black text-[#00E5FF]">{t('business.pos.egp')} {Number(sale.total || 0).toLocaleString()}</span>
       </td>
       <td className="p-6">
         <div className="flex flex-wrap gap-2 justify-end" data-sales-actions-menu="1">
@@ -512,7 +515,7 @@ const OrderTableRow = memo(({
                 openMapLink();
               }}
               className="p-3 bg-white border border-slate-200 rounded-xl transition-all text-slate-400 hover:text-emerald-600"
-              title="عرض على الخريطة"
+              title={t('business.sales.showOnMap')}
             >
               <MapPin size={18} />
             </button>
@@ -525,7 +528,7 @@ const OrderTableRow = memo(({
                 onPrintInvoice(sale);
               }}
               className={`p-3 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
-              title="طباعة فاتورة"
+              title={t('business.sales.printInvoice')}
               disabled={busy}
             >
               <Printer size={18} />
@@ -560,7 +563,7 @@ const OrderTableRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canAccept || busy ? 'text-slate-300 cursor-not-allowed' : 'text-emerald-700 hover:bg-emerald-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canAccept ? '...' : 'قبول'}
+                    {busy && canAccept ? '...' : t('business.sales.accept')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -572,7 +575,7 @@ const OrderTableRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canInProgress || busy ? 'text-slate-300 cursor-not-allowed' : 'text-amber-700 hover:bg-amber-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canInProgress ? '...' : 'قيد التنفيذ'}
+                    {busy && canInProgress ? '...' : t('business.sales.statusPreparing')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -584,7 +587,7 @@ const OrderTableRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReady || busy ? 'text-slate-300 cursor-not-allowed' : 'text-blue-700 hover:bg-blue-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canReady ? '...' : 'جاهز'}
+                    {busy && canReady ? '...' : t('business.sales.statusReady')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -596,7 +599,7 @@ const OrderTableRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canHandToCourier || busy ? 'text-slate-300 cursor-not-allowed' : 'text-indigo-700 hover:bg-indigo-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canHandToCourier ? '...' : 'تم تسليمه للتوصيل'}
+                    {busy && canHandToCourier ? '...' : t('business.sales.handedToCourier')}
                   </button>
                   <button
                     onClick={(e) => {
@@ -608,7 +611,7 @@ const OrderTableRow = memo(({
                     className={`w-full text-right px-4 py-3 font-black text-xs ${!canReject || busy ? 'text-slate-300 cursor-not-allowed' : 'text-red-700 hover:bg-red-50'}`}
                     data-sales-actions-menu="1"
                   >
-                    {busy && canReject ? '...' : 'رفض'}
+                    {busy && canReject ? '...' : t('business.sales.reject')}
                   </button>
                 </div>
               )}
@@ -634,6 +637,7 @@ const OrderTableRow = memo(({
 });
 
 const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<'all' | 'pending' | 'successful' | 'rejected'>('all');
   const [localSales, setLocalSales] = useState<any[]>(Array.isArray(sales) ? sales : []);
   const [updatingId, setUpdatingId] = useState<string>('');
@@ -794,17 +798,17 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
         </head>
         <body>
           <div class="wrap">
-            <h1>${shopName || 'فاتورة'}</h1>
+            <h1>${shopName || t('business.sales.invoice')}</h1>
             <div class="meta">
-              ${orderId ? `<div><strong>طلب:</strong> ${escapeHtml(orderId)}</div>` : ''}
+              ${orderId ? `<div><strong>${t('business.sales.order')}:</strong> ${escapeHtml(orderId)}</div>` : ''}
               ${phone ? `<div>${phone}</div>` : ''}
               ${city ? `<div>${city}</div>` : ''}
               ${address ? `<div>${address}</div>` : ''}
-              ${customerName ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${customerName}</div>` : ''}
-              ${customerAddress ? `<div style="margin-top:4px;"><strong>العنوان:</strong> ${customerAddress}</div>` : ''}
-              ${deliveryNote ? `<div style="margin-top:4px;"><strong>ملاحظة التوصيل:</strong> ${deliveryNote}</div>` : ''}
-              ${customerNote ? `<div style="margin-top:4px;"><strong>ملاحظة:</strong> ${customerNote}</div>` : ''}
-              ${customerPhone ? `<div style="margin-top:6px;"><strong>رقم العميل:</strong> ${customerPhone}</div>` : ''}
+              ${customerName ? `<div style="margin-top:6px;"><strong>${t('business.sales.customer')}:</strong> ${customerName}</div>` : ''}
+              ${customerAddress ? `<div style="margin-top:4px;"><strong>${t('business.sales.address')}:</strong> ${customerAddress}</div>` : ''}
+              ${deliveryNote ? `<div style="margin-top:4px;"><strong>${t('business.sales.deliveryNote')}:</strong> ${deliveryNote}</div>` : ''}
+              ${customerNote ? `<div style="margin-top:4px;"><strong>${t('business.sales.note')}:</strong> ${customerNote}</div>` : ''}
+              ${customerPhone ? `<div style="margin-top:6px;"><strong>${t('business.sales.customerPhone')}:</strong> ${customerPhone}</div>` : ''}
               ${createdAtLabel ? `<div style="margin-top:6px;">${escapeHtml(createdAtLabel)}</div>` : ''}
             </div>
             <div class="sep"></div>
@@ -841,10 +845,10 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             </table>
             <div class="sep"></div>
             <div class="totals">
-              <div class="row"><span>المجموع الفرعي</span><span>ج.م ${money(computedSubtotal)}</span></div>
-              ${deliveryFee > 0 ? `<div class="row"><span>الشحن</span><span>ج.م ${money(deliveryFee)}</span></div>` : ''}
-              ${discount > 0 ? `<div class="row"><span>خصم</span><span>ج.م ${money(discount)}</span></div>` : ''}
-              <div class="row" style="font-weight:700;"><span>الإجمالي</span><span>ج.م ${money(total)}</span></div>
+              <div class="row"><span>${t('business.sales.subtotal')}</span><span>${t('business.pos.egp')} ${money(computedSubtotal)}</span></div>
+              ${deliveryFee > 0 ? `<div class="row"><span>${t('business.sales.shipping')}</span><span>${t('business.pos.egp')} ${money(deliveryFee)}</span></div>` : ''}
+              ${discount > 0 ? `<div class="row"><span>${t('business.sales.discount')}</span><span>${t('business.pos.egp')} ${money(discount)}</span></div>` : ''}
+              <div class="row" style="font-weight:700;"><span>${t('business.sales.total')}</span><span>${t('business.pos.egp')} ${money(total)}</span></div>
             </div>
             ${footerNote ? `<div class="sep"></div><div class="foot">${footerNote}</div>` : ''}
           </div>
@@ -925,13 +929,13 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
   const statusMeta = (status: any) => {
     const s = String(status || '').toUpperCase();
-    if (s === 'DELIVERED') return { label: 'تم التوصيل', cls: 'bg-green-50 text-green-600' };
-    if (s === 'READY') return { label: 'جاهز', cls: 'bg-blue-50 text-blue-600' };
-    if (s === 'PREPARING') return { label: 'قيد التنفيذ', cls: 'bg-amber-50 text-amber-600' };
-    if (s === 'CONFIRMED') return { label: 'تم القبول', cls: 'bg-emerald-50 text-emerald-600' };
-    if (s === 'CANCELLED') return { label: 'مرفوض', cls: 'bg-red-50 text-red-600' };
-    if (s === 'REFUNDED') return { label: 'مسترجع', cls: 'bg-red-50 text-red-600' };
-    return { label: 'قيد المراجعة', cls: 'bg-slate-50 text-slate-600' };
+    if (s === 'DELIVERED') return { label: t('business.sales.statusDelivered'), cls: 'bg-green-50 text-green-600' };
+    if (s === 'READY') return { label: t('business.sales.statusReady'), cls: 'bg-blue-50 text-blue-600' };
+    if (s === 'PREPARING') return { label: t('business.sales.statusPreparing'), cls: 'bg-amber-50 text-amber-600' };
+    if (s === 'CONFIRMED') return { label: t('business.sales.statusConfirmed'), cls: 'bg-emerald-50 text-emerald-600' };
+    if (s === 'CANCELLED') return { label: t('business.sales.statusCancelled'), cls: 'bg-red-50 text-red-600' };
+    if (s === 'REFUNDED') return { label: t('business.sales.statusRefunded'), cls: 'bg-red-50 text-red-600' };
+    return { label: t('business.sales.statusPending'), cls: 'bg-slate-50 text-slate-600' };
   };
 
   const isSuccessful = (o: any) => {
@@ -994,7 +998,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
   const renderDeliveryFee = (sale: any) => {
     if (isDeliveryDisabledOrder(sale)) {
-      return 'التوصيل معطل';
+      return t('business.sales.deliveryDisabled');
     }
     
     const raw = typeof sale?.notes === 'string' ? sale.notes : '';
@@ -1007,7 +1011,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
     const value = String(feeLine).split(':').slice(1).join(':').trim();
     const n = Number(value);
     if (Number.isNaN(n) || n < 0) return '-';
-    return `ج.م ${n}`;
+    return `${t('business.pos.egp')} ${n}`;
   };
 
   const actionsEnabled = channel === 'shop' || channel === 'pos';
@@ -1019,25 +1023,25 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
           onClick={() => setFilter('successful')}
           className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'successful' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-600'}`}
         >
-          <CheckCircle2 size={16} /> {counts.successful} عملية ناجحة
+          <CheckCircle2 size={16} /> {t('business.sales.successfulCount', { count: counts.successful })}
         </button>
         <button
           onClick={() => setFilter('rejected')}
           className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'rejected' ? 'bg-red-50 text-red-600' : 'bg-slate-50 text-slate-600'}`}
         >
-          <XCircle size={16} /> {counts.rejected} عملية مرفوضة
+          <XCircle size={16} /> {t('business.sales.rejectedCount', { count: counts.rejected })}
         </button>
         <button
           onClick={() => setFilter('pending')}
           className={`snap-start flex items-center gap-2 px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'pending' ? 'bg-amber-50 text-amber-600' : 'bg-slate-50 text-slate-600'}`}
         >
-          <Clock size={16} /> {counts.pending} قيد المراجعة
+          <Clock size={16} /> {t('business.sales.pendingCount', { count: counts.pending })}
         </button>
         <button
           onClick={() => setFilter('all')}
           className={`snap-start px-4 md:px-6 py-2 rounded-full font-black text-xs ${filter === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}
         >
-          الكل ({counts.total})
+          {t('business.sales.all')} ({counts.total})
         </button>
       </div>
 
@@ -1054,10 +1058,11 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             actionsEnabled={actionsEnabled}
             statusMeta={statusMeta}
             renderDeliveryFee={renderDeliveryFee}
+            t={t}
           />
         )) : (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm font-black text-slate-400">
-            لا توجد طلبات مطابقة لهذا الفلتر.
+            {t('business.sales.noMatchingOrders')}
           </div>
         )}
       </div>
@@ -1066,14 +1071,14 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
         <table className="w-full text-right border-collapse min-w-[1100px]">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-100">
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">المنتجات</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ والوقت</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التعداد</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الحالة</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">التوصيل</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجراءات</th>
-              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">التفاصيل</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colProducts')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colDateTime')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colCount')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colStatus')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colDelivery')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colActions')}</th>
+              <th className="p-6 text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">{t('business.sales.colDetails')}</th>
             </tr>
           </thead>
           <tbody>
@@ -1090,43 +1095,44 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 statusMeta={statusMeta}
                 renderDeliveryFee={renderDeliveryFee}
                 onPrintInvoice={channel === 'shop' || channel === 'pos' ? printSaleInvoice : undefined}
+                t={t}
               />
             ))}
           </tbody>
         </table>
       </div>
 
-      <Modal isOpen={detailsOpen} onClose={closeDetails} title="تفاصيل الطلب" size="lg">
+      <Modal isOpen={detailsOpen} onClose={closeDetails} title={t('business.sales.orderDetails')} size="lg">
         <div className="space-y-4 text-right">
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الطلب</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.orderNumber')}</div>
               <div className="mt-2 text-slate-900 font-black">#{String(selectedSale?.id || '').slice(0, 8).toUpperCase() || '-'}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الحالة</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colStatus')}</div>
               <div className="mt-2 text-slate-900 font-black">{statusMeta(selectedSale?.status).label}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">التاريخ</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colDateTime')}</div>
               <div className="mt-2 text-slate-900 font-black text-sm leading-6">{selectedSale ? new Date(selectedSale?.created_at || selectedSale?.createdAt).toLocaleString('ar-EG') : '-'}</div>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">الإجمالي</div>
-              <div className="mt-2 text-slate-900 font-black">ج.م {Number(selectedSale?.total || 0).toLocaleString()}</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('business.sales.colTotal')}</div>
+              <div className="mt-2 text-slate-900 font-black">{t('business.pos.egp')} {Number(selectedSale?.total || 0).toLocaleString()}</div>
             </div>
           </div>
 
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
-              <ReceiptText size={16} /> ملخص العميل والطلب
+              <ReceiptText size={16} /> {t('business.sales.customerOrderSummary')}
             </div>
             <div className="mt-3 space-y-2 text-sm font-bold text-slate-600">
-              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">الاسم</span><span className="text-slate-900 text-left">{selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</span></div>
-              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">رقم العميل</span><span className="text-slate-900 text-left">{selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</span></div>
-              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">طريقة التوصيل</span><span className="text-slate-900 text-left">{isDeliveryDisabledOrder(selectedSale) ? 'توصيل ذاتي من المتجر' : 'عبر المندوب'}</span></div>
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">{t('business.sales.name')}</span><span className="text-slate-900 text-left">{selectedSale?.user?.fullName || selectedSale?.user?.name || '-'}</span></div>
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">{t('business.sales.customerPhone')}</span><span className="text-slate-900 text-left">{selectedSale?.customerPhone || selectedSale?.customer_phone || selectedSale?.user?.phone || selectedSale?.phone || '-'}</span></div>
+              <div className="flex items-start justify-between gap-3"><span className="text-slate-400">{t('business.sales.deliveryMethod')}</span><span className="text-slate-900 text-left">{isDeliveryDisabledOrder(selectedSale) ? t('business.sales.selfPickup') : t('business.sales.viaCourier')}</span></div>
               {isDeliveryDisabledOrder(selectedSale) ? (
-                <div className="flex items-start justify-between gap-3"><span className="text-slate-400">العنوان</span><span className="text-slate-900 text-left">{(() => {
+                <div className="flex items-start justify-between gap-3"><span className="text-slate-400">{t('business.sales.address')}</span><span className="text-slate-900 text-left">{(() => {
                   const manual = String((selectedSale as any)?.deliveryAddressManual ?? (selectedSale as any)?.delivery_address_manual ?? (selectedSale as any)?.address ?? (selectedSale as any)?.user?.address ?? '').trim();
                   const loc = parseCodLocation((selectedSale as any)?.notes);
                   return manual || String(loc?.address || '').trim() || '-';
@@ -1134,9 +1140,9 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
               ) : null}
             </div>
             {isDeliveryDisabledOrder(selectedSale) ? (
-              <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] font-black text-amber-700">العنوان والخريطة ظاهرين هنا لأن الطلب توصيل ذاتي.</div>
+              <div className="mt-3 rounded-2xl bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] font-black text-amber-700">{t('business.sales.selfPickupAddressHint')}</div>
             ) : (
-              <div className="mt-3 rounded-2xl bg-sky-50 border border-sky-100 px-3 py-2 text-[11px] font-black text-sky-700">تفاصيل الخريطة للمندوب فقط لتقليل الزحمة داخل شاشة التاجر.</div>
+              <div className="mt-3 rounded-2xl bg-sky-50 border border-sky-100 px-3 py-2 text-[11px] font-black text-sky-700">{t('business.sales.courierMapHint')}</div>
             )}
           </div>
 
@@ -1148,11 +1154,11 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             return (
               <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
                 <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
-                  <Phone size={16} /> ملاحظات مهمة
+                  <Phone size={16} /> {t('business.sales.importantNotes')}
                 </div>
                 <div className="mt-3 space-y-2 text-sm font-bold text-slate-700">
-                  {deliveryNote ? <div><span className="text-slate-400">ملاحظة التوصيل:</span> {deliveryNote}</div> : null}
-                  {customerNote ? <div><span className="text-slate-400">ملاحظة العميل:</span> {customerNote}</div> : null}
+                  {deliveryNote ? <div><span className="text-slate-400">{t('business.sales.deliveryNote')}:</span> {deliveryNote}</div> : null}
+                  {customerNote ? <div><span className="text-slate-400">{t('business.sales.customerNote')}:</span> {customerNote}</div> : null}
                 </div>
               </div>
             );
@@ -1160,11 +1166,11 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
 
           <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
             <div className="flex items-center gap-2 text-slate-900 font-black text-sm">
-              <Package2 size={16} /> المنتجات
+              <Package2 size={16} /> {t('business.sales.products')}
             </div>
             <div className="mt-3 space-y-3">
               {(Array.isArray(selectedSale?.items) ? selectedSale.items : []).map((it: any, idx: number) => {
-                const name = it?.product?.name || it?.name || it?.title || `منتج ${idx + 1}`;
+                const name = it?.product?.name || it?.name || it?.title || t('business.sales.productFallback', { index: idx + 1 });
                 const qty = Number(it?.quantity || it?.qty || 1);
                 const price = Number(it?.price || it?.unitPrice || 0);
                 const lineTotal = Number.isFinite(price) ? price * (Number.isFinite(qty) ? qty : 1) : 0;
@@ -1184,22 +1190,22 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                       </div>
                       <div className="shrink-0 text-left">
                         <div className="text-slate-900 font-black text-sm">× {qty}</div>
-                        <div className="text-[11px] text-slate-500 font-bold">ج.م {Number(price || 0).toLocaleString()}</div>
+                        <div className="text-[11px] text-slate-500 font-bold">{t('business.pos.egp')} {Number(price || 0).toLocaleString()}</div>
                       </div>
                     </div>
-                    <div className="mt-2 pt-2 border-t border-slate-200 text-[12px] font-black text-slate-700">الإجمالي الفرعي: ج.م {Number(lineTotal || 0).toLocaleString()}</div>
+                    <div className="mt-2 pt-2 border-t border-slate-200 text-[12px] font-black text-slate-700">{t('business.sales.lineSubtotal')}: {t('business.pos.egp')} {Number(lineTotal || 0).toLocaleString()}</div>
                   </div>
                 );
               })}
               {!Array.isArray(selectedSale?.items) || selectedSale?.items?.length === 0 ? (
-                <div className="text-slate-400 font-bold text-sm">لا توجد منتجات</div>
+                <div className="text-slate-400 font-bold text-sm">{t('business.sales.noProducts')}</div>
               ) : null}
             </div>
           </div>
 
           <details className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
-            <summary className="cursor-pointer list-none font-black text-sm text-slate-700">عرض البيانات الإضافية</summary>
-            <div className="mt-3 text-xs leading-6 font-bold text-slate-500 whitespace-pre-wrap break-words">{selectedSale?.notes || 'لا توجد بيانات إضافية.'}</div>
+            <summary className="cursor-pointer list-none font-black text-sm text-slate-700">{t('business.sales.showExtraData')}</summary>
+            <div className="mt-3 text-xs leading-6 font-bold text-slate-500 whitespace-pre-wrap break-words">{selectedSale?.notes || t('business.sales.noExtraData')}</div>
           </details>
 
           <OrderReturnsPanel order={selectedSale} />

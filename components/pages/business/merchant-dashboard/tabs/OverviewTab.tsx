@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, DollarSign, Eye, ShoppingCart, TrendingUp, Users } from 'lucide-react';
 import ActivityItem from '../components/ActivityItem';
 import StatCard from '../components/StatCard';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   shop: any;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAllNotifications }) => {
+  const { t } = useTranslation();
   const [recharts, setRecharts] = useState<any>(null);
 
   useEffect(() => {
@@ -79,12 +81,12 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
   return (
     <div className="space-y-6 sm:space-y-10 md:space-y-12">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 md:gap-10">
-        <StatCard label="المتابعين" value={shop.followers?.toLocaleString() || '0'} icon={<Users size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
-        <StatCard label="زيارات المتجر" value={shop.visitors?.toLocaleString() || '0'} icon={<Eye size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
+        <StatCard label={t('business.overview.followers')} value={shop.followers?.toLocaleString() || '0'} icon={<Users size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
+        <StatCard label={t('business.overview.shopVisits')} value={shop.visitors?.toLocaleString() || '0'} icon={<Eye size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
         {showSalesAnalytics ? (
           <>
-            <StatCard label="مبيعات اليوم" value={`${salesCountToday}`} icon={<ShoppingCart size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="slate" />
-            <StatCard label="إيرادات اليوم" value={`ج.م ${revenueToday}`} icon={<DollarSign size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
+            <StatCard label={t('business.overview.todaySales')} value={`${salesCountToday}`} icon={<ShoppingCart size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="slate" />
+            <StatCard label={t('business.overview.todayRevenue')} value={`${t('business.overview.currency')} ${revenueToday}`} icon={<DollarSign size={22} className="sm:w-7 sm:h-7 md:w-8 md:h-8" />} color="cyan" />
           </>
         ) : null}
       </div>
@@ -93,31 +95,31 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
           <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
-              <h3 className="text-xl sm:text-2xl font-black text-slate-900">الطلبات والإيرادات</h3>
+              <h3 className="text-xl sm:text-2xl font-black text-slate-900">{t('business.overview.ordersAndRevenue')}</h3>
             </div>
             <div className="grid grid-cols-2 gap-3 sm:gap-4">
               <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">إجمالي الطلبات</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t('business.overview.totalOrders')}</div>
                 <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 text-right">{Number(totalOrders || 0).toLocaleString()}</div>
               </div>
               <div className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">إجمالي الإيرادات</div>
-                <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 text-right">ج.م {Number(totalRevenue || 0).toLocaleString()}</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">{t('business.overview.totalRevenue')}</div>
+                <div className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 text-right">{t('business.overview.currency')} {Number(totalRevenue || 0).toLocaleString()}</div>
               </div>
             </div>
 
             <div className="mt-6">
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-3">جدول المبيعات اليومي (آخر 7 أيام)</div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-right mb-3">{t('business.overview.dailySalesTable')}</div>
               <div className="rounded-3xl border border-slate-100 overflow-hidden">
                 <div className="grid grid-cols-2 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500">
-                  <div className="text-right">اليوم</div>
-                  <div className="text-right">الإيراد</div>
+                  <div className="text-right">{t('business.overview.day')}</div>
+                  <div className="text-right">{t('business.overview.revenue')}</div>
                 </div>
                 <div className="divide-y divide-slate-100">
                   {(Array.isArray(chartData) ? chartData : []).map((row: any, idx: number) => (
                     <div key={`${String(row?.name || '')}:${idx}`} className="grid grid-cols-2 px-4 py-3">
                       <div className="text-right font-black text-slate-700 text-sm">{String(row?.name || '')}</div>
-                      <div className="text-right font-black text-slate-900 text-sm">ج.م {Number(row?.sales || 0).toLocaleString()}</div>
+                      <div className="text-right font-black text-slate-900 text-sm">{t('business.overview.currency')} {Number(row?.sales || 0).toLocaleString()}</div>
                     </div>
                   ))}
                 </div>
@@ -130,9 +132,9 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
               {showSalesAnalytics ? (
                 <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
                   <div className="flex items-center justify-between mb-6 sm:mb-10 md:mb-12 flex-row-reverse">
-                    <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">رادار المبيعات</h3>
+                    <h3 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900">{t('business.overview.salesRadar')}</h3>
                     <div className="flex items-center gap-2 text-green-500 font-black text-xs sm:text-sm px-3 sm:px-4 py-1 bg-green-50 rounded-full">
-                      <TrendingUp size={16} /> نمو مستمر
+                      <TrendingUp size={16} /> {t('business.overview.steadyGrowth')}
                     </div>
                   </div>
                   <div className="h-[450px] w-full min-w-[300px] min-h-[400px]">
@@ -143,7 +145,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
 
               <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
                 <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
-                  <h3 className="text-2xl font-black text-slate-900">آخر التنبيهات</h3>
+                  <h3 className="text-2xl font-black text-slate-900">{t('business.overview.latestAlerts')}</h3>
                   <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-[#00E5FF]">
                     <Bell size={20} />
                   </div>
@@ -152,7 +154,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
                   {notifications.length === 0 ? (
                     <div className="py-16 sm:py-20 md:py-24 text-center text-slate-200">
                       <Bell size={40} className="mx-auto mb-4 opacity-10 sm:w-12 sm:h-12" />
-                      <p className="font-bold">لا توجد عمليات مؤخراً.</p>
+                      <p className="font-bold">{t('business.overview.noRecentActivity')}</p>
                     </div>
                   ) : (
                     notifications.map((n) => <ActivityItem key={n.id} n={n} />)
@@ -163,7 +165,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
                   onClick={onViewAllNotifications}
                   className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-500 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all"
                 >
-                  مشاهدة كافة الإشعارات
+                  {t('business.overview.viewAllNotifications')}
                 </button>
               </div>
             </div>
@@ -173,7 +175,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8 md:gap-10">
           <div className="bg-white p-4 sm:p-8 md:p-12 rounded-[2rem] sm:rounded-[2.75rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
             <div className="flex items-center justify-between mb-6 sm:mb-8 md:mb-10 flex-row-reverse">
-              <h3 className="text-2xl font-black text-slate-900">آخر التنبيهات</h3>
+              <h3 className="text-2xl font-black text-slate-900">{t('business.overview.latestAlerts')}</h3>
               <div className="w-10 h-10 bg-cyan-50 rounded-full flex items-center justify-center text-[#00E5FF]">
                 <Bell size={20} />
               </div>
@@ -182,7 +184,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
               {notifications.length === 0 ? (
                 <div className="py-16 sm:py-20 md:py-24 text-center text-slate-200">
                   <Bell size={40} className="mx-auto mb-4 opacity-10 sm:w-12 sm:h-12" />
-                  <p className="font-bold">لا توجد عمليات مؤخراً.</p>
+                  <p className="font-bold">{t('business.overview.noRecentActivity')}</p>
                 </div>
               ) : (
                 notifications.map((n) => <ActivityItem key={n.id} n={n} />)
@@ -193,7 +195,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
               onClick={onViewAllNotifications}
               className="w-full mt-8 sm:mt-10 py-4 sm:py-5 bg-slate-50 text-slate-500 font-black text-xs rounded-2xl hover:bg-slate-100 transition-all"
             >
-              مشاهدة كافة الإشعارات
+              {t('business.overview.viewAllNotifications')}
             </button>
           </div>
         </div>

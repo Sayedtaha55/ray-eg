@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   config: any;
@@ -13,20 +14,17 @@ type Props = {
 
 const BACKGROUNDS = ['#FFFFFF', '#F8FAFC', '#F1F5F9', '#0F172A', '#111827', '#FAFAFA', '#FFF7ED', '#F0FDFA', '#FDF2F8', '#ECFEFF'];
 
-const BACKGROUND_PRESETS: { id: string; label: string; url: string }[] = [
+const BACKGROUND_PRESETS: { id: string; url: string }[] = [
   {
     id: 'mountains',
-    label: 'جبال',
     url: 'https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1600&auto=format&fit=crop',
   },
   {
     id: 'ice',
-    label: 'ثلج',
     url: 'https://images.unsplash.com/photo-1482192596544-9eb780fc7f66?w=1600&auto=format&fit=crop',
   },
   {
     id: 'forest',
-    label: 'أشجار',
     url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1600&auto=format&fit=crop',
   },
 ];
@@ -39,6 +37,7 @@ const BackgroundSection: React.FC<Props> = ({
   backgroundPreview,
   setBackgroundPreview,
 }) => {
+  const { t } = useTranslation();
   const selectedBackgroundColor = config.pageBackgroundColor || config.backgroundColor;
   const selectedBackgroundImageUrl = String((config as any)?.backgroundImageUrl || '');
   const hasAnyBackgroundImage = Boolean(backgroundPreview || selectedBackgroundImageUrl);
@@ -47,7 +46,7 @@ const BackgroundSection: React.FC<Props> = ({
     <div className="space-y-4">
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="font-black text-sm">صورة خلفية</span>
+          <span className="font-black text-sm">{t('business.builder.background.backgroundImage')}</span>
           <button
             type="button"
             onClick={() => {
@@ -61,7 +60,7 @@ const BackgroundSection: React.FC<Props> = ({
             className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2"
             disabled={!hasAnyBackgroundImage}
           >
-            حذف خلفية
+            {t('business.builder.background.deleteBackground')}
           </button>
         </div>
 
@@ -84,13 +83,13 @@ const BackgroundSection: React.FC<Props> = ({
               >
                 <SmartImage
                   src={p.url}
-                  alt={p.label}
+                  alt={t(`business.builder.background.presets.${p.id}`)}
                   className="absolute inset-0 w-full h-full"
                   imgClassName="object-cover"
                   loading="lazy"
                 />
                 <div className="absolute inset-0 bg-black/20" />
-                <span className="absolute bottom-1 right-2 text-[10px] font-black text-white drop-shadow">{p.label}</span>
+                <span className="absolute bottom-1 right-2 text-[10px] font-black text-white drop-shadow">{t(`business.builder.background.presets.${p.id}`)}</span>
               </button>
             );
           })}
@@ -119,7 +118,7 @@ const BackgroundSection: React.FC<Props> = ({
             htmlFor="background-upload"
             className="w-full bg-slate-50 rounded-2xl py-4 px-5 font-bold outline-none border border-slate-100 text-right cursor-pointer hover:bg-slate-100 transition-colors flex items-center justify-between"
           >
-            <span className="text-slate-400">{backgroundFile ? backgroundFile.name : 'رفع صورة خلفية من الجهاز'}</span>
+            <span className="text-slate-400">{backgroundFile ? backgroundFile.name : t('business.builder.background.uploadFromDevice')}</span>
             <span className="text-slate-500 text-xs font-black">UPLOAD</span>
           </label>
         </div>
@@ -128,9 +127,9 @@ const BackgroundSection: React.FC<Props> = ({
       <div className="h-px bg-slate-100" />
 
       <div className="space-y-2">
-        <span className="font-black text-sm">لون الخلفية</span>
+        <span className="font-black text-sm">{t('business.builder.background.backgroundColor')}</span>
         <div className="space-y-1">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">اختيار لون</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.background.chooseColor')}</label>
           <input
             type="color"
             value={String(selectedBackgroundColor || '#FFFFFF')}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, CheckCircle, Banknote, Phone, Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 type OrderItem = {
   id: string;
@@ -14,7 +15,7 @@ const asCleanText = (v: any) => {
   return t ? t : '';
 };
 
-const formatAddonsCompact = (raw: any): string => {
+const formatAddonsCompact = (raw: any, t: any): string => {
   if (!raw) return '';
   const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
   if (!Array.isArray(list) || list.length === 0) return '';
@@ -30,7 +31,7 @@ const formatAddonsCompact = (raw: any): string => {
       const name = asCleanText(a?.optionName || a?.name || a?.title || a?.label);
       const size = asCleanText(a?.variantLabel || a?.variant || a?.size || a?.sizeLabel || a?.sizeName);
       const priceRaw = typeof a?.price === 'number' ? a.price : Number(a?.price ?? NaN);
-      const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` (ج.م ${Math.round(priceRaw * 100) / 100})` : '';
+      const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` (${t('courier.common.egpAbbr')} ${Math.round(priceRaw * 100) / 100})` : '';
       const core = [name, size].filter(Boolean).join(' ');
       return core ? `+ ${core}${priceText}`.trim() : '';
     })
@@ -58,6 +59,7 @@ const CourierOrdersTab: React.FC<{
   copyText,
   updateOrder,
 }) => {
+  const { t } = useTranslation();
   if (loading) {
     return <div className="flex justify-center py-20"><div className="animate-spin h-6 w-6 rounded-full border-2 border-white/20 border-t-[#00E5FF]" /></div>;
   }
@@ -65,7 +67,7 @@ const CourierOrdersTab: React.FC<{
   if (visibleOrders.length === 0) {
     return (
       <div className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-10 md:p-12 text-center text-slate-400 font-bold">
-        {activeTab === 'delivered' ? 'لا توجد طلبات تم توصيلها بعد.' : 'لا توجد طلبات مخصصة لك حالياً.'}
+        {activeTab === 'delivered' ? t('courier.ordersTab.noDeliveredOrders') : t('courier.ordersTab.noAssignedOrders')}
       </div>
     );
   }
@@ -100,8 +102,8 @@ const CourierOrdersTab: React.FC<{
         const shopLng = Number((order as any)?.shop?.longitude);
         const hasShopCoords = Number.isFinite(shopLat) && Number.isFinite(shopLng);
         const customerPhone = String(((order as any)?.customerPhone ?? (order as any)?.customer_phone ?? order?.user?.phone ?? '')).trim();
-        const customerName = String(order?.user?.name || 'غير معروف');
-        const shopName = String(order?.shop?.name || 'متجر غير معروف');
+        const customerName = String(order?.user?.name || t('courier.common.unknown'));
+        const shopName = String(order?.shop?.name || t('courier.common.unknownShop'));
         const manualAddress = String(((order as any)?.deliveryAddressManual ?? (order as any)?.delivery_address_manual ?? '')).trim();
         const deliveryNote = String(((order as any)?.deliveryNote ?? (order as any)?.delivery_note ?? '')).trim();
         const customerNote = String(((order as any)?.customerNote ?? (order as any)?.customer_note ?? '')).trim();
@@ -110,13 +112,13 @@ const CourierOrdersTab: React.FC<{
           <div key={order.id} className="bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] p-4 md:p-6 lg:p-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
               <div className="space-y-1 md:space-y-2">
-                <p className="text-xs text-slate-500 font-black uppercase">طلب #{String(order.id).slice(0, 8)}</p>
+                <p className="text-xs text-slate-500 font-black uppercase">{t('courier.ordersTab.orderLabel', { id: String(order.id).slice(0, 8) })}</p>
                 <h3 className="text-lg md:text-xl font-black">{shopName}</h3>
                 <p className="text-xs md:text-sm text-slate-400 font-bold">
-                  العميل: {customerName} {customerPhone ? `• ${customerPhone}` : ''}
+                  {t('courier.common.customer')}: {customerName} {customerPhone ? `• ${customerPhone}` : ''}
                 </p>
                 {!deliveryEnabledForCourier ? (
-                  <p className="text-[11px] md:text-xs text-amber-300 font-black">هذا الطلب يتبع توصيل المتجر الداخلي، لذلك بيانات الخريطة لا تظهر للمندوب.</p>
+                  <p className="text-[11px] md:text-xs text-amber-300 font-black">{t('courier.ordersTab.shopInternalDeliveryNote')}</p>
                 ) : null}
                 <p className="text-xs text-slate-500">{new Date(order.created_at || order.createdAt).toLocaleString('ar-EG')}</p>
               </div>
@@ -133,7 +135,7 @@ const CourierOrdersTab: React.FC<{
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] font-black text-xs"
                   >
-                    <MapPin size={12} /> فتح الخريطة
+                    <MapPin size={12} /> {t('courier.common.openMap')}
                   </a>
                 )}
 
@@ -142,43 +144,43 @@ const CourierOrdersTab: React.FC<{
                     href={`tel:${customerPhone}`}
                     className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
                   >
-                    <Phone size={12} /> اتصال
+                    <Phone size={12} /> {t('courier.common.call')}
                   </a>
                 ) : null}
 
                 {customerPhone ? (
                   <button
                     type="button"
-                    onClick={() => copyText(customerPhone, 'انسخ رقم العميل')}
+                    onClick={() => copyText(customerPhone, t('courier.ordersTab.copyCustomerPhoneFallback'))}
                     className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 hover:bg-white/10 font-black text-xs"
                   >
-                    <Copy size={12} /> نسخ الرقم
+                    <Copy size={12} /> {t('courier.common.copyNumber')}
                   </button>
                 ) : null}
 
                 <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-white/5 text-slate-200 font-black text-xs">
-                  الإجمالي: ج.م {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
+                  {t('courier.common.total')}: {t('courier.common.egpAbbr')} {Number.isFinite(grandTotal) ? grandTotal.toLocaleString() : '0'}
                 </span>
 
                 {fee > 0 && (
                   <span className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl bg-amber-500/10 text-amber-300 font-black text-xs">
-                    رسوم التوصيل: ج.م {fee}
+                    {t('courier.ordersTab.deliveryFee')}: {t('courier.common.egpAbbr')} {fee}
                   </span>
                 )}
               </div>
 
               {deliveryEnabledForCourier && (manualAddress || location?.address || deliveryNote || location?.note || customerNote) ? (
                 <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">بيانات التوصيل</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t('courier.ordersTab.deliveryInfo')}</div>
                   <div className="mt-3 text-slate-200 font-bold text-sm space-y-1">
                     {(manualAddress || location?.address) ? (
-                      <div>العنوان: {manualAddress || location?.address}</div>
+                      <div>{t('courier.common.address')}: {manualAddress || location?.address}</div>
                     ) : null}
                     {(deliveryNote || location?.note) ? (
-                      <div>ملاحظة توصيل: {deliveryNote || location?.note}</div>
+                      <div>{t('courier.ordersTab.deliveryNote')}: {deliveryNote || location?.note}</div>
                     ) : null}
                     {customerNote ? (
-                      <div>ملاحظة الطلب: {customerNote}</div>
+                      <div>{t('courier.ordersTab.orderNote')}: {customerNote}</div>
                     ) : null}
                   </div>
                 </div>
@@ -187,14 +189,14 @@ const CourierOrdersTab: React.FC<{
 
             <div className="mt-4 md:mt-6 grid md:grid-cols-2 gap-4 md:gap-6">
               <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4">
-                <p className="text-xs text-slate-500 font-black mb-2 md:mb-3">الأصناف</p>
+                <p className="text-xs text-slate-500 font-black mb-2 md:mb-3">{t('courier.ordersTab.items')}</p>
                 <ul className="space-y-1 md:space-y-2 text-xs md:text-sm text-slate-300">
                   {(order.items || []).map((item: OrderItem) => (
                     <li key={item.id} className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="truncate">{item.product?.name || 'منتج'}</div>
+                        <div className="truncate">{item.product?.name || t('courier.ordersTab.product')}</div>
                         {(() => {
-                          const addonsText = formatAddonsCompact((item as any)?.addons ?? (item as any)?.extras ?? (item as any)?.addOns);
+                          const addonsText = formatAddonsCompact((item as any)?.addons ?? (item as any)?.extras ?? (item as any)?.addOns, t);
                           if (!addonsText) return null;
                           return <div className="text-[10px] md:text-xs text-slate-500 font-black mt-1 break-words">{addonsText}</div>;
                         })()}
@@ -205,8 +207,8 @@ const CourierOrdersTab: React.FC<{
                           const unitPrice = typeof (item as any)?.price === 'number' ? (item as any).price : Number((item as any)?.price ?? NaN);
                           const safeQty = Number.isFinite(qty) && qty > 0 ? qty : 1;
                           const lineTotal = Number.isFinite(unitPrice) ? unitPrice * safeQty : NaN;
-                          const priceText = Number.isFinite(unitPrice) && unitPrice >= 0 ? `ج.م ${Math.round(unitPrice * 100) / 100}` : '';
-                          const totalText = safeQty > 1 && Number.isFinite(lineTotal) ? ` (الإجمالي ${Math.round(lineTotal * 100) / 100})` : '';
+                          const priceText = Number.isFinite(unitPrice) && unitPrice >= 0 ? `${t('courier.common.egpAbbr')} ${Math.round(unitPrice * 100) / 100}` : '';
+                          const totalText = safeQty > 1 && Number.isFinite(lineTotal) ? ` (${t('courier.common.total')} ${Math.round(lineTotal * 100) / 100})` : '';
                           return priceText ? (
                             <div className="text-slate-200 font-black text-xs md:text-sm whitespace-nowrap">
                               {priceText}{totalText}
@@ -222,7 +224,7 @@ const CourierOrdersTab: React.FC<{
 
               <div className="bg-slate-950/50 border border-white/5 rounded-2xl p-3 md:p-4 space-y-3 md:space-y-4">
                 <div>
-                  <p className="text-xs text-slate-500 font-black">الحالة الحالية</p>
+                  <p className="text-xs text-slate-500 font-black">{t('courier.ordersTab.currentStatus')}</p>
                   <p className="text-xs md:text-sm font-black text-white">{String(order.status || 'PENDING')}</p>
                 </div>
 
@@ -231,71 +233,71 @@ const CourierOrdersTab: React.FC<{
                     disabled
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${status === 'CONFIRMED' || status === 'PREPARING' || status === 'READY' || status === 'DELIVERED' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-white/5 text-slate-500'}`}
                   >
-                    <CheckCircle size={12} /> قبول
+                    <CheckCircle size={12} /> {t('courier.ordersTab.accepted')}
                   </button>
 
                   <button
                     disabled
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${status === 'PREPARING' || status === 'READY' || status === 'DELIVERED' ? 'bg-amber-500/15 text-amber-300' : 'bg-white/5 text-slate-500'}`}
                   >
-                    <CheckCircle size={12} /> قيد التنفيذ
+                    <CheckCircle size={12} /> {t('courier.ordersTab.inProgress')}
                   </button>
 
                   <button
                     disabled
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${status === 'READY' || status === 'DELIVERED' ? 'bg-indigo-500/15 text-indigo-300' : 'bg-white/5 text-slate-500'}`}
                   >
-                    <CheckCircle size={12} /> جاهز
+                    <CheckCircle size={12} /> {t('courier.ordersTab.ready')}
                   </button>
 
                   <button
                     disabled
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${handedToCourier ? 'bg-sky-500/15 text-sky-300' : 'bg-white/5 text-slate-500'}`}
                   >
-                    <CheckCircle size={12} /> تم تسليمه للتوصيل
+                    <CheckCircle size={12} /> {t('courier.ordersTab.handedToCourier')}
                   </button>
 
                   <button
                     disabled={delivered || status !== 'READY' || !handedToCourier}
                     onClick={async () => {
                       if (delivered || status !== 'READY' || !handedToCourier) return;
-                      const ok = window.confirm('تأكيد: تم تسليم الطلب للعميل؟');
+                      const ok = window.confirm(t('courier.ordersTab.confirmDelivered'));
                       if (!ok) return;
                       await updateOrder(String(order.id), { status: 'DELIVERED' });
                     }}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${delivered || status !== 'READY' || !handedToCourier ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-emerald-500/15 text-emerald-300 hover:bg-emerald-500/25'}`}
                   >
-                    <CheckCircle size={12} /> تم التوصيل
+                    <CheckCircle size={12} /> {t('courier.ordersTab.delivered')}
                   </button>
 
                   <button
                     disabled={codCollected}
                     onClick={async () => {
                       if (codCollected) return;
-                      const ok = window.confirm('تأكيد: تم تحصيل الكاش من العميل؟');
+                      const ok = window.confirm(t('courier.ordersTab.confirmCashCollected'));
                       if (!ok) return;
                       await updateOrder(String(order.id), { codCollected: true });
                     }}
                     className={`inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black ${codCollected ? 'bg-white/5 text-slate-500 cursor-not-allowed' : 'bg-amber-500/15 text-amber-300 hover:bg-amber-500/25'}`}
                   >
-                    <Banknote size={12} /> {codCollected ? 'تم تحصيل الكاش' : 'تحصيل الكاش'}
+                    <Banknote size={12} /> {codCollected ? t('courier.ordersTab.cashCollected') : t('courier.ordersTab.collectCash')}
                   </button>
 
                   {location?.address ? (
                     <button
                       type="button"
-                      onClick={() => copyText(String(location.address), 'انسخ العنوان')}
+                      onClick={() => copyText(String(location.address), t('courier.ordersTab.copyAddressFallback'))}
                       className="inline-flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 rounded-2xl text-xs font-black bg-white/5 text-slate-200 hover:bg-white/10"
                     >
-                      <Copy size={12} /> نسخ العنوان
+                      <Copy size={12} /> {t('courier.common.copyAddress')}
                     </button>
                   ) : null}
                 </div>
 
                 {(location?.address || location?.note) && (
                   <div className="text-xs text-slate-400">
-                    {location?.address && <p>العنوان: {location.address}</p>}
-                    {location?.note && <p>ملاحظات: {location.note}</p>}
+                    {location?.address && <p>{t('courier.common.address')}: {location.address}</p>}
+                    {location?.note && <p>{t('courier.ordersTab.notes')}: {location.note}</p>}
                   </div>
                 )}
               </div>

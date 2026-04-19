@@ -2,6 +2,7 @@ import * as React from 'react';
 import * as SheetPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import i18n from '@/i18n';
 
 export const Sheet = SheetPrimitive.Root;
 export const SheetTrigger = SheetPrimitive.Trigger;
@@ -50,7 +51,7 @@ export const SheetContent = React.forwardRef<
       {children}
       <SheetPrimitive.Close
         className="absolute left-4 top-4 rounded-xl bg-slate-50 p-2 text-slate-900 hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
-        aria-label="إغلاق"
+        aria-label={i18n.t('ui.close')}
       >
         <X size={18} />
       </SheetPrimitive.Close>

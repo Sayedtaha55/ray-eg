@@ -3,6 +3,7 @@ import { CreditCard, Search, MoreVertical, DollarSign, Loader2, Filter, Shopping
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 import { formatPackLabelArabic } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 const { useNavigate } = ReactRouterDOM as any;
 
@@ -32,7 +33,7 @@ const formatVariantSelectionCompact = (raw: any) => {
   return [type, size].filter(Boolean).join(' ');
 };
 
-const formatAddonsCompactParts = (raw: any): string[] => {
+const formatAddonsCompactParts = (raw: any, t?: any): string[] => {
   if (!raw) return [];
   const list = Array.isArray(raw) ? raw : (Array.isArray((raw as any)?.items) ? (raw as any).items : null);
   if (!Array.isArray(list) || list.length === 0) return [];
@@ -44,7 +45,7 @@ const formatAddonsCompactParts = (raw: any): string[] => {
       const name = asCleanText(a?.optionName || a?.name || a?.title || a?.label);
       const size = asCleanText(a?.variantLabel || a?.variant || a?.size || a?.sizeLabel || a?.sizeName);
       const priceRaw = typeof a?.price === 'number' ? a.price : Number(a?.price ?? NaN);
-      const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ج.م ${Math.round(priceRaw * 100) / 100}` : '';
+      const priceText = Number.isFinite(priceRaw) && priceRaw >= 0 ? ` ${t ? t('admin.orders.egp') : 'EGP'} ${Math.round(priceRaw * 100) / 100}` : '';
       const core = [name, size].filter(Boolean).join(' ');
       if (!core) return '';
       return `${core}${priceText}`.trim();
@@ -54,7 +55,7 @@ const formatAddonsCompactParts = (raw: any): string[] => {
   return out;
 };
 
-const formatOrderItemsFull = (order: any) => {
+const formatOrderItemsFull = (order: any, t?: any) => {
   const items = Array.isArray(order?.items) ? order.items : [];
   if (items.length === 0) return '';
 
@@ -70,10 +71,10 @@ const formatOrderItemsFull = (order: any) => {
         if (!Number.isFinite(unitPrice) || unitPrice < 0) return '';
         const useTotal = Number.isFinite(lineTotal) && safeQty > 1;
         const n = useTotal ? lineTotal : unitPrice;
-        return ` ج.م ${Math.round(n * 100) / 100}`;
+        return ` ${t ? t('admin.orders.egp') : 'EGP'} ${Math.round(n * 100) / 100}`;
       })();
       const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection);
-      const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns);
+      const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns, t);
       const core = [name, variantText].filter(Boolean).join(' ');
       const base = [core ? `${core}${qtyText}` : '', priceText].filter(Boolean).join('');
       const addons = addonsParts.length ? ` + ${addonsParts.join(' + ')}` : '';
@@ -85,6 +86,7 @@ const formatOrderItemsFull = (order: any) => {
 };
 
 const AdminOrders: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,12 +143,12 @@ const AdminOrders: React.FC = () => {
 
   const formatStatus = (status: any) => {
     const s = String(status || '').toUpperCase();
-    if (s === 'DELIVERED') return { label: 'تم التوصيل', cls: 'bg-green-500/10 text-green-500' };
-    if (s === 'READY') return { label: 'جاهز', cls: 'bg-blue-500/10 text-blue-500' };
-    if (s === 'PREPARING') return { label: 'قيد التجهيز', cls: 'bg-amber-500/10 text-amber-500' };
-    if (s === 'CONFIRMED') return { label: 'مؤكد', cls: 'bg-amber-500/10 text-amber-500' };
-    if (s === 'CANCELLED') return { label: 'ملغي', cls: 'bg-red-500/10 text-red-500' };
-    return { label: 'قيد المراجعة', cls: 'bg-amber-500/10 text-amber-500' };
+    if (s === 'DELIVERED') return { label: t('admin.orders.statusDelivered'), cls: 'bg-green-500/10 text-green-500' };
+    if (s === 'READY') return { label: t('admin.orders.statusReady'), cls: 'bg-blue-500/10 text-blue-500' };
+    if (s === 'PREPARING') return { label: t('admin.orders.statusPreparing'), cls: 'bg-amber-500/10 text-amber-500' };
+    if (s === 'CONFIRMED') return { label: t('admin.orders.statusConfirmed'), cls: 'bg-amber-500/10 text-amber-500' };
+    if (s === 'CANCELLED') return { label: t('admin.orders.statusCancelled'), cls: 'bg-red-500/10 text-red-500' };
+    return { label: t('admin.orders.statusReviewing'), cls: 'bg-amber-500/10 text-amber-500' };
   };
 
   useEffect(() => {
@@ -178,7 +180,7 @@ const AdminOrders: React.FC = () => {
 
   const editDeliveryFee = async (order: any) => {
     const current = getDeliveryFeeFromNotes(order?.notes);
-    const raw = window.prompt('رسوم التوصيل (ج.م)', current != null ? String(current) : '');
+    const raw = window.prompt(t('admin.orders.deliveryFeePrompt'), current != null ? String(current) : '');
     if (raw == null) return;
     const fee = Number(String(raw).trim());
     if (Number.isNaN(fee) || fee < 0) return;
@@ -190,7 +192,7 @@ const AdminOrders: React.FC = () => {
 
   const assignCourier = async (order: any) => {
     if (!couriers.length) {
-      window.alert('لا يوجد مندوبين حالياً. أضف مندوب أولاً ثم حاول مرة أخرى.');
+      window.alert(t('admin.orders.noCouriersAlert'));
       return;
     }
     const token = (() => {
@@ -201,7 +203,7 @@ const AdminOrders: React.FC = () => {
       }
     })();
     if (!token) {
-      window.alert('غير مسجل دخول كـ Admin أو التوكن غير موجود. سجّل دخول من بوابة الآدمن ثم أعد المحاولة.');
+      window.alert(t('admin.orders.noAdminTokenAlert'));
       return;
     }
 
@@ -209,7 +211,7 @@ const AdminOrders: React.FC = () => {
     const options = couriers
       .map((c) => `${c.id}::${c.name || c.email || c.phone || c.id}`)
       .join('\n');
-    const raw = window.prompt(`اختر المندوب (اكتب الـID)\n${options}`, current);
+    const raw = window.prompt(`${t('admin.orders.selectCourierPrompt')}\n${options}`, current);
     if (!raw) return;
     const courierId = String(raw).split('::')[0].trim();
     if (!courierId) return;
@@ -218,7 +220,7 @@ const AdminOrders: React.FC = () => {
       const updated = await ApiService.assignCourierToOrder(String(order.id), courierId);
       setOrders((prev) => prev.map((o) => (String(o.id) === String(updated?.id) ? { ...o, ...updated } : o)));
     } catch (e: any) {
-      window.alert(e?.message || 'فشل تعيين المندوب');
+      window.alert(e?.message || t('admin.orders.assignFailed'));
     }
   };
 
@@ -234,8 +236,8 @@ const AdminOrders: React.FC = () => {
             <CreditCard size={24} />
           </div>
           <div>
-            <h2 className="text-3xl font-black text-white">إدارة العمليات</h2>
-            <p className="text-slate-500 text-sm font-bold">مراقبة كافة المبيعات والتدفق المالي.</p>
+            <h2 className="text-3xl font-black text-white">{t('admin.orders.title')}</h2>
+            <p className="text-slate-500 text-sm font-bold">{t('admin.orders.subtitle')}</p>
           </div>
         </div>
         
@@ -245,11 +247,11 @@ const AdminOrders: React.FC = () => {
             className="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-[#00E5FF]/10 text-[#00E5FF] text-xs font-black hover:bg-[#00E5FF]/20 transition"
           >
             <UserPlus size={16} />
-            إضافة مندوب
+            {t('admin.orders.addCourier')}
           </button>
           <div className="relative w-full md:w-80">
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4" />
-            <input className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm" placeholder="ابحث برقم الفاتورة..." />
+            <input className="w-full bg-slate-900 border border-white/5 rounded-xl py-3 pr-12 pl-4 text-white outline-none focus:border-[#00E5FF]/50 transition-all text-sm" placeholder={t('admin.orders.searchPlaceholder')} />
           </div>
         </div>
       </div>
@@ -264,15 +266,15 @@ const AdminOrders: React.FC = () => {
               <table className="w-full text-right border-collapse">
                 <thead>
                   <tr className="border-b border-white/5 bg-white/5">
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رقم العملية</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">التاريخ</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الأصناف</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المبلغ</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">رسوم التوصيل</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الدفع</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الموقع</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">المندوب</th>
-                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">الحالة</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.operationId')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.date')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.items')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.amount')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.deliveryFee')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.payment')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.location')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.courier')}</th>
+                    <th className="p-6 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.orders.table.status')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -282,7 +284,7 @@ const AdminOrders: React.FC = () => {
                       <td className="p-6 text-slate-500 text-sm">{new Date(order.created_at).toLocaleString('ar-EG')}</td>
                       <td className="p-6 text-slate-200 font-black text-xs max-w-[520px]">
                         {(() => {
-                          const itemsText = formatOrderItemsFull(order);
+                          const itemsText = formatOrderItemsFull(order, t);
                           return (
                             <div className="whitespace-normal break-words" title={itemsText || ''}>
                               {itemsText || '-'}
@@ -291,7 +293,7 @@ const AdminOrders: React.FC = () => {
                         })()}
                       </td>
                       <td className="p-6">
-                        <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
+                        <span className="text-[#00E5FF] font-black">{t('admin.orders.egp')} {order.total.toLocaleString()}</span>
                       </td>
                       <td className="p-6">
                         {(() => {
@@ -301,13 +303,13 @@ const AdminOrders: React.FC = () => {
                               onClick={() => editDeliveryFee(order)}
                               className="text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
                             >
-                              {fee == null ? 'تحديد' : `ج.م ${fee}`} 
+                              {fee == null ? t('admin.orders.setFee') : `${t('admin.orders.egp')} ${fee}`} 
                             </button>
                           );
                         })()}
                       </td>
                       <td className="p-6">
-                        <span className="text-slate-200 font-black text-xs">{String(order.paymentMethod || order.payment_method || 'غير محدد')}</span>
+                        <span className="text-slate-200 font-black text-xs">{String(order.paymentMethod || order.payment_method || t('admin.orders.undefined'))}</span>
                       </td>
                       <td className="p-6">
                         {(() => {
@@ -324,10 +326,10 @@ const AdminOrders: React.FC = () => {
                           if (loc) {
                             const href = `https://www.google.com/maps?q=${loc.lat},${loc.lng}`;
                             const title = [
-                              customerPhone ? `هاتف: ${customerPhone}` : '',
-                              (manual || loc.address) ? `عنوان: ${manual || loc.address}` : '',
-                              (note || loc.note) ? `ملاحظة توصيل: ${note || loc.note}` : '',
-                              customerNote ? `ملاحظة الطلب: ${customerNote}` : '',
+                              customerPhone ? `${t('admin.orders.phone')}: ${customerPhone}` : '',
+                              (manual || loc.address) ? `${t('admin.orders.address')}: ${manual || loc.address}` : '',
+                              (note || loc.note) ? `${t('admin.orders.deliveryNote')}: ${note || loc.note}` : '',
+                              customerNote ? `${t('admin.orders.orderNote')}: ${customerNote}` : '',
                             ].filter(Boolean).join('\n');
                             return (
                               <a
@@ -337,20 +339,20 @@ const AdminOrders: React.FC = () => {
                                 className="text-[#00E5FF] font-black text-xs hover:underline"
                                 title={title}
                               >
-                                فتح الخريطة
+                                {t('admin.orders.openMap')}
                               </a>
                             );
                           }
 
                           const title = [
-                            customerPhone ? `هاتف: ${customerPhone}` : '',
-                            manual ? `عنوان: ${manual}` : '',
-                            note ? `ملاحظة توصيل: ${note}` : '',
-                            customerNote ? `ملاحظة الطلب: ${customerNote}` : '',
+                            customerPhone ? `${t('admin.orders.phone')}: ${customerPhone}` : '',
+                            manual ? `${t('admin.orders.address')}: ${manual}` : '',
+                            note ? `${t('admin.orders.deliveryNote')}: ${note}` : '',
+                            customerNote ? `${t('admin.orders.orderNote')}: ${customerNote}` : '',
                           ].filter(Boolean).join('\n');
 
                           if (manual || note || customerPhone || customerNote) {
-                            return <span className="text-slate-200 font-black text-xs" title={title}>تفاصيل</span>;
+                            return <span className="text-slate-200 font-black text-xs" title={title}>{t('admin.orders.details')}</span>;
                           }
                           return <span className="text-slate-500 text-xs font-bold">-</span>;
                         })()}
@@ -361,7 +363,7 @@ const AdminOrders: React.FC = () => {
                           className="inline-flex items-center gap-2 text-slate-200 font-black text-xs hover:text-[#00E5FF] transition-colors"
                         >
                           <UserPlus size={14} />
-                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || 'تعيين'}
+                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || t('admin.orders.assign')}
                         </button>
                       </td>
                       <td className="p-6">
@@ -386,7 +388,7 @@ const AdminOrders: React.FC = () => {
                 const fee = getDeliveryFeeFromNotes(order.notes);
                 const loc = parseCodLocation(order.notes);
                 const meta = formatStatus(order.status);
-                const itemsText = formatOrderItemsFull(order);
+                const itemsText = formatOrderItemsFull(order, t);
                 return (
                   <div key={order.id} className="bg-slate-800/50 border border-white/5 rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
@@ -403,43 +405,43 @@ const AdminOrders: React.FC = () => {
                     ) : null}
                     <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-slate-400">المبلغ:</span>
-                        <span className="text-[#00E5FF] font-black">ج.م {order.total.toLocaleString()}</span>
+                        <span className="text-slate-400">{t('admin.orders.amount')}:</span>
+                        <span className="text-[#00E5FF] font-black">{t('admin.orders.egp')} {order.total.toLocaleString()}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">رسوم:</span>
+                        <span className="text-slate-400">{t('admin.orders.fee')}:</span>
                         <button
                           onClick={() => editDeliveryFee(order)}
                           className="text-slate-200 font-black hover:text-[#00E5FF] transition-colors"
                         >
-                          {fee == null ? 'تحديد' : `ج.م ${fee}`}
+                          {fee == null ? t('admin.orders.setFee') : `${t('admin.orders.egp')} ${fee}`}
                         </button>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">الدفع:</span>
-                        <span className="text-slate-200 font-black">{String(order.paymentMethod || order.payment_method || 'غير محدد')}</span>
+                        <span className="text-slate-400">{t('admin.orders.payment')}:</span>
+                        <span className="text-slate-200 font-black">{String(order.paymentMethod || order.payment_method || t('admin.orders.undefined'))}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-slate-400">المندوب:</span>
+                        <span className="text-slate-400">{t('admin.orders.courier')}:</span>
                         <button
                           onClick={() => assignCourier(order)}
                           className="inline-flex items-center gap-1 text-slate-200 font-black hover:text-[#00E5FF] transition-colors"
                         >
                           <UserPlus size={10} />
-                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || 'تعيين'}
+                          {order?.courier?.name || order?.courier?.email || order?.courier?.phone || t('admin.orders.assign')}
                         </button>
                       </div>
                     </div>
                     {loc && (
                       <div className="flex justify-between items-center pt-1">
-                        <span className="text-slate-400 text-xs">الموقع:</span>
+                        <span className="text-slate-400 text-xs">{t('admin.orders.location')}:</span>
                         <a
                           href={`https://www.google.com/maps?q=${loc.lat},${loc.lng}`}
                           target="_blank"
                           rel="noreferrer"
                           className="text-[#00E5FF] font-black hover:underline text-xs"
                         >
-                          فتح الخريطة
+                          {t('admin.orders.openMap')}
                         </a>
                       </div>
                     )}

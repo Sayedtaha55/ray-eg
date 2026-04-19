@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
 import { Lock, Shield, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
 
 interface SecurityProps {
   shop: any;
@@ -14,6 +15,7 @@ interface SecurityProps {
 
 const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const [isSaving, setIsSaving] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -77,31 +79,31 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
       if (passwordTouched) {
         if (!currentPassword) {
           toast({
-            title: 'خطأ',
-            description: 'كلمة المرور الحالية مطلوبة',
+            title: t('securitySettings.error'),
+            description: t('securitySettings.currentPasswordRequired'),
             variant: 'destructive',
           });
           return false;
         }
         if (!newPassword || newPassword.length < 8) {
           toast({
-            title: 'خطأ',
-            description: 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل',
+            title: t('securitySettings.error'),
+            description: t('securitySettings.newPasswordMinLength'),
             variant: 'destructive',
           });
           return false;
         }
         if (newPassword !== confirmPassword) {
           toast({
-            title: 'خطأ',
-            description: 'كلمة المرور الجديدة وتأكيدها غير متطابقين',
+            title: t('securitySettings.error'),
+            description: t('securitySettings.passwordsDoNotMatch'),
             variant: 'destructive',
           });
           return false;
         }
 
         await ApiService.changePassword({ currentPassword, newPassword });
-        toast({ title: 'تم التحديث', description: 'تم تغيير كلمة المرور بنجاح' });
+        toast({ title: t('securitySettings.updated'), description: t('securitySettings.passwordChanged') });
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
@@ -109,14 +111,14 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
 
       if (showTwoFactorSetup) {
         if (!twoFactorCode) {
-          toast({ title: 'خطأ', description: 'الرجاء إدخال رمز التحقق', variant: 'destructive' });
+          toast({ title: t('securitySettings.error'), description: t('securitySettings.enterVerificationCode'), variant: 'destructive' });
           return false;
         }
         await new Promise(resolve => setTimeout(resolve, 1000));
         setTwoFactorEnabled(true);
         setShowTwoFactorSetup(false);
         setTwoFactorCode('');
-        toast({ title: 'تم التفعيل', description: 'تم تفعيل المصادقة الثنائية بنجاح' });
+        toast({ title: t('securitySettings.activated'), description: t('securitySettings.twoFactorActivated') });
       }
 
       baselineRef.current = {
@@ -135,7 +137,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
       onSaved();
       return true;
     } catch {
-      toast({ title: 'خطأ', description: 'حدث خطأ أثناء حفظ إعدادات الأمان', variant: 'destructive' });
+      toast({ title: t('securitySettings.error'), description: t('securitySettings.saveSecurityFailed'), variant: 'destructive' });
       return false;
     } finally {
       setIsSaving(false);
@@ -160,22 +162,22 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">الأمان</h1>
-        <p className="text-muted-foreground">إدارة إعدادات الأمان الخاصة بحسابك</p>
+        <h1 className="text-2xl font-bold">{t('securitySettings.title')}</h1>
+        <p className="text-muted-foreground">{t('securitySettings.subtitle')}</p>
       </div>
 
       {/* Change Password */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>تغيير كلمة المرور</CardTitle>
+          <CardTitle>{t('securitySettings.changePassword')}</CardTitle>
           <CardDescription>
-            قم بتحديث كلمة المرور الحالية بكلمة مرور جديدة وقوية.
+            {t('securitySettings.changePasswordDesc')}
           </CardDescription>
         </CardHeader>
         <form onSubmit={(e) => e.preventDefault()}>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="current-password">كلمة المرور الحالية</Label>
+              <Label htmlFor="current-password">{t('securitySettings.currentPassword')}</Label>
               <div className="relative">
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                   <Lock className="w-4 h-4" />
@@ -200,7 +202,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
             
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="new-password">كلمة المرور الجديدة</Label>
+                <Label htmlFor="new-password">{t('securitySettings.newPassword')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                     <Lock className="w-4 h-4" />
@@ -222,11 +224,11 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
                     {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-                <p className="text-xs text-muted-foreground">يجب أن تتكون من 8 أحرف على الأقل</p>
+                <p className="text-xs text-muted-foreground">{t('securitySettings.minLength8')}</p>
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="confirm-password">تأكيد كلمة المرور الجديدة</Label>
+                <Label htmlFor="confirm-password">{t('securitySettings.confirmNewPassword')}</Label>
                 <div className="relative">
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-muted-foreground">
                     <Lock className="w-4 h-4" />
@@ -256,9 +258,9 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
       {/* Two-Factor Authentication */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>المصادقة الثنائية</CardTitle>
+          <CardTitle>{t('securitySettings.twoFactorAuth')}</CardTitle>
           <CardDescription>
-            قم بتمكين المصادقة الثنائية لتعزيز أمان حسابك.
+            {t('securitySettings.twoFactorAuthDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -266,17 +268,17 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
             <div className="space-y-1">
               <div className="flex items-center">
                 <Shield className="w-4 h-4 mr-2 text-muted-foreground" />
-                <span className="font-medium">المصادقة الثنائية</span>
+                <span className="font-medium">{t('securitySettings.twoFactorAuth')}</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 {twoFactorEnabled 
-                  ? "المصادقة الثنائية مفعلة على حسابك" 
-                  : "قم بتمكين المصادقة الثنائية لتعزيز الأمان"}
+                  ? t('securitySettings.twoFactorEnabledDesc') 
+                  : t('securitySettings.twoFactorDisabledDesc')}
               </p>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-muted-foreground">
-                {twoFactorEnabled ? "مفعل" : "معطل"}
+                {twoFactorEnabled ? t('securitySettings.enabled') : t('securitySettings.disabled')}
               </span>
               <Switch 
                 checked={twoFactorEnabled} 
@@ -288,7 +290,7 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
 
           {showTwoFactorSetup && (
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <h4 className="font-medium mb-3">إعداد المصادقة الثنائية</h4>
+              <h4 className="font-medium mb-3">{t('securitySettings.setupTwoFactor')}</h4>
               <div className="space-y-4">
                 <div className="flex items-start space-x-4">
                   <div className="bg-white p-2 rounded-md border">
@@ -299,10 +301,10 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
                   </div>
                   <div className="flex-1 space-y-2">
                     <p className="text-sm text-muted-foreground">
-                      1. قم بمسح رمز الاستجابة السريعة باستخدام تطبيق المصادقة المفضل لديك مثل Google Authenticator أو Authy.
+                      {t('securitySettings.scanQrStep')}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      2. أدخل رمز التحقق المكون من 6 أرقام من التطبيق.
+                      {t('securitySettings.enterCodeStep')}
                     </p>
                     <form onSubmit={(e) => e.preventDefault()} className="pt-2">
                       <div className="flex items-center space-x-2">
@@ -327,9 +329,9 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
       {/* Recent Security Activity */}
       <Card className="border-0 shadow-sm">
         <CardHeader>
-          <CardTitle>النشاط الأمني الأخير</CardTitle>
+          <CardTitle>{t('securitySettings.recentActivity')}</CardTitle>
           <CardDescription>
-            مراجعة الأحداث الأمنية الحديثة على حسابك.
+            {t('securitySettings.recentActivityDesc')}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -342,20 +344,20 @@ const Security: React.FC<SecurityProps> = ({ shop, onSaved }) => {
               </div>
               <div className="flex-1">
                 <div className="flex items-center justify-between">
-                  <p className="font-medium">تسجيل دخول ناجح</p>
-                  <span className="text-xs text-muted-foreground">منذ دقيقتين</span>
+                  <p className="font-medium">{t('securitySettings.successfulLogin')}</p>
+                  <span className="text-xs text-muted-foreground">{t('securitySettings.twoMinutesAgo')}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  تم تسجيل الدخول بنجاح من متصفح Chrome على Windows
+                  {t('securitySettings.loginFromChrome')}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  ‎192.168.1.1 - الرياض، السعودية
+                  192.168.1.1 - {t('securitySettings.riyadhSaudi')}
                 </p>
               </div>
             </div>
             
             <div className="text-center py-4 text-sm text-muted-foreground">
-              لا توجد أنشطة أخرى
+              {t('securitySettings.noMoreActivity')}
             </div>
           </div>
         </CardContent>

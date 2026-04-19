@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Category } from '@/types';
 import AddProductModalShell from './AddProductModalShell';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -10,6 +11,7 @@ type Props = {
 };
 
 const HomeGoodsAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+  const { t } = useTranslation();
   return (
     <AddProductModalShell
       isOpen={isOpen}
@@ -18,7 +20,7 @@ const HomeGoodsAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, sh
       isRestaurant={false}
       isFashion={false}
       allowExtraImages={true}
-      title="إضافة صنف (مستلزمات المنزل)"
+      title={t('business.products.addHomeGoodsItem')}
       shopCategory={shopCategory}
     />
   );

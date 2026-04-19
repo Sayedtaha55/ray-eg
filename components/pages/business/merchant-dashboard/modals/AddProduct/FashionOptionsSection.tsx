@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FashionOptionsSectionProps {
   presetColors: Array<{ name: string; value: string }>;
@@ -26,10 +27,11 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
   customSize,
   setCustomSize
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="space-y-3">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الألوان (اختياري)</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.fashion.colorsOptional')}</label>
         <div className="bg-slate-50 rounded-[1.5rem] p-4 border-2 border-transparent">
           <div className="flex flex-wrap gap-2 justify-end">
             {presetColors.map((c) => {
@@ -71,7 +73,7 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
               }}
               className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
             >
-              إضافة لون
+              {t('business.fashion.addColor')}
             </button>
             <div className="flex items-center gap-3">
               <input
@@ -80,7 +82,7 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
                 onChange={(e) => setCustomColor(e.target.value)}
                 className="w-12 h-10 rounded-xl border border-slate-200 bg-white"
               />
-              <div className="text-xs font-black text-slate-500">اختيار لون مخصص</div>
+              <div className="text-xs font-black text-slate-500">{t('business.fashion.selectCustomColor')}</div>
             </div>
           </div>
 
@@ -105,7 +107,7 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
       </div>
 
       <div className="space-y-3">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">المقاسات (اختياري)</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.fashion.sizesOptional')}</label>
         <div className="bg-slate-50 rounded-[1.5rem] p-4 border-2 border-transparent">
           <div className="flex flex-wrap gap-2 justify-end">
             {presetSizes.map((s) => {
@@ -150,10 +152,10 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
               }}
               className="w-full md:w-auto px-4 py-3 md:py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
             >
-              إضافة مقاس
+              {t('business.fashion.addSize')}
             </button>
             <input
-              placeholder="مثلاً: 42 أو 38"
+              placeholder={t('business.fashion.sizePlaceholder')}
               value={customSize}
               onChange={(e) => setCustomSize(e.target.value)}
               className="w-full md:flex-1 bg-white border border-slate-200 rounded-xl py-3 md:py-2 px-4 font-bold text-right outline-none"
@@ -177,7 +179,7 @@ const FashionOptionsSection: React.FC<FashionOptionsSectionProps> = ({
                       );
                     }}
                     className="w-16 bg-transparent border-b border-slate-200 font-black text-center focus:outline-none focus:border-[#00E5FF]"
-                    placeholder="ج.م"
+                    placeholder={t('business.common.currency')}
                   />
                   <button
                     type="button"

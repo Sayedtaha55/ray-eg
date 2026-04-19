@@ -5,6 +5,7 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { Category, Product } from '@/types';
 import { compressImage } from '@/lib/image-utils';
+import { useTranslation } from 'react-i18next';
 
 // Sub-components
 import ImageUploadSection from './EditProduct/ImageUploadSection';
@@ -29,6 +30,7 @@ type Props = {
 const MotionDiv = motion.div as any;
 
 const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory, product, onUpdate }) => {
+  const { t } = useTranslation();
   const RESTAURANT_SIZE_NONE = '__NONE__';
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -38,7 +40,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const [restaurantPriceMedium, setRestaurantPriceMedium] = useState('');
   const [restaurantPriceLarge, setRestaurantPriceLarge] = useState('');
   const [stock, setStock] = useState('');
-  const [cat, setCat] = useState('عام');
+  const [cat, setCat] = useState(''); // default, overridden by t() in UI
   const [unit, setUnit] = useState('');
   const [furnitureUnit, setFurnitureUnit] = useState('');
   const [furnitureLengthCm, setFurnitureLengthCm] = useState('');
@@ -94,18 +96,18 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
   const allowGroceryPackToggle = isFood;
 
   const presetColors: Array<{ name: string; value: string }> = [
-    { name: 'أسود', value: '#111827' },
-    { name: 'أبيض', value: '#ffffff' },
-    { name: 'رمادي', value: '#9ca3af' },
-    { name: 'أحمر', value: '#ef4444' },
-    { name: 'وردي', value: '#ec4899' },
-    { name: 'بنفسجي', value: '#a855f7' },
-    { name: 'أزرق', value: '#3b82f6' },
-    { name: 'سماوي', value: '#06b6d4' },
-    { name: 'أخضر', value: '#22c55e' },
-    { name: 'أصفر', value: '#eab308' },
-    { name: 'برتقالي', value: '#f97316' },
-    { name: 'بني', value: '#a16207' },
+    { name: t('business.products.colors.black'), value: '#111827' },
+    { name: t('business.products.colors.white'), value: '#ffffff' },
+    { name: t('business.products.colors.gray'), value: '#9ca3af' },
+    { name: t('business.products.colors.red'), value: '#ef4444' },
+    { name: t('business.products.colors.pink'), value: '#ec4899' },
+    { name: t('business.products.colors.purple'), value: '#a855f7' },
+    { name: t('business.products.colors.blue'), value: '#3b82f6' },
+    { name: t('business.products.colors.cyan'), value: '#06b6d4' },
+    { name: t('business.products.colors.green'), value: '#22c55e' },
+    { name: t('business.products.colors.yellow'), value: '#eab308' },
+    { name: t('business.products.colors.orange'), value: '#f97316' },
+    { name: t('business.products.colors.brown'), value: '#a16207' },
   ];
 
   const presetSizes: string[] = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL'];
@@ -118,7 +120,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     for (const file of Array.isArray(files) ? files : []) {
       const mime = String(file?.type || '').toLowerCase().trim();
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
         continue;
       }
       nextFiles.push(file);
@@ -185,7 +187,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       const mime = String(file.type || '').toLowerCase().trim();
       const allowed = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
         try {
           if (fileInputRef.current) fileInputRef.current.value = '';
         } catch {
@@ -216,7 +218,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     for (const file of files) {
       const mime = String(file.type || '').toLowerCase().trim();
       if (!mime || !allowed.has(mime)) {
-        addToast('نوع الصورة غير مدعوم. استخدم JPG أو PNG أو WEBP أو AVIF', 'error');
+        addToast(t('business.dashboard.products.unsupportedImageType'), 'error');
         continue;
       }
       nextFiles.push(file);
@@ -258,7 +260,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       setName(product.name || '');
       setPrice(String(product.price || ''));
       setStock(String(product.stock || ''));
-      setCat(product.category || 'عام');
+      setCat(product.category || t('business.dashboard.products.generalCategory'));
       setDescription(product.description || '');
       setUnit(typeof (product as any)?.unit === 'string' ? String((product as any).unit) : '');
 
@@ -446,12 +448,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     })();
 
     if (packOptions === '__INVALID__') {
-      addToast('يرجى إدخال باقات البيع بشكل صحيح', 'error');
+      addToast(t('business.products.enterValidPackOptions'), 'error');
       return;
     }
 
     if (packModeEnabled && Array.isArray(packOptions) && packOptions.length === 0) {
-      addToast('يرجى إضافة باقة واحدة على الأقل', 'error');
+      addToast(t('business.products.addAtLeastOnePack'), 'error');
       return;
     }
 
@@ -473,7 +475,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     })();
 
     if (sizes === '__INVALID__') {
-      addToast('يرجى إدخال المقاسات والأسعار بشكل صحيح', 'error');
+      addToast(t('business.products.enterValidSizesPrices'), 'error');
       return;
     }
 
@@ -493,19 +495,19 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         if (smallEnabled) {
           const ps = parseNumberInput(restaurantPriceSmall);
           if (!Number.isFinite(ps) || ps <= 0) return '__INVALID__' as const;
-          sizes.push({ id: 'small', label: 'صغير', price: ps });
+          sizes.push({ id: 'small', label: t('business.dashboard.products.sizeSmall'), price: ps });
         }
 
         if (mediumEnabled) {
           const pm = parseNumberInput(restaurantPriceMedium);
           if (!Number.isFinite(pm) || pm <= 0) return '__INVALID__' as const;
-          sizes.push({ id: 'medium', label: 'وسط', price: pm });
+          sizes.push({ id: 'medium', label: t('business.dashboard.products.sizeMedium'), price: pm });
         }
 
         if (largeEnabled) {
           const pl = parseNumberInput(restaurantPriceLarge);
           if (!Number.isFinite(pl) || pl <= 0) return '__INVALID__' as const;
-          sizes.push({ id: 'large', label: 'كبير', price: pl });
+          sizes.push({ id: 'large', label: t('business.dashboard.products.sizeLarge'), price: pl });
         }
 
         if (sizes.length === 0) return '__INVALID__' as const;
@@ -517,26 +519,26 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       }
 
       const mapped = list
-        .map((t) => {
-          const tid = String(t?.id || '').trim();
-          const tname = String(t?.name || '').trim();
+        .map((variant) => {
+          const tid = String(variant?.id || '').trim();
+          const tname = String(variant?.name || '').trim();
           if (!tid || !tname) return null;
           const sizes: Array<{ id: string; label: string; price: number }> = [];
 
-          if (t?.hasSmall) {
-            const ps = parseNumberInput(t.priceSmall);
+          if (variant?.hasSmall) {
+            const ps = parseNumberInput(variant.priceSmall);
             if (!Number.isFinite(ps) || ps <= 0) return null;
-            sizes.push({ id: 'small', label: 'صغير', price: ps });
+            sizes.push({ id: 'small', label: t('business.dashboard.products.sizeSmall'), price: ps });
           }
-          if (t?.hasMedium) {
-            const pm = parseNumberInput(t.priceMedium);
+          if (variant?.hasMedium) {
+            const pm = parseNumberInput(variant.priceMedium);
             if (!Number.isFinite(pm) || pm <= 0) return null;
-            sizes.push({ id: 'medium', label: 'وسط', price: pm });
+            sizes.push({ id: 'medium', label: t('business.dashboard.products.sizeMedium'), price: pm });
           }
-          if (t?.hasLarge) {
-            const pl = parseNumberInput(t.priceLarge);
+          if (variant?.hasLarge) {
+            const pl = parseNumberInput(variant.priceLarge);
             if (!Number.isFinite(pl) || pl <= 0) return null;
-            sizes.push({ id: 'large', label: 'كبير', price: pl });
+            sizes.push({ id: 'large', label: t('business.dashboard.products.sizeLarge'), price: pl });
           }
 
           if (sizes.length === 0) return null;
@@ -553,7 +555,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       }
 
       const final = Array.isArray(baseSizes) ? [
-        { id: 'base', name: String(name || '').trim() || 'المنتج', sizes: baseSizes },
+        { id: 'base', name: String(name || '').trim() || t('business.products.product'), sizes: baseSizes },
         ...mapped,
       ] : mapped;
 
@@ -561,7 +563,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     })();
 
     if (menuVariants === '__INVALID__') {
-      addToast('يرجى إدخال النوع والسعر للمقاسات المتاحة (واختر "لا يوجد" للمقاسات غير المتوفرة)', 'error');
+      addToast(t('business.products.enterValidVariantSizePrice'), 'error');
       return;
     }
 
@@ -589,19 +591,19 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
     if (!packModeEnabled) {
       if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice < 0) {
-        addToast('السعر غير صحيح', 'error');
+        addToast(t('business.products.invalidPrice'), 'error');
         return;
       }
     } else {
       if (!Number.isFinite(resolvedBasePrice) || resolvedBasePrice <= 0) {
-        addToast('يرجى إدخال سعر صحيح للباقة', 'error');
+        addToast(t('business.products.enterValidPackPrice'), 'error');
         return;
       }
     }
 
     const parsedStock = isRestaurant ? 0 : parseNumberInput(stock);
     if (!isRestaurant && (!Number.isFinite(parsedStock) || parsedStock < 0)) {
-      addToast('الكمية غير صحيحة', 'error');
+      addToast(t('business.products.invalidQuantity'), 'error');
       return;
     }
     
@@ -651,11 +653,11 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         : [];
 
       if (isFashion && colors.length === 0) {
-        addToast('يرجى اختيار لون واحد على الأقل', 'error');
+        addToast(t('business.products.selectAtLeastOneColor'), 'error');
         return;
       }
       if (isFashion && Array.isArray(sizes) && sizes.length === 0) {
-        addToast('يرجى إضافة مقاس واحد على الأقل مع السعر', 'error');
+        addToast(t('business.products.addAtLeastOneSizeWithPrice'), 'error');
         return;
       }
 
@@ -723,9 +725,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
           ? [
               {
                 id: 'addons',
-                name: 'إضافات',
-                label: 'إضافات',
-                title: 'إضافات',
+                name: t('business.sales.addons'),
+                label: t('business.sales.addons'),
+                title: t('business.sales.addons'),
                 options,
               },
             ]
@@ -736,7 +738,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       const updatePayload: any = {
         name,
         price: resolvedBasePrice,
-        category: String(cat || '').trim() || 'عام',
+        category: String(cat || '').trim() || t('business.dashboard.products.generalCategory'),
         description: description ? description : null,
         imageUrl,
         trackStock: isRestaurant ? false : true,
@@ -776,7 +778,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       // Update product via API
       const updated = await ApiService.updateProduct(product.id, updatePayload);
       
-      addToast('تم تحديث المنتج بنجاح!', 'success');
+      addToast(t('business.products.productUpdated'), 'success');
       try {
         window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId } }));
       } catch {
@@ -784,7 +786,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
       onUpdate(updated);
       onClose();
     } catch (err: any) {
-      const msg = err?.message ? String(err.message) : 'فشل في تحديث المنتج';
+      const msg = err?.message ? String(err.message) : t('business.products.updateProductFailed');
       addToast(msg, 'error');
     } finally {
       setLoading(false);
@@ -804,7 +806,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
         className="relative bg-white w-full sm:max-w-2xl rounded-none sm:rounded-[3rem] p-4 sm:p-8 md:p-12 text-right shadow-2xl overflow-hidden h-[100dvh] sm:h-auto sm:max-h-[90vh] overflow-y-auto no-scrollbar"
       >
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-3xl font-black">تعديل الصنف</h2>
+          <h2 className="text-3xl font-black">{t('business.products.editItem')}</h2>
           <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors">
             <X size={24} />
           </button>
@@ -897,8 +899,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                 <div className="p-5 sm:p-6 rounded-3xl border border-slate-200 bg-slate-50/60 space-y-4">
                   <div className="flex items-center justify-between flex-row-reverse">
                     <div className="text-right">
-                      <h4 className="font-black text-slate-900">المنتجات المكملة</h4>
-                      <p className="text-[11px] font-bold text-slate-500">مثال: حزام/كاب/جاكيت يظهر مع التيشيرت مع المقاسات والألوان.</p>
+                      <h4 className="font-black text-slate-900">{t('business.products.complementaryProducts')}</h4>
+                      <p className="text-[11px] font-bold text-slate-500">{t('business.products.complementaryProductsHint')}</p>
                     </div>
                     <button
                       type="button"
@@ -920,12 +922,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                       }}
                       className="px-4 py-2 rounded-2xl bg-slate-900 text-white text-xs font-black"
                     >
-                      + إضافة صنف مكمل
+                      + {t('business.products.addComplementaryItem')}
                     </button>
                   </div>
 
                   {(addonItems || []).length === 0 ? (
-                    <div className="text-[12px] text-slate-500 font-bold text-right">لا يوجد أصناف مكملة حالياً.</div>
+                    <div className="text-[12px] text-slate-500 font-bold text-right">{t('business.products.noComplementaryItems')}</div>
                   ) : (
                     <div className="space-y-3">
                       {(addonItems || []).map((a) => (
@@ -937,7 +939,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                                 const v = e.target.value;
                                 setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, name: v } : x)));
                               }}
-                              placeholder="اسم الصنف المكمل"
+                              placeholder={t('business.products.complementaryItemName')}
                               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
                             />
                             <button
@@ -956,12 +958,12 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                               }}
                               className="px-3 py-2 rounded-xl bg-red-50 text-red-600 font-black text-xs"
                             >
-                              حذف
+                              {t('business.invoice.delete')}
                             </button>
                           </div>
 
                           <div className="space-y-3">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">صور الصنف المكمل</label>
+                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">{t('business.products.complementaryItemImages')}</label>
                             <div className="flex flex-wrap gap-2 justify-end">
                               {(Array.isArray(a.imagePreviews) ? a.imagePreviews : []).map((u, idx) => (
                                 <div key={`${a.id}_${idx}`} className="relative">
@@ -979,7 +981,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
                               <label className="inline-flex items-center gap-2 px-3 py-2 rounded-2xl bg-slate-900 text-white font-black text-xs cursor-pointer">
                                 <Upload size={14} />
-                                إضافة صور
+                                {t('business.products.addImages')}
                                 <input
                                   type="file"
                                   accept="image/*"
@@ -1000,7 +1002,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">الألوان</label>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">{t('business.dashboard.products.colors')}</label>
                               <div className="bg-slate-50 rounded-[1.25rem] p-3 border border-slate-200">
                                 <div className="flex flex-wrap gap-2 justify-end">
                                   {presetColors.map((c) => {
@@ -1050,7 +1052,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                                     }}
                                     className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
                                   >
-                                    إضافة لون
+                                    {t('business.products.addColor')}
                                   </button>
                                   <div className="flex items-center gap-3">
                                     <input
@@ -1062,7 +1064,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                                       }}
                                       className="w-12 h-10 rounded-xl border border-slate-200 bg-white"
                                     />
-                                    <div className="text-xs font-black text-slate-500">لون مخصص</div>
+                                    <div className="text-xs font-black text-slate-500">{t('business.products.customColor')}</div>
                                   </div>
                                 </div>
 
@@ -1095,7 +1097,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                             </div>
 
                             <div className="space-y-2">
-                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">المقاسات</label>
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-1">{t('business.dashboard.products.sizes')}</label>
                               <div className="bg-slate-50 rounded-[1.25rem] p-3 border border-slate-200">
                                 <div className="flex flex-wrap gap-2 justify-end">
                                   {presetSizes.map((s) => {
@@ -1142,10 +1144,10 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                                     }}
                                     className="w-full md:w-auto px-4 py-3 md:py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
                                   >
-                                    إضافة مقاس
+                                    {t('business.products.addSize')}
                                   </button>
                                   <input
-                                    placeholder="مثلاً: 42 أو 38"
+                                    placeholder={t('business.products.sizePlaceholder')}
                                     value={String(a.customSize || '')}
                                     onChange={(e) => {
                                       const v = e.target.value;
@@ -1196,8 +1198,8 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             loading={loading}
             isCompressing={isCompressing}
             compressionProgress={compressionProgress}
-            submitLabel="تأكيد تحديث الصنف"
-            processingLabel="جاري التحديث..."
+            submitLabel={t('business.products.confirmUpdateItem')}
+            processingLabel={t('business.products.updatingItem')}
           />
         </form>
       </MotionDiv>

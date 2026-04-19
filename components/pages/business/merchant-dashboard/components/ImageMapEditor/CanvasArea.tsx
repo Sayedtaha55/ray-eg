@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import { Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface HotspotMarkerProps {
   id: string;
@@ -48,12 +49,13 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   canvasRef,
   fileInputRef
 }) => {
+  const { t } = useTranslation();
   if (loading || imageUploading) {
     return (
       <div className="relative bg-black flex items-center justify-center min-h-[400px]">
         <div className="text-white flex items-center gap-3">
           <Loader2 className="animate-spin" />
-          <span>جاري التحميل...</span>
+          <span>{t('business.imageMap.loading')}</span>
         </div>
       </div>
     );
@@ -63,14 +65,14 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
     return (
       <div className="relative bg-black flex items-center justify-center min-h-[400px]">
         <div className="text-white text-center space-y-4 p-8">
-          <div className="font-black text-xl">لا توجد صورة خريطة بعد</div>
-          <p className="text-slate-400 text-sm">ارفع صورة للمحل لتبدأ بتحديد المنتجات عليها</p>
+          <div className="font-black text-xl">{t('business.imageMap.noMapImageYet')}</div>
+          <p className="text-slate-400 text-sm">{t('business.imageMap.uploadImageHint')}</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="px-8 py-4 rounded-2xl bg-[#00E5FF] text-black font-black hover:scale-105 transition-all"
             type="button"
           >
-            رفع صورة الخريطة
+            {t('business.imageMap.uploadMapImage')}
           </button>
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface PackOptionsSectionProps {
   packOptionItems: any[];
@@ -12,10 +13,11 @@ const PackOptionsSection: React.FC<PackOptionsSectionProps> = ({
   setPackOptionItems,
   unit
 }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">باقات البيع (اختياري)</label>
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.sellPacksOptional')}</label>
         <button
           type="button"
           onClick={() =>
@@ -26,7 +28,7 @@ const PackOptionsSection: React.FC<PackOptionsSectionProps> = ({
           }
           className="px-4 py-2 rounded-xl font-black text-xs bg-slate-900 text-white"
         >
-          + إضافة باقة
+          + {t('business.products.addPack')}
         </button>
       </div>
 
@@ -35,7 +37,7 @@ const PackOptionsSection: React.FC<PackOptionsSectionProps> = ({
           {packOptionItems.map((p, idx) => (
             <div key={p.id} className="p-4 rounded-3xl bg-slate-50 border border-slate-100">
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm font-black">باقة #{idx + 1}</p>
+                <p className="text-sm font-black">{t('business.products.packNum', { num: idx + 1 })}</p>
                 <button
                   type="button"
                   onClick={() => setPackOptionItems((prev: any) => prev.filter((x: any) => x.id !== p.id))}
@@ -47,10 +49,10 @@ const PackOptionsSection: React.FC<PackOptionsSectionProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">الكمية داخل الباقة</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.packQty')}</label>
                   <input
                     type="number"
-                    placeholder={unit ? `مثلاً: 5 (${unit})` : 'مثلاً: 5'}
+                    placeholder={unit ? t('business.products.packQtyPlaceholderWithUnit', { unit }) : t('business.products.packQtyPlaceholder')}
                     value={p.qty}
                     onChange={(e) => {
                       const v = e.target.value;
@@ -60,7 +62,7 @@ const PackOptionsSection: React.FC<PackOptionsSectionProps> = ({
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">سعر الباقة (ج.م)</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-4">{t('business.products.packPriceEgp')}</label>
                   <input
                     type="number"
                     placeholder="0"

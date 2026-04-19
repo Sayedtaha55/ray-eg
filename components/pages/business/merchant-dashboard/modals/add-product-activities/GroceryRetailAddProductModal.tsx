@@ -2,6 +2,7 @@ import React from 'react';
 import type { Category } from '@/types';
 import AddProductModalShell from './AddProductModalShell';
 import GroceryRetailExtras, { buildGroceryRetailExtrasPayload } from './activities/GroceryRetailExtras';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   isOpen: boolean;
@@ -11,6 +12,7 @@ type Props = {
 };
 
 const GroceryRetailAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCategory }) => {
+  const { t } = useTranslation();
   const [packOptionItems, setPackOptionItems] = React.useState<Array<{ id: string; qty: string; price: string }>>([]);
   const [unit, setUnit] = React.useState('');
 
@@ -22,7 +24,7 @@ const GroceryRetailAddProductModal: React.FC<Props> = ({ isOpen, onClose, shopId
       isRestaurant={false}
       isFashion={false}
       allowExtraImages={true}
-      title="إضافة صنف (سوبرماركت/تجزئة)"
+      title={t('business.products.addGroceryItem')}
       shopCategory={shopCategory}
       renderExtras={({ parseNumberInput, groceryPackEnabled }) => (
         <GroceryRetailExtras

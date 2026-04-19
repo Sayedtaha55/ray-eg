@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, BellRing, CheckCircle, Clock, Package, ShoppingCart, TrendingUp, User, X, Tag, Truck } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 enum NotificationType {
   // Customer notifications
@@ -46,6 +47,7 @@ interface NotificationsPanelProps {
 }
 
 const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen, onClose }) => {
+  const { t } = useTranslation();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -174,10 +176,10 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'الآن';
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    if (diffMins < 1) return t('notificationsPanel.now');
+    if (diffMins < 60) return t('notificationsPanel.minutesAgo', { count: diffMins });
+    if (diffHours < 24) return t('notificationsPanel.hoursAgo', { count: diffHours });
+    if (diffDays < 7) return t('notificationsPanel.daysAgo', { count: diffDays });
     
     return date.toLocaleDateString('ar-EG');
   };
@@ -201,7 +203,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
                   </span>
                 )}
               </div>
-              <h2 className="text-xl font-bold text-slate-900">الإشعارات</h2>
+              <h2 className="text-xl font-bold text-slate-900">{t('notificationsPanel.title')}</h2>
             </div>
             
             <div className="flex items-center gap-2">
@@ -210,7 +212,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
                   onClick={markAllAsRead}
                   className="text-cyan-600 hover:text-cyan-700 font-medium text-sm"
                 >
-                  تعليم الكل
+                  {t('notificationsPanel.markAllRead')}
                 </button>
               )}
               <button
@@ -231,7 +233,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
             ) : notifications.length === 0 ? (
               <div className="text-center py-12">
                 <Bell className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                <p className="text-slate-500 font-medium">لا توجد إشعارات</p>
+                <p className="text-slate-500 font-medium">{t('notificationsPanel.noNotifications')}</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100">
@@ -266,7 +268,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
                             <button
                               onClick={() => markAsRead(notification.id)}
                               className="mr-2 text-cyan-600 hover:text-cyan-700 flex-shrink-0"
-                              title="تعليم كمقروء"
+                              title={t('notificationsPanel.markAsRead')}
                             >
                               <CheckCircle className="w-4 h-4" />
                             </button>
@@ -286,7 +288,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
               onClick={() => window.location.href = '/notifications'}
               className="w-full text-center text-cyan-600 hover:text-cyan-700 font-medium text-sm"
             >
-              عرض جميع الإشعارات
+              {t('notificationsPanel.viewAll')}
             </button>
           </div>
         </div>

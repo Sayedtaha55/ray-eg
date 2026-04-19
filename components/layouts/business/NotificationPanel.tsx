@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const MotionDiv = motion.div as any;
 
@@ -12,6 +13,7 @@ interface NotificationPanelProps {
 }
 
 const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, notifications, onMarkRead }) => {
+  const { t } = useTranslation();
   return (
     <AnimatePresence>
       {isOpen && (
@@ -32,7 +34,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
             <header className="p-6 border-b border-slate-100 flex items-center justify-between">
               <div className="flex items-center gap-3 flex-row-reverse">
                 <Bell className="w-5 h-5 text-slate-900" />
-                <h3 className="font-black text-lg">التنبيهات</h3>
+                <h3 className="font-black text-lg">{t('notificationPanel.alerts')}</h3>
               </div>
               <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
                 <X className="w-5 h-5" />
@@ -43,7 +45,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
               {notifications.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 gap-3">
                   <Bell className="w-12 h-12 opacity-20" />
-                  <p className="font-bold">لا توجد تنبيهات حالياً</p>
+                  <p className="font-bold">{t('notificationPanel.noAlerts')}</p>
                 </div>
               ) : (
                 notifications.map((n) => (
@@ -69,7 +71,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({ isOpen, onClose, 
                   onClick={onMarkRead}
                   className="w-full py-3 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all"
                 >
-                  تحديد الكل كمقروء
+                  {t('notificationPanel.markAllRead')}
                 </button>
               </footer>
             )}
