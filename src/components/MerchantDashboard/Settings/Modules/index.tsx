@@ -37,7 +37,8 @@ type Props = {
 
 const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
 
   const MODULES: ModuleDef[] = useMemo(() => [
     { id: 'overview', label: t('modulesSettings.moduleOverview'), kind: 'core' },
@@ -267,7 +268,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       const status = typeof e?.status === 'number' ? e.status : undefined;
       const msg = e?.message ? String(e.message) : '';
 
-      if (status === 400 && msg.includes('مفعلة بالفعل')) {
+      if (status === 400 && (msg.includes('مفعلة بالفعل') || msg.toLowerCase().includes('already enabled'))) {
         toast({
           title: t('modulesSettings.nothingNew'),
           description: t('modulesSettings.alreadyEnabled'),
@@ -315,7 +316,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const optionalModules = useMemo(() => MODULES.filter((m) => m.kind === 'optional'), []);
 
   return (
-    <div className="space-y-6 text-right" dir="rtl">
+    <div className={`space-y-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
       <div>
         <h3 className="text-2xl font-black">{t('modulesSettings.upgrade')}</h3>
         <p className="text-sm font-black text-slate-500 mt-2">

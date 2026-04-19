@@ -34,6 +34,8 @@
     "build": "tsx scripts/compress-public-videos.ts && npx vite build --config vite.config.mts",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
+    "i18n:audit:dashboard": "node scripts/i18n-audit-dashboard.mjs",
+    "i18n:audit:dashboard:strict": "node scripts/i18n-audit-dashboard.mjs --fail-on-missing",
     "backend:check": "node scripts/check-backend.mjs",
     "backend:smoke:addons": "node scripts/smoke-shop-addons.mjs",
     "backend:smoke:checkout": "node scripts/smoke-checkout.mjs",

@@ -17,7 +17,9 @@ type Props = {
 };
 
 const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+  const locale = isArabic ? 'ar-EG' : 'en-US';
   const [view, setView] = useState<'manage' | 'edit'>('manage');
 
   const [loadingManage, setLoadingManage] = useState(false);
@@ -284,7 +286,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
 
     const html = `
       <!doctype html>
-      <html lang="ar" dir="rtl">
+      <html lang="${isArabic ? 'ar' : 'en'}" dir="${isArabic ? 'rtl' : 'ltr'}">
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -292,7 +294,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
           <style>
             @page { size: A4; margin: 12mm; }
             html, body { margin: 0; padding: 0; }
-            body { font-family: Arial, sans-serif; color: #111; direction: rtl; }
+            body { font-family: Arial, sans-serif; color: #111; direction: ${isArabic ? 'rtl' : 'ltr'}; }
             .wrap { max-width: 900px; margin: 0 auto; }
             .top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
             .brand { text-align: right; }
@@ -445,7 +447,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
   };
 
   return (
-    <div className="space-y-6" dir="rtl">
+    <div className="space-y-6" dir={isArabic ? 'rtl' : 'ltr'}>
       <div className="bg-white p-6 md:p-10 rounded-[3rem] border border-slate-100 shadow-sm">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="text-right">
@@ -543,7 +545,7 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
                           const seq = inv?.sequence;
                           const dateRaw = inv?.invoiceDate || inv?.invoice_date || inv?.createdAt;
                           const d = dateRaw ? new Date(String(dateRaw)) : null;
-                          const dateLabel = d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('ar-EG') : '-';
+                          const dateLabel = d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString(locale) : '-';
                           return (
                             <tr key={id} className="border-t border-slate-100">
                               <td className="py-3 text-right font-black text-slate-900">{typeof seq === 'number' ? seq : '-'}</td>

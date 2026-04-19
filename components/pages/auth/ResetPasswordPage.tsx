@@ -30,8 +30,8 @@ const ResetPasswordPage: React.FC = () => {
     e.preventDefault();
     setError('');
 
-    const t = String(token || '').trim();
-    if (!t) {
+    const trimmedToken = String(token || '').trim();
+    if (!trimmedToken) {
       setError(t('auth.resetPassword.invalidLink'));
       return;
     }
@@ -48,7 +48,7 @@ const ResetPasswordPage: React.FC = () => {
 
     setLoading(true);
     try {
-      await ApiService.resetPassword({ token: t, newPassword: password });
+      await ApiService.resetPassword({ token: trimmedToken, newPassword: password });
       addToast(t('auth.resetPassword.success'), 'success');
       navigate('/login');
     } catch (e2: any) {

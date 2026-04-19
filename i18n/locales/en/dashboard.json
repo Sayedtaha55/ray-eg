@@ -1,0 +1,72 @@
+{
+  "title": "Merchant Dashboard",
+  "subtitle": "Operations Center",
+  "merchantAccount": "Merchant Account",
+  "merchant": "Merchant",
+  "notifications": "Notifications",
+  "noNotifications": "No new notifications",
+  "saveSettings": "Save Settings",
+  "saveDesign": "Save Design",
+  "storeIdentity": "Store Identity",
+  "backToDashboard": "Back to Dashboard",
+  "sections": {
+    "dashboard": "Dashboard",
+    "operations": "Operations",
+    "sales": "Sales",
+    "growth": "Growth",
+    "setup": "Setup"
+  },
+  "settings": {
+    "title": "Settings",
+    "overview": "Overview",
+    "account": "Account",
+    "security": "Security",
+    "storeSettings": "Store Settings",
+    "billingAndAlerts": "Billing & Alerts",
+    "upgrade": "Upgrade",
+    "receiptTheme": "Receipt Theme",
+    "payments": "Payments",
+    "notifications": "Notifications"
+  },
+  "builder": {
+    "colors": "Colors",
+    "background": "Background Image",
+    "banner": "Banner",
+    "logo": "Logo",
+    "headerFooter": "Header & Footer",
+    "products": "Products Display",
+    "productCard": "Product Card",
+    "imageShape": "Image Shapes",
+    "categories": "Categories",
+    "productEditor": "Product Editor",
+    "layout": "Layout",
+    "typography": "Typography",
+    "buttons": "Button Style & Size",
+    "visibility": "Show / Hide",
+    "customCss": "Custom CSS"
+  },
+  "userMenu": {
+    "profile": "Profile",
+    "storeSettings": "Store Settings",
+    "notifications": "Notifications"
+  },
+  "devActivity": {
+    "title": "Activity",
+    "switchLabel": "Switch Activity (Dev)",
+    "switched": "Activity switched",
+    "switchFailed": "Failed to switch activity",
+    "retail": "Merchant (Retail)",
+    "restaurant": "Restaurant",
+    "fashion": "Clothes / Shoes",
+    "homeTextiles": "Home Textiles & Carpets",
+    "supermarketGrocery": "Supermarket / Grocery / Spices",
+    "computersMobiles": "Computers & Mobiles",
+    "pharmacy": "Pharmacy / Cosmetics",
+    "furniture": "Furniture / Showrooms",
+    "homeGoods": "Home Supplies",
+    "bookings": "Bookings",
+    "other": "Other"
+  },
+  "posSystem": "POS System",
+  "refreshData": "Refresh Data"
+}

@@ -8,7 +8,8 @@ type Props = {
 };
 
 const OrderReturnsPanel: React.FC<Props> = ({ order }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const orderId = String(order?.id || '').trim();
   const orderItems = Array.isArray(order?.items) ? order.items : [];
 
@@ -179,7 +180,7 @@ const OrderReturnsPanel: React.FC<Props> = ({ order }) => {
             <div className="flex items-center justify-between gap-3">
               <div className="text-white font-black text-sm">{t('business.sales.returnItem')}</div>
               <div className="text-slate-300 font-bold text-xs">
-                {r?.createdAt ? new Date(r.createdAt).toLocaleString('ar-EG') : '-'}
+                {r?.createdAt ? new Date(r.createdAt).toLocaleString(locale) : '-'}
               </div>
             </div>
             <div className="mt-2 text-slate-200 font-bold text-xs">

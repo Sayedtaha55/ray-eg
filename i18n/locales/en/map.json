@@ -1,0 +1,9 @@
+{
+  "title": "Map",
+  "subtitle": "Shows only registered shops/activities.",
+  "back": "Back",
+  "locateMe": "Locate Me",
+  "geoUnsupported": "Browser doesn't support geolocation",
+  "geoInsecure": "Geolocation requires opening the site over HTTPS.",
+  "visibleCount": "Visible activities:"
+}
