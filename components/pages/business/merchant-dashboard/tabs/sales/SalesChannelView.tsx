@@ -18,14 +18,31 @@ const asCleanText = (v: any) => {
   return t ? t : '';
 };
 
-const formatVariantSelection = (raw: any, t?: any) => {
+const toLocalizedUnitLabel = (raw: any, isArabic: boolean) => {
+  const value = asCleanText(raw);
+  if (!value) return '';
+  return isArabic ? toArabicUnitLabel(value) : value;
+};
+
+const formatPackLabel = (input: any, fallbackUnit: any, isArabic: boolean) => {
+  if (isArabic) return asCleanText(formatPackLabelArabic(input, fallbackUnit));
+  if (!input || typeof input !== 'object') return '';
+  const label = asCleanText((input as any)?.label || (input as any)?.name);
+  if (label) return label;
+  const qty = (input as any)?.qty;
+  const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
+  const unit = toLocalizedUnitLabel((input as any)?.unit || fallbackUnit, false);
+  return [qtyText, unit].filter(Boolean).join(' ');
+};
+
+const formatVariantSelection = (raw: any, t?: any, isArabic = false) => {
   if (!raw || typeof raw !== 'object') return '';
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
   if (kind === 'pack') {
-    const label = asCleanText(formatPackLabelArabic(raw));
+    const label = formatPackLabel(raw, (raw as any)?.unit, isArabic);
     const qty = (raw as any)?.qty;
-    const unit = toArabicUnitLabel(asCleanText((raw as any)?.unit));
+    const unit = toLocalizedUnitLabel((raw as any)?.unit, isArabic);
     const qtyText = typeof qty === 'number' || typeof qty === 'string' ? asCleanText(qty) : '';
     const fallback = [qtyText, unit].filter(Boolean).join(' ');
     return label || fallback ? `${t('business.sales.pack')}: ${label || fallback}` : '';
@@ -111,12 +128,12 @@ const formatAddonsCompactParts = (raw: any, t?: any): string[] => {
   return s ? [s] : [];
 };
 
-const formatVariantSelectionCompact = (raw: any) => {
+const formatVariantSelectionCompact = (raw: any, isArabic = false) => {
   if (!raw || typeof raw !== 'object') return '';
   const kind = asCleanText((raw as any)?.kind).toLowerCase();
 
   if (kind === 'pack') {
-    const label = asCleanText(formatPackLabelArabic(raw));
+    const label = formatPackLabel(raw, (raw as any)?.unit, isArabic);
     return label || '';
   }
 
@@ -143,7 +160,7 @@ const isDeliveryDisabledOrder = (order: any) => {
   );
 };
 
-const formatOrderItemsSummary = (sale: any, t?: any) => {
+const formatOrderItemsSummary = (sale: any, t?: any, isArabic = false) => {
   const items = Array.isArray(sale?.items) ? sale.items : [];
   if (items.length === 0) return '';
 
@@ -160,7 +177,7 @@ const formatOrderItemsSummary = (sale: any, t?: any) => {
       const n = useTotal ? lineTotal : unitPrice;
       return ` ${t('business.pos.egp')} ${Math.round(n * 100) / 100}`;
     })();
-    const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection);
+    const variantText = formatVariantSelectionCompact(it?.variantSelection ?? it?.variant_selection, isArabic);
     const addonsParts = formatAddonsCompactParts(it?.addons ?? it?.extras ?? it?.addOns);
     const core = [name, variantText].filter(Boolean).join(' ');
     const base = [core ? `${core}${qtyText}` : '', priceText].filter(Boolean).join('');
@@ -184,6 +201,7 @@ const OrderRow = memo(({
   renderDeliveryFee,
   t,
   locale,
+  isArabic,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -197,7 +215,7 @@ const OrderRow = memo(({
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
   const deliveryManagedByShop = isDeliveryDisabledOrder(sale);
-  const itemsSummary = formatOrderItemsSummary(sale);
+  const itemsSummary = formatOrderItemsSummary(sale, t, isArabic);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
   const openMapLink = () => {
@@ -410,6 +428,7 @@ const OrderTableRow = memo(({
   onPrintInvoice,
   t,
   locale,
+  isArabic,
 }: any) => {
   const id = String(sale?.id || '').trim();
   const meta = statusMeta(sale?.status);
@@ -423,7 +442,7 @@ const OrderTableRow = memo(({
   const canHandToCourier = status === 'READY' && !Boolean((sale as any)?.handedToCourierAt || (sale as any)?.handed_to_courier_at);
   const canReject = status === 'PENDING' || status === 'CONFIRMED' || status === 'PREPARING';
   const deliveryManagedByShop = isDeliveryDisabledOrder(sale);
-  const itemsSummary = formatOrderItemsSummary(sale);
+  const itemsSummary = formatOrderItemsSummary(sale, t, isArabic);
   const customerNote = String(((sale as any)?.customerNote ?? (sale as any)?.customer_note ?? '')).trim();
 
   const openMapLink = () => {
@@ -829,7 +848,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                       it?.label,
                       it?.product?.title,
                     );
-                    const variantText = asCleanText(formatVariantSelection(it?.variantSelection ?? it?.variant_selection));
+                    const variantText = asCleanText(formatVariantSelection(it?.variantSelection ?? it?.variant_selection, t, isArabic));
                     const addonsText = asCleanText(formatAddons(it?.addons ?? it?.extras ?? it?.addOns));
                     const nameFull = [baseName, variantText, addonsText].filter(Boolean).join(' - ');
                     const name = escapeHtml(String(nameFull || baseName || '-').trim());
@@ -1064,6 +1083,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
             renderDeliveryFee={renderDeliveryFee}
             t={t}
             locale={locale}
+            isArabic={isArabic}
           />
         )) : (
           <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50/70 px-4 py-8 text-center text-sm font-black text-slate-400">
@@ -1102,6 +1122,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 onPrintInvoice={channel === 'shop' || channel === 'pos' ? printSaleInvoice : undefined}
                 t={t}
                 locale={locale}
+                isArabic={isArabic}
               />
             ))}
           </tbody>
@@ -1180,7 +1201,7 @@ const SalesChannelView: React.FC<Props> = ({ sales, channel }) => {
                 const qty = Number(it?.quantity || it?.qty || 1);
                 const price = Number(it?.price || it?.unitPrice || 0);
                 const lineTotal = Number.isFinite(price) ? price * (Number.isFinite(qty) ? qty : 1) : 0;
-                const variantText = formatVariantSelection(it?.variantSelection ?? it?.variant_selection);
+                const variantText = formatVariantSelection(it?.variantSelection ?? it?.variant_selection, t, isArabic);
                 const addonsText = formatAddons(it?.addons ?? it?.extras ?? it?.addOns);
                 return (
                   <div key={idx} className="rounded-2xl border border-slate-200 bg-slate-50 p-3.5">

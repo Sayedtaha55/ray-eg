@@ -12,7 +12,8 @@ type Props = {
 };
 
 const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAllNotifications }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [recharts, setRecharts] = useState<any>(null);
 
   useEffect(() => {
@@ -44,7 +45,22 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
     const enabledRaw = layoutConfig?.enabledModules;
     if (!Array.isArray(enabledRaw)) return false;
 
-    const enabled = new Set((enabledRaw || []).map((x: any) => String(x || '').trim()));
+    const enabled = new Set(
+      (enabledRaw || [])
+        .map((x: any) =>
+          String(
+            x?.id ??
+            x?.moduleId ??
+            x?.module_id ??
+            x?.key ??
+            x ??
+            ''
+          )
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    );
     return enabled.has('sales');
   }, [shop]);
 
@@ -68,7 +84,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
               borderRadius: '24px',
               border: 'none',
               boxShadow: '0 30px 60px rgba(0,0,0,0.15)',
-              direction: 'rtl',
+              direction: isArabic ? 'rtl' : 'ltr',
               padding: '20px',
             }}
           />
@@ -76,7 +92,7 @@ const OverviewTab: React.FC<Props> = ({ shop, analytics, notifications, onViewAl
         </AreaChart>
       </ResponsiveContainer>
     );
-  }, [R, chartData]);
+  }, [R, chartData, isArabic]);
 
   return (
     <div className="space-y-6 sm:space-y-10 md:space-y-12">
