@@ -54,6 +54,22 @@ const isKnownTabId = (value: any): value is MerchantDashboardTabId => {
   return Boolean(MERCHANT_DASHBOARD_TABS.some((t) => t.id === v));
 };
 
+const normalizeTabId = (raw: any): MerchantDashboardTabId | null => {
+  const candidate = String(
+    raw?.id ??
+    raw?.moduleId ??
+    raw?.module_id ??
+    raw?.key ??
+    raw ??
+    ''
+  )
+    .trim()
+    .toLowerCase();
+
+  if (!candidate) return null;
+  return isKnownTabId(candidate) ? candidate : null;
+};
+
 const getAllowedTabsForMode = (mode?: ShopDashboardMode): Set<MerchantDashboardTabId> | null => {
   if (!mode) return null;
   if (mode === 'manage') return null;
@@ -102,8 +118,9 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
     if (!Array.isArray(enabledRaw)) return set;
 
     for (const id of enabledRaw) {
-      if (!isKnownTabId(id)) continue;
-      set.add(String(id).trim() as MerchantDashboardTabId);
+      const normalized = normalizeTabId(id);
+      if (!normalized) continue;
+      set.add(normalized);
     }
 
     return set;
