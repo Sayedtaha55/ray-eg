@@ -76,6 +76,25 @@ export const ApiService = {
     await httpClient.patch(`/shops/${shopId}/notifications/read`);
   },
 
+  async registerMerchantPushSubscription(shopId: string, expoPushToken: string) {
+    const endpoint = `https://expo.dev/push/${encodeURIComponent(expoPushToken)}`;
+    await httpClient.post('/notifications/push/merchant/subscribe', {
+      shopId,
+      subscription: {
+        endpoint,
+        expoPushToken,
+      },
+    });
+    return endpoint;
+  },
+
+  async unregisterMerchantPushSubscription(shopId: string, endpoint: string) {
+    await httpClient.post('/notifications/push/merchant/unsubscribe', {
+      shopId,
+      endpoint,
+    });
+  },
+
   // ── Gallery ──
   async getShopGallery(shopId: string) {
     const { data } = await httpClient.get(`/shops/${shopId}/gallery`);

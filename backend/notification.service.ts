@@ -12,6 +12,19 @@ export class NotificationService {
 
   private normalizeWebPushSubscription(raw: any) {
     if (!raw || typeof raw !== 'object') throw new BadRequestException('subscription غير صحيحة');
+    const expoPushToken = String((raw as any)?.expoPushToken || '').trim();
+    if (expoPushToken) {
+      if (!/^ExponentPushToken\[[^\]]+\]$/.test(expoPushToken) && !/^ExpoPushToken\[[^\]]+\]$/.test(expoPushToken)) {
+        throw new BadRequestException('expoPushToken غير صحيح');
+      }
+      const endpointRaw = String((raw as any)?.endpoint || '').trim();
+      const endpoint = endpointRaw || `https://expo.dev/push/${encodeURIComponent(expoPushToken)}`;
+      return {
+        endpoint,
+        expoPushToken,
+      };
+    }
+
     const endpoint = String((raw as any)?.endpoint || '').trim();
     if (!endpoint) throw new BadRequestException('subscription.endpoint مطلوب');
     if (endpoint.length > 2048) throw new BadRequestException('subscription.endpoint غير صحيح');
