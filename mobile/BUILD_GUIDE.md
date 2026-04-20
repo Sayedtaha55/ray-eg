@@ -27,6 +27,8 @@ eas build --platform android --profile development
 ```
 → Downloads an `.apk` you can install directly on any Android device.
 
+> لو هدفك إن فريق الـ Native يختبر التطبيق بسرعة على موبايل حقيقي، استخدم هذا الخيار لأنه يطلع APK مباشر.
+
 ### Preview APK (closer to production)
 ```bash
 eas build --platform android --profile preview
@@ -95,6 +97,30 @@ The app connects to the **same NestJS backend** used by the web app:
 
 Authentication uses JWT tokens stored in `expo-secure-store`.
 The 401 interceptor auto-clears the session.
+
+---
+
+## Native Push Notifications (outside the app)
+
+تم تفعيل إشعارات Native عبر `expo-notifications`:
+
+- أول Login كتاجر على جهاز حقيقي: التطبيق يطلب صلاحية الإشعارات.
+- بعد الموافقة: التطبيق يسجل Expo Push Token على الباك‑إند تلقائيًا.
+- أي Notification جديدة من الباك‑إند ممكن تظهر خارج التطبيق (system tray / lock screen).
+- عند تسجيل الخروج: التطبيق يعمل unsubscribe تلقائي.
+
+### ملاحظات مهمة
+
+1. لازم تبني Development/Preview/Production build (APK/AAB). الإشعارات لا تعمل بالكامل في Expo Go.
+2. Android 13+ يحتاج `POST_NOTIFICATIONS` (مضاف في `app.json`).
+3. لازم يكون `EAS projectId` متوفر في بيئة البناء.
+
+---
+
+## Web-to-Mobile Parity
+
+- شاشات Dashboard الأساسية في الموبايل (Overview / Products / Sales / Notifications) مبنية بنفس البنية والـ sections الموجودة على الويب.
+- الشاشات الثانوية الموجودة في تبويب `More` ما زالت تعتمد Navigation سريع لنفس أقسام الويب مع الحفاظ على نفس التقسيم الوظيفي.
 
 ---
 

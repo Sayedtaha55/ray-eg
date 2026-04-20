@@ -15,6 +15,11 @@ function safeJsonStringify(value: any) {
   }
 }
 
+function isExpoToken(value: string) {
+  const token = String(value || '').trim();
+  return /^ExponentPushToken\[[^\]]+\]$/.test(token) || /^ExpoPushToken\[[^\]]+\]$/.test(token);
+}
+
 @Injectable()
 export class WebPushService {
   private configured = false;
@@ -118,7 +123,12 @@ export class WebPushService {
     await Promise.all(
       subs.map(async (s) => {
         try {
-          await webpush.sendNotification(s.subscription as any, body);
+          const expoPushToken = String((s.subscription as any)?.expoPushToken || '').trim();
+          if (isExpoToken(expoPushToken)) {
+            await this.sendExpoPush(expoPushToken, payload);
+          } else {
+            await webpush.sendNotification(s.subscription as any, body);
+          }
           await hooks.onSeen(String(s.id));
         } catch (e: any) {
           const status = typeof e?.statusCode === 'number' ? e.statusCode : typeof e?.statusCode === 'string' ? Number(e.statusCode) : undefined;
@@ -128,5 +138,32 @@ export class WebPushService {
         }
       }),
     );
+  }
+
+  private async sendExpoPush(expoPushToken: string, payload: any) {
+    const title = String(payload?.title || '').trim() || 'إشعار';
+    const body = String(payload?.body || '').trim();
+    const data = payload?.url ? { url: payload.url } : undefined;
+
+    const response = await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        to: expoPushToken,
+        title,
+        body,
+        data,
+        sound: 'default',
+      }),
+    });
+
+    if (!response.ok) {
+      const err: any = new Error(`Expo push failed with status ${response.status}`);
+      err.statusCode = response.status;
+      throw err;
+    }
   }
 }

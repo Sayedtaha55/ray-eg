@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { ActivityIndicator, View, useColorScheme } from 'react-native';
 import { AppPreferencesProvider } from '@/contexts/AppPreferencesContext';
+import { bindNotificationTapNavigation } from '@/services/nativePush';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -61,6 +62,20 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+
+  useEffect(() => {
+    const unbind = bindNotificationTapNavigation((url) => {
+      if (url.includes('/business/dashboard')) {
+        router.push('/(tabs)');
+        return;
+      }
+      if (url.includes('/notifications')) {
+        router.push('/(tabs)/notifications');
+      }
+    });
+    return () => unbind();
+  }, [router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

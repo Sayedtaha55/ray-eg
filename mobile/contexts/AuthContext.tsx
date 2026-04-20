@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { isAuthenticated, getUser, clearSession, saveUser, saveTokens } from '@/services/authStorage';
 import { ApiService } from '@/services/api';
+import { registerNativePushForMerchant, unregisterNativePushForMerchant } from '@/services/nativePush';
 
 type AuthState = {
   isReady: boolean;
@@ -41,6 +42,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { loadAuth(); }, [loadAuth]);
 
+  useEffect(() => {
+    const shopId = String(state.shop?.id || '').trim();
+    const role = String(state.user?.role || '').toLowerCase();
+    if (!state.isLoggedIn || role !== 'merchant' || !shopId) return;
+    registerNativePushForMerchant(shopId).catch(() => {});
+  }, [state.isLoggedIn, state.user?.role, state.shop?.id]);
+
   const login = useCallback(async (email: string, password: string) => {
     const data = await ApiService.login(email, password);
     if (data?.session?.access_token) {
@@ -57,10 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
+    const shopId = String(state.shop?.id || '').trim();
+    if (shopId) {
+      await unregisterNativePushForMerchant(shopId).catch(() => {});
+    }
     await ApiService.logout();
     await clearSession();
     setState({ isReady: true, isLoggedIn: false, user: null, shop: null });
-  }, []);
+  }, [state.shop?.id]);
 
   const refreshShop = useCallback(async () => {
     try {
