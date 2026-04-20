@@ -13,21 +13,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import httpClient from '@/services/httpClient';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 
 const SECTIONS = [
-  { id: 'overview', label: 'Overview', icon: 'home-outline' },
-  { id: 'account', label: 'Account', icon: 'person-outline' },
-  { id: 'security', label: 'Security', icon: 'shield-outline' },
-  { id: 'store', label: 'Store Settings', icon: 'storefront-outline' },
-  { id: 'modules', label: 'Modules', icon: 'extensions-outline' },
-  { id: 'payments', label: 'Payments', icon: 'card-outline' },
-  { id: 'receipt_theme', label: 'Receipt Theme', icon: 'receipt-outline' },
-  { id: 'notifications', label: 'Notifications', icon: 'notifications-outline' },
+  { id: 'overview', labelKey: 'overview', fallback: 'Overview', icon: 'home-outline' },
+  { id: 'account', labelKey: 'accountSettings', fallback: 'Account', icon: 'person-outline' },
+  { id: 'security', labelKey: 'security', fallback: 'Security', icon: 'shield-outline' },
+  { id: 'store', labelKey: 'storeSettings', fallback: 'Store Settings', icon: 'storefront-outline' },
+  { id: 'modules', labelKey: 'modules', fallback: 'Modules', icon: 'extensions-outline' },
+  { id: 'payments', labelKey: 'payments', fallback: 'Payments', icon: 'card-outline' },
+  { id: 'receipt_theme', labelKey: 'receiptTheme', fallback: 'Receipt Theme', icon: 'receipt-outline' },
+  { id: 'notifications', labelKey: 'alerts', fallback: 'Notifications', icon: 'notifications-outline' },
+  { id: 'language', labelKey: 'language', fallback: 'Language', icon: 'language-outline' },
 ];
 
 export default function SettingsSectionScreen() {
   const { section } = useLocalSearchParams<{ section: string }>();
   const { shop, refreshShop } = useAuth();
+  const { language, setLanguage, t } = useAppPreferences();
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
@@ -49,13 +52,13 @@ export default function SettingsSectionScreen() {
 
   const renderOverview = () => (
     <View style={styles.sectionContent}>
-      <Text style={styles.sectionTitle}>Store Overview</Text>
+      <Text style={styles.sectionTitle}>{t('storeOverview')}</Text>
       <View style={styles.infoCard}>
-        <InfoRow label="Shop Name" value={shop?.name} />
-        <InfoRow label="Category" value={shop?.category} />
-        <InfoRow label="City" value={shop?.city} />
-        <InfoRow label="Phone" value={shop?.phone} />
-        <InfoRow label="Status" value={shop?.status} />
+        <InfoRow label={t('shopName')} value={shop?.name} />
+        <InfoRow label={t('category')} value={shop?.category} />
+        <InfoRow label={t('city')} value={shop?.city} />
+        <InfoRow label={t('phone')} value={shop?.phone} />
+        <InfoRow label={t('status')} value={shop?.status} />
       </View>
     </View>
   );
@@ -65,12 +68,12 @@ export default function SettingsSectionScreen() {
     const [phone, setPhone] = useState(shop?.phone || '');
     return (
       <View style={styles.sectionContent}>
-        <Text style={styles.sectionTitle}>Account Settings</Text>
+        <Text style={styles.sectionTitle}>{t('accountSettings')}</Text>
         <View style={styles.formCard}>
-          <FormField label="Shop Name" value={name} onChange={setName} />
-          <FormField label="Phone" value={phone} onChange={setPhone} keyboardType="phone-pad" />
+          <FormField label={t('shopName')} value={name} onChange={setName} />
+          <FormField label={t('phone')} value={phone} onChange={setPhone} keyboardType="phone-pad" />
           <TouchableOpacity style={styles.saveBtn} onPress={() => handleSave({ name, phone })} disabled={saving}>
-            <Text style={styles.saveBtnText}>{saving ? 'Saving...' : 'Save Changes'}</Text>
+            <Text style={styles.saveBtnText}>{saving ? t('saving') : t('saveChanges')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -151,6 +154,29 @@ export default function SettingsSectionScreen() {
     </View>
   );
 
+  const renderLanguage = () => (
+    <View style={styles.sectionContent}>
+      <Text style={styles.sectionTitle}>{t('language')}</Text>
+      <View style={styles.infoCard}>
+        <Text style={styles.placeholderText}>{t('languageDescription')}</Text>
+        <View style={styles.languageRow}>
+          <TouchableOpacity
+            style={[styles.languageBtn, language === 'en' && styles.languageBtnActive]}
+            onPress={() => setLanguage('en')}
+          >
+            <Text style={[styles.languageBtnText, language === 'en' && styles.languageBtnTextActive]}>{t('english')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.languageBtn, language === 'ar' && styles.languageBtnActive]}
+            onPress={() => setLanguage('ar')}
+          >
+            <Text style={[styles.languageBtnText, language === 'ar' && styles.languageBtnTextActive]}>{t('arabic')}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderContent = () => {
     switch (currentSection) {
       case 'overview': return renderOverview();
@@ -161,13 +187,14 @@ export default function SettingsSectionScreen() {
       case 'payments': return renderPayments();
       case 'receipt_theme': return renderReceiptTheme();
       case 'notifications': return renderNotifications();
+      case 'language': return renderLanguage();
       default: return renderOverview();
     }
   };
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: SECTIONS.find(s => s.id === currentSection)?.label || 'Settings' }} />
+      <Stack.Screen options={{ headerShown: true, title: t(SECTIONS.find(s => s.id === currentSection)?.labelKey || 'settings', SECTIONS.find(s => s.id === currentSection)?.fallback || t('settings')) }} />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Section Navigation */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sectionNav}>
@@ -178,7 +205,7 @@ export default function SettingsSectionScreen() {
               onPress={() => router.replace(`/settings/${s.id}`)}
             >
               <Ionicons name={s.icon as any} size={16} color={currentSection === s.id ? '#00E5FF' : '#94A3B8'} />
-              <Text style={[styles.sectionTabText, currentSection === s.id && styles.sectionTabTextActive]}>{s.label}</Text>
+              <Text style={[styles.sectionTabText, currentSection === s.id && styles.sectionTabTextActive]}>{t(s.labelKey, s.fallback)}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
@@ -221,7 +248,7 @@ function FormField({ label, value, onChange, multiline, keyboardType }: {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#0B1220' },
   content: { padding: 16, paddingBottom: 40 },
   sectionNav: { marginBottom: 16, marginHorizontal: -4 },
   sectionTab: {
@@ -231,33 +258,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#111827',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#334155',
     marginRight: 8,
   },
   sectionTabActive: { borderColor: '#00E5FF', backgroundColor: '#00E5FF08' },
   sectionTabText: { fontSize: 12, fontWeight: '700', color: '#94A3B8' },
   sectionTabTextActive: { color: '#00E5FF' },
   sectionContent: { gap: 12 },
-  sectionTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A', marginBottom: 4 },
-  infoCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 8 },
-  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  sectionTitle: { fontSize: 20, fontWeight: '900', color: '#F8FAFC', marginBottom: 4 },
+  infoCard: { backgroundColor: '#111827', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155', gap: 8 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: '#1F2937' },
   infoLabel: { fontSize: 13, fontWeight: '700', color: '#94A3B8' },
-  infoValue: { fontSize: 14, fontWeight: '700', color: '#0F172A' },
-  formCard: { backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 12 },
+  infoValue: { fontSize: 14, fontWeight: '700', color: '#E5E7EB' },
+  formCard: { backgroundColor: '#111827', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#334155', gap: 12 },
   formField: { gap: 6 },
   formLabel: { fontSize: 12, fontWeight: '800', color: '#64748B', textTransform: 'uppercase', letterSpacing: 0.5 },
   formInput: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: '#0F172A',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#334155',
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     fontWeight: '600',
-    color: '#0F172A',
+    color: '#F8FAFC',
   },
   formInputMultiline: { minHeight: 80, textAlignVertical: 'top' },
   saveBtn: {
@@ -269,4 +296,17 @@ const styles = StyleSheet.create({
   },
   saveBtnText: { fontSize: 15, fontWeight: '900', color: '#fff' },
   placeholderText: { fontSize: 14, fontWeight: '600', color: '#94A3B8', lineHeight: 22 },
+  languageRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
+  languageBtn: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+  },
+  languageBtnActive: { borderColor: '#00E5FF', backgroundColor: '#00E5FF20' },
+  languageBtnText: { fontSize: 14, fontWeight: '700', color: '#CBD5E1' },
+  languageBtnTextActive: { color: '#00E5FF' },
 });

@@ -3,44 +3,57 @@ import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 
 type MoreItem = { id: string; label: string; icon: React.ReactNode; route: string };
 
 export default function MoreScreen() {
   const router = useRouter();
   const { logout, shop } = useAuth();
+  const { t } = useAppPreferences();
 
   const sections: { title: string; items: MoreItem[] }[] = [
     {
-      title: 'OPERATIONS',
+      title: t('dashboardPages'),
       items: [
-        { id: 'reservations', label: 'Reservations', icon: <Ionicons name="calendar-outline" size={22} color="#F59E0B" />, route: '/more/reservations' },
-        { id: 'invoice', label: 'Invoice', icon: <Ionicons name="document-text-outline" size={22} color="#3B82F6" />, route: '/more/invoice' },
-        { id: 'pos', label: 'Smart POS', icon: <Ionicons name="phone-portrait-outline" size={22} color="#0F172A" />, route: '/more/pos' },
+        { id: 'overview', label: t('overview'), icon: <Ionicons name="trending-up-outline" size={22} color="#00E5FF" />, route: '/(tabs)' },
+        { id: 'products', label: t('products'), icon: <Ionicons name="cube-outline" size={22} color="#22C55E" />, route: '/(tabs)/products' },
+        { id: 'sales', label: t('sales'), icon: <Ionicons name="card-outline" size={22} color="#A78BFA" />, route: '/(tabs)/sales' },
+        { id: 'notifications', label: t('alerts'), icon: <Ionicons name="notifications-outline" size={22} color="#F59E0B" />, route: '/(tabs)/notifications' },
       ],
     },
     {
-      title: 'GROWTH',
+      title: t('operations'),
       items: [
-        { id: 'promotions', label: 'Promotions', icon: <Ionicons name="megaphone-outline" size={22} color="#A855F7" />, route: '/more/promotions' },
-        { id: 'customers', label: 'Customers', icon: <Ionicons name="people-outline" size={22} color="#22C55E" />, route: '/more/customers' },
-        { id: 'reports', label: 'Reports', icon: <Ionicons name="bar-chart-outline" size={22} color="#00E5FF" />, route: '/more/reports' },
-        { id: 'gallery', label: 'Gallery', icon: <Ionicons name="camera-outline" size={22} color="#EC4899" />, route: '/more/gallery' },
+        { id: 'reservations', label: t('reservations'), icon: <Ionicons name="calendar-outline" size={22} color="#F59E0B" />, route: '/more/reservations' },
+        { id: 'invoice', label: t('invoice'), icon: <Ionicons name="document-text-outline" size={22} color="#3B82F6" />, route: '/more/invoice' },
+        { id: 'pos', label: t('smartPos'), icon: <Ionicons name="phone-portrait-outline" size={22} color="#E5E7EB" />, route: '/more/pos' },
       ],
     },
     {
-      title: 'SETUP',
+      title: t('growth'),
       items: [
-        { id: 'builder', label: 'Page Builder', icon: <Ionicons name="color-palette-outline" size={22} color="#F97316" />, route: '/more/builder' },
-        { id: 'settings', label: 'Settings', icon: <Ionicons name="settings-outline" size={22} color="#64748B" />, route: '/settings/overview' },
+        { id: 'promotions', label: t('promotions'), icon: <Ionicons name="megaphone-outline" size={22} color="#A855F7" />, route: '/more/promotions' },
+        { id: 'customers', label: t('customers'), icon: <Ionicons name="people-outline" size={22} color="#22C55E" />, route: '/more/customers' },
+        { id: 'reports', label: t('reports'), icon: <Ionicons name="bar-chart-outline" size={22} color="#00E5FF" />, route: '/more/reports' },
+        { id: 'gallery', label: t('gallery'), icon: <Ionicons name="camera-outline" size={22} color="#EC4899" />, route: '/more/gallery' },
+      ],
+    },
+    {
+      title: t('setup'),
+      items: [
+        { id: 'builder', label: t('pageBuilder'), icon: <Ionicons name="color-palette-outline" size={22} color="#F97316" />, route: '/more/builder' },
+        { id: 'chats', label: t('chats'), icon: <Ionicons name="chatbubble-ellipses-outline" size={22} color="#2DD4BF" />, route: '/more/chats' },
+        { id: 'shared-products', label: t('sharedProducts'), icon: <Ionicons name="layers-outline" size={22} color="#38BDF8" />, route: '/more/shared-products' },
+        { id: 'settings', label: t('settings'), icon: <Ionicons name="settings-outline" size={22} color="#64748B" />, route: '/settings/overview' },
       ],
     },
   ];
 
   const handleLogout = () => {
-    Alert.alert('Log Out', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Log Out', style: 'destructive', onPress: () => logout() },
+    Alert.alert(t('logoutConfirmTitle'), t('logoutConfirmBody'), [
+      { text: t('cancel'), style: 'cancel' },
+      { text: t('logOut'), style: 'destructive', onPress: () => logout() },
     ]);
   };
 
@@ -52,8 +65,8 @@ export default function MoreScreen() {
           <Ionicons name="storefront" size={28} color="#00E5FF" />
         </View>
         <View style={styles.shopInfo}>
-          <Text style={styles.shopName}>{shop?.name || 'My Shop'}</Text>
-          <Text style={styles.shopCategory}>{shop?.category || 'Merchant'}</Text>
+          <Text style={styles.shopName}>{shop?.name || t('myShop')}</Text>
+          <Text style={styles.shopCategory}>{shop?.category || t('merchant')}</Text>
         </View>
       </View>
 
@@ -82,51 +95,51 @@ export default function MoreScreen() {
       {/* Logout */}
       <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={20} color="#EF4444" />
-        <Text style={styles.logoutText}>Log Out</Text>
+        <Text style={styles.logoutText}>{t('logOut')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
+  container: { flex: 1, backgroundColor: '#0B1220' },
   content: { padding: 16, paddingBottom: 40 },
   shopCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#111827',
     borderRadius: 20,
     padding: 20,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#334155',
     gap: 14,
   },
   shopAvatar: {
     width: 52,
     height: 52,
     borderRadius: 16,
-    backgroundColor: '#F0FDFA',
+    backgroundColor: '#0F1F2F',
     alignItems: 'center',
     justifyContent: 'center',
   },
   shopInfo: { flex: 1 },
-  shopName: { fontSize: 18, fontWeight: '900', color: '#0F172A' },
+  shopName: { fontSize: 18, fontWeight: '900', color: '#F8FAFC' },
   shopCategory: { fontSize: 12, fontWeight: '700', color: '#94A3B8', textTransform: 'uppercase', marginTop: 2 },
   section: { marginBottom: 20 },
   sectionTitle: { fontSize: 11, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1.5, marginBottom: 8, paddingHorizontal: 4 },
-  sectionCard: { backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#E2E8F0', overflow: 'hidden' },
+  sectionCard: { backgroundColor: '#111827', borderRadius: 16, borderWidth: 1, borderColor: '#334155', overflow: 'hidden' },
   menuItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 14 },
-  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: '#F1F5F9' },
+  menuItemBorder: { borderBottomWidth: 1, borderBottomColor: '#1F2937' },
   menuLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  menuIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#F8FAFC', alignItems: 'center', justifyContent: 'center' },
-  menuLabel: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
+  menuIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#1F2937', alignItems: 'center', justifyContent: 'center' },
+  menuLabel: { fontSize: 15, fontWeight: '700', color: '#E5E7EB' },
   logoutBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: '#fff',
+    backgroundColor: '#111827',
     borderRadius: 16,
     paddingVertical: 16,
     borderWidth: 1,

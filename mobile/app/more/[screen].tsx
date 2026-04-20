@@ -15,7 +15,7 @@ import { useLocalSearchParams, Stack } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { ApiService } from '@/services/api';
 
-type ScreenType = 'reservations' | 'invoice' | 'pos' | 'promotions' | 'customers' | 'reports' | 'gallery' | 'builder';
+type ScreenType = 'reservations' | 'invoice' | 'pos' | 'promotions' | 'customers' | 'reports' | 'gallery' | 'builder' | 'chats' | 'shared-products';
 
 const SCREEN_CONFIG: Record<string, { title: string; icon: string }> = {
   reservations: { title: 'Reservations', icon: 'calendar-outline' },
@@ -26,6 +26,8 @@ const SCREEN_CONFIG: Record<string, { title: string; icon: string }> = {
   reports: { title: 'Reports', icon: 'bar-chart-outline' },
   gallery: { title: 'Gallery', icon: 'camera-outline' },
   builder: { title: 'Page Builder', icon: 'color-palette-outline' },
+  chats: { title: 'Chats', icon: 'chatbubble-ellipses-outline' },
+  'shared-products': { title: 'Shared Products', icon: 'layers-outline' },
 };
 
 export default function MoreScreen() {
@@ -64,6 +66,14 @@ export default function MoreScreen() {
         }
         case 'invoice':
           result = await ApiService.getInvoices(shop.id);
+          break;
+        case 'shared-products': {
+          const products = await ApiService.getProductsForManage(shop.id);
+          result = (products || []).filter((p: any) => Boolean(p?.isShared || p?.is_shared || p?.sharedWith));
+          break;
+        }
+        case 'chats':
+          result = [];
           break;
         case 'reports': {
           const now = new Date();
@@ -174,6 +184,28 @@ export default function MoreScreen() {
     </View>
   );
 
+  const renderInvoices = ({ item }: { item: any }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>Invoice #{String(item?.id || '').slice(-6)}</Text>
+        <Text style={styles.cardDetail}>E£{Number(item?.total || item?.amount || 0).toLocaleString()}</Text>
+      </View>
+      <Text style={styles.cardSub}>{item?.customerName || item?.customer_name || 'Customer'}</Text>
+      <Text style={styles.metaText}>{new Date(item?.createdAt || item?.created_at || Date.now()).toLocaleString('ar-EG')}</Text>
+    </View>
+  );
+
+  const renderSharedProducts = ({ item }: { item: any }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{item?.name || 'Product'}</Text>
+        <Text style={styles.cardDetail}>E£{Number(item?.price || 0).toLocaleString()}</Text>
+      </View>
+      <Text style={styles.cardSub}>{item?.category?.name || item?.category || 'General'}</Text>
+      <Text style={styles.metaText}>Stock: {item?.stock ?? 0}</Text>
+    </View>
+  );
+
   const renderGeneric = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <Text style={styles.cardTitle}>{item.title || item.name || item.id || 'Item'}</Text>
@@ -187,6 +219,8 @@ export default function MoreScreen() {
       case 'promotions': return renderPromotions;
       case 'customers': return renderCustomers;
       case 'gallery': return renderGallery;
+      case 'invoice': return renderInvoices;
+      case 'shared-products': return renderSharedProducts;
       default: return renderGeneric;
     }
   };
@@ -222,6 +256,19 @@ export default function MoreScreen() {
           <Ionicons name="color-palette-outline" size={48} color="#CBD5E1" />
           <Text style={styles.placeholderTitle}>Page Builder</Text>
           <Text style={styles.placeholderSub}>Design your store page on the web dashboard</Text>
+        </View>
+      </>
+    );
+  }
+
+  if (screen === 'chats') {
+    return (
+      <>
+        <Stack.Screen options={{ headerShown: true, title: 'Chats' }} />
+        <View style={styles.placeholder}>
+          <Ionicons name="chatbubble-ellipses-outline" size={48} color="#CBD5E1" />
+          <Text style={styles.placeholderTitle}>Chats</Text>
+          <Text style={styles.placeholderSub}>Chat management is mirrored from web and will appear here once conversations start.</Text>
         </View>
       </>
     );
@@ -307,6 +354,7 @@ const styles = StyleSheet.create({
   placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#F8F9FA', gap: 8, paddingHorizontal: 32 },
   placeholderTitle: { fontSize: 20, fontWeight: '900', color: '#0F172A' },
   placeholderSub: { fontSize: 13, fontWeight: '600', color: '#94A3B8', textAlign: 'center' },
+  metaText: { fontSize: 12, fontWeight: '600', color: '#64748B', marginTop: 4 },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   statCard: { flex: 1, minWidth: '45%', backgroundColor: '#fff', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E2E8F0', gap: 6 },
   statValue: { fontSize: 20, fontWeight: '900', color: '#0F172A' },
