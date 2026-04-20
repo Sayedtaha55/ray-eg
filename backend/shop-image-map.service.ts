@@ -1,11 +1,13 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
+import { RedisService } from './redis/redis.service';
 import { GeminiVisionService } from './gemini-vision.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
   ) {}
 
@@ -293,6 +295,14 @@ export class ShopImageMapService {
       }),
     ]);
 
+    const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { id: true, slug: true } });
+    try {
+      await this.redis.invalidateShopCache(sid, shop?.slug);
+      await this.redis.invalidatePattern(`*products:*${sid}*`);
+      await this.redis.invalidatePattern(`*products:all:*`);
+    } catch {
+    }
+
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
       include: {
@@ -517,6 +527,23 @@ export class ShopImageMapService {
           },
         },
       });
+
+      const shop = await tx.shop.findUnique({ where: { id: sid }, select: { id: true, slug: true } });
+      try {
+        await this.redis.invalidateShopCache(sid, shop?.slug);
+        await this.redis.invalidatePattern(`*products:*${sid}*`);
+        await this.redis.invalidatePattern(`*products:all:*`);
+        // Also invalidate individual product caches if hotspots changed
+        const pids = (hotspotsInput as any[])
+          .map((h: any) => this.normalizeId(h?.productId))
+          .filter(Boolean);
+        if (pids.length > 0) {
+          for (const pid of pids) {
+            await this.redis.invalidateProductCache(pid);
+          }
+        }
+      } catch {
+      }
 
       return { ...updated, createdSections };
     });
