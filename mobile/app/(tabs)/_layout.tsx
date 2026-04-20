@@ -4,14 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 
 const CYAN = '#00E5FF';
 const DARK = '#0F172A';
 const GRAY = '#94A3B8';
 
 export default function TabLayout() {
-  const { logout, shop } = useAuth();
+  const { shop } = useAuth();
   const router = useRouter();
+  const { t } = useAppPreferences();
 
   return (
     <Tabs
@@ -19,8 +21,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: CYAN,
         tabBarInactiveTintColor: GRAY,
         tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopColor: '#E2E8F0',
+          backgroundColor: '#111827',
+          borderTopColor: '#1F2937',
           borderTopWidth: 1,
           height: 88,
           paddingBottom: 28,
@@ -32,8 +34,8 @@ export default function TabLayout() {
           textTransform: 'uppercase',
           letterSpacing: 0.5,
         },
-        headerStyle: { backgroundColor: '#F8F9FA' },
-        headerTintColor: DARK,
+        headerStyle: { backgroundColor: '#0F172A' },
+        headerTintColor: '#F8FAFC',
         headerTitleStyle: { fontWeight: '900', fontSize: 18 },
         headerRightContainerStyle: { paddingRight: 16 },
       }}
@@ -41,12 +43,12 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Overview',
+          title: t('overview'),
           tabBarIcon: ({ color, size }) => <Ionicons name="trending-up" size={size || 24} color={color} />,
-          headerTitle: shop?.name || 'Dashboard',
+          headerTitle: shop?.name || t('dashboard'),
           headerRight: () => (
             <TouchableOpacity onPress={() => router.push('/settings/overview')}>
-              <Ionicons name="settings-outline" size={24} color={DARK} />
+              <Ionicons name="settings-outline" size={24} color="#F8FAFC" />
             </TouchableOpacity>
           ),
         }}
@@ -54,28 +56,28 @@ export default function TabLayout() {
       <Tabs.Screen
         name="products"
         options={{
-          title: 'Products',
+          title: t('products'),
           tabBarIcon: ({ color, size }) => <Ionicons name="cube-outline" size={size || 24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="sales"
         options={{
-          title: 'Sales',
+          title: t('sales'),
           tabBarIcon: ({ color, size }) => <Ionicons name="card-outline" size={size || 24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          title: 'Alerts',
+          title: t('alerts'),
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size || 24} color={color} />,
         }}
       />
       <Tabs.Screen
         name="more"
         options={{
-          title: 'More',
+          title: t('more'),
           tabBarIcon: ({ color, size }) => <Ionicons name="menu-outline" size={size || 24} color={color} />,
         }}
       />

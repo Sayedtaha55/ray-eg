@@ -5,7 +5,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, useColorScheme } from 'react-native';
+import { AppPreferencesProvider } from '@/contexts/AppPreferencesContext';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -49,16 +50,20 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <AuthGate>
-        <RootLayoutNav />
-      </AuthGate>
+      <AppPreferencesProvider>
+        <AuthGate>
+          <RootLayoutNav />
+        </AuthGate>
+      </AppPreferencesProvider>
     </AuthProvider>
   );
 }
 
 function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+
   return (
-    <ThemeProvider value={DefaultTheme}>
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false }} />
