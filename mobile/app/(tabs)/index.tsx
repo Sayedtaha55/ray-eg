@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 
@@ -68,6 +69,7 @@ function ActivityItem({ n }: { n: any }) {
 export default function OverviewScreen() {
   const { shop } = useAuth();
   const router = useRouter();
+  const { t } = useAppPreferences();
   const [analytics, setAnalytics] = useState<Analytics | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -137,12 +139,12 @@ export default function OverviewScreen() {
     >
       {/* Stat Cards Row 1 — same as web */}
       <View style={styles.statsGrid}>
-        <StatCard label="Followers" value={shop?.followers?.toLocaleString() || '0'} icon="people-outline" color="#00E5FF" />
-        <StatCard label="Shop Visits" value={shop?.visitors?.toLocaleString() || '0'} icon="eye-outline" color="#00E5FF" />
+        <StatCard label={t('overview.followers')} value={shop?.followers?.toLocaleString() || '0'} icon="people-outline" color="#00E5FF" />
+        <StatCard label={t('overview.visits')} value={shop?.visitors?.toLocaleString() || '0'} icon="eye-outline" color="#00E5FF" />
         {showSalesAnalytics ? (
           <>
-            <StatCard label="Today Sales" value={`${salesCountToday}`} icon="bag-check-outline" color="#64748B" />
-            <StatCard label="Today Revenue" value={`E£ ${revenueToday}`} icon="cash-outline" color="#00E5FF" />
+            <StatCard label={t('overview.todaySales')} value={`${salesCountToday}`} icon="bag-check-outline" color="#64748B" />
+            <StatCard label={t('overview.todayRevenue')} value={`E£ ${revenueToday}`} icon="cash-outline" color="#00E5FF" />
           </>
         ) : null}
       </View>
@@ -151,14 +153,14 @@ export default function OverviewScreen() {
         <>
           {/* Orders & Revenue Card — same as web */}
           <View style={styles.card}>
-            <Text style={styles.cardTitle}>Orders & Revenue</Text>
+            <Text style={styles.cardTitle}>{t('overview.orders')} & {t('overview.revenue')}</Text>
             <View style={styles.revenueGrid}>
               <View style={styles.revenueBox}>
-                <Text style={styles.revenueLabel}>Total Orders</Text>
+                <Text style={styles.revenueLabel}>{t('overview.orders')}</Text>
                 <Text style={styles.revenueValue}>{Number(totalOrders || 0).toLocaleString()}</Text>
               </View>
               <View style={styles.revenueBox}>
-                <Text style={styles.revenueLabel}>Total Revenue</Text>
+                <Text style={styles.revenueLabel}>{t('overview.revenue')}</Text>
                 <Text style={styles.revenueValue}>E£ {Number(totalRevenue || 0).toLocaleString()}</Text>
               </View>
             </View>
@@ -166,10 +168,10 @@ export default function OverviewScreen() {
             {/* Daily Sales Table — same as web */}
             {chartData.length > 0 && (
               <View style={styles.tableSection}>
-                <Text style={styles.tableTitle}>Daily Sales</Text>
+                <Text style={styles.tableTitle}>{t('overview.dailySales')}</Text>
                 <View style={styles.tableWrap}>
                   <View style={styles.tableHeader}>
-                    <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Day</Text>
+                    <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{t('overview.day')}</Text>
                     <Text style={[styles.tableHeaderCell, { flex: 1, textAlign: 'right' }]}>Revenue</Text>
                   </View>
                   {chartData.map((row: any, idx: number) => (
@@ -186,7 +188,7 @@ export default function OverviewScreen() {
           {/* Sales Radar Card */}
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>Sales Radar</Text>
+              <Text style={styles.cardTitle}>{t('overview.salesRadar')}</Text>
               <View style={styles.growthBadge}>
                 <Ionicons name="trending-up" size={14} color="#22C55E" />
                 <Text style={styles.growthText}>Steady Growth</Text>
@@ -218,7 +220,7 @@ export default function OverviewScreen() {
       {/* Latest Alerts Card — same as web */}
       <View style={styles.card}>
         <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Latest Alerts</Text>
+          <Text style={styles.cardTitle}>{t('overview.latestAlerts')}</Text>
           <View style={styles.alertIconWrap}>
             <Ionicons name="notifications-outline" size={18} color="#00E5FF" />
           </View>
@@ -227,7 +229,7 @@ export default function OverviewScreen() {
         {notifications.length === 0 ? (
           <View style={styles.emptyAlerts}>
             <Ionicons name="notifications-off-outline" size={40} color="#E2E8F0" />
-            <Text style={styles.emptyAlertsText}>No recent activity</Text>
+            <Text style={styles.emptyAlertsText}>{t('overview.noAlerts')}</Text>
           </View>
         ) : (
           <View style={styles.alertsList}>
@@ -241,7 +243,7 @@ export default function OverviewScreen() {
           style={styles.viewAllBtn}
           onPress={() => router.push('/(tabs)/notifications')}
         >
-          <Text style={styles.viewAllBtnText}>View All Notifications</Text>
+          <Text style={styles.viewAllBtnText}>{t('overview.viewAll')}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

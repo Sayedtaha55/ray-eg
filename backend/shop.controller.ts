@@ -208,6 +208,31 @@ export class ShopController {
       return body.enabledModules;
     })();
 
+    const receiptTheme = (() => {
+      if (typeof body?.receiptTheme === 'undefined') return undefined;
+      if (body.receiptTheme === null) return null;
+      const v = body.receiptTheme;
+      if (!v || typeof v !== 'object') return undefined;
+      return {
+        shopName: typeof (v as any)?.shopName === 'string' ? String((v as any).shopName) : undefined,
+        phone: typeof (v as any)?.phone === 'string' ? String((v as any).phone) : undefined,
+        city: typeof (v as any)?.city === 'string' ? String((v as any).city) : undefined,
+        address: typeof (v as any)?.address === 'string' ? String((v as any).address) : undefined,
+        logoDataUrl: typeof (v as any)?.logoDataUrl === 'string' ? String((v as any).logoDataUrl) : undefined,
+        footerNote: typeof (v as any)?.footerNote === 'string' ? String((v as any).footerNote) : undefined,
+        vatRatePercent: typeof (v as any)?.vatRatePercent === 'number' || typeof (v as any)?.vatRatePercent === 'string'
+          ? Number((v as any).vatRatePercent)
+          : undefined,
+      };
+    })();
+
+    const notificationSoundId = (() => {
+      if (typeof body?.notificationSoundId === 'undefined') return undefined;
+      if (body.notificationSoundId === null) return null;
+      const v = String(body.notificationSoundId || '').trim();
+      return v ? v : null;
+    })();
+
     const dashboardMode = (() => {
       if (typeof body?.dashboardMode === 'undefined') return undefined;
       if (body.dashboardMode === null) return null;
@@ -259,6 +284,8 @@ export class ShopController {
         publicDisabled,
         deliveryDisabled,
         enabledModules,
+        receiptTheme,
+        notificationSoundId,
         dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
         deliveryFee:
           userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')

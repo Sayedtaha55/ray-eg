@@ -46,6 +46,16 @@ export class ShopSettingsService {
       deliveryDisabled?: boolean;
       dashboardMode?: string;
       enabledModules?: any;
+      receiptTheme?: {
+        shopName?: string;
+        phone?: string;
+        city?: string;
+        address?: string;
+        logoDataUrl?: string;
+        footerNote?: string;
+        vatRatePercent?: number;
+      } | null;
+      notificationSoundId?: string | null;
     },
   ) {
     const startTime = Date.now();
@@ -236,6 +246,36 @@ export class ShopSettingsService {
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
         ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),
+        ...(typeof input.receiptTheme === 'undefined'
+          ? {}
+          : {
+              receiptTheme:
+                input.receiptTheme === null
+                  ? null
+                  : (() => {
+                      const t = (input.receiptTheme as any) || {};
+                      const vatRaw = (t as any)?.vatRatePercent;
+                      const vat = typeof vatRaw === 'number' ? vatRaw : Number(vatRaw);
+                      const vatRatePercent = Number.isFinite(vat) ? Math.min(100, Math.max(0, vat)) : 0;
+                      return {
+                        shopName: typeof t.shopName === 'string' ? t.shopName : undefined,
+                        phone: typeof t.phone === 'string' ? t.phone : undefined,
+                        city: typeof t.city === 'string' ? t.city : undefined,
+                        address: typeof t.address === 'string' ? t.address : undefined,
+                        logoDataUrl: typeof t.logoDataUrl === 'string' ? t.logoDataUrl : undefined,
+                        footerNote: typeof t.footerNote === 'string' ? t.footerNote : undefined,
+                        vatRatePercent,
+                      };
+                    })(),
+            }),
+        ...(typeof input.notificationSoundId === 'undefined'
+          ? {}
+          : {
+              notificationSoundId:
+                input.notificationSoundId === null
+                  ? null
+                  : String(input.notificationSoundId || '').trim() || null,
+            }),
         ...(typeof input.paymentConfig === 'undefined'
           ? {}
           : {

@@ -24,14 +24,24 @@ export const ApiService = {
     return data;
   },
 
+  async updateMyShop(payload: any) {
+    const { data } = await httpClient.patch('/shops/me', payload);
+    return data;
+  },
+
   async getShopAnalytics(shopId: string, params?: { from?: string; to?: string }) {
     const { data } = await httpClient.get(`/shops/${shopId}/analytics`, { params });
     return data;
   },
 
+  async updateShopDesign(shopId: string, designConfig: any) {
+    const { data } = await httpClient.patch(`/shops/${shopId}/design`, designConfig);
+    return data;
+  },
+
   // ── Products ──
   async getProductsForManage(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/products`);
+    const { data } = await httpClient.get(`/products/manage/by-shop/${shopId}`);
     return data;
   },
 
@@ -45,14 +55,32 @@ export const ApiService = {
     return data;
   },
 
+  async placeOrder(payload: {
+    shopId: string;
+    items: any[];
+    total: number;
+    paymentMethod?: string;
+    source?: string;
+    notes?: string;
+    customerPhone?: string;
+    deliveryAddressManual?: string;
+    deliveryLat?: number;
+    deliveryLng?: number;
+    deliveryNote?: string;
+    customerNote?: string;
+  }) {
+    const { data } = await httpClient.post('/orders', payload);
+    return data;
+  },
+
   // ── Reservations ──
   async getReservations(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/reservations`);
+    const { data } = await httpClient.get('/reservations', { params: { shopId } });
     return data;
   },
 
   async updateReservationStatus(id: string, status: string) {
-    const { data } = await httpClient.patch(`/reservations/${id}`, { status });
+    const { data } = await httpClient.patch(`/reservations/${id}/status`, { status });
     return data;
   },
 
@@ -68,12 +96,12 @@ export const ApiService = {
 
   // ── Notifications ──
   async getNotifications(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/notifications`);
+    const { data } = await httpClient.get(`/notifications/shop/${shopId}`);
     return data;
   },
 
   async markNotificationsRead(shopId: string) {
-    await httpClient.patch(`/shops/${shopId}/notifications/read`);
+    await httpClient.patch(`/notifications/shop/${shopId}/read`);
   },
 
   async registerMerchantPushSubscription(shopId: string, expoPushToken: string) {
@@ -95,27 +123,54 @@ export const ApiService = {
     });
   },
 
+  // ── Chats ──
+  async getMerchantChats(shopId: string) {
+    const { data } = await httpClient.get(`/shops/${shopId}/chats`);
+    return data;
+  },
+
+  async getChatMessages(shopId: string, userId: string) {
+    const { data } = await httpClient.get(`/shops/${shopId}/chats/${userId}/messages`);
+    return data;
+  },
+
+  async sendChatMessage(shopId: string, userId: string, content: string) {
+    const { data } = await httpClient.post(`/shops/${shopId}/chats/${userId}/messages`, { content });
+    return data;
+  },
+
   // ── Gallery ──
   async getShopGallery(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/gallery`);
+    const { data } = await httpClient.get(`/gallery/${shopId}`);
     return data;
   },
 
   // ── Customers ──
   async getCustomers(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/customers`);
+    const { data } = await httpClient.get(`/customers/shop/${shopId}`);
     return data;
   },
 
   // ── Invoice ──
   async getInvoices(shopId: string) {
-    const { data } = await httpClient.get(`/shops/${shopId}/invoices`);
+    const { data } = await httpClient.get('/invoices/me', { params: { shopId } });
     return data;
   },
 
   // ── Reports ──
   async getReports(shopId: string, params?: any) {
     const { data } = await httpClient.get(`/shops/${shopId}/reports`, { params });
+    return data;
+  },
+
+  // ── Account ──
+  async deactivateMyAccount() {
+    const { data } = await httpClient.patch('/shops/me/deactivate');
+    return data;
+  },
+
+  async changePassword(payload: { currentPassword: string; newPassword: string }) {
+    const { data } = await httpClient.patch('/auth/change-password', payload);
     return data;
   },
 };

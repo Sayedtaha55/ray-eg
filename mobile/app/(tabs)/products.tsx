@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import httpClient from '@/services/httpClient';
 
@@ -19,11 +20,13 @@ function ProductRow({
   onToggle,
   onDelete,
   togglingId,
+  t,
 }: {
   product: any;
   onToggle: (p: any) => void;
   onDelete: (id: string) => void;
   togglingId: string;
+  t: any;
 }) {
   const isInactive = product?.isActive === false;
   const isToggling = togglingId === String(product.id);
@@ -48,7 +51,7 @@ function ProductRow({
       {/* Name + Category */}
       <View style={styles.productNameCol}>
         <Text style={styles.productName} numberOfLines={1}>{product.name || '—'}</Text>
-        <Text style={styles.productCategory}>{catName || 'No Category'}</Text>
+        <Text style={styles.productCategory}>{catName || t('products.noCategory')}</Text>
       </View>
 
       {/* Price */}
@@ -70,7 +73,7 @@ function ProductRow({
             <Ionicons name={isInactive ? 'eye-off-outline' : 'eye-outline'} size={14} color={isInactive ? '#94A3B8' : '#22C55E'} />
           )}
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EFF6FF' }]} onPress={() => Alert.alert('Edit', 'Product editing available on web dashboard')}>
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EFF6FF' }]} onPress={() => Alert.alert(t('products.editProduct'), t('products.editProduct'))}>
           <Ionicons name="create-outline" size={14} color="#3B82F6" />
         </TouchableOpacity>
         <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#FEF2F2' }]} onPress={() => onDelete(String(product.id))}>
@@ -83,13 +86,14 @@ function ProductRow({
 
 export default function ProductsScreen() {
   const { shop } = useAuth();
+  const { t } = useAppPreferences();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [togglingId, setTogglingId] = useState('');
 
   const isRestaurant = String(shop?.category || '').toUpperCase() === 'RESTAURANT';
-  const pageTitle = isRestaurant ? 'Menu' : 'Inventory';
+  const pageTitle = isRestaurant ? t('products.menuTitle') : t('products.title');
 
   const loadProducts = useCallback(async () => {
     if (!shop?.id) {
@@ -125,16 +129,16 @@ export default function ProductsScreen() {
   };
 
   const handleDelete = (id: string) => {
-    Alert.alert('Delete Product', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('products.deleteProduct'), t('products.deleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await ApiService.deleteProduct(id);
             setProducts(prev => prev.filter(p => String(p.id) !== id));
-          } catch { Alert.alert('Error', 'Failed to delete'); }
+          } catch { Alert.alert(t('common.error'), t('products.deleteFailed')); }
         },
       },
     ]);
@@ -146,6 +150,7 @@ export default function ProductsScreen() {
       onToggle={handleToggleActive}
       onDelete={handleDelete}
       togglingId={togglingId}
+      t={t}
     />
   );
 
@@ -163,16 +168,16 @@ export default function ProductsScreen() {
           onPress={() => Alert.alert('Add Product', 'Adding new products is available on the web dashboard')}
         >
           <Ionicons name="add-outline" size={18} color="#fff" />
-          <Text style={styles.addBtnText}>Add New Item</Text>
+          <Text style={styles.addBtnText}>{t('products.addNewItem')}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Table Header */}
       <View style={styles.tableHeader}>
         <View style={styles.tableHeaderImg} />
-        <Text style={[styles.tableHeaderCell, { flex: 2 }]}>Name</Text>
-        <Text style={[styles.tableHeaderCell, { flex: 1 }]}>Price</Text>
-        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>Stock</Text>
+        <Text style={[styles.tableHeaderCell, { flex: 2 }]}>{t('products.colName')}</Text>
+        <Text style={[styles.tableHeaderCell, { flex: 1 }]}>{t('products.colPrice')}</Text>
+        <Text style={[styles.tableHeaderCell, { flex: 0.5 }]}>{t('products.colStock')}</Text>
         <View style={{ width: 100 }} />
       </View>
 
@@ -185,8 +190,8 @@ export default function ProductsScreen() {
         ListEmptyComponent={
           <View style={styles.emptyBox}>
             <Ionicons name="cube-outline" size={48} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No products yet</Text>
-            <Text style={styles.emptySubtext}>Add your first product from the web dashboard</Text>
+            <Text style={styles.emptyText}>{t('products.noProducts')}</Text>
+            <Text style={styles.emptySubtext}>{t('products.addNewItem')}</Text>
           </View>
         }
       />

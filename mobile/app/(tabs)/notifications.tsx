@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import httpClient from '@/services/httpClient';
 
@@ -58,16 +59,17 @@ function formatTime(dateString: string) {
   return date.toLocaleDateString();
 }
 
-const FILTER_OPTIONS: Array<{ value: NotificationType; label: string }> = [
-  { value: 'ALL', label: 'All' },
-  { value: 'NEW_FOLLOWER', label: 'Followers' },
-  { value: 'NEW_ORDER', label: 'Orders' },
-  { value: 'NEW_MESSAGE', label: 'Messages' },
-  { value: 'PAYMENT_RECEIVED', label: 'Payments' },
+const FILTER_KEYS: Array<{ value: NotificationType; labelKey: string }> = [
+  { value: 'ALL', labelKey: 'notifications.filterAll' },
+  { value: 'NEW_FOLLOWER', labelKey: 'notifications.filterNewFollowers' },
+  { value: 'NEW_ORDER', labelKey: 'notifications.filterNewOrders' },
+  { value: 'NEW_MESSAGE', labelKey: 'notifications.filterMessages' },
+  { value: 'PAYMENT_RECEIVED', labelKey: 'notifications.filterPayments' },
 ];
 
 export default function NotificationsScreen() {
   const { shop } = useAuth();
+  const { t } = useAppPreferences();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -103,7 +105,7 @@ export default function NotificationsScreen() {
 
   const markAsRead = async (notifId: string) => {
     try {
-      await httpClient.patch(`/shops/${shop?.id}/notifications/${notifId}/read`);
+      await httpClient.patch(`/notifications/shop/${shop?.id}/${notifId}/read`);
       setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, isRead: true } : n));
     } catch {}
   };
@@ -160,30 +162,30 @@ export default function NotificationsScreen() {
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Ionicons name="notifications-outline" size={22} color="#00E5FF" />
-          <Text style={styles.headerTitle}>Notifications</Text>
+          <Text style={styles.headerTitle}>{t('notifications.title')}</Text>
           {unreadCount > 0 && (
             <View style={styles.unreadBadge}>
-              <Text style={styles.unreadBadgeText}>{unreadCount} unread</Text>
+              <Text style={styles.unreadBadgeText}>{t('notifications.unread', { count: unreadCount })}</Text>
             </View>
           )}
         </View>
         {unreadCount > 0 && (
           <TouchableOpacity onPress={markAllRead}>
-            <Text style={styles.markAllText}>Mark all read</Text>
+            <Text style={styles.markAllText}>{t('notifications.markAllRead')}</Text>
           </TouchableOpacity>
         )}
       </View>
 
       {/* Filter Pills — same as web */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
-        {FILTER_OPTIONS.map(opt => (
+        {FILTER_KEYS.map(opt => (
           <TouchableOpacity
             key={opt.value}
             onPress={() => setFilter(opt.value)}
             style={[styles.filterPill, filter === opt.value && styles.filterPillActive]}
           >
             <Text style={[styles.filterPillText, filter === opt.value && styles.filterPillTextActive]}>
-              {opt.label}
+              {t(opt.labelKey)}
             </Text>
             {getFilterCount(opt.value) > 0 && (
               <View style={styles.filterCountBadge}>
@@ -204,7 +206,7 @@ export default function NotificationsScreen() {
           <View style={styles.emptyBox}>
             <Ionicons name="notifications-off-outline" size={48} color="#CBD5E1" />
             <Text style={styles.emptyText}>
-              {filter === 'ALL' ? 'No notifications' : `No ${FILTER_OPTIONS.find(f => f.value === filter)?.label?.toLowerCase() || ''} notifications`}
+              {t('notifications.noNotifications')}
             </Text>
           </View>
         }

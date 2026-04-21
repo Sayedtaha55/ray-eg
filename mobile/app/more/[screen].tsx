@@ -11,33 +11,69 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
+import { isDashboardTabVisible } from '@/utils/merchantDashboard';
 
-type ScreenType = 'reservations' | 'invoice' | 'pos' | 'promotions' | 'customers' | 'reports' | 'gallery' | 'builder' | 'chats' | 'shared-products';
+type ScreenType = 'reservations' | 'invoice' | 'pos' | 'promotions' | 'customers' | 'reports' | 'gallery' | 'chats' | 'shared-products';
 
-const SCREEN_CONFIG: Record<string, { title: string; icon: string }> = {
-  reservations: { title: 'Reservations', icon: 'calendar-outline' },
-  invoice: { title: 'Invoice', icon: 'document-text-outline' },
-  pos: { title: 'Smart POS', icon: 'phone-portrait-outline' },
-  promotions: { title: 'Promotions', icon: 'megaphone-outline' },
-  customers: { title: 'Customers', icon: 'people-outline' },
-  reports: { title: 'Reports', icon: 'bar-chart-outline' },
-  gallery: { title: 'Gallery', icon: 'camera-outline' },
-  builder: { title: 'Page Builder', icon: 'color-palette-outline' },
-  chats: { title: 'Chats', icon: 'chatbubble-ellipses-outline' },
-  'shared-products': { title: 'Shared Products', icon: 'layers-outline' },
+const SCREEN_TITLE_KEYS: Record<string, string> = {
+  reservations: 'more.reservations',
+  invoice: 'more.invoice',
+  pos: 'more.smartPos',
+  promotions: 'more.promotions',
+  customers: 'more.customers',
+  reports: 'more.reports',
+  gallery: 'more.gallery',
+  chats: 'more.chats',
+  'shared-products': 'more.sharedProducts',
+};
+
+const SCREEN_ICONS: Record<string, string> = {
+  reservations: 'calendar-outline',
+  invoice: 'document-text-outline',
+  pos: 'phone-portrait-outline',
+  promotions: 'megaphone-outline',
+  customers: 'people-outline',
+  reports: 'bar-chart-outline',
+  gallery: 'camera-outline',
+  chats: 'chatbubble-ellipses-outline',
+  'shared-products': 'layers-outline',
 };
 
 export default function MoreScreen() {
   const { screen } = useLocalSearchParams<{ screen: string }>();
   const { shop } = useAuth();
+  const { t } = useAppPreferences();
+  const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const config = SCREEN_CONFIG[screen || ''] || { title: screen || 'More', icon: 'ellipsis-horizontal-outline' };
+  const gateIds = new Set<ScreenType>([
+    'reservations',
+    'invoice',
+    'pos',
+    'promotions',
+    'customers',
+    'reports',
+    'gallery',
+  ]);
+
+  const isAllowed = !gateIds.has(screen as ScreenType) || isDashboardTabVisible(shop, String(screen || ''));
+
+  const titleKey = SCREEN_TITLE_KEYS[screen || ''] || 'more.title';
+  const icon = SCREEN_ICONS[screen || ''] || 'ellipsis-horizontal-outline';
+
+  useEffect(() => {
+    if (!shop?.id) return;
+    if (!screen) return;
+    if (isAllowed) return;
+    Alert.alert(t('common.error'), t('more.moduleNotEnabled'));
+    router.replace('/(tabs)/more');
+  }, [shop?.id, screen, isAllowed, router]);
 
   const loadData = useCallback(async () => {
     if (!shop?.id) {
@@ -45,6 +81,13 @@ export default function MoreScreen() {
       setRefreshing(false);
       return;
     }
+
+    if (!isAllowed) {
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
     try {
       let result: any[] = [];
       switch (screen as ScreenType) {
@@ -105,20 +148,20 @@ export default function MoreScreen() {
     try {
       await ApiService.updateReservationStatus(id, status);
       setData(prev => prev.map(r => String(r.id) === id ? { ...r, status } : r));
-    } catch { Alert.alert('Error', 'Failed to update status'); }
+    } catch { Alert.alert(t('common.error'), t('common.error')); }
   };
 
   const handleDeleteOffer = (id: string) => {
-    Alert.alert('Delete Offer', 'Are you sure?', [
-      { text: 'Cancel', style: 'cancel' },
+    Alert.alert(t('common.delete'), t('common.confirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Delete',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           try {
             await ApiService.deleteOffer(id);
             setData(prev => prev.filter(o => String(o.id) !== id));
-          } catch { Alert.alert('Error', 'Failed to delete'); }
+          } catch { Alert.alert(t('common.error'), t('common.error')); }
         },
       },
     ]);
@@ -127,7 +170,7 @@ export default function MoreScreen() {
   const renderReservations = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.customerName || 'Customer'}</Text>
+        <Text style={styles.cardTitle}>{item.customerName || t('more.customers')}</Text>
         <View style={[styles.statusBadge, { backgroundColor: (item.status === 'completed' ? '#22C55E' : item.status === 'cancelled' ? '#EF4444' : '#F59E0B') + '18' }]}>
           <Text style={[styles.statusText, { color: item.status === 'completed' ? '#22C55E' : item.status === 'cancelled' ? '#EF4444' : '#F59E0B' }]}>
             {item.status}
@@ -135,16 +178,16 @@ export default function MoreScreen() {
         </View>
       </View>
       <Text style={styles.cardSub}>{item.itemName || item.item_name || ''}</Text>
-      <Text style={styles.cardDetail}>E£{item.itemPrice ?? item.item_price ?? 0}</Text>
+      <Text style={styles.cardDetail}>E£{Number(item.itemPrice ?? item.item_price ?? 0).toLocaleString()}</Text>
       {item.status !== 'completed' && item.status !== 'cancelled' && (
         <View style={styles.actionRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={() => handleReservationStatus(String(item.id), 'completed')}>
             <Ionicons name="checkmark-circle-outline" size={18} color="#22C55E" />
-            <Text style={styles.actionBtnTextGreen}>Complete</Text>
+            <Text style={styles.actionBtnTextGreen}>{t('reservations.complete')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={() => handleReservationStatus(String(item.id), 'cancelled')}>
             <Ionicons name="close-circle-outline" size={18} color="#EF4444" />
-            <Text style={styles.actionBtnTextRed}>Cancel</Text>
+            <Text style={styles.actionBtnTextRed}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -154,13 +197,13 @@ export default function MoreScreen() {
   const renderPromotions = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item.title || item.name || 'Offer'}</Text>
+        <Text style={styles.cardTitle}>{item.title || item.name || t('more.promotions')}</Text>
         <TouchableOpacity onPress={() => handleDeleteOffer(String(item.id))}>
           <Ionicons name="trash-outline" size={18} color="#EF4444" />
         </TouchableOpacity>
       </View>
       <Text style={styles.cardSub}>{item.description || ''}</Text>
-      {item.discount && <Text style={styles.cardDetail}>{item.discount}% off</Text>}
+      {item.discount && <Text style={styles.cardDetail}>{item.discount}% {t('promotions.off')}</Text>}
     </View>
   );
 
@@ -169,7 +212,7 @@ export default function MoreScreen() {
       <View style={styles.cardHeader}>
         <Ionicons name="person-circle-outline" size={28} color="#94A3B8" />
         <View style={styles.customerInfo}>
-          <Text style={styles.cardTitle}>{item.name || item.customerName || 'Customer'}</Text>
+          <Text style={styles.cardTitle}>{item.name || item.customerName || t('more.customers')}</Text>
           <Text style={styles.cardSub}>{item.phone || item.email || ''}</Text>
         </View>
       </View>
@@ -187,22 +230,22 @@ export default function MoreScreen() {
   const renderInvoices = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>Invoice #{String(item?.id || '').slice(-6)}</Text>
-        <Text style={styles.cardDetail}>E£{Number(item?.total || item?.amount || 0).toLocaleString()}</Text>
+        <Text style={styles.cardTitle}>{t('more.invoice')} #{String(item?.id || '').slice(-6)}</Text>
+        <Text style={styles.cardDetail}>{t('more.total')}: E£{Number(item?.total || item?.amount || 0).toLocaleString()}</Text>
       </View>
-      <Text style={styles.cardSub}>{item?.customerName || item?.customer_name || 'Customer'}</Text>
-      <Text style={styles.metaText}>{new Date(item?.createdAt || item?.created_at || Date.now()).toLocaleString('ar-EG')}</Text>
+      <Text style={styles.cardSub}>{item?.customerName || item?.customer_name || t('more.customers')}</Text>
+      <Text style={styles.metaText}>{t('more.createdAt')}: {new Date(item?.createdAt || item?.created_at || Date.now()).toLocaleString('ar-EG')}</Text>
     </View>
   );
 
   const renderSharedProducts = ({ item }: { item: any }) => (
     <View style={styles.card}>
       <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{item?.name || 'Product'}</Text>
+        <Text style={styles.cardTitle}>{item?.name || t('products.title')}</Text>
         <Text style={styles.cardDetail}>E£{Number(item?.price || 0).toLocaleString()}</Text>
       </View>
-      <Text style={styles.cardSub}>{item?.category?.name || item?.category || 'General'}</Text>
-      <Text style={styles.metaText}>Stock: {item?.stock ?? 0}</Text>
+      <Text style={styles.cardSub}>{item?.category?.name || item?.category || t('products.title')}</Text>
+      <Text style={styles.metaText}>{t('products.stock')}: {item?.stock ?? 0}</Text>
     </View>
   );
 
@@ -212,7 +255,6 @@ export default function MoreScreen() {
       {item.description && <Text style={styles.cardSub}>{item.description}</Text>}
     </View>
   );
-
   const getRenderer = () => {
     switch (screen as ScreenType) {
       case 'reservations': return renderReservations;
@@ -228,7 +270,7 @@ export default function MoreScreen() {
   if (loading) {
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: config.title }} />
+        <Stack.Screen options={{ headerShown: true, title: t(titleKey) }} />
         <View style={styles.center}><ActivityIndicator size="large" color="#00E5FF" /></View>
       </>
     );
@@ -238,24 +280,11 @@ export default function MoreScreen() {
   if (screen === 'pos') {
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: 'Smart POS' }} />
+        <Stack.Screen options={{ headerShown: true, title: t('more.smartPos') }} />
         <View style={styles.placeholder}>
           <Ionicons name="phone-portrait-outline" size={48} color="#CBD5E1" />
-          <Text style={styles.placeholderTitle}>Smart POS</Text>
-          <Text style={styles.placeholderSub}>Full POS experience available on web dashboard</Text>
-        </View>
-      </>
-    );
-  }
-
-  if (screen === 'builder') {
-    return (
-      <>
-        <Stack.Screen options={{ headerShown: true, title: 'Page Builder' }} />
-        <View style={styles.placeholder}>
-          <Ionicons name="color-palette-outline" size={48} color="#CBD5E1" />
-          <Text style={styles.placeholderTitle}>Page Builder</Text>
-          <Text style={styles.placeholderSub}>Design your store page on the web dashboard</Text>
+          <Text style={styles.placeholderTitle}>{t('more.smartPos')}</Text>
+          <Text style={styles.placeholderSub}>{t('more.posDescription')}</Text>
         </View>
       </>
     );
@@ -264,11 +293,11 @@ export default function MoreScreen() {
   if (screen === 'chats') {
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: 'Chats' }} />
+        <Stack.Screen options={{ headerShown: true, title: t('more.chats') }} />
         <View style={styles.placeholder}>
           <Ionicons name="chatbubble-ellipses-outline" size={48} color="#CBD5E1" />
-          <Text style={styles.placeholderTitle}>Chats</Text>
-          <Text style={styles.placeholderSub}>Chat management is mirrored from web and will appear here once conversations start.</Text>
+          <Text style={styles.placeholderTitle}>{t('more.chats')}</Text>
+          <Text style={styles.placeholderSub}>{t('more.chatsDescription')}</Text>
         </View>
       </>
     );
@@ -278,23 +307,23 @@ export default function MoreScreen() {
     const r = data[0];
     return (
       <>
-        <Stack.Screen options={{ headerShown: true, title: 'Reports' }} />
+        <Stack.Screen options={{ headerShown: true, title: t('more.reports') }} />
         <ScrollView style={styles.container} contentContainerStyle={styles.content}>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
               <Ionicons name="bag-check-outline" size={22} color="#00E5FF" />
               <Text style={styles.statValue}>{r.orders?.length ?? 0}</Text>
-              <Text style={styles.statLabel}>Total Orders</Text>
+              <Text style={styles.statLabel}>{t('reports.totalOrders')}</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="cash-outline" size={22} color="#22C55E" />
-              <Text style={styles.statValue}>E£{r.analytics?.totalRevenue ?? 0}</Text>
-              <Text style={styles.statLabel}>Revenue</Text>
+              <Text style={styles.statValue}>E£{Number(r.analytics?.totalRevenue ?? 0).toLocaleString()}</Text>
+              <Text style={styles.statLabel}>{t('reports.revenue')}</Text>
             </View>
             <View style={styles.statCard}>
               <Ionicons name="calendar-outline" size={22} color="#F59E0B" />
               <Text style={styles.statValue}>{r.reservations?.length ?? 0}</Text>
-              <Text style={styles.statLabel}>Reservations</Text>
+              <Text style={styles.statLabel}>{t('more.reservations')}</Text>
             </View>
           </View>
         </ScrollView>
@@ -304,7 +333,7 @@ export default function MoreScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ headerShown: true, title: config.title }} />
+      <Stack.Screen options={{ headerShown: true, title: t(titleKey) }} />
       <View style={styles.container}>
         <FlatList
           data={data}
@@ -315,8 +344,8 @@ export default function MoreScreen() {
           contentContainerStyle={data.length === 0 ? styles.emptyList : { padding: 16 }}
           ListEmptyComponent={
             <View style={styles.emptyBox}>
-              <Ionicons name={config.icon as any} size={48} color="#CBD5E1" />
-              <Text style={styles.emptyText}>No {screen} found</Text>
+              <Ionicons name={icon as any} size={48} color="#CBD5E1" />
+              <Text style={styles.emptyText}>{t('common.noData')}</Text>
             </View>
           }
         />

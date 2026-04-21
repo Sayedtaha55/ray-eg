@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "MNMKNK Merchant",
-    "slug": "mnmknk-merchant",
+    "name": "mnmknk",
+    "slug": "mnmknk",
+    "owner": "sayed444tahas-organization",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -11,20 +12,31 @@
     "splash": {
       "image": "./assets/images/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#F8F9FA"
+      "backgroundColor": "#0F172A"
     },
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.mnmknk.merchant"
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mnmknk.merchant",
+      "infoPlist": {
+        "UIStatusBarStyle": "UIStatusBarStyleLightContent",
+        "UIViewControllerBasedStatusBarAppearance": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#F8F9FA"
+        "backgroundColor": "#0F172A"
       },
       "package": "com.mnmknk.merchant",
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "statusBar": {
+        "barStyle": "light-content",
+        "backgroundColor": "#0F172A"
+      },
+      "navigationBar": {
+        "backgroundColor": "#0F172A"
+      }
     },
     "web": {
       "bundler": "metro",
@@ -33,10 +45,23 @@
     },
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#00E5FF"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8eb6eb5e-571d-4e16-b846-19a0f54adbd9"
+      }
     }
   }
 }

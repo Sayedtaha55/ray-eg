@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import httpClient from '@/services/httpClient';
 
@@ -52,11 +53,13 @@ function OrderCard({
   updatingId,
   onUpdateStatus,
   onOpenDetails,
+  t,
 }: {
   sale: any;
   updatingId: string;
   onUpdateStatus: (id: string, status: string) => void;
   onOpenDetails: (sale: any) => void;
+  t: any;
 }) {
   const id = String(sale?.id || '').trim();
   const meta = getStatusMeta(sale?.status);
@@ -104,18 +107,18 @@ function OrderCard({
       {/* Count + Total */}
       <View style={styles.orderStats}>
         <View style={styles.orderStatBox}>
-          <Text style={styles.orderStatLabel}>Items</Text>
-          <Text style={styles.orderStatValue}>{sale.items?.length || 0} item</Text>
+          <Text style={styles.orderStatLabel}>{t('sales.items', { count: sale.items?.length || 0 })}</Text>
+          <Text style={styles.orderStatValue}>{sale.items?.length || 0}</Text>
         </View>
         <View style={styles.orderStatBox}>
-          <Text style={styles.orderStatLabel}>Total</Text>
+          <Text style={styles.orderStatLabel}>{t('sales.total')}</Text>
           <Text style={styles.orderStatValue}>E£ {Number(sale.total || 0).toLocaleString()}</Text>
         </View>
       </View>
 
       {/* Delivery Fee + Actions */}
       <View style={styles.orderActions}>
-        <Text style={styles.deliveryFeeText}>Delivery: {deliveryFee}</Text>
+        <Text style={styles.deliveryFeeText}>{t('sales.deliveryFee')}: {deliveryFee}</Text>
         <View style={styles.actionBtns}>
           <TouchableOpacity style={styles.actionCircleBtn} onPress={() => onOpenDetails(sale)}>
             <Ionicons name="eye-outline" size={16} color="#94A3B8" />
@@ -133,11 +136,11 @@ function OrderCard({
 
               {menuOpen ? (
                 <View style={styles.actionMenu}>
-                  {canAccept && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'CONFIRMED'); }}><Text style={[styles.menuItemText, { color: '#22C55E' }]}>Accept</Text></TouchableOpacity>}
-                  {canPreparing && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'PREPARING'); }}><Text style={[styles.menuItemText, { color: '#F97316' }]}>Preparing</Text></TouchableOpacity>}
-                  {canReady && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'READY'); }}><Text style={[styles.menuItemText, { color: '#3B82F6' }]}>Ready</Text></TouchableOpacity>}
-                  {canHandToCourier && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'HANDED_TO_COURIER'); }}><Text style={[styles.menuItemText, { color: '#6366F1' }]}>Hand to Courier</Text></TouchableOpacity>}
-                  {canReject && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'CANCELLED'); }}><Text style={[styles.menuItemText, { color: '#EF4444' }]}>Reject</Text></TouchableOpacity>}
+                  {canAccept && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'CONFIRMED'); }}><Text style={[styles.menuItemText, { color: '#22C55E' }]}>{t('sales.accept')}</Text></TouchableOpacity>}
+                  {canPreparing && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'PREPARING'); }}><Text style={[styles.menuItemText, { color: '#F97316' }]}>{t('sales.preparing')}</Text></TouchableOpacity>}
+                  {canReady && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'READY'); }}><Text style={[styles.menuItemText, { color: '#3B82F6' }]}>{t('sales.ready')}</Text></TouchableOpacity>}
+                  {canHandToCourier && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'HANDED_TO_COURIER'); }}><Text style={[styles.menuItemText, { color: '#6366F1' }]}>{t('sales.handToCourier')}</Text></TouchableOpacity>}
+                  {canReject && <TouchableOpacity style={styles.menuItem} onPress={() => { setMenuOpen(false); onUpdateStatus(id, 'CANCELLED'); }}><Text style={[styles.menuItemText, { color: '#EF4444' }]}>{t('sales.reject')}</Text></TouchableOpacity>}
                 </View>
               ) : null}
             </View>
@@ -150,6 +153,7 @@ function OrderCard({
 
 export default function SalesScreen() {
   const { shop } = useAuth();
+  const { t } = useAppPreferences();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -185,10 +189,10 @@ export default function SalesScreen() {
   const updateStatus = async (id: string, newStatus: string) => {
     setUpdatingId(id);
     try {
-      await httpClient.patch(`/orders/${id}/status`, { status: newStatus });
+      await httpClient.patch(`/orders/${id}`, { status: newStatus });
       setOrders(prev => prev.map(o => String(o.id) === id ? { ...o, status: newStatus } : o));
     } catch {
-      Alert.alert('Error', 'Failed to update order status');
+      Alert.alert(t('common.error'), t('common.retry'));
     } finally {
       setUpdatingId('');
     }
@@ -196,8 +200,8 @@ export default function SalesScreen() {
 
   const openDetails = (sale: any) => {
     Alert.alert(
-      'Order Details',
-      `Order #${String(sale.id).slice(-6)}\n\n${formatItemsSummary(sale)}\n\nTotal: E£${Number(sale.total || 0).toLocaleString()}\nStatus: ${getStatusMeta(sale.status).label}\n\nFull details available on web dashboard`,
+      t('sales.viewDetails'),
+      `${t('sales.orderNumber', { id: String(sale.id).slice(-6) })}\n\n${formatItemsSummary(sale)}\n\n${t('sales.total')}: E£${Number(sale.total || 0).toLocaleString()}\n${t('sales.status')}: ${getStatusMeta(sale.status).label}`,
     );
   };
 
@@ -208,9 +212,9 @@ export default function SalesScreen() {
   });
 
   const channels: Array<{ key: Channel; label: string }> = [
-    { key: 'shop', label: 'Shop Orders' },
-    { key: 'pos', label: 'POS Invoices' },
-    { key: 'returns', label: 'Returns' },
+    { key: 'shop', label: t('sales.shopOrders') },
+    { key: 'pos', label: t('sales.pos') },
+    { key: 'returns', label: t('sales.returns') },
   ];
 
   if (loading) {
@@ -235,8 +239,8 @@ export default function SalesScreen() {
       {/* Title */}
       <View style={styles.titleRow}>
         <View>
-          <Text style={styles.title}>Sales</Text>
-          <Text style={styles.subtitle}>Manage your orders and invoices</Text>
+          <Text style={styles.title}>{t('sales.title')}</Text>
+          <Text style={styles.subtitle}>{t('sales.shopOrders')}</Text>
         </View>
       </View>
 
@@ -249,6 +253,7 @@ export default function SalesScreen() {
             updatingId={updatingId}
             onUpdateStatus={updateStatus}
             onOpenDetails={openDetails}
+            t={t}
           />
         )}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadOrders(); }} tintColor="#00E5FF" />}
@@ -256,7 +261,7 @@ export default function SalesScreen() {
         ListEmptyComponent={
           <View style={styles.emptyBox}>
             <Ionicons name="card-outline" size={48} color="#CBD5E1" />
-            <Text style={styles.emptyText}>No orders yet</Text>
+            <Text style={styles.emptyText}>{t('sales.noOrders')}</Text>
           </View>
         }
       />

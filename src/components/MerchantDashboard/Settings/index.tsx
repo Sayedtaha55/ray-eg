@@ -3,6 +3,7 @@ import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, 
 import * as ReactRouterDOM from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { RayDB } from '@/constants';
+import { ApiService } from '@/services/api.service';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,27 +76,75 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
 
   useEffect(() => {
     setDidLoadReceiptTheme(false);
-    const theme = RayDB.getReceiptTheme(receiptShopId);
-    setReceiptShopName(String((theme as any)?.shopName || shop?.name || ''));
-    setReceiptPhone(String((theme as any)?.phone || shop?.phone || ''));
-    setReceiptCity(String((theme as any)?.city || shop?.city || ''));
-    setReceiptAddress(String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
-    setReceiptLogoDataUrl(String((theme as any)?.logoDataUrl || ''));
-    setReceiptFooterNote(String((theme as any)?.footerNote || ''));
-    setReceiptVatRatePercent(String((theme as any)?.vatRatePercent ?? 0));
+    const layout = shop?.layoutConfig && typeof shop.layoutConfig === 'object' ? shop.layoutConfig : undefined;
+    const theme = (layout as any)?.receiptTheme && typeof (layout as any).receiptTheme === 'object' ? (layout as any).receiptTheme : undefined;
+    const legacy = (() => {
+      try {
+        return RayDB.getReceiptTheme(receiptShopId);
+      } catch {
+        return {};
+      }
+    })();
+    const resolvedTheme = theme || legacy;
+
+    setReceiptShopName(String((resolvedTheme as any)?.shopName || shop?.name || ''));
+    setReceiptPhone(String((resolvedTheme as any)?.phone || shop?.phone || ''));
+    setReceiptCity(String((resolvedTheme as any)?.city || shop?.city || ''));
+    setReceiptAddress(String((resolvedTheme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''));
+    setReceiptLogoDataUrl(String((resolvedTheme as any)?.logoDataUrl || ''));
+    setReceiptFooterNote(String((resolvedTheme as any)?.footerNote || ''));
+    setReceiptVatRatePercent(String((resolvedTheme as any)?.vatRatePercent ?? 0));
 
     lastSavedRef.current = {
-      shopName: String((theme as any)?.shopName || shop?.name || ''),
-      phone: String((theme as any)?.phone || shop?.phone || ''),
-      city: String((theme as any)?.city || shop?.city || ''),
-      address: String((theme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''),
-      logoDataUrl: String((theme as any)?.logoDataUrl || ''),
-      footerNote: String((theme as any)?.footerNote || ''),
-      vatRatePercent: String((theme as any)?.vatRatePercent ?? 0),
+      shopName: String((resolvedTheme as any)?.shopName || shop?.name || ''),
+      phone: String((resolvedTheme as any)?.phone || shop?.phone || ''),
+      city: String((resolvedTheme as any)?.city || shop?.city || ''),
+      address: String((resolvedTheme as any)?.address || shop?.addressDetailed || shop?.address_detailed || ''),
+      logoDataUrl: String((resolvedTheme as any)?.logoDataUrl || ''),
+      footerNote: String((resolvedTheme as any)?.footerNote || ''),
+      vatRatePercent: String((resolvedTheme as any)?.vatRatePercent ?? 0),
     };
 
     setDidLoadReceiptTheme(true);
   }, [receiptShopId, shop?.name, shop?.phone, shop?.city, shop?.addressDetailed, shop?.address_detailed]);
+
+  useEffect(() => {
+    const layout = shop?.layoutConfig && typeof shop.layoutConfig === 'object' ? shop.layoutConfig : undefined;
+    const existing = (layout as any)?.receiptTheme;
+    if (existing && typeof existing === 'object') return;
+    if (!receiptShopId) return;
+    const legacy = (() => {
+      try {
+        return RayDB.getReceiptTheme(receiptShopId);
+      } catch {
+        return null;
+      }
+    })();
+    if (!legacy || typeof legacy !== 'object') return;
+    const hasAny = Boolean(
+      String((legacy as any)?.shopName || '').trim() ||
+      String((legacy as any)?.phone || '').trim() ||
+      String((legacy as any)?.city || '').trim() ||
+      String((legacy as any)?.address || '').trim() ||
+      String((legacy as any)?.logoDataUrl || '').trim() ||
+      String((legacy as any)?.footerNote || '').trim() ||
+      Number((legacy as any)?.vatRatePercent ?? 0) > 0,
+    );
+    if (!hasAny) return;
+
+    ApiService.updateMyShop({
+      ...(adminShopId ? { shopId: adminShopId } : {}),
+      receiptTheme: {
+        shopName: String((legacy as any)?.shopName || '').trim() || undefined,
+        phone: String((legacy as any)?.phone || '').trim() || undefined,
+        city: String((legacy as any)?.city || '').trim() || undefined,
+        address: String((legacy as any)?.address || '').trim() || undefined,
+        logoDataUrl: String((legacy as any)?.logoDataUrl || '').trim() || undefined,
+        footerNote: String((legacy as any)?.footerNote || '').trim() || undefined,
+        vatRatePercent: Number((legacy as any)?.vatRatePercent ?? 0) || 0,
+      },
+    }).catch(() => {});
+  }, [adminShopId, receiptShopId, shop?.layoutConfig]);
 
   const emitReceiptChanges = (count: number) => {
     try {
@@ -126,28 +175,7 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     if (!receiptShopId) return;
     if (savingReceiptTheme) return;
     if (!didLoadReceiptTheme) return;
-
-    const t = window.setTimeout(() => {
-      try {
-        RayDB.setReceiptTheme(receiptShopId, {
-          shopName: receiptShopName,
-          phone: receiptPhone,
-          city: receiptCity,
-          address: receiptAddress,
-          logoDataUrl: receiptLogoDataUrl,
-          footerNote: receiptFooterNote,
-          vatRatePercent: resolvedVatRatePercent,
-        });
-      } catch {
-      }
-    }, 250);
-
-    return () => {
-      try {
-        window.clearTimeout(t);
-      } catch {
-      }
-    };
+    return;
   }, [receiptShopId, didLoadReceiptTheme, receiptShopName, receiptPhone, receiptCity, receiptAddress, receiptLogoDataUrl, receiptFooterNote, receiptVatRatePercent, resolvedVatRatePercent, savingReceiptTheme]);
 
   const handlePickReceiptLogo = () => {
@@ -175,14 +203,17 @@ const ReceiptThemeSettings: React.FC<{ shop: any; adminShopId?: string }> = ({ s
     }
     setSavingReceiptTheme(true);
     try {
-      RayDB.setReceiptTheme(receiptShopId, {
-        shopName: receiptShopName,
-        phone: receiptPhone,
-        city: receiptCity,
-        address: receiptAddress,
-        logoDataUrl: receiptLogoDataUrl,
-        footerNote: receiptFooterNote,
-        vatRatePercent: resolvedVatRatePercent,
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        receiptTheme: {
+          shopName: receiptShopName,
+          phone: receiptPhone,
+          city: receiptCity,
+          address: receiptAddress,
+          logoDataUrl: receiptLogoDataUrl,
+          footerNote: receiptFooterNote,
+          vatRatePercent: resolvedVatRatePercent,
+        },
       });
 
       lastSavedRef.current = {
@@ -310,8 +341,10 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
     label: t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
   }));
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
-  const [savedSoundId, setSavedSoundId] = useState(RayDB.getSelectedNotificationSoundId());
-  const [pendingSoundId, setPendingSoundId] = useState(RayDB.getSelectedNotificationSoundId());
+  const layout = shop?.layoutConfig && typeof shop.layoutConfig === 'object' ? shop.layoutConfig : undefined;
+  const serverSoundId = String((layout as any)?.notificationSoundId || '').trim() || 'default';
+  const [savedSoundId, setSavedSoundId] = useState(serverSoundId);
+  const [pendingSoundId, setPendingSoundId] = useState(serverSoundId);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -336,16 +369,36 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   };
 
   useEffect(() => {
+    setSavedSoundId(serverSoundId);
+    setPendingSoundId((prev) => (prev ? prev : serverSoundId));
+  }, [serverSoundId]);
+
+  useEffect(() => {
     const onSoundsUpdate = () => {
       setSounds(RayDB.getNotificationSounds());
-      const current = RayDB.getSelectedNotificationSoundId();
-      setSavedSoundId(current);
-      setPendingSoundId((prev) => (prev ? prev : current));
+      setPendingSoundId((prev) => (prev ? prev : serverSoundId));
     };
     window.addEventListener('notification-sounds-update', onSoundsUpdate);
     RayDB.syncNotificationSoundsFromPublic();
     return () => window.removeEventListener('notification-sounds-update', onSoundsUpdate);
-  }, []);
+  }, [serverSoundId]);
+
+  useEffect(() => {
+    const existing = String((layout as any)?.notificationSoundId || '').trim();
+    if (existing) return;
+    const legacy = (() => {
+      try {
+        return String(RayDB.getSelectedNotificationSoundId() || '').trim();
+      } catch {
+        return '';
+      }
+    })();
+    if (!legacy) return;
+    ApiService.updateMyShop({
+      ...(adminShopId ? { shopId: adminShopId } : {}),
+      notificationSoundId: legacy,
+    }).catch(() => {});
+  }, [adminShopId, layout]);
 
   useEffect(() => {
     if (activeSettingsTab !== 'notifications') return;
@@ -501,13 +554,16 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
     const idToSave = String(pendingSoundId || '').trim();
     if (!idToSave) return false;
     try {
-      RayDB.setSelectedNotificationSoundId(idToSave);
+      await ApiService.updateMyShop({
+        ...(adminShopId ? { shopId: adminShopId } : {}),
+        notificationSoundId: idToSave,
+      });
       setSavedSoundId(idToSave);
       return true;
     } catch {
       return false;
     }
-  }, [pendingSoundId]);
+  }, [adminShopId, pendingSoundId]);
 
   useEffect(() => {
     try {
