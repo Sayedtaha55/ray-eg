@@ -501,7 +501,7 @@ export const StoreEditor: React.FC<StoreEditorProps> = React.memo(({
     Boolean(isFurnitureActivity) ||
     Boolean((selectedProduct as any)?.furnitureMeta);
 
-  const shouldShowHomeGoods = Boolean(isRetail) && devActivityId === 'home-goods';
+  const shouldShowHomeGoods = Boolean(isRetail) && devActivityId === 'homeGoods';
   const shouldShowHomeTextiles = Boolean(isRetail) && !shouldShowHomeGoods;
 
   useEffect(() => {

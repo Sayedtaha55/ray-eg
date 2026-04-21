@@ -1108,7 +1108,7 @@ const BusinessLayout: React.FC = () => {
                         disabled={devSwitchLoading}
                         onClick={() => {
                           try {
-                            localStorage.setItem('ray_dev_activity_id', 'home-textiles');
+                            localStorage.setItem('ray_dev_activity_id', 'homeTextiles');
                           } catch {
                           }
                           switchDevActivity('RETAIL');
@@ -1178,7 +1178,7 @@ const BusinessLayout: React.FC = () => {
                         disabled={devSwitchLoading}
                         onClick={() => {
                           try {
-                            localStorage.setItem('ray_dev_activity_id', 'home-goods');
+                            localStorage.setItem('ray_dev_activity_id', 'homeGoods');
                           } catch {
                           }
                           switchDevActivity('RETAIL');
@@ -1186,6 +1186,36 @@ const BusinessLayout: React.FC = () => {
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
                       >
                         {t('dashboard.devActivity.homeGoods')}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'realEstate');
+                          } catch {
+                          }
+                          switchDevActivity('SERVICE');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        {t('dashboard.devActivity.realEstate')}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={devSwitchLoading}
+                        onClick={() => {
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'carShowroom');
+                          } catch {
+                          }
+                          switchDevActivity('RETAIL');
+                        }}
+                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                      >
+                        {t('dashboard.devActivity.carShowroom')}
                       </button>
                       <button
                         type="button"

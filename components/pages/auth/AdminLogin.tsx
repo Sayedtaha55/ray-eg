@@ -261,7 +261,7 @@ const AdminLogin: React.FC = () => {
                         onClick={() => {
                           setIsDevActivityMenuOpen(false);
                           try {
-                            localStorage.setItem('ray_dev_activity_id', 'home-textiles');
+                            localStorage.setItem('ray_dev_activity_id', 'homeTextiles');
                           } catch {
                           }
                           handleDevMerchantLoginWithCategory('RETAIL');
@@ -336,7 +336,7 @@ const AdminLogin: React.FC = () => {
                         onClick={() => {
                           setIsDevActivityMenuOpen(false);
                           try {
-                            localStorage.setItem('ray_dev_activity_id', 'home-goods');
+                            localStorage.setItem('ray_dev_activity_id', 'homeGoods');
                           } catch {
                           }
                           handleDevMerchantLoginWithCategory('RETAIL');
@@ -344,6 +344,38 @@ const AdminLogin: React.FC = () => {
                         className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
                       >
                         {t('auth.admin.devActivity.homeGoods')}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'realEstate');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('SERVICE');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        {t('auth.admin.devActivity.realEstate')}
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={loading}
+                        onClick={() => {
+                          setIsDevActivityMenuOpen(false);
+                          try {
+                            localStorage.setItem('ray_dev_activity_id', 'carShowroom');
+                          } catch {
+                          }
+                          handleDevMerchantLoginWithCategory('RETAIL');
+                        }}
+                        className="w-full py-4 px-6 text-right hover:bg-slate-800 transition-all font-black text-sm text-white/90"
+                      >
+                        {t('auth.admin.devActivity.carShowroom')}
                       </button>
                       <button
                         type="button"

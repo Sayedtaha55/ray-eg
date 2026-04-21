@@ -610,6 +610,8 @@
       "electronics": "كمبيوترات وموبايلات",
       "health": "صيدلية / مستحضرات",
       "homeGoods": "مستلزمات المنزل",
+      "realEstate": "عقارات",
+      "carShowroom": "معارض سيارات",
       "other": "أخرى"
     },
     "modules": {
@@ -1420,24 +1422,6 @@
     "globalSecurityDesc": "تشفير وحماية بمعايير عالمية",
     "continuousSupport": "دعم متواصل",
     "continuousSupportDesc": "فريق دعم متاح على مدار الساعة"
-  },
-  "activities": {
-    "fashion": "ملابس وأزياء",
-    "restaurant": "مطعم",
-    "retail": "تجارة عامة",
-    "electronics": "إلكترونيات",
-    "health": "صحة ودواء",
-    "service": "خدمات",
-    "gallery": "المعرض",
-    "pos": "نقطة البيع",
-    "products": "المنتجات",
-    "medicines": "الأدوية",
-    "invoices": "الفواتير"
-  },
-  "bookings": {
-    "loading": "جاري تحميل الحجوزات...",
-    "loadFailed": "فشل تحميل الحجوزات.",
-    "updateFailed": "فشل تحديث حالة الحجز."
   },
   "clinic": {
     "layout": {

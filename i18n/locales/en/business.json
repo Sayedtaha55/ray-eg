@@ -610,6 +610,8 @@
       "electronics": "Computers & Mobiles",
       "health": "Pharmacy / Cosmetics",
       "homeGoods": "Home goods",
+      "realEstate": "Real Estate",
+      "carShowroom": "Car Showrooms",
       "other": "Other"
     },
     "modules": {
@@ -1252,14 +1254,11 @@
     "fashion": "Fashion & Clothing",
     "restaurant": "Restaurant",
     "retail": "Retail",
+    "realEstate": "Real Estate",
+    "carShowroom": "Car Showrooms",
     "electronics": "Electronics",
-    "health": "Health & Medicine",
     "service": "Services",
-    "gallery": "Gallery",
-    "pos": "POS",
-    "products": "Products",
-    "medicines": "Medicines",
-    "invoices": "Invoices"
+    "health": "Pharmacies"
   },
   "dashboardTabs": {
     "overview": "Overview",

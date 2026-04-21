@@ -58,11 +58,13 @@ const ACTIVITIES: ActivityDef[] = [
   { id: 'restaurant', label: '', category: Category.RESTAURANT },
   { id: 'grocery', label: '', category: Category.FOOD },
   { id: 'fashion', label: '', category: Category.FASHION },
-  { id: 'home-textiles', label: '', category: Category.RETAIL },
+  { id: 'homeTextiles', label: '', category: Category.RETAIL },
   { id: 'furniture', label: '', category: Category.SERVICE },
   { id: 'electronics', label: '', category: Category.ELECTRONICS },
   { id: 'health', label: '', category: Category.HEALTH },
-  { id: 'home-goods', label: '', category: Category.RETAIL },
+  { id: 'homeGoods', label: '', category: Category.RETAIL },
+  { id: 'realEstate', label: '', category: Category.SERVICE },
+  { id: 'carShowroom', label: '', category: Category.RETAIL },
   { id: 'other', label: '', category: Category.OTHER },
 ];
 

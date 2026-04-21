@@ -64,6 +64,8 @@
     "pharmacy": "Pharmacy / Cosmetics",
     "furniture": "Furniture / Showrooms",
     "homeGoods": "Home Supplies",
+    "realEstate": "Real Estate",
+    "carShowroom": "Car Showrooms",
     "bookings": "Bookings",
     "other": "Other"
   },

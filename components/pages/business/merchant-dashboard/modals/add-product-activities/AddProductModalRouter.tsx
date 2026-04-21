@@ -43,7 +43,7 @@ const AddProductModalRouter: React.FC<Props> = ({ isOpen, onClose, shopId, shopC
   }
 
   if (shopCategoryUpper === 'RETAIL') {
-    if (devActivityId === 'home-goods') {
+    if (devActivityId === 'homeGoods') {
       return <HomeGoodsAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;
     }
     return <HomeTextilesAddProductModal isOpen={isOpen} onClose={onClose} shopId={shopId} shopCategory={shopCategory} />;

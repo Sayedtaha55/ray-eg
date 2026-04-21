@@ -165,7 +165,7 @@ const AddProductModalShell: React.FC<Props> = ({
     }
 
     if (shopCategoryUpper === 'RETAIL') {
-      if (devActivityId === 'home-goods') {
+      if (devActivityId === 'homeGoods') {
         return {
           name: t('business.products.placeholders.homeGoods.name'),
           cat: t('business.products.placeholders.homeGoods.cat'),
