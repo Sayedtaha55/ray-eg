@@ -19,6 +19,8 @@ import {
   TrendingUp,
   Users,
   Eye,
+  PanelLeftClose,
+  PanelRightClose,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
@@ -112,6 +114,7 @@ const MerchantDashboardPage: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [offerSeedProduct, setOfferSeedProduct] = useState<Product | null>(null);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
 
   const hasInitializedOrdersRef = useRef(false);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -655,7 +658,7 @@ const MerchantDashboardPage: React.FC = () => {
         </div>
       )}
 
-      <div className="sticky top-24 z-40">
+      <div className="sticky top-24 z-40 md:hidden">
         <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar shadow-inner">
           {visibleTabs.map((tab) => (
             <TabButton
@@ -670,24 +673,60 @@ const MerchantDashboardPage: React.FC = () => {
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        <MotionDiv
-          key={effectiveTab}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-        >
-          <Suspense fallback={TabFallback}>
-            {effectiveTab === 'pos' ? (
-              <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
-            ) : effectiveTab === 'builder' ? (
-              <PageBuilder onClose={() => setTab('overview')} />
-            ) : (
-              renderContent()
-            )}
-          </Suspense>
-        </MotionDiv>
-      </AnimatePresence>
+      <div className={`flex items-start gap-4 md:gap-6 ${isArabic ? 'md:flex-row-reverse' : 'md:flex-row'}`}>
+        <aside className={`hidden md:block sticky top-24 z-30 shrink-0 ${desktopSidebarCollapsed ? 'w-[88px]' : 'w-[290px]'}`}>
+          <div className="bg-slate-100/80 backdrop-blur-xl border border-white/50 rounded-[2rem] p-2 shadow-inner">
+            <button
+              type="button"
+              onClick={() => setDesktopSidebarCollapsed((prev) => !prev)}
+              className="w-full mb-2 px-3 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 hover:text-slate-900 transition-colors flex items-center justify-center gap-2"
+              aria-label={desktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+              title={desktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+            >
+              {isArabic ? <PanelRightClose size={16} /> : <PanelLeftClose size={16} />}
+            </button>
+            <div className="space-y-1">
+              {visibleTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setTab(tab.id)}
+                  onPointerEnter={() => handleTabPointerEnter(tab.id)}
+                  className={`w-full flex items-center ${desktopSidebarCollapsed ? 'justify-center' : ''} gap-3 px-4 py-3 rounded-2xl font-black text-xs transition-all border ${
+                    effectiveTab === tab.id
+                      ? 'bg-slate-900 text-white border-slate-900 shadow-[0_12px_24px_rgba(0,0,0,0.14)]'
+                      : 'text-slate-600 border-transparent hover:text-slate-900 hover:bg-white hover:border-slate-200'
+                  }`}
+                  title={tab.label}
+                >
+                  <span>{tab.icon}</span>
+                  {!desktopSidebarCollapsed && <span className="truncate">{tab.label}</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        </aside>
+        <div className="min-w-0 flex-1">
+          <AnimatePresence mode="wait">
+            <MotionDiv
+              key={effectiveTab}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
+              <Suspense fallback={TabFallback}>
+                {effectiveTab === 'pos' ? (
+                  <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
+                ) : effectiveTab === 'builder' ? (
+                  <PageBuilder onClose={() => setTab('overview')} />
+                ) : (
+                  renderContent()
+                )}
+              </Suspense>
+            </MotionDiv>
+          </AnimatePresence>
+        </div>
+      </div>
 
       <Suspense fallback={null}>
         <AddProductModal isOpen={showProductModal} onClose={() => {

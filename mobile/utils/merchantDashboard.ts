@@ -16,6 +16,28 @@ export type MerchantModuleId =
   | 'shared-products'
   | string;
 
+export type MerchantDashboardButtonDefinition = {
+  id: MerchantModuleId;
+  route: string;
+  iconName: string;
+};
+
+export const MERCHANT_DASHBOARD_BUTTONS: MerchantDashboardButtonDefinition[] = [
+  { id: 'overview', route: '/(tabs)', iconName: 'trending-up-outline' },
+  { id: 'notifications', route: '/(tabs)/notifications', iconName: 'notifications-outline' },
+  { id: 'gallery', route: '/more/gallery', iconName: 'camera-outline' },
+  { id: 'reports', route: '/more/reports', iconName: 'bar-chart-outline' },
+  { id: 'customers', route: '/more/customers', iconName: 'people-outline' },
+  { id: 'products', route: '/(tabs)/products', iconName: 'cube-outline' },
+  { id: 'promotions', route: '/more/promotions', iconName: 'megaphone-outline' },
+  { id: 'reservations', route: '/more/reservations', iconName: 'calendar-outline' },
+  { id: 'invoice', route: '/more/invoice', iconName: 'document-text-outline' },
+  { id: 'sales', route: '/(tabs)/sales', iconName: 'card-outline' },
+  { id: 'pos', route: '/more/pos', iconName: 'phone-portrait-outline' },
+  { id: 'builder', route: '/more/builder', iconName: 'color-palette-outline' },
+  { id: 'settings', route: '/settings/overview', iconName: 'settings-outline' },
+];
+
 export type ShopDashboardMode = 'showcase' | 'manage' | undefined;
 
 const CORE_MERCHANT_MODULES: MerchantModuleId[] = [
@@ -146,4 +168,8 @@ export function isDashboardTabVisible(shop: any, tabId: MerchantModuleId): boole
   if (allowedForMode && !allowedForMode.has(id)) return false;
 
   return true;
+}
+
+export function getVisibleDashboardButtons(shop: any): MerchantDashboardButtonDefinition[] {
+  return MERCHANT_DASHBOARD_BUTTONS.filter((btn) => isDashboardTabVisible(shop, btn.id));
 }

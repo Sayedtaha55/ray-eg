@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import { getVisibleDashboardButtons } from '@/utils/merchantDashboard';
 
 type Analytics = {
   salesCountToday?: number;
@@ -113,6 +115,12 @@ export default function OverviewScreen() {
   }, [shop?.id]);
 
   useEffect(() => { loadData(); }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+      return () => {};
+    }, [loadData]),
+  );
 
   const onRefresh = () => { setRefreshing(true); loadData(); };
 
@@ -130,6 +138,22 @@ export default function OverviewScreen() {
   const totalOrders = safeAnalytics.totalOrders ?? 0;
   const totalRevenue = safeAnalytics.totalRevenue ?? 0;
   const chartData = Array.isArray(safeAnalytics.chartData) ? safeAnalytics.chartData : [];
+  const quickButtons = getVisibleDashboardButtons(shop).filter((x) => String(x.id) !== 'overview').slice(0, 4);
+  const quickLabel = (id: string) =>
+    ({
+      notifications: t('more.notifications'),
+      gallery: t('more.gallery'),
+      reports: t('more.reports'),
+      customers: t('more.customers'),
+      products: t('more.products'),
+      promotions: t('more.promotions'),
+      reservations: t('more.reservations'),
+      invoice: t('more.invoice'),
+      sales: t('more.sales'),
+      pos: t('more.smartPos'),
+      builder: t('more.pageBuilder'),
+      settings: t('more.settings'),
+    } as Record<string, string>)[id] || id;
 
   return (
     <ScrollView
@@ -147,6 +171,15 @@ export default function OverviewScreen() {
             <StatCard label={t('overview.todayRevenue')} value={`E£ ${revenueToday}`} icon="cash-outline" color="#00E5FF" />
           </>
         ) : null}
+      </View>
+
+      <View style={styles.quickActions}>
+        {quickButtons.map((btn) => (
+          <TouchableOpacity key={String(btn.id)} style={styles.quickActionBtn} onPress={() => router.push(btn.route as any)}>
+            <Ionicons name={btn.iconName as any} size={16} color="#0F172A" />
+            <Text style={styles.quickActionText}>{quickLabel(String(btn.id))}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
       {showSalesAnalytics ? (
@@ -277,6 +310,19 @@ const styles = StyleSheet.create({
   },
   statLabel: { fontSize: 10, fontWeight: '900', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1.5 },
   statValue: { fontSize: 24, fontWeight: '900', color: '#0F172A', letterSpacing: -1 },
+  quickActions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
+  quickActionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 14,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  quickActionText: { fontSize: 12, fontWeight: '900', color: '#0F172A' },
 
   // Card
   card: {

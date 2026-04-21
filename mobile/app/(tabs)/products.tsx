@@ -8,12 +8,16 @@ import {
   TouchableOpacity,
   Alert,
   FlatList,
+  Modal,
+  TextInput,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { ApiService } from '@/services/api';
 import httpClient from '@/services/httpClient';
+import { useFocusEffect } from '@react-navigation/native';
 
 function ProductRow({
   product,
@@ -87,10 +91,18 @@ function ProductRow({
 export default function ProductsScreen() {
   const { shop } = useAuth();
   const { t } = useAppPreferences();
+  const { width } = useWindowDimensions();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [togglingId, setTogglingId] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
+  const [addLoading, setAddLoading] = useState(false);
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState('');
+  const [stock, setStock] = useState('0');
+  const [category, setCategory] = useState('');
+  const [description, setDescription] = useState('');
 
   const isRestaurant = String(shop?.category || '').toUpperCase() === 'RESTAURANT';
   const pageTitle = isRestaurant ? t('products.menuTitle') : t('products.title');
@@ -113,6 +125,12 @@ export default function ProductsScreen() {
   }, [shop?.id]);
 
   useEffect(() => { loadProducts(); }, [loadProducts]);
+  useFocusEffect(
+    useCallback(() => {
+      loadProducts();
+      return () => {};
+    }, [loadProducts]),
+  );
 
   const handleToggleActive = async (product: any) => {
     const current = typeof product?.isActive === 'boolean' ? product.isActive : true;
@@ -158,6 +176,51 @@ export default function ProductsScreen() {
     return <View style={styles.center}><ActivityIndicator size="large" color="#00E5FF" /></View>;
   }
 
+  const compact = width < 375;
+
+  const submitAddProduct = async () => {
+    const shopId = String(shop?.id || '').trim();
+    const trimmedName = String(name || '').trim();
+    const parsedPrice = Number(price);
+    const parsedStock = Number(stock);
+
+    if (!shopId) {
+      Alert.alert(t('common.error'), 'No shop found');
+      return;
+    }
+    if (!trimmedName) {
+      Alert.alert(t('common.error'), t('products.colName'));
+      return;
+    }
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      Alert.alert(t('common.error'), t('products.colPrice'));
+      return;
+    }
+
+    setAddLoading(true);
+    try {
+      const created = await ApiService.addProduct({
+        shopId,
+        name: trimmedName,
+        price: parsedPrice,
+        stock: Number.isFinite(parsedStock) && parsedStock >= 0 ? parsedStock : 0,
+        category: String(category || '').trim() || undefined,
+        description: String(description || '').trim() || undefined,
+      });
+      setProducts((prev) => [created, ...prev]);
+      setAddOpen(false);
+      setName('');
+      setPrice('');
+      setStock('0');
+      setCategory('');
+      setDescription('');
+    } catch (e: any) {
+      Alert.alert(t('common.error'), String(e?.message || 'Could not add product'));
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header — same as web */}
@@ -165,7 +228,7 @@ export default function ProductsScreen() {
         <Text style={styles.headerTitle}>{pageTitle}</Text>
         <TouchableOpacity
           style={styles.addBtn}
-          onPress={() => Alert.alert('Add Product', 'Adding new products is available on the web dashboard')}
+          onPress={() => setAddOpen(true)}
         >
           <Ionicons name="add-outline" size={18} color="#fff" />
           <Text style={styles.addBtnText}>{t('products.addNewItem')}</Text>
@@ -195,6 +258,36 @@ export default function ProductsScreen() {
           </View>
         }
       />
+
+      <Modal visible={addOpen} animationType="slide" transparent onRequestClose={() => setAddOpen(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t('products.addNewItem')}</Text>
+              <TouchableOpacity onPress={() => setAddOpen(false)}>
+                <Ionicons name="close" size={22} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+            <View style={styles.modalBody}>
+              <TextInput value={name} onChangeText={setName} placeholder={t('products.colName')} placeholderTextColor="#94A3B8" style={[styles.modalInput, compact && { fontSize: 13 }]} />
+              <TextInput value={price} onChangeText={setPrice} placeholder={t('products.colPrice')} placeholderTextColor="#94A3B8" style={[styles.modalInput, compact && { fontSize: 13 }]} keyboardType="decimal-pad" />
+              <TextInput value={stock} onChangeText={setStock} placeholder={t('products.colStock')} placeholderTextColor="#94A3B8" style={[styles.modalInput, compact && { fontSize: 13 }]} keyboardType="number-pad" />
+              <TextInput value={category} onChangeText={setCategory} placeholder={t('products.noCategory')} placeholderTextColor="#94A3B8" style={[styles.modalInput, compact && { fontSize: 13 }]} />
+              <TextInput
+                value={description}
+                onChangeText={setDescription}
+                placeholder="Description"
+                placeholderTextColor="#94A3B8"
+                style={[styles.modalInput, styles.modalInputArea, compact && { fontSize: 13 }]}
+                multiline
+              />
+            </View>
+            <TouchableOpacity style={styles.modalSaveBtn} disabled={addLoading} onPress={submitAddProduct}>
+              {addLoading ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.modalSaveText}>{t('common.save')}</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -278,4 +371,46 @@ const styles = StyleSheet.create({
   emptyBox: { alignItems: 'center', justifyContent: 'center', flex: 1, gap: 8, paddingTop: 80 },
   emptyText: { fontSize: 16, fontWeight: '800', color: '#94A3B8' },
   emptySubtext: { fontSize: 12, fontWeight: '600', color: '#CBD5E1' },
+
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(2,6,23,0.45)',
+    justifyContent: 'flex-end',
+  },
+  modalCard: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  modalTitle: { fontSize: 18, fontWeight: '900', color: '#0F172A' },
+  modalBody: { gap: 10 },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    backgroundColor: '#F8FAFC',
+  },
+  modalInputArea: { minHeight: 90, textAlignVertical: 'top' },
+  modalSaveBtn: {
+    marginTop: 4,
+    borderRadius: 16,
+    backgroundColor: '#0F172A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+  },
+  modalSaveText: { color: '#fff', fontSize: 14, fontWeight: '900' },
 });
