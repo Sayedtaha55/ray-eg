@@ -45,6 +45,26 @@ export const ApiService = {
     return data;
   },
 
+  async addProduct(payload: {
+    shopId: string;
+    name: string;
+    price: number;
+    stock?: number;
+    category?: string;
+    description?: string;
+    imageUrl?: string;
+  }) {
+    const body = {
+      ...payload,
+      shopId: String(payload.shopId),
+      name: String(payload.name || '').trim(),
+      price: Number(payload.price || 0),
+      stock: Number(payload.stock ?? 0),
+    };
+    const { data } = await httpClient.post('/products', body);
+    return data;
+  },
+
   async deleteProduct(id: string) {
     await httpClient.delete(`/products/${id}`);
   },

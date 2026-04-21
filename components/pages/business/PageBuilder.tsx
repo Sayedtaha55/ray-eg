@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { 
   ChevronLeft, Save, Layout, Check, 
   Monitor, Smartphone, X, 
-  Sliders, Loader2, Menu 
+  Sliders, Loader2, Menu, PanelLeftClose, PanelRightClose
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -146,7 +146,8 @@ interface ShopDesign {
 
 const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { addToast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const location = useLocation();
   const [shopId, setShopId] = useState<string>('');
   const [shop, setShop] = useState<any>(null);
@@ -174,6 +175,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [backgroundPreview, setBackgroundPreview] = useState<string>('');
   const [isDesktop, setIsDesktop] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
 
   const savingRef = useRef(false);
   const logoSavingRef = useRef(false);
@@ -746,7 +748,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     : null;
 
   return (
-    <div className="w-full bg-[#F8F9FA] flex flex-col md:flex-row-reverse text-right font-sans overflow-hidden" dir="rtl">
+    <div className={`w-full bg-[#F8F9FA] flex flex-col ${isArabic ? 'md:flex-row-reverse text-right' : 'md:flex-row text-left'} font-sans overflow-hidden`} dir={isArabic ? 'rtl' : 'ltr'}>
 
       {desktopAccordionSlot && activeSectionNode
         ? createPortal(
@@ -767,30 +769,45 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] md:hidden"
               />
               
-              <MotionDiv 
-                initial={!isDesktop ? { y: '100%' } : { x: '100%' }}
+              <MotionDiv
+                initial={!isDesktop ? { y: '100%' } : { x: isArabic ? '100%' : '-100%' }}
                 animate={!isDesktop ? { y: 0 } : { x: 0 }}
-                exit={!isDesktop ? { y: '100%' } : { x: '100%' }}
-                className="fixed bottom-0 left-0 right-0 md:relative md:w-[340px] lg:w-[380px] h-[80vh] md:h-full bg-white md:border-l border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2rem] sm:rounded-t-[2.5rem] md:rounded-none"
+                exit={!isDesktop ? { y: '100%' } : { x: isArabic ? '100%' : '-100%' }}
+                className={`fixed bottom-0 left-0 right-0 md:relative ${isDesktop && desktopSidebarCollapsed ? 'md:w-[88px]' : 'md:w-[340px] lg:w-[380px]'} h-[80vh] md:h-full bg-white ${isArabic ? 'md:border-l' : 'md:border-r'} border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2rem] sm:rounded-t-[2.5rem] md:rounded-none`}
               >
                 <header className="p-4 sm:p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
                   <div className="flex items-center gap-3">
                     <button onClick={() => setShowSettingsMobile(false)} className="md:hidden p-2 bg-slate-50 rounded-full transition-all hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-200 focus-visible:ring-offset-2 active:scale-95"><X size={18} className="sm:w-5 sm:h-5" /></button>
-                    <h2 className="font-black text-xl md:text-3xl tracking-tighter">{t('business.pageBuilder.designTitle')}</h2>
+                    {!desktopSidebarCollapsed && <h2 className="font-black text-xl md:text-3xl tracking-tighter">{t('business.pageBuilder.designTitle')}</h2>}
                   </div>
-                  <button 
-                    onClick={handleSave}
-                    disabled={saving}
-                    className={`px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-[2rem] font-black text-xs md:text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none ${
-                      saved ? 'bg-green-500 text-white' : 'bg-slate-900 text-white shadow-xl hover:bg-black'
-                    }`}
-                  >
-                    {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
-                    <span>{saved ? t('business.pageBuilder.savedShort') : t('business.pageBuilder.saveDesign')}</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {isDesktop && (
+                      <button
+                        type="button"
+                        onClick={() => setDesktopSidebarCollapsed((prev) => !prev)}
+                        className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-slate-900 transition-colors"
+                        aria-label={desktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+                        title={desktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+                      >
+                        {isArabic ? <PanelRightClose size={18} /> : <PanelLeftClose size={18} />}
+                      </button>
+                    )}
+                    {!desktopSidebarCollapsed && (
+                      <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className={`px-6 md:px-8 py-3 md:py-3.5 rounded-xl md:rounded-[2rem] font-black text-xs md:text-sm transition-all flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] disabled:opacity-60 disabled:pointer-events-none ${
+                          saved ? 'bg-green-500 text-white' : 'bg-slate-900 text-white shadow-xl hover:bg-black'
+                        }`}
+                      >
+                        {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
+                        <span>{saved ? t('business.pageBuilder.savedShort') : t('business.pageBuilder.saveDesign')}</span>
+                      </button>
+                    )}
+                  </div>
                 </header>
 
-                <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4">
+                <div className={`flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 ${desktopSidebarCollapsed ? 'hidden md:hidden' : ''}`}>
                   <div className="hidden md:block border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle')}</span>
