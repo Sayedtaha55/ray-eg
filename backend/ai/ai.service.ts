@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AiProvider, AiMessage, AiToolCall } from './ai-provider.interface';
-import { OpenAiProvider } from './openai.provider';
+import { GroqProvider } from './groq.provider';
 import {
   AiTier,
   getTierConfig,
@@ -76,7 +76,10 @@ export class AiService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
   ) {
-    this.provider = new OpenAiProvider(config);
+    this.provider = new GroqProvider({
+      apiKey: this.config.get<string>('GROQ_API_KEY') || this.config.get<string>('OPENAI_API_KEY'),
+      model: this.config.get<string>('GROQ_MODEL') || 'llama-3.1-70b-versatile',
+    });
   }
 
   // ─── Main Chat Entry ──────────────────────────────────────────
