@@ -78,7 +78,7 @@ export class AiService {
   ) {
     this.provider = new GroqProvider({
       apiKey: this.config.get<string>('GROQ_API_KEY') || this.config.get<string>('OPENAI_API_KEY'),
-      model: this.config.get<string>('GROQ_MODEL') || 'llama-3.1-70b-versatile',
+      model: this.config.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile',
     });
   }
 

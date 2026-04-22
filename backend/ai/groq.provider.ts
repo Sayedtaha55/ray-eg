@@ -44,7 +44,7 @@ export class GroqProvider implements AiProvider {
 
   constructor(config: { apiKey: string; model?: string; baseUrl?: string }) {
     this.apiKey = config.apiKey;
-    this.model = config.model || 'llama-3.1-70b-versatile';
+    this.model = config.model || 'llama-3.3-70b-versatile';
     if (config.baseUrl) this.baseUrl = config.baseUrl;
   }
 
@@ -184,11 +184,12 @@ export class GroqProvider implements AiProvider {
   }
 
   estimateCost(usage: { promptTokens: number; completionTokens: number }): number {
-    // Groq pricing (as of 2024)
+    // Groq pricing (as of 2025)
     const pricing = {
-      'llama-3.1-70b-versatile': { input: 0.59, output: 0.79 }, // per 1M tokens
+      'llama-3.3-70b-versatile': { input: 0.59, output: 0.79 }, // per 1M tokens
       'llama-3.1-8b-instant': { input: 0.05, output: 0.08 },
       'mixtral-8x7b-32768': { input: 0.27, output: 0.27 },
+      'gemma2-9b-it': { input: 0.20, output: 0.20 },
     };
 
     const modelPricing = pricing[this.model as keyof typeof pricing];
