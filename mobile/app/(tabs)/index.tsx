@@ -15,6 +15,7 @@ import { ApiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import { getVisibleDashboardButtons } from '@/utils/merchantDashboard';
+import AiAssistantPanel from '@/components/AiAssistantPanel';
 
 type Analytics = {
   salesCountToday?: number;
@@ -156,6 +157,7 @@ export default function OverviewScreen() {
     } as Record<string, string>)[id] || id;
 
   return (
+    <>
     <ScrollView
       style={styles.container}
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#00E5FF" />}
@@ -280,6 +282,15 @@ export default function OverviewScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
+
+      {/* AI Assistant FAB */}
+      <AiAssistantPanel
+        shopId={shop?.id || ''}
+        shop={shop}
+        currentPage="overview"
+        onActionExecuted={() => loadData()}
+      />
+    </>
   );
 }
 

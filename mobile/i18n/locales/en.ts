@@ -676,6 +676,29 @@ const en: Record<string, any> = {
     threadEmptySub: 'Send a message to begin.',
     typeMessage: 'Type a message...',
   },
+
+  ai: {
+    assistantTitle: 'AI Assistant',
+    openAssistant: 'Open AI Assistant',
+    welcomeTitle: 'Hi! I\'m your AI assistant',
+    welcomeSubtitle: 'Ask me anything about your shop or request design changes',
+    inputPlaceholder: 'Type your request here...',
+    thinking: 'Thinking...',
+    noResponse: 'I couldn\'t generate a response. Please try again.',
+    errorOccurred: 'An error occurred. Please try again.',
+    tierFree: 'Free Tier',
+    tierPro: 'Pro Tier',
+    tierEnterprise: 'Enterprise Tier',
+    freeTierHint: 'Free tier — 50 requests/month | Upgrade to Pro for more features',
+    quickActions: {
+      changeColor: 'Change primary color',
+      toggleReservations: 'Enable reservations',
+      shopStatus: 'Shop status',
+      addSection: 'Add a section',
+      suggestDesign: 'Suggest design',
+      generateContent: 'Write content',
+    },
+  },
 };
 
 export default en;

@@ -675,6 +675,29 @@ const ar: Record<string, any> = {
     threadEmptySub: 'أرسل رسالة للبدء.',
     typeMessage: 'اكتب رسالة...',
   },
+
+  ai: {
+    assistantTitle: 'مساعد الذكاء الصناعي',
+    openAssistant: 'افتح المساعد الذكي',
+    welcomeTitle: 'أهلاً! أنا مساعدك الذكي',
+    welcomeSubtitle: 'أسألني أي سؤال عن محلك أو اطلب تغيير التصميم',
+    inputPlaceholder: 'اكتب طلبك هنا...',
+    thinking: 'بفكر...',
+    noResponse: 'لم أستطع توليد رد. حاول تاني.',
+    errorOccurred: 'حصل خطأ. حاول مرة تانية.',
+    tierFree: 'باقة مجانية',
+    tierPro: 'باقة برو',
+    tierEnterprise: 'باقة المؤسسات',
+    freeTierHint: 'الباقة المجانية — 50 طلب/شهر | ارقي لباقة برو لمزيد من المميزات',
+    quickActions: {
+      changeColor: 'غيّر اللون الأساسي',
+      toggleReservations: 'فعّل الحجوزات',
+      shopStatus: 'حالة المحل',
+      addSection: 'أضف قسم جديد',
+      suggestDesign: 'اقترح تصميم',
+      generateContent: 'اكتب محتوى',
+    },
+  },
 };
 
 export default ar;

@@ -153,6 +153,11 @@ import {
   updateInvoiceViaBackend,
 } from './api/modules/invoices';
 import {
+  aiChatViaBackend,
+  aiChatStreamViaBackend,
+  type AiChatResponse,
+} from './api/modules/ai';
+import {
   addMyFavoriteViaBackend,
   getMyFavoritesViaBackend,
   removeMyFavoriteViaBackend,
@@ -1208,5 +1213,13 @@ export const ApiService = {
   },
   updateInvoice: async (id: string, payload: any) => {
     return await updateInvoiceViaBackend(id, payload);
+  },
+
+  // AI Assistant
+  aiChat: async (params: { message: string; shopId: string; context?: { currentPage?: string; locale?: string } }) => {
+    return await aiChatViaBackend(params);
+  },
+  aiChatStream: async (params: { message: string; shopId: string; context?: { currentPage?: string; locale?: string } }) => {
+    return await aiChatStreamViaBackend(params);
   },
 };

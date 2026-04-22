@@ -193,4 +193,10 @@ export const ApiService = {
     const { data } = await httpClient.patch('/auth/change-password', payload);
     return data;
   },
+
+  // ── AI Assistant ──
+  async aiChat(params: { message: string; shopId: string; context?: { currentPage?: string; locale?: string } }) {
+    const { data } = await httpClient.post('/ai/chat', params);
+    return data;
+  },
 };

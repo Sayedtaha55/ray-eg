@@ -49,6 +49,7 @@ const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
 const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
 
 import TabButton from './components/TabButton';
+import AiAssistantPanel from './AiAssistantPanel';
 import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
@@ -692,6 +693,13 @@ const MerchantDashboardPage: React.FC = () => {
           </AnimatePresence>
         </div>
       </div>
+
+      <AiAssistantPanel
+        shopId={currentShop.id}
+        shop={currentShop}
+        currentPage={effectiveTab}
+        onActionExecuted={() => refreshShopAndActiveTab(true)}
+      />
 
       <Suspense fallback={null}>
         <AddProductModal isOpen={showProductModal} onClose={() => {

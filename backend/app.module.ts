@@ -24,6 +24,7 @@ import { LoggerModule } from './logger/logger.module';
 import { SearchModule } from './search.module';
 import { QueueModule } from './queue.module';
 import { ChatModule } from './chat.module';
+import { AiModule } from './ai/ai.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -69,6 +70,7 @@ import { AccountPurgeService } from './account-purge.service';
     ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') ? [ShopImageMapModule] : []),
     ...(includeAllModules || bootModules.has('realtime') ? [RealtimeModule] : []),
     ...(includeAllModules || bootModules.has('chat') ? [ChatModule] : []),
+    ...(includeAllModules || bootModules.has('ai') ? [AiModule] : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
   ],

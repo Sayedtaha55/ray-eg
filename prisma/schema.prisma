@@ -100,6 +100,9 @@ model Shop {
   addons                Json?
   publicDisabled        Boolean                    @default(false) @map("public_disabled")
   deliveryDisabled      Boolean                    @default(false) @map("delivery_disabled")
+  aiTier                AiSubscriptionTier         @default(FREE) @map("ai_tier")
+  aiUsageMonth          Int                        @default(0) @map("ai_usage_month")
+  aiUsageResetAt        DateTime?                  @map("ai_usage_reset_at")
   accountingInvoices    AccountingInvoice[]
   bookingResources      BookingResource[]
   bookings              Booking[]
@@ -839,4 +842,10 @@ enum ReservationStatus {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+enum AiSubscriptionTier {
+  FREE
+  PRO
+  ENTERPRISE
 }
