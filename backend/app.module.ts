@@ -70,7 +70,8 @@ import { AccountPurgeService } from './account-purge.service';
     ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') ? [ShopImageMapModule] : []),
     ...(includeAllModules || bootModules.has('realtime') ? [RealtimeModule] : []),
     ...(includeAllModules || bootModules.has('chat') ? [ChatModule] : []),
-    ...(includeAllModules || bootModules.has('ai') ? [AiModule] : []),
+    // AI module requires AI_ENABLED=true (hidden from production until ready)
+ ...(includeAllModules || bootModules.has('ai') ? (process.env.AI_ENABLED === 'true' ? [AiModule] : []) : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
   ],

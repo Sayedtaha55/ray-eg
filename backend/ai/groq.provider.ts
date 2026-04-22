@@ -57,10 +57,23 @@ export class GroqProvider implements AiProvider {
       },
       body: JSON.stringify({
         model: this.model,
-        messages: request.messages.map((msg: any) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        messages: request.messages.map((msg: any) => {
+          const mapped: any = { role: msg.role, content: msg.content || '' };
+          if (msg.role === 'assistant' && msg.toolCalls) {
+            mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
+              },
+            }));
+          }
+          if (msg.role === 'tool' && msg.toolCallId) {
+            mapped.tool_call_id = msg.toolCallId;
+          }
+          return mapped;
+        }),
         tools: request.tools?.map((tool: any) => ({
           type: 'function',
           function: {
@@ -113,10 +126,23 @@ export class GroqProvider implements AiProvider {
       },
       body: JSON.stringify({
         model: this.model,
-        messages: request.messages.map((msg: any) => ({
-          role: msg.role,
-          content: msg.content,
-        })),
+        messages: request.messages.map((msg: any) => {
+          const mapped: any = { role: msg.role, content: msg.content || '' };
+          if (msg.role === 'assistant' && msg.toolCalls) {
+            mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
+              id: tc.id,
+              type: 'function',
+              function: {
+                name: tc.name,
+                arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
+              },
+            }));
+          }
+          if (msg.role === 'tool' && msg.toolCallId) {
+            mapped.tool_call_id = msg.toolCallId;
+          }
+          return mapped;
+        }),
         tools: request.tools?.map((tool: any) => ({
           type: 'function',
           function: {

@@ -283,13 +283,15 @@ export default function OverviewScreen() {
       </View>
     </ScrollView>
 
-      {/* AI Assistant FAB */}
-      <AiAssistantPanel
-        shopId={shop?.id || ''}
-        shop={shop}
-        currentPage="overview"
-        onActionExecuted={() => loadData()}
-      />
+      {/* AI Assistant FAB — dev only */}
+      {__DEV__ && (
+        <AiAssistantPanel
+          shopId={shop?.id || ''}
+          shop={shop}
+          currentPage="overview"
+          onActionExecuted={() => loadData()}
+        />
+      )}
     </>
   );
 }
