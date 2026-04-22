@@ -11,6 +11,7 @@ interface NavItemProps {
   onClick?: () => void;
   badge?: number;
   showIcon?: boolean;
+  hideLabel?: boolean;
 }
 
 const NavItem: React.FC<NavItemProps> = ({
@@ -21,6 +22,7 @@ const NavItem: React.FC<NavItemProps> = ({
   onClick,
   badge,
   showIcon = true,
+  hideLabel = false,
 }) => (
   <Link
     to={to}
@@ -31,13 +33,13 @@ const NavItem: React.FC<NavItemProps> = ({
         : 'bg-white text-slate-600 border-transparent hover:border-slate-100 hover:bg-slate-50 hover:text-slate-900'
     }`}
   >
-    <div className="flex items-center gap-3 flex-row-reverse">
+    <div className={`flex items-center gap-3 flex-row-reverse ${hideLabel ? 'w-full justify-center' : ''}`}>
       {showIcon && icon ? (
         <span className={`${active ? 'text-[#00E5FF]' : 'text-slate-400 group-hover:text-slate-900'} transition-colors`}>
           {icon}
         </span>
       ) : null}
-      <span className="font-black text-sm leading-none">{label}</span>
+      {!hideLabel && <span className="font-black text-sm leading-none">{label}</span>}
     </div>
     {badge ? (
       <span className="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full min-w-[20px] text-center">

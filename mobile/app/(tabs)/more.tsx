@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAppPreferences } from '@/contexts/AppPreferencesContext';
-import { getVisibleDashboardButtons } from '@/utils/merchantDashboard';
+import { getVisibleDashboardSections } from '@/utils/merchantDashboard';
 
 type MoreItem = { id: string; label: string; icon: React.ReactNode; route: string };
 
@@ -29,18 +29,28 @@ export default function MoreScreen() {
     settings: t('more.settings'),
   };
 
+  const sectionTitleByKey: Record<string, string> = {
+    'sections.dashboard': t('more.sections.dashboard'),
+    'sections.operations': t('more.sections.operations'),
+    'sections.sales': t('more.sections.sales'),
+    'sections.growth': t('more.sections.growth'),
+    'sections.setup': t('more.sections.setup'),
+  };
+
+  const dashboardSections = useMemo(() => getVisibleDashboardSections(shop), [shop]);
+
   const sections: { title: string; items: MoreItem[] }[] = [
-    {
-      title: t('more.dashboardPages'),
-      items: getVisibleDashboardButtons(shop).map((btn) => ({
+    ...dashboardSections.map((sec) => ({
+      title: sectionTitleByKey[sec.titleKey] || sec.titleKey,
+      items: sec.items.map((btn) => ({
         id: String(btn.id),
         label: tabLabelById[String(btn.id)] || String(btn.id),
         icon: <Ionicons name={btn.iconName as any} size={22} color="#00E5FF" />,
         route: btn.route,
       })),
-    },
+    })),
     {
-      title: t('more.setup'),
+      title: t('more.sections.extras'),
       items: [
         { id: 'chats', label: t('more.chats'), icon: <Ionicons name="chatbubble-ellipses-outline" size={22} color="#2DD4BF" />, route: '/more/chats' },
         { id: 'shared-products', label: t('more.sharedProducts'), icon: <Ionicons name="layers-outline" size={22} color="#38BDF8" />, route: '/more/shared-products' },

@@ -173,3 +173,31 @@ export function isDashboardTabVisible(shop: any, tabId: MerchantModuleId): boole
 export function getVisibleDashboardButtons(shop: any): MerchantDashboardButtonDefinition[] {
   return MERCHANT_DASHBOARD_BUTTONS.filter((btn) => isDashboardTabVisible(shop, btn.id));
 }
+
+export type DashboardSection = {
+  id: string;
+  titleKey: string;
+  items: MerchantDashboardButtonDefinition[];
+};
+
+const SECTION_DEFS: Array<{ id: string; titleKey: string; tabIds: MerchantModuleId[] }> = [
+  { id: 'dashboard', titleKey: 'sections.dashboard', tabIds: ['overview'] },
+  { id: 'operations', titleKey: 'sections.operations', tabIds: ['products', 'pos', 'reservations', 'invoice'] },
+  { id: 'sales', titleKey: 'sections.sales', tabIds: ['sales'] },
+  { id: 'growth', titleKey: 'sections.growth', tabIds: ['promotions', 'customers', 'reports', 'gallery'] },
+  { id: 'setup', titleKey: 'sections.setup', tabIds: ['builder', 'settings'] },
+];
+
+export function getVisibleDashboardSections(shop: any): DashboardSection[] {
+  const visible = getVisibleDashboardButtons(shop);
+  const byId = new Map<string, MerchantDashboardButtonDefinition>();
+  for (const btn of visible) byId.set(String(btn.id), btn);
+
+  return SECTION_DEFS
+    .map((def) => ({
+      id: def.id,
+      titleKey: def.titleKey,
+      items: def.tabIds.map((id) => byId.get(String(id))).filter(Boolean) as MerchantDashboardButtonDefinition[],
+    }))
+    .filter((section) => section.items.length > 0);
+}

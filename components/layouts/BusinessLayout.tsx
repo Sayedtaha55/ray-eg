@@ -35,6 +35,7 @@ const BusinessLayout: React.FC = () => {
   const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
   const isProfilePage = location.pathname.includes('/profile');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -237,6 +238,13 @@ const BusinessLayout: React.FC = () => {
   );
 
   const hasPosTab = visibleMainTabs.some((t) => t.id === 'pos');
+
+  const desktopSidebarWidthClass = isDesktopSidebarCollapsed ? 'md:w-24' : 'md:w-80';
+  const desktopSidebarOffsetClass = isDesktopSidebarCollapsed ? 'md:ml-24' : 'md:ml-80';
+  const desktopSidebarHeaderOffsetClass = isDesktopSidebarCollapsed ? 'md:left-24' : 'md:left-80';
+
+  const desktopSidebarOffsetClassRtl = isDesktopSidebarCollapsed ? 'md:mr-24' : 'md:mr-80';
+  const desktopSidebarHeaderOffsetClassRtl = isDesktopSidebarCollapsed ? 'md:right-24' : 'md:right-80';
 
   const sidebarNavSections = useMemo(() => {
     const byId = new Map<string, any>();
@@ -694,12 +702,24 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <aside className={`w-80 bg-white text-slate-900 flex flex-col fixed inset-y-0 left-0 z-[310] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-r border-slate-100 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      <aside
+        className={`bg-white text-slate-900 flex flex-col fixed inset-y-0 z-[310] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-slate-100 ${
+          isArabic ? 'right-0 border-l' : 'left-0 border-r'
+        } ${desktopSidebarWidthClass} ${
+          isSidebarOpen
+            ? 'translate-x-0'
+            : isArabic
+              ? 'translate-x-full'
+              : '-translate-x-full'
+        }`}
+      >
         {!isBuilderTab ? (
-          <div className="p-10 flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3">
+          <div className={`${isDesktopSidebarCollapsed ? 'p-4' : 'p-10'} flex items-center justify-between gap-3`}>
+            <Link to="/" className="flex items-center gap-3 min-w-0">
               <BrandLogo variant="business" iconOnly />
-              <span className="text-2xl font-black tracking-tighter uppercase">{t('brand.nameBusiness')}</span>
+              {!isDesktopSidebarCollapsed && (
+                <span className="text-2xl font-black tracking-tighter uppercase truncate">{t('brand.nameBusiness')}</span>
+              )}
             </Link>
             {isSettingsTab ? (
               <button
@@ -721,16 +741,29 @@ const BusinessLayout: React.FC = () => {
                 )}
               </button>
             ) : null}
+            <button
+              type="button"
+              onClick={() => setIsDesktopSidebarCollapsed((v) => !v)}
+              className="hidden md:flex shrink-0 p-2 hover:bg-slate-100 rounded-full"
+              aria-label={isDesktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+              title={isDesktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+            >
+              {isArabic ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
+            </button>
             <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
               <X className="w-6 h-6" />
             </button>
           </div>
         ) : (
-          <div className="p-10 flex items-center justify-between">
-            <div className="flex flex-col">
-              <div className="text-2xl font-black tracking-tighter">{t('dashboard.storeIdentity')}</div>
-              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Page Builder</div>
-            </div>
+          <div className={`${isDesktopSidebarCollapsed ? 'p-4' : 'p-10'} flex items-center justify-between gap-3`}>
+            {!isDesktopSidebarCollapsed ? (
+              <div className="flex flex-col">
+                <div className="text-2xl font-black tracking-tighter">{t('dashboard.storeIdentity')}</div>
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Page Builder</div>
+              </div>
+            ) : (
+              <BrandLogo variant="business" iconOnly />
+            )}
             <div className="flex items-center gap-3">
               <button
                 type="button"
@@ -743,6 +776,15 @@ const BusinessLayout: React.FC = () => {
                 className="px-5 py-3 bg-slate-900 text-white rounded-2xl font-black text-xs hover:bg-black transition-all"
               >
                 {t('dashboard.saveDesign')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsDesktopSidebarCollapsed((v) => !v)}
+                className="hidden md:flex shrink-0 p-2 hover:bg-slate-100 rounded-full"
+                aria-label={isDesktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+                title={isDesktopSidebarCollapsed ? (isArabic ? 'توسيع القائمة' : 'Expand menu') : (isArabic ? 'طي القائمة' : 'Collapse menu')}
+              >
+                {isArabic ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
               </button>
               <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
                 <X className="w-6 h-6" />
@@ -757,9 +799,11 @@ const BusinessLayout: React.FC = () => {
               <div className="space-y-6">
                 {sidebarNavSections.map((section) => (
                   <div key={section.title} className="space-y-2">
-                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                      {section.title}
-                    </div>
+                    {!isDesktopSidebarCollapsed && (
+                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                        {section.title}
+                      </div>
+                    )}
                     <div className="space-y-2">
                       {section.items.map((t: any) => (
                         <NavItem
@@ -767,7 +811,8 @@ const BusinessLayout: React.FC = () => {
                           to={buildUrlForTab(t.id)}
                           onClick={handleNavItemClick}
                           icon={t.icon}
-                          showIcon={false}
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
                           label={t.label}
                           active={isTabActive(t.id)}
                         />
@@ -996,8 +1041,14 @@ const BusinessLayout: React.FC = () => {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 md:ml-80 overflow-x-hidden">
-        <header className="hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 md:left-80 md:right-0 z-[200]">
+      <main className={`flex-1 overflow-x-hidden ${isArabic ? desktopSidebarOffsetClassRtl : desktopSidebarOffsetClass}`}>
+        <header
+          className={`hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 z-[200] ${
+            isArabic
+              ? `md:left-0 ${desktopSidebarHeaderOffsetClassRtl}`
+              : `md:right-0 ${desktopSidebarHeaderOffsetClass}`
+          }`}
+        >
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 pr-4 border-r border-slate-100 relative">
                <div 

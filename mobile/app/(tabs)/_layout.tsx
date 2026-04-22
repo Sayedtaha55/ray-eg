@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
@@ -6,6 +6,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { useAppPreferences } from '@/contexts/AppPreferencesContext';
 import { isDashboardTabVisible } from '@/utils/merchantDashboard';
+
+type TabId = 'overview' | 'products' | 'sales' | 'notifications' | 'pos' | 'more';
+
+const TAB_CONFIG: Array<{ id: TabId; screen: string; titleKey: string; icon: string }> = [
+  { id: 'overview', screen: 'index', titleKey: 'tabs.overview', icon: 'trending-up' },
+  { id: 'products', screen: 'products', titleKey: 'tabs.products', icon: 'cube-outline' },
+  { id: 'sales', screen: 'sales', titleKey: 'tabs.sales', icon: 'card-outline' },
+  { id: 'pos', screen: 'sales', titleKey: 'tabs.pos', icon: 'phone-portrait-outline' },
+  { id: 'notifications', screen: 'notifications', titleKey: 'tabs.notifications', icon: 'notifications-outline' },
+];
 
 const CYAN = '#00E5FF';
 const DARK = '#0F172A';
@@ -18,8 +28,22 @@ export default function TabLayout() {
   const router = useRouter();
   const { t } = useAppPreferences();
 
-  const showSales = isDashboardTabVisible(shop, 'sales');
-  const showNotifications = isDashboardTabVisible(shop, 'notifications');
+  const visibleTabIds = useMemo(() => {
+    const ids: TabId[] = [];
+    for (const tab of TAB_CONFIG) {
+      if (tab.id === 'pos') {
+        if (isDashboardTabVisible(shop, 'pos') && !isDashboardTabVisible(shop, 'sales')) {
+          ids.push(tab.id);
+        }
+      } else if (isDashboardTabVisible(shop, tab.id)) {
+        ids.push(tab.id);
+      }
+      if (ids.length >= 4) break;
+    }
+    return ids;
+  }, [shop]);
+
+  const isTabVisible = (id: TabId) => visibleTabIds.includes(id);
 
   return (
     <Tabs
@@ -72,6 +96,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="products"
         options={{
+          href: isTabVisible('products') ? undefined : null,
           title: t('tabs.products'),
           tabBarIcon: ({ color, size }) => <Ionicons name="cube-outline" size={size || 24} color={color} />,
           tabBarBadge: undefined,
@@ -80,16 +105,16 @@ export default function TabLayout() {
       <Tabs.Screen
         name="sales"
         options={{
-          href: showSales ? undefined : null,
-          title: t('tabs.sales'),
-          tabBarIcon: ({ color, size }) => <Ionicons name="card-outline" size={size || 24} color={color} />,
+          href: isTabVisible('sales') || isTabVisible('pos') ? undefined : null,
+          title: isTabVisible('pos') ? t('tabs.pos') : t('tabs.sales'),
+          tabBarIcon: ({ color, size }) => <Ionicons name={isTabVisible('pos') ? 'phone-portrait-outline' : 'card-outline'} size={size || 24} color={color} />,
           tabBarBadge: undefined,
         }}
       />
       <Tabs.Screen
         name="notifications"
         options={{
-          href: showNotifications ? undefined : null,
+          href: isTabVisible('notifications') ? undefined : null,
           title: t('tabs.notifications'),
           tabBarIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size || 24} color={color} />,
           tabBarBadge: undefined,
