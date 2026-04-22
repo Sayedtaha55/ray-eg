@@ -96,28 +96,46 @@ export class AiService {
   }> {
     const { shopId, message, conversationId, context } = params;
 
-    // 1. Load shop + tier
-    const shop = await this.prisma.shop.findUnique({
-      where: { id: shopId },
-      select: {
-        id: true,
-        name: true,
-        category: true,
-        customColors: true,
-        layoutConfig: true,
-        aiTier: true,
-        aiUsageMonth: true,
-        aiUsageResetAt: true,
-      },
-    });
+    // 1. Load shop + tier (fallback if AI columns don't exist yet)
+    let shop: any;
+    try {
+      shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          customColors: true,
+          layoutConfig: true,
+          aiTier: true,
+          aiUsageMonth: true,
+          aiUsageResetAt: true,
+        },
+      });
+    } catch (colErr: any) {
+      // AI columns may not exist yet (migration pending) — query without them
+      this.logger.warn('AI columns not found, falling back to basic shop query');
+      shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+          id: true,
+          name: true,
+          category: true,
+          customColors: true,
+          layoutConfig: true,
+        },
+      });
+    }
 
     if (!shop) throw new BadRequestException('Shop not found');
 
     const tier = (shop.aiTier as AiTier) || AiTier.FREE;
     const tierConfig = getTierConfig(tier);
 
-    // 2. Check quota
-    await this.ensureQuota(shopId, shop.aiUsageMonth, shop.aiUsageResetAt, tierConfig.monthlyQuota);
+    // 2. Check quota (skip if columns don't exist yet)
+    if (shop.aiUsageMonth !== undefined) {
+      await this.ensureQuota(shopId, shop.aiUsageMonth, shop.aiUsageResetAt, tierConfig.monthlyQuota);
+    }
 
     // 3. Build tool list for this tier
     const allowedTools = getToolsForTier(tierConfig.allowedTools);
@@ -233,14 +251,27 @@ export class AiService {
   ): Promise<{ reply: string; actions: any[]; usage?: any }> {
     const { shopId, message, context } = params;
 
-    const shop = await this.prisma.shop.findUnique({
-      where: { id: shopId },
-      select: {
-        id: true, name: true, category: true,
-        customColors: true, layoutConfig: true,
-        aiTier: true, aiUsageMonth: true, aiUsageResetAt: true,
-      },
-    });
+    // Load shop with fallback for missing AI columns
+    let shop: any;
+    try {
+      shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+          id: true, name: true, category: true,
+          customColors: true, layoutConfig: true,
+          aiTier: true, aiUsageMonth: true, aiUsageResetAt: true,
+        },
+      });
+    } catch {
+      this.logger.warn('AI columns not found (stream), falling back to basic shop query');
+      shop = await this.prisma.shop.findUnique({
+        where: { id: shopId },
+        select: {
+          id: true, name: true, category: true,
+          customColors: true, layoutConfig: true,
+        },
+      });
+    }
 
     if (!shop) throw new BadRequestException('Shop not found');
 
@@ -489,21 +520,27 @@ export class AiService {
 
   private async ensureQuota(
     shopId: string,
-    currentUsage: number,
-    resetAt: Date | null,
+    currentUsage: number | undefined,
+    resetAt: Date | null | undefined,
     monthlyQuota: number,
   ) {
+    // If AI columns don't exist yet, skip quota check
+    if (currentUsage === undefined) return;
+
     // Reset counter if month has passed
     const now = new Date();
     if (!resetAt || new Date(resetAt) < now) {
-      // Monthly reset
       const nextReset = new Date(now);
       nextReset.setMonth(nextReset.getMonth() + 1);
-      await this.prisma.shop.update({
-        where: { id: shopId },
-        data: { aiUsageMonth: 0, aiUsageResetAt: nextReset },
-      });
-      return; // fresh month
+      try {
+        await this.prisma.shop.update({
+          where: { id: shopId },
+          data: { aiUsageMonth: 0, aiUsageResetAt: nextReset },
+        });
+      } catch {
+        this.logger.warn('Could not reset AI usage counter (columns may not exist yet)');
+      }
+      return;
     }
 
     if (monthlyQuota !== -1 && currentUsage >= monthlyQuota) {
@@ -514,9 +551,13 @@ export class AiService {
   }
 
   private async incrementUsage(shopId: string) {
-    await this.prisma.shop.update({
-      where: { id: shopId },
-      data: { aiUsageMonth: { increment: 1 } },
-    });
+    try {
+      await this.prisma.shop.update({
+        where: { id: shopId },
+        data: { aiUsageMonth: { increment: 1 } },
+      });
+    } catch {
+      this.logger.warn('Could not increment AI usage (columns may not exist yet)');
+    }
   }
 }

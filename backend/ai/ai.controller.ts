@@ -8,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { AiService } from './ai.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +16,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('api/v1/ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
+  private readonly logger = new Logger(AiController.name);
+
   constructor(private readonly aiService: AiService) {}
 
   @Post('chat')
@@ -41,11 +44,16 @@ export class AiController {
       throw new BadRequestException('You do not have access to this shop');
     }
 
-    return this.aiService.chat({
-      shopId: body.shopId,
-      message: body.message.trim(),
-      context: body.context,
-    });
+    try {
+      return await this.aiService.chat({
+        shopId: body.shopId,
+        message: body.message.trim(),
+        context: body.context,
+      });
+    } catch (err: any) {
+      this.logger.error(`AI chat error: ${err.message}`, err.stack);
+      throw new BadRequestException(err.message || 'AI service error — please try again');
+    }
   }
 
   @Post('chat/stream')
