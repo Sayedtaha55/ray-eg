@@ -53,6 +53,11 @@ function deployMigrations() {
   return run(prisma, ['migrate', 'deploy', '--schema', 'prisma/schema.prisma']);
 }
 
+function deployMigrationsCapture() {
+  const prisma = prismaBin();
+  return runCapture(prisma, ['migrate', 'deploy', '--schema', 'prisma/schema.prisma']);
+}
+
 function dbPush() {
   const prisma = prismaBin();
   return run(prisma, ['db', 'push', '--schema', 'prisma/schema.prisma']);
@@ -66,6 +71,27 @@ function resolveRolledBack(migrationName) {
 
 function reconcileLegacyReservationUpdatedAtColumn() {
   return run('node', ['scripts/fix-railway-reservations-updated-at.js']);
+}
+
+function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
+  const output = String(combinedOutput || '');
+  if (!output.includes('P3009')) return 0;
+
+  // This repair is safe + idempotent. It makes the original migration effectively apply on non-empty DBs.
+  const prisma = prismaBin();
+  const repairFile = 'prisma/migrations/20260423093000_ai_platform_core_repair/migration.sql';
+
+  // eslint-disable-next-line no-console
+  console.warn('[railway-backend-start] detected P3009; applying AI platform core repair SQL then resolving failed migration');
+
+  const execStatus = run(prisma, ['db', 'execute', '--schema', 'prisma/schema.prisma', '--file', repairFile]);
+  if (execStatus !== 0) return execStatus;
+
+  const failedMigration = '20260422151343_add_ai_platform_core';
+  const resolveStatus = run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--applied', failedMigration]);
+  if (resolveStatus !== 0) return resolveStatus;
+
+  return 0;
 }
 
 (function main() {
@@ -97,11 +123,24 @@ function reconcileLegacyReservationUpdatedAtColumn() {
     let deployStatus = deployMigrations();
     if (deployStatus !== 0) {
       // If a migration is marked failed in the database, Prisma will refuse to apply new ones (P3009).
-      // In our case, the migration can fail if it attempted to create an enum that already exists.
-      // Mark it as rolled back then retry deploy.
-      resolveRolledBack('20260208184005_shop_image_maps');
-      tryBaselineInit();
-      deployStatus = deployMigrations();
+      // Attempt automated repair for the known failing migration, then retry.
+      const res = deployMigrationsCapture();
+      const combined = `${res.stdout}\n${res.stderr}`;
+      if (res.status !== 0) {
+        const repairStatus = applyAiPlatformCoreRepairIfNeeded(combined);
+        if (repairStatus === 0) {
+          tryBaselineInit();
+          deployStatus = deployMigrations();
+        }
+      }
+
+      if (deployStatus !== 0) {
+        // In our case, another historical migration can fail if it attempted to create an enum that already exists.
+        // Mark it as rolled back then retry deploy.
+        resolveRolledBack('20260208184005_shop_image_maps');
+        tryBaselineInit();
+        deployStatus = deployMigrations();
+      }
     }
 
     if (deployStatus !== 0) {
