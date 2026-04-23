@@ -177,6 +177,8 @@ export class ProductService {
         addons: true,
         menuVariants: true,
         packOptions: true,
+        model3dUrl: true,
+        spinImages: true,
         furnitureMeta: {
           select: {
             unit: true,
@@ -271,6 +273,8 @@ export class ProductService {
           addons: true,
           packOptions: true,
           menuVariants: true,
+          model3dUrl: true,
+          spinImages: true,
           isActive: true,
           shopId: true,
           furnitureMeta: {
@@ -357,6 +361,8 @@ export class ProductService {
           imageUrl: true,
           packOptions: true,
           menuVariants: true,
+          model3dUrl: true,
+          spinImages: true,
           isActive: true,
           shopId: true,
           furnitureMeta: {
@@ -430,6 +436,8 @@ export class ProductService {
           category: true,
           unit: true,
           imageUrl: true,
+          model3dUrl: true,
+          spinImages: true,
           isActive: true,
           shopId: true,
           furnitureMeta: {
@@ -478,6 +486,8 @@ export class ProductService {
     addons?: any;
     packOptions?: any;
     menuVariants?: any;
+    model3dUrl?: string | null;
+    spinImages?: any;
     isActive?: boolean;
     furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number };
   }) {
@@ -509,6 +519,8 @@ export class ProductService {
           sizes: typeof input.sizes === 'undefined' ? undefined : input.sizes,
           addons: typeof input.addons === 'undefined' ? undefined : input.addons,
           menuVariants: typeof input.menuVariants === 'undefined' ? undefined : input.menuVariants,
+          model3dUrl: input.model3dUrl || null,
+          spinImages: typeof input.spinImages === 'undefined' ? undefined : input.spinImages,
           description: input.description || null,
           isActive: typeof input.isActive === 'boolean' ? input.isActive : true,
         } as any,
@@ -550,6 +562,8 @@ export class ProductService {
           addons: true,
           menuVariants: true,
           packOptions: true,
+          model3dUrl: true,
+          spinImages: true,
           furnitureMeta: {
             select: {
               unit: true,
@@ -590,6 +604,8 @@ export class ProductService {
       colors?: any;
       sizes?: any;
       productId?: string;
+      model3dUrl?: string;
+      spinImages?: any;
       furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
     }>,
     actor: { role: string; shopId?: string; source?: string },
@@ -652,9 +668,9 @@ export class ProductService {
         if (!name) return null;
         if (!Number.isFinite(price) || price < 0) return null;
 
-        return { name, price, stock, category, unit, packOptions, description, colors, sizes, productId, furnitureMeta };
+        return { name, price, stock, category, unit, packOptions, description, colors, sizes, productId, model3dUrl: typeof (it as any)?.model3dUrl === 'string' ? (it as any).model3dUrl : undefined, spinImages: typeof (it as any)?.spinImages !== 'undefined' ? (it as any).spinImages : undefined, furnitureMeta };
       })
-      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any; productId?: string; furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null }>;
+      .filter(Boolean) as Array<{ name: string; price: number; stock: number; category: string; unit?: string; packOptions?: any; description: string | null; colors?: any; sizes?: any; productId?: string; model3dUrl?: string; spinImages?: any; furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null }>;
 
     if (!normalized.length) {
       throw new BadRequestException('items مطلوبة');
@@ -724,6 +740,8 @@ export class ProductService {
                 isActive: true,
                 ...(it.colors !== undefined ? { colors: it.colors } : {}),
                 ...(it.sizes !== undefined ? { sizes: it.sizes } : {}),
+                ...(it.model3dUrl !== undefined ? { model3dUrl: it.model3dUrl } : {}),
+                ...(it.spinImages !== undefined ? { spinImages: it.spinImages } : {}),
               },
             });
 
@@ -763,6 +781,8 @@ export class ProductService {
                 addons: true,
                 menuVariants: true,
                 packOptions: true,
+                model3dUrl: true,
+                spinImages: true,
                 furnitureMeta: {
                   select: {
                     unit: true,
@@ -837,6 +857,8 @@ export class ProductService {
               addons: true,
               menuVariants: true,
               packOptions: true,
+              model3dUrl: true,
+              spinImages: true,
               furnitureMeta: {
                 select: {
                   unit: true,
@@ -922,6 +944,8 @@ export class ProductService {
     addons?: any;
     packOptions?: any;
     menuVariants?: any;
+    model3dUrl?: string | null;
+    spinImages?: any;
     isActive?: boolean;
     furnitureMeta?: { unit?: string; lengthCm?: number; widthCm?: number; heightCm?: number } | null;
   }, actor: { role: string; shopId?: string }) {
@@ -950,6 +974,8 @@ export class ProductService {
     if (data.description !== undefined) updateData.description = data.description;
     if (data.trackStock !== undefined) updateData.trackStock = data.trackStock;
     if (data.images !== undefined) updateData.images = data.images;
+    if (data.model3dUrl !== undefined) updateData.model3dUrl = data.model3dUrl;
+    if (data.spinImages !== undefined) updateData.spinImages = data.spinImages;
     if (data.colors !== undefined) updateData.colors = data.colors;
     if (data.sizes !== undefined) updateData.sizes = data.sizes;
     if (data.addons !== undefined) updateData.addons = data.addons;
@@ -1008,6 +1034,8 @@ export class ProductService {
           addons: true,
           menuVariants: true,
           packOptions: true,
+          model3dUrl: true,
+          spinImages: true,
           furnitureMeta: {
             select: {
               unit: true,

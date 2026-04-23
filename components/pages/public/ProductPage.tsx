@@ -749,6 +749,8 @@ const ProductPage: React.FC = () => {
             discount={offer?.discount}
             onGalleryTouchStart={onGalleryTouchStart}
             onGalleryTouchEnd={onGalleryTouchEnd}
+            spinImages={Array.isArray((product as any)?.spinImages) ? (product as any).spinImages : undefined}
+            model3dUrl={String((product as any)?.model3dUrl || (product as any)?.model_3d_url || '').trim() || undefined}
           />
 
           <ProductDetails

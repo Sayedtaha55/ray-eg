@@ -130,6 +130,8 @@ export class ProductController {
     const menuVariants = typeof body?.menuVariants === 'undefined'
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
+    const model3dUrl = typeof body?.model3dUrl === 'string' ? body.model3dUrl : (typeof body?.model_3d_url === 'string' ? body.model_3d_url : null);
+    const spinImages = typeof body?.spinImages === 'undefined' ? (typeof body?.spin_images === 'undefined' ? undefined : body.spin_images) : body.spinImages;
 
     const furnitureMetaRaw = typeof body?.furnitureMeta === 'undefined'
       ? (typeof body?.furniture_meta === 'undefined' ? undefined : body.furniture_meta)
@@ -188,6 +190,8 @@ export class ProductController {
       addons,
       packOptions,
       menuVariants,
+      model3dUrl,
+      spinImages,
       furnitureMeta,
     });
   }
@@ -265,6 +269,8 @@ export class ProductController {
     const menuVariants = typeof body?.menuVariants === 'undefined'
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
+    const model3dUrl = typeof body?.model3dUrl === 'string' ? body.model3dUrl : (typeof body?.model_3d_url === 'string' ? body.model_3d_url : undefined);
+    const spinImages = typeof body?.spinImages === 'undefined' ? (typeof body?.spin_images === 'undefined' ? undefined : body.spin_images) : body.spinImages;
 
     const furnitureMetaRaw = typeof body?.furnitureMeta === 'undefined'
       ? (typeof body?.furniture_meta === 'undefined' ? undefined : body.furniture_meta)
@@ -325,6 +331,8 @@ export class ProductController {
       addons,
       packOptions,
       menuVariants,
+      model3dUrl,
+      spinImages,
       isActive,
       furnitureMeta,
     }, { role, shopId: shopIdFromToken });

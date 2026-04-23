@@ -21,6 +21,6 @@ export class MediaPresignDto {
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  @Max(200 * 1024 * 1024)
+  @Max(1024 * 1024 * 1024)
   size?: number;
 }

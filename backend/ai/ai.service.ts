@@ -9,6 +9,10 @@ import {
   isToolAllowedForTier,
 } from './subscription-tiers';
 import { getToolsForTier, getToolByName } from './ai-tools';
+import { AiAuditService } from './ai-audit.service';
+import { KnowledgeBaseService } from './knowledge-base.service';
+import { AiGuardrailsService } from './ai-guardrails.service';
+import { AiCacheService } from './ai-cache.service';
 
 // ─── JIT Instructions (Shopify Sidekick pattern) ─────────────────
 
@@ -75,6 +79,10 @@ export class AiService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly auditService: AiAuditService,
+    private readonly knowledgeBase: KnowledgeBaseService,
+    private readonly guardrails: AiGuardrailsService,
+    private readonly cache: AiCacheService,
   ) {
     this.provider = new GroqProvider({
       apiKey: this.config.get<string>('GROQ_API_KEY') || this.config.get<string>('OPENAI_API_KEY'),
@@ -95,6 +103,19 @@ export class AiService {
     usage?: { promptTokens: number; completionTokens: number; cost: number };
   }> {
     const { shopId, message, conversationId, context } = params;
+
+    // Guardrails: PII redaction + moderation
+    const guarded = this.guardrails.run(message);
+    if (guarded.blocked) {
+      await this.auditService.logActionStart({
+        shopId,
+        action: 'ai_guard:blocked',
+        params: { originalMessage: message, reason: guarded.reason, flags: guarded.flags },
+        riskLevel: 'LOW',
+      });
+      throw new BadRequestException(guarded.reason || 'Message blocked due to safety policy');
+    }
+    const userMessage = guarded.redactedText;
 
     // 1. Load shop + tier (fallback if AI columns don't exist yet)
     let shop: any;
@@ -147,8 +168,23 @@ export class AiService {
     const messages: AiMessage[] = [
       { role: 'system', content: jitPrompt },
       { role: 'system', content: shopContext },
-      { role: 'user', content: message },
+      { role: 'user', content: userMessage },
     ];
+
+    // 4a. Try cache if no tools are invoked (simple chat)
+    const cacheKey = this.cache.buildKey({
+      provider: this.provider.name,
+      model: this.config.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile',
+      shopId,
+      tier,
+      message: userMessage,
+      context,
+      tools: allowedTools.map((t) => t.name),
+    });
+    const cached = await this.cache.get<{ reply: string; usage: any }>(cacheKey);
+    if (cached) {
+      return { reply: cached.reply, actions: [], usage: cached.usage };
+    }
 
     // 5. Call LLM with tools (ReAct loop — max 3 iterations)
     const actions: Array<{ type: string; payload: any; confirmed: boolean }> = [];
@@ -171,6 +207,15 @@ export class AiService {
       // No tool calls — we're done
       if (!response.toolCalls || response.toolCalls.length === 0) {
         finalReply = response.content;
+        // Cache simple text responses
+        await this.cache.set(cacheKey, {
+          reply: finalReply,
+          usage: {
+            promptTokens: totalUsage.promptTokens,
+            completionTokens: totalUsage.completionTokens,
+            cost: this.provider.estimateCost(totalUsage),
+          },
+        });
         break;
       }
 
@@ -197,8 +242,41 @@ export class AiService {
           continue;
         }
 
+        // Risk assessment & audit logging
+        const risk = this.auditService.assessRisk(tc.name, tc.arguments);
+        const auditId = await this.auditService.logActionStart({
+          shopId,
+          action: `ai_tool:${tc.name}`,
+          toolName: tc.name,
+          params: tc.arguments,
+          riskLevel: risk.level,
+        });
+
+        // If action requires approval, return pending instead of executing
+        if (risk.requiresApproval) {
+          await this.auditService.requestApproval(auditId);
+          const pendingResult: ToolExecutionResult = {
+            success: false,
+            data: { auditId, requiresApproval: true, riskLevel: risk.level, reason: risk.reason },
+            error: `هذا الإجراء يحتاج موافقة (${risk.reason}). تم إرسال طلب موافقة.`,
+          };
+          actions.push({ type: tc.name, payload: tc.arguments, confirmed: false });
+          messages.push({ role: 'tool', content: JSON.stringify(pendingResult), toolCallId: tc.id });
+          continue;
+        }
+
         // Execute the tool
+        const startTime = Date.now();
         const result = await this.executeTool(tc, shopId, tier);
+        const executionTimeMs = Date.now() - startTime;
+
+        // Log result to audit
+        if (result.success) {
+          await this.auditService.logActionSuccess(auditId, result.data, executionTimeMs);
+        } else {
+          await this.auditService.logActionFailure(auditId, result.error || 'Unknown error');
+        }
+
         actions.push({
           type: tc.name,
           payload: tc.arguments,

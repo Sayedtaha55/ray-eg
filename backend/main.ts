@@ -14,6 +14,7 @@ import { requestIdMiddleware } from './middleware/request-id.middleware';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { LoggerService } from './logger/logger.service';
+import { captureException, initSentry } from './monitoring/sentry.util';
 
 console.log('[main.ts] File loaded');
 
@@ -100,6 +101,11 @@ process.on('uncaughtException', (err) => {
   } catch {
     // ignore
   }
+
+  try {
+    void captureException(err, { source: 'uncaughtException' });
+  } catch {
+  }
 });
 
 process.on('unhandledRejection', (reason) => {
@@ -108,6 +114,11 @@ process.on('unhandledRejection', (reason) => {
     console.error('[main.ts] unhandledRejection:', reason);
   } catch {
     // ignore
+  }
+
+  try {
+    void captureException(reason, { source: 'unhandledRejection' });
+  } catch {
   }
 });
 
@@ -132,6 +143,17 @@ class AnyExceptionFilter implements ExceptionFilter {
     const res: any = ctx.getResponse();
 
     const requestId = String(req?.requestId || req?.headers?.['x-request-id'] || '').trim() || undefined;
+
+    try {
+      void captureException(exception, {
+        requestId,
+        method: String(req?.method || '').toUpperCase(),
+        url: String(req?.originalUrl || req?.url || ''),
+        ip: String(req?.ip || ''),
+        userId: req?.user?.id ?? req?.user?.userId ?? req?.user?.sub,
+      });
+    } catch {
+    }
 
     try {
       if (this.logger) {
@@ -189,6 +211,12 @@ class AnyExceptionFilter implements ExceptionFilter {
 
 async function bootstrap() {
   console.log('[main.ts] Bootstrap function started');
+
+  try {
+    await initSentry();
+  } catch {
+  }
+
   const configuredOriginsRaw = String(
     process.env.CORS_ORIGIN ||
       process.env.FRONTEND_URL ||
@@ -485,6 +513,11 @@ async function bootstrap() {
         lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
         lower.endsWith('.avif') ||
+        lower.endsWith('.glb') ||
+        lower.endsWith('.gltf') ||
+        lower.endsWith('.ktx2') ||
+        lower.endsWith('.basis') ||
+        lower.endsWith('.wasm') ||
         lower.endsWith('.mp4') ||
         lower.endsWith('.webm')
       ) {
@@ -542,6 +575,28 @@ async function bootstrap() {
   });
 
   app.use('/api/v1/gallery/upload', galleryUploadLimiter);
+
+  const publicReadLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: parseInt(process.env.PUBLIC_READ_RATE_LIMIT_MAX || (isDev ? '2000' : '600'), 10),
+    message: 'Too many requests, please try again later.',
+    standardHeaders: true,
+    legacyHeaders: false,
+    skip: (req: any) => {
+      const method = String(req?.method || '').toUpperCase();
+      if (method === 'OPTIONS') return true;
+      if (method !== 'GET' && method !== 'HEAD') return true;
+      const url = String(req?.originalUrl || req?.url || '');
+      // Only public read endpoints
+      if (url.includes('/api/v1/shops/admin')) return true;
+      if (url.includes('/api/v1/shops/me')) return true;
+      if (url.includes('/api/v1/products/manage')) return true;
+      return false;
+    },
+  });
+
+  app.use('/api/v1/shops', publicReadLimiter);
+  app.use('/api/v1/products', publicReadLimiter);
 
   const publicFeedbackLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,

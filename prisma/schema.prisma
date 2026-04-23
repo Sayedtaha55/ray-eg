@@ -37,6 +37,8 @@ model User {
   reservations                Reservation[]
   shopFollows                 ShopFollower[]
   authEvents                  AuthEvent[]
+  aiAuditLogs                 AiAuditLog[]
+  userMeasurements            UserMeasurement[]
   shop                        Shop?                      @relation("ShopOwner")
 
   @@index([role, isActive, createdAt])
@@ -122,6 +124,8 @@ model Shop {
   imageMaps             ShopImageMap[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
   themeSettings         ShopTheme[]
+  aiAuditLogs           AiAuditLog[]
+  knowledgeDocuments    KnowledgeDocument[]
   owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id])
 
   @@index([category])
@@ -208,6 +212,8 @@ model Product {
   trackStock    Boolean               @default(true) @map("track_stock")
   unit          String?
   packOptions   Json?                 @map("pack_options")
+  model3dUrl    String?               @map("model_3d_url")
+  spinImages   Json?                 @map("spin_images")
   feedback      Feedback[]
   offers        Offer[]
   orderItems    OrderItem[]
@@ -323,6 +329,8 @@ model Offer {
   @@index([productId])
   @@index([isActive])
   @@index([expiresAt])
+  @@index([shopId, isActive, expiresAt])
+  @@index([shopId, createdAt])
   @@map("offers")
 }
 
@@ -638,6 +646,9 @@ model Reservation {
   customer         User              @relation(fields: [customerPhone], references: [phone])
   shop             Shop              @relation(fields: [shopId], references: [id])
 
+  @@index([shopId, status, createdAt])
+  @@index([customerPhone, createdAt])
+  @@index([createdAt])
   @@map("reservations")
 }
 
@@ -697,6 +708,9 @@ model Feedback {
   shop      Shop?    @relation(fields: [shopId], references: [id])
   user      User?    @relation(fields: [userId], references: [id])
 
+  @@index([shopId, createdAt])
+  @@index([productId, createdAt])
+  @@index([status, createdAt])
   @@map("feedback")
 }
 
@@ -715,6 +729,9 @@ model ShopGallery {
   createdAt DateTime  @default(now()) @map("created_at")
   shop      Shop      @relation(fields: [shopId], references: [id])
 
+  @@index([shopId, isActive, createdAt])
+  @@index([shopId, isHero])
+  @@index([shopId, mediaType])
   @@map("shop_gallery")
 }
 
@@ -728,6 +745,8 @@ model ShopAnalytics {
   followersCount Int      @default(0) @map("followers_count")
   shop           Shop     @relation(fields: [shopId], references: [id])
 
+  @@index([shopId, date])
+  @@index([date])
   @@map("shop_analytics")
 }
 
@@ -848,4 +867,115 @@ enum AiSubscriptionTier {
   FREE
   PRO
   ENTERPRISE
+}
+
+enum AiActionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXECUTED
+  FAILED
+  ROLLED_BACK
+}
+
+enum AiActionRisk {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// ─── AI Platform Core ──────────────────────────────────────────────
+
+model AiAuditLog {
+  id              String          @id @default(cuid())
+  shopId          String          @map("shop_id")
+  userId          String?         @map("user_id")
+  conversationId  String?         @map("conversation_id")
+  action          String
+  toolName        String?         @map("tool_name")
+  params          Json?
+  beforeState     Json?           @map("before_state")
+  afterState      Json?           @map("after_state")
+  status          AiActionStatus
+  riskLevel       AiActionRisk    @default(LOW) @map("risk_level")
+  requiresApproval Boolean        @default(false) @map("requires_approval")
+  approvedBy      String?         @map("approved_by")
+  approvedAt      DateTime?       @map("approved_at")
+  executionTimeMs Int?            @map("execution_time_ms")
+  errorMessage    String?         @map("error_message")
+  rollbackData    Json?           @map("rollback_data")
+  costTokens      Int?            @map("cost_tokens")
+  costUsd         Float?          @map("cost_usd")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  
+  shop            Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@index([shopId, createdAt])
+  @@index([status, riskLevel])
+  @@index([userId, createdAt])
+  @@map("ai_audit_logs")
+}
+
+model KnowledgeDocument {
+  id              String          @id @default(cuid())
+  shopId          String          @map("shop_id")
+  type            String          // product, policy, faq, support_ticket, custom
+  sourceId        String?         @map("source_id")  // e.g., productId, orderId
+  title           String
+  content         String          @db.Text
+  contentVector   Json?           @map("content_vector")  // Store embeddings as JSON array; migrate to pgvector when available
+  metadata        Json?
+  chunkIndex      Int?            @map("chunk_index")
+  totalChunks     Int?            @map("total_chunks")
+  isActive        Boolean         @default(true) @map("is_active")
+  lastSyncedAt    DateTime        @default(now()) @map("last_synced_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  
+  shop            Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId, type])
+  @@index([sourceId])
+  @@index([isActive, updatedAt])
+  @@map("knowledge_documents")
+}
+
+model AiJob {
+  id              String          @id @default(cuid())
+  shopId          String          @map("shop_id")
+  type            String          // generate_content, optimize_media, build_embeddings, etc.
+  status          String          // pending, processing, completed, failed
+  priority        Int             @default(5)
+  payload         Json
+  result          Json?
+  error           String?
+  attempts        Int             @default(0)
+  maxAttempts     Int             @default(3) @map("max_attempts")
+  startedAt       DateTime?       @map("started_at")
+  completedAt     DateTime?       @map("completed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  
+  @@index([status, priority])
+  @@index([shopId, type])
+  @@index([createdAt])
+  @@map("ai_jobs")
+}
+
+model UserMeasurement {
+  id            String   @id @default(cuid())
+  userId        String   @map("user_id")
+  label         String?  // e.g. "chest", "waist", "inseam", "neck", "shoulder"
+  value         Float
+  unit          String   @default("cm") // cm, inch, mm
+  notes         String?
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, isActive])
+  @@map("user_measurements")
 }

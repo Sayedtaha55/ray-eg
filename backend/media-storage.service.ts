@@ -1,9 +1,10 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import type { MediaStorage, MediaUploadInput, MediaUploadResult, UploadedFile } from './media-storage.types';
+import { MediaVirusScanService } from './media-virus-scan.service';
 
 @Injectable()
 export class MediaStorageService implements MediaStorage {
@@ -15,7 +16,10 @@ export class MediaStorageService implements MediaStorage {
     DeleteObjectCommand: any;
   } | null = null;
 
-  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
+  constructor(
+    @Inject(ConfigService) private readonly config: ConfigService,
+    @Optional() private readonly virusScan?: MediaVirusScanService,
+  ) {
     console.log('[MediaStorageService] constructor');
   }
 
@@ -128,7 +132,8 @@ export class MediaStorageService implements MediaStorage {
   }
 
   private validateFile(file: UploadedFile) {
-    const mimeType = String((file as any)?.mimetype || '').toLowerCase().trim();
+    const rawMimeType = String((file as any)?.mimetype || '').toLowerCase().trim();
+    const mimeType = rawMimeType.split(';')[0]?.trim() || '';
     if (!mimeType) throw new BadRequestException('mimeType مطلوب');
 
     const allowedTypes = new Set([
@@ -139,17 +144,64 @@ export class MediaStorageService implements MediaStorage {
       'video/mp4',
       'video/webm',
       'video/quicktime',
+      'model/gltf-binary',
+      'model/gltf+json',
+      'model/gltf',
+      'application/gltf+json',
+      'application/gltf-buffer',
+      'application/octet-stream',
     ]);
-    if (!allowedTypes.has(mimeType)) {
+
+    let effectiveMimeType = mimeType;
+    if (!allowedTypes.has(effectiveMimeType)) {
+      const name = String((file as any)?.originalname || '').trim().toLowerCase();
+      if (name.endsWith('.glb')) effectiveMimeType = 'model/gltf-binary';
+      else if (name.endsWith('.gltf')) effectiveMimeType = 'model/gltf+json';
+    }
+
+    if (!allowedTypes.has(effectiveMimeType)) {
+      const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase().trim();
+      const isDev = nodeEnv !== 'production';
+      if (isDev) {
+        throw new BadRequestException(
+          `Unsupported file type (mimetype=${mimeType || 'empty'} fileName=${String((file as any)?.originalname || '')})`,
+        );
+      }
       throw new BadRequestException('Unsupported file type');
     }
 
-    const maxBytes = 250 * 1024 * 1024;
     const size = Number((file as any)?.size || 0);
     if (size <= 0) throw new BadRequestException('Empty file');
-    if (size > maxBytes) throw new BadRequestException('File too large');
 
-    return { mimeType };
+    const name = String((file as any)?.originalname || '').trim().toLowerCase();
+    const is3d =
+      name.endsWith('.glb') ||
+      name.endsWith('.gltf') ||
+      effectiveMimeType.startsWith('model/') ||
+      effectiveMimeType.includes('gltf');
+
+    const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase().trim();
+    const isDev = nodeEnv !== 'production';
+
+    const maxUploadMbRaw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
+    const maxUploadMb = Number(maxUploadMbRaw);
+    const maxUploadBytes = Number.isFinite(maxUploadMb) && maxUploadMb > 0 ? Math.floor(maxUploadMb * 1024 * 1024) : 0;
+
+    const max3dMbRaw = String(process.env.MEDIA_MAX_3D_MB || maxUploadMbRaw || '4096').trim();
+    const max3dMb = Number(max3dMbRaw);
+    const max3dBytes = Number.isFinite(max3dMb) && max3dMb > 0 ? Math.floor(max3dMb * 1024 * 1024) : 0;
+
+    const maxBytes = is3d ? max3dBytes : maxUploadBytes || 250 * 1024 * 1024;
+    if (maxBytes > 0 && size > maxBytes) {
+      if (isDev) {
+        throw new BadRequestException(
+          `File too large (size=${size} max=${maxBytes} mimetype=${effectiveMimeType} fileName=${String((file as any)?.originalname || '')})`,
+        );
+      }
+      throw new BadRequestException('File too large');
+    }
+
+    return { mimeType: effectiveMimeType };
   }
 
   private buildKey(input: MediaUploadInput, mimeType: string) {
@@ -319,6 +371,15 @@ export class MediaStorageService implements MediaStorage {
 
     const { mimeType } = this.validateFile(input.file);
     const key = this.buildKey(input, mimeType);
+
+    const buf = (input.file as any)?.buffer as Buffer | undefined;
+    if (this.virusScan && Buffer.isBuffer(buf)) {
+      await this.virusScan.scanOrThrow({
+        buffer: buf,
+        mimeType,
+        originalName: String((input.file as any)?.originalname || ''),
+      });
+    }
 
     const driver = this.chooseDriver();
     if (driver === 'r2') return await this.uploadR2(input, key, mimeType);

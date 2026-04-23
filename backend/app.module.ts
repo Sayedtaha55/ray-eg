@@ -25,6 +25,7 @@ import { SearchModule } from './search.module';
 import { QueueModule } from './queue.module';
 import { ChatModule } from './chat.module';
 import { AiModule } from './ai/ai.module';
+import { MeasurementModule } from './measurement.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -74,6 +75,7 @@ import { AccountPurgeService } from './account-purge.service';
  ...(includeAllModules || bootModules.has('ai') ? (process.env.AI_ENABLED === 'true' ? [AiModule] : []) : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
+    ...(includeAllModules || bootModules.has('measurement') ? [MeasurementModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

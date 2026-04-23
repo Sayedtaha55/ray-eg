@@ -1,0 +1,9 @@
+{
+  "extends": "./mobile/tsconfig.json",
+  "include": [
+    "mobile/**/*"
+  ],
+  "exclude": [
+    "node_modules/**/*"
+  ]
+}

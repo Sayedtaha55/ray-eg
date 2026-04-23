@@ -304,6 +304,13 @@ export class MediaControllerPresignOnly {
 export class MediaControllerUploadOnly {
   constructor(@Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService) {}
 
+  private getMaxUploadBytes() {
+    const raw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 0; // 0 => unlimited
+    return Math.floor(n * 1024 * 1024);
+  }
+
   @Post('upload')
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
@@ -327,7 +334,9 @@ export class MediaControllerUploadOnly {
           cb(null, name);
         },
       }),
-      limits: { fileSize: 250 * 1024 * 1024 },
+      limits: {
+        ...(this.getMaxUploadBytes() > 0 ? { fileSize: this.getMaxUploadBytes() } : {}),
+      },
     }).single('file');
 
     await new Promise<void>((resolve, reject) => {
@@ -370,6 +379,13 @@ export class MediaControllerUploadOnly {
 
 @Controller('api/v1/media')
 export class MediaControllerPutOnly {
+  private getMaxUploadBytes() {
+    const raw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n <= 0) return 0; // 0 => unlimited
+    return Math.floor(n * 1024 * 1024);
+  }
+
   @Put('upload')
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
@@ -392,13 +408,13 @@ export class MediaControllerPutOnly {
     } catch {
     }
 
-    const maxBytes = 250 * 1024 * 1024;
+    const maxBytes = this.getMaxUploadBytes();
     const chunks: Buffer[] = [];
     let total = 0;
     await new Promise<void>((resolve, reject) => {
       req.on('data', (chunk: Buffer) => {
         total += chunk?.length || 0;
-        if (total > maxBytes) {
+        if (maxBytes > 0 && total > maxBytes) {
           reject(new BadRequestException('File too large'));
           return;
         }

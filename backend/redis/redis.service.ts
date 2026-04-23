@@ -162,8 +162,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.set(`shop:slug:${shopData.slug}`, shopData, ttl);
   }
 
+  async cacheShopDetails(shopId: string, shopData: any, ttl = 600): Promise<void> {
+    await this.set(`shop:details:${shopId}`, shopData, ttl);
+  }
+
   async getShop(shopId: string): Promise<any | null> {
     return this.get(`shop:${shopId}`);
+  }
+
+  async getShopDetails(shopId: string): Promise<any | null> {
+    return this.get(`shop:details:${shopId}`);
   }
 
   async getShopBySlug(slug: string): Promise<any | null> {
@@ -188,6 +196,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
   async invalidateShopCache(shopId: string, slug?: string): Promise<void> {
     await this.del(`shop:${shopId}`);
+    await this.del(`shop:details:${shopId}`);
     if (slug) {
       await this.del(`shop:slug:${slug}`);
     }

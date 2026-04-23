@@ -120,6 +120,8 @@ export interface Product {
   sizes?: any;
   addons?: any;
   menuVariants?: any;
+  model3dUrl?: string;
+  spinImages?: string[];
 }
 
 export interface Reservation {

@@ -405,13 +405,25 @@ export const ApiService = {
     const file = payload?.file;
     if (!file) throw new Error('Missing file');
 
+    // Browsers often report GLB/GLTF as empty or application/octet-stream.
+    // Detect the correct MIME type from the file extension.
+    const resolveMimeType = (f: File) => {
+      const raw = String(f?.type || '').trim().toLowerCase();
+      if (raw && raw !== 'application/octet-stream') return raw;
+      const name = String(f?.name || '').trim().toLowerCase();
+      if (name.endsWith('.glb')) return 'model/gltf-binary';
+      if (name.endsWith('.gltf')) return 'model/gltf+json';
+      return raw || 'application/octet-stream';
+    };
+
     const maxAttempts = 2;
     let lastErr: any = null;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       try {
+        const resolvedMime = resolveMimeType(file);
         const presign = await ApiService.presignMediaUpload({
-          mimeType: String((file as any)?.type || '').trim(),
+          mimeType: resolvedMime,
           size: typeof (file as any)?.size === 'number' ? (file as any).size : undefined,
           fileName: String((file as any)?.name || '').trim() || undefined,
           purpose: payload?.purpose,
@@ -442,7 +454,7 @@ export const ApiService = {
           {
             method: 'PUT',
             headers: {
-              'Content-Type': String((file as any)?.type || 'application/octet-stream'),
+              'Content-Type': resolvedMime || 'application/octet-stream',
               ...(isBackendUpload && token ? { Authorization: `Bearer ${token}` } : {}),
             },
             body: file,
@@ -459,7 +471,7 @@ export const ApiService = {
         try {
           const completeRes = await backendPost<{ jobId?: string } | any>('/api/v1/media/complete', {
             key,
-            mimeType: String((file as any)?.type || '').trim(),
+            mimeType: resolvedMime,
             purpose: payload?.purpose,
           });
           jobId = String(completeRes?.jobId || '').trim();
@@ -469,8 +481,21 @@ export const ApiService = {
 
         // Short polling window: improves UX for inventory uploads (images often finish fast).
         // Never fail the upload flow if optimization isn't ready.
-        const mime = String((file as any)?.type || '').toLowerCase().trim();
+        const mime = resolvedMime;
         const isVideo = mime.startsWith('video/');
+        const is3d = mime.startsWith('model/');
+        // 3D models: enqueue optimization but skip polling entirely
+        if (is3d) {
+          try {
+            await backendPost<{ jobId?: string } | any>('/api/v1/media/complete', {
+              key,
+              mimeType: resolvedMime,
+              purpose: payload?.purpose,
+            });
+          } catch {
+          }
+          return { url: publicUrl, key };
+        }
         const pollMaxMs = isVideo ? 20_000 : 8_000;
         const pollIntervalMs = 800;
 
@@ -517,7 +542,11 @@ export const ApiService = {
     } catch (e: any) {
       const msg = e?.message ? String(e.message) : '';
       const prefix = lastErr?.message ? String(lastErr.message) : '';
-      throw new Error([prefix, msg].filter(Boolean).join(' | ') || 'Upload failed');
+      const parts = [prefix, msg]
+        .map((p) => String(p || '').trim())
+        .filter(Boolean);
+      const uniqParts = parts.filter((p, idx) => parts.indexOf(p) === idx);
+      throw new Error(uniqParts.join(' | ') || 'Upload failed');
     }
   },
   presignMediaUpload: async (payload: {

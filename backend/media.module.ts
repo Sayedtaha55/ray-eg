@@ -14,6 +14,8 @@ import { MediaStorageService } from './media-storage.service';
 import { MediaOptimizeQueue } from './media-optimize.queue';
 import { MediaOptimizeService } from './media-optimize.service';
 import { MediaOptimizeWorker } from './media-optimize.worker';
+import { Media3dOptimizeService } from './media-3d-optimize.service';
+import { MediaVirusScanService } from './media-virus-scan.service';
 
 console.log('[MediaModule] file loaded');
 
@@ -43,8 +45,10 @@ const selectedControllers =
   providers: [
     MediaCompressionService,
     MediaPresignService,
+    MediaVirusScanService,
     MediaStorageService,
     MediaOptimizeService,
+    Media3dOptimizeService,
     ...(enableOptimize ? [MediaOptimizeQueue, MediaOptimizeWorker] : []),
   ],
   exports: [
@@ -52,6 +56,7 @@ const selectedControllers =
     MediaPresignService,
     MediaStorageService,
     MediaOptimizeService,
+    Media3dOptimizeService,
     ...(enableOptimize ? [MediaOptimizeQueue] : []),
   ],
 })

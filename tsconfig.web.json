@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "App.tsx",
+    "app/**/*",
+    "components/**/*",
+    "src/**/*",
+    "services/**/*",
+    "utils/**/*",
+    "scripts/**/*",
+    "*.ts",
+    "*.tsx",
+    "vite.config.*"
+  ],
+  "exclude": [
+    "backend/**/*",
+    "mobile/**/*",
+    "dist/**/*",
+    "node_modules/**/*",
+    "uploads/**/*"
+  ]
+}

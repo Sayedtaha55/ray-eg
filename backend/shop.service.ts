@@ -386,6 +386,18 @@ export class ShopService {
     const startTime = Date.now();
 
     try {
+      try {
+        const cached = await this.redis.getShopDetails(id);
+        if (cached) {
+          const duration = Date.now() - startTime;
+          this.monitoring.trackCache('getShopById', `shop:details:${id}`, true, duration);
+          this.monitoring.trackPerformance('getShopById_cached', duration);
+          return cached;
+        }
+        this.monitoring.trackCache('getShopById', `shop:details:${id}`, false, Date.now() - startTime);
+      } catch {
+      }
+
       const shop = await this.prisma.shop.findUnique({
         where: { id },
         select: {
@@ -435,6 +447,13 @@ export class ShopService {
           },
         },
       });
+
+      if (shop) {
+        try {
+          await this.redis.cacheShopDetails(id, shop, 300);
+        } catch {
+        }
+      }
 
       const duration = Date.now() - startTime;
       this.monitoring.trackDatabase('findUnique', 'shops', duration, true);

@@ -90,6 +90,8 @@ export class MediaPresignService {
       'video/mp4': 'mp4',
       'video/webm': 'webm',
       'video/quicktime': 'mov',
+      'model/gltf+json': 'gltf',
+      'model/gltf-binary': 'glb',
     };
 
     if (byMime[mt]) return byMime[mt];
@@ -105,7 +107,8 @@ export class MediaPresignService {
   }
 
   async presignUpload(dto: MediaPresignDto, auth: { role?: string; shopId?: string }) {
-    const mimeType = String(dto?.mimeType || '').toLowerCase().trim();
+    const rawMimeType = String(dto?.mimeType || '').toLowerCase().trim();
+    const mimeType = rawMimeType.split(';')[0]?.trim() || '';
     if (!mimeType) throw new BadRequestException('mimeType مطلوب');
 
     const allowedTypes = new Set([
@@ -116,12 +119,36 @@ export class MediaPresignService {
       'video/mp4',
       'video/webm',
       'video/quicktime',
+      'model/gltf+json',
+      'model/gltf-binary',
+      'model/gltf',
+      'application/gltf+json',
+      'application/gltf-buffer',
+      'application/octet-stream',
     ]);
-    if (!allowedTypes.has(mimeType)) {
+
+    let effectiveMimeType = mimeType;
+    if (!allowedTypes.has(effectiveMimeType)) {
+      const name = String(dto?.fileName || '').trim().toLowerCase();
+      if (name.endsWith('.glb')) {
+        effectiveMimeType = 'model/gltf-binary';
+      } else if (name.endsWith('.gltf')) {
+        effectiveMimeType = 'model/gltf+json';
+      }
+    }
+
+    if (!allowedTypes.has(effectiveMimeType)) {
+      const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase().trim();
+      const isDev = nodeEnv !== 'production';
+      if (isDev) {
+        throw new BadRequestException(
+          `Unsupported file type (mimeType=${mimeType || 'empty'} fileName=${String(dto?.fileName || '')})`,
+        );
+      }
       throw new BadRequestException('Unsupported file type');
     }
 
-    const isVideo = mimeType.startsWith('video/');
+    const isVideo = effectiveMimeType.startsWith('video/');
     const parseMaxBytes = (raw: string, fallbackMb: number) => {
       const n = Number(String(raw || '').trim());
       if (!Number.isFinite(n)) return Math.floor(fallbackMb * 1024 * 1024);
@@ -149,7 +176,7 @@ export class MediaPresignService {
     if (!shopId) throw new ForbiddenException('لا يوجد متجر مرتبط بهذا الحساب');
 
     const purpose = this.sanitizeSegment(dto?.purpose || (isVideo ? 'videos' : 'images')) || (isVideo ? 'videos' : 'images');
-    const ext = this.guessExt(mimeType, dto?.fileName);
+    const ext = this.guessExt(effectiveMimeType, dto?.fileName);
 
     const storageModeRaw = String(this.config.get<string>('MEDIA_STORAGE_MODE') || '').trim().toLowerCase();
     const mode = storageModeRaw === 'r2' ? 'r2' : storageModeRaw === 'local' ? 'local' : 'auto';
@@ -195,7 +222,7 @@ export class MediaPresignService {
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      ContentType: mimeType,
+      ContentType: effectiveMimeType,
       CacheControl: cacheControl,
     });
 
