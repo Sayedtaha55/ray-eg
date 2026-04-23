@@ -1,12 +1,14 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from './prisma/prisma.service';
 import { GeminiVisionService } from './gemini-vision.service';
+import { RedisService } from './redis/redis.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
+    @Inject(RedisService) private readonly redis: RedisService,
   ) {}
 
   private normalizeId(value: any) {
@@ -282,6 +284,8 @@ export class ShopImageMapService {
 
     if (!existing || existing.shopId !== sid) throw new NotFoundException('الخريطة غير موجودة');
 
+    const shop = await (this.prisma as any).shop.findUnique({ where: { id: sid }, select: { id: true, slug: true } });
+
     await (this.prisma as any).$transaction([
       (this.prisma as any).shopImageMap.updateMany({
         where: { shopId: sid, isActive: true },
@@ -292,6 +296,12 @@ export class ShopImageMapService {
         data: { isActive: true },
       }),
     ]);
+
+    try {
+      if (shop) await this.redis.invalidateShopCache(shop.id, shop.slug);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
 
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
@@ -406,7 +416,9 @@ export class ShopImageMapService {
       })
       .filter(Boolean);
 
-    return (this.prisma as any).$transaction(async (tx: any) => {
+    const shop = await (this.prisma as any).shop.findUnique({ where: { id: sid }, select: { id: true, slug: true } });
+
+    const result = await (this.prisma as any).$transaction(async (tx: any) => {
       await tx.shopImageHotspot.deleteMany({ where: { mapId: mid } });
       await tx.shopImageSection.deleteMany({ where: { mapId: mid } });
 
@@ -520,6 +532,14 @@ export class ShopImageMapService {
 
       return { ...updated, createdSections };
     });
+
+    try {
+      if (shop) await this.redis.invalidateShopCache(shop.id, shop.slug);
+      await this.redis.invalidatePattern('products:*');
+    } catch {
+    }
+
+    return result;
   }
 
   async getActiveForCustomerBySlug(slug: string) {
