@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer, Product, Shop } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -24,13 +24,19 @@ const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useCartSound();
 
-  const nextCategory = () => {
+  const nextCategory = useCallback(() => {
     setCurrentCategoryIndex((prev) => prev + 1);
-  };
+  }, []);
 
-  const prevCategory = () => {
+  const prevCategory = useCallback(() => {
     setCurrentCategoryIndex((prev) => prev - 1);
-  };
+  }, []);
+
+  const handleOpenShop = useCallback((shop: Shop) => {
+    const slug = String((shop as any)?.slug || '').trim();
+    if (!slug) return;
+    navigate(`/s/${slug}`);
+  }, [navigate]);
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -46,6 +52,10 @@ const HomeFeed: React.FC = () => {
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
+
+  const handleLoadMoreOffers = useCallback(() => {
+    loadMoreOffersRef.current?.();
+  }, []);
 
   useEffect(() => {
     const PAGE_SIZE = 12;
@@ -255,11 +265,7 @@ const HomeFeed: React.FC = () => {
         offers={offers}
         shopProductsById={shopProductsById}
         loading={loadingShops}
-        onOpenShop={(shop) => {
-          const slug = String((shop as any)?.slug || '').trim();
-          if (!slug) return;
-          navigate(`/s/${slug}`);
-        }}
+        onOpenShop={handleOpenShop}
       />
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
@@ -272,7 +278,7 @@ const HomeFeed: React.FC = () => {
           setSelectedItem={setSelectedItem}
           playSound={playSound}
           loadMoreSentinelRef={loadMoreSentinelRef}
-          loadMoreOffers={() => loadMoreOffersRef.current?.()}
+          loadMoreOffers={handleLoadMoreOffers}
         />
       </Suspense>
 
