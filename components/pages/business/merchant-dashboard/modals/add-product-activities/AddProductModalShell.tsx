@@ -573,30 +573,22 @@ const AddProductModalShell: React.FC<Props> = ({
                 }`}
               >
                 {model3dPreview ? (
-                  <div className="flex items-center gap-2 text-slate-700">
-                    <Box size={20} className="text-emerald-500" />
-                    <span className="text-sm font-bold">{model3dPreview}</span>
-                    <span
-                      role="button"
-                      tabIndex={0}
+                  <div className="flex items-center gap-2 w-full text-slate-700">
+                    <Box size={20} className="text-emerald-500 flex-shrink-0" />
+                    <span className="text-sm font-bold truncate min-w-0 flex-1">{model3dPreview.includes('/') ? model3dPreview.split('/').pop() : model3dPreview}</span>
+                    <button
+                      type="button"
                       onClick={(e) => {
                         e.stopPropagation();
+                        e.preventDefault();
                         setModel3dFile(null);
                         setModel3dPreview(null);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setModel3dFile(null);
-                          setModel3dPreview(null);
-                        }
-                      }}
-                      className="text-red-400 hover:text-red-600 cursor-pointer"
+                      className="flex-shrink-0 w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 hover:text-red-700 rounded-full flex items-center justify-center transition-colors"
                       aria-label="Remove 3D model"
                     >
                       <X size={14} />
-                    </span>
+                    </button>
                   </div>
                 ) : (
                   <>
