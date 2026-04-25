@@ -269,7 +269,22 @@ export class ProductController {
     const menuVariants = typeof body?.menuVariants === 'undefined'
       ? (typeof body?.menu_variants === 'undefined' ? undefined : body.menu_variants)
       : body.menuVariants;
-    const model3dUrl = typeof body?.model3dUrl === 'string' ? body.model3dUrl : (typeof body?.model_3d_url === 'string' ? body.model_3d_url : undefined);
+    const model3dUrl = (() => {
+      // Important:
+      // - We must allow explicit null to clear an existing 3D model on update.
+      // - Previously, null would be treated as undefined and ignored by ProductService.update().
+      if (Object.prototype.hasOwnProperty.call(body || {}, 'model3dUrl')) {
+        if (body.model3dUrl === null) return null;
+        if (typeof body.model3dUrl === 'string') return body.model3dUrl.trim();
+        return undefined;
+      }
+      if (Object.prototype.hasOwnProperty.call(body || {}, 'model_3d_url')) {
+        if (body.model_3d_url === null) return null;
+        if (typeof body.model_3d_url === 'string') return body.model_3d_url.trim();
+        return undefined;
+      }
+      return undefined;
+    })();
     const spinImages = typeof body?.spinImages === 'undefined' ? (typeof body?.spin_images === 'undefined' ? undefined : body.spin_images) : body.spinImages;
 
     const furnitureMetaRaw = typeof body?.furnitureMeta === 'undefined'
