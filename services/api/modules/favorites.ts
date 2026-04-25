@@ -1,6 +1,11 @@
 import { backendDelete, backendGet, backendPost, disablePathPrefix } from '../httpClient';
 
+// TODO: Re-enable when backend /api/v1/favorites endpoints are implemented.
+// Currently the backend has no favorites controller, so all requests return 404.
+const FAVORITES_BACKEND_AVAILABLE = false;
+
 export async function getMyFavoritesViaBackend(): Promise<string[]> {
+  if (!FAVORITES_BACKEND_AVAILABLE) return [];
   try {
     const data = await backendGet<any[]>('/api/v1/favorites/me');
     if (!Array.isArray(data)) return [];
@@ -18,6 +23,7 @@ export async function getMyFavoritesViaBackend(): Promise<string[]> {
 }
 
 export async function addMyFavoriteViaBackend(productId: string): Promise<void> {
+  if (!FAVORITES_BACKEND_AVAILABLE) return;
   try {
     await backendPost('/api/v1/favorites/me', { productId });
   } catch (err: any) {
@@ -31,6 +37,7 @@ export async function addMyFavoriteViaBackend(productId: string): Promise<void> 
 }
 
 export async function removeMyFavoriteViaBackend(productId: string): Promise<void> {
+  if (!FAVORITES_BACKEND_AVAILABLE) return;
   try {
     await backendDelete(`/api/v1/favorites/me/${encodeURIComponent(String(productId || '').trim())}`);
   } catch (err: any) {
