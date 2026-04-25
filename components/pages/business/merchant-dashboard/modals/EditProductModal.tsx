@@ -1285,14 +1285,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                       onClick={(e) => {
                         e.stopPropagation();
                         setModel3dFile(null);
-                        setModel3dPreview(model3dUrl || null);
+                        setModel3dPreview(null);
+                        setModel3dUrl('');
                       }}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
                           e.stopPropagation();
                           setModel3dFile(null);
-                          setModel3dPreview(model3dUrl || null);
+                          setModel3dPreview(null);
+                          setModel3dUrl('');
                         }
                       }}
                       className="text-red-400 hover:text-red-600 cursor-pointer"
