@@ -1,0 +1,3 @@
+## 2025-05-15 - [Zero-DB Cache Hit Anti-Pattern]
+**Learning:** In this codebase, the shop public profile cache hit path in `ShopPublicQueryService.getShopBySlug` was still performing two database queries for image hotspots on every request. This was due to a pattern of partially trusting the cache but still fetching dynamic filters from the DB.
+**Action:** Always ensure that when a service-level cache is used for a complex object, either all necessary data for filtering is included in the cached object, or invalidation is strictly managed at the source of change (e.g., `ShopImageMapService`) to enable a true Zero-DB hit path.
