@@ -223,6 +223,16 @@ export class ShopPublicQueryService {
 
       if (normalizedShop) {
         try {
+          const appRows = await this.prisma.shopApp.findMany({
+            where: { shopId: String((normalizedShop as any).id || ''), isActive: true, status: 'INSTALLED' },
+            select: { app: { select: { key: true } } },
+          });
+          (normalizedShop as any).installedAppKeys = appRows
+            .map((r: any) => r?.app?.key)
+            .filter(Boolean);
+        } catch {}
+
+        try {
           await this.redis.cacheShop((normalizedShop as any).id, normalizedShop as any, 3600);
         } catch {
         }

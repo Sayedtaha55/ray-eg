@@ -2,9 +2,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { 
-  Info, MapPin, Phone, Clock, Star, Users, MessageCircle
+  Info, MapPin, Phone, Clock, Star, Users, MessageCircle, Mic
 } from 'lucide-react';
 import InfoItem from './InfoItem';
+import { shopHasWhatsApp, shopHasVoiceOrdering } from '@/utils/shopApps';
 
 const MotionDiv = motion.div as any;
 
@@ -68,7 +69,7 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
 
           {/* Quick Actions */}
           <div className="pt-6 border-t border-slate-50 flex flex-wrap gap-4 justify-end">
-            {whatsappHref && (
+            {whatsappHref && shopHasWhatsApp(shop) && (
               <a
                 href={whatsappHref}
                 target="_blank"
@@ -77,6 +78,15 @@ const InfoTab: React.FC<InfoTabProps> = ({ shop, currentDesign, isVisible, whats
               >
                 {t('shopProfile.whatsappChat')} <MessageCircle size={20} />
               </a>
+            )}
+            {shopHasVoiceOrdering(shop) && (
+              <button
+                onClick={() => window.open(whatsappHref || '#', '_blank')}
+                className={`flex items-center gap-3 ${buttonPadding} text-white ${buttonShape} font-black hover:scale-105 transition-all shadow-lg`}
+                style={{ backgroundColor: '#8B5CF6' }}
+              >
+                {t('shopProfile.voiceOrdering')} <Mic size={20} />
+              </button>
             )}
             <button
               onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${shop?.latitude},${shop?.longitude}`, '_blank')}

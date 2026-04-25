@@ -626,7 +626,8 @@
       "pos": "الكاشير",
       "sales": "الطلبات / المبيعات",
       "customers": "العملاء",
-      "reports": "التقارير"
+      "reports": "التقارير",
+      "apps": "التطبيقات"
     },
     "moduleExplanations": {
       "overview": "ملخص سريع لأهم الأرقام والحالة العامة للمحل (نظرة واحدة على كل شيء).",
@@ -1273,7 +1274,24 @@
     "sales": "المبيعات",
     "pos": "الكاشير",
     "builder": "التصميم",
+    "apps": "التطبيقات",
     "settings": "الإعدادات"
+  },
+  "apps": {
+    "title": "سوق التطبيقات",
+    "subtitle": "تصفّح وثبّت التطبيقات لتوسيع إمكانيات متجرك.",
+    "noApps": "لا توجد تطبيقات متاحة حاليًا.",
+    "install": "تثبيت",
+    "uninstall": "إزالة",
+    "enable": "تفعيل",
+    "disable": "إيقاف",
+    "installSuccess": "تم تثبيت {{name}} بنجاح!",
+    "uninstallSuccess": "تم إزالة {{name}} بنجاح.",
+    "enableSuccess": "تم تفعيل {{name}}.",
+    "disableSuccess": "تم إيقاف {{name}}.",
+    "installFailed": "فشل تثبيت التطبيق.",
+    "uninstallFailed": "فشل إزالة التطبيق.",
+    "actionFailed": "فشلت العملية. حاول مرة أخرى."
   },
   "dashboardProducts": {
     "products": {

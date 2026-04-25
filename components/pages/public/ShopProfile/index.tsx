@@ -19,6 +19,7 @@ import { ApiService } from '@/services/api.service';
 import { Skeleton } from '@/components/common/ui';
 import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl } from './utils';
+import { shopHasWhatsApp, shopHasVoiceOrdering } from '@/utils/shopApps';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
@@ -738,7 +739,7 @@ const ShopProfile: React.FC = () => {
     ? 'fixed bottom-28 left-6 z-[360] md:bottom-10 md:left-10'
     : 'fixed bottom-6 left-6 z-[360] md:bottom-10 md:left-10';
 
-  const showFloatingChatButton = isVisible('floatingChatButton', true);
+  const showFloatingChatButton = isVisible('floatingChatButton', true) && shopHasWhatsApp(shop);
   const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String(shop.phone || '').trim();
   const whatsappDigits = whatsappRaw ? whatsappRaw.replace(/[^\d]/g, '') : '';
   const whatsappHref = whatsappDigits ? `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(`${t('shopProfile.whatsappGreeting')} ${shop.name}`)}` : '';

@@ -162,6 +162,14 @@ import {
   getMyFavoritesViaBackend,
   removeMyFavoriteViaBackend,
 } from './api/modules/favorites';
+import {
+  listAppsViaBackend,
+  listMyAppsViaBackend,
+  installAppViaBackend,
+  uninstallAppViaBackend,
+  enableAppViaBackend,
+  disableAppViaBackend,
+} from './api/modules/apps';
 import { mockDb } from './api/mockDb';
 
 let rayDbUpdateTimer: any;
@@ -729,6 +737,27 @@ export const ApiService = {
     if (!id) throw new Error('Missing productId');
     await removeMyFavoriteViaBackend(id);
   },
+
+  // Apps / Marketplace
+  listApps: async () => {
+    return await listAppsViaBackend();
+  },
+  listMyApps: async () => {
+    return await listMyAppsViaBackend();
+  },
+  installApp: async (key: string) => {
+    return await installAppViaBackend(key);
+  },
+  uninstallApp: async (key: string) => {
+    return await uninstallAppViaBackend(key);
+  },
+  enableApp: async (key: string) => {
+    return await enableAppViaBackend(key);
+  },
+  disableApp: async (key: string) => {
+    return await disableAppViaBackend(key);
+  },
+
   getMyUnreadNotificationsCount: async () => {
     return await getMyUnreadNotificationsCountViaBackend();
   },

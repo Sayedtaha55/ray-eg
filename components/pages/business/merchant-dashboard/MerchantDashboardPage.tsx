@@ -19,6 +19,7 @@ import {
   TrendingUp,
   Users,
   Eye,
+  Store,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';

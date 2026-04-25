@@ -1,13 +1,15 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
-import { CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
+import { Box, CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
 import { coerceBoolean, hexToRgba } from './utils';
+
+const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -51,6 +53,7 @@ const ProductCard = React.memo(function ProductCard({
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
+  const [cardMediaMode, setCardMediaMode] = useState<'image' | '3d'>('image');
   const [isFavorite, setIsFavorite] = useState(() => {
     return false;
   });
@@ -248,6 +251,9 @@ const ProductCard = React.memo(function ProductCard({
     setImagePreviewOpen(true);
   };
 
+  const model3dUrl = String((product as any)?.model3dUrl || (product as any)?.model_3d_url || '').trim();
+  const has3D = Boolean(model3dUrl);
+
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
   const motionProps = disableMotion || isLowEndDevice ? {} : { 
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
@@ -403,7 +409,17 @@ const ProductCard = React.memo(function ProductCard({
           }`}
         >
           {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
-          {(product.imageUrl || (product as any).image_url) ? (
+          {cardMediaMode === '3d' && has3D ? (
+            <Suspense
+              fallback={
+                <div className="absolute inset-0 flex items-center justify-center bg-slate-50">
+                  <div className="text-[10px] font-black text-slate-400">Loading 3D...</div>
+                </div>
+              }
+            >
+              <Model3DViewer url={model3dUrl} autoRotate />
+            </Suspense>
+          ) : (product.imageUrl || (product as any).image_url) ? (
             <img
               loading="lazy"
               decoding="async"
@@ -431,6 +447,23 @@ const ProductCard = React.memo(function ProductCard({
             >
               <Zap size={8} fill="currentColor" className="md:w-[10px] md:h-[10px]" /> {offer.discount}%
             </div>
+          )}
+
+          {has3D && (
+            <button
+              type="button"
+              aria-label="3D"
+              onClick={(e) => {
+                e.stopPropagation();
+                setCardMediaMode((m) => (m === '3d' ? 'image' : '3d'));
+              }}
+              className={`absolute bottom-2 right-2 z-10 px-2 py-1 rounded-full font-black text-[9px] shadow-lg flex items-center gap-1 backdrop-blur-sm transition-colors ${
+                cardMediaMode === '3d' ? 'bg-slate-900 text-white' : 'bg-white/90 text-slate-900'
+              }`}
+            >
+              <Box size={12} />
+              3D
+            </button>
           )}
 
           <div className="absolute inset-0 bg-black/5 opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">

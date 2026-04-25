@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -844,6 +844,7 @@ const BusinessLayout: React.FC = () => {
                   </div>
                   <div className="space-y-2">
                     <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label={t('dashboard.settings.upgrade')} active={String(settingsTab) === 'modules'} />
+                    <NavItem to={buildSettingsUrl('apps')} onClick={handleNavItemClick} icon={<LayoutGrid size={20} />} showIcon={false} label={t('dashboard.settings.apps')} active={String(settingsTab) === 'apps'} />
                     <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label={t('dashboard.settings.receiptTheme')} active={String(settingsTab) === 'receipt_theme'} />
                     <NavItem to={buildSettingsUrl('payments')} onClick={handleNavItemClick} icon={<CreditCard size={20} />} showIcon={false} label={t('dashboard.settings.payments')} active={String(settingsTab) === 'payments'} />
                     <NavItem to={buildSettingsUrl('notifications')} onClick={handleNavItemClick} icon={<Bell size={20} />} showIcon={false} label={t('dashboard.settings.notifications')} active={String(settingsTab) === 'notifications'} />

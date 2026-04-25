@@ -165,5 +165,8 @@
   "overrides": {
     "file-type": "21.3.2",
     "fast-xml-parser": "5.5.8"
+  },
+  "optionalDependencies": {
+    "handlebars": "^4.7.9"
   }
 }

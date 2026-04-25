@@ -31,7 +31,12 @@ export default function ProductMediaViewer({
   height,
   showModeTabs = false,
 }: ProductMediaViewerProps) {
-  const enable3dMedia = String((import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA || '').trim().toLowerCase() === 'true';
+  const enable3dMedia = (() => {
+    const raw = (import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA;
+    const s = String(raw ?? '').trim().toLowerCase();
+    if (!s) return true;
+    return s === 'true';
+  })();
   const hasSpin = enable3dMedia && Array.isArray(spinImages) && spinImages.length >= 2;
   const has3D = enable3dMedia && Boolean(model3dUrl);
 

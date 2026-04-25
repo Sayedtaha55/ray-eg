@@ -626,7 +626,8 @@
       "pos": "POS",
       "sales": "Orders / Sales",
       "customers": "Customers",
-      "reports": "Reports"
+      "reports": "Reports",
+      "apps": "Apps"
     },
     "moduleExplanations": {
       "overview": "Quick summary of key metrics and overall shop status (one-glance overview).",
@@ -1283,7 +1284,24 @@
     "sales": "Sales",
     "pos": "POS",
     "builder": "Design",
+    "apps": "Apps",
     "settings": "Settings"
+  },
+  "apps": {
+    "title": "App Marketplace",
+    "subtitle": "Browse and install apps to extend your shop capabilities.",
+    "noApps": "No apps available yet.",
+    "install": "Install",
+    "uninstall": "Remove",
+    "enable": "Enable",
+    "disable": "Disable",
+    "installSuccess": "{{name}} installed successfully!",
+    "uninstallSuccess": "{{name}} removed successfully.",
+    "enableSuccess": "{{name}} enabled.",
+    "disableSuccess": "{{name}} disabled.",
+    "installFailed": "Failed to install app.",
+    "uninstallFailed": "Failed to remove app.",
+    "actionFailed": "Action failed. Please try again."
   },
   "dashboardProducts": {
     "products": {

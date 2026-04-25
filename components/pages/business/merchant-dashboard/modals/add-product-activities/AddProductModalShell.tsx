@@ -58,6 +58,12 @@ const AddProductModalShell: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
   const RESTAURANT_SIZE_NONE = '__NONE__';
+  const enable3dMedia = (() => {
+    const raw = (import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA;
+    const s = String(raw ?? '').trim().toLowerCase();
+    if (!s) return true;
+    return s === 'true';
+  })();
   const [name, setName] = React.useState('');
   const [price, setPrice] = React.useState('');
   const [groceryPackEnabled, setGroceryPackEnabled] = React.useState(false);
@@ -80,7 +86,7 @@ const AddProductModalShell: React.FC<Props> = ({
   const [spinImageFiles, setSpinImageFiles] = React.useState<File[]>([]);
   const [spinImagePreviews, setSpinImagePreviews] = React.useState<string[]>([]);
 
-  const enable3dMedia = String((import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA || '').trim().toLowerCase() === 'true';
+  const canUse3dMedia = enable3dMedia;
 
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const extraFilesInputRef = React.useRef<HTMLInputElement>(null);
@@ -421,7 +427,7 @@ const AddProductModalShell: React.FC<Props> = ({
 
       // Upload 3D model if provided
       let model3dUrl = '';
-      if (enable3dMedia && model3dFile) {
+      if (canUse3dMedia && model3dFile) {
         const modelMime = String(model3dFile.type || '').toLowerCase();
         const purpose = modelMime.includes('gltf') ? '3d_models' : '3d_models';
         const modelUpload = await ApiService.uploadMediaRobust({ file: model3dFile, purpose, shopId });
@@ -430,7 +436,7 @@ const AddProductModalShell: React.FC<Props> = ({
 
       // Upload spin images if provided
       let spinUrls: string[] = [];
-      if (enable3dMedia && spinImageFiles.length >= 2) {
+      if (canUse3dMedia && spinImageFiles.length >= 2) {
         const spinUploads = await Promise.all(
           spinImageFiles.map((f) => ApiService.uploadMediaRobust({ file: f, purpose: 'spin_images', shopId })),
         );
@@ -446,7 +452,7 @@ const AddProductModalShell: React.FC<Props> = ({
         description: description ? description : null,
         trackStock: !isRestaurant,
         ...(allowExtraImages ? { images: [finalImageUrl, ...extraUrls].filter(Boolean) } : {}),
-        ...(enable3dMedia ? { ...(model3dUrl ? { model3dUrl } : {}), ...(spinUrls.length >= 2 ? { spinImages: spinUrls } : {}) } : {}),
+        ...(canUse3dMedia ? { ...(model3dUrl ? { model3dUrl } : {}), ...(spinUrls.length >= 2 ? { spinImages: spinUrls } : {}) } : {}),
       };
 
       await ApiService.addProduct({
@@ -533,116 +539,132 @@ const AddProductModalShell: React.FC<Props> = ({
             </>
           )}
 
-          {enable3dMedia && (
-            <>
-              <div className="space-y-3">
-                <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
-                  <Box size={16} />
-                  موديل 3D (اختياري)
-                </h3>
-                <input
-                  ref={model3dInputRef}
-                  type="file"
-                  accept=".glb,.gltf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) {
-                      setModel3dFile(f);
-                      setModel3dPreview(f.name);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => model3dInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:border-slate-400 transition-colors"
-                >
-                  {model3dPreview ? (
-                    <div className="flex items-center gap-2 text-slate-700">
-                      <Box size={20} className="text-emerald-500" />
-                      <span className="text-sm font-bold">{model3dPreview}</span>
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        onClick={(e) => {
+          <>
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
+                <Box size={16} />
+                موديل 3D (اختياري)
+              </h3>
+              <input
+                ref={model3dInputRef}
+                type="file"
+                accept=".glb,.gltf"
+                className="hidden"
+                disabled={!canUse3dMedia}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) {
+                    setModel3dFile(f);
+                    setModel3dPreview(f.name);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!canUse3dMedia) {
+                    addToast('ميزة 3D متاحة لوكل فقط حالياً', 'info');
+                    return;
+                  }
+                  model3dInputRef.current?.click();
+                }}
+                className={`w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors ${
+                  canUse3dMedia ? 'hover:border-slate-400' : 'opacity-60 cursor-not-allowed'
+                }`}
+              >
+                {model3dPreview ? (
+                  <div className="flex items-center gap-2 text-slate-700">
+                    <Box size={20} className="text-emerald-500" />
+                    <span className="text-sm font-bold">{model3dPreview}</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setModel3dFile(null);
+                        setModel3dPreview(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
                           e.stopPropagation();
                           setModel3dFile(null);
                           setModel3dPreview(null);
-                        }}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setModel3dFile(null);
-                            setModel3dPreview(null);
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-600 cursor-pointer"
-                        aria-label="Remove 3D model"
-                      >
-                        <X size={14} />
-                      </span>
-                    </div>
-                  ) : (
-                    <>
-                      <Box size={24} className="text-slate-300" />
-                      <span className="text-xs text-slate-400 font-bold">ارفع موديل 3D (GLB / GLTF)</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
-                  <RotateCw size={16} />
-                  صور 360° (اختياري — 8 صورة على الأقل)
-                </h3>
-                <input
-                  ref={spinImagesInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  className="hidden"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    if (files.length > 0) {
-                      setSpinImageFiles((prev) => [...prev, ...files]);
-                      const previews = files.map((f) => URL.createObjectURL(f));
-                      setSpinImagePreviews((prev) => [...prev, ...previews]);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => spinImagesInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 hover:border-slate-400 transition-colors"
-                >
-                  <RotateCw size={24} className="text-slate-300" />
-                  <span className="text-xs text-slate-400 font-bold">ارفع صور من زوايا مختلفة</span>
-                </button>
-                {spinImagePreviews.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {spinImagePreviews.map((src, idx) => (
-                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200">
-                        <img src={src} className="w-full h-full object-cover" alt={`spin ${idx + 1}`} />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setSpinImagePreviews((prev) => prev.filter((_, i) => i !== idx));
-                            setSpinImageFiles((prev) => prev.filter((_, i) => i !== idx));
-                          }}
-                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
-                        >
-                          <X size={8} />
-                        </button>
-                      </div>
-                    ))}
+                        }
+                      }}
+                      className="text-red-400 hover:text-red-600 cursor-pointer"
+                      aria-label="Remove 3D model"
+                    >
+                      <X size={14} />
+                    </span>
                   </div>
+                ) : (
+                  <>
+                    <Box size={24} className="text-slate-300" />
+                    <span className="text-xs text-slate-400 font-bold">ارفع موديل 3D (GLB / GLTF)</span>
+                  </>
                 )}
-              </div>
-            </>
-          )}
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
+                <RotateCw size={16} />
+                صور 360° (اختياري — 8 صورة على الأقل)
+              </h3>
+              <input
+                ref={spinImagesInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                disabled={!canUse3dMedia}
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || []);
+                  if (files.length > 0) {
+                    setSpinImageFiles((prev) => [...prev, ...files]);
+                    const previews = files.map((f) => URL.createObjectURL(f));
+                    setSpinImagePreviews((prev) => [...prev, ...previews]);
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (!canUse3dMedia) {
+                    addToast('ميزة 3D متاحة لوكل فقط حالياً', 'info');
+                    return;
+                  }
+                  spinImagesInputRef.current?.click();
+                }}
+                className={`w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors ${
+                  canUse3dMedia ? 'hover:border-slate-400' : 'opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <RotateCw size={24} className="text-slate-300" />
+                <span className="text-xs text-slate-400 font-bold">ارفع صور من زوايا مختلفة</span>
+              </button>
+              {spinImagePreviews.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {spinImagePreviews.map((src, idx) => (
+                    <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200">
+                      <img src={src} className="w-full h-full object-cover" alt={`spin ${idx + 1}`} />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpinImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                          setSpinImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                      >
+                        <X size={8} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
 
           <FormFooter
             loading={loading}

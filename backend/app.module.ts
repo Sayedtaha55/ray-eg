@@ -26,22 +26,24 @@ import { QueueModule } from './queue.module';
 import { ChatModule } from './chat.module';
 import { AiModule } from './ai/ai.module';
 import { MeasurementModule } from './measurement.module';
+import { AppsModule } from './apps.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
 import { AccountPurgeService } from './account-purge.service';
 
- const nodeEnv = process.env.NODE_ENV || 'development';
- const minimalBoot = String(process.env.MINIMAL_BOOT || '').toLowerCase() === 'true';
- const bootModulesRaw = String(process.env.BOOT_MODULES || '').trim().toLowerCase();
- const bootModules = new Set(
-   bootModulesRaw
-     ? bootModulesRaw.split(',').map((s) => s.trim()).filter(Boolean)
-     : [],
- );
- const includeAllModules = bootModules.size === 0;
+const nodeEnv = process.env.NODE_ENV || 'development';
+const minimalBoot = String(process.env.MINIMAL_BOOT || '').toLowerCase() === 'true';
+const bootModulesRaw = String(process.env.BOOT_MODULES || '').trim().toLowerCase();
+const bootModules = new Set(
+  bootModulesRaw
+    ? bootModulesRaw.split(',').map((s) => s.trim()).filter(Boolean)
+    : [],
+);
+const includeAllModules = bootModules.size === 0;
 
- const shouldImportMediaModule = includeAllModules || bootModules.has('media') || bootModules.has('shop');
+const shouldImportMediaModule = includeAllModules || bootModules.has('media') || bootModules.has('shop');
+const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || nodeEnv === 'development';
 
 @Module({
   imports: [
@@ -73,6 +75,7 @@ import { AccountPurgeService } from './account-purge.service';
     ...(includeAllModules || bootModules.has('chat') ? [ChatModule] : []),
     // AI module requires AI_ENABLED=true (hidden from production until ready)
  ...(includeAllModules || bootModules.has('ai') ? (process.env.AI_ENABLED === 'true' ? [AiModule] : []) : []),
+    ...(shouldImportAppsModule ? [AppsModule] : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
     ...(includeAllModules || bootModules.has('measurement') ? [MeasurementModule] : []),

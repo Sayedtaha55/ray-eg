@@ -14,3 +14,4 @@ export * from './feedback';
 export * from './chat';
 export * from './invoices';
 export * from './favorites';
+export * from './apps';

@@ -105,6 +105,7 @@ model Shop {
   aiTier                AiSubscriptionTier         @default(FREE) @map("ai_tier")
   aiUsageMonth          Int                        @default(0) @map("ai_usage_month")
   aiUsageResetAt        DateTime?                  @map("ai_usage_reset_at")
+  installedApps         ShopApp[]
   accountingInvoices    AccountingInvoice[]
   bookingResources      BookingResource[]
   bookings              Booking[]
@@ -138,6 +139,41 @@ model Shop {
   @@index([status, isActive, publicDisabled, createdAt])
   @@index([category, governorate, createdAt])
   @@map("shops")
+}
+
+model App {
+  id          String    @id @default(cuid())
+  key         String    @unique
+  name        String
+  description String?
+  version     String    @default("1.0.0")
+  permissions Json?
+  hooks       Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  shops       ShopApp[]
+
+  @@index([key])
+  @@map("apps")
+}
+
+model ShopApp {
+  id          String        @id @default(cuid())
+  shopId      String        @map("shop_id")
+  appId       String        @map("app_id")
+  status      ShopAppStatus @default(INSTALLED)
+  isActive    Boolean       @default(true) @map("is_active")
+  settings    Json?
+  installedAt DateTime      @default(now()) @map("installed_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  shop        Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  app         App           @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, appId])
+  @@index([shopId])
+  @@index([appId])
+  @@index([shopId, isActive])
+  @@map("shop_apps")
 }
 
 model Customer {
@@ -826,6 +862,11 @@ enum ShopStatus {
   APPROVED
   REJECTED
   SUSPENDED
+}
+
+enum ShopAppStatus {
+  INSTALLED
+  UNINSTALLED
 }
 
 enum OrderStatus {

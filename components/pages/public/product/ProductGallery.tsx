@@ -34,7 +34,12 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   spinImages,
   model3dUrl,
 }) => {
-  const enable3dMedia = String((import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA || '').trim().toLowerCase() === 'true';
+  const enable3dMedia = (() => {
+    const raw = (import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA;
+    const s = String(raw ?? '').trim().toLowerCase();
+    if (!s) return true;
+    return s === 'true';
+  })();
   const safeActiveSrc = String(activeImageSrc || '').trim();
   const safeGalleryImages = (galleryImages || []).map((s) => String(s || '').trim()).filter(Boolean);
   const safeSpinImages = useMemo(
