@@ -202,18 +202,18 @@ export class ProductService {
     }
 
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const sid = String((product as any)?.shopId || '').trim();
       const pid = String((product as any)?.id || '').trim();
+      const nameKey = this.normalizeProductNameKey((product as any)?.name);
+
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(sid),
+        this.getActiveImageMapHotspotLabelKeys(sid),
+      ]);
+
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
-
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
