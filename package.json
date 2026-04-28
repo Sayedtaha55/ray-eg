@@ -28,7 +28,6 @@
     "backend:dev:clean": "npm run backend:kill && npm run backend:dev:stable",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
-    "typecheck:mobile": "tsc -p tsconfig.mobile.json --noEmit",
     "backend:typecheck": "tsc -p backend/tsconfig.json --noEmit",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma",
