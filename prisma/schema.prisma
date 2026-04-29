@@ -127,6 +127,7 @@ model Shop {
   themeSettings         ShopTheme[]
   aiAuditLogs           AiAuditLog[]
   knowledgeDocuments    KnowledgeDocument[]
+  cartEvents            CartEvent[]
   owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id])
 
   @@index([category])
@@ -1019,4 +1020,34 @@ model UserMeasurement {
   @@index([userId])
   @@index([userId, isActive])
   @@map("user_measurements")
+}
+
+model CartEvent {
+  id              String    @id @default(cuid())
+  shopId          String    @map("shop_id")
+  productId       String    @map("product_id")
+  userId          String?   @map("user_id")
+  sessionId       String?   @map("session_id")
+  customerName    String?   @map("customer_name")
+  customerEmail   String?   @map("customer_email")
+  customerPhone   String?   @map("customer_phone")
+  event           String    // add_to_cart, checkout_started, payment_completed, abandoned
+  quantity        Int       @default(1)
+  unitPrice       Float     @default(0) @map("unit_price")
+  currency        String    @default("EGP")
+  metadata        Json?
+  isRecovered     Boolean   @default(false) @map("is_recovered")
+  recoveredAt     DateTime? @map("recovered_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  shop            Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, event])
+  @@index([shopId, createdAt])
+  @@index([shopId, productId])
+  @@index([userId, shopId])
+  @@index([sessionId])
+  @@index([isRecovered])
+  @@map("cart_events")
 }

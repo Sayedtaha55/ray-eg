@@ -16,6 +16,7 @@ export type MerchantDashboardTabId =
   | 'gallery'
   | 'pos'
   | 'builder'
+  | 'abandonedCart'
   | 'settings';
 
 export type MerchantDashboardTabDefinition = {
@@ -42,6 +43,7 @@ export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations') },
   { id: 'invoice', label: i18n.t('business.dashboardTabs.invoice') },
   { id: 'sales', label: i18n.t('business.dashboardTabs.sales') },
+  { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
   { id: 'pos', label: i18n.t('business.dashboardTabs.pos') },
   { id: 'builder', label: i18n.t('business.dashboardTabs.builder') },
   { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
@@ -80,6 +82,7 @@ const getAllowedTabsForMode = (mode?: ShopDashboardMode): Set<MerchantDashboardT
     'reservations',
     'invoice',
     'sales',
+    'abandonedCart',
     'customers',
     'reports',
     'gallery',

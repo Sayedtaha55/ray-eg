@@ -27,6 +27,7 @@ import { ChatModule } from './chat.module';
 import { AiModule } from './ai/ai.module';
 import { MeasurementModule } from './measurement.module';
 import { AppsModule } from './apps.module';
+import { CartEventModule } from './cart-event.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -76,6 +77,7 @@ const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || n
     // AI module requires AI_ENABLED=true (hidden from production until ready)
  ...(includeAllModules || bootModules.has('ai') ? (process.env.AI_ENABLED === 'true' ? [AiModule] : []) : []),
     ...(shouldImportAppsModule ? [AppsModule] : []),
+    ...(includeAllModules || bootModules.has('cart-event') ? [CartEventModule] : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
     ...(includeAllModules || bootModules.has('measurement') ? [MeasurementModule] : []),

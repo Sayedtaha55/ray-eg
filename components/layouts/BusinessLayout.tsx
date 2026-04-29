@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -95,6 +95,18 @@ const BusinessLayout: React.FC = () => {
     Boolean(isDev) &&
     String((effectiveUser as any)?.role || '').toLowerCase() === 'merchant';
 
+  const readCachedShop = () => {
+    try {
+      const raw = localStorage.getItem('ray_last_shop');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed?.id) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
   const switchDevActivity = async (category?: string) => {
     if (!canUseDevActivitySwitcher) return;
     setDevSwitchLoading(true);
@@ -158,6 +170,7 @@ const BusinessLayout: React.FC = () => {
     reports: <BarChart3 size={20} />,
     builder: <Palette size={20} />,
     settings: <Settings size={20} />,
+    abandonedCart: <ShoppingCart size={20} />,
     pos: <Store size={20} />,
   };
 
@@ -527,12 +540,36 @@ const BusinessLayout: React.FC = () => {
     let cancelled = false;
     (async () => {
       try {
+        const isOffline = (() => {
+          try {
+            return typeof navigator !== 'undefined' && navigator?.onLine === false;
+          } catch {
+            return false;
+          }
+        })();
+
+        if (isOffline) {
+          const cachedShop = readCachedShop();
+          if (cachedShop) {
+            setShopCategory((cachedShop as any)?.category);
+            setShopForModules(cachedShop);
+            return;
+          }
+        }
+
         const shop = impersonateShopId
           ? await ApiService.getShopAdminById(String(impersonateShopId))
           : await ApiService.getMyShop();
         if (cancelled) return;
         setShopCategory((shop as any)?.category);
         setShopForModules(shop);
+
+        try {
+          if ((shop as any)?.id) {
+            localStorage.setItem('ray_last_shop', JSON.stringify(shop));
+          }
+        } catch {
+        }
       } catch {
         if (cancelled) return;
         setShopCategory(undefined);
@@ -556,12 +593,36 @@ const BusinessLayout: React.FC = () => {
       if (timer) clearTimeout(timer);
       timer = setTimeout(async () => {
         try {
+          const isOffline = (() => {
+            try {
+              return typeof navigator !== 'undefined' && navigator?.onLine === false;
+            } catch {
+              return false;
+            }
+          })();
+
+          if (isOffline) {
+            const cachedShop = readCachedShop();
+            if (cachedShop) {
+              setShopCategory((cachedShop as any)?.category);
+              setShopForModules(cachedShop);
+              return;
+            }
+          }
+
           const shop = impersonateShopId
             ? await ApiService.getShopAdminById(String(impersonateShopId))
             : await ApiService.getMyShop();
           if (cancelled) return;
           setShopCategory((shop as any)?.category);
           setShopForModules(shop);
+
+          try {
+            if ((shop as any)?.id) {
+              localStorage.setItem('ray_last_shop', JSON.stringify(shop));
+            }
+          } catch {
+          }
         } catch {
           if (cancelled) return;
         }

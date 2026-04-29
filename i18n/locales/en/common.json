@@ -119,5 +119,29 @@
     "cairo": "Cairo",
     "giza": "Giza",
     "alexandria": "Alexandria"
+  },
+  "abandonedCart": {
+    "title": "Abandoned Cart",
+    "manageTitle": "Abandoned Cart",
+    "manageSubtitle": "Track customers who added items but didn't complete checkout",
+    "addedToCart": "Added to Cart",
+    "checkoutStarted": "Started Checkout",
+    "abandoned": "Abandoned",
+    "abandonmentRate": "Abandonment Rate",
+    "recoveryRate": "Recovery Rate",
+    "listTitle": "Cart Events",
+    "refresh": "Refresh",
+    "loadError": "Failed to load abandoned cart data",
+    "recoverError": "Failed to mark as recovered",
+    "noData": "No abandoned cart events found",
+    "date": "Date",
+    "event": "Event",
+    "customer": "Customer",
+    "product": "Product",
+    "quantity": "Quantity",
+    "price": "Price",
+    "actions": "Actions",
+    "recover": "Mark Recovered",
+    "recoveredLabel": "Recovered"
   }
 }

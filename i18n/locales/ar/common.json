@@ -119,5 +119,30 @@
     "cairo": "القاهرة",
     "giza": "الجيزة",
     "alexandria": "الإسكندرية"
+  },
+  "abandonedCart": {
+    "title": "السلة المتروكة",
+    "manageTitle": "السلة المتروكة",
+    "manageSubtitle": "تابع العملاء اللي ضافو منتجات ومكملش الدفع",
+    "addedToCart": "أضيف للسلة",
+    "checkoutStarted": "بدأ الدفع",
+    "abandoned": "متروك",
+    "recovered": "تم استعادته",
+    "abandonmentRate": "معدل الترك",
+    "recoveryRate": "معدل الاستعادة",
+    "listTitle": "أحداث السلة",
+    "refresh": "تحديث",
+    "loadError": "فشل تحميل بيانات السلة المتروكة",
+    "recoverError": "فشل تعليم كـمستعاد",
+    "noData": "لا توجد أحداث سلة متروكة",
+    "date": "التاريخ",
+    "event": "الحدث",
+    "customer": "العميل",
+    "product": "المنتج",
+    "quantity": "الكمية",
+    "price": "السعر",
+    "actions": "الإجراءات",
+    "recover": "علّم كمستعاد",
+    "recoveredLabel": "مستعاد"
   }
 }

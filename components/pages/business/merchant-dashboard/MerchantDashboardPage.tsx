@@ -15,6 +15,7 @@ import {
   Package,
   Palette,
   Settings,
+  ShoppingCart,
   Smartphone,
   TrendingUp,
   Users,
@@ -48,6 +49,7 @@ const ReservationsTab = lazy(() => import('./tabs/ReservationsTab').then(m => ({
 const SalesTab = lazy(() => import('./tabs/SalesTab'));
 const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
 const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
+const AbandonedCartTab = lazy(() => import('./tabs/AbandonedCartTab'));
 
 import TabButton from './components/TabButton';
 import AiAssistantPanel from './AiAssistantPanel';
@@ -88,6 +90,7 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   reservations: <CalendarCheck size={18} />,
   invoice: <FileText size={18} />,
   sales: <CreditCard size={18} />,
+  abandonedCart: <ShoppingCart size={18} />,
   builder: <Palette size={18} />,
   settings: <Settings size={18} />,
   pos: <Smartphone size={18} />,
@@ -181,6 +184,18 @@ const MerchantDashboardPage: React.FC = () => {
   const isAdminView = String(savedUserForView?.role || '').toLowerCase() === 'admin';
   const adminTargetShopId = isAdminView && impersonateShopId ? impersonateShopId : undefined;
 
+  const readCachedShop = () => {
+    try {
+      const raw = localStorage.getItem('ray_last_shop');
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !parsed?.id) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
   const loadShop = useCallback(async () => {
     if (syncInFlightRef.current) return;
     syncInFlightRef.current = true;
@@ -194,6 +209,22 @@ const MerchantDashboardPage: React.FC = () => {
       if (!savedUserStr) {
         navigate('/login');
         return;
+      }
+
+      const isOffline = (() => {
+        try {
+          return typeof navigator !== 'undefined' && navigator?.onLine === false;
+        } catch {
+          return false;
+        }
+      })();
+
+      if (isOffline) {
+        const cachedShop = readCachedShop();
+        if (cachedShop) {
+          setCurrentShop(cachedShop);
+          return cachedShop;
+        }
       }
 
       const savedUser = JSON.parse(savedUserStr);
@@ -213,6 +244,13 @@ const MerchantDashboardPage: React.FC = () => {
 
       setCurrentShop(effectiveShop);
 
+      try {
+        if (effectiveShop?.id) {
+          localStorage.setItem('ray_last_shop', JSON.stringify(effectiveShop));
+        }
+      } catch {
+      }
+
       const status = String(effectiveShop?.status || '').toLowerCase();
       if (status !== 'approved') {
         redirected = true;
@@ -229,6 +267,27 @@ const MerchantDashboardPage: React.FC = () => {
         navigate('/login');
         return;
       }
+
+      const isOfflineError = (() => {
+        try {
+          if (typeof navigator !== 'undefined' && navigator?.onLine === false) return true;
+        } catch {
+        }
+        const name = String((e as any)?.name || '');
+        if (name === 'TypeError') return true;
+        const msg = String((e as any)?.message || '').toLowerCase();
+        if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network request failed')) return true;
+        return false;
+      })();
+
+      if (isOfflineError) {
+        const cachedShop = readCachedShop();
+        if (cachedShop) {
+          setCurrentShop(cachedShop);
+          return cachedShop;
+        }
+      }
+
       const message = (e as any)?.message || t('business.dashboard.dataLoadError');
       addToastRef.current(message, 'error');
     } finally {
@@ -503,6 +562,8 @@ const MerchantDashboardPage: React.FC = () => {
               return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
             case 'sales':
               return <SalesTab sales={sales} posEnabled={hasPosTab} />;
+            case 'abandonedCart':
+              return <AbandonedCartTab shopId={currentShop.id} />;
             case 'reports':
               return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
             case 'customers':

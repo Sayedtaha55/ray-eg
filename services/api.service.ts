@@ -154,6 +154,12 @@ import {
   updateInvoiceViaBackend,
 } from './api/modules/invoices';
 import {
+  trackCartEventViaBackend,
+  getAbandonedCartsViaBackend,
+  getAbandonedCartStatsViaBackend,
+  markCartEventRecoveredViaBackend,
+} from './api/modules/cart-events';
+import {
   aiChatViaBackend,
   aiChatStreamViaBackend,
   type AiChatResponse,
@@ -175,7 +181,7 @@ import { mockDb } from './api/mockDb';
 
 let rayDbUpdateTimer: any;
 
-export type RefreshScope = 'orders' | 'products' | 'shop' | 'analytics' | 'notifications' | 'reservations' | 'invoices' | 'messages' | 'all';
+export type RefreshScope = 'orders' | 'products' | 'shop' | 'analytics' | 'notifications' | 'reservations' | 'invoices' | 'messages' | 'cart' | 'all';
 
 function dispatchSmartRefresh(scope: RefreshScope, context?: { shopId?: string }) {
   try {
@@ -1711,6 +1717,34 @@ export const ApiService = {
       } catch {
       }
       return { id: iid, ...payload, status: 'pending_sync', __queued: true } as any;
+    }
+  },
+
+  // Abandoned Cart / Cart Events
+  trackCartEvent: async (input: { shopId: string; productId: string; event: 'add_to_cart' | 'checkout_started' | 'payment_completed' | 'abandoned'; sessionId?: string; customerName?: string; customerEmail?: string; customerPhone?: string; quantity?: number; unitPrice?: number; currency?: string; metadata?: any }) => {
+    try {
+      return await trackCartEventViaBackend(input);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/cart-events', 'POST', input);
+      return { ...input, id: `local-${Date.now()}`, status: 'pending_sync', __queued: true } as any;
+    }
+  },
+  getAbandonedCarts: async (opts?: { shopId?: string; from?: string; to?: string; page?: number; limit?: number }) => {
+    return await getAbandonedCartsViaBackend(opts);
+  },
+  getAbandonedCartStats: async (opts?: { shopId?: string; from?: string; to?: string }) => {
+    return await getAbandonedCartStatsViaBackend(opts);
+  },
+  markCartEventRecovered: async (id: string) => {
+    try {
+      return await markCartEventRecoveredViaBackend(id);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const cid = String(id || '').trim();
+      if (!cid) throw e;
+      await addToSyncQueue(`/api/v1/cart-events/${encodeURIComponent(cid)}/recover`, 'PATCH', {});
+      return { id: cid, isRecovered: true, __queued: true } as any;
     }
   },
 

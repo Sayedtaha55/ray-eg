@@ -23,6 +23,7 @@ export type RefreshScope =
   | 'reservations'
   | 'invoices'
   | 'messages'
+  | 'cart'
   | 'all';
 
 export interface SmartRefreshOptions {

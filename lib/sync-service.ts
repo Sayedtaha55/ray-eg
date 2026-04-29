@@ -58,6 +58,7 @@ export class SyncService {
             if (ep.startsWith('/api/v1/invoices')) refreshedScopes.add('invoices');
             if (ep.startsWith('/api/v1/apps')) refreshedScopes.add('shop');
             if (ep.startsWith('/api/v1/notifications')) refreshedScopes.add('notifications');
+            if (ep.startsWith('/api/v1/cart-events')) refreshedScopes.add('cart');
           } catch {
           }
         } catch (error) {

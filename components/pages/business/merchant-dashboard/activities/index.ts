@@ -15,6 +15,7 @@ export type MerchantDashboardTabId =
   | 'gallery'
   | 'pos'
   | 'builder'
+  | 'abandonedCart'
   | 'settings';
 
 export type MerchantDashboardTabDefinition = {
@@ -59,6 +60,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
@@ -88,6 +90,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
@@ -116,6 +119,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
@@ -144,6 +148,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
@@ -171,6 +176,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
@@ -198,6 +204,7 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
       { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
       { id: 'gallery', label: i18n.t('business.activities.gallery') },
       { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
+      { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
       { id: 'pos', label: i18n.t('business.activities.pos') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
