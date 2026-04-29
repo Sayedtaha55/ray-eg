@@ -20,6 +20,37 @@ function parseOptionalNumber(value: any) {
 export class CartEventController {
   constructor(@Inject(CartEventService) private readonly cartEventService: CartEventService) {}
 
+  @Post('public/track')
+  async publicTrack(@Body() body: any) {
+    const shopId = String(body?.shopId || '').trim();
+    const productId = String(body?.productId || '').trim();
+    const event = String(body?.event || '').trim();
+
+    if (!shopId) throw new BadRequestException('shopId مطلوب');
+    if (!productId) throw new BadRequestException('productId مطلوب');
+    if (!event) throw new BadRequestException('event مطلوب');
+
+    const validPublicEvents = ['add_to_cart', 'checkout_started'];
+    if (!validPublicEvents.includes(event)) {
+      throw new BadRequestException(`event يجب أن يكون أحد: ${validPublicEvents.join(', ')}`);
+    }
+
+    return this.cartEventService.track({
+      shopId,
+      productId,
+      event,
+      userId: body?.userId || null,
+      sessionId: body?.sessionId || null,
+      customerName: body?.customerName || null,
+      customerEmail: body?.customerEmail || null,
+      customerPhone: body?.customerPhone || null,
+      quantity: body?.quantity,
+      unitPrice: body?.unitPrice,
+      currency: body?.currency,
+      metadata: body?.metadata,
+    });
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer', 'merchant')

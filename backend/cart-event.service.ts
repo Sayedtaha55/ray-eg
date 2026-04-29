@@ -142,4 +142,65 @@ export class CartEventService {
       data: { isRecovered: true, recoveredAt: new Date() },
     });
   }
+
+  async autoMarkAbandoned(olderThanHours = 2) {
+    const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
+
+    const unreconciled = await this.prisma.cartEvent.findMany({
+      where: {
+        event: 'add_to_cart',
+        createdAt: { lte: cutoff },
+        isRecovered: false,
+        id: {
+          notIn: (await this.prisma.cartEvent.findMany({
+            where: {
+              event: { in: ['checkout_started', 'payment_completed'] },
+              createdAt: { gte: cutoff },
+            },
+            select: { sessionId: true },
+          })).filter(e => e.sessionId).map(e => e.sessionId!),
+        },
+      },
+      select: { id: true, sessionId: true, shopId: true, productId: true, userId: true,
+        customerName: true, customerEmail: true, customerPhone: true,
+        quantity: true, unitPrice: true, currency: true, metadata: true },
+    });
+
+    const sessionIdsWithCheckout = new Set(
+      (await this.prisma.cartEvent.findMany({
+        where: {
+          event: { in: ['checkout_started', 'payment_completed'] },
+        },
+        select: { sessionId: true },
+      }))
+        .filter(e => e.sessionId)
+        .map(e => e.sessionId!)
+    );
+
+    const toAbandon = unreconciled.filter(e => {
+      if (e.sessionId && sessionIdsWithCheckout.has(e.sessionId)) return false;
+      return true;
+    });
+
+    if (toAbandon.length === 0) return { marked: 0 };
+
+    const result = await this.prisma.cartEvent.createMany({
+      data: toAbandon.map(e => ({
+        shopId: e.shopId,
+        productId: e.productId,
+        event: 'abandoned',
+        userId: e.userId,
+        sessionId: e.sessionId,
+        customerName: e.customerName,
+        customerEmail: e.customerEmail,
+        customerPhone: e.customerPhone,
+        quantity: e.quantity,
+        unitPrice: e.unitPrice,
+        currency: e.currency,
+        metadata: e.metadata,
+      })),
+    });
+
+    return { marked: result.count };
+  }
 }

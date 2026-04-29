@@ -544,6 +544,17 @@ const ShopProfile: React.FC = () => {
       RayDB.addToCart({ ...prod, price, quantity: 1, shopId: shop.id, shopName: shop.name });
       playSound();
       setTimeout(() => setAddedItemId(null), 1500);
+      try {
+        const { getCartSessionId } = require('@/lib/cart-session');
+        (ApiService as any).trackCartEventPublic?.({
+          shopId: shop.id,
+          productId: (prod as any)?.id,
+          event: 'add_to_cart',
+          sessionId: getCartSessionId(),
+          quantity: 1,
+          unitPrice: price,
+        });
+      } catch {}
     },
     [shop, hasSalesModule, playSound, navigate]
   );

@@ -155,6 +155,7 @@ import {
 } from './api/modules/invoices';
 import {
   trackCartEventViaBackend,
+  trackCartEventPublicViaBackend,
   getAbandonedCartsViaBackend,
   getAbandonedCartStatsViaBackend,
   markCartEventRecoveredViaBackend,
@@ -1721,6 +1722,13 @@ export const ApiService = {
   },
 
   // Abandoned Cart / Cart Events
+  trackCartEventPublic: async (input: { shopId: string; productId: string; event: 'add_to_cart' | 'checkout_started'; sessionId?: string; customerName?: string; customerEmail?: string; customerPhone?: string; quantity?: number; unitPrice?: number; currency?: string; metadata?: any }) => {
+    try {
+      return await trackCartEventPublicViaBackend(input);
+    } catch {
+      // silently fail — tracking must not break UX
+    }
+  },
   trackCartEvent: async (input: { shopId: string; productId: string; event: 'add_to_cart' | 'checkout_started' | 'payment_completed' | 'abandoned'; sessionId?: string; customerName?: string; customerEmail?: string; customerPhone?: string; quantity?: number; unitPrice?: number; currency?: string; metadata?: any }) => {
     try {
       return await trackCartEventViaBackend(input);

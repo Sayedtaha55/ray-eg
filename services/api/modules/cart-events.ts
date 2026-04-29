@@ -18,6 +18,10 @@ export async function trackCartEventViaBackend(input: CartEventInput) {
   return await backendPost<any>('/api/v1/cart-events', input);
 }
 
+export async function trackCartEventPublicViaBackend(input: CartEventInput) {
+  return await backendPost<any>('/api/v1/cart-events/public/track', input);
+}
+
 export async function getAbandonedCartsViaBackend(opts?: {
   shopId?: string;
   from?: string;

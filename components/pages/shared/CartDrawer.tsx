@@ -351,6 +351,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
       if (!coords) {
         requestLocation();
       }
+      try {
+        const { getCartSessionId } = require('@/lib/cart-session');
+        const sid = getCartSessionId();
+        for (const [shopId, shop] of Object.entries(groupedItems)) {
+          const items = (shop as any)?.items || [];
+          for (const it of items) {
+            (ApiService as any).trackCartEventPublic?.({
+              shopId,
+              productId: (it as any)?.id,
+              event: 'checkout_started',
+              sessionId: sid,
+              quantity: (it as any)?.quantity || 1,
+              unitPrice: (it as any)?.price || 0,
+              customerPhone: customerPhone || undefined,
+            });
+          }
+        }
+      } catch {}
       return;
     }
 

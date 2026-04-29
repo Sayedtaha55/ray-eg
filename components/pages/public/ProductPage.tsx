@@ -507,6 +507,17 @@ const ProductPage: React.FC = () => {
     });
 
     setIsCartOpen(true);
+    try {
+      const { getCartSessionId } = require('@/lib/cart-session');
+      (ApiService as any).trackCartEventPublic?.({
+        shopId: shop?.id,
+        productId: product?.id,
+        event: 'add_to_cart',
+        sessionId: getCartSessionId(),
+        quantity: 1,
+        unitPrice,
+      });
+    } catch {}
   };
 
   const fashionColors = useMemo(() => {
