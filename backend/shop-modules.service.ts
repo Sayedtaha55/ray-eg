@@ -16,6 +16,7 @@ export class ShopModulesService {
       'customers',
       'reports',
       'pos',
+      'abandonedCart',
     ]);
   }
 
@@ -36,19 +37,19 @@ export class ShopModulesService {
 
     // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
     if (cat === 'RESTAURANT') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      add('reservations', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
       return always;
     }
     if (cat === 'SERVICE') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos');
+      add('reservations', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
       return always;
     }
     if (cat === 'FASHION') {
-      add('sales', 'customers', 'reports', 'pos');
+      add('sales', 'customers', 'reports', 'pos', 'abandonedCart');
       return always;
     }
     if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
-      add('sales', 'customers', 'reports', 'pos');
+      add('sales', 'customers', 'reports', 'pos', 'abandonedCart');
       return always;
     }
 

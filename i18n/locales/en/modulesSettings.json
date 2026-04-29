@@ -11,6 +11,7 @@
   "moduleSales": "Orders / Sales",
   "moduleCustomers": "Customers",
   "moduleReports": "Reports",
+  "moduleAbandonedCart": "Abandoned Cart",
   "removeInvoiceDetail": "All invoices and their items for this shop will be deleted.",
   "removeReservationsDetail": "All reservation data for this shop will be deleted.",
   "removeGalleryDetail": "Gallery images for this shop will be deleted.",

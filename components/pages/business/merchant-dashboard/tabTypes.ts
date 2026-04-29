@@ -12,6 +12,7 @@ export type MerchantDashboardTabId =
   | 'gallery'
   | 'pos'
   | 'builder'
+  | 'abandonedCart'
   | 'settings';
 
 export type MerchantDashboardTabDefinition = {

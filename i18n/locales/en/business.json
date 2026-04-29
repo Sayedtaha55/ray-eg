@@ -1282,6 +1282,7 @@
     "reservations": "Reservations",
     "invoice": "Invoice",
     "sales": "Sales",
+    "abandonedCart": "Abandoned Cart",
     "pos": "POS",
     "builder": "Design",
     "apps": "Apps",

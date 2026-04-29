@@ -14,6 +14,7 @@ type ModuleId =
   | 'reports'
   | 'customers'
   | 'gallery'
+  | 'abandonedCart'
   | 'builder'
   | 'settings';
 
@@ -53,6 +54,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     { id: 'sales', label: t('modulesSettings.moduleSales'), kind: 'optional' },
     { id: 'customers', label: t('modulesSettings.moduleCustomers'), kind: 'optional' },
     { id: 'reports', label: t('modulesSettings.moduleReports'), kind: 'optional' },
+    { id: 'abandonedCart', label: t('modulesSettings.moduleAbandonedCart'), kind: 'optional' },
   ], [t]);
 
   const baselineRef = useRef<string[]>([]);

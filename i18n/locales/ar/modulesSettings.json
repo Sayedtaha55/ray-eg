@@ -11,6 +11,7 @@
   "moduleSales": "الطلبات / المبيعات",
   "moduleCustomers": "العملاء",
   "moduleReports": "التقارير",
+  "moduleAbandonedCart": "السلة المتروكة",
   "removeInvoiceDetail": "سيتم حذف كل فواتير الحسابات وبنودها الخاصة بهذا المتجر.",
   "removeReservationsDetail": "سيتم حذف كل بيانات الحجوزات الخاصة بهذا المتجر.",
   "removeGalleryDetail": "سيتم حذف صور المعرض الخاصة بهذا المتجر.",
