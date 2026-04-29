@@ -104,6 +104,16 @@
   "purchaseModeButton": {
     "label": "وضع الشراء"
   },
+  "syncStatus": {
+    "offline": "وضع عدم الاتصال",
+    "syncing": "جاري المزامنة...",
+    "pendingCount": "عمليات في الانتظار: {{count}}",
+    "lastSync": "آخر مزامنة",
+    "justNow": "الآن",
+    "minutesAgo": "من {{count}} دقيقة",
+    "hoursAgo": "من {{count}} ساعة",
+    "syncNow": "مزامنة الآن"
+  },
   "governorates": {
     "all": "الكل",
     "cairo": "القاهرة",

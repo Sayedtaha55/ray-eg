@@ -11,6 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { createSlowDown } from './middleware/slow-down.middleware';
 import { requestIdMiddleware } from './middleware/request-id.middleware';
+import { idempotencyMiddleware } from './middleware/idempotency.middleware';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 import { TimeoutInterceptor } from './interceptors/timeout.interceptor';
 import { LoggerService } from './logger/logger.service';
@@ -337,7 +338,7 @@ async function bootstrap() {
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With', 'Idempotency-Key'],
       optionsSuccessStatus: 204,
     },
   });
@@ -345,6 +346,8 @@ async function bootstrap() {
   console.log('[main.ts] NestFactory.create() done');
 
   app.use(requestIdMiddleware);
+
+  app.use('/api', idempotencyMiddleware);
 
   app.use(compression({
     threshold: 1024,
@@ -437,7 +440,7 @@ async function bootstrap() {
       res.setHeader('Vary', 'Origin');
       res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,PATCH,OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-Requested-With');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,Accept,Origin,X-Requested-With,Idempotency-Key');
     }
 
     if (String(req?.method || '').toUpperCase() === 'OPTIONS') {

@@ -117,7 +117,7 @@ export default defineConfig(({ mode }) => {
               handler: 'NetworkFirst',
               options: {
                 cacheName: 'pages',
-                networkTimeoutSeconds: 10, // Increased for slow networks
+                networkTimeoutSeconds: 10,
                 expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
               },
             },
@@ -152,9 +152,15 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'api-cache',
                 networkTimeoutSeconds: 8,
-                expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 }, // 5 minutes for API cache
+                expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 },
                 cacheableResponse: {
                   statuses: [0, 200],
+                },
+                backgroundSync: {
+                  name: 'api-queue',
+                  options: {
+                    maxRetentionTime: 24 * 60,
+                  },
                 },
               },
             },

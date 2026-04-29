@@ -104,6 +104,16 @@
   "purchaseModeButton": {
     "label": "Purchase mode"
   },
+  "syncStatus": {
+    "offline": "Offline mode",
+    "syncing": "Syncing...",
+    "pendingCount": "Pending: {{count}}",
+    "lastSync": "Last sync",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "syncNow": "Sync now"
+  },
   "governorates": {
     "all": "All",
     "cairo": "Cairo",

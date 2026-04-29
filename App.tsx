@@ -11,6 +11,7 @@ import AppRoutes from './app/AppRoutes';
 import { shouldWarmupRoutes, warmupRouteChunks } from './app/routeWarmup';
 import { getDeferredDelay, isMobileViewportLike } from './utils/performanceProfile';
 import BackendStatusBanner from './components/common/feedback/BackendStatusBanner';
+import SyncStatusBanner from './components/common/feedback/SyncStatusBanner';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -237,6 +238,7 @@ const App: React.FC = () => {
       <ScrollToTop />
       <RoleRedirector authReady={authReady} />
       <BackendStatusBanner />
+      <SyncStatusBanner />
       <RouteSeoManager />
       <AppRoutes />
     </Router>

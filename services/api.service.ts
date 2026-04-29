@@ -11,6 +11,7 @@ import {
   fetchWithTimeout,
   toBackendUrl,
 } from './api/httpClient';
+import { addToSyncQueue } from '../lib/offline-db';
 import {
   normalizeOrderFromBackend,
   normalizeProductFromBackend,
@@ -174,7 +175,7 @@ import { mockDb } from './api/mockDb';
 
 let rayDbUpdateTimer: any;
 
-export type RefreshScope = 'orders' | 'products' | 'shop' | 'analytics' | 'notifications' | 'reservations' | 'messages' | 'all';
+export type RefreshScope = 'orders' | 'products' | 'shop' | 'analytics' | 'notifications' | 'reservations' | 'invoices' | 'messages' | 'all';
 
 function dispatchSmartRefresh(scope: RefreshScope, context?: { shopId?: string }) {
   try {
@@ -189,6 +190,19 @@ function dispatchSmartRefresh(scope: RefreshScope, context?: { shopId?: string }
       }
     } catch {}
   } catch {}
+}
+
+function shouldQueueOfflineMutation(error: any) {
+  try {
+    if (typeof navigator !== 'undefined' && navigator && navigator.onLine === false) return true;
+  } catch {
+  }
+
+  const name = String(error?.name || '');
+  if (name === 'TypeError') return true;
+  const msg = String(error?.message || '').toLowerCase();
+  if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('network request failed')) return true;
+  return false;
 }
 
 function dispatchRayDbUpdateDebounced(scope?: RefreshScope, context?: { shopId?: string }) {
@@ -237,6 +251,26 @@ function getLocalShopIdFromStorage(): string | undefined {
 type CacheEntry<T> = { value: T; expiresAt: number };
 const apiCache = new Map<string, CacheEntry<any>>();
 const apiInFlight = new Map<string, Promise<any>>();
+
+const getLocalFavorites = (): string[] => {
+  try {
+    const raw = localStorage.getItem('ray_favorites');
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((x) => String(x || '').trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+};
+
+const setLocalFavorites = (ids: string[]) => {
+  try {
+    const unique = Array.from(new Set((ids || []).map((x) => String(x || '').trim()).filter(Boolean)));
+    localStorage.setItem('ray_favorites', JSON.stringify(unique));
+  } catch {
+  }
+};
 
 const nowMs = () => Date.now();
 
@@ -713,29 +747,79 @@ export const ApiService = {
     if (!sid) return { ok: true } as any;
     try {
       return await markShopNotificationsReadViaBackend(sid);
-    } catch {
-      return await mockDb.markNotificationsRead(sid);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) {
+        try {
+          return await mockDb.markNotificationsRead(sid);
+        } catch {
+        }
+        throw e;
+      }
+
+      await addToSyncQueue(`/api/v1/notifications/shop/${encodeURIComponent(sid)}/read`, 'PATCH', {});
+      try {
+        dispatchSmartRefresh('notifications');
+      } catch {
+      }
+      return { ok: true, status: 'pending_sync', __queued: true } as any;
     }
   },
   markShopNotificationRead: async (shopId: string, id: string) => {
-    return await markShopNotificationReadViaBackend(shopId, id);
+    try {
+      return await markShopNotificationReadViaBackend(shopId, id);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const sid = String(shopId || '').trim();
+      const nid = String(id || '').trim();
+      if (!sid || !nid) throw e;
+      await addToSyncQueue(`/api/v1/notifications/shop/${encodeURIComponent(sid)}/${encodeURIComponent(nid)}/read`, 'PATCH', {});
+      try {
+        dispatchSmartRefresh('notifications');
+      } catch {
+      }
+      return { ok: true, status: 'pending_sync', __queued: true } as any;
+    }
   },
 
   getMyNotifications: async (opts?: { take?: number; skip?: number }) => {
     return await getMyNotificationsViaBackend(opts);
   },
   getMyFavorites: async () => {
-    return await getMyFavoritesViaBackend();
+    try {
+      const remote = await getMyFavoritesViaBackend();
+      if (Array.isArray(remote) && remote.length > 0) {
+        setLocalFavorites(remote);
+        return remote;
+      }
+    } catch {
+    }
+    return getLocalFavorites();
   },
   addMyFavorite: async (productId: string) => {
     const id = String(productId || '').trim();
     if (!id) throw new Error('Missing productId');
-    await addMyFavoriteViaBackend(id);
+    try {
+      await addMyFavoriteViaBackend(id);
+    } catch {
+    }
+    try {
+      const current = getLocalFavorites();
+      setLocalFavorites([...current, id]);
+    } catch {
+    }
   },
   removeMyFavorite: async (productId: string) => {
     const id = String(productId || '').trim();
     if (!id) throw new Error('Missing productId');
-    await removeMyFavoriteViaBackend(id);
+    try {
+      await removeMyFavoriteViaBackend(id);
+    } catch {
+    }
+    try {
+      const current = getLocalFavorites();
+      setLocalFavorites(current.filter((x) => x !== id));
+    } catch {
+    }
   },
 
   // Apps / Marketplace
@@ -746,26 +830,116 @@ export const ApiService = {
     return await listMyAppsViaBackend();
   },
   installApp: async (key: string) => {
-    return await installAppViaBackend(key);
+    try {
+      const res = await installAppViaBackend(key);
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return res;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const k = String(key || '').trim();
+      if (!k) throw e;
+      await addToSyncQueue(`/api/v1/apps/${encodeURIComponent(k)}/install`, 'POST', {});
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return { key: k, status: 'pending_sync', __queued: true } as any;
+    }
   },
   uninstallApp: async (key: string) => {
-    return await uninstallAppViaBackend(key);
+    try {
+      const res = await uninstallAppViaBackend(key);
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return res;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const k = String(key || '').trim();
+      if (!k) throw e;
+      await addToSyncQueue(`/api/v1/apps/${encodeURIComponent(k)}/uninstall`, 'POST', {});
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return { key: k, status: 'pending_sync', __queued: true } as any;
+    }
   },
   enableApp: async (key: string) => {
-    return await enableAppViaBackend(key);
+    try {
+      const res = await enableAppViaBackend(key);
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return res;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const k = String(key || '').trim();
+      if (!k) throw e;
+      await addToSyncQueue(`/api/v1/apps/${encodeURIComponent(k)}/enable`, 'POST', {});
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return { key: k, status: 'pending_sync', __queued: true } as any;
+    }
   },
   disableApp: async (key: string) => {
-    return await disableAppViaBackend(key);
+    try {
+      const res = await disableAppViaBackend(key);
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return res;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const k = String(key || '').trim();
+      if (!k) throw e;
+      await addToSyncQueue(`/api/v1/apps/${encodeURIComponent(k)}/disable`, 'POST', {});
+      try {
+        dispatchRayDbUpdateDebounced('shop');
+      } catch {
+      }
+      return { key: k, status: 'pending_sync', __queued: true } as any;
+    }
   },
 
   getMyUnreadNotificationsCount: async () => {
     return await getMyUnreadNotificationsCountViaBackend();
   },
   markMyNotificationsRead: async () => {
-    return await markMyNotificationsReadViaBackend();
+    try {
+      return await markMyNotificationsReadViaBackend();
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue(`/api/v1/notifications/me/read`, 'PATCH', {});
+      try {
+        dispatchSmartRefresh('notifications');
+      } catch {
+      }
+      return { ok: true, status: 'pending_sync', __queued: true } as any;
+    }
   },
   markMyNotificationRead: async (id: string) => {
-    return await markMyNotificationReadViaBackend(id);
+    try {
+      return await markMyNotificationReadViaBackend(id);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const nid = String(id || '').trim();
+      if (!nid) throw e;
+      await addToSyncQueue(`/api/v1/notifications/me/${encodeURIComponent(nid)}/read`, 'PATCH', {});
+      try {
+        dispatchSmartRefresh('notifications');
+      } catch {
+      }
+      return { ok: true, status: 'pending_sync', __queued: true } as any;
+    }
   },
 
   // Shops
@@ -800,7 +974,16 @@ export const ApiService = {
     }
   },
   updateShopDesign: async (id: string, designConfig: any) => {
-    return await updateShopDesignViaBackend(id, designConfig);
+    try {
+      return await updateShopDesignViaBackend(id, designConfig);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const sid = String(id || '').trim();
+      if (!sid) throw e;
+      await addToSyncQueue(`/api/v1/shops/${encodeURIComponent(sid)}/design`, 'PATCH', designConfig);
+      dispatchRayDbUpdateDebounced('shop', { shopId: sid });
+      return { id: sid, __queued: true } as any;
+    }
   },
   getShopBySlugOrId: async (slugOrId: string) => {
     return await getShopBySlugOrIdViaBackend(slugOrId);
@@ -815,13 +998,19 @@ export const ApiService = {
     return await getMyShopViaBackend();
   },
   updateMyShop: async (payload: any) => {
-    const shop = await updateMyShopViaBackend(payload);
     try {
-      dispatchRayDbUpdateDebounced('shop', { shopId: shop?.id });
-    } catch {
-      // ignore
+      const shop = await updateMyShopViaBackend(payload);
+      try {
+        dispatchRayDbUpdateDebounced('shop', { shopId: shop?.id });
+      } catch {
+      }
+      return shop;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/shops/me', 'PATCH', payload);
+      dispatchRayDbUpdateDebounced('shop');
+      return { ...payload, __queued: true } as any;
     }
-    return shop;
   },
 
   uploadMyShopBanner: async (payload: { file: File; shopId?: string }) => {
@@ -831,7 +1020,16 @@ export const ApiService = {
     return await getShopAdminByIdViaBackend(id);
   },
   updateShopStatus: async (id: string, status: 'approved' | 'pending' | 'rejected' | 'suspended') => {
-    return await updateShopStatusViaBackend(id, status);
+    try {
+      return await updateShopStatusViaBackend(id, status);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const sid = String(id || '').trim();
+      if (!sid) throw e;
+      await addToSyncQueue(`/api/v1/shops/${encodeURIComponent(sid)}/status`, 'PATCH', { status });
+      dispatchRayDbUpdateDebounced('shop', { shopId: sid });
+      return { id: sid, status, __queued: true } as any;
+    }
   },
 
   upgradeDashboardConfig: async (payload?: { shopIds?: string[]; dryRun?: boolean }) => {
@@ -885,14 +1083,30 @@ export const ApiService = {
     }
   },
   createOffer: async (offer: any) => {
-    const created = await createOfferViaBackend(offer);
-    dispatchRayDbUpdateDebounced('products', { shopId: offer?.shopId });
-    return created;
+    try {
+      const created = await createOfferViaBackend(offer);
+      dispatchRayDbUpdateDebounced('products', { shopId: offer?.shopId });
+      return created;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/offers', 'POST', offer);
+      dispatchRayDbUpdateDebounced('products', { shopId: offer?.shopId });
+      return { ...offer, id: `local-${Date.now()}`, __queued: true } as any;
+    }
   },
   deleteOffer: async (offerId: string) => {
-    const deleted = await deleteOfferViaBackend(offerId);
-    dispatchRayDbUpdateDebounced('products');
-    return deleted;
+    try {
+      const deleted = await deleteOfferViaBackend(offerId);
+      dispatchRayDbUpdateDebounced('products');
+      return deleted;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const oid = String(offerId || '').trim();
+      if (!oid) throw e;
+      await addToSyncQueue(`/api/v1/offers/${encodeURIComponent(oid)}`, 'DELETE');
+      dispatchRayDbUpdateDebounced('products');
+      return { id: oid, __deleted: true, __queued: true } as any;
+    }
   },
   getOfferByProductId: async (productId: string) => {
     try {
@@ -926,45 +1140,87 @@ export const ApiService = {
     return await getProductByIdViaBackend(id);
   },
   addProduct: async (product: any) => {
-    const created = await addProductViaBackend(product, { timeoutMs: 120_000 });
     try {
-      const sid = String((created as any)?.shopId || (created as any)?.shop_id || (product as any)?.shopId || (product as any)?.shop_id || '').trim();
-      if (sid) {
-        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      const created = await addProductViaBackend(product, { timeoutMs: 120_000 });
+      try {
+        const sid = String((created as any)?.shopId || (created as any)?.shop_id || (product as any)?.shopId || (product as any)?.shop_id || '').trim();
+        if (sid) {
+          window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+        }
+      } catch {
       }
-    } catch {
+      dispatchRayDbUpdateDebounced('products', { shopId: (created as any)?.shopId || product?.shopId });
+      return created;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/products', 'POST', product);
+      try {
+        const sid = String((product as any)?.shopId || (product as any)?.shop_id || '').trim();
+        if (sid) window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      } catch {}
+      dispatchRayDbUpdateDebounced('products', { shopId: product?.shopId });
+      return { ...product, id: `local-${Date.now()}`, __queued: true } as any;
     }
-    dispatchRayDbUpdateDebounced('products', { shopId: (created as any)?.shopId || product?.shopId });
-    return created;
   },
   updateProduct: async (id: string, data: any) => {
-    const updated = await updateProductViaBackend(id, data, { timeoutMs: 120_000 });
     try {
-      const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || (data as any)?.shopId || (data as any)?.shop_id || '').trim();
-      if (sid) {
-        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      const updated = await updateProductViaBackend(id, data, { timeoutMs: 120_000 });
+      try {
+        const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || (data as any)?.shopId || (data as any)?.shop_id || '').trim();
+        if (sid) {
+          window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+        }
+      } catch {
       }
-    } catch {
+      dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId || data?.shopId });
+      return updated;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const pid = String(id || '').trim();
+      if (!pid) throw e;
+      await addToSyncQueue(`/api/v1/products/${encodeURIComponent(pid)}`, 'PATCH', data);
+      try {
+        const sid = String((data as any)?.shopId || (data as any)?.shop_id || '').trim();
+        if (sid) window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      } catch {}
+      dispatchRayDbUpdateDebounced('products', { shopId: data?.shopId });
+      return { id: pid, ...data, __queued: true } as any;
     }
-    dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId || data?.shopId });
-    return updated;
   },
   updateProductStock: async (id: string, stock: number) => {
-    const updated = await updateProductStockViaBackend(id, stock, { timeoutMs: 120_000 });
     try {
-      const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || '').trim();
-      if (sid) {
-        window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+      const updated = await updateProductStockViaBackend(id, stock, { timeoutMs: 120_000 });
+      try {
+        const sid = String((updated as any)?.shopId || (updated as any)?.shop_id || '').trim();
+        if (sid) {
+          window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
+        }
+      } catch {
       }
-    } catch {
+      dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId });
+      return updated;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const pid = String(id || '').trim();
+      if (!pid) throw e;
+      await addToSyncQueue(`/api/v1/products/${encodeURIComponent(pid)}/stock`, 'PATCH', { stock });
+      dispatchRayDbUpdateDebounced('products');
+      return { id: pid, stock, __queued: true } as any;
     }
-    dispatchRayDbUpdateDebounced('products', { shopId: (updated as any)?.shopId });
-    return updated;
   },
   deleteProduct: async (id: string) => {
-    const deleted = await deleteProductViaBackend(id);
-    dispatchRayDbUpdateDebounced('products');
-    return deleted;
+    try {
+      const deleted = await deleteProductViaBackend(id);
+      dispatchRayDbUpdateDebounced('products');
+      return deleted;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const pid = String(id || '').trim();
+      if (!pid) throw e;
+      await addToSyncQueue(`/api/v1/products/${encodeURIComponent(pid)}`, 'DELETE');
+      dispatchRayDbUpdateDebounced('products');
+      return { id: pid, __deleted: true, __queued: true } as any;
+    }
   },
 
   // Reservations
@@ -985,10 +1241,57 @@ export const ApiService = {
     );
   },
   addReservation: async (reservation: any) => {
-    return await addReservationViaBackend(reservation);
+    try {
+      return await addReservationViaBackend(reservation);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+
+      const body = {
+        itemId: reservation.itemId,
+        itemName: reservation.itemName,
+        itemImage: reservation.itemImage,
+        itemPrice: reservation.itemPrice,
+        shopId: reservation.shopId,
+        addons: (reservation as any)?.addons,
+        variantSelection: (reservation as any)?.variantSelection ?? (reservation as any)?.variant_selection,
+      };
+
+      await addToSyncQueue('/api/v1/reservations', 'POST', body);
+
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+        dispatchSmartRefresh('reservations', { shopId: reservation?.shopId });
+      } catch {
+      }
+
+      return {
+        ...body,
+        id: `local-${Date.now()}`,
+        status: 'pending_sync',
+        created_at: new Date().toISOString(),
+        __queued: true,
+      } as any;
+    }
   },
   updateReservationStatus: async (id: string, status: string) => {
-    return await updateReservationStatusViaBackend(id, status);
+    try {
+      return await updateReservationStatusViaBackend(id, status);
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+
+      const rid = String(id || '').trim();
+      if (!rid) throw e;
+
+      await addToSyncQueue(`/api/v1/reservations/${encodeURIComponent(rid)}/status`, 'PATCH', { status });
+
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+        dispatchSmartRefresh('reservations');
+      } catch {
+      }
+
+      return { id: rid, status, __queued: true } as any;
+    }
   },
 
   // Bookings (clinic / service bookings)
@@ -1034,7 +1337,61 @@ export const ApiService = {
       2,
     );
   },
-  addSale: mockDb.addSale.bind(mockDb),
+  addSale: async (sale: any) => {
+    try {
+      const body = {
+        shopId: sale.shopId || sale.shop_id,
+        items: sale.items ?? [],
+        total: sale.total ?? 0,
+        paymentMethod: sale.paymentMethod || sale.payment_method,
+        source: sale.source || 'pos',
+        notes: sale.notes,
+        customerPhone: sale.customerPhone || sale.customer_phone,
+        deliveryAddressManual: sale.deliveryAddressManual || sale.delivery_address_manual,
+        deliveryLat: sale.deliveryLat || sale.delivery_lat,
+        deliveryLng: sale.deliveryLng || sale.delivery_lng,
+        deliveryNote: sale.deliveryNote || sale.delivery_note,
+        customerNote: sale.customerNote || sale.customer_note,
+      };
+      const created = await placeOrderViaBackend(body);
+      try {
+        cacheDelByPrefix('orders:');
+      } catch {}
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+        dispatchSmartRefresh('orders', { shopId: body.shopId });
+      } catch {}
+      return created;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const body = {
+        shopId: sale.shopId || sale.shop_id,
+        items: sale.items ?? [],
+        total: sale.total ?? 0,
+        paymentMethod: sale.paymentMethod || sale.payment_method,
+        source: sale.source || 'pos',
+        notes: sale.notes,
+        customerPhone: sale.customerPhone || sale.customer_phone,
+        deliveryAddressManual: sale.deliveryAddressManual || sale.delivery_address_manual,
+        deliveryLat: sale.deliveryLat || sale.delivery_lat,
+        deliveryLng: sale.deliveryLng || sale.delivery_lng,
+        deliveryNote: sale.deliveryNote || sale.delivery_note,
+        customerNote: sale.customerNote || sale.customer_note,
+      };
+      await addToSyncQueue('/api/v1/orders', 'POST', body);
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+        dispatchSmartRefresh('orders', { shopId: body.shopId });
+      } catch {}
+      return {
+        ...body,
+        id: `local-${Date.now()}`,
+        status: 'pending_sync',
+        created_at: new Date().toISOString(),
+        __queued: true,
+      } as any;
+    }
+  },
   placeOrder: async (order: {
     items: any[];
     total: number;
@@ -1049,25 +1406,77 @@ export const ApiService = {
     deliveryNote?: string;
     customerNote?: string;
   }) => {
-    const created = await placeOrderViaBackend(order);
     try {
-      cacheDelByPrefix('orders:');
-    } catch {
+      const created = await placeOrderViaBackend(order);
+      try {
+        cacheDelByPrefix('orders:');
+      } catch {
+      }
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+        dispatchSmartRefresh('orders', { shopId: order?.shopId });
+      } catch {
+      }
+      return created;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+
+      const body = {
+        shopId: order.shopId || order.items?.[0]?.shopId,
+        items: order.items,
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        source: order.source || 'customer',
+        notes: order.notes,
+        customerPhone: order.customerPhone,
+        deliveryAddressManual: order.deliveryAddressManual,
+        deliveryLat: order.deliveryLat,
+        deliveryLng: order.deliveryLng,
+        deliveryNote: order.deliveryNote,
+        customerNote: order.customerNote,
+      };
+
+      await addToSyncQueue('/api/v1/orders', 'POST', body);
+
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+        dispatchSmartRefresh('orders', { shopId: body.shopId });
+      } catch {
+      }
+
+      return {
+        ...body,
+        id: `local-${Date.now()}`,
+        status: 'pending_sync',
+        created_at: new Date().toISOString(),
+        __queued: true,
+      } as any;
     }
-    try {
-      window.dispatchEvent(new Event('orders-updated'));
-      dispatchSmartRefresh('orders', { shopId: order?.shopId });
-    } catch {
-    }
-    return created;
   },
 
   updateOrder: async (id: string, payload: { status?: string; notes?: string; codCollected?: boolean; handedToCourier?: boolean }) => {
-    const updated = await updateOrderViaBackend(id, payload);
     try {
-      dispatchSmartRefresh('orders');
-    } catch {}
-    return updated;
+      const updated = await updateOrderViaBackend(id, payload);
+      try {
+        dispatchSmartRefresh('orders');
+      } catch {}
+      return updated;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+
+      const oid = String(id || '').trim();
+      if (!oid) throw e;
+
+      await addToSyncQueue(`/api/v1/orders/${encodeURIComponent(oid)}`, 'PATCH', payload);
+
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+        dispatchSmartRefresh('orders');
+      } catch {
+      }
+
+      return { id: oid, ...payload, __queued: true } as any;
+    }
   },
 
   listOrderReturns: async (orderId: string) => {
@@ -1267,10 +1676,42 @@ export const ApiService = {
     return await getInvoiceByIdViaBackend(id);
   },
   createInvoice: async (payload: any) => {
-    return await createInvoiceViaBackend(payload);
+    try {
+      const created = await createInvoiceViaBackend(payload);
+      try {
+        dispatchSmartRefresh('invoices', { shopId: payload?.shopId });
+      } catch {
+      }
+      return created;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/invoices', 'POST', payload);
+      try {
+        dispatchSmartRefresh('invoices', { shopId: payload?.shopId });
+      } catch {
+      }
+      return { ...payload, id: `local-${Date.now()}`, status: 'pending_sync', __queued: true } as any;
+    }
   },
   updateInvoice: async (id: string, payload: any) => {
-    return await updateInvoiceViaBackend(id, payload);
+    try {
+      const updated = await updateInvoiceViaBackend(id, payload);
+      try {
+        dispatchSmartRefresh('invoices', { shopId: payload?.shopId });
+      } catch {
+      }
+      return updated;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      const iid = String(id || '').trim();
+      if (!iid) throw e;
+      await addToSyncQueue(`/api/v1/invoices/${encodeURIComponent(iid)}`, 'PATCH', payload);
+      try {
+        dispatchSmartRefresh('invoices', { shopId: payload?.shopId });
+      } catch {
+      }
+      return { id: iid, ...payload, status: 'pending_sync', __queued: true } as any;
+    }
   },
 
   // AI Assistant

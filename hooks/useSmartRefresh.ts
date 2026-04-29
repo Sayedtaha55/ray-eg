@@ -21,6 +21,7 @@ export type RefreshScope =
   | 'analytics' 
   | 'notifications'
   | 'reservations'
+  | 'invoices'
   | 'messages'
   | 'all';
 

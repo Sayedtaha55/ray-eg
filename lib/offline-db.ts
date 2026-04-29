@@ -21,17 +21,20 @@ interface OfflineDataDB extends DBSchema {
     key: string;
     value: {
       id: string;
+      opId: string;
       endpoint: string;
-      method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
       body?: any;
       timestamp: number;
       retries: number;
+      nextAttemptAt: number;
+      idempotencyKey?: string;
     };
   };
 }
 
 const DB_NAME = 'ray-offline-db';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 
 let db: IDBPDatabase<OfflineDataDB> | null = null;
 
@@ -41,19 +44,22 @@ export const initDB = async () => {
   db = await openDB<OfflineDataDB>(DB_NAME, DB_VERSION, {
     upgrade(database) {
       // Products store
-      if (!database.objectStoreNames.contains('products')) {
-        database.createObjectStore('products');
+      if (database.objectStoreNames.contains('products')) {
+        database.deleteObjectStore('products');
       }
+      database.createObjectStore('products', { keyPath: 'id' });
 
       // Shops store
-      if (!database.objectStoreNames.contains('shops')) {
-        database.createObjectStore('shops');
+      if (database.objectStoreNames.contains('shops')) {
+        database.deleteObjectStore('shops');
       }
+      database.createObjectStore('shops', { keyPath: 'id' });
 
       // Sync queue store
-      if (!database.objectStoreNames.contains('syncQueue')) {
-        database.createObjectStore('syncQueue');
+      if (database.objectStoreNames.contains('syncQueue')) {
+        database.deleteObjectStore('syncQueue');
       }
+      database.createObjectStore('syncQueue', { keyPath: 'id' });
     },
   });
 
@@ -90,19 +96,40 @@ export const getShop = async (id: string) => {
 
 export const addToSyncQueue = async (
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
-  body?: any
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  body?: any,
+  opts?: { opId?: string; idempotencyKey?: string }
 ) => {
   const database = await initDB();
-  const id = `${method}-${endpoint}-${Date.now()}`;
+  let opId = String(opts?.opId || '').trim();
+  if (!opId) {
+    try {
+      opId = (crypto as any)?.randomUUID?.() || '';
+    } catch {
+    }
+    if (!opId) {
+      opId = `op-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    }
+  }
+  const id = opId;
   await database.put('syncQueue', {
     id,
+    opId,
     endpoint,
     method,
     body,
     timestamp: Date.now(),
     retries: 0,
+    nextAttemptAt: Date.now(),
+    idempotencyKey: opts?.idempotencyKey || opId,
   });
+
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ray-sync-queue-changed'));
+    }
+  } catch {
+  }
 };
 
 export const getSyncQueue = async () => {
@@ -110,9 +137,43 @@ export const getSyncQueue = async () => {
   return database.getAll('syncQueue');
 };
 
+export const getSyncQueueItem = async (id: string) => {
+  const database = await initDB();
+  return database.get('syncQueue', id);
+};
+
+export const updateSyncQueueItem = async (item: {
+  id: string;
+  opId: string;
+  endpoint: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  body?: any;
+  timestamp: number;
+  retries: number;
+  nextAttemptAt: number;
+  idempotencyKey?: string;
+}) => {
+  const database = await initDB();
+  await database.put('syncQueue', item);
+
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ray-sync-queue-changed'));
+    }
+  } catch {
+  }
+};
+
 export const removeFromSyncQueue = async (id: string) => {
   const database = await initDB();
   await database.delete('syncQueue', id);
+
+  try {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('ray-sync-queue-changed'));
+    }
+  } catch {
+  }
 };
 
 export const clearOldCache = async (maxAge: number = 7 * 24 * 60 * 60 * 1000) => {

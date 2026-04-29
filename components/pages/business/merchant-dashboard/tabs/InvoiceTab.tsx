@@ -148,6 +148,47 @@ const InvoiceTab: React.FC<Props> = ({ shopId, shop }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, shopId]);
 
+  useEffect(() => {
+    const handleSmartRefresh = (e: Event) => {
+      try {
+        if (view !== 'manage') return;
+        const detail = (e as CustomEvent)?.detail;
+        const scope = String(detail?.scope || '').toLowerCase();
+        if (!scope) return;
+        if (scope.includes('all') || scope.includes('invoices')) {
+          void loadManage();
+        }
+      } catch {
+      }
+    };
+
+    const handleSyncComplete = () => {
+      try {
+        if (view !== 'manage') return;
+        void loadManage();
+      } catch {
+      }
+    };
+
+    const handleOnline = () => {
+      try {
+        if (view !== 'manage') return;
+        void loadManage();
+      } catch {
+      }
+    };
+
+    window.addEventListener('ray-smart-refresh', handleSmartRefresh);
+    window.addEventListener('ray-sync-complete', handleSyncComplete as EventListener);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('ray-smart-refresh', handleSmartRefresh);
+      window.removeEventListener('ray-sync-complete', handleSyncComplete as EventListener);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [view, shopId]);
+
   const openNewInvoice = () => {
     resetEditor();
     setView('edit');
