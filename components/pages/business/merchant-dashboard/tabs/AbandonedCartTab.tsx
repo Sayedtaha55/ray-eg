@@ -5,12 +5,20 @@ import { useTranslation } from 'react-i18next';
 
 type Props = {
   shopId: string;
+  shop?: any;
 };
 
-const AbandonedCartTab: React.FC<Props> = ({ shopId }) => {
+const AbandonedCartTab: React.FC<Props> = ({ shopId, shop }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
 
+  const isEnabled = (() => {
+    const enabled = (shop as any)?.layoutConfig?.enabledModules;
+    return Array.isArray(enabled) && enabled.includes('abandonedCart');
+  })();
+
+  const [requesting, setRequesting] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState<any>(null);
   const [list, setList] = useState<any[]>([]);
@@ -61,6 +69,50 @@ const AbandonedCartTab: React.FC<Props> = ({ shopId }) => {
     if (Number.isNaN(d.getTime())) return '-';
     return d.toLocaleDateString(isArabic ? 'ar-EG' : 'en-US');
   };
+
+  const handleRequestUpgrade = async () => {
+    setRequesting(true);
+    try {
+      await (ApiService as any).createMyModuleUpgradeRequest?.({
+        requestedModules: ['abandonedCart'],
+      });
+      setRequestSent(true);
+    } catch (e: any) {
+      const msg = String(e?.message || '');
+      if (msg.includes('already') || msg.includes('بالفعل')) {
+        setRequestSent(true);
+      }
+    } finally {
+      setRequesting(false);
+    }
+  };
+
+  if (!isEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[320px] gap-4" dir={isArabic ? 'rtl' : 'ltr'}>
+        <ShoppingCart size={48} className="text-slate-300" />
+        <h2 className="text-xl font-black text-slate-900">{t('business.abandonedCart.tabTitle')}</h2>
+        <p className="text-sm font-black text-slate-500 text-center max-w-md">
+          {t('business.abandonedCart.upgradeRequired')}
+        </p>
+        {requestSent ? (
+          <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-emerald-50 border border-emerald-200">
+            <CheckCircle size={18} className="text-emerald-600" />
+            <span className="font-black text-emerald-700 text-sm">{t('business.abandonedCart.requestSentMsg')}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleRequestUpgrade}
+            disabled={requesting}
+            className="px-6 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all disabled:opacity-60"
+          >
+            {requesting ? t('common.loading') : t('business.abandonedCart.requestUpgrade')}
+          </button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6" dir={isArabic ? 'rtl' : 'ltr'}>

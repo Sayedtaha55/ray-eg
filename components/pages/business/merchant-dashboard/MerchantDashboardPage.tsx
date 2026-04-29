@@ -563,7 +563,7 @@ const MerchantDashboardPage: React.FC = () => {
             case 'sales':
               return <SalesTab sales={sales} posEnabled={hasPosTab} />;
             case 'abandonedCart':
-              return <AbandonedCartTab shopId={currentShop.id} />;
+              return <AbandonedCartTab shopId={currentShop.id} shop={currentShop} />;
             case 'reports':
               return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
             case 'customers':

@@ -1582,5 +1582,30 @@
       "suggestDesign": "اقترح تصميم",
       "generateContent": "اكتب محتوى"
     }
+  },
+  "abandonedCart": {
+    "tabTitle": "السلة المتروكة",
+    "upgradeRequired": "هذه الميزة تحتاج ترقية. اطلب الصلاحية من الأدمن لفتح تتبع واسترجاع السلة المتروكة.",
+    "requestUpgrade": "اطلب الترقية من الأدمن",
+    "requestSentMsg": "تم إرسال الطلب! في انتظار موافقة الأدمن.",
+    "addedToCart": "أُضيف للسلة",
+    "checkoutStarted": "بدأ الدفع",
+    "abandoned": "متروكة",
+    "recovered": "مسترجعة",
+    "abandonmentRate": "نسبة الترك",
+    "recoveryRate": "نسبة الاسترجاع",
+    "listTitle": "أحداث السلة المتروكة",
+    "refresh": "تحديث",
+    "loadError": "فشل تحميل بيانات السلة المتروكة",
+    "noData": "لا توجد أحداث سلة متروكة بعد",
+    "date": "التاريخ",
+    "event": "الحدث",
+    "customer": "العميل",
+    "product": "المنتج",
+    "quantity": "الكمية",
+    "price": "السعر",
+    "actions": "إجراءات",
+    "recover": "تحديد كمسترجع",
+    "recoverError": "فشل تحديد كمسترجع"
   }
 }

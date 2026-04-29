@@ -1597,5 +1597,30 @@
       "suggestDesign": "Suggest design",
       "generateContent": "Write content"
     }
+  },
+  "abandonedCart": {
+    "tabTitle": "Abandoned Cart",
+    "upgradeRequired": "This feature requires an upgrade. Request access from the admin to unlock abandoned cart tracking and recovery.",
+    "requestUpgrade": "Request Upgrade from Admin",
+    "requestSentMsg": "Request sent! Waiting for admin approval.",
+    "addedToCart": "Added to Cart",
+    "checkoutStarted": "Checkout Started",
+    "abandoned": "Abandoned",
+    "recovered": "Recovered",
+    "abandonmentRate": "Abandonment Rate",
+    "recoveryRate": "Recovery Rate",
+    "listTitle": "Abandoned Cart Events",
+    "refresh": "Refresh",
+    "loadError": "Failed to load abandoned cart data",
+    "noData": "No abandoned cart events yet",
+    "date": "Date",
+    "event": "Event",
+    "customer": "Customer",
+    "product": "Product",
+    "quantity": "Quantity",
+    "price": "Price",
+    "actions": "Actions",
+    "recover": "Mark Recovered",
+    "recoverError": "Failed to mark as recovered"
   }
 }
