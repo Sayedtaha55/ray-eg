@@ -1,4 +1,5 @@
-import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from './prisma/prisma.service';
 
 type Actor = { role?: string; shopId?: string };
@@ -143,7 +144,19 @@ export class CartEventService {
     });
   }
 
+  @Cron('0 * * * *')
   async autoMarkAbandoned(olderThanHours = 2) {
+    try {
+      const result = await this._autoMarkAbandoned(olderThanHours);
+      if (result.marked > 0) {
+        Logger.log(`[CartEvent] Auto-marked ${result.marked} abandoned cart events`, 'CartEventService');
+      }
+    } catch (err) {
+      Logger.warn(`[CartEvent] autoMarkAbandoned failed: ${(err as any)?.message}`, 'CartEventService');
+    }
+  }
+
+  private async _autoMarkAbandoned(olderThanHours = 2) {
     const cutoff = new Date(Date.now() - olderThanHours * 60 * 60 * 1000);
 
     const unreconciled = await this.prisma.cartEvent.findMany({
