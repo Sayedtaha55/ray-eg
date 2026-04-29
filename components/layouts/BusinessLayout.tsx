@@ -269,7 +269,7 @@ const BusinessLayout: React.FC = () => {
     return [
       { title: t('dashboard.sections.dashboard'), items: pick('overview') },
       { title: t('dashboard.sections.operations'), items: pick('products', 'pos', 'reservations', 'invoice') },
-      { title: t('dashboard.sections.sales'), items: pick('sales') },
+      { title: t('dashboard.sections.sales'), items: pick('sales', 'abandonedCart') },
       { title: t('dashboard.sections.growth'), items: pick('promotions', 'customers', 'reports', 'gallery') },
       { title: t('dashboard.sections.setup'), items: pick('builder', 'settings') },
     ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
