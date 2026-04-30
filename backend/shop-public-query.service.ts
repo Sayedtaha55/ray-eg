@@ -55,56 +55,27 @@ export class ShopPublicQueryService {
       const shouldTryIdLookup = isProbablyUuid || isProbablyCuid;
 
       try {
-        const cachedShop = await this.redis.getShopBySlug(slug);
+        const cachedShop = await (shouldTryIdLookup ? this.redis.getShop(raw) : this.redis.getShopBySlug(slug));
         if (cachedShop) {
           if ((cachedShop as any)?.isActive === false) {
             return null;
           }
 
           const normalizedCached = this.stripPublicDisabledShop(cachedShop);
-          if (normalizedCached && Array.isArray((normalizedCached as any).products)) {
-            const sid = (normalizedCached as any)?.id ? String((normalizedCached as any).id).trim() : '';
-            let linkedIds = new Set<string>();
-            let labelKeys = new Set<string>();
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { productId: { not: null }, map: { shopId: sid } },
-                select: { productId: true },
-              });
-              linkedIds = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
 
-            try {
-              const rows = await (this.prisma as any).shopImageHotspot.findMany({
-                where: { map: { shopId: sid, isActive: true } },
-                select: { label: true },
-              });
-              labelKeys = new Set(
-                (Array.isArray(rows) ? rows : [])
-                  .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
-                  .filter(Boolean),
-              );
-            } catch {
-            }
-
-            const deduped = this.dedupeProductsById((normalizedCached as any).products);
-            (normalizedCached as any).products = deduped.filter((p: any) => {
-              const id = p?.id != null ? String(p.id).trim() : '';
-              if (id && linkedIds.has(id)) return false;
-              if (this.isImageMapCategory((p as any)?.category)) return false;
-              const nameKey = this.normalizeProductNameKey((p as any)?.name);
-              if (nameKey && labelKeys.has(nameKey)) return false;
-              return true;
-            });
-          }
-          const owner = (cachedShop as any)?.owner;
+          const owner = (normalizedCached as any)?.owner;
           if (owner && ((owner as any)?.isActive === false || Boolean((owner as any)?.deactivatedAt))) {
             return null;
+          }
+
+          // Optimization: If cache hit and products exist, return immediately.
+          // We trust that upstream pre-filtering and eager invalidation
+          // (in ShopImageMapService) maintain cache correctness.
+          if (normalizedCached && Array.isArray((normalizedCached as any).products)) {
+            const duration = Date.now() - startTime;
+            this.monitoring.trackCache('getShopBySlug', `shop:${shouldTryIdLookup ? 'id' : 'slug'}:${raw}`, true, duration);
+            this.monitoring.trackPerformance('getShopBySlug_cached_fast', duration);
+            return normalizedCached;
           }
           const duration = Date.now() - startTime;
           this.monitoring.trackCache('getShopBySlug', `shop:slug:${slug}`, true, duration);
@@ -177,33 +148,30 @@ export class ShopPublicQueryService {
 
       if (normalizedShop && Array.isArray((normalizedShop as any).products)) {
         const sid = (normalizedShop as any)?.id ? String((normalizedShop as any).id).trim() : '';
-        let linkedIds = new Set<string>();
-        let labelKeys = new Set<string>();
-        try {
-          const rows = await (this.prisma as any).shopImageHotspot.findMany({
+
+        // Fetch hotspot data in parallel to reduce latency
+        const [linkedRows, labelRows] = await Promise.all([
+          (this.prisma as any).shopImageHotspot.findMany({
             where: { productId: { not: null }, map: { shopId: sid } },
             select: { productId: true },
-          });
-          linkedIds = new Set(
-            (Array.isArray(rows) ? rows : [])
-              .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
-              .filter(Boolean),
-          );
-        } catch {
-        }
-
-        try {
-          const rows = await (this.prisma as any).shopImageHotspot.findMany({
+          }).catch(() => []),
+          (this.prisma as any).shopImageHotspot.findMany({
             where: { map: { shopId: sid, isActive: true } },
             select: { label: true },
-          });
-          labelKeys = new Set(
-            (Array.isArray(rows) ? rows : [])
-              .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
-              .filter(Boolean),
-          );
-        } catch {
-        }
+          }).catch(() => []),
+        ]);
+
+        const linkedIds = new Set(
+          (Array.isArray(linkedRows) ? linkedRows : [])
+            .map((r: any) => (r?.productId != null ? String(r.productId).trim() : ''))
+            .filter(Boolean),
+        );
+
+        const labelKeys = new Set(
+          (Array.isArray(labelRows) ? labelRows : [])
+            .map((r: any) => this.normalizeProductNameKey((r as any)?.label))
+            .filter(Boolean),
+        );
 
         const deduped = this.dedupeProductsById((normalizedShop as any).products);
         (normalizedShop as any).products = deduped.filter((p: any) => {
