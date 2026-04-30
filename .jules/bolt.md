@@ -1,0 +1,3 @@
+## 2025-05-15 - [Zero-DB Cache Hit Anti-Pattern]
+**Learning:** A "Zero-DB Cache Hit" strategy is essential when partial trust in cache leads to redundant database lookups for dynamic filtering. In this codebase, `ShopPublicQueryService.getShopBySlug` was fetching hotspot data even on cache hits to filter products. By moving filtering upstream (ProductService) and using eager invalidation (ShopImageMapService), cache hits now require 0 database queries.
+**Action:** Always verify if dynamic filtering on cached objects can be moved to the cache-write or invalidation phase to achieve true 0-DB-query cache hits.
