@@ -109,25 +109,28 @@ const MapContainer: React.FC<MapContainerProps> = ({ pins, coords, onMapReady, n
 
       marker.addTo(markersLayerRef.current);
     }
+  }, [pins, navigate]);
 
-    if (coords) {
-      if (!userMarkerRef.current) {
-        userMarkerRef.current = L.marker([coords.lat, coords.lng]);
-        userMarkerRef.current.addTo(mapRef.current);
-      } else {
-        userMarkerRef.current.setLatLng([coords.lat, coords.lng]);
-      }
+  useEffect(() => {
+    if (!mapRef.current || !leafletRef.current || !coords) return;
+    const L = leafletRef.current;
 
-      try {
-        const zoom = Math.max(14, Number(mapRef.current?.getZoom?.() ?? 0));
-        mapRef.current?.flyTo?.([coords.lat, coords.lng], zoom, { animate: true, duration: 0.7 });
-        setTimeout(() => {
-          mapRef.current?.invalidateSize?.();
-        }, 0);
-      } catch {
-      }
+    if (!userMarkerRef.current) {
+      userMarkerRef.current = L.marker([coords.lat, coords.lng]);
+      userMarkerRef.current.addTo(mapRef.current);
+    } else {
+      userMarkerRef.current.setLatLng([coords.lat, coords.lng]);
     }
-  }, [pins, coords, navigate]);
+
+    try {
+      const zoom = Math.max(14, Number(mapRef.current?.getZoom?.() ?? 0));
+      mapRef.current?.flyTo?.([coords.lat, coords.lng], zoom, { animate: true, duration: 0.7 });
+      setTimeout(() => {
+        mapRef.current?.invalidateSize?.();
+      }, 0);
+    } catch {
+    }
+  }, [coords]);
 
   return <div ref={mapContainerRef} className="w-full h-full" />;
 };
