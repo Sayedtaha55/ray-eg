@@ -26,7 +26,7 @@ export class ReservationService {
     const colorName = String(obj?.colorName || obj?.color?.name || '').trim();
     const colorValue = String(obj?.colorValue || obj?.color?.value || '').trim();
     const size = String(obj?.size || '').trim();
-    if (!colorValue || !size) return null;
+    if (!size) return null;
     return { kind: 'fashion', colorName, colorValue, size };
   }
 
@@ -233,15 +233,25 @@ export class ReservationService {
       const selectedSize = String((fashionSelection as any)?.size || '').trim();
       const allowedColors = Array.isArray((product as any)?.colors) ? ((product as any).colors as any[]) : [];
       const allowedSizes = Array.isArray((product as any)?.sizes) ? ((product as any).sizes as any[]) : [];
-      const hasColor = allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue);
-      const hasSize = allowedSizes.some((s: any) => {
-        if (typeof s === 'string') return String(s || '').trim() === selectedSize;
-        if (s && typeof s === 'object') {
-          const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
-          return label === selectedSize;
-        }
-        return false;
-      });
+      if (allowedColors.length > 0 && !selectedColorValue) {
+        throw new BadRequestException('يرجى اختيار اللون');
+      }
+      if (allowedSizes.length > 0 && !selectedSize) {
+        throw new BadRequestException('يرجى اختيار المقاس');
+      }
+      const hasColor = allowedColors.length > 0
+        ? allowedColors.some((c: any) => String(c?.value || '').trim() === selectedColorValue)
+        : true;
+      const hasSize = allowedSizes.length > 0
+        ? allowedSizes.some((s: any) => {
+            if (typeof s === 'string') return String(s || '').trim() === selectedSize;
+            if (s && typeof s === 'object') {
+              const label = String((s as any)?.label || (s as any)?.name || (s as any)?.size || (s as any)?.id || '').trim();
+              return label === selectedSize;
+            }
+            return false;
+          })
+        : true;
       if (!hasColor || !hasSize) {
         throw new BadRequestException('اللون أو المقاس غير متاح');
       }

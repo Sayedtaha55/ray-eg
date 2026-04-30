@@ -20,6 +20,8 @@ import {
   VisibilitySection,
   ImageMapVisibilitySection,
   ImageShapeSection,
+  ShoppingModeSection,
+  FooterSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -28,7 +30,6 @@ export type BuilderSectionId =
   | 'banner'
   | 'header'
   | 'headerFooter'
-  | 'products'
   | 'productCard'
   | 'categories'
   | 'productEditor'
@@ -37,9 +38,9 @@ export type BuilderSectionId =
   | 'layout'
   | 'typography'
   | 'buttons'
-  | 'visibility'
-  | 'imageMapVisibility'
-  | 'customCss';
+  | 'customCss'
+  | 'shoppingMode'
+  | 'footer';
 
 export type BuilderRenderCtx = {
   config: any;
@@ -116,6 +117,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
       setLogoFile,
       logoSaving,
       onSaveLogo,
+      shop,
     }) =>
       React.createElement(HeaderTypeSection as any, {
         config,
@@ -126,6 +128,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
         setLogoFile,
         logoSaving,
         onSaveLogo,
+        shop,
       }),
   },
   {
@@ -135,16 +138,10 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }),
   },
   {
-    id: 'products',
-    title: i18n.t('business.builder.sections.products'),
-    icon: React.createElement(Layout as any, { size: 16, className: 'text-[#00E5FF]' }),
-    render: ({ config, setConfig }) => React.createElement(ProductsSection as any, { config, setConfig }),
-  },
-  {
     id: 'productCard',
     title: i18n.t('business.builder.sections.productCard'),
     icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }),
-    render: ({ config, setConfig }) => React.createElement(ProductCardSection as any, { config, setConfig }),
+    render: ({ config, setConfig, shop }) => React.createElement(ProductCardSection as any, { config, setConfig, shop }),
   },
   {
     id: 'categories',
@@ -189,21 +186,21 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     render: ({ config, setConfig }) => React.createElement(ButtonsSection as any, { config, setConfig }),
   },
   {
-    id: 'visibility',
-    title: i18n.t('business.builder.sections.visibility'),
-    icon: React.createElement(Sliders as any, { size: 16, className: 'text-slate-900' }),
-    render: ({ config, setConfig, shop }) => React.createElement(VisibilitySection as any, { config, setConfig, shop }),
-  },
-  {
-    id: 'imageMapVisibility',
-    title: i18n.t('business.builder.sections.imageMapVisibility'),
-    icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#00E5FF]' }),
-    render: ({ config, setConfig }) => React.createElement(ImageMapVisibilitySection as any, { config, setConfig }),
-  },
-  {
     id: 'customCss',
     title: i18n.t('business.builder.sections.customCss'),
     icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#BD00FF]' }),
     render: ({ config, setConfig }) => React.createElement(CustomCssSection as any, { config, setConfig }),
+  },
+  {
+    id: 'shoppingMode',
+    title: i18n.t('business.builder.sections.shoppingMode'),
+    icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-[#00E5FF]' }),
+    render: ({ config, setConfig }) => React.createElement(ShoppingModeSection as any, { config, setConfig }),
+  },
+  {
+    id: 'footer',
+    title: i18n.t('business.builder.sections.footer'),
+    icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
+    render: ({ config, setConfig }) => React.createElement(FooterSection as any, { config, setConfig }),
   },
 ];

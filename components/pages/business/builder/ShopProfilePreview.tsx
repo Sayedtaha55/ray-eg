@@ -15,6 +15,7 @@ type Props = {
   setIsPreviewHeaderMenuOpen: (val: boolean) => void;
   isMobilePreview?: boolean;
   onProductClick?: () => void;
+  focusSection?: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null;
 };
 
 const ShopProfilePreview: React.FC<Props> = ({
@@ -26,6 +27,7 @@ const ShopProfilePreview: React.FC<Props> = ({
   setIsPreviewHeaderMenuOpen,
   isMobilePreview,
   onProductClick,
+  focusSection,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>(() => {
@@ -160,74 +162,84 @@ const ShopProfilePreview: React.FC<Props> = ({
         backgroundRepeat: pageBgImageUrl ? 'no-repeat' : undefined,
       }}
     >
+      {/* Focus section dimming: non-focused sections get reduced opacity */}
       {page === 'product' ? (
-        <ProductPagePreview config={currentDesign} shop={previewShop} />
+        <div className={`transition-all duration-500 ${focusSection && focusSection !== 'productPage' ? 'opacity-30 scale-[0.98]' : focusSection === 'productPage' ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-2xl' : ''}`}>
+          <ProductPagePreview config={currentDesign} shop={previewShop} />
+        </div>
       ) : (
         <>
-          <ProfileHeader
-            shop={previewShop}
-            currentDesign={currentDesign}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab as any}
-            isHeaderMenuOpen={isPreviewHeaderMenuOpen}
-            setIsHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
-            hasFollowed={false}
-            followLoading={false}
-            handleFollow={() => {}}
-            handleShare={() => {}}
-            isVisible={isVisible as any}
-            prefersReducedMotion={prefersReducedMotion}
-            headerBg={headerBg}
-            headerTextColor={headerTextColor}
-            bannerReady={true}
-            isBuilderPreview={true}
-          />
+          {/* ─── Top Section (header + banner) ─── */}
+          <div className={`transition-all duration-500 ${focusSection && focusSection !== 'top' ? 'opacity-30 scale-[0.98]' : focusSection === 'top' ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-b-2xl' : ''}`}>
+            <ProfileHeader
+              shop={previewShop}
+              currentDesign={currentDesign}
+              activeTab={activeTab}
+              setActiveTab={setActiveTab as any}
+              isHeaderMenuOpen={isPreviewHeaderMenuOpen}
+              setIsHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
+              hasFollowed={false}
+              followLoading={false}
+              handleFollow={() => {}}
+              handleShare={() => {}}
+              isVisible={isVisible as any}
+              prefersReducedMotion={prefersReducedMotion}
+              headerBg={headerBg}
+              headerTextColor={headerTextColor}
+              bannerReady={true}
+              isBuilderPreview={true}
+            />
+          </div>
 
-      <main
-        className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10"
-      >
-        <TabRenderer
-          activeTab={activeTab}
-          shop={previewShop}
-          currentDesign={currentDesign}
-          products={products}
-          offersByProductId={offersByProductId}
-          activeCategory={t('business.builder.shopPreview.categories.all')}
-          categories={categories}
-          setActiveCategory={() => {}}
-          productsTabLoading={false}
-          productsTabError={null}
-          retryProductsTab={() => {}}
-          loadMoreProducts={() => {}}
-          hasMoreProducts={false}
-          loadingMoreProducts={false}
-          handleAddToCart={() => {}}
-          addedItemId={null}
-          handleReserve={() => {}}
-          disableCardMotion={true}
-          galleryTabLoading={false}
-          galleryTabError={null}
-          galleryImages={[]}
-          retryGalleryTab={() => {}}
-          isVisible={isVisible as any}
-          whatsappHref={''}
-          isPreview={true}
-          onProductClick={() => {
-            if (onProductClick) {
-              onProductClick();
-            }
-          }}
-        />
-      </main>
+          {/* ─── Middle Section (content + cards) ─── */}
+          <div className={`transition-all duration-500 ${focusSection && focusSection !== 'middle' && focusSection !== 'shopping' ? 'opacity-30 scale-[0.98]' : (focusSection === 'middle' || focusSection === 'shopping') ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-2xl' : ''}`}>
+            <main className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+              <TabRenderer
+                activeTab={activeTab}
+                shop={previewShop}
+                currentDesign={currentDesign}
+                products={products}
+                offersByProductId={offersByProductId}
+                activeCategory={t('business.builder.shopPreview.categories.all')}
+                categories={categories}
+                setActiveCategory={() => {}}
+                productsTabLoading={false}
+                productsTabError={null}
+                retryProductsTab={() => {}}
+                loadMoreProducts={() => {}}
+                hasMoreProducts={false}
+                loadingMoreProducts={false}
+                handleAddToCart={() => {}}
+                addedItemId={null}
+                handleReserve={() => {}}
+                disableCardMotion={true}
+                galleryTabLoading={false}
+                galleryTabError={null}
+                galleryImages={[]}
+                retryGalleryTab={() => {}}
+                isVisible={isVisible as any}
+                whatsappHref={''}
+                isPreview={true}
+                onProductClick={() => {
+                  if (onProductClick) {
+                    onProductClick();
+                  }
+                }}
+              />
+            </main>
+          </div>
 
-      <ProfileFooter
-        shop={previewShop}
-        currentDesign={currentDesign}
-        footerBg={footerBg}
-        footerTextColor={footerTextColor}
-        isVisible={isVisible as any}
-        isBold={isBold}
-      />
+          {/* ─── Footer Section ─── */}
+          <div className={`transition-all duration-500 ${focusSection && focusSection !== 'footer' ? 'opacity-30 scale-[0.98]' : focusSection === 'footer' ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-t-2xl' : ''}`}>
+            <ProfileFooter
+              shop={previewShop}
+              currentDesign={currentDesign}
+              footerBg={footerBg}
+              footerTextColor={footerTextColor}
+              isVisible={isVisible as any}
+              isBold={isBold}
+            />
+          </div>
         </>
       )}
     </div>

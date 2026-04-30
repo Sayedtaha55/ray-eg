@@ -153,8 +153,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         setSelectedMenuSizeId('');
       }
       if (isFashion) {
-        setSelectedFashionColorValue(product?.colors?.[0]?.value || '');
-        setSelectedFashionSize(product?.sizes?.[0]?.label || '');
+        setSelectedFashionColorValue(Array.isArray(product?.colors) && product.colors.length > 0 ? (product.colors[0]?.value || '') : '');
+        setSelectedFashionSize(Array.isArray(product?.sizes) && product.sizes.length > 0 ? (product.sizes[0]?.label || product.sizes[0]?.name || '') : '');
       }
       setIsConfigOpen(true);
       return;
@@ -479,8 +479,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                     setSelectedMenuSizeId('');
                   }
                   if (isFashion) {
-                    setSelectedFashionColorValue(prod?.colors?.[0]?.value || '');
-                    setSelectedFashionSize(prod?.sizes?.[0]?.label || '');
+                    setSelectedFashionColorValue(Array.isArray(prod?.colors) && prod.colors.length > 0 ? (prod.colors[0]?.value || '') : '');
+                    setSelectedFashionSize(Array.isArray(prod?.sizes) && prod.sizes.length > 0 ? (prod.sizes[0]?.label || prod.sizes[0]?.name || '') : '');
                   }
                   setIsConfigOpen(true);
                 }}
@@ -703,10 +703,15 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 }
 
                 if (isFashion) {
+                  const colorObj = Array.isArray(configProduct?.colors)
+                    ? configProduct.colors.find((c: any) => String(c?.value || '') === String(selectedFashionColorValue || ''))
+                    : undefined;
                   variantSelection = {
                     ...(variantSelection || {}),
-                    fashionColor: String(selectedFashionColorValue || ''),
-                    fashionSize: String(selectedFashionSize || ''),
+                    kind: 'fashion',
+                    colorName: String(colorObj?.name || '').trim(),
+                    colorValue: String(selectedFashionColorValue || ''),
+                    size: String(selectedFashionSize || ''),
                   };
                 }
 
@@ -735,8 +740,8 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                       const suffix = (() => {
                         const parts: string[] = [];
                         if (variantSelection?.menuSizeLabel) parts.push(String(variantSelection.menuSizeLabel));
-                        if (variantSelection?.fashionSize) parts.push(String(variantSelection.fashionSize));
-                        if (variantSelection?.fashionColor) parts.push(String(variantSelection.fashionColor));
+                        if (variantSelection?.size) parts.push(String(variantSelection.size));
+                        if (variantSelection?.colorName) parts.push(String(variantSelection.colorName));
                         return parts.length ? ` (${parts.join(' - ')})` : '';
                       })();
 

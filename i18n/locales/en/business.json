@@ -203,6 +203,7 @@
       "imageMapCardReserve": "Image map card: Show (Reserve) button"
     },
     "imageMapVisibility": {
+      "title": "Show / Hide (Image Map)",
       "imageMapCardPrice": "Show price in image editing card",
       "imageMapCardStock": "Show stock in image editing card",
       "imageMapCardAddToCart": "Show (Add to Cart) button in image editing card",
@@ -241,6 +242,22 @@
       "textColor": "Text color",
       "backgroundOpacity": "Background opacity",
       "footerTransparent": "Footer transparent"
+    },
+    "shoppingMode": {
+      "description": "Control shopping mode elements: add-to-cart buttons, prices, stock",
+      "addToCart": "Add to Cart button",
+      "price": "Show price",
+      "stock": "Show stock",
+      "cartNav": "Cart in bottom nav"
+    },
+    "footer": {
+      "showFooter": "Show footer",
+      "showContact": "Contact info",
+      "showQuickLinks": "Quick links",
+      "backgroundColor": "Footer background",
+      "textColor": "Footer text color",
+      "transparent": "Transparent footer",
+      "opacity": "Footer opacity"
     },
     "background": {
       "backgroundImage": "Background image",
@@ -321,7 +338,9 @@
       "buttons": "Buttons",
       "visibility": "Show / Hide",
       "imageMapVisibility": "Show / Hide (Image map)",
-      "customCss": "Custom CSS"
+      "customCss": "Custom CSS",
+      "shoppingMode": "Shopping Mode",
+      "footer": "Footer"
     },
     "category": {
       "iconShape": "Icon shape",

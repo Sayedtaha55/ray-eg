@@ -87,6 +87,21 @@ const SharedProductsTab: React.FC<Props> = ({
     }
   };
 
+  const handleEdit = async (product: Product) => {
+    const pid = String((product as any)?.id || '').trim();
+    if (!pid) return;
+    try {
+      setSelectedProduct(product);
+      setEditModalOpen(true);
+      const full = await ApiService.getProductById(pid);
+      if (full) {
+        setSelectedProduct(full as any);
+      }
+    } catch {
+      // keep the partial product if fetch fails
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -155,8 +170,7 @@ const SharedProductsTab: React.FC<Props> = ({
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    setSelectedProduct(product);
-                    setEditModalOpen(true);
+                    void handleEdit(product);
                   }}
                   className="flex-1 flex items-center justify-center gap-2 py-2 bg-slate-100 rounded-xl font-bold hover:bg-slate-200 transition-all"
                 >

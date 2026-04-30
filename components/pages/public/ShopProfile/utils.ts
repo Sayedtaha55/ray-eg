@@ -1,6 +1,8 @@
 export const isVideoUrl = (url: string) => {
-  const u = String(url || '').toLowerCase();
-  return u.endsWith('.mp4') || u.endsWith('.webm') || u.endsWith('.mov');
+  const raw = String(url || '').trim();
+  if (!raw) return false;
+  const cleaned = raw.split('#')[0].split('?')[0].toLowerCase();
+  return cleaned.endsWith('.mp4') || cleaned.endsWith('.webm') || cleaned.endsWith('.mov');
 };
 
 export const hexToRgba = (hex: string, alpha: number) => {

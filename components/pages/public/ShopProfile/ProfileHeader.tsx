@@ -185,15 +185,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 preload="none"
               />
             ) : (
-              <div className="absolute inset-0 bg-slate-900 flex items-center justify-center">
-                <img 
-                  src={currentDesign?.bannerPosterUrl || bannerUrl.replace(/\.(mp4|webm|mov)$/, '.jpg')} 
-                  className="w-full h-full object-cover"
-                  alt="Banner"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </div>
+              <video
+                controls
+                playsInline
+                poster={currentDesign?.bannerPosterUrl}
+                className="w-full h-full object-cover"
+                src={bannerUrl}
+                preload="metadata"
+              />
             )
           ) : (
             <img

@@ -238,6 +238,24 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const integratedMode = String(query.get('tab') || '').trim() === 'builder';
   const desktopIntegratedAccordionMode = integratedMode && isDesktop;
 
+  // ─── Focus section for zoom preview ────────────────────────────────────
+  const focusSection: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null = (() => {
+    if (!sidebarMode) return null;
+    const tab = activeBuilderTab;
+    if (['colors', 'background', 'banner', 'header', 'headerFooter'].includes(tab)) return 'top';
+    if (['productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'].includes(tab)) return 'middle';
+    if (tab === 'shoppingMode') return 'shopping';
+    if (['productEditor', 'productPage'].includes(tab)) return 'productPage';
+    if (['footer', 'customCss'].includes(tab)) return 'footer';
+    return null;
+  })();
+
+  // Auto-switch preview page based on focus section
+  useEffect(() => {
+    if (focusSection === 'shopping') setPreviewPage('home');
+    else if (focusSection === 'productPage') setPreviewPage('product');
+  }, [focusSection]);
+
   useEffect(() => {
     if (!sidebarMode) return;
     setOpenSection(activeBuilderTab);
@@ -918,6 +936,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
                 isMobilePreview={previewMode === 'mobile'}
                 onProductClick={() => setPreviewPage('product')}
+                focusSection={focusSection}
               />
             </div>
           </MotionDiv>

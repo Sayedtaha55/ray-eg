@@ -1,6 +1,7 @@
 import React from 'react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { useTranslation } from 'react-i18next';
+import { Eye, EyeOff } from 'lucide-react';
 
 type Props = {
   config: any;
@@ -11,6 +12,7 @@ type Props = {
   setLogoFile: React.Dispatch<React.SetStateAction<File | null>>;
   logoSaving: boolean;
   onSaveLogo: () => void;
+  shop?: any;
 };
 
 const HeaderTypeSection: React.FC<Props> = ({
@@ -22,8 +24,29 @@ const HeaderTypeSection: React.FC<Props> = ({
   setLogoFile,
   logoSaving,
   onSaveLogo,
+  shop,
 }) => {
   const { t } = useTranslation();
+
+  // ─── Visibility helpers ────────────────────────────────────────────────
+  const TOP_VIS_KEYS = [
+    'headerNavHome', 'headerNavGallery', 'headerNavInfo',
+    'headerChatButton', 'headerShareButton',
+    'shopFollowersCount', 'shopFollowButton',
+    'profileBanner', 'floatingChatButton', 'purchaseModeButton',
+  ] as const;
+
+  const getVis = (key: string, fallback = true) => {
+    const cur = config?.elementsVisibility || {};
+    if (cur[key] === undefined || cur[key] === null) return fallback;
+    return Boolean(cur[key]);
+  };
+
+  const setVis = (key: string, value: boolean) => {
+    const base = (config?.elementsVisibility && typeof config.elementsVisibility === 'object') ? config.elementsVisibility : {};
+    setConfig({ ...config, elementsVisibility: { ...base, [key]: value } });
+  };
+
   return (
   <div className="space-y-3">
     <div className="space-y-3">
@@ -113,6 +136,24 @@ const HeaderTypeSection: React.FC<Props> = ({
           </button>
         </div>
       </div>
+    </div>
+
+    {/* ─── Top Section Visibility Toggles ─── */}
+    <div className="h-px bg-slate-100" />
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block pr-2">{t('business.builder.visibility.showHide')}</label>
+      {TOP_VIS_KEYS.map((key) => (
+        <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60">
+          <span className="font-black text-xs text-slate-700">{t(`business.builder.visibility.items.${key}`)}</span>
+          <button
+            type="button"
+            onClick={() => setVis(key, !getVis(key))}
+            className={`p-1.5 rounded-lg transition-all ${getVis(key) ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : 'bg-slate-200 text-slate-400'}`}
+          >
+            {getVis(key) ? <Eye size={14} /> : <EyeOff size={14} />}
+          </button>
+        </div>
+      ))}
     </div>
   </div>
   );

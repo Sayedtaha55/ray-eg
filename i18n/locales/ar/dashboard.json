@@ -44,7 +44,15 @@
     "typography": "الخطوط",
     "buttons": "شكل وحجم الزر",
     "visibility": "إظهار / إخفاء",
-    "customCss": "CSS مخصص"
+    "customCss": "CSS مخصص",
+    "sectionTop": "أعلى الصفحة",
+    "sectionMiddle": "المحتوى",
+    "sectionShopping": "وضع الشراء",
+    "sectionProductPage": "صفحة المنتج",
+    "sectionFooter": "أسفل الصفحة",
+    "shoppingMode": "وضع الشراء",
+    "productPage": "صفحة المنتج",
+    "footer": "التذييل / التواصل"
   },
   "userMenu": {
     "profile": "الملف الشخصي",

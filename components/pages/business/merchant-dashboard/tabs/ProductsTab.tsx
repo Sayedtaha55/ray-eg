@@ -646,9 +646,19 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     setOpenAddonId('');
   };
 
-  const handleEdit = (product: Product) => {
-    setSelectedProduct(product);
-    setEditModalOpen(true);
+  const handleEdit = async (product: Product) => {
+    const pid = String((product as any)?.id || '').trim();
+    if (!pid) return;
+    try {
+      setSelectedProduct(product);
+      setEditModalOpen(true);
+      const full = await ApiService.getProductById(pid);
+      if (full) {
+        setSelectedProduct(full as any);
+      }
+    } catch {
+      // keep the partial product if fetch fails
+    }
   };
 
   const handleEditModalClose = () => {

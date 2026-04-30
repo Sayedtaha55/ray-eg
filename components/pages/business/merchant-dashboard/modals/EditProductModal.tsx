@@ -61,6 +61,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
     Array<{
       id: string;
       name: string;
+      price: string;
       imagePreviews: string[];
       imageUrls: string[];
       imageUploadFiles: File[];
@@ -368,11 +369,14 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
             const imagesRaw = (o as any)?.images;
             const extraImgs = Array.isArray(imagesRaw) ? imagesRaw.map((u: any) => (typeof u === 'string' ? String(u) : '')).filter(Boolean) : [];
             const allImgs = [img, ...extraImgs].map((u) => String(u || '').trim()).filter(Boolean);
+            const priceRaw = typeof (o as any)?.price === 'number' ? (o as any).price : ((o as any)?.price != null ? Number((o as any).price) : NaN);
+            const price = Number.isFinite(priceRaw) && priceRaw >= 0 ? String(Math.round(priceRaw * 100) / 100) : '';
             const colorsArr = Array.isArray(o?.colors) ? o.colors.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
             const sizesArr = Array.isArray(o?.sizes) ? o.sizes.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
             return {
               id: optId,
               name: String(o?.name || o?.title || '').trim(),
+              price,
               imagePreviews: allImgs,
               imageUrls: allImgs,
               imageUploadFiles: [],
@@ -739,6 +743,9 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
               name: optName,
               imageUrl,
               ...(images.length > 0 ? { images } : {}),
+              ...(Number.isFinite(parseNumberInput((a as any)?.price)) && parseNumberInput((a as any)?.price) >= 0
+                ? { price: Math.round(parseNumberInput((a as any)?.price) * 100) / 100 }
+                : {}),
               colors,
               sizes,
             };
@@ -958,6 +965,7 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                           {
                             id: `addon_${Date.now()}_${Math.random().toString(16).slice(2)}`,
                             name: '',
+                            price: '',
                             imagePreviews: [],
                             imageUrls: [],
                             imageUploadFiles: [],
@@ -989,6 +997,16 @@ const EditProductModal: React.FC<Props> = ({ isOpen, onClose, shopId, shopCatego
                               }}
                               placeholder={t('business.products.complementaryItemName')}
                               className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
+                            />
+                            <input
+                              value={String((a as any).price || '')}
+                              onChange={(e) => {
+                                const v = e.target.value;
+                                setAddonItems((prev) => prev.map((x) => (x.id === a.id ? { ...x, price: v } : x)));
+                              }}
+                              placeholder={t('business.products.price')}
+                              inputMode="decimal"
+                              className="w-36 bg-slate-50 border border-slate-200 rounded-xl py-2.5 px-3 font-bold text-right outline-none"
                             />
                             <button
                               type="button"

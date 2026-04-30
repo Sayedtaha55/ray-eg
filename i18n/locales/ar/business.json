@@ -203,6 +203,7 @@
       "imageMapCardReserve": "كارت منتج الخريطة: إظهار زر (حجز)"
     },
     "imageMapVisibility": {
+      "title": "إظهار / إخفاء (خريطة الصور)",
       "imageMapCardPrice": "إظهار السعر في كارت التحرير بالصور",
       "imageMapCardStock": "إظهار المخزون في كارت التحرير بالصور",
       "imageMapCardAddToCart": "إظهار زر (إضافة للسلة) في كارت التحرير",
@@ -241,6 +242,22 @@
       "textColor": "لون النص",
       "backgroundOpacity": "شفافية الخلفية",
       "footerTransparent": "أسفل العرض شفاف"
+    },
+    "shoppingMode": {
+      "description": "تحكم في عناصر وضع الشراء: أزرار الإضافة للسلة، الأسعار، المخزون",
+      "addToCart": "زر أضف للسلة",
+      "price": "عرض السعر",
+      "stock": "عرض المخزون",
+      "cartNav": "زر السلة في الشريط السفلي"
+    },
+    "footer": {
+      "showFooter": "عرض التذييل",
+      "showContact": "بيانات التواصل",
+      "showQuickLinks": "روابط سريعة",
+      "backgroundColor": "لون خلفية التذييل",
+      "textColor": "لون نص التذييل",
+      "transparent": "تذييل شفاف",
+      "opacity": "شفافية التذييل"
     },
     "background": {
       "backgroundImage": "صورة خلفية",
@@ -321,7 +338,9 @@
       "buttons": "الأزرار",
       "visibility": "إظهار / إخفاء",
       "imageMapVisibility": "إظهار / إخفاء (خريطة الصور)",
-      "customCss": "CSS مخصص"
+      "customCss": "CSS مخصص",
+      "shoppingMode": "وضع الشراء",
+      "footer": "التذييل"
     },
     "category": {
       "iconShape": "شكل الأيقونة",

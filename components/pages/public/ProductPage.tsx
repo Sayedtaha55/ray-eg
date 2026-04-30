@@ -322,18 +322,18 @@ const ProductPage: React.FC = () => {
     }
 
     if (shop?.category === Category.FASHION) {
-      if (fashionColors.length === 0 || fashionSizes.length === 0) {
+      if (fashionColors.length > 0 && !selectedFashionColorValue) {
         try {
           const toast = document.createElement('div');
           toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
-          toast.textContent = t('productPage.selectColorSizeFromMerchant');
+          toast.textContent = t('productPage.selectColorAndSize');
           document.body.appendChild(toast);
           setTimeout(() => toast.remove(), 2500);
         } catch {
         }
         return;
       }
-      if (!selectedFashionColorValue || !selectedFashionSize) {
+      if (fashionSizes.length > 0 && !selectedFashionSize) {
         try {
           const toast = document.createElement('div');
           toast.className = 'fixed top-4 right-4 bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-2xl z-[9999] font-black text-sm';
@@ -367,6 +367,7 @@ const ProductPage: React.FC = () => {
         ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
         : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
       const priceByKey = new Map<string, number>();
+      const basePriceByOptionId = new Map<string, number>();
       const labelByKey = new Map<string, string>();
       const optionNameById = new Map<string, string>();
       const optionImageById = new Map<string, string>();
@@ -378,6 +379,10 @@ const ProductPage: React.FC = () => {
           optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
           if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
             optionImageById.set(optId, String(opt.imageUrl).trim());
+          }
+          const basePriceRaw = typeof (opt as any)?.price === 'number' ? (opt as any).price : Number((opt as any)?.price || NaN);
+          if (Number.isFinite(basePriceRaw) && basePriceRaw >= 0) {
+            basePriceByOptionId.set(optId, basePriceRaw);
           }
           const vars = Array.isArray(opt?.variants) ? opt.variants : [];
           for (const v of vars) {
@@ -389,7 +394,15 @@ const ProductPage: React.FC = () => {
           }
         }
       }
-      return (selectedAddons || []).reduce((sum, a) => sum + (priceByKey.get(`${a.optionId}:${a.variantId}`) || 0), 0);
+      return (selectedAddons || []).reduce((sum, a) => {
+        const optionId = String(a?.optionId || '').trim();
+        const variantId = String(a?.variantId || '').trim();
+        if (!optionId) return sum;
+        if (!variantId) {
+          return sum + (basePriceByOptionId.get(optionId) || 0);
+        }
+        return sum + (priceByKey.get(`${optionId}:${variantId}`) || 0);
+      }, 0);
     })();
 
     const normalizedAddons = (() => {
@@ -398,6 +411,7 @@ const ProductPage: React.FC = () => {
         ? (Array.isArray((shop as any)?.addons) ? (shop as any).addons : [])
         : (Array.isArray((product as any)?.addons) ? (product as any).addons : []);
       const priceByKey = new Map<string, number>();
+      const basePriceByOptionId = new Map<string, number>();
       const labelByKey = new Map<string, string>();
       const optionNameById = new Map<string, string>();
       const optionImageById = new Map<string, string>();
@@ -409,6 +423,10 @@ const ProductPage: React.FC = () => {
           optionNameById.set(optId, String(opt?.name || opt?.title || '').trim() || optId);
           if (typeof opt?.imageUrl === 'string' && String(opt.imageUrl).trim()) {
             optionImageById.set(optId, String(opt.imageUrl).trim());
+          }
+          const basePriceRaw = typeof (opt as any)?.price === 'number' ? (opt as any).price : Number((opt as any)?.price || NaN);
+          if (Number.isFinite(basePriceRaw) && basePriceRaw >= 0) {
+            basePriceByOptionId.set(optId, basePriceRaw);
           }
           const vars = Array.isArray(opt?.variants) ? opt.variants : [];
           for (const v of vars) {
@@ -422,14 +440,19 @@ const ProductPage: React.FC = () => {
       }
 
       return (selectedAddons || []).map((a) => {
-        const key = `${a.optionId}:${a.variantId}`;
+        const optionId = String(a?.optionId || '').trim();
+        const variantId = String(a?.variantId || '').trim();
+        const key = `${optionId}:${variantId}`;
+        const resolvedPrice = !variantId
+          ? (basePriceByOptionId.get(optionId) || 0)
+          : (priceByKey.get(key) || 0);
         return {
-          optionId: a.optionId,
-          optionName: optionNameById.get(a.optionId) || a.optionId,
-          optionImage: optionImageById.get(a.optionId) || null,
-          variantId: a.variantId,
-          variantLabel: labelByKey.get(key) || a.variantId,
-          price: priceByKey.get(key) || 0,
+          optionId,
+          optionName: optionNameById.get(optionId) || optionId,
+          optionImage: optionImageById.get(optionId) || null,
+          variantId,
+          variantLabel: variantId ? (labelByKey.get(key) || variantId) : '',
+          price: resolvedPrice,
           color: a.color || '',
           size: a.size || '',
         };

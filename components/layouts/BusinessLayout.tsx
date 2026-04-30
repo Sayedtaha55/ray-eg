@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -962,46 +962,42 @@ const BusinessLayout: React.FC = () => {
               </React.Fragment>
             );
 
+            // ─── Section group helper (shared by focus & normal mode) ──────────
+            const sectionHeader = (id: string, label: string, icon: React.ReactNode) => (
+              <div key={`section-${id}`} className="mt-4 mb-2 px-2 flex items-center gap-2 flex-row-reverse">
+                {icon}
+                <span className="text-[10px] font-black tracking-[0.22em] uppercase text-slate-400">{label}</span>
+              </div>
+            );
+
+            // Map each builderTab to its section
+            const topSectionTabs = ['colors', 'background', 'banner', 'header', 'headerFooter'];
+            const middleSectionTabs = ['productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'];
+            const shoppingSectionTabs = ['shoppingMode'];
+            const productPageSectionTabs = ['productEditor', 'productPage'];
+            const footerSectionTabs = ['footer', 'customCss'];
+
             if (focusMode) {
+              // Determine which section header to show in focus mode
+              const focusSectionHeader = (() => {
+                if (topSectionTabs.includes(activeBuilderId)) return sectionHeader('top', t('dashboard.builder.sectionTop'), <ArrowUp size={14} className="text-slate-400" />);
+                if (middleSectionTabs.includes(activeBuilderId)) return sectionHeader('middle', t('dashboard.builder.sectionMiddle'), <LayoutGrid size={14} className="text-slate-400" />);
+                if (shoppingSectionTabs.includes(activeBuilderId)) return sectionHeader('shopping', t('dashboard.builder.sectionShopping'), <ShoppingCart size={14} className="text-slate-400" />);
+                if (productPageSectionTabs.includes(activeBuilderId)) return sectionHeader('productPage', t('dashboard.builder.sectionProductPage'), <Package size={14} className="text-slate-400" />);
+                if (footerSectionTabs.includes(activeBuilderId)) return sectionHeader('footer', t('dashboard.builder.sectionFooter'), <ArrowDown size={14} className="text-slate-400" />);
+                return null;
+              })();
+
               return (
                 <>
                   <NavItem to={buildBuilderIndexUrl()} onClick={handleNavItemClick} icon={<ChevronRight size={20} />} showIcon={false} label={t('common.back')} active={false} />
-                  {activeBuilderId === 'products' ? item('products', t('dashboard.builder.products'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'productCard' ? item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />) : null}
-                  {activeBuilderId === 'imageShape' ? item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'categories' ? item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'productEditor' ? item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'header' ? item('header', t('dashboard.builder.logo'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'headerFooter' ? item('headerFooter', t('dashboard.builder.headerFooter'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'products' || activeBuilderId === 'productCard' ? (
-                    <>
-                      <NavItem
-                        to={buildBuilderToggleUrl('products')}
-                        onClick={handleNavItemClick}
-                        icon={<Layout size={20} />}
-                        showIcon={false}
-                        label={t('dashboard.builder.products')}
-                        active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
-                      />
-                      <div
-                        className={`hidden md:block transition-all ${
-                          String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'
-                            ? 'max-h-[70vh] pb-4 overflow-y-auto'
-                            : 'max-h-0 overflow-hidden'
-                        }`}
-                      >
-                        <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
-                      </div>
-                      {subItem('productCard', t('dashboard.builder.productCard'), <Palette size={20} />, 'products')}
-                      {subItem('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />, 'products')}
-                    </>
-                  ) : null}
-                  {activeBuilderId === 'productEditor' ? item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />) : null}
-                  {activeBuilderId === 'layout' ? item('layout', t('dashboard.builder.layout'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'typography' ? item('typography', t('dashboard.builder.typography'), <Type size={20} />) : null}
-                  {activeBuilderId === 'buttons' ? item('buttons', t('dashboard.builder.buttons'), <Layout size={20} />) : null}
-                  {activeBuilderId === 'visibility' ? item('visibility', t('dashboard.builder.visibility'), <Sliders size={20} />) : null}
-                  {activeBuilderId === 'customCss' ? item('customCss', t('dashboard.builder.customCss'), <Sliders size={20} />) : null}
+                  {focusSectionHeader}
+                  {/* Show the active item with its accordion */}
+                  {topSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId === 'header' ? 'logo' : activeBuilderId === 'headerFooter' ? 'headerFooter' : activeBuilderId}`), activeBuilderId === 'colors' || activeBuilderId === 'background' ? <Palette size={20} /> : <Layout size={20} />) : null}
+                  {middleSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId}`), <Layout size={20} />) : null}
+                  {shoppingSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t('dashboard.builder.shoppingMode'), <ShoppingCart size={20} />) : null}
+                  {productPageSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId}`), activeBuilderId === 'productPage' ? <Package size={20} /> : <ShoppingBag size={20} />) : null}
+                  {footerSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId === 'footer' ? 'footer' : 'customCss'}`), activeBuilderId === 'customCss' ? <Sliders size={20} /> : <Layout size={20} />) : null}
                 </>
               );
             }
@@ -1009,38 +1005,36 @@ const BusinessLayout: React.FC = () => {
             return (
               <>
                 <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label={t('dashboard.backToDashboard')} active={false} />
+
+                {/* ─── أعلى الصفحة (Top Section) ─────────────────────────────── */}
+                {sectionHeader('top', t('dashboard.builder.sectionTop'), <ArrowUp size={14} className="text-slate-400" />)}
                 {item('colors', t('dashboard.builder.colors'), <Palette size={20} />)}
                 {item('background', t('dashboard.builder.background'), <Palette size={20} />)}
                 {item('banner', t('dashboard.builder.banner'), <Layout size={20} />)}
                 {item('header', t('dashboard.builder.logo'), <Layout size={20} />)}
                 {item('headerFooter', t('dashboard.builder.headerFooter'), <Layout size={20} />)}
-                <>
-                  <NavItem
-                    to={buildBuilderToggleUrl('products')}
-                    onClick={handleNavItemClick}
-                    icon={<Layout size={20} />}
-                    showIcon={false}
-                    label={t('dashboard.builder.products')}
-                    active={String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'}
-                  />
-                  <div
-                    className={`hidden md:block transition-all ${
-                      String(builderTabRaw) === 'products' || String(builderTabRaw) === 'productCard' || String(builderTabRaw) === 'imageShape'
-                        ? 'max-h-[70vh] pb-4 overflow-y-auto'
-                        : 'max-h-0 overflow-hidden'
-                    }`}
-                  >
-                    <div id={`builder-accordion-products`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
-                  </div>
-                  {subItem('productCard', t('dashboard.builder.productCard'), <Palette size={20} />, 'products')}
-                  {subItem('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />, 'products')}
-                </>
+
+                {/* ─── المحتوى (Middle/Content Section) ──────────────────────── */}
+                {sectionHeader('middle', t('dashboard.builder.sectionMiddle'), <LayoutGrid size={14} className="text-slate-400" />)}
+                {item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />)}
+                {item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />)}
                 {item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />)}
-                {item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />)}
                 {item('layout', t('dashboard.builder.layout'), <Layout size={20} />)}
                 {item('typography', t('dashboard.builder.typography'), <Type size={20} />)}
                 {item('buttons', t('dashboard.builder.buttons'), <Layout size={20} />)}
-                {item('visibility', t('dashboard.builder.visibility'), <Sliders size={20} />)}
+
+                {/* ─── وضع الشراء (Shopping Mode) ──────────────────────────── */}
+                {sectionHeader('shopping', t('dashboard.builder.sectionShopping'), <ShoppingCart size={14} className="text-slate-400" />)}
+                {item('shoppingMode', t('dashboard.builder.shoppingMode'), <ShoppingCart size={20} />)}
+
+                {/* ─── صفحة المنتج (Product Page) ──────────────────────────── */}
+                {sectionHeader('productPage', t('dashboard.builder.sectionProductPage'), <Package size={14} className="text-slate-400" />)}
+                {item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />)}
+                {item('productPage', t('dashboard.builder.productPage'), <Package size={20} />)}
+
+                {/* ─── أسفل الصفحة (Footer Section) ────────────────────────── */}
+                {sectionHeader('footer', t('dashboard.builder.sectionFooter'), <ArrowDown size={14} className="text-slate-400" />)}
+                {item('footer', t('dashboard.builder.footer'), <Layout size={20} />)}
                 {item('customCss', t('dashboard.builder.customCss'), <Sliders size={20} />)}
               </>
             );

@@ -44,7 +44,15 @@
     "typography": "Typography",
     "buttons": "Button Style & Size",
     "visibility": "Show / Hide",
-    "customCss": "Custom CSS"
+    "customCss": "Custom CSS",
+    "sectionTop": "Top Section",
+    "sectionMiddle": "Content",
+    "sectionShopping": "Shopping Mode",
+    "sectionProductPage": "Product Page",
+    "sectionFooter": "Footer",
+    "shoppingMode": "Shopping Mode",
+    "productPage": "Product Page",
+    "footer": "Footer / Contact"
   },
   "userMenu": {
     "profile": "Profile",

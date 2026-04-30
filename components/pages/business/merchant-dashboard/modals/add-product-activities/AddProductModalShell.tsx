@@ -61,7 +61,7 @@ const AddProductModalShell: React.FC<Props> = ({
   const enable3dMedia = (() => {
     const raw = (import.meta as any)?.env?.VITE_ENABLE_3D_MEDIA;
     const s = String(raw ?? '').trim().toLowerCase();
-    if (!s) return true;
+    if (!s) return false;
     return s === 'true';
   })();
   const [name, setName] = React.useState('');
@@ -539,124 +539,112 @@ const AddProductModalShell: React.FC<Props> = ({
             </>
           )}
 
-          <>
-            <div className="space-y-3">
-              <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
-                <Box size={16} />
-                موديل 3D (اختياري)
-              </h3>
-              <input
-                ref={model3dInputRef}
-                type="file"
-                accept=".glb,.gltf"
-                className="hidden"
-                disabled={!canUse3dMedia}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) {
-                    setModel3dFile(f);
-                    setModel3dPreview(f.name);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canUse3dMedia) {
-                    addToast('ميزة 3D متاحة لوكل فقط حالياً', 'info');
-                    return;
-                  }
-                  model3dInputRef.current?.click();
-                }}
-                className={`w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors ${
-                  canUse3dMedia ? 'hover:border-slate-400' : 'opacity-60 cursor-not-allowed'
-                }`}
-              >
-                {model3dPreview ? (
-                  <div className="flex items-center gap-2 w-full text-slate-700">
-                    <Box size={20} className="text-emerald-500 flex-shrink-0" />
-                    <span className="text-sm font-bold truncate min-w-0 flex-1">{model3dPreview.includes('/') ? model3dPreview.split('/').pop() : model3dPreview}</span>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        e.preventDefault();
-                        setModel3dFile(null);
-                        setModel3dPreview(null);
-                      }}
-                      className="flex-shrink-0 w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 hover:text-red-700 rounded-full flex items-center justify-center transition-colors"
-                      aria-label="Remove 3D model"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <Box size={24} className="text-slate-300" />
-                    <span className="text-xs text-slate-400 font-bold">ارفع موديل 3D (GLB / GLTF)</span>
-                  </>
-                )}
-              </button>
-            </div>
-
-            <div className="space-y-3">
-              <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
-                <RotateCw size={16} />
-                صور 360° (اختياري — 8 صورة على الأقل)
-              </h3>
-              <input
-                ref={spinImagesInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                className="hidden"
-                disabled={!canUse3dMedia}
-                onChange={(e) => {
-                  const files = Array.from(e.target.files || []);
-                  if (files.length > 0) {
-                    setSpinImageFiles((prev) => [...prev, ...files]);
-                    const previews = files.map((f) => URL.createObjectURL(f));
-                    setSpinImagePreviews((prev) => [...prev, ...previews]);
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => {
-                  if (!canUse3dMedia) {
-                    addToast('ميزة 3D متاحة لوكل فقط حالياً', 'info');
-                    return;
-                  }
-                  spinImagesInputRef.current?.click();
-                }}
-                className={`w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors ${
-                  canUse3dMedia ? 'hover:border-slate-400' : 'opacity-60 cursor-not-allowed'
-                }`}
-              >
-                <RotateCw size={24} className="text-slate-300" />
-                <span className="text-xs text-slate-400 font-bold">ارفع صور من زوايا مختلفة</span>
-              </button>
-              {spinImagePreviews.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {spinImagePreviews.map((src, idx) => (
-                    <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200">
-                      <img src={src} className="w-full h-full object-cover" alt={`spin ${idx + 1}`} />
+          {canUse3dMedia ? (
+            <>
+              <div className="space-y-3">
+                <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
+                  <Box size={16} />
+                  موديل 3D (اختياري)
+                </h3>
+                <input
+                  ref={model3dInputRef}
+                  type="file"
+                  accept=".glb,.gltf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      setModel3dFile(f);
+                      setModel3dPreview(f.name);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    model3dInputRef.current?.click();
+                  }}
+                  className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors hover:border-slate-400"
+                >
+                  {model3dPreview ? (
+                    <div className="flex items-center gap-2 w-full text-slate-700">
+                      <Box size={20} className="text-emerald-500 flex-shrink-0" />
+                      <span className="text-sm font-bold truncate min-w-0 flex-1">{model3dPreview.includes('/') ? model3dPreview.split('/').pop() : model3dPreview}</span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setSpinImagePreviews((prev) => prev.filter((_, i) => i !== idx));
-                          setSpinImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          setModel3dFile(null);
+                          setModel3dPreview(null);
                         }}
-                        className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                        className="flex-shrink-0 w-6 h-6 bg-red-100 hover:bg-red-200 text-red-500 hover:text-red-700 rounded-full flex items-center justify-center transition-colors"
+                        aria-label="Remove 3D model"
                       >
-                        <X size={8} />
+                        <X size={14} />
                       </button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </>
+                  ) : (
+                    <>
+                      <Box size={24} className="text-slate-300" />
+                      <span className="text-xs text-slate-400 font-bold">ارفع موديل 3D (GLB / GLTF)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className="text-sm font-black text-slate-700 flex items-center gap-2">
+                  <RotateCw size={16} />
+                  صور 360° (اختياري — 8 صورة على الأقل)
+                </h3>
+                <input
+                  ref={spinImagesInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length > 0) {
+                      setSpinImageFiles((prev) => [...prev, ...files]);
+                      const previews = files.map((f) => URL.createObjectURL(f));
+                      setSpinImagePreviews((prev) => [...prev, ...previews]);
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    spinImagesInputRef.current?.click();
+                  }}
+                  className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-4 flex flex-col items-center gap-2 transition-colors hover:border-slate-400"
+                >
+                  <RotateCw size={24} className="text-slate-300" />
+                  <span className="text-xs text-slate-400 font-bold">ارفع صور من زوايا مختلفة</span>
+                </button>
+                {spinImagePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {spinImagePreviews.map((src, idx) => (
+                      <div key={idx} className="relative w-16 h-16 rounded-xl overflow-hidden border border-slate-200">
+                        <img src={src} className="w-full h-full object-cover" alt={`spin ${idx + 1}`} />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSpinImagePreviews((prev) => prev.filter((_, i) => i !== idx));
+                            setSpinImageFiles((prev) => prev.filter((_, i) => i !== idx));
+                          }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center"
+                        >
+                          <X size={8} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          ) : null}
 
           <FormFooter
             loading={loading}

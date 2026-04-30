@@ -132,11 +132,6 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
   const base = getVisibleMerchantDashboardTabs(category);
   return base.filter((t) => {
     if (allowedForCategory && !allowedForCategory.has(t.id)) return false;
-    if (t.id === 'abandonedCart') {
-      // Always show abandonedCart for eligible categories (content is gated inside the tab)
-      if (allowedForMode && !allowedForMode.has(t.id)) return false;
-      return true;
-    }
     if (enabledSet && !enabledSet.has(t.id)) return false;
     if (allowedForMode && !allowedForMode.has(t.id)) return false;
     return true;
@@ -163,12 +158,6 @@ export const resolveMerchantDashboardTabForShop = (requested: any, shop?: any): 
 
     if (allowedForMode && !allowedForMode.has('pos')) return 'overview';
     return 'pos';
-  }
-
-  // Allow direct navigation to abandonedCart even if not in enabledModules
-  if (req === 'abandonedCart') {
-    const allowedForCategory = getAllowedTabIdsForCategory(shop?.category);
-    if (allowedForCategory && allowedForCategory.has('abandonedCart')) return 'abandonedCart';
   }
 
   const tabs = getMerchantDashboardTabsForShop(shop);

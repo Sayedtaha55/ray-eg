@@ -13,6 +13,7 @@ interface PreviewRendererProps {
   setIsPreviewHeaderMenuOpen: (val: boolean) => void;
   isMobilePreview?: boolean;
   onProductClick?: () => void;
+  focusSection?: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null;
 }
 
 const PreviewFallback = () => (
@@ -38,6 +39,7 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
         setIsPreviewHeaderMenuOpen={props.setIsPreviewHeaderMenuOpen}
         isMobilePreview={props.isMobilePreview}
         onProductClick={props.onProductClick}
+        focusSection={props.focusSection}
       />
     </Suspense>
   );
