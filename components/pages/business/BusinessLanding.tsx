@@ -435,6 +435,33 @@ const BusinessLanding: React.FC = () => {
               <p className="text-white/60 text-lg md:text-xl max-w-xl mx-auto mb-8 md:mb-10 font-medium">
                 {t('business.noCreditCard')}
               </p>
+              <div className="max-w-3xl mx-auto mb-8 md:mb-10">
+                <div className="rounded-3xl border border-white/15 bg-white/5 backdrop-blur-sm p-6 md:p-7 text-right" dir="rtl">
+                  <div className="flex flex-col md:flex-row-reverse md:items-center md:justify-between gap-4">
+                    <div className="space-y-2">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-amber-500/15 text-amber-300 font-black text-xs">
+                        {t('business.mapListingCta.badge')}
+                      </div>
+                      <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
+                        {t('business.mapListingCta.title')}
+                      </h3>
+                      <p className="text-white/60 text-sm md:text-base font-medium leading-relaxed">
+                        {t('business.mapListingCta.subtitle')}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0">
+                      <Link
+                        to="/map/add-listing"
+                        className="inline-flex items-center justify-center gap-2 px-6 py-4 bg-amber-500 text-white rounded-2xl font-black text-base hover:bg-amber-600 transition-colors w-full md:w-auto"
+                      >
+                        {t('business.mapListingCta.button')}
+                        <ArrowLeft className="w-5 h-5" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Link
                   to="/business/onboarding"

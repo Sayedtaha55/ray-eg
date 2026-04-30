@@ -232,7 +232,12 @@
     "rejectRequest": "Reject Request",
     "courierRequestsTitle": "Courier Registration Requests",
     "courierRequestsMoved": "Courier request management has moved to the Delivery Management page",
-    "openDeliveryMgmt": "Open Delivery Management"
+    "openDeliveryMgmt": "Open Delivery Management",
+    "mapListingsTitle": "Map Listing Requests",
+    "noMapListings": "No pending map listing requests at the moment.",
+    "loadMapListingsFailed": "Failed to load map listing requests",
+    "mapListingApproved": "Map listing approved successfully",
+    "mapListingRejected": "Map listing rejected"
   },
   "content": {
     "title": "Tickets & Feedback",

@@ -14,6 +14,7 @@ const RestaurantsOffersPage = React.lazy(() => import('@/components/pages/public
 const FashionOffersPage = React.lazy(() => import('@/components/pages/public/offers/FashionOffersPage'));
 const SupermarketOffersPage = React.lazy(() => import('@/components/pages/public/offers/SupermarketOffersPage'));
 const MapPage = React.lazy(() => import('@/components/pages/public/MapPage'));
+const AddMapListingPage = React.lazy(() => import('@/components/pages/public/AddMapListingPage'));
 const LoginPage = React.lazy(() => import('@/components/pages/auth/LoginPage'));
 const SignupPage = React.lazy(() => import('@/components/pages/auth/SignupPage'));
 const GoogleCallbackPage = React.lazy(() => import('@/components/pages/auth/GoogleCallbackPage'));
@@ -55,6 +56,14 @@ const AdminContent = React.lazy(() => import('@/components/pages/admin/AdminCont
 const AdminSettings = React.lazy(() => import('@/components/pages/admin/AdminSettings'));
 const CourierOrders = React.lazy(() => import('@/components/pages/courier/CourierOrders'));
 const Page404 = React.lazy(() => import('@/components/pages/shared/404'));
+const PortalLoginPage = React.lazy(() => import('@/components/pages/portal/PortalLoginPage'));
+const PortalLayout = React.lazy(() => import('@/components/pages/portal/PortalLayout'));
+const PortalDashboard = React.lazy(() => import('@/components/pages/portal/PortalDashboard'));
+const PortalListingsPage = React.lazy(() => import('@/components/pages/portal/PortalListingsPage'));
+const PortalEditListingPage = React.lazy(() => import('@/components/pages/portal/PortalEditListingPage'));
+const PortalBranchesPage = React.lazy(() => import('@/components/pages/portal/PortalBranchesPage'));
+const PortalAnalyticsPage = React.lazy(() => import('@/components/pages/portal/PortalAnalyticsPage'));
+const PortalProfilePage = React.lazy(() => import('@/components/pages/portal/PortalProfilePage'));
 
 const AppRoutes: React.FC = () => {
   return (
@@ -68,6 +77,7 @@ const AppRoutes: React.FC = () => {
         <Route path="offers/fashion" element={suspense(<FashionOffersPage />)} />
         <Route path="offers/supermarket" element={suspense(<SupermarketOffersPage />)} />
         <Route path="map" element={suspense(<MapPage />)} />
+        <Route path="map/add-listing" element={suspense(<AddMapListingPage />)} />
         <Route path="login" element={suspense(<LoginPage />)} />
         <Route path="signup" element={suspense(<SignupPage />)} />
         <Route path="auth/google/callback" element={suspense(<GoogleCallbackPage />)} />
@@ -124,6 +134,15 @@ const AppRoutes: React.FC = () => {
         <Route path="notifications" element={suspense(<AdminNotifications />)} />
         <Route path="content" element={suspense(<AdminContent />)} />
         <Route path="settings" element={suspense(<AdminSettings />)} />
+      </Route>
+      <Route path="/portal/login" element={suspense(<PortalLoginPage />)} />
+      <Route path="/portal" element={suspense(<PortalLayout />)}>
+        <Route index element={suspense(<PortalDashboard />)} />
+        <Route path="listings" element={suspense(<PortalListingsPage />)} />
+        <Route path="listings/:id/edit" element={suspense(<PortalEditListingPage />)} />
+        <Route path="listings/:id/branches" element={suspense(<PortalBranchesPage />)} />
+        <Route path="analytics" element={suspense(<PortalAnalyticsPage />)} />
+        <Route path="profile" element={suspense(<PortalProfilePage />)} />
       </Route>
       <Route path="/courier/orders" element={suspense(<CourierOrders />)} />
       <Route path="/404" element={suspense(<Page404 />)} />

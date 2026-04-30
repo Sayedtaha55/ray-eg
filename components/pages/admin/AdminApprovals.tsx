@@ -16,8 +16,10 @@ const AdminApprovals: React.FC = () => {
   const { t } = useTranslation();
   const [shops, setShops] = useState<any[]>([]);
   const [moduleRequests, setModuleRequests] = useState<any[]>([]);
+  const [mapListings, setMapListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleLoading, setModuleLoading] = useState(false);
+  const [mapListingLoading, setMapListingLoading] = useState(false);
   const { addToast } = useToast();
 
   const loadShops = async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -53,9 +55,22 @@ const AdminApprovals: React.FC = () => {
     }
   };
 
+  const loadMapListings = async ({ silent = false }: { silent?: boolean } = {}) => {
+    if (!silent) setMapListingLoading(true);
+    try {
+      const res = await ApiService.getPendingMapListings({ limit: 100 });
+      setMapListings(Array.isArray(res?.items) ? res.items : []);
+    } catch {
+      if (!silent) addToast(t('admin.approvals.loadMapListingsFailed'), 'error');
+    } finally {
+      if (!silent) setMapListingLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadShops();
     loadModuleRequests();
+    loadMapListings();
   }, []);
 
   // Smart event-driven refresh
@@ -63,6 +78,7 @@ const AdminApprovals: React.FC = () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
     loadShops({ silent: true });
     loadModuleRequests({ silent: true });
+    loadMapListings({ silent: true });
   });
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
@@ -215,6 +231,88 @@ const AdminApprovals: React.FC = () => {
                     </div>
                   </MotionDiv>
                 ))}
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-white font-black text-lg">{t('admin.approvals.mapListingsTitle')}</h3>
+            {mapListingLoading ? (
+              <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
+            ) : mapListings.length === 0 ? (
+              <div className="bg-slate-900/50 border border-white/5 rounded-[2.5rem] p-12 text-center">
+                <p className="text-slate-500 font-bold">{t('admin.approvals.noMapListings')}</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-4">
+                {mapListings.map((ml: any) => {
+                  const branches = Array.isArray(ml?.branches) ? ml.branches : [];
+                  const primaryBranch = branches.find((b: any) => b.isPrimary) || branches[0];
+                  return (
+                    <MotionDiv
+                      key={ml.id}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6"
+                    >
+                      <div className="flex items-center gap-6 flex-row-reverse">
+                        {ml.logoUrl ? (
+                          <img src={ml.logoUrl} className="w-16 h-16 rounded-2xl object-cover bg-slate-800" loading="lazy" decoding="async" />
+                        ) : (
+                          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                            <MapPin className="text-amber-400" size={24} />
+                          </div>
+                        )}
+                        <div className="text-right">
+                          <h4 className="text-xl font-black text-white">{ml.title}</h4>
+                          <div className="flex items-center gap-4 text-slate-500 text-xs font-bold mt-1">
+                            {ml.category && <span>{ml.category}</span>}
+                            {primaryBranch?.governorate && <span className="flex items-center gap-1"><MapPin size={12} /> {primaryBranch.governorate}</span>}
+                            {ml.phone && <span>{ml.phone}</span>}
+                          </div>
+                          {primaryBranch?.addressLabel && (
+                            <p className="text-slate-600 text-xs font-bold mt-1">{primaryBranch.addressLabel}</p>
+                          )}
+                          {ml.websiteUrl && (
+                            <a href={ml.websiteUrl} target="_blank" rel="noopener" className="text-[#00E5FF] text-xs font-bold mt-1 block">{ml.websiteUrl}</a>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await ApiService.approveMapListing(String(ml.id));
+                              addToast(t('admin.approvals.mapListingApproved'), 'success');
+                              loadMapListings();
+                            } catch {
+                              addToast(t('admin.approvals.actionError'), 'error');
+                            }
+                          }}
+                          className="px-8 py-4 bg-green-500 text-white rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-green-600 transition-all"
+                        >
+                          <Check size={18} /> {t('admin.approvals.approve')}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const note = prompt(t('admin.approvals.rejectReasonPrompt')) || '';
+                            try {
+                              await ApiService.rejectMapListing(String(ml.id), note);
+                              addToast(t('admin.approvals.mapListingRejected'), 'success');
+                              loadMapListings();
+                            } catch {
+                              addToast(t('admin.approvals.actionError'), 'error');
+                            }
+                          }}
+                          className="px-8 py-4 bg-red-500/10 text-red-500 rounded-2xl font-black text-sm flex items-center gap-2 hover:bg-red-500/20 transition-all"
+                        >
+                          <X size={18} /> {t('admin.approvals.reject')}
+                        </button>
+                      </div>
+                    </MotionDiv>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -29,6 +29,8 @@ import { AiModule } from './ai/ai.module';
 import { MeasurementModule } from './measurement.module';
 import { AppsModule } from './apps.module';
 import { CartEventModule } from './cart-event.module';
+import { MapListingModule } from './map-listing.module';
+import { PortalModule } from './portal.module';
 import { TestController } from './test.controller';
 import { HealthController } from './health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -83,6 +85,8 @@ const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || n
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
     ...(includeAllModules || bootModules.has('queue') ? [QueueModule] : []),
     ...(includeAllModules || bootModules.has('measurement') ? [MeasurementModule] : []),
+    ...(includeAllModules || bootModules.has('map-listing') ? [MapListingModule] : []),
+    ...(includeAllModules || bootModules.has('map-listing') || bootModules.has('portal') ? [PortalModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

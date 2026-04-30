@@ -337,7 +337,6 @@ model Order {
   items         OrderItem[]
 
   @@index([shopId, status, createdAt])
-  @@index([courierId, status, createdAt])
   @@index([userId, createdAt])
   @@index([createdAt])
   @@map("orders")
@@ -535,6 +534,173 @@ model NotificationPreference {
   user         User     @relation(fields: [userId], references: [id])
 
   @@map("notification_preferences")
+}
+
+enum MapListingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+model MapListing {
+  id                String           @id @default(cuid())
+  title             String
+  category          String?
+  description       String?
+  websiteUrl        String?          @map("website_url")
+  phone             String?
+  whatsapp          String?
+  socialLinks       Json?            @map("social_links")
+  logoUrl           String?          @map("logo_url")
+  coverUrl          String?          @map("cover_url")
+  linkedShopId      String?          @map("linked_shop_id")
+  status            MapListingStatus @default(PENDING)
+  reviewedAt        DateTime?        @map("reviewed_at")
+  reviewedByAdminId String?          @map("reviewed_by_admin_id")
+  reviewNote        String?          @map("review_note")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+
+  branches          MapListingBranch[]
+  ownerships        MapListingOwnership[]
+  claimRequests     MapListingClaimRequest[]
+  analyticsEvents   MapListingAnalyticsEvent[]
+
+  @@index([status])
+  @@index([category])
+  @@map("map_listings")
+}
+
+model MapListingBranch {
+  id           String      @id @default(cuid())
+  listingId    String      @map("listing_id")
+  name         String?
+  latitude     Float
+  longitude    Float
+  addressLabel String?     @map("address_label")
+  governorate  String?
+  city         String?
+  phone        String?
+  isPrimary    Boolean     @default(false) @map("is_primary")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  listing      MapListing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([governorate])
+  @@index([latitude, longitude])
+  @@map("map_listing_branches")
+}
+
+model MapListingOwner {
+  id        String   @id @default(cuid())
+  phone     String   @unique
+  name      String?
+  email     String?
+  avatarUrl String?  @map("avatar_url")
+  isActive  Boolean  @default(true) @map("is_active")
+  lastLogin DateTime? @map("last_login")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  ownerships    MapListingOwnership[]
+  claimRequests MapListingClaimRequest[]
+
+  @@index([phone])
+  @@index([isActive])
+  @@map("map_listing_owners")
+}
+
+enum OwnershipRole {
+  OWNER
+  MANAGER
+}
+
+model MapListingOwnership {
+  id        String        @id @default(cuid())
+  listingId String        @map("listing_id")
+  ownerId   String        @map("owner_id")
+  role      OwnershipRole @default(OWNER)
+  grantedAt DateTime      @default(now()) @map("granted_at")
+
+  listing MapListing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  owner   MapListingOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([listingId, ownerId])
+  @@index([listingId])
+  @@index([ownerId])
+  @@index([ownerId, role])
+  @@map("map_listing_ownerships")
+}
+
+enum ClaimRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model MapListingClaimRequest {
+  id          String             @id @default(cuid())
+  listingId   String             @map("listing_id")
+  ownerId     String             @map("owner_id")
+  otpVerified Boolean            @default(false) @map("otp_verified")
+  status      ClaimRequestStatus @default(PENDING)
+  adminNote   String?            @map("admin_note")
+  reviewedAt  DateTime?          @map("reviewed_at")
+  reviewedBy  String?            @map("reviewed_by")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  listing MapListing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  owner   MapListingOwner @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([ownerId])
+  @@index([status])
+  @@map("map_listing_claim_requests")
+}
+
+enum AnalyticsEventType {
+  LISTING_VIEW
+  WEBSITE_CLICK
+  WHATSAPP_CLICK
+  PHONE_CLICK
+  DIRECTIONS_CLICK
+}
+
+model MapListingAnalyticsEvent {
+  id        String             @id @default(cuid())
+  listingId String             @map("listing_id")
+  type      AnalyticsEventType
+  ip        String?
+  userAgent String?            @map("user_agent")
+  meta      Json?
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  listing MapListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([listingId, type])
+  @@index([listingId, createdAt])
+  @@index([createdAt])
+  @@map("map_listing_analytics_events")
+}
+
+model PortalOtpCode {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String   @map("code_hash")
+  purpose   String   @default("login")
+  attempts  Int      @default(0)
+  verified  Boolean  @default(false)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([phone, purpose])
+  @@index([expiresAt])
+  @@map("portal_otp_codes")
 }
 
 enum MediaType {

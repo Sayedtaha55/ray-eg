@@ -232,7 +232,12 @@
     "rejectRequest": "رفض الطلب",
     "courierRequestsTitle": "طلبات تسجيل المندوبين",
     "courierRequestsMoved": "إدارة طلبات المندوبين أصبحت في صفحة إدارة التوصيل",
-    "openDeliveryMgmt": "فتح إدارة التوصيل"
+    "openDeliveryMgmt": "فتح إدارة التوصيل",
+    "mapListingsTitle": "طلبات إضافة أنشطة على الخريطة",
+    "noMapListings": "لا توجد طلبات أنشطة معلقة حالياً.",
+    "loadMapListingsFailed": "فشل تحميل طلبات الأنشطة",
+    "mapListingApproved": "تمت الموافقة على النشاط بنجاح",
+    "mapListingRejected": "تم رفض النشاط"
   },
   "content": {
     "title": "التذاكر والملاحظات",

@@ -1,15 +1,15 @@
 import React, { useEffect, useRef } from 'react';
-import { buildShopMarkerHtml, escapeHtml } from './mapUtils';
+import { buildShopMarkerHtml, buildListingMarkerHtml, escapeHtml } from './mapUtils';
 
 interface MapContainerProps {
-  shops: any[];
+  pins: any[];
   coords: { lat: number; lng: number } | null;
   onMapReady?: () => void;
   navigate: (url: string) => void;
 }
 
 
-const MapContainer: React.FC<MapContainerProps> = ({ shops, coords, onMapReady, navigate }) => {
+const MapContainer: React.FC<MapContainerProps> = ({ pins, coords, onMapReady, navigate }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
@@ -77,24 +77,34 @@ const MapContainer: React.FC<MapContainerProps> = ({ shops, coords, onMapReady, 
 
     markersLayerRef.current.clearLayers();
 
-    for (const s of shops) {
-      if (typeof s.latitude !== 'number' || typeof s.longitude !== 'number') continue;
+    for (const p of pins) {
+      if (typeof p.latitude !== 'number' || typeof p.longitude !== 'number') continue;
 
-      const label = String(s.mapLabel ?? s.name ?? '').trim();
-      const city = String(s.displayAddress ?? s.city ?? '').trim();
-      
-      const marker = L.marker([s.latitude, s.longitude], {
+      const isShop = p.type === 'shop';
+      const label = String(p.title ?? '').trim();
+      const city = String(p.addressLabel ?? p.city ?? '').trim();
+
+      const html = isShop
+        ? buildShopMarkerHtml(escapeHtml(label), escapeHtml(city))
+        : buildListingMarkerHtml(escapeHtml(label), escapeHtml(city));
+
+      const marker = L.marker([p.latitude, p.longitude], {
         icon: L.divIcon({
           className: '',
-          iconSize: [250, 62],
-          iconAnchor: [125, 62],
-          html: buildShopMarkerHtml(escapeHtml(label), escapeHtml(city)),
+          iconSize: isShop ? [250, 62] : [250, 56],
+          iconAnchor: isShop ? [125, 62] : [125, 56],
+          html,
         }),
       });
 
       marker.on('click', () => {
-        const slugOrId = String(s.slug || s.id || '').trim();
-        if (slugOrId) navigate(`/s/${slugOrId}`);
+        if (isShop && p.slug) {
+          navigate(`/s/${p.slug}`);
+        } else if (p.websiteUrl) {
+          window.open(p.websiteUrl, '_blank', 'noopener');
+        } else if (p.phone) {
+          window.open(`tel:${p.phone}`, '_self');
+        }
       });
 
       marker.addTo(markersLayerRef.current);
@@ -117,7 +127,7 @@ const MapContainer: React.FC<MapContainerProps> = ({ shops, coords, onMapReady, 
       } catch {
       }
     }
-  }, [shops, coords, navigate]);
+  }, [pins, coords, navigate]);
 
   return <div ref={mapContainerRef} className="w-full h-full" />;
 };

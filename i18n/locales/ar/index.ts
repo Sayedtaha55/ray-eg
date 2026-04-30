@@ -50,6 +50,7 @@ import overviewSettingsLocale from './overviewSettings.json';
 import modulesSettingsLocale from './modulesSettings.json';
 import settingsIndexLocale from './settingsIndex.json';
 import accountSettingsLocale from './accountSettings.json';
+import portalLocale from './portal.json';
 
 const ar = {
   brand: brandLocale,
@@ -104,6 +105,7 @@ const ar = {
   modulesSettings: modulesSettingsLocale,
   settingsIndex: settingsIndexLocale,
   accountSettings: accountSettingsLocale,
+  portal: portalLocale,
 } as const;
 
 export default ar;

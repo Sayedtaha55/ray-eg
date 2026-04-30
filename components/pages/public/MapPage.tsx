@@ -5,7 +5,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { Loader2, MapPin } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { locationPersistence } from '@/services/locationPersistence';
-import { Shop } from '@/types';
+import { MapPin as MapPinType } from '@/services/api/modules/map-listings';
 import { Skeleton } from '@/components/common/ui';
 import { explainGeoError, requestPreciseBrowserLocation } from '@/lib/geolocation';
 
@@ -36,23 +36,27 @@ const MapPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [shops, setShops] = useState<Shop[]>([]);
+  const [pins, setPins] = useState<MapPinType[]>([]);
   const [coords, setCoords] = useState<Coords | null>(() => locationPersistence.getMapLocation());
   const [locating, setLocating] = useState(false);
   const [locationError, setLocationError] = useState('');
 
 
-  const loadShops = useCallback(async () => {
+  const loadPins = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await ApiService.getShops('approved');
-      setShops(Array.isArray(data) ? data : []);
+      const data = await ApiService.getMapPins({
+        lat: coords?.lat,
+        lng: coords?.lng,
+        radiusKm: 50,
+      });
+      setPins(Array.isArray(data) ? data : []);
     } catch {
-      setShops([]);
+      setPins([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [coords]);
 
   useEffect(() => {
     const onRefresh = () => {
@@ -60,7 +64,7 @@ const MapPage: React.FC = () => {
         if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
       } catch {
       }
-      loadShops();
+      loadPins();
     };
 
     onRefresh();
@@ -93,32 +97,7 @@ const MapPage: React.FC = () => {
       window.clearInterval(timer);
       try { bc?.close(); } catch { }
     };
-  }, [loadShops]);
-
-
-  const visibleShops = useMemo(() => {
-    const approved = shops.filter((s: any) => String(s?.status || '').toLowerCase() === 'approved');
-
-    if (!coords) {
-      return approved;
-    }
-
-    const withDistance = approved
-      .map((s: any) => {
-        const lat = typeof s?.latitude === 'number' ? s.latitude : null;
-        const lng = typeof s?.longitude === 'number' ? s.longitude : null;
-        if (lat == null || lng == null) return { shop: s, distanceKm: null as number | null };
-        return { shop: s, distanceKm: haversineDistanceKm(coords, { lat, lng }) };
-      })
-      .sort((a, b) => {
-        if (a.distanceKm == null && b.distanceKm == null) return 0;
-        if (a.distanceKm == null) return 1;
-        if (b.distanceKm == null) return -1;
-        return a.distanceKm - b.distanceKm;
-      });
-
-    return withDistance.map((x) => x.shop);
-  }, [shops, coords]);
+  }, [loadPins]);
 
 
 
@@ -164,12 +143,14 @@ const MapPage: React.FC = () => {
           <h1 className="text-3xl md:text-5xl font-black tracking-tighter">{t('map.title')}</h1>
           <p className="text-slate-400 font-bold mt-2">{t('map.subtitle')}</p>
         </div>
-        <Link
-          to="/"
-          className="px-5 py-3 bg-slate-100 rounded-2xl font-black text-xs md:text-sm text-slate-900 hover:bg-slate-200 transition-all"
-        >
-          {t('map.back')}
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/"
+            className="px-5 py-3 bg-slate-100 rounded-2xl font-black text-xs md:text-sm text-slate-900 hover:bg-slate-200 transition-all"
+          >
+            {t('map.back')}
+          </Link>
+        </div>
       </div>
 
       <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 bg-slate-50">
@@ -191,7 +172,7 @@ const MapPage: React.FC = () => {
             </div>
           }>
             <MapRenderer
-              shops={visibleShops}
+              pins={pins}
               coords={coords}
               navigate={navigate}
             />
@@ -229,7 +210,7 @@ const MapPage: React.FC = () => {
                   <Skeleton className="h-4 w-40" />
                 </div>
               ) : (
-                `${t('map.visibleCount')} ${visibleShops.length}`
+                `${t('map.visibleCount')} ${pins.length}`
               )}
             </div>
           </div>

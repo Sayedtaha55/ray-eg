@@ -4,13 +4,13 @@ import { Skeleton } from '@/components/common/ui';
 const MapContainer = lazy(() => import('./MapContainer'));
 
 interface MapRendererProps {
-  shops: any[];
+  pins: any[];
   coords: { lat: number; lng: number } | null;
   onMapReady?: () => void;
   navigate: (url: string) => void;
 }
 
-const MapRenderer: React.FC<MapRendererProps> = ({ shops, coords, onMapReady, navigate }) => {
+const MapRenderer: React.FC<MapRendererProps> = ({ pins, coords, onMapReady, navigate }) => {
   return (
     <Suspense fallback={
       <div className="w-full h-full bg-slate-50 flex items-center justify-center p-8">
@@ -18,7 +18,7 @@ const MapRenderer: React.FC<MapRendererProps> = ({ shops, coords, onMapReady, na
       </div>
     }>
       <MapContainer 
-        shops={shops} 
+        pins={pins} 
         coords={coords} 
         onMapReady={onMapReady} 
         navigate={navigate} 

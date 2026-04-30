@@ -43,6 +43,7 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [portalPhone, setPortalPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -387,6 +388,34 @@ const LoginPage: React.FC = () => {
                {t('auth.login.devCourierLogin')}
              </button>
            )}
+
+           <div className="pt-6 border-t border-slate-50 space-y-4">
+             <p className="text-center text-slate-400 font-bold text-xs">دخول أصحاب الأنشطة الخارجية</p>
+             <div className="space-y-2">
+               <input
+                 type="tel"
+                 dir="ltr"
+                 disabled={loading}
+                 className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
+                 value={portalPhone}
+                 onChange={(e) => setPortalPhone(e.target.value)}
+                 placeholder="01xxxxxxxxx أو +20xxxxxxxxx"
+               />
+             </div>
+             <button
+               type="button"
+               disabled={loading || !String(portalPhone || '').trim()}
+               onClick={() => {
+                 const p = String(portalPhone || '').trim();
+                 if (!p) return;
+                 navigate(`/portal/login?phone=${encodeURIComponent(p)}`);
+               }}
+               className="w-full py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-3 disabled:opacity-60"
+             >
+               <Store size={18} />
+               دخول لوحة الأنشطة الخارجية
+             </button>
+           </div>
         </div>
       </MotionDiv>
     </div>

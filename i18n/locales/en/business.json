@@ -9,6 +9,12 @@
   "getToKnowUs": "Get to Know Us",
   "readyToStart": "Ready to Start?",
   "noCreditCard": "Create your store now for free — no credit card, no commitments.",
+  "mapListingCta": {
+    "badge": "MAP",
+    "title": "Add your business to the map",
+    "subtitle": "Help customers find you faster: add your location and contact info — we’ll review before publishing.",
+    "button": "Add Your Business"
+  },
   "createStore": "Create Store",
   "courierSignup": "Delivery Courier",
   "courierRegister": "Register as Courier",

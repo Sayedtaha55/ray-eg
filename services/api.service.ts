@@ -161,6 +161,17 @@ import {
   markCartEventRecoveredViaBackend,
 } from './api/modules/cart-events';
 import {
+  submitMapListingViaBackend,
+  getMapPinsViaBackend,
+  getMapListingViaBackend,
+  addMapListingBranchViaBackend,
+  getPendingMapListingsViaBackend,
+  approveMapListingViaBackend,
+  rejectMapListingViaBackend,
+  type MapPin,
+  type MapListingSubmitInput,
+} from './api/modules/map-listings';
+import {
   aiChatViaBackend,
   aiChatStreamViaBackend,
   type AiChatResponse,
@@ -1762,5 +1773,28 @@ export const ApiService = {
   },
   aiChatStream: async (params: { message: string; shopId: string; context?: { currentPage?: string; locale?: string } }) => {
     return await aiChatStreamViaBackend(params);
+  },
+
+  // Map Listings / Pins
+  submitMapListing: async (input: MapListingSubmitInput) => {
+    return await submitMapListingViaBackend(input);
+  },
+  getMapPins: async (opts?: { lat?: number; lng?: number; radiusKm?: number; category?: string; q?: string; governorate?: string; city?: string }) => {
+    return await getMapPinsViaBackend(opts);
+  },
+  getMapListing: async (id: string) => {
+    return await getMapListingViaBackend(id);
+  },
+  addMapListingBranch: async (listingId: string, branch: { name?: string; latitude: number; longitude: number; addressLabel?: string; governorate?: string; city?: string; phone?: string }) => {
+    return await addMapListingBranchViaBackend(listingId, branch);
+  },
+  getPendingMapListings: async (opts?: { page?: number; limit?: number }) => {
+    return await getPendingMapListingsViaBackend(opts);
+  },
+  approveMapListing: async (id: string, note?: string) => {
+    return await approveMapListingViaBackend(id, note);
+  },
+  rejectMapListing: async (id: string, note?: string) => {
+    return await rejectMapListingViaBackend(id, note);
   },
 };
