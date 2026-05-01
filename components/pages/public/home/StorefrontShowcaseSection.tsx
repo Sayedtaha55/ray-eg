@@ -2,6 +2,7 @@ import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, FileText, Store } from 'lucide-react';
 import { Offer, Product, Shop } from '@/types';
+import { SmartImage } from '@/components/common/ui';
 import { coerceBoolean } from '../ShopProfile/utils';
 
 interface StorefrontShowcaseSectionProps {
@@ -128,11 +129,12 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
 
                   <div className="flex items-center gap-3 flex-row-reverse">
                     {logo ? (
-                      <img
+                      <SmartImage
                         src={logo}
                         alt={shop.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-slate-200 shadow-sm"
-                        loading="lazy"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-slate-200 shadow-sm"
+                        imgClassName="object-cover"
+                        optimizeVariant="thumb"
                       />
                     ) : (
                       <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
@@ -199,7 +201,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                       >
                         <div className="aspect-[4/3] bg-slate-100">
                           {String(product?.imageUrl || '').trim() ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
+                            <SmartImage
+                              src={product.imageUrl}
+                              alt={product.name}
+                              className="w-full h-full"
+                              imgClassName="object-cover"
+                              optimizeVariant="md"
+                            />
                           ) : null}
                         </div>
                         <div className="p-3">
@@ -247,7 +255,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         >
                           <div className="aspect-[4/3] bg-slate-100 relative">
                             {offer.imageUrl ? (
-                              <img src={offer.imageUrl} alt={offer.title} className="w-full h-full object-cover" loading="lazy" />
+                              <SmartImage
+                                src={offer.imageUrl}
+                                alt={offer.title}
+                                className="w-full h-full"
+                                imgClassName="object-cover"
+                                optimizeVariant="md"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-300">
                                 <Store size={32} />

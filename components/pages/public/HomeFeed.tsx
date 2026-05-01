@@ -24,13 +24,13 @@ const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useCartSound();
 
-  const nextCategory = () => {
+  const nextCategory = React.useCallback(() => {
     setCurrentCategoryIndex((prev) => prev + 1);
-  };
+  }, []);
 
-  const prevCategory = () => {
+  const prevCategory = React.useCallback(() => {
     setCurrentCategoryIndex((prev) => prev - 1);
-  };
+  }, []);
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -235,6 +235,16 @@ const HomeFeed: React.FC = () => {
     };
   }, [hasMoreOffers, offers.length]);
 
+  const handleOpenShop = React.useCallback((shop: Shop) => {
+    const slug = String((shop as any)?.slug || '').trim();
+    if (!slug) return;
+    navigate(`/s/${slug}`);
+  }, [navigate]);
+
+  const handleLoadMoreOffers = React.useCallback(() => {
+    loadMoreOffersRef.current?.();
+  }, []);
+
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
       <HomeHero prefersReducedMotion={prefersReducedMotion} />
@@ -255,11 +265,7 @@ const HomeFeed: React.FC = () => {
         offers={offers}
         shopProductsById={shopProductsById}
         loading={loadingShops}
-        onOpenShop={(shop) => {
-          const slug = String((shop as any)?.slug || '').trim();
-          if (!slug) return;
-          navigate(`/s/${slug}`);
-        }}
+        onOpenShop={handleOpenShop}
       />
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
@@ -272,7 +278,7 @@ const HomeFeed: React.FC = () => {
           setSelectedItem={setSelectedItem}
           playSound={playSound}
           loadMoreSentinelRef={loadMoreSentinelRef}
-          loadMoreOffers={() => loadMoreOffersRef.current?.()}
+          loadMoreOffers={handleLoadMoreOffers}
         />
       </Suspense>
 
