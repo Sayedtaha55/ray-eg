@@ -1,5 +1,5 @@
 import { Category, Shop, Offer, Product, Reservation } from './types';
-import { ApiService } from './services/api.service';
+import { ApiService } from './shared/services/api.service';
 
 let favoritesInFlight: Promise<string[]> | null = null;
 let favoritesLastValue: string[] | null = null;

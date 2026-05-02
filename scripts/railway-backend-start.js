@@ -163,7 +163,13 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
       }
     }
 
-    const candidates = ['dist/main.js', 'dist/src/main.js', 'dist-backend/src/main.js'];
+    const candidates = [
+      'dist/main.js',
+      'dist/src/main.js',
+      'dist-backend/src/main.js',
+      'dist-backend/src/core/main.js',
+      'dist-backend/core/main.js',
+    ];
     const entry = candidates.find((file) => existsSync(file));
     if (!entry) {
       // eslint-disable-next-line no-console

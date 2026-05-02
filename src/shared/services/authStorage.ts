@@ -1,4 +1,4 @@
-import { ApiService } from '@/services/api.service';
+import { ApiService } from './api.service';
 
 const AUTH_CHANNEL_NAME = 'ray-auth';
 const AUTH_SYNC_KEY = 'ray_auth_sync';

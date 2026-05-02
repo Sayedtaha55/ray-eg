@@ -21,7 +21,7 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["src/shared/*"],
       "@core/*": ["src/core/*"],
       "@features/*": ["src/features/*"],
       "@shared/*": ["src/shared/*"],

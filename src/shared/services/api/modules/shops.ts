@@ -1,6 +1,6 @@
 import { BackendRequestError, backendDelete, backendGet, backendPatch, backendPost, disablePathPrefix, toBackendUrl } from '../httpClient';
 import { normalizeShopFromBackend } from '../normalizers';
-import { clearSession } from '@/services/authStorage';
+import { clearSession } from '../../authStorage';
 
 export async function getShopsViaBackend(
   filterStatus: 'approved' | 'pending' | 'rejected' | 'all' | '' = 'approved',

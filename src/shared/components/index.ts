@@ -53,22 +53,22 @@ export { default as RayAssistant } from './pages/shared/RayAssistant';
 export { default as NotFoundPage } from './pages/shared/NotFoundPage';
 
 // Features - Shop
-export { default as ShopGallery } from './features/shop/ShopGallery';
+export { default as ShopGallery } from '@features/shop/ShopGallery';
 
 // Features - Product
-export { default as ProductCard } from './features/product/ProductCard';
-export { default as ProductList } from './features/product/ProductList';
+export { default as ProductCard } from '@features/product/ProductCard';
+export { default as ProductList } from '@features/product/ProductList';
 
 // Features - Cart
-export { default as CartItem } from './features/cart/CartItem';
-export { default as CartSummary } from './features/cart/CartSummary';
+export { default as CartItem } from '@features/cart/CartItem';
+export { default as CartSummary } from '@features/cart/CartSummary';
 
 // Features - Reservation
-export { default as ReservationForm } from './features/reservation/ReservationForm';
+export { default as ReservationForm } from '@features/reservation/ReservationForm';
 
 // Features - Analytics
-export { default as StatsCard } from './features/analytics/StatsCard';
-export { default as Chart } from './features/analytics/Chart';
+export { default as StatsCard } from '@features/analytics/StatsCard';
+export { default as Chart } from '@features/analytics/Chart';
 
 // Common - UI
 export { default as Button } from './common/ui/Button';

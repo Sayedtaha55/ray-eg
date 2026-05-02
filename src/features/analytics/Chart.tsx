@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Card } from '../../common/ui';
+import { Card } from '@/components/common/ui';
 
 interface ChartProps {
   data: any[];

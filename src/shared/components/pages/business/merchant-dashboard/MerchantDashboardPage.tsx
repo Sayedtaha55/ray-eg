@@ -32,7 +32,7 @@ import { useSmartRefresh } from '@/hooks/useSmartRefresh';
 import { useTranslation } from 'react-i18next';
 
 // Lazy load components
-const MerchantSettings = lazy(() => import('@/src/components/MerchantDashboard/Settings'));
+const MerchantSettings = lazy(() => import('../../../../../components/MerchantDashboard/Settings'));
 const POSSystem = lazy(() => import('../POSSystem'));
 const PageBuilder = lazy(() => import('../builder/PageBuilder'));
 
@@ -73,7 +73,7 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
   invoice: () => import('./tabs/InvoiceTab'),
   sales: () => import('./tabs/SalesTab'),
   builder: () => import('../builder/PageBuilder'),
-  settings: () => import('@/src/components/MerchantDashboard/Settings'),
+  settings: () => import('../../../../../components/MerchantDashboard/Settings'),
   pos: () => import('../POSSystem'),
 };
 

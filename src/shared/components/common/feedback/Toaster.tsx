@@ -1,7 +1,7 @@
 
 import React, { useState, createContext, useContext } from 'react';
 import { CheckCircle2, AlertCircle, X, Info } from 'lucide-react';
-import i18n from '@/i18n';
+import i18n from '../../../i18n';
 
 type ToastType = 'success' | 'error' | 'info';
 

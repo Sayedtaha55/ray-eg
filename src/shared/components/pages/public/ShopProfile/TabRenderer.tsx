@@ -36,7 +36,7 @@ interface TabRendererProps {
 
 const ProductTab = lazy(() => import('./ProductTab'));
 const InfoTab = lazy(() => import('./InfoTab'));
-const ShopGalleryComponent = lazy(() => import('@/components/features/shop/ShopGallery'));
+const ShopGalleryComponent = lazy(() => import('@features/shop/ShopGallery'));
 
 const MotionDiv = motion.div as any;
 

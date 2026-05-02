@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { X } from 'lucide-react';
 
-const ProductEditorLegacyApp = lazy(() => import('@/src/features/product-editor/legacy/App'));
+const ProductEditorLegacyApp = lazy(() => import('@features/product-editor/legacy/App'));
 
 type Props = {
   open: boolean;

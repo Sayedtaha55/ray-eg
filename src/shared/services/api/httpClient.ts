@@ -1,4 +1,4 @@
-import { bootstrapSessionFromBackend } from '@/services/authStorage';
+import { bootstrapSessionFromBackend } from '../authStorage';
 
 function normalizeBaseUrl(input: string) {
   return String(input || '').trim().replace(/\/+$/, '');

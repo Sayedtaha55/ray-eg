@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import ProductCard from './ProductCard';
-import { Input, Loading } from '../../common/ui';
+import { Input, Loading } from '@/components/common/ui';
 import { Search, Filter, Grid, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 

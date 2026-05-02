@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { motion } from 'framer-motion';
-import { Card, Badge, Button } from '../../common/ui';
+import { Card, Badge, Button } from '@/components/common/ui';
 import { ShoppingCart, Heart, Star } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { useTranslation } from 'react-i18next';

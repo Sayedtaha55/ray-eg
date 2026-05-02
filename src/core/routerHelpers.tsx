@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
-const ShopImageMapPurchaseView = React.lazy(() => import('@/src/features/shop-image-map/components/ShopImageMapPurchaseView'));
+const ShopImageMapPurchaseView = React.lazy(() => import('../features/shop-image-map/components/ShopImageMapPurchaseView'));
 
 export const AppLoadingFallback: React.FC = () => {
   const { t } = useTranslation();

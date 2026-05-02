@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/common/ui';
 import { explainGeoError, requestPreciseBrowserLocation } from '@/lib/geolocation';
 
 // Lazy load heavy map components
-const MapRenderer = lazy(() => import('@/components/features/map/MapRenderer'));
+const MapRenderer = lazy(() => import('@features/map/MapRenderer'));
 
 const { Link, useNavigate } = ReactRouterDOM as any;
 

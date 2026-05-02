@@ -5,13 +5,13 @@ import {
   getStoredMerchantContext,
   getStoredUser,
   startAuthSync,
-} from './services/authStorage';
-import RouteSeoManager from './components/seo/RouteSeoManager';
-import AppRoutes from './app/AppRoutes';
-import { shouldWarmupRoutes, warmupRouteChunks } from './app/routeWarmup';
-import { getDeferredDelay, isMobileViewportLike } from './utils/performanceProfile';
-import BackendStatusBanner from './components/common/feedback/BackendStatusBanner';
-import SyncStatusBanner from './components/common/feedback/SyncStatusBanner';
+} from './shared/services/authStorage';
+import RouteSeoManager from './shared/components/seo/RouteSeoManager';
+import AppRoutes from './core/AppRoutes';
+import { shouldWarmupRoutes, warmupRouteChunks } from './core/routeWarmup';
+import { getDeferredDelay, isMobileViewportLike } from './shared/utils/performanceProfile';
+import BackendStatusBanner from './shared/components/common/feedback/BackendStatusBanner';
+import SyncStatusBanner from './shared/components/common/feedback/SyncStatusBanner';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();

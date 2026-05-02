@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { syncService } from '@/lib/sync-service';
+import { syncService } from '../../../lib/sync-service';
 
 export default function SyncStatusBanner() {
   const { t } = useTranslation();

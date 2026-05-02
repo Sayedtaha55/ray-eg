@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Card } from '../../common/ui';
+import { Card } from '@/components/common/ui';
 import { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 

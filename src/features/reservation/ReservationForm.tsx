@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, Input, Button } from '../../common/ui';
+import { Card, Input, Button } from '@/components/common/ui';
 import { Calendar, Clock, Users, MessageSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 

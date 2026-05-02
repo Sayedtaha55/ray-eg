@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import i18n from '@/i18n';
+import i18n from '../../i18n';
 
 type RouteSeo = {
   title: string;
