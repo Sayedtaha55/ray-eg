@@ -7,19 +7,23 @@
     "moduleResolution": "node",
     "allowImportingTsExtensions": false,
     "baseUrl": ".",
-    "paths": {},
-    "outDir": "../dist",
+    "paths": {
+      "@core/*": ["src/core/*"],
+      "@common/*": ["src/common/*"],
+      "@modules/*": ["src/modules/*"],
+      "@shared/*": ["src/shared/*"]
+    },
+    "outDir": "../dist-backend",
     "rootDir": "./",
     "noEmit": false,
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["./**/*.ts"],
+  "include": ["src/**/*.ts"],
   "exclude": [
     "../node_modules",
     "../dist",
-    "../dist-backend",
     "../services",
     "../components",
     "../src"
