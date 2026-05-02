@@ -1,7 +1,7 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { NotificationType, NotificationPriority, NotificationChannel, NotificationData } from './types/notifications';
-import { WebPushService } from './web-push.service';
+import { NotificationType, NotificationPriority, NotificationChannel, NotificationData } from '@shared/types/notifications';
+import { WebPushService } from '@shared/services/web-push.service';
 
 @Injectable()
 export class NotificationService {

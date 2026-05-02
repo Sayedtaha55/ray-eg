@@ -34,7 +34,7 @@ import { PortalModule } from '@modules/portal/portal.module';
 import { TestController } from './test.controller';
 import { HealthController } from '@modules/health/health.controller';
 import { DatabaseTestController } from './db-test.controller';
-import { AccountPurgeService } from './account-purge.service';
+import { AccountPurgeService } from '@shared/services/account-purge.service';
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const minimalBoot = String(process.env.MINIMAL_BOOT || '').toLowerCase() === 'true';

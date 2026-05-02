@@ -3,8 +3,8 @@ import { randomBytes } from 'crypto';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MediaCompressionService } from './media-compression.service';
-import { MediaStorageService } from './media-storage.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
+import { MediaStorageService } from '@modules/media/media-storage.service';
 
 type MediaOptimizeStatus =
   | { state: 'queued'; createdAt: string }

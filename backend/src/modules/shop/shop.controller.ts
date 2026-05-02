@@ -1,15 +1,15 @@
 import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ShopService } from '@modules/shop/shop.service';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
 import { createHash, randomBytes } from 'crypto';
-import { CreateShopDto } from './create-shop.dto';
+import { CreateShopDto } from '@shared/dto/create-shop.dto';
 
  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
  const bannerUploadMaxMbRaw = String(process.env.BANNER_UPLOAD_MAX_MB || (isProd ? '30' : '80')).trim();

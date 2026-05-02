@@ -16,7 +16,7 @@ import { AiService } from './ai.service';
 import { AiAuditService } from './ai-audit.service';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { AiJobsService, AiJobType } from './ai-jobs.service';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
 @Controller('api/v1/ai')
 @UseGuards(JwtAuthGuard)

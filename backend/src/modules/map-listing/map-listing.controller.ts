@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Query, Param, Request, UseGuards, Inject, BadRequestException } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { MapListingService } from '@modules/map-listing/map-listing.service';
 
 function parseOptionalNumber(value: any) {

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { MediaCompressionService } from './media-compression.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
 import { RedisModule } from '@common/redis/redis.module';
 import {
   MediaController,
@@ -10,9 +10,9 @@ import {
   MediaControllerUploadOnly,
 } from '@modules/media/media.controller';
 import { MediaPresignService } from './media-presign.service';
-import { MediaStorageService } from './media-storage.service';
+import { MediaStorageService } from '@modules/media/media-storage.service';
 import { MediaOptimizeQueue } from './media-optimize.queue';
-import { MediaOptimizeService } from './media-optimize.service';
+import { MediaOptimizeService } from '@modules/media/media-optimize.service';
 import { MediaOptimizeWorker } from './media-optimize.worker';
 import { Media3dOptimizeService } from './media-3d-optimize.service';
 import { MediaVirusScanService } from './media-virus-scan.service';

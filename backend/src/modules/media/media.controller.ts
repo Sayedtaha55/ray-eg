@@ -1,10 +1,10 @@
 import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { MediaPresignDto } from './media-presign.dto';
 import { MediaPresignService } from './media-presign.service';
-import { MediaStorageService } from './media-storage.service';
+import { MediaStorageService } from '@modules/media/media-storage.service';
 import { MediaOptimizeQueue } from './media-optimize.queue';
 import * as fs from 'fs';
 import * as os from 'os';

@@ -2,9 +2,9 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { PrismaService } from '@common/prisma/prisma.service';
 import { RedisService } from '@common/redis/redis.service';
 import { MonitoringService } from '@common/monitoring/monitoring.service';
-import { MediaCompressionService } from './media-compression.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
 import { EmailService } from '@modules/email/email.service';
-import { CreateShopDto, ShopCategory } from './create-shop.dto';
+import { CreateShopDto, ShopCategory } from '@shared/dto/create-shop.dto';
 import { ShopSettingsService } from './shop-settings.service';
 import { ShopPublicQueryService } from './shop-public-query.service';
 import { createHash } from 'crypto';

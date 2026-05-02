@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { ReservationService } from '@modules/reservation/reservation.service';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';

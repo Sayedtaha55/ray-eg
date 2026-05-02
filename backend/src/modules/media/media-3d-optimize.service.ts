@@ -3,7 +3,7 @@ import { randomBytes } from 'crypto';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs';
-import { MediaStorageService } from './media-storage.service';
+import { MediaStorageService } from '@modules/media/media-storage.service';
 
 export interface Optimize3DResult {
   optimizedKey: string;

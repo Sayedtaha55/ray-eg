@@ -1,9 +1,9 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { CourierDispatchService } from './courier-dispatch.service';
+import { CourierDispatchService } from '@modules/courier/courier-dispatch.service';
 import { RedisService } from '@common/redis/redis.service';
 import { NotificationService } from '@modules/notification/notification.service';
-import { NotificationPriority, NotificationType } from './types/notifications';
+import { NotificationPriority, NotificationType } from '@shared/types/notifications';
 
 @Injectable()
 export class OrderService {

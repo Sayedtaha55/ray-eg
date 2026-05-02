@@ -11,7 +11,7 @@ import { NotificationModule } from '@modules/notification/notification.module';
 import { EmailModule } from '@modules/email/email.module';
 import { EmailService } from '@modules/email/email.service';
 import { AuthModule } from '@modules/auth/auth.module';
-import { MediaCompressionService } from './media-compression.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
 import { ShopModulesService } from './shop-modules.service';
 import { ShopSlugService } from './shop-slug.service';
 import { ShopSitemapService } from './shop-sitemap.service';

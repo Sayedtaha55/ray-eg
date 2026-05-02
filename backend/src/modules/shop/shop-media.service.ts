@@ -3,7 +3,7 @@ import * as path from 'path';
 import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { MediaCompressionService } from './media-compression.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
 
 @Injectable()
 export class ShopMediaService {

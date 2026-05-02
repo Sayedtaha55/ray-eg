@@ -1,6 +1,6 @@
 import { Injectable, Inject, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { NotificationType, NotificationChannel } from './types/notifications';
+import { NotificationType, NotificationChannel } from '@shared/types/notifications';
 
 @Injectable()
 export class NotificationPreferencesService {
