@@ -1,5 +1,5 @@
-# Use Node.js 20 LTS as base image
-FROM node:20-alpine AS base
+# Use Node.js 22 LTS as base image
+FROM node:22-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -11,6 +11,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts
 
+# Copy prisma schema for generate step in builder
+COPY prisma ./prisma
+
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
@@ -21,6 +24,9 @@ COPY . .
 RUN npx prisma generate --schema prisma/schema.prisma
 RUN npm run backend:build
 
+# Verify the entrypoint exists after build
+RUN ls -la dist-backend/src/core/main.js || (echo "Build failed: entrypoint not found" && exit 1)
+
 # Install production dependencies only (exclude devDependencies) for the runtime image
 FROM base AS prod-deps
 WORKDIR /app
@@ -28,6 +34,9 @@ COPY package.json package-lock.json* ./
 COPY prisma ./prisma
 RUN npm ci --omit=dev --ignore-scripts
 RUN npx prisma generate --schema prisma/schema.prisma
+
+# Verify prisma client was generated
+RUN node -e "require('@prisma/client')" || (echo "Prisma client not generated" && exit 1)
 
 # Production image, copy all the files and run the app
 FROM base AS runner

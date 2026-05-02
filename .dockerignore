@@ -22,6 +22,7 @@ node_modules/
 
 # Build artifacts (will be built inside container)
 dist/
+dist-backend/
 build/
 
 # Cache
