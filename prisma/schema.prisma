@@ -457,6 +457,8 @@ model OrderItem {
   product          Product           @relation(fields: [productId], references: [id])
   returnItems      OrderReturnItem[]
 
+  @@index([orderId])
+  @@index([productId])
   @@map("order_items")
 }
 
@@ -551,6 +553,9 @@ model Message {
   sender     User        @relation(fields: [senderId], references: [id])
   shop       Shop        @relation(fields: [shopId], references: [id])
 
+  @@index([shopId])
+  @@index([shopId, createdAt])
+  @@index([senderId])
   @@map("messages")
 }
 
@@ -579,6 +584,7 @@ model Notification {
   @@index([shopId])
   @@index([type])
   @@index([isRead])
+  @@index([userId, isRead, createdAt])
   @@index([createdAt])
   @@map("notifications")
 }
@@ -805,6 +811,7 @@ model ShopTheme {
   updatedAt    DateTime @updatedAt
   shop         Shop     @relation(fields: [shopId], references: [id])
 
+  @@index([shopId])
   @@map("shop_themes")
 }
 

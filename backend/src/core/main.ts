@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import { createSlowDown } from '@common/middleware/slow-down.middleware';
 import { requestIdMiddleware } from '@common/middleware/request-id.middleware';
 import { idempotencyMiddleware } from '@common/middleware/idempotency.middleware';
+import { CircuitBreakerMiddleware } from '@common/middleware/circuit-breaker.middleware';
 import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from '@common/interceptors/timeout.interceptor';
 import { LoggerService } from '@common/logger/logger.service';
@@ -74,6 +75,11 @@ async function bootstrap() {
     legacyHeaders: false,
   });
   app.use(globalLimiter);
+  const apiCircuitBreaker = new CircuitBreakerMiddleware({
+    failureThreshold: parseInt(process.env.CIRCUIT_BREAKER_FAILURES || '10', 10),
+    resetTimeoutMs: parseInt(process.env.CIRCUIT_BREAKER_RESET_MS || '30000', 10),
+  });
+  app.use('/api', apiCircuitBreaker);
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   const port = parseInt(process.env.PORT || '4000', 10);
   await app.listen(port, '0.0.0.0');
