@@ -1,6 +1,6 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
-import { GeminiVisionService } from './gemini-vision.service';
+import { GeminiVisionService } from '@modules/media/gemini-vision.service';
 
 @Injectable()
 export class ShopImageMapService {

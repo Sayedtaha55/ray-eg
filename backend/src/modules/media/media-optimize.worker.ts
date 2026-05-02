@@ -1,6 +1,6 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { MediaOptimizeQueue } from './media-optimize.queue';
-import { MediaOptimizeService } from './media-optimize.service';
+import { MediaOptimizeService } from '@modules/media/media-optimize.service';
 import { Media3dOptimizeService } from './media-3d-optimize.service';
 
 const enabled = String(process.env.MEDIA_OPT_ENABLE_WORKER || '').toLowerCase().trim() === 'true';

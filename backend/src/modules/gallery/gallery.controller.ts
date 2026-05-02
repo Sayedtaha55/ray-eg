@@ -1,8 +1,8 @@
 import { Controller, Post, Get, Delete, UseGuards, Request, Body, Param, UploadedFile, UseInterceptors, Inject, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { GalleryService } from '@modules/gallery/gallery.service';
 import multer from 'multer';
 

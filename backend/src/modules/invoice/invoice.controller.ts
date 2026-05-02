@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { InvoiceService } from '@modules/invoice/invoice.service';
 
 function parseOptionalDate(value: any) {

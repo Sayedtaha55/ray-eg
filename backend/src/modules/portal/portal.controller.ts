@@ -3,9 +3,9 @@ import type { Response } from 'express';
 import { PortalJwtAuthGuard } from './portal-jwt-auth.guard';
 import { PortalAuthService } from './portal-auth.service';
 import { MapListingService } from '@modules/map-listing/map-listing.service';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
-import { Roles } from './auth/decorators/roles.decorator';
+import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '@modules/auth/guards/roles.guard';
+import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { PrismaService } from '@common/prisma/prisma.service';
 
 @Controller('api/v1/portal')

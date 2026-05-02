@@ -2,8 +2,8 @@ import { Injectable, BadRequestException, NotFoundException, ForbiddenException 
 import { Inject } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { RedisService } from '@common/redis/redis.service';
-import { MediaOptimizeService } from './media-optimize.service';
-import { MediaStorageService } from './media-storage.service';
+import { MediaOptimizeService } from '@modules/media/media-optimize.service';
+import { MediaStorageService } from '@modules/media/media-storage.service';
 
 @Injectable()
 export class GalleryService {
