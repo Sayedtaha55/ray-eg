@@ -38,9 +38,7 @@ export default defineConfig(({ mode }) => {
         registerType: 'autoUpdate',
         manifestFilename: 'manifest.json',
         filename: 'pwa-sw.js',
-        devOptions: {
-          enabled: false,
-        },
+        devOptions: { enabled: false },
         includeAssets: [
           'favicon-16x16.png',
           'favicon-32x32.png',
@@ -58,119 +56,22 @@ export default defineConfig(({ mode }) => {
           description: 'منصة لاكتشاف أفضل المحلات والمطاعم القريبة منك مع العروض والتقييمات',
           start_url: '/',
           display: 'standalone',
-          display_override: ['standalone', 'minimal-ui', 'browser'],
-          background_color: '#ffffff',
-          theme_color: '#00E5FF',
-          orientation: 'portrait-primary',
-          scope: '/',
           lang: 'ar',
           dir: 'rtl',
-          categories: ['shopping', 'food', 'lifestyle'],
-          prefer_related_applications: false,
           icons: [
-            {
-              src: '/icon-192x192.png',
-              sizes: '192x192',
-              type: 'image/png',
-              purpose: 'any maskable',
-            },
-            {
-              src: '/icon-512x512.png',
-              sizes: '512x512',
-              type: 'image/png',
-              purpose: 'any maskable',
-            },
-          ],
-          shortcuts: [
-            {
-              name: 'المحلات',
-              short_name: 'المحلات',
-              description: 'استكشف المحلات القريبة',
-              url: '/shops',
-              icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
-            },
-            {
-              name: 'المطاعم',
-              short_name: 'المطاعم',
-              description: 'اطلب من أفضل المطاعم',
-              url: '/restaurants',
-              icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
-            },
-            {
-              name: 'الخريطة',
-              short_name: 'الخريطة',
-              description: 'عرض المحلات على الخريطة',
-              url: '/map',
-              icons: [{ src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' }],
-            },
-          ],
-        },
-        workbox: {
-          cleanupOutdatedCaches: true,
-          clientsClaim: true,
-          skipWaiting: true,
-          navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/\/api\//],
-          runtimeCaching: [
-            {
-              urlPattern: ({ request }) => request.mode === 'navigate',
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'pages',
-                networkTimeoutSeconds: 10,
-                expiration: { maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 },
-              },
-            },
-            {
-              urlPattern: ({ request }) =>
-                request.destination === 'script' || request.destination === 'style' || request.destination === 'worker',
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'assets',
-                expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
-              },
-            },
-            {
-              urlPattern: ({ request }) => request.destination === 'image',
-              handler: 'StaleWhileRevalidate',
-              options: {
-                cacheName: 'images',
-                expiration: { maxEntries: 200, maxAgeSeconds: 60 * 24 * 60 * 60 },
-              },
-            },
-            {
-              urlPattern: ({ request }) => request.destination === 'font',
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'fonts',
-                expiration: { maxEntries: 50, maxAgeSeconds: 365 * 24 * 60 * 60 },
-              },
-            },
-            {
-              urlPattern: /^https?:\/\/.*\/api\/.*/,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                networkTimeoutSeconds: 8,
-                expiration: { maxEntries: 100, maxAgeSeconds: 5 * 60 },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-                backgroundSync: {
-                  name: 'api-queue',
-                  options: {
-                    maxRetentionTime: 24 * 60,
-                  },
-                },
-              },
-            },
+            { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
           ],
         },
       }),
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(__dirname, './src'),
+        '@core': path.resolve(__dirname, './src/core'),
+        '@features': path.resolve(__dirname, './src/features'),
+        '@shared': path.resolve(__dirname, './src/shared'),
+        '@assets': path.resolve(__dirname, './src/assets'),
       }
     },
     build: {
@@ -188,15 +89,6 @@ export default defineConfig(({ mode }) => {
       chunkSizeWarningLimit: 600,
       minify: 'esbuild',
       sourcemap: mode !== 'production',
-    },
-    esbuild: {
-      drop: mode === 'production' ? ['console', 'debugger'] : [],
-    },
-    optimizeDeps: {
-      include: ['react', 'react-dom', 'react-router-dom', 'framer-motion', 'lucide-react'],
-    },
-    define: {
-      'process.env.NODE_ENV': JSON.stringify(mode),
     },
   };
 });
