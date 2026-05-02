@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './src/index.css';
-import './i18n';
-import ErrorBoundary from './components/common/feedback/ErrorBoundary';
-import { ToastProvider } from './components/common/feedback/Toaster';
+import './index.css';
+import './shared/i18n';
+import ErrorBoundary from './shared/components/common/feedback/ErrorBoundary';
+import { ToastProvider } from './shared/components/common/feedback/Toaster';
 import { registerSW } from 'virtual:pwa-register';
-import { syncService } from './lib/sync-service';
+import { syncService } from './shared/lib/sync-service';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
