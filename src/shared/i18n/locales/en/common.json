@@ -142,6 +142,7 @@
     "price": "Price",
     "actions": "Actions",
     "recover": "Mark Recovered",
+    "recovered": "Recovered",
     "recoveredLabel": "Recovered"
   }
 }
