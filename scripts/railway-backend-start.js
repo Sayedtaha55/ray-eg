@@ -51,6 +51,28 @@ function tscBin() {
   return process.platform === 'win32' ? 'node_modules\\.bin\\tsc.cmd' : 'node_modules/.bin/tsc';
 }
 
+function resolveBackendTsconfigPath() {
+  const candidates = [
+    'backend/tsconfig.json',
+    'tsconfig.json',
+    '../backend/tsconfig.json',
+    '../tsconfig.json',
+  ];
+  return candidates.find((p) => existsSync(p)) || null;
+}
+
+function resolveEntrypointCandidates() {
+  const bases = ['.', '..'];
+  const rels = [
+    'dist/main.js',
+    'dist/src/main.js',
+    'dist-backend/src/main.js',
+    'dist-backend/src/core/main.js',
+    'dist-backend/core/main.js',
+  ];
+  return bases.flatMap((base) => rels.map((rel) => path.join(base, rel).replace(/\\/g, '/')));
+}
+
 function runCapture(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, {
     stdio: 'pipe',
@@ -199,25 +221,27 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
       }
     }
 
-    const candidates = [
-      'dist/main.js',
-      'dist/src/main.js',
-      'dist-backend/src/main.js',
-      'dist-backend/src/core/main.js',
-      'dist-backend/core/main.js',
-    ];
+    const candidates = resolveEntrypointCandidates();
 
     let entry = candidates.find((file) => existsSync(file));
     if (!entry) {
       // Attempt to compile backend during runtime (some platforms don't run build step as expected).
       // eslint-disable-next-line no-console
       console.warn('[railway-backend-start] backend entrypoint not found; attempting backend build then retrying');
-      run(tscBin(), ['-p', 'backend/tsconfig.json']);
+
+      const tsconfigPath = resolveBackendTsconfigPath();
+      if (!tsconfigPath) {
+        // eslint-disable-next-line no-console
+        console.error('[railway-backend-start] could not find backend tsconfig; cwd:', process.cwd());
+      } else {
+        run(tscBin(), ['-p', tsconfigPath]);
+      }
       entry = candidates.find((file) => existsSync(file));
     }
     if (!entry) {
       // eslint-disable-next-line no-console
-      console.error('[railway-backend-start] backend entrypoint not found; checked:', candidates.join(', '));
+      console.error('[railway-backend-start] backend entrypoint not found; cwd:', process.cwd());
+      console.error('[railway-backend-start] checked:', candidates.join(', '));
       process.exit(1);
     }
 
