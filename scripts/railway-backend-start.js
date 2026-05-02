@@ -13,8 +13,8 @@ function run(cmd, args, opts = {}) {
   return res.status ?? 0;
 }
 
-function registerDistBackendAliases() {
-  const distRoot = path.resolve(process.cwd(), 'dist-backend', 'src');
+function registerDistBackendAliases(distRootAbs) {
+  const distRoot = distRootAbs || path.resolve(process.cwd(), 'dist-backend', 'src');
   const aliasPrefixToDir = {
     '@core/': path.join(distRoot, 'core') + path.sep,
     '@modules/': path.join(distRoot, 'modules') + path.sep,
@@ -66,6 +66,7 @@ function resolveEntrypointCandidates() {
   const rels = [
     'dist/main.js',
     'dist/src/main.js',
+    'dist/core/main.js',
     'dist-backend/src/main.js',
     'dist-backend/src/core/main.js',
     'dist-backend/core/main.js',
@@ -246,8 +247,16 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
     }
 
     const absEntry = path.resolve(process.cwd(), entry);
-    if (absEntry.includes(`${path.sep}dist-backend${path.sep}`)) {
-      registerDistBackendAliases();
+
+    // Docker runner image copies /app/dist-backend/src -> /app/dist
+    // so compiled root can be either /app/dist or /app/dist-backend/src.
+    const distRootAbs = (() => {
+      if (existsSync(path.resolve(process.cwd(), 'dist', 'core'))) return path.resolve(process.cwd(), 'dist');
+      if (existsSync(path.resolve(process.cwd(), 'dist-backend', 'src', 'core'))) return path.resolve(process.cwd(), 'dist-backend', 'src');
+      return null;
+    })();
+    if (distRootAbs) {
+      registerDistBackendAliases(distRootAbs);
     }
 
     // Loading the compiled Nest entrypoint will bootstrap the server.
