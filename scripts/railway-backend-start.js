@@ -1,5 +1,7 @@
 const { spawnSync } = require('node:child_process');
 const { existsSync } = require('node:fs');
+const path = require('node:path');
+const Module = require('node:module');
 
 function run(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, {
@@ -11,8 +13,42 @@ function run(cmd, args, opts = {}) {
   return res.status ?? 0;
 }
 
+function registerDistBackendAliases() {
+  const distRoot = path.resolve(process.cwd(), 'dist-backend', 'src');
+  const aliasPrefixToDir = {
+    '@core/': path.join(distRoot, 'core') + path.sep,
+    '@modules/': path.join(distRoot, 'modules') + path.sep,
+    '@shared/': path.join(distRoot, 'shared') + path.sep,
+    '@common/': path.join(distRoot, 'common') + path.sep,
+  };
+
+  // Already registered
+  if (Module.__rayEgAliasPatched) return;
+
+  const originalResolveFilename = Module._resolveFilename;
+  // eslint-disable-next-line no-underscore-dangle
+  Module._resolveFilename = function patchedResolveFilename(request, parent, isMain, options) {
+    if (typeof request === 'string') {
+      for (const [prefix, targetDir] of Object.entries(aliasPrefixToDir)) {
+        if (request.startsWith(prefix)) {
+          const rest = request.slice(prefix.length);
+          const mapped = path.join(targetDir, rest);
+          return originalResolveFilename.call(this, mapped, parent, isMain, options);
+        }
+      }
+    }
+    return originalResolveFilename.call(this, request, parent, isMain, options);
+  };
+
+  Module.__rayEgAliasPatched = true;
+}
+
 function prismaBin() {
   return process.platform === 'win32' ? 'node_modules\\.bin\\prisma.cmd' : 'node_modules/.bin/prisma';
+}
+
+function tscBin() {
+  return process.platform === 'win32' ? 'node_modules\\.bin\\tsc.cmd' : 'node_modules/.bin/tsc';
 }
 
 function runCapture(cmd, args, opts = {}) {
@@ -170,15 +206,30 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
       'dist-backend/src/core/main.js',
       'dist-backend/core/main.js',
     ];
-    const entry = candidates.find((file) => existsSync(file));
+
+    let entry = candidates.find((file) => existsSync(file));
+    if (!entry) {
+      // Attempt to compile backend during runtime (some platforms don't run build step as expected).
+      // eslint-disable-next-line no-console
+      console.warn('[railway-backend-start] backend entrypoint not found; attempting backend build then retrying');
+      run(tscBin(), ['-p', 'backend/tsconfig.json']);
+      entry = candidates.find((file) => existsSync(file));
+    }
     if (!entry) {
       // eslint-disable-next-line no-console
       console.error('[railway-backend-start] backend entrypoint not found; checked:', candidates.join(', '));
       process.exit(1);
     }
 
-    const serverStatus = run('node', [entry]);
-    process.exit(serverStatus);
+    const absEntry = path.resolve(process.cwd(), entry);
+    if (absEntry.includes(`${path.sep}dist-backend${path.sep}`)) {
+      registerDistBackendAliases();
+    }
+
+    // Loading the compiled Nest entrypoint will bootstrap the server.
+    // If it throws, we'll fall into the catch below.
+    // eslint-disable-next-line global-require, import/no-dynamic-require
+    require(absEntry);
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error(e);
