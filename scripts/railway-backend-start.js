@@ -1,4 +1,5 @@
 const { spawnSync } = require('node:child_process');
+const { existsSync } = require('node:fs');
 
 function run(cmd, args, opts = {}) {
   const res = spawnSync(cmd, args, {
@@ -60,7 +61,7 @@ function deployMigrationsCapture() {
 
 function dbPush() {
   const prisma = prismaBin();
-  return run(prisma, ['db', 'push', '--schema', 'prisma/schema.prisma']);
+  return run(prisma, ['db', 'push', '--schema', 'prisma/schema.prisma', '--skip-generate']);
 }
 
 function resolveRolledBack(migrationName) {
@@ -162,7 +163,15 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
       }
     }
 
-    const serverStatus = run('node', ['dist/main.js']);
+    const candidates = ['dist/main.js', 'dist/src/main.js', 'dist-backend/src/main.js'];
+    const entry = candidates.find((file) => existsSync(file));
+    if (!entry) {
+      // eslint-disable-next-line no-console
+      console.error('[railway-backend-start] backend entrypoint not found; checked:', candidates.join(', '));
+      process.exit(1);
+    }
+
+    const serverStatus = run('node', [entry]);
     process.exit(serverStatus);
   } catch (e) {
     // eslint-disable-next-line no-console
