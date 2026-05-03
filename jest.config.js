@@ -14,6 +14,12 @@ module.exports = {
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
+  moduleNameMapper: {
+    '^@core/(.*)$': '<rootDir>/backend/src/core/$1',
+    '^@common/(.*)$': '<rootDir>/backend/src/common/$1',
+    '^@modules/(.*)$': '<rootDir>/backend/src/modules/$1',
+    '^@shared/(.*)$': '<rootDir>/backend/src/shared/$1',
+  },
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   testTimeout: 30000,
 };
