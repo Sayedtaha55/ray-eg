@@ -1,11 +1,13 @@
 import { Injectable, Inject, BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
+import { RedisService } from '@common/redis/redis.service';
 import { GeminiVisionService } from '@modules/media/gemini-vision.service';
 
 @Injectable()
 export class ShopImageMapService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(RedisService) private readonly redis: RedisService,
     @Inject(GeminiVisionService) private readonly geminiVision: GeminiVisionService,
   ) {}
 
@@ -277,7 +279,7 @@ export class ShopImageMapService {
 
     const existing = await (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, shop: { select: { slug: true } } },
     });
 
     if (!existing || existing.shopId !== sid) throw new NotFoundException('الخريطة غير موجودة');
@@ -292,6 +294,12 @@ export class ShopImageMapService {
         data: { isActive: true },
       }),
     ]);
+
+    try {
+      await this.redis.invalidateShopCache(sid, (existing as any).shop?.slug);
+      await this.redis.invalidatePattern(`products:shop:{"shopId":"${sid}"*`);
+      await this.redis.del('products:all:{}');
+    } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
@@ -342,7 +350,7 @@ export class ShopImageMapService {
 
     const map = await (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
-      select: { id: true, shopId: true },
+      select: { id: true, shopId: true, shop: { select: { slug: true } } },
     });
     if (!map || map.shopId !== sid) throw new NotFoundException('الخريطة غير موجودة');
 
@@ -517,6 +525,12 @@ export class ShopImageMapService {
           },
         },
       });
+
+      try {
+        await this.redis.invalidateShopCache(sid, (map as any).shop?.slug);
+        await this.redis.invalidatePattern(`products:shop:{"shopId":"${sid}"*`);
+        await this.redis.del('products:all:{}');
+      } catch {}
 
       return { ...updated, createdSections };
     });
