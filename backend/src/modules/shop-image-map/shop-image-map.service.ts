@@ -104,6 +104,28 @@ export class ShopImageMapService {
     return role;
   }
 
+  /**
+   * Invalidates shop-related caches when image map layouts change.
+   * This is critical for Zero-DB cache hits on public shop profiles.
+   */
+  private async invalidateShopImageMapCache(shopId: string) {
+    const sid = this.normalizeId(shopId);
+    if (!sid) return;
+    try {
+      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
+      if (shop) {
+        // Invalidate main shop cache
+        await this.redis.invalidateShopCache(sid, (shop as any).slug);
+        // Invalidate specific product lists for this shop since hotspots changed
+        await this.redis.invalidatePattern(`products:shop:{"shopId":"${sid}"*`);
+        // Clear general products list
+        await this.redis.del('products:all:{}');
+      }
+    } catch {
+      // Invalidation is best-effort
+    }
+  }
+
   async listByShopForManage(shopId: string, ctx: { role?: any; shopId?: any }) {
     const sid = this.normalizeId(shopId);
     if (!sid) throw new BadRequestException('shopId مطلوب');
@@ -295,17 +317,7 @@ export class ShopImageMapService {
       }),
     ]);
 
-    try {
-      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
-      if (shop) {
-        await this.redis.invalidateShopCache(sid, (shop as any).slug);
-        // Also invalidate specific product lists for this shop since hotspots changed
-        await this.redis.invalidatePattern(`products:shop:{"shopId":"${sid}"*`);
-        // And clear general products list if it was cached
-        await this.redis.del('products:all:{}');
-      }
-    } catch {
-    }
+    await this.invalidateShopImageMapCache(sid);
 
     return (this.prisma as any).shopImageMap.findUnique({
       where: { id: mid },
@@ -535,15 +547,7 @@ export class ShopImageMapService {
       return { ...updated, createdSections };
     });
 
-    try {
-      const shop = await this.prisma.shop.findUnique({ where: { id: sid }, select: { slug: true } });
-      if (shop) {
-        await this.redis.invalidateShopCache(sid, (shop as any).slug);
-        await this.redis.invalidatePattern(`products:shop:{"shopId":"${sid}"*`);
-        await this.redis.del('products:all:{}');
-      }
-    } catch {
-    }
+    await this.invalidateShopImageMapCache(sid);
 
     return result;
   }
