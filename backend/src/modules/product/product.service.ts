@@ -201,24 +201,22 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
-      const pid = String((product as any)?.id || '').trim();
-      if (pid && linkedIds.has(pid)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    const shopId = String((product as any)?.shopId || '').trim();
+    // Parallelize linked hotspot ID and label key lookups to reduce latency.
+    // We catch errors to maintain "fail-open" behavior (showing the product if hotspot check fails).
+    const [linkedIds, labelKeys] = await Promise.all([
+      this.getLinkedImageMapProductIds(shopId).catch(() => new Set<string>()),
+      this.getActiveImageMapHotspotLabelKeys(shopId).catch(() => new Set<string>()),
+    ]);
+
+    const pid = String((product as any)?.id || '').trim();
+    if (pid && linkedIds.has(pid)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
-      if (nameKey && labelKeys.has(nameKey)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    const nameKey = this.normalizeProductNameKey((product as any)?.name);
+    if (nameKey && labelKeys.has(nameKey)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
     try {
