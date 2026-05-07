@@ -1,5 +1,24 @@
 services:
-  # Redis Cache for development
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: ray-postgres-dev
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=ray_marketplace
+      - POSTGRES_USER=ray_user
+      - POSTGRES_PASSWORD=ray_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ray_user -d ray_marketplace"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: ray-redis-dev
@@ -9,32 +28,78 @@ services:
     volumes:
       - redis_dev_data:/data
     command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  # Development Application
-  app:
+  # Backend (NestJS)
+  backend:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: ray-marketplace-dev
+    container_name: ray-backend-dev
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - DATABASE_URL=postgresql://ray_user:ray_password@postgres:5432/ray_marketplace?schema=public&connect_timeout=5
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - BOOT_MODULES=auth
+      - MEDIA_CONTROLLER_MODE=full
+      - MEDIA_OPT_ENABLE_WORKER=false
+      - SHOP_IMPORTS=redis,media
+      - PRISMA_CONNECT_ON_BOOT=true
+      - PRISMA_CONNECT_TIMEOUT_MS=5000
+      - ADMIN_BOOTSTRAP_TOKEN=admin1234
+      - ALLOW_DEV_ADMIN_BOOTSTRAP=true
+      - ALLOW_DEV_MERCHANT_BOOTSTRAP=true
+      - ALLOW_DEV_COURIER_BOOTSTRAP=true
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET:-dev-secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    command: npx tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts
+
+  # Frontend (Vite)
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ray-frontend-dev
     restart: unless-stopped
     ports:
       - "5174:5174"
     environment:
       - NODE_ENV=development
       - VITE_PORT=5174
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - JWT_SECRET=${JWT_SECRET:-}
+      - VITE_BACKEND_URL=http://backend:4000
+      - VITE_HOST=0.0.0.0
+      - VITE_HMR_HOST=localhost
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     depends_on:
-      - redis
+      - backend
     volumes:
       - .:/app
       - /app/node_modules
     command: npm run dev
 
 volumes:
+  postgres_dev_data:
+    driver: local
   redis_dev_data:
     driver: local
 

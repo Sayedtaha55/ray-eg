@@ -1,10 +1,10 @@
-import { Body, Controller, ForbiddenException, Get, Inject, InternalServerErrorException, Logger, Param, Post, Put, Request, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, ForbiddenException, Get, Inject, InternalServerErrorException, Logger, Param, Post, Put, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { CustomersService } from '@modules/customers/customers.service';
 
-@Controller('api/v1/customers')
+@Controller('customers')
 export class CustomersController {
   private readonly logger = new Logger(CustomersController.name);
 

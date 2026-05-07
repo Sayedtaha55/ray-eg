@@ -1,10 +1,10 @@
-import { Controller, Get, Post, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+﻿import { Controller, Get, Post, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { AppsService } from '@modules/apps/apps.service';
 
-@Controller('api/v1/apps')
+@Controller('apps')
 export class AppsController {
   constructor(
     @Inject(AppsService) private readonly apps: AppsService,

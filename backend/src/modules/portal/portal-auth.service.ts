@@ -13,7 +13,152 @@ export class PortalAuthService {
     @Inject(JwtService) private readonly jwtService: JwtService,
   ) {}
 
-  // ─── OTP ────────────────────────────────────────────────────────────────
+  async registerWithPassword(input: { email: string; password: string; name?: string; phone?: string }) {
+    const email = this.normalizeEmail(input?.email);
+    const password = String(input?.password || '');
+    const name = input?.name != null ? String(input.name).trim() : '';
+    const phone = input?.phone ? this.normalizePhone(input.phone) : '';
+
+    if (!email) throw new BadRequestException('البريد الإلكتروني مطلوب');
+    if (!password || password.length < 8) throw new BadRequestException('كلمة المرور يجب ألا تقل عن 8 أحرف');
+
+    const existingEmail = await this.prisma.mapListingOwner.findFirst({ where: { email } });
+    if (existingEmail) throw new BadRequestException('البريد مستخدم بالفعل');
+
+    if (phone) {
+      const existingPhone = await this.prisma.mapListingOwner.findFirst({ where: { phone } });
+      if (existingPhone) throw new BadRequestException('رقم الموبايل مستخدم بالفعل');
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+    const now = new Date();
+
+    const owner = await this.prisma.mapListingOwner.create({
+      data: {
+        email,
+        passwordHash,
+        ...(phone ? { phone } : {}),
+        ...(name ? { name } : {}),
+        lastLogin: now,
+        isActive: true,
+      },
+    });
+
+    const token = this.issuePortalToken(owner.id, owner.phone || undefined);
+
+    return {
+      ok: true,
+      access_token: token,
+      owner: {
+        id: owner.id,
+        phone: owner.phone,
+        name: owner.name,
+        email: owner.email,
+        avatarUrl: owner.avatarUrl,
+      },
+    };
+  }
+
+  async loginWithPassword(input: { email: string; password: string }) {
+    const email = this.normalizeEmail(input?.email);
+    const password = String(input?.password || '');
+    if (!email) throw new BadRequestException('البريد الإلكتروني مطلوب');
+    if (!password) throw new BadRequestException('كلمة المرور مطلوبة');
+
+    const owner = await this.prisma.mapListingOwner.findFirst({ where: { email } });
+    if (!owner || !owner.isActive) throw new UnauthorizedException('بيانات الدخول غير صحيحة');
+    if (!owner.passwordHash) throw new UnauthorizedException('الحساب غير مفعّل بكلمة مرور');
+
+    const match = await bcrypt.compare(password, owner.passwordHash);
+    if (!match) throw new UnauthorizedException('بيانات الدخول غير صحيحة');
+
+    const now = new Date();
+    await this.prisma.mapListingOwner.update({
+      where: { id: owner.id },
+      data: { lastLogin: now },
+    });
+
+    const token = this.issuePortalToken(owner.id, owner.phone || undefined);
+
+    return {
+      ok: true,
+      access_token: token,
+      owner: {
+        id: owner.id,
+        phone: owner.phone,
+        name: owner.name,
+        email: owner.email,
+        avatarUrl: owner.avatarUrl,
+      },
+    };
+  }
+
+  async devPortalLogin() {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    if (env === 'production') {
+      throw new BadRequestException('غير متاح في الإنتاج');
+    }
+
+    const devEmail = 'dev-portal@ray.local';
+    const devName = 'مطور (نشاط خارجي)';
+
+    let owner = await this.prisma.mapListingOwner.findFirst({ where: { email: devEmail } });
+
+    if (!owner) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('devportal123', salt);
+      owner = await this.prisma.mapListingOwner.create({
+        data: {
+          email: devEmail,
+          name: devName,
+          passwordHash,
+          isActive: true,
+          lastLogin: new Date(),
+        },
+      });
+    } else {
+      await this.prisma.mapListingOwner.update({
+        where: { id: owner.id },
+        data: { lastLogin: new Date(), isActive: true },
+      });
+    }
+
+    const token = this.issuePortalToken(owner.id, owner.phone || undefined);
+
+    return {
+      ok: true,
+      access_token: token,
+      owner: {
+        id: owner.id,
+        phone: owner.phone,
+        name: owner.name,
+        email: owner.email,
+        avatarUrl: owner.avatarUrl,
+      },
+    };
+  }
+
+  async changePassword(ownerId: string, currentPassword: string, newPassword: string) {
+    const owner = await this.prisma.mapListingOwner.findUnique({ where: { id: ownerId } });
+    if (!owner || !owner.isActive) throw new UnauthorizedException('بيانات الدخول غير صحيحة');
+    if (!owner.passwordHash) throw new BadRequestException('الحساب ليس لديه كلمة مرور');
+
+    const match = await bcrypt.compare(currentPassword, owner.passwordHash);
+    if (!match) throw new UnauthorizedException('كلمة المرور الحالية غير صحيحة');
+
+    if (!newPassword || newPassword.length < 8) throw new BadRequestException('كلمة المرور الجديدة يجب ألا تقل عن 8 أحرف');
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    await this.prisma.mapListingOwner.update({
+      where: { id: ownerId },
+      data: { passwordHash },
+    });
+
+    return { ok: true };
+  }
 
   async requestOtp(phone: string, purpose: string = 'login', ip?: string) {
     const normalizedPhone = this.normalizePhone(phone);
@@ -159,11 +304,11 @@ export class PortalAuthService {
 
   // ─── JWT ───────────────────────────────────────────────────────────────
 
-  issuePortalToken(ownerId: string, phone: string, purpose?: string) {
+  issuePortalToken(ownerId: string, phone?: string, purpose?: string) {
     return this.jwtService.sign(
       {
         sub: ownerId,
-        phone,
+        ...(phone ? { phone } : {}),
         typ: 'portal',
         ...(purpose ? { purpose } : {}),
       },
@@ -221,5 +366,12 @@ export class PortalAuthService {
     if (/^20\d{9}$/.test(p)) return `+${p}`;
     if (/^\+?\d{7,15}$/.test(p)) return p.startsWith('+') ? p : `+${p}`;
     return '';
+  }
+
+  private normalizeEmail(email: string): string {
+    const e = String(email || '').trim().toLowerCase();
+    if (!e) return '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) return '';
+    return e;
   }
 }

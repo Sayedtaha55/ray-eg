@@ -25,6 +25,7 @@
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "welcomePhone": "Welcome",
+    "welcomeEmail": "Welcome, {{email}}",
     "totalListings": "Total Listings",
     "totalViews": "Total Views",
     "totalClicks": "Total Clicks",
@@ -129,7 +130,15 @@
     "phoneField": "Mobile Number",
     "save": "Save",
     "saving": "Saving...",
-    "saved": "Saved"
+    "saved": "Saved",
+    "changePassword": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "passwordChanged": "Password changed successfully",
+    "passwordRequired": "Current and new password are required",
+    "passwordTooShort": "Password must be at least 8 characters",
+    "passwordMismatch": "New passwords do not match"
   },
   "common": {
     "loading": "Loading...",

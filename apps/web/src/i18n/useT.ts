@@ -1,24 +1,21 @@
 'use client';
 
+import { useMemo } from 'react';
 import { useLocale } from './LocaleProvider';
-import ar from './dictionaries/ar';
-import en from './dictionaries/en';
 
-const dictionaries = { ar, en };
+function getByPath(obj: any, path: string): string | undefined {
+  const parts = path.split('.');
+  let cur: any = obj;
+  for (const p of parts) {
+    if (!cur || typeof cur !== 'object') return undefined;
+    cur = cur[p];
+  }
+  return typeof cur === 'string' ? cur : undefined;
+}
 
 export function useT() {
-  const { locale } = useLocale();
-  const dict = dictionaries[locale] || dictionaries.ar;
-
-  return (key: string, fallback?: string) => {
-    const keys = key.split('.');
-    let value: any = dict;
-
-    for (const k of keys) {
-      value = value?.[k];
-      if (value === undefined) break;
-    }
-
-    return typeof value === 'string' ? value : (fallback ?? key);
-  };
+  const { dict } = useLocale();
+  return useMemo(() => {
+    return (key: string, fallback?: string) => getByPath(dict, key) ?? fallback ?? key;
+  }, [dict]);
 }

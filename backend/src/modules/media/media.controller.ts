@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
+﻿import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -6,6 +6,7 @@ import { MediaPresignDto } from './media-presign.dto';
 import { MediaPresignService } from './media-presign.service';
 import { MediaStorageService } from '@modules/media/media-storage.service';
 import { MediaOptimizeQueue } from './media-optimize.queue';
+import { PrismaService } from '@common/prisma/prisma.service';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -17,7 +18,7 @@ const disableRoles = !isProd && String(process.env.MEDIA_DISABLE_ROLES || '').to
 const guards: any[] = disableGuards ? [] : [JwtAuthGuard, RolesGuard];
 const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
 
-@Controller('api/v1/media')
+@Controller('media')
 export class MediaController {
   constructor(
     @Inject(MediaPresignService) private readonly mediaPresign: MediaPresignService,
@@ -61,6 +62,11 @@ export class MediaController {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async uploadMultipart(@Request() req, @Res({ passthrough: true }) res: any) {
+    // In production, direct server uploads are blocked — use presign flow instead
+    if (isProd) {
+      throw new BadRequestException('Direct uploads are disabled in production. Use the presign flow (POST /api/v1/media/presign → PUT → POST /api/v1/media/complete).');
+    }
+
     const nodeEnv = String(process.env.NODE_ENV || '').toLowerCase();
     const isDev = nodeEnv !== 'production';
     const host = String(req?.headers?.host || '').toLowerCase();
@@ -151,6 +157,11 @@ export class MediaController {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async upload(@Request() req) {
+    // In production, direct PUT uploads are blocked — use presign flow
+    if (isProd) {
+      throw new BadRequestException('Direct uploads are disabled in production. Use the presign flow.');
+    }
+
     const keyRaw = String(req?.query?.key || '').trim();
     if (!keyRaw) throw new BadRequestException('key مطلوب');
 
@@ -212,7 +223,7 @@ export class MediaController {
   }
 }
 
-@Controller('api/v1/media')
+@Controller('media')
 export class MediaControllerLite {
   @Get('ping')
   ping() {
@@ -220,10 +231,11 @@ export class MediaControllerLite {
   }
 }
 
-@Controller('api/v1/media')
+@Controller('media')
 export class MediaControllerPresignOnly {
   constructor(
     @Inject(MediaPresignService) private readonly mediaPresign: MediaPresignService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
     @Optional() private readonly mediaOptimizeQueue?: MediaOptimizeQueue,
   ) {}
 
@@ -259,12 +271,48 @@ export class MediaControllerPresignOnly {
   async complete(@Request() req, @Body() body: any) {
     const key = String(body?.key || '').trim();
     const mimeType = String(body?.mimeType || '').toLowerCase().trim();
-    const purpose = typeof body?.purpose === 'string' ? String(body.purpose).trim() : undefined;
+    const purpose = typeof body?.purpose === 'string' ? String(body.purpose).trim() : 'images';
+    const publicUrl = typeof body?.publicUrl === 'string' ? String(body.publicUrl).trim() : '';
+    const fileSize = typeof body?.fileSize === 'number' ? body.fileSize : null;
+    const width = typeof body?.width === 'number' ? body.width : null;
+    const height = typeof body?.height === 'number' ? body.height : null;
+    const linkedType = typeof body?.linkedType === 'string' ? String(body.linkedType).trim() : null;
+    const linkedId = typeof body?.linkedId === 'string' ? String(body.linkedId).trim() : null;
+
     if (!key) throw new BadRequestException('key مطلوب');
     if (!mimeType) throw new BadRequestException('mimeType مطلوب');
 
+    const role = String(req.user?.role || '').toUpperCase();
+    const shopId = role === 'ADMIN' ? String(body?.shopId || req.user?.shopId || '').trim() : String(req.user?.shopId || '').trim();
+    const uploadedBy = String(req.user?.id || '').trim() || null;
+
+    // Persist metadata in Media table
+    let mediaId: string | null = null;
+    try {
+      const media = await this.prisma.media.create({
+        data: {
+          shopId: shopId || 'unknown',
+          uploadedBy,
+          purpose,
+          originalKey: key,
+          originalUrl: publicUrl,
+          mimeType,
+          fileSize: fileSize ? BigInt(fileSize) : null,
+          width,
+          height,
+          linkedType,
+          linkedId,
+          optimizationStatus: 'PENDING',
+        },
+      });
+      mediaId = media.id;
+    } catch (e: any) {
+      // Non-fatal: metadata save failure should not block the response
+      console.error('[MediaControllerPresignOnly] Failed to save media metadata:', e?.message || e);
+    }
+
     if (!this.mediaOptimizeQueue) {
-      return { jobId: '', state: 'queued', queued: false };
+      return { jobId: '', state: 'queued', queued: false, mediaId };
     }
 
     const jobId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
@@ -272,10 +320,10 @@ export class MediaControllerPresignOnly {
     try {
       await this.mediaOptimizeQueue.enqueue({ jobId, key, mimeType, purpose });
     } catch {
-      return { jobId, state: 'queued', queued: false };
+      return { jobId, state: 'queued', queued: false, mediaId };
     }
 
-    return { jobId, state: 'queued', queued: true };
+    return { jobId, state: 'queued', queued: true, mediaId };
   }
 
   @Get('status')
@@ -300,9 +348,13 @@ export class MediaControllerPresignOnly {
   }
 }
 
-@Controller('api/v1/media')
+@Controller('media')
 export class MediaControllerUploadOnly {
   constructor(@Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService) {}
+
+  private isProdBlock() {
+    if (isProd) throw new BadRequestException('Direct uploads are disabled in production. Use the presign flow.');
+  }
 
   private getMaxUploadBytes() {
     const raw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
@@ -315,6 +367,7 @@ export class MediaControllerUploadOnly {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async uploadMultipart(@Request() req, @Res({ passthrough: true }) res: any) {
+    this.isProdBlock();
     const multerMod: any = await import('multer');
     const multer: any = multerMod?.default ?? multerMod;
 
@@ -377,8 +430,12 @@ export class MediaControllerUploadOnly {
   }
 }
 
-@Controller('api/v1/media')
+@Controller('media')
 export class MediaControllerPutOnly {
+  private isProdBlock() {
+    if (isProd) throw new BadRequestException('Direct uploads are disabled in production. Use the presign flow.');
+  }
+
   private getMaxUploadBytes() {
     const raw = String(process.env.MEDIA_MAX_UPLOAD_MB || '4096').trim();
     const n = Number(raw);
@@ -390,6 +447,7 @@ export class MediaControllerPutOnly {
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
   async upload(@Request() req) {
+    this.isProdBlock();
     const keyRaw = String(req?.query?.key || '').trim();
     if (!keyRaw) throw new BadRequestException('key مطلوب');
 

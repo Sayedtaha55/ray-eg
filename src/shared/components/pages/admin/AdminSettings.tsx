@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Settings, Shield, Globe, Save, RefreshCw, Play, AlertTriangle, UserCheck } from 'lucide-react';
+import { Settings, Shield, Globe, Save, RefreshCw, Play, AlertTriangle } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { useTranslation } from 'react-i18next';
@@ -10,10 +10,6 @@ const AdminSettings: React.FC = () => {
   const { addToast } = useToast();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeResult, setUpgradeResult] = useState<any>(null);
-  const [impersonateListingId, setImpersonateListingId] = useState('');
-  const [impersonateLoading, setImpersonateLoading] = useState(false);
-  const [impersonateResult, setImpersonateResult] = useState<any>(null);
-
   const runUpgrade = async (dryRun: boolean) => {
     setUpgradeLoading(true);
     try {
@@ -123,81 +119,6 @@ const AdminSettings: React.FC = () => {
             <div className="w-12 h-6 bg-[#00E5FF] rounded-full relative cursor-pointer">
               <div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full translate-x-6" />
             </div>
-          </div>
-        </section>
-
-        <section className="bg-slate-900 border border-white/5 rounded-[3rem] p-10 space-y-8">
-          <h3 className="text-xl font-black text-white flex items-center gap-3 flex-row-reverse">
-            <UserCheck size={20} className="text-[#00E5FF]" />
-            دخول مطور نشاط خارجي (Developer Shortcut)
-          </h3>
-          <div className="p-5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex gap-3 flex-row-reverse">
-            <UserCheck size={20} className="text-cyan-400 shrink-0" />
-            <div className="text-right">
-              <p className="text-cyan-200 font-bold text-sm">ادخل كبصاحب النشاط عشان تشوف البورتال زيهم بالظبط</p>
-              <p className="text-cyan-200/70 font-bold text-xs mt-1">التوكن بيفضل 15 دقيقة بس</p>
-            </div>
-          </div>
-          <div className="space-y-3">
-            <input
-              type="text"
-              dir="ltr"
-              placeholder="Listing ID (e.g. clxxxxxxxxxxxxxx)"
-              value={impersonateListingId}
-              onChange={(e) => setImpersonateListingId(e.target.value)}
-              className="w-full bg-slate-800 border-none rounded-xl py-4 px-6 text-white font-bold outline-none font-mono text-sm"
-            />
-            <button
-              disabled={impersonateLoading || !impersonateListingId.trim()}
-              onClick={async () => {
-                setImpersonateLoading(true);
-                setImpersonateResult(null);
-                try {
-                  const { portalAdminImpersonate } = await import('@/services/api/modules/portal');
-                  const res = await portalAdminImpersonate(impersonateListingId.trim());
-                  setImpersonateResult(res);
-                  addToast('تم إنشاء توكن الدخول بنجاح', 'success');
-                } catch (e: any) {
-                  addToast(String(e?.message || 'حصل خطأ'), 'error');
-                } finally {
-                  setImpersonateLoading(false);
-                }
-              }}
-              className="w-full py-4 bg-[#00E5FF] text-black rounded-2xl font-black hover:opacity-90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
-            >
-              <UserCheck size={18} />
-              {impersonateLoading ? 'جاري...' : 'إنشاء توكن دخول'}
-            </button>
-            {impersonateResult && (
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 space-y-3">
-                <div className="text-xs font-black text-slate-400 uppercase tracking-widest">Access Token</div>
-                <div className="bg-slate-800 rounded-xl p-3 text-cyan-300 font-mono text-xs break-all" dir="ltr">{impersonateResult.access_token}</div>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase">Owner ID</div>
-                    <div className="text-sm font-bold text-white truncate" dir="ltr">{impersonateResult.ownerId}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase">Phone</div>
-                    <div className="text-sm font-bold text-white" dir="ltr">{impersonateResult.phone}</div>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black text-slate-400 uppercase">Expires</div>
-                    <div className="text-sm font-bold text-white">{impersonateResult.expiresIn}</div>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    localStorage.setItem('portal_token', impersonateResult.access_token);
-                    window.open('/portal', '_blank');
-                  }}
-                  className="w-full py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-all flex items-center justify-center gap-2"
-                >
-                  <UserCheck size={16} />
-                  افتح البورتال كصاحب النشاط
-                </button>
-              </div>
-            )}
           </div>
         </section>
 

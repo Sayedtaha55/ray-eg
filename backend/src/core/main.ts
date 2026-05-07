@@ -80,6 +80,9 @@ async function bootstrap() {
     resetTimeoutMs: parseInt(process.env.CIRCUIT_BREAKER_RESET_MS || '30000', 10),
   });
   app.use('/api', apiCircuitBreaker.use.bind(apiCircuitBreaker));
+  app.setGlobalPrefix('api/v1', {
+    exclude: ['monitoring', 'monitoring/health'],
+  });
   app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
   const port = parseInt(process.env.PORT || '4000', 10);
   await app.listen(port, '0.0.0.0');

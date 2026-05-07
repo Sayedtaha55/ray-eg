@@ -1,4 +1,4 @@
-import {
+﻿import {
   Controller,
   Post,
   Get,
@@ -18,7 +18,7 @@ import { KnowledgeBaseService } from './knowledge-base.service';
 import { AiJobsService, AiJobType } from './ai-jobs.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 
-@Controller('api/v1/ai')
+@Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
   private readonly logger = new Logger(AiController.name);

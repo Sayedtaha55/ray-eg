@@ -1,10 +1,10 @@
-import { Controller, Get, Patch, Post, Body, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+﻿import { Controller, Get, Patch, Post, Body, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { CourierService } from '@modules/courier/courier.service';
 
-@Controller('api/v1/courier')
+@Controller('courier')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('courier')
 export class CourierController {

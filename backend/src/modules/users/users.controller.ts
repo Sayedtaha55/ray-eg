@@ -1,10 +1,10 @@
-import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject, Request, BadRequestException, Query } from '@nestjs/common';
+﻿import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject, Request, BadRequestException, Query } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { UsersService } from '@modules/users/users.service';
 
-@Controller('api/v1/users')
+@Controller('users')
 export class UsersController {
   constructor(@Inject(UsersService) private readonly usersService: UsersService) {}
 

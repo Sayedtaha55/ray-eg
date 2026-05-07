@@ -1,4 +1,4 @@
-import { Controller, Get, Patch, Param, Query, UseGuards, Request, BadRequestException, Inject, Body, Post } from '@nestjs/common';
+﻿import { Controller, Get, Patch, Param, Query, UseGuards, Request, BadRequestException, Inject, Body, Post } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -46,7 +46,7 @@ class UpdateBookingStatusDto {
   status!: string;
 }
 
-@Controller('api/v1/bookings')
+@Controller('bookings')
 export class BookingsController {
   constructor(
     @Inject(BookingsService) private readonly bookingsService: BookingsService,

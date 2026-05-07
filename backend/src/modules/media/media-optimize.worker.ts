@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { MediaOptimizeQueue } from './media-optimize.queue';
 import { MediaOptimizeService } from '@modules/media/media-optimize.service';
 import { Media3dOptimizeService } from './media-3d-optimize.service';
+import { PrismaService } from '@common/prisma/prisma.service';
 
 const enabled = String(process.env.MEDIA_OPT_ENABLE_WORKER || '').toLowerCase().trim() === 'true';
 
@@ -14,6 +15,7 @@ export class MediaOptimizeWorker implements OnModuleInit, OnModuleDestroy {
     private readonly queue: MediaOptimizeQueue,
     private readonly optimize: MediaOptimizeService,
     private readonly optimize3d: Media3dOptimizeService,
+    private readonly prisma: PrismaService,
   ) {
     console.log('[MediaOptimizeWorker] constructor');
   }
@@ -55,10 +57,46 @@ export class MediaOptimizeWorker implements OnModuleInit, OnModuleDestroy {
           key: (out as any)?.key || (out as any)?.optimizedKey,
           thumbUrl: (out as any)?.thumbUrl,
           thumbKey: (out as any)?.thumbKey,
+          mediumUrl: (out as any)?.mediumUrl,
+          mediumKey: (out as any)?.mediumKey,
         });
+
+        // Update Media table with variant URLs
+        try {
+          await this.prisma.media.updateMany({
+            where: { originalKey: job.key, optimizationStatus: 'PROCESSING' },
+            data: {
+              thumbKey: (out as any)?.thumbKey || null,
+              thumbUrl: (out as any)?.thumbUrl || null,
+              smallKey: null,
+              smallUrl: null,
+              mediumKey: (out as any)?.mediumKey || null,
+              mediumUrl: (out as any)?.mediumUrl || null,
+              optimizedKey: (out as any)?.key || (out as any)?.optimizedKey || null,
+              optimizedUrl: (out as any)?.url || (out as any)?.optimizedUrl || null,
+              optimizationStatus: 'DONE',
+              optimizationError: null,
+            },
+          });
+        } catch (e: any) {
+          console.error('[MediaOptimizeWorker] Failed to update media variants:', e?.message || e);
+        }
       } catch (e: any) {
         const msg = e?.message ? String(e.message) : 'Optimization failed';
         await this.queue.setStatus(job.jobId, { state: 'failed', finishedAt: new Date().toISOString(), error: msg });
+
+        // Mark Media row as FAILED
+        try {
+          await this.prisma.media.updateMany({
+            where: { originalKey: job.key, optimizationStatus: { in: ['PENDING', 'PROCESSING'] } },
+            data: {
+              optimizationStatus: 'FAILED',
+              optimizationError: msg.slice(0, 500),
+            },
+          });
+        } catch (e2: any) {
+          console.error('[MediaOptimizeWorker] Failed to mark media as failed:', e2?.message || e2);
+        }
       }
     }
     this.running = false;

@@ -1,16 +1,108 @@
 'use client';
 
-import React from 'react';
-import { BarChart3 } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useT } from '@/i18n/useT';
 
-const ReportsTab: React.FC<{ analytics: any; sales: any[]; reservations: any[] }> = () => {
+type Props = { analytics: any; sales: any[]; reservations?: any[] };
+
+const ReportsTab: React.FC<Props> = ({ analytics, sales, reservations }) => {
   const t = useT();
+  const [range, setRange] = useState<'30d' | '6m' | '12m'>('6m');
+  const [recharts, setRecharts] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => { try { const mod = await import('recharts'); if (cancelled) return; setRecharts(mod); } catch {} })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const R = recharts;
+  const safeSales = Array.isArray(sales) ? sales : [];
+  const safeReservations = Array.isArray(reservations) ? reservations : [];
+  const safeAnalytics = analytics || {};
+
+  const successfulStatuses = new Set(['CONFIRMED', 'PREPARING', 'READY', 'DELIVERED']);
+  const isSuccessful = (s: any) => successfulStatuses.has(String(s?.status || '').toUpperCase());
+  const isReservationCompleted = (r: any) => { const st = String(r?.status || '').trim().toUpperCase(); return st === 'COMPLETED' || st === 'COMPLETEDRESERVATION'; };
+
+  const now = new Date();
+  const start = new Date(now);
+  if (range === '30d') start.setDate(start.getDate() - 30);
+  else if (range === '12m') start.setFullYear(start.getFullYear() - 1);
+  else start.setMonth(start.getMonth() - 6);
+
+  const salesInRange = safeSales.filter((s: any) => { const ts = new Date(s.created_at || s.createdAt || 0).getTime(); return ts >= start.getTime() && ts <= now.getTime() && isSuccessful(s); });
+  const reservationsInRange = safeReservations.filter((r: any) => { const ts = new Date(r.created_at || r.createdAt || 0).getTime(); return ts >= start.getTime() && ts <= now.getTime() && isReservationCompleted(r); });
+
+  const rangeMonths = range === '12m' ? 12 : 6;
+  const monthNames = [t('business.reports.months.jan'), t('business.reports.months.feb'), t('business.reports.months.mar'), t('business.reports.months.apr'), t('business.reports.months.may'), t('business.reports.months.jun'), t('business.reports.months.jul'), t('business.reports.months.aug'), t('business.reports.months.sep'), t('business.reports.months.oct'), t('business.reports.months.nov'), t('business.reports.months.dec')];
+  const monthlyBuckets: Record<string, number> = {};
+
+  if (range !== '30d') {
+    const mStart = new Date(now); mStart.setDate(1); mStart.setHours(0, 0, 0, 0); mStart.setMonth(mStart.getMonth() - (rangeMonths - 1));
+    for (let i = 0; i < rangeMonths; i++) { const d = new Date(mStart); d.setMonth(mStart.getMonth() + i); const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; monthlyBuckets[key] = 0; }
+    for (const s of salesInRange) { const dt = new Date(s.created_at || s.createdAt || 0); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; if (typeof monthlyBuckets[key] === 'number') monthlyBuckets[key] += Number(s.total || 0); }
+    for (const r of reservationsInRange) { const dt = new Date(r.created_at || r.createdAt || 0); const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`; if (typeof monthlyBuckets[key] === 'number') monthlyBuckets[key] += Number(r.itemPrice || r.item_price || 0); }
+  }
+
+  const monthlyData = range === '30d' ? [] : Object.keys(monthlyBuckets).sort().map((key) => { const [, m] = key.split('-'); const monthIndex = Math.max(0, Math.min(11, Number(m) - 1)); return { name: monthNames[monthIndex], revenue: Math.round(monthlyBuckets[key] || 0) }; });
+
+  const totalRevenue = salesInRange.reduce((sum: number, s: any) => sum + Number(s.total || 0), 0) + reservationsInRange.reduce((sum: number, r: any) => sum + Number(r.itemPrice || r.item_price || 0), 0);
+  const totalOrders = salesInRange.length + reservationsInRange.length;
+  const avgBasket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+  const visitors = Number((safeAnalytics as any).visitorsCount ?? (safeAnalytics as any).visitors ?? 0);
+  const conversion = visitors > 0 ? (totalOrders / visitors) * 100 : 0;
+
+  const chartBody = useMemo(() => {
+    if (!R) return null;
+    const { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } = R;
+    return (
+      <ResponsiveContainer width="100%" height={420} minWidth={300} minHeight={300}>
+        <BarChart data={monthlyData}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
+          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94a3b8' }} />
+          <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px rgba(0,0,0,0.1)' }} />
+          <Bar dataKey="revenue" fill="#00E5FF" radius={[8, 8, 0, 0]} barSize={40} />
+        </BarChart>
+      </ResponsiveContainer>
+    );
+  }, [R, monthlyData]);
+
+  const SummaryCard = ({ label, value, growth }: any) => {
+    const growthNum = typeof growth === 'number' ? growth : Number(growth || 0);
+    const sign = growthNum > 0 ? '+' : '';
+    const text = `${sign}${Math.round(growthNum)}${t('business.reports.percent')}`;
+    const cls = growthNum >= 0 ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50';
+    return (
+      <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 text-right">
+        <p className="text-slate-400 font-black text-xs uppercase tracking-widest mb-2">{label}</p>
+        <div className="flex items-end justify-between flex-row-reverse">
+          <span className="text-3xl font-black">{value}</span>
+          <span className={`${cls} font-bold text-xs px-3 py-1 rounded-full`}>{text}</span>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm text-right">
-      <h2 className="text-2xl font-black text-slate-900 mb-8">{t('business.dashboardTabs.reports')}</h2>
-      <BarChart3 size={48} className="mx-auto text-slate-200 mb-4" />
-      <p className="text-slate-400 font-bold text-center">{t('business.reports.noReports')}</p>
+    <div className="space-y-6 md:space-y-10">
+      <div className="bg-white p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 md:mb-12">
+          <h3 className="text-2xl md:text-3xl font-black">{t('business.reports.monthlyRevenuePerformance')}</h3>
+          <div className="flex gap-2">
+            <button onClick={() => setRange('30d')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '30d' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.30days')}</button>
+            <button onClick={() => setRange('6m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '6m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.6months')}</button>
+            <button onClick={() => setRange('12m')} className={`px-3 py-2 md:px-4 rounded-xl text-xs font-bold ${range === '12m' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-600'}`}>{t('business.reports.12months')}</button>
+          </div>
+        </div>
+        {range === '30d' ? <div className="py-16 md:py-24 text-center text-slate-300 font-bold">{t('business.reports.selectRangeForChart')}</div> : <div className="w-full min-w-[300px] min-h-[300px] md:min-h-[400px]">{chartBody}</div>}
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-8">
+        <SummaryCard label={t('business.reports.avgBasketValue')} value={`${t('business.reports.currency')} ${Math.round(avgBasket).toLocaleString()}`} growth={0} />
+        <SummaryCard label={t('business.reports.conversionRate')} value={`${conversion.toFixed(1)}%`} growth={0} />
+        <SummaryCard label={t('business.reports.periodRevenue')} value={`${t('business.reports.currency')} ${Math.round(totalRevenue).toLocaleString()}`} growth={0} />
+      </div>
     </div>
   );
 };

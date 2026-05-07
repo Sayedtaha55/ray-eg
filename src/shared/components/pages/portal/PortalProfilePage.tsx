@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { portalGetMe, portalUpdateMe, type PortalOwner } from '@/services/api/modules/portal';
+import { portalGetMe, portalUpdateMe, portalChangePassword, type PortalOwner } from '@/services/api/modules/portal';
 
 const PortalProfilePage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -13,6 +13,13 @@ const PortalProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordSaved, setPasswordSaved] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -89,6 +96,72 @@ const PortalProfilePage: React.FC = () => {
         >
           {saving ? t('portal.profile.saving') : t('portal.profile.save')}
         </button>
+      </div>
+
+      {/* Password Change */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-4">
+        <button
+          type="button"
+          onClick={() => setShowPasswordSection(!showPasswordSection)}
+          className="flex items-center justify-between w-full"
+        >
+          <h2 className="text-lg font-semibold text-gray-900">{t('portal.profile.changePassword')}</h2>
+          <svg className={`w-5 h-5 text-gray-400 transition-transform ${showPasswordSection ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+        </button>
+
+        {showPasswordSection && (
+          <div className="space-y-4 pt-2">
+            {passwordError && (
+              <div className={'p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm'}>{passwordError}</div>
+            )}
+            {passwordSaved && (
+              <div className={'p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm'}>{t('portal.profile.passwordChanged')}</div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.profile.currentPassword')}</label>
+              <input type="password" dir="ltr" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.profile.newPassword')}</label>
+              <input type="password" dir="ltr" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('portal.profile.confirmPassword')}</label>
+              <input type="password" dir="ltr" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+            </div>
+            <div className="flex justify-end">
+              <button
+                onClick={async () => {
+                  setPasswordError('');
+                  setPasswordSaved(false);
+                  if (!currentPassword || !newPassword) { setPasswordError(t('portal.profile.passwordRequired')); return; }
+                  if (newPassword.length < 8) { setPasswordError(t('portal.profile.passwordTooShort')); return; }
+                  if (newPassword !== confirmPassword) { setPasswordError(t('portal.profile.passwordMismatch')); return; }
+                  setPasswordSaving(true);
+                  try {
+                    await portalChangePassword(currentPassword, newPassword);
+                    setPasswordSaved(true);
+                    setCurrentPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setTimeout(() => setPasswordSaved(false), 3000);
+                  } catch (err: any) {
+                    setPasswordError(err?.message || t('portal.common.error'));
+                  } finally {
+                    setPasswordSaving(false);
+                  }
+                }}
+                disabled={passwordSaving}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:bg-blue-400 transition-colors"
+              >
+                {passwordSaving ? t('portal.profile.saving') : t('portal.profile.changePassword')}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, UseGuards, Request, Body, Param, UploadedFile, UseInterceptors, Inject, BadRequestException } from '@nestjs/common';
+﻿import { Controller, Post, Get, Delete, UseGuards, Request, Body, Param, UploadedFile, UseInterceptors, Inject, BadRequestException } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
@@ -11,7 +11,7 @@ import multer from 'multer';
  const galleryUploadMaxMb = Math.max(1, Number(galleryUploadMaxMbRaw) || (isProd ? 20 : 80));
  const galleryUploadMaxBytes = Math.floor(galleryUploadMaxMb * 1024 * 1024);
 
-@Controller('api/v1/gallery')
+@Controller('gallery')
 export class GalleryController {
   constructor(
     @Inject(GalleryService) private readonly galleryService: GalleryService,

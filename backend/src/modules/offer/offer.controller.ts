@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject, Query, ForbiddenException } from '@nestjs/common';
+﻿import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject, Query, ForbiddenException } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -10,7 +10,7 @@ import { OfferService } from '@modules/offer/offer.service';
    return Number.isNaN(n) ? undefined : n;
  }
 
-@Controller('api/v1/offers')
+@Controller('offers')
 export class OfferController {
   constructor(@Inject(OfferService) private readonly offerService: OfferService) {}
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+﻿import { Controller, Get, Post, Patch, Delete, Param, Body, Query, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { MeasurementService } from '@modules/measurement/measurement.service';
 import { IsNumber, IsOptional, IsString, IsBoolean, Min, MinLength, IsArray, ArrayMaxSize, ValidateNested } from 'class-validator';
@@ -116,7 +116,7 @@ function parseOptionalNumber(value: any) {
   return Number.isFinite(n) ? n : undefined;
 }
 
-@Controller('api/v1/measurements')
+@Controller('measurements')
 export class MeasurementController {
   constructor(
     @Inject(MeasurementService) private readonly measurementService: MeasurementService,

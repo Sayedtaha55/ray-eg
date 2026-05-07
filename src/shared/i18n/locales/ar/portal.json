@@ -25,6 +25,7 @@
   "dashboard": {
     "welcome": "أهلاً بك، {{name}}",
     "welcomePhone": "أهلاً بك",
+    "welcomeEmail": "أهلاً بك، {{email}}",
     "totalListings": "إجمالي الأنشطة",
     "totalViews": "إجمالي المشاهدات",
     "totalClicks": "إجمالي النقرات",
@@ -129,7 +130,15 @@
     "phoneField": "رقم الموبايل",
     "save": "حفظ",
     "saving": "جاري الحفظ...",
-    "saved": "تم الحفظ"
+    "saved": "تم الحفظ",
+    "changePassword": "تغيير كلمة المرور",
+    "currentPassword": "كلمة المرور الحالية",
+    "newPassword": "كلمة المرور الجديدة",
+    "confirmPassword": "تأكيد كلمة المرور",
+    "passwordChanged": "تم تغيير كلمة المرور بنجاح",
+    "passwordRequired": "كلمة المرور الحالية والجديدة مطلوبة",
+    "passwordTooShort": "كلمة المرور يجب ألا تقل عن 8 أحرف",
+    "passwordMismatch": "كلمة المرور الجديدة غير متطابقة"
   },
   "common": {
     "loading": "جاري التحميل...",

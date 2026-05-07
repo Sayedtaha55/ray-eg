@@ -1,14 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from '../backend/redis/redis.service';
-import { PrismaService } from '../backend/prisma/prisma.service';
-import { ShopService } from '../backend/shop.service';
-import { MonitoringService } from '../backend/monitoring/monitoring.service';
-import { MediaCompressionService } from '../backend/media-compression.service';
-import { EmailService } from '../backend/email.service';
-import { ShopSettingsService } from '../backend/shop-settings.service';
-import { ShopPublicQueryService } from '../backend/shop-public-query.service';
-import { ShopMediaService } from '../backend/shop-media.service';
-import { ShopAnalyticsService } from '../backend/shop-analytics.service';
+import { RedisService } from '@common/redis/redis.service';
+import { PrismaService } from '@common/prisma/prisma.service';
+import { ShopService } from '@modules/shop/shop.service';
+import { MonitoringService } from '@common/monitoring/monitoring.service';
+import { MediaCompressionService } from '@modules/media/media-compression.service';
+import { EmailService } from '@modules/email/email.service';
+import { ShopSettingsService } from '@modules/shop/shop-settings.service';
+import { ShopPublicQueryService } from '@modules/shop/shop-public-query.service';
+import { ShopMediaService } from '@modules/shop/shop-media.service';
+import { ShopAnalyticsService } from '@modules/shop/shop-analytics.service';
 
 const mockRedis = {
   get: jest.fn(),

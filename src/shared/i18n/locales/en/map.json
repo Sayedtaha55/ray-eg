@@ -46,5 +46,14 @@
     "submittedTitle": "Listing Submitted!",
     "submittedDesc": "Your business listing has been submitted and will appear on the map after admin review.",
     "goToMap": "Go to Map"
+  },
+  "listingDetail": {
+    "notFound": "Listing not found",
+    "backToMap": "Back to Map",
+    "branches": "Branches",
+    "primary": "Primary",
+    "directions": "Directions",
+    "contact": "Contact Info",
+    "noContact": "No contact info available"
   }
 }

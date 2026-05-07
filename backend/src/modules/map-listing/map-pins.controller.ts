@@ -1,7 +1,7 @@
-import { Controller, Get, Query, Inject } from '@nestjs/common';
+﻿import { Controller, Get, Query, Inject } from '@nestjs/common';
 import { MapListingService } from '@modules/map-listing/map-listing.service';
 
-@Controller('api/v1/map')
+@Controller('map')
 export class MapPinsController {
   constructor(@Inject(MapListingService) private readonly mapListingService: MapListingService) {}
 

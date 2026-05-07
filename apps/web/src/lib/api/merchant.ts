@@ -1,85 +1,133 @@
-// Placeholder for merchant API for Next.js migration
-// In a real scenario, this would use fetch() or a shared httpClient
+'use client';
 
-export async function merchantGetMyShop() {
-  const res = await fetch('/api/v1/merchant/my-shop');
-  if (!res.ok) throw new Error('Failed to fetch shop');
-  return res.json();
-}
+import { clientFetch } from './client';
 
-export async function merchantGetProducts(shopId: string) {
-  const res = await fetch(`/api/v1/merchant/products?shopId=${shopId}`);
-  return res.json();
-}
-
-export async function merchantGetReservations(shopId: string) {
-  const res = await fetch(`/api/v1/merchant/reservations?shopId=${shopId}`);
-  return res.json();
-}
-
-export async function merchantGetOrders(params: any) {
-  const query = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/v1/merchant/orders?${query}`);
-  return res.json();
-}
-
-export async function merchantGetShopAnalytics(shopId: string, params: any) {
-  const query = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/v1/merchant/analytics/${shopId}?${query}`);
-  return res.json();
-}
-
-export async function merchantGetNotifications(shopId: string) {
-  const res = await fetch(`/api/v1/merchant/notifications?shopId=${shopId}`);
-  return res.json();
-}
-
-export async function merchantGetOffers() {
-  const res = await fetch('/api/v1/merchant/offers');
-  return res.json();
-}
-
-export async function merchantGetGallery(shopId: string) {
-  const res = await fetch(`/api/v1/merchant/gallery?shopId=${shopId}`);
-  return res.json();
-}
-
-export async function merchantDeleteProduct(id: string) {
-  return fetch(`/api/v1/merchant/products/${id}`, { method: 'DELETE' });
-}
-
-export async function merchantDeleteOffer(id: string) {
-  return fetch(`/api/v1/merchant/offers/${id}`, { method: 'DELETE' });
-}
-
-export async function merchantUpdateReservationStatus(id: string, status: string) {
-  return fetch(`/api/v1/merchant/reservations/${id}/status`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+/* ── Shop ─────────────────────────────────────────── */
+export const merchantGetMyShop = () => clientFetch<any>('/v1/shops/me');
+export const merchantUpdateMyShop = (data: Record<string, unknown>) =>
+  clientFetch<any>('/v1/shops/me', { method: 'PATCH', body: JSON.stringify(data) });
+export const merchantUpdateShopDesign = (data: Record<string, unknown>) =>
+  clientFetch<any>('/v1/shops/me/design', { method: 'PATCH', body: JSON.stringify(data) });
+export const merchantUploadBanner = (formData: FormData) =>
+  fetch('/api/v1/shops/me/banner', { method: 'POST', body: formData }).then(r => {
+    if (!r.ok) throw new Error('Upload failed');
+    return r.json();
   });
-}
 
-export async function merchantConvertReservationToCustomer(data: any) {
-  return fetch('/api/v1/merchant/customers/from-reservation', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+/* ── Products ─────────────────────────────────────── */
+export const merchantGetProducts = (shopId: string) =>
+  clientFetch<any[]>(`/v1/products?shopId=${shopId}&manage=true`);
+export const merchantAddProduct = (data: any) =>
+  clientFetch<any>('/v1/products', { method: 'POST', body: JSON.stringify(data) });
+export const merchantUpdateProduct = (id: string, data: any) =>
+  clientFetch<any>(`/v1/products/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+export const merchantDeleteProduct = (id: string) =>
+  clientFetch<any>(`/v1/products/${id}`, { method: 'DELETE' });
+export const merchantUpdateProductStock = (id: string, stock: number) =>
+  clientFetch<any>(`/v1/products/${id}/stock`, { method: 'PATCH', body: JSON.stringify({ stock }) });
+
+/* ── Orders / Sales ───────────────────────────────── */
+export const merchantGetOrders = (params: { shopId: string; from?: string; to?: string }) => {
+  const q = new URLSearchParams();
+  q.set('shopId', params.shopId);
+  if (params.from) q.set('from', params.from);
+  if (params.to) q.set('to', params.to);
+  return clientFetch<any[]>(`/v1/orders?${q.toString()}`);
+};
+export const merchantUpdateOrder = (id: string, data: Record<string, unknown>) =>
+  clientFetch<any>(`/v1/orders/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
+
+/* ── Reservations ─────────────────────────────────── */
+export const merchantGetReservations = (shopId: string) =>
+  clientFetch<any[]>(`/v1/reservations?shopId=${shopId}`);
+export const merchantUpdateReservationStatus = (id: string, status: string) =>
+  clientFetch<any>(`/v1/reservations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const merchantConvertReservationToCustomer = (data: any) =>
+  clientFetch<any>('/v1/customers/convert-reservation', { method: 'POST', body: JSON.stringify(data) });
+
+/* ── Analytics ────────────────────────────────────── */
+export const merchantGetShopAnalytics = (shopId: string, params?: { from?: string; to?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.from) q.set('from', params.from);
+  if (params?.to) q.set('to', params.to);
+  return clientFetch<any>(`/v1/shops/${shopId}/analytics?${q.toString()}`);
+};
+
+/* ── Notifications ────────────────────────────────── */
+export const merchantGetNotifications = (shopId: string) =>
+  clientFetch<any[]>(`/v1/notifications?shopId=${shopId}`);
+export const merchantMarkNotificationRead = (shopId: string, notificationId: string) =>
+  clientFetch<any>(`/v1/notifications/${notificationId}/read`, { method: 'PATCH' });
+export const merchantMarkAllNotificationsRead = (shopId: string) =>
+  clientFetch<any>(`/v1/notifications/read-all?shopId=${shopId}`, { method: 'PATCH' });
+
+/* ── Offers / Promotions ──────────────────────────── */
+export const merchantGetOffers = () => clientFetch<any[]>('/v1/offers');
+export const merchantCreateOffer = (data: any) =>
+  clientFetch<any>('/v1/offers', { method: 'POST', body: JSON.stringify(data) });
+export const merchantDeleteOffer = (id: string) =>
+  clientFetch<any>(`/v1/offers/${id}`, { method: 'DELETE' });
+
+/* ── Gallery ──────────────────────────────────────── */
+export const merchantGetGallery = (shopId: string) =>
+  clientFetch<any[]>(`/v1/shops/${shopId}/gallery`);
+export const merchantAddGalleryImage = (shopId: string, formData: FormData) =>
+  fetch(`/api/v1/shops/${shopId}/gallery`, { method: 'POST', body: formData }).then(r => {
+    if (!r.ok) throw new Error('Upload failed');
+    return r.json();
   });
-}
+export const merchantDeleteGalleryImage = (shopId: string, imageId: string) =>
+  clientFetch<any>(`/v1/shops/${shopId}/gallery/${imageId}`, { method: 'DELETE' });
 
-export async function merchantGetAbandonedCartStats(params: any) {
-  const query = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/v1/merchant/abandoned-carts/stats?${query}`);
-  return res.json();
-}
+/* ── Customers ────────────────────────────────────── */
+export const merchantGetCustomers = (shopId: string) =>
+  clientFetch<any[]>(`/v1/customers?shopId=${shopId}`);
+export const merchantUpdateCustomerStatus = (id: string, status: string) =>
+  clientFetch<any>(`/v1/customers/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const merchantSendCustomerPromotion = (customerId: string, shopId: string) =>
+  clientFetch<any>(`/v1/customers/${customerId}/promote`, { method: 'POST', body: JSON.stringify({ shopId }) });
 
-export async function merchantGetAbandonedCarts(params: any) {
-  const query = new URLSearchParams(params).toString();
-  const res = await fetch(`/api/v1/merchant/abandoned-carts?${query}`);
-  return res.json();
-}
+/* ── Invoices ─────────────────────────────────────── */
+export const merchantGetInvoices = (shopId: string) =>
+  clientFetch<any[]>(`/v1/invoices?shopId=${shopId}`);
+export const merchantCreateInvoice = (data: any) =>
+  clientFetch<any>('/v1/invoices', { method: 'POST', body: JSON.stringify(data) });
+export const merchantGetInvoiceById = (id: string) =>
+  clientFetch<any>(`/v1/invoices/${id}`);
+export const merchantUpdateInvoice = (id: string, data: any) =>
+  clientFetch<any>(`/v1/invoices/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 
-export async function merchantMarkCartEventRecovered(id: string) {
-  return fetch(`/api/v1/merchant/abandoned-carts/${id}/recover`, { method: 'POST' });
-}
+/* ── Abandoned Cart ──────────────────────────────── */
+export const merchantGetAbandonedCartStats = (params: { shopId: string }) =>
+  clientFetch<any>(`/v1/cart-events/stats?shopId=${params.shopId}`);
+export const merchantGetAbandonedCarts = (params: { shopId: string; page?: number; limit?: number }) => {
+  const q = new URLSearchParams();
+  q.set('shopId', params.shopId);
+  if (params.page) q.set('page', String(params.page));
+  if (params.limit) q.set('limit', String(params.limit));
+  return clientFetch<any>(`/v1/cart-events?${q.toString()}`);
+};
+export const merchantMarkCartEventRecovered = (id: string) =>
+  clientFetch<any>(`/v1/cart-events/${id}/recover`, { method: 'PATCH' });
+
+/* ── Module Upgrade Requests ──────────────────────── */
+export const merchantCreateModuleUpgradeRequest = (data: { requestedModules: string[] }) =>
+  clientFetch<any>('/v1/module-upgrade-requests', { method: 'POST', body: JSON.stringify(data) });
+
+/* ── Auth / Account ──────────────────────────────── */
+export const merchantChangePassword = (data: { currentPassword: string; newPassword: string }) =>
+  clientFetch<any>('/v1/auth/change-password', { method: 'POST', body: JSON.stringify(data) });
+export const merchantDeactivateAccount = () =>
+  clientFetch<any>('/v1/auth/deactivate', { method: 'POST' });
+
+/* ── Apps ────────────────────────────────────────── */
+export const merchantListApps = () => clientFetch<any[]>('/v1/apps');
+export const merchantListMyApps = () => clientFetch<any[]>('/v1/apps/mine');
+export const merchantInstallApp = (key: string) =>
+  clientFetch<any>(`/v1/apps/${key}/install`, { method: 'POST' });
+export const merchantUninstallApp = (key: string) =>
+  clientFetch<any>(`/v1/apps/${key}/uninstall`, { method: 'POST' });
+export const merchantEnableApp = (key: string) =>
+  clientFetch<any>(`/v1/apps/${key}/enable`, { method: 'PATCH' });
+export const merchantDisableApp = (key: string) =>
+  clientFetch<any>(`/v1/apps/${key}/disable`, { method: 'PATCH' });
