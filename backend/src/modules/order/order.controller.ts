@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+﻿import { Controller, Get, Post, Patch, Body, Query, Param, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -16,7 +16,7 @@ function parseOptionalNumber(value: any) {
   return Number.isFinite(n) ? n : undefined;
 }
 
-@Controller('api/v1/orders')
+@Controller('orders')
 export class OrderController {
   constructor(@Inject(OrderService) private readonly orderService: OrderService) {}
 

@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const backendTarget = String(env.VITE_BACKEND_URL || 'http://127.0.0.1:4000').trim();
   return {
     server: {
       port: Number(env.VITE_PORT || env.PORT || 5174),
@@ -17,6 +18,13 @@ export default defineConfig(({ mode }) => {
         protocol: 'ws',
         host: env.VITE_HMR_HOST || 'localhost',
         port: Number(env.VITE_PORT || env.PORT || 5174),
+      },
+      proxy: {
+        '/api': {
+          target: backendTarget,
+          changeOrigin: true,
+          secure: false,
+        },
       },
       watch: {
         ignored: [

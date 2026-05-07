@@ -421,6 +421,32 @@ const AdminLogin: React.FC = () => {
                 <MapPin size={18} />
                 {t('auth.admin.devCourierLogin')}
               </button>
+
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  setLoading(true);
+                  setError('');
+                  try {
+                    const { portalDevLogin } = await import('@/services/api/modules/portal');
+                    const res = await portalDevLogin();
+                    if (res.access_token) {
+                      localStorage.setItem('portal_token', res.access_token);
+                      localStorage.setItem('portal_owner', JSON.stringify(res.owner));
+                      window.open('/portal', '_blank');
+                    }
+                  } catch (err: any) {
+                    setError(err?.message || t('auth.admin.devMerchantLoginFailed'));
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+              >
+                <Store size={18} />
+                دخول مطور بورتال (نشاط خارجي)
+              </button>
             </>
           )}
 

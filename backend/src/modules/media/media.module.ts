@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { MediaCompressionService } from '@modules/media/media-compression.service';
 import { RedisModule } from '@common/redis/redis.module';
+import { PrismaModule } from '@common/prisma/prisma.module';
 import {
   MediaController,
   MediaControllerLite,
@@ -40,7 +41,7 @@ const selectedControllers =
             : [MediaController];
 
 @Module({
-  imports: [ConfigModule, RedisModule],
+  imports: [ConfigModule, RedisModule, PrismaModule],
   controllers: disableController ? [] : selectedControllers,
   providers: [
     MediaCompressionService,

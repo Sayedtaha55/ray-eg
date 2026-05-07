@@ -71,9 +71,9 @@ const PortalDashboard: React.FC = () => {
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">
-          {owner?.name ? t('portal.dashboard.welcome', { name: owner.name }) : t('portal.dashboard.welcomePhone')}
+          {owner?.name ? t('portal.dashboard.welcome', { name: owner.name }) : t('portal.dashboard.welcomeEmail', { email: owner?.email || '' })}
         </h1>
-        <p className="text-gray-500 text-sm mt-1">{owner?.phone}</p>
+        <p className="text-gray-500 text-sm mt-1">{owner?.email || owner?.phone || ''}</p>
       </div>
 
       {/* Stats Cards */}

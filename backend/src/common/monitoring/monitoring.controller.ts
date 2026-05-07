@@ -10,6 +10,7 @@ export class MonitoringController {
   constructor(@Inject(MonitoringService) private readonly monitoring: MonitoringService) {}
 
   @Get('health')
+  @Get('ready')
   async getHealth() {
     try {
       return await this.monitoring.getHealthStatus();

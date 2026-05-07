@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Request, Res, UseGuards } from '@nestjs/common';
+﻿import { Body, Controller, Get, Post, Request, Res, UseGuards } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from '@modules/auth/auth.service';
@@ -166,7 +166,7 @@ class VerifyEmailDto {
   token!: string;
 }
 
-@Controller('api/v1/auth')
+@Controller('auth')
 export class AuthController {
   constructor(@Inject(AuthService) private readonly authService: AuthService) {}
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards, Inject, BadRequestException, ForbiddenException, Res } from '@nestjs/common';
+﻿import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards, Inject, BadRequestException, ForbiddenException, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { PortalJwtAuthGuard } from './portal-jwt-auth.guard';
 import { PortalAuthService } from './portal-auth.service';
@@ -8,7 +8,7 @@ import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { PrismaService } from '@common/prisma/prisma.service';
 
-@Controller('api/v1/portal')
+@Controller('portal')
 export class PortalController {
   constructor(
     @Inject(PortalAuthService) private readonly portalAuth: PortalAuthService,
@@ -56,6 +56,50 @@ export class PortalController {
     }
 
     return result;
+  }
+
+  @Post('auth/register')
+  async register(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const email = String(body?.email || '').trim();
+    const password = String(body?.password || '');
+    const name = body?.name != null ? String(body.name).trim() : undefined;
+    const phone = body?.phone != null ? String(body.phone).trim() : undefined;
+
+    const result = await this.portalAuth.registerWithPassword({ email, password, name, phone });
+    if (result.access_token) {
+      res.cookie('portal_session', String(result.access_token), this.getCookieOptions());
+    }
+    return result;
+  }
+
+  @Post('auth/login')
+  async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+    const email = String(body?.email || '').trim();
+    const password = String(body?.password || '');
+
+    const result = await this.portalAuth.loginWithPassword({ email, password });
+    if (result.access_token) {
+      res.cookie('portal_session', String(result.access_token), this.getCookieOptions());
+    }
+    return result;
+  }
+
+  @Post('auth/dev-portal-login')
+  async devPortalLogin(@Res({ passthrough: true }) res: Response) {
+    const result = await this.portalAuth.devPortalLogin();
+    if (result.access_token) {
+      res.cookie('portal_session', String(result.access_token), this.getCookieOptions());
+    }
+    return result;
+  }
+
+  @Post('auth/change-password')
+  @UseGuards(PortalJwtAuthGuard)
+  async changePassword(@Request() req: any, @Body() body: any) {
+    const ownerId = String(req?.user?.id || '').trim();
+    const currentPassword = String(body?.currentPassword || '');
+    const newPassword = String(body?.newPassword || '');
+    return this.portalAuth.changePassword(ownerId, currentPassword, newPassword);
   }
 
   @Post('auth/logout')

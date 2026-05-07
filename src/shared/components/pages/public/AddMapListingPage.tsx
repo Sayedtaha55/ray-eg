@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Globe, Phone, MessageCircle, Store, ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
+import { MapPin, Globe, MessageCircle, Store, ChevronLeft, ChevronRight, Check, Loader2, Mail, Lock } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { portalLogin, portalRegister } from '@/services/api/modules/portal';
 
 type Step = 1 | 2 | 3;
 
@@ -20,8 +21,9 @@ const AddMapListingPage: React.FC = () => {
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
-  const [phone, setPhone] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [portalEmail, setPortalEmail] = useState('');
+  const [portalPassword, setPortalPassword] = useState('');
 
   const [branchName, setBranchName] = useState('');
   const [addressLabel, setAddressLabel] = useState('');
@@ -65,12 +67,28 @@ const AddMapListingPage: React.FC = () => {
     setSubmitting(true);
     setError('');
     try {
+      const email = portalEmail.trim();
+      const pass = String(portalPassword || '');
+      if (!email) throw new Error(t('portal.common.error'));
+      if (!pass || pass.length < 8) throw new Error(t('portal.common.error'));
+
+      let authRes: any;
+      try {
+        authRes = await portalRegister(email, pass);
+      } catch (err: any) {
+        const msg = String(err?.message || '');
+        const looksLikeExistingEmail = msg.includes('البريد') && msg.includes('مستخدم');
+        if (!looksLikeExistingEmail) throw err;
+        authRes = await portalLogin(email, pass);
+      }
+      localStorage.setItem('portal_token', authRes.access_token);
+      localStorage.setItem('portal_owner', JSON.stringify(authRes.owner));
+
       await ApiService.submitMapListing({
         title: title.trim(),
         category: category.trim() || undefined,
         description: description.trim() || undefined,
         websiteUrl: websiteUrl.trim() || undefined,
-        phone: phone.trim() || undefined,
         whatsapp: whatsapp.trim() || undefined,
         branch: {
           name: branchName.trim() || undefined,
@@ -79,7 +97,6 @@ const AddMapListingPage: React.FC = () => {
           addressLabel: addressLabel.trim() || undefined,
           governorate: governorate.trim() || undefined,
           city: city.trim() || undefined,
-          phone: phone.trim() || undefined,
         },
       });
       setSubmitted(true);
@@ -193,30 +210,47 @@ const AddMapListingPage: React.FC = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2">{t('map.mapListing.phone')}</label>
+              <label className="block text-sm font-black text-slate-700 mb-2">Email *</label>
               <div className="relative">
-                <Phone className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Mail className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="01XXXXXXXXX"
+                  type="email"
+                  dir="ltr"
+                  value={portalEmail}
+                  onChange={(e) => setPortalEmail(e.target.value)}
+                  placeholder="name@company.com"
                   className="w-full pr-12 pl-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 transition-all"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-sm font-black text-slate-700 mb-2">{t('map.mapListing.whatsapp')}</label>
+              <label className="block text-sm font-black text-slate-700 mb-2">Password *</label>
               <div className="relative">
-                <MessageCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                <Lock className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
                 <input
-                  type="tel"
-                  value={whatsapp}
-                  onChange={(e) => setWhatsapp(e.target.value)}
-                  placeholder="01XXXXXXXXX"
+                  type="password"
+                  dir="ltr"
+                  value={portalPassword}
+                  onChange={(e) => setPortalPassword(e.target.value)}
+                  placeholder="********"
                   className="w-full pr-12 pl-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 transition-all"
                 />
               </div>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-black text-slate-700 mb-2">{t('map.mapListing.whatsapp')}</label>
+            <div className="relative">
+              <MessageCircle className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              <input
+                type="tel"
+                dir="ltr"
+                value={whatsapp}
+                onChange={(e) => setWhatsapp(e.target.value)}
+                placeholder="01XXXXXXXXX"
+                className="w-full pr-12 pl-4 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-slate-900/20 focus:border-slate-400 transition-all"
+              />
             </div>
           </div>
 
@@ -323,12 +357,6 @@ const AddMapListingPage: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-slate-500 font-bold">{t('map.mapListing.category')}</span>
                   <span className="font-black text-slate-900">{category}</span>
-                </div>
-              )}
-              {phone && (
-                <div className="flex justify-between">
-                  <span className="text-slate-500 font-bold">{t('map.mapListing.phone')}</span>
-                  <span className="font-black text-slate-900">{phone}</span>
                 </div>
               )}
               {whatsapp && (

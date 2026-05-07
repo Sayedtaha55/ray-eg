@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+html {
+  overflow-x: clip;
+}
+
+body {
+  font-family: 'Alexandria', sans-serif;
+  background-color: #FFFFFF;
+  color: #1A1A1A;
+  margin: 0;
+  overflow-x: clip;
+  text-rendering: optimizeLegibility;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.ray-glow {
+  position: relative;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    #f1f5f9 25%,
+    #e2e8f0 37%,
+    #f1f5f9 63%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s ease-in-out infinite;
+}

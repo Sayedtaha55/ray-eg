@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { portalRequestOtp, portalVerifyOtp } from '@/services/api/modules/portal';
+import { portalLogin } from '@/services/api/modules/portal';
 
 const PortalLoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -9,47 +9,23 @@ const PortalLoginPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const isRtl = String(i18n.language || '').toLowerCase().startsWith('ar');
 
-  const [phone, setPhone] = useState('');
-  const [code, setCode] = useState('');
-  const [step, setStep] = useState<'phone' | 'code'>('phone');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [devCode, setDevCode] = useState('');
 
   useEffect(() => {
-    const p = String(searchParams.get('phone') || '').trim();
-    if (p) {
-      setPhone(p);
-    }
+    const e = String(searchParams.get('email') || '').trim();
+    if (e) setEmail(e);
   }, [searchParams]);
 
-  const handleSendOtp = async () => {
+  const handleLogin = async () => {
     setError('');
-    if (!phone.trim()) {
-      setError(t('portal.login.errorPhone'));
-      return;
-    }
+    if (!email.trim()) return setError(t('portal.common.error'));
+    if (!password) return setError(t('portal.common.error'));
     setLoading(true);
     try {
-      const res = await portalRequestOtp(phone);
-      if (res.devCode) setDevCode(res.devCode);
-      setStep('code');
-    } catch (err: any) {
-      setError(err?.message || t('portal.common.error'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    setError('');
-    if (!code.trim()) {
-      setError(t('portal.login.errorCode'));
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await portalVerifyOtp(phone, code);
+      const res = await portalLogin(email, password);
       localStorage.setItem('portal_token', res.access_token);
       localStorage.setItem('portal_owner', JSON.stringify(res.owner));
       navigate('/portal');
@@ -83,71 +59,38 @@ const PortalLoginPage: React.FC = () => {
             </div>
           )}
 
-          {/* Step 1: Phone */}
-          {step === 'phone' && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  {t('portal.login.phonePlaceholder').split('(')[0]}
-                </label>
-                <input
-                  type="tel"
-                  dir="ltr"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder={t('portal.login.phonePlaceholder')}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
-                  autoFocus
-                />
-              </div>
-              <button
-                onClick={handleSendOtp}
-                disabled={loading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors"
-              >
-                {loading ? t('portal.login.sending') : t('portal.login.sendOtp')}
-              </button>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+              <input
+                type="email"
+                dir="ltr"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="name@company.com"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
+                autoFocus
+              />
             </div>
-          )}
-
-          {/* Step 2: OTP Code */}
-          {step === 'code' && (
-            <div className="space-y-4">
-              {devCode && (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-sm text-center font-mono text-lg">
-                  {t('portal.login.devCodeHint', { code: devCode })}
-                </div>
-              )}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  {t('portal.login.codePlaceholder')}
-                </label>
-                <input
-                  type="text"
-                  dir="ltr"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="000000"
-                  maxLength={6}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-center text-2xl tracking-[0.5em] font-mono"
-                  autoFocus
-                />
-              </div>
-              <button
-                onClick={handleVerifyOtp}
-                disabled={loading}
-                className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors"
-              >
-                {loading ? t('portal.login.verifying') : t('portal.login.verifyOtp')}
-              </button>
-              <button
-                onClick={() => { setStep('phone'); setCode(''); setDevCode(''); }}
-                className="w-full py-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                {t('portal.login.resendOtp')}
-              </button>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+              <input
+                type="password"
+                dir="ltr"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="********"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-lg"
+              />
             </div>
-          )}
+            <button
+              onClick={handleLogin}
+              disabled={loading}
+              className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl transition-colors"
+            >
+              {loading ? t('portal.login.verifying') : t('portal.login.verifyOtp')}
+            </button>
+          </div>
         </div>
       </div>
     </div>

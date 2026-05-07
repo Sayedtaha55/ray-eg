@@ -100,10 +100,8 @@ const MapContainer: React.FC<MapContainerProps> = ({ pins, coords, onMapReady, n
       marker.on('click', () => {
         if (isShop && p.slug) {
           navigate(`/s/${p.slug}`);
-        } else if (p.websiteUrl) {
-          window.open(p.websiteUrl, '_blank', 'noopener');
-        } else if (p.phone) {
-          window.open(`tel:${p.phone}`, '_self');
+        } else if (!isShop && p.id) {
+          navigate(`/map/listing/${p.id}`);
         }
       });
 

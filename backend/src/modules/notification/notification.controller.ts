@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Param, Post, Query, Request, UseGuards, Inject } from '@nestjs/common';
+﻿import { Body, Controller, Get, Patch, Param, Post, Query, Request, UseGuards, Inject } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -39,7 +39,7 @@ function parseOptionalInt(value: any) {
   return Number.isNaN(n) ? undefined : n;
 }
 
-@Controller('api/v1/notifications')
+@Controller('notifications')
 export class NotificationController {
   constructor(@Inject(NotificationService) private readonly notificationService: NotificationService) {}
 

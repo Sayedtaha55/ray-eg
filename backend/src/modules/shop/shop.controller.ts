@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
+﻿import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ShopService } from '@modules/shop/shop.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -16,7 +16,7 @@ import { CreateShopDto } from '@shared/dto/create-shop.dto';
  const bannerUploadMaxMb = Math.max(1, Number(bannerUploadMaxMbRaw) || (isProd ? 30 : 80));
  const bannerUploadMaxBytes = Math.floor(bannerUploadMaxMb * 1024 * 1024);
 
-@Controller('api/v1/shops')
+@Controller('shops')
 export class ShopController {
   constructor(@Inject(ShopService) private readonly shopService: ShopService) {}
 

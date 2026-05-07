@@ -7,6 +7,7 @@ import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { persistSession, syncMerchantContextFromBackend } from '@/services/authStorage';
 import { normalizeSafeReturnTo, resolvePostAuthDestination } from '@/services/authRedirect';
+import { portalLogin } from '@/services/api/modules/portal';
 
 const { Link, useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -43,7 +44,6 @@ const LoginPage: React.FC = () => {
   const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [portalPhone, setPortalPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -182,6 +182,19 @@ const LoginPage: React.FC = () => {
           return;
         }
       }
+
+      // Fallback: try portal login (external business owner)
+      try {
+        const portalRes = await portalLogin(email, password);
+        localStorage.setItem('portal_token', portalRes.access_token);
+        localStorage.setItem('portal_owner', JSON.stringify(portalRes.owner));
+        addToast(t('auth.login.welcomeBack', { name: portalRes.owner.name || email }), 'success');
+        navigate('/portal', { replace: true });
+        return;
+      } catch {
+        // Portal login also failed — show original error
+      }
+
       setError(err.message || t('auth.login.loginFailed'));
     } finally {
       setLoading(false);
@@ -389,33 +402,6 @@ const LoginPage: React.FC = () => {
              </button>
            )}
 
-           <div className="pt-6 border-t border-slate-50 space-y-4">
-             <p className="text-center text-slate-400 font-bold text-xs">دخول أصحاب الأنشطة الخارجية</p>
-             <div className="space-y-2">
-               <input
-                 type="tel"
-                 dir="ltr"
-                 disabled={loading}
-                 className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-5 px-6 outline-none focus:bg-white focus:border-[#00E5FF]/20 transition-all font-black text-right"
-                 value={portalPhone}
-                 onChange={(e) => setPortalPhone(e.target.value)}
-                 placeholder="01xxxxxxxxx أو +20xxxxxxxxx"
-               />
-             </div>
-             <button
-               type="button"
-               disabled={loading || !String(portalPhone || '').trim()}
-               onClick={() => {
-                 const p = String(portalPhone || '').trim();
-                 if (!p) return;
-                 navigate(`/portal/login?phone=${encodeURIComponent(p)}`);
-               }}
-               className="w-full py-5 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm hover:opacity-90 transition-all flex items-center justify-center gap-3 disabled:opacity-60"
-             >
-               <Store size={18} />
-               دخول لوحة الأنشطة الخارجية
-             </button>
-           </div>
         </div>
       </MotionDiv>
     </div>

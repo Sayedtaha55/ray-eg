@@ -15,6 +15,7 @@ const FashionOffersPage = React.lazy(() => import('../shared/components/pages/pu
 const SupermarketOffersPage = React.lazy(() => import('../shared/components/pages/public/offers/SupermarketOffersPage'));
 const MapPage = React.lazy(() => import('../shared/components/pages/public/MapPage'));
 const AddMapListingPage = React.lazy(() => import('../shared/components/pages/public/AddMapListingPage'));
+const MapListingDetailPage = React.lazy(() => import('../shared/components/pages/public/MapListingDetailPage'));
 const LoginPage = React.lazy(() => import('../shared/components/pages/auth/LoginPage'));
 const SignupPage = React.lazy(() => import('../shared/components/pages/auth/SignupPage'));
 const GoogleCallbackPage = React.lazy(() => import('../shared/components/pages/auth/GoogleCallbackPage'));
@@ -77,6 +78,7 @@ const AppRoutes: React.FC = () => {
         <Route path="offers/fashion" element={suspense(<FashionOffersPage />)} />
         <Route path="offers/supermarket" element={suspense(<SupermarketOffersPage />)} />
         <Route path="map" element={suspense(<MapPage />)} />
+        <Route path="map/listing/:id" element={suspense(<MapListingDetailPage />)} />
         <Route path="map/add-listing" element={suspense(<AddMapListingPage />)} />
         <Route path="login" element={suspense(<LoginPage />)} />
         <Route path="signup" element={suspense(<SignupPage />)} />

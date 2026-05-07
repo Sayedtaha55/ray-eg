@@ -45,7 +45,7 @@ async function portalFetch<T>(method: string, path: string, body?: any): Promise
 
 export type PortalOwner = {
   id: string;
-  phone: string;
+  phone: string | null;
   name: string | null;
   email: string | null;
   avatarUrl: string | null;
@@ -78,6 +78,27 @@ export type PortalAnalytics = {
 
 // ─── Auth ───────────────────────────────────────────────────────────────────
 
+export async function portalRegister(email: string, password: string, opts?: { name?: string; phone?: string }) {
+  return await portalFetch<{
+    ok: boolean;
+    access_token: string;
+    owner: PortalOwner;
+  }>('POST', '/api/v1/portal/auth/register', {
+    email,
+    password,
+    ...(opts?.name ? { name: opts.name } : {}),
+    ...(opts?.phone ? { phone: opts.phone } : {}),
+  });
+}
+
+export async function portalLogin(email: string, password: string) {
+  return await portalFetch<{
+    ok: boolean;
+    access_token: string;
+    owner: PortalOwner;
+  }>('POST', '/api/v1/portal/auth/login', { email, password });
+}
+
 export async function portalRequestOtp(phone: string, purpose: string = 'login') {
   return await portalFetch<{ ok: boolean; devCode?: string }>(
     'POST', '/api/v1/portal/auth/otp/request', { phone, purpose },
@@ -94,6 +115,21 @@ export async function portalVerifyOtp(phone: string, code: string, purpose: stri
 
 export async function portalLogout() {
   return await portalFetch<{ ok: boolean }>('POST', '/api/v1/portal/auth/logout', {});
+}
+
+export async function portalChangePassword(currentPassword: string, newPassword: string) {
+  return await portalFetch<{ ok: boolean }>('POST', '/api/v1/portal/auth/change-password', {
+    currentPassword,
+    newPassword,
+  });
+}
+
+export async function portalDevLogin() {
+  return await portalFetch<{
+    ok: boolean;
+    access_token: string;
+    owner: PortalOwner;
+  }>('POST', '/api/v1/portal/auth/dev-portal-login', {});
 }
 
 // ─── Profile ────────────────────────────────────────────────────────────────
