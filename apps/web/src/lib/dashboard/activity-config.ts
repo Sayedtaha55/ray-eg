@@ -1,7 +1,10 @@
 export type MerchantDashboardTabId =
   | 'overview'
   | 'notifications'
+  | 'apps'
+  | 'chats'
   | 'products'
+  | 'sharedProducts'
   | 'reservations'
   | 'invoice'
   | 'sales'
@@ -286,9 +289,9 @@ export function getEnabledMerchantDashboardTabsForShop(shop?: any): MerchantDash
 
 function isKnownTabId(value: string): boolean {
   const known: MerchantDashboardTabId[] = [
-    'overview', 'notifications', 'products', 'reservations', 'invoice',
-    'sales', 'promotions', 'reports', 'customers', 'gallery', 'pos',
-    'builder', 'abandonedCart', 'settings', 'design',
+    'overview', 'notifications', 'apps', 'chats', 'products', 'sharedProducts',
+    'reservations', 'invoice', 'sales', 'promotions', 'reports', 'customers',
+    'gallery', 'pos', 'builder', 'abandonedCart', 'settings', 'design',
   ];
   return known.includes(value as MerchantDashboardTabId);
 }
