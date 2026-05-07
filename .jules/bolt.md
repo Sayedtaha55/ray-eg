@@ -1,0 +1,3 @@
+## 2025-05-15 - [Zero-DB Cache Hit Anti-Pattern]
+**Learning:** A common performance bottleneck in this codebase was "partial" cache hits where the application retrieved a shop from Redis but still performed database queries to filter products (e.g., hiding image-map hotspots). By pre-filtering data before caching and implementing eager invalidation in the services that modify the state (like `ShopImageMapService`), we can achieve true Zero-DB cache hits.
+**Action:** Always include the fully filtered state in cached objects for public-facing queries, and ensure consistent invalidation in the corresponding management services.
