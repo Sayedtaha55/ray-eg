@@ -18,6 +18,7 @@ import {
 } from '@/lib/dashboard/activity-config';
 import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
+
 import TabButton from './TabButton';
 import DashboardSidebar from './DashboardSidebar';
 import DashboardHeader from './DashboardHeader';
@@ -27,6 +28,8 @@ import NotificationsTab from './tabs/NotificationsTab';
 import ProductsTab from './tabs/ProductsTab';
 import ReservationsTab from './tabs/ReservationsTab';
 import SalesTab from './tabs/SalesTab';
+import AppsTab from './tabs/AppsTab';
+import ChatsTab from './tabs/ChatsTab';
 import PromotionsTab from './tabs/PromotionsTab';
 import ReportsTab from './tabs/ReportsTab';
 import CustomersTab from './tabs/CustomersTab';
@@ -35,6 +38,7 @@ import InvoiceTab from './tabs/InvoiceTab';
 import AbandonedCartTab from './tabs/AbandonedCartTab';
 import DesignTab from './tabs/DesignTab';
 import SettingsPage from './tabs/SettingsPage';
+
 import AddProductModal from './modals/AddProductModal';
 import CreateOfferModal from './modals/CreateOfferModal';
 import AiAssistantPanel from './AiAssistantPanel';
@@ -309,7 +313,6 @@ export default function MerchantDashboardPage() {
         setGalleryImages(images || []);
       }
     } catch (e) {
-      // Offline fallback: try to load from IndexedDB
       if (isOfflineError(e)) {
         try {
           if (tab === 'products') { const d = await offlineDB.getProducts(shopId); if (d) setProducts(d); }
@@ -354,7 +357,6 @@ export default function MerchantDashboardPage() {
     if (effectiveTab !== tabParam && currentShop) setTab(effectiveTab);
   }, [effectiveTab, tabParam, currentShop, setTab]);
 
-  // Smart refresh via BroadcastChannel + custom events
   useEffect(() => {
     if (!currentShop) return;
     let bc: BroadcastChannel | null = null;
@@ -409,15 +411,7 @@ export default function MerchantDashboardPage() {
     void ensureTabData(tabId, currentShop);
   }, [currentShop, ensureTabData]);
 
-  const TabFallback = (
-    <div className="py-20 flex flex-col items-center justify-center gap-4">
-      <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-      <p className="font-bold text-slate-400">{t('business.dashboard.loadingSection')}</p>
-    </div>
-  );
-
   const renderContent = () => {
-    // If the current tab requires an upgrade, show the upgrade request UI
     if (isTabUpgradeRequired(effectiveTab, currentShop || { category: shopCategory })) {
       const tabDef = visibleTabs.find(t => t.id === effectiveTab);
       return (
@@ -433,7 +427,7 @@ export default function MerchantDashboardPage() {
 
     switch (effectiveTab) {
       case 'overview':
-        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} onViewAllNotifications={() => setTab('notifications')} onNavigateToTab={(tab) => setTab(tab)} />;
+        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} onViewAllNotifications={() => setTab('notifications')} onNavigateToTab={(tab) => setTab(tab as any)} />;
       case 'notifications':
         return <NotificationsTab shopId={String(currentShop.id)} />;
       case 'products':
@@ -442,6 +436,12 @@ export default function MerchantDashboardPage() {
         return <GalleryTab images={galleryImages} onImagesChange={setGalleryImages} shopId={currentShop.id} primaryColor={currentShop.pageDesign?.primaryColor || '#00E5FF'} />;
       case 'promotions':
         return <PromotionsTab shopId={currentShop.id} offers={activeOffers} onDelete={async (id: string) => { await merchantApi.merchantDeleteOffer(id); if (currentShop) await ensureTabData('promotions', currentShop, true); }} onCreateOffer={() => { setOfferSeedProduct(null); setOfferModalOpen(true); }} />;
+      case 'apps':
+        return <AppsTab />;
+      case 'chats':
+        return <ChatsTab />;
+      case 'sharedProducts':
+        return <SharedProductsTab />;
       case 'reservations':
         return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
       case 'invoice':
@@ -452,6 +452,8 @@ export default function MerchantDashboardPage() {
         return <AbandonedCartTab shopId={currentShop.id} shop={currentShop} />;
       case 'reports':
         return <ReportsTab analytics={analytics} sales={sales} reservations={reservations} />;
+      case 'customers':
+        return <CustomersTab shopId={currentShop.id} />;
       case 'design':
         return <DesignTab shop={currentShop} onSaved={() => refreshShopAndActiveTab(true)} />;
       case 'settings':
@@ -459,14 +461,9 @@ export default function MerchantDashboardPage() {
       case 'pos':
         return <POSSystem onClose={() => setTab('overview')} shopId={currentShop.id} shop={currentShop} />;
       case 'builder':
-        return <div className="p-8 text-center">
-          <Palette className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-          <h2 className="text-xl font-black text-slate-600">{t('business.dashboard.pageBuilder', 'بناء الصفحة')}</h2>
-          <p className="text-slate-400 mt-2">{t('business.dashboard.builderComingSoon', 'قريباً')}</p>
-          <button onClick={() => setTab('overview')} className="mt-4 px-6 py-2 rounded-2xl bg-slate-900 text-white font-bold">{t('business.dashboard.backToOverview', 'الرئيسية')}</button>
-        </div>;
+        return <div className="p-8 text-center"><Palette className="w-12 h-12 mx-auto text-slate-300 mb-4" /><h2 className="text-xl font-black text-slate-600">{t('business.dashboard.pageBuilder')}</h2><p className="text-slate-400 mt-2">{t('business.dashboard.builderComingSoon')}</p><button onClick={() => setTab('overview')} className="mt-4 px-6 py-2 rounded-2xl bg-slate-900 text-white font-bold">{t('business.dashboard.backToOverview')}</button></div>;
       default:
-        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} onViewAllNotifications={() => setTab('notifications')} onNavigateToTab={(tab) => setTab(tab)} />;
+        return <OverviewTab shop={currentShop} analytics={analytics} notifications={notifications} onViewAllNotifications={() => setTab('notifications')} onNavigateToTab={(tab) => setTab(tab as any)} />;
     }
   };
 
@@ -475,9 +472,7 @@ export default function MerchantDashboardPage() {
   const offsetClass = isArabic ? sidebarWidthOffset : sidebarWidthOffsetLtr;
 
   const handleLogout = useCallback(async () => {
-    try {
-      await fetch('/api/auth/clear-cookie', { method: 'POST' });
-    } catch {}
+    try { await fetch('/api/auth/clear-cookie', { method: 'POST' }); } catch {}
     try { localStorage.removeItem('ray_user'); } catch {}
     try { localStorage.removeItem('ray_last_shop'); } catch {}
     router.push(`/${isArabic ? 'ar' : 'en'}/login`);
@@ -492,20 +487,7 @@ export default function MerchantDashboardPage() {
     );
   }
 
-  if (!currentShop) {
-    return (
-      <div className={`h-screen flex flex-col items-center justify-center gap-4 bg-slate-50 px-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={dir}>
-        <p className="font-black text-slate-600">{t('business.dashboard.noShopFound')}</p>
-        <button onClick={() => router.push('/login')} className="px-8 py-4 rounded-2xl bg-slate-900 text-white font-black">
-          {t('business.dashboard.login')}
-        </button>
-      </div>
-    );
-  }
-
-  const bannerImageUrl = String(
-    currentShop?.pageDesign?.bannerUrl || currentShop?.bannerUrl || currentShop?.banner_url || currentShop?.coverImage || ''
-  ).trim();
+  const bannerImageUrl = String(currentShop?.pageDesign?.bannerUrl || currentShop?.bannerUrl || currentShop?.coverImage || '').trim();
 
   return (
     <>
@@ -538,136 +520,46 @@ export default function MerchantDashboardPage() {
       onRefresh={() => refreshShopAndActiveTab(true)}
       onLogout={handleLogout}
     />
-    <div className={`min-h-screen pb-28 md:pb-32 px-3 sm:px-4 md:px-6 md:pt-28 font-sans transition-all duration-500 ${offsetClass} ${isArabic ? 'text-right' : 'text-left'}`} dir={dir}>
+    <div className={`min-h-screen pb-28 md:pb-32 px-4 md:pt-28 font-sans transition-all duration-500 ${offsetClass}`} dir={dir}>
       {effectiveTab !== 'builder' && (
-        <div className="relative overflow-hidden bg-gradient-to-l from-cyan-50 via-white to-slate-50 p-4 sm:p-6 md:p-12 rounded-[2rem] sm:rounded-[2.5rem] md:rounded-[3.5rem] border border-cyan-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 md:gap-8">
-          {bannerImageUrl ? (
-            <img src={bannerImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15" loading="lazy" decoding="async" />
-          ) : null}
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-white/95 via-white/90 to-cyan-50/95" />
-          <div className="pointer-events-none absolute -top-12 -left-10 w-36 h-36 rounded-full bg-[#00E5FF]/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-16 -right-8 w-40 h-40 rounded-full bg-slate-900/10 blur-3xl" />
-          <div className="relative z-10 flex items-center gap-3 sm:gap-6 md:gap-8 flex-row-reverse">
+        <div className="relative overflow-hidden bg-gradient-to-l from-cyan-50 via-white to-slate-50 p-6 md:p-12 rounded-[3.5rem] border border-cyan-100/70 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-8 mb-8">
+          {bannerImageUrl && <img src={bannerImageUrl} alt="" className="absolute inset-0 w-full h-full object-cover opacity-15" />}
+          <div className="relative z-10 flex items-center gap-8 flex-row-reverse">
             <div className="relative group">
-              {currentShop.logoUrl || currentShop.logo_url ? (
-                <img
-                  src={currentShop.logoUrl || currentShop.logo_url}
-                  alt="logo"
-                  className="w-16 h-16 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-32 lg:h-32 rounded-[2rem] sm:rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105"
-                />
-              ) : null}
-              <div className="absolute -bottom-1.5 -right-1.5 sm:-bottom-2 sm:-right-2 w-8 h-8 sm:w-10 sm:h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg">
-                <CheckCircle2 size={16} className="sm:w-5 sm:h-5" />
-              </div>
+              {currentShop.logoUrl && <img src={currentShop.logoUrl} alt="logo" className="w-24 h-24 md:w-32 md:h-32 rounded-[2.5rem] object-cover shadow-2xl transition-transform group-hover:scale-105" />}
+              <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 rounded-2xl border-4 border-white flex items-center justify-center text-white shadow-lg"><CheckCircle2 size={20} /></div>
             </div>
-            <div className="min-w-0 text-right">
-              <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-slate-900 tracking-tighter mb-2 break-words">{currentShop.name}</h1>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 justify-end">
-                <span className="bg-slate-100 px-2 sm:px-3 py-1 rounded-lg text-[9px] sm:text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
-                <span className="text-slate-400 font-bold text-xs sm:text-sm flex items-center justify-end gap-1.5 sm:gap-2">
-                  <MapPin size={12} className="sm:w-4 sm:h-4" /> {currentShop.city}
-                </span>
+            <div className="text-right">
+              <h1 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter mb-2">{currentShop.name}</h1>
+              <div className="flex items-center gap-3 justify-end">
+                <span className="bg-slate-100 px-3 py-1 rounded-lg text-[10px] font-black uppercase text-slate-500">{currentShop.category}</span>
+                <span className="text-slate-400 font-bold text-sm flex items-center gap-2"><MapPin size={16} /> {currentShop.city}</span>
               </div>
             </div>
           </div>
-          <div className="relative z-10 flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => setIsNotifPanelOpen(true)}
-              className="relative w-full sm:w-auto px-3 sm:px-5 py-3 sm:py-3 md:py-4 bg-white border border-slate-200 text-slate-700 rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 hover:bg-slate-50 transition-all shadow-sm"
-            >
-              <Bell size={16} className="w-4 h-4 sm:w-5 sm:h-5" />
-              <span className="hidden sm:inline">{t('business.dashboardTabs.notifications', 'الإشعارات')}</span>
-              {notifUnreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 sm:top-0 sm:right-0 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">{notifUnreadCount > 9 ? '9+' : notifUnreadCount}</span>
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/shop/${currentShop.slug}`)}
-              className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-[#00E5FF] text-black rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:scale-[1.02] hover:brightness-110 transition-all shadow-md sm:shadow-xl"
-            >
-              <Eye size={16} className="w-4 h-4 sm:w-5 sm:h-5" /> <span>{t('business.dashboard.previewShop')}</span>
-            </button>
-            {hasPosTab && (
-              <button
-                type="button"
-                onClick={() => setTab('pos')}
-                className="w-full sm:w-auto px-3 sm:px-6 md:px-8 lg:px-10 py-3 sm:py-3 md:py-4 lg:py-5 bg-slate-900 text-white rounded-2xl sm:rounded-[1.75rem] md:rounded-[2rem] font-black text-xs md:text-sm flex items-center justify-center gap-2 md:gap-3 hover:bg-black transition-all shadow-md sm:shadow-xl"
-              >
-                <Smartphone size={14} className="w-4 h-4 sm:w-5 sm:h-5" /> <span className="hidden sm:inline">{t('business.dashboard.smartPOS')}</span>
-              </button>
-            )}
+          <div className="relative z-10 flex gap-3">
+             <button type="button" onClick={() => setIsNotifPanelOpen(true)} className="relative px-6 py-4 bg-white border border-slate-200 text-slate-700 rounded-[2rem] font-black text-sm flex items-center gap-2 hover:bg-slate-50 shadow-sm">
+                <Bell size={20} /> <span>{t('business.dashboardTabs.notifications')}</span>
+             </button>
+             <button type="button" onClick={() => router.push(`/shop/${currentShop.slug}`)} className="px-8 py-4 bg-[#00E5FF] text-black rounded-[2rem] font-black text-sm flex items-center gap-2 hover:scale-[1.02] transition-all shadow-xl">
+                <Eye size={20} /> <span>{t('business.dashboard.previewShop')}</span>
+             </button>
           </div>
         </div>
       )}
 
-      {/* Mobile tab bar */}
-      <div className="sticky top-4 z-40 md:hidden">
-        <div className="flex gap-2 p-2 bg-slate-100/60 backdrop-blur-xl rounded-[2.5rem] border border-white/40 overflow-x-auto no-scrollbar shadow-inner">
-          <button type="button" onClick={() => setSidebarOpen(true)} className="shrink-0 px-3 py-2 rounded-2xl bg-slate-900 text-white font-black text-xs flex items-center gap-2">
-            <Menu size={14} /> {t('sidebar.menu', 'القائمة')}
-          </button>
-          {visibleTabs.slice(0, 5).map((tab) => (
-            <TabButton
-              key={tab.id}
-              active={effectiveTab === tab.id}
-              onClick={() => setTab(tab.id)}
-              onPointerEnter={() => handleTabPointerEnter(tab.id)}
-              icon={tab.icon}
-              label={tab.label}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* Content area */}
       <div className="min-w-0 flex-1">
         <AnimatePresence mode="wait">
-          <MotionDiv
-            key={effectiveTab}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-          >
-            {effectiveTab === 'pos' ? (
-              <POSSystem onClose={() => setTab('overview')} shopId={currentShop.id} shop={currentShop} />
-            ) : effectiveTab === 'builder' ? (
-              <div className="p-8 text-center">
-                <Palette className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                <h2 className="text-xl font-black text-slate-600">{t('business.dashboard.pageBuilder', 'بناء الصفحة')}</h2>
-                <p className="text-slate-400 mt-2">{t('business.dashboard.builderComingSoon', 'قريباً')}</p>
-                <button onClick={() => setTab('overview')} className="mt-4 px-6 py-2 rounded-2xl bg-slate-900 text-white font-bold">{t('business.dashboard.backToOverview', 'الرئيسية')}</button>
-              </div>
-            ) : (
-              renderContent()
-            )}
+          <MotionDiv key={effectiveTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
+            {renderContent()}
           </MotionDiv>
         </AnimatePresence>
       </div>
 
-      {process.env.NODE_ENV !== 'production' && currentShop?.id && (
-        <AiAssistantPanel
-          shopId={currentShop.id}
-          shop={currentShop}
-          currentPage={effectiveTab}
-          onActionExecuted={() => refreshShopAndActiveTab(true)}
-        />
-      )}
-
-      <AddProductModal isOpen={showProductModal} onClose={() => setShowProductModal(false)} shopId={String(currentShop?.id || '')} shopCategory={shopCategory} onCreated={() => { if (currentShop) ensureTabData('products', currentShop, true); }} />
-
-      <CreateOfferModal isOpen={offerModalOpen} onClose={() => { setOfferModalOpen(false); setOfferSeedProduct(null); }} shopId={String(currentShop?.id || '')} seedProduct={offerSeedProduct} onCreated={() => { if (currentShop) ensureTabData('promotions', currentShop, true); }} />
-
-      {/* Notification slide-in panel */}
-      <NotificationPanel
-        isOpen={isNotifPanelOpen}
-        onClose={() => setIsNotifPanelOpen(false)}
-        notifications={shopNotifs}
-        unreadCount={notifUnreadCount}
-        onMarkRead={notifMarkRead}
-        onMarkAllRead={notifMarkAllRead}
-      />
+      <AiAssistantPanel shopId={currentShop.id} shop={currentShop} currentPage={effectiveTab} onActionExecuted={() => refreshShopAndActiveTab(true)} />
+      <AddProductModal isOpen={showProductModal} onClose={() => setShowProductModal(false)} shopId={String(currentShop.id)} shopCategory={shopCategory} onCreated={() => ensureTabData('products', currentShop, true)} />
+      <CreateOfferModal isOpen={offerModalOpen} onClose={() => setOfferModalOpen(false)} shopId={String(currentShop.id)} seedProduct={offerSeedProduct} onCreated={() => ensureTabData('promotions', currentShop, true)} />
+      <NotificationPanel isOpen={isNotifPanelOpen} onClose={() => setIsNotifPanelOpen(false)} notifications={shopNotifs} unreadCount={notifUnreadCount} onMarkRead={notifMarkRead} onMarkAllRead={notifMarkAllRead} />
     </div>
     </>
   );

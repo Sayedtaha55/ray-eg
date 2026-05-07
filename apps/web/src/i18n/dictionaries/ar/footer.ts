@@ -1,0 +1,17 @@
+export default {
+    explore: 'استكشف',
+    forBusiness: 'للأعمال',
+    joinUs: 'انضم لنا',
+    addListing: 'أضف نشاطك',
+    help: 'المساعدة',
+    helpCenter: 'مركز المساعدة',
+    terms: 'شروط الخدمة',
+    privacy: 'سياسة الخصوصية',
+    contact: 'اتصل بنا',
+    contactTitle: 'تواصل معنا',
+    followUs: 'تابعنا',
+    email: 'البريد',
+    rights: 'جميع الحقوق محفوظة',
+    beta: 'نحن في مرحلة التجربة. شكراً لثقتكم بنا في بناء مستقبل التسوق في مصر.',
+    returnPolicy: 'سياسة الاسترجاع',
+  };

@@ -1,0 +1,17 @@
+export default {
+    title: 'Map',
+    subtitle: 'Shows only registered businesses on our platform.',
+    locateMe: 'Locate Me',
+    loadingMap: 'Map is loading...',
+    pinsCount: 'Visible businesses:',
+    geoNotSupported: 'Geolocation is not supported by your browser',
+    geoRequiresHttps: 'Geolocation requires accessing the site over HTTPS.',
+    geoFailed: "Couldn't determine your location. Please try again.",
+    backToMap: 'Back to Map',
+    primary: 'Primary',
+    branches: 'Branches',
+    directions: 'Directions',
+    contactInfo: 'Contact Info',
+    noContact: 'No contact info',
+    listingNotFound: 'Business not found',
+  };
