@@ -1,0 +1,15 @@
+export default {
+    badge: 'MNMKNK Story',
+    title: 'We Build',
+    titleHighlight: 'The Future of Commerce.',
+    desc: 'MNMKNK is an Egyptian platform to discover the best shops and restaurants near you with offers, reviews, and a simple fast experience.',
+    vision: 'Our Vision',
+    visionDesc: 'Every shop in Egypt can own a world-class digital storefront and smart management system in minutes, without technical complexity.',
+    tech: 'Our Tech',
+    techDesc: 'We use the latest AI (Gemini) to guarantee real offers and a personalized shopping experience for every user.',
+    betaTitle: 'We are in Beta',
+    betaDesc: 'MNMKNK is currently in Beta Test. Some features may not perform at their best yet, and we are working around the clock to improve the experience. Your feedback and suggestions fuel us to be the best version always.',
+    speed: 'Super Fast',
+    team: 'Egyptian Team',
+    security: 'Full Security',
+  };

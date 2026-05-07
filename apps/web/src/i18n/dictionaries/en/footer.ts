@@ -1,0 +1,17 @@
+export default {
+    explore: 'Explore',
+    forBusiness: 'For Business',
+    joinUs: 'Join Us',
+    addListing: 'Add Your Business',
+    help: 'Help',
+    helpCenter: 'Help Center',
+    terms: 'Terms of Service',
+    privacy: 'Privacy Policy',
+    contact: 'Contact Us',
+    contactTitle: 'Contact Us',
+    followUs: 'Follow Us',
+    email: 'Email',
+    rights: 'All rights reserved',
+    beta: 'We are in beta. Thank you for your trust in building the future of shopping in Egypt.',
+    returnPolicy: 'Return Policy',
+  };

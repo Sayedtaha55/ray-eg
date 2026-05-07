@@ -1,0 +1,17 @@
+export default {
+    title: 'الخريطة',
+    subtitle: 'بتعرض المحلات/الأنشطة المسجّلة عندنا فقط.',
+    locateMe: 'تحديد موقعي',
+    loadingMap: 'الخريطة قيد التحميل...',
+    pinsCount: 'عدد الأنشطة الظاهرة:',
+    geoNotSupported: 'المتصفح لا يدعم تحديد الموقع',
+    geoRequiresHttps: 'تحديد الموقع يحتاج فتح الموقع عبر HTTPS.',
+    geoFailed: 'مقدرش أحدد موقعك، حاول تاني',
+    backToMap: 'رجوع للخريطة',
+    primary: 'الرئيسي',
+    branches: 'الفروع',
+    directions: 'اتجاهات',
+    contactInfo: 'بيانات التواصل',
+    noContact: 'لا توجد بيانات تواصل',
+    listingNotFound: 'النشاط غير موجود',
+  };
