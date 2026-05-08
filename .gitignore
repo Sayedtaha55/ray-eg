@@ -12,6 +12,9 @@ build/
 dist/
 dist-backend/
 
+# Next.js
+.next/
+
 # Env / Secrets
 .env
 .env.local
