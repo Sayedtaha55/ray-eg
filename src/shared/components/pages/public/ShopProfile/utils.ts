@@ -51,3 +51,15 @@ export const scopeCss = (css: string, scopeSelector: string) => {
     return `${prefixed}{`;
   });
 };
+
+export const IS_LOW_END_DEVICE = (() => {
+  if (typeof window === 'undefined') return false;
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    return isMobile && (cores <= 4 || memory <= 4);
+  } catch {
+    return false;
+  }
+})();
