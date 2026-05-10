@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, Search, ShoppingBag, X } from 'lucide-react';
 import ProductCard from './ProductCard';
 import { Skeleton } from '@/components/common/ui';
+import { IS_LOW_END_DEVICE } from './utils';
 
 interface ProductTabProps {
   products: any[];
@@ -293,20 +294,8 @@ const ProductTab: React.FC<ProductTabProps> = ({
     return cats.filter((c) => existing.has(c));
   }, [categorizedProducts, normalizedCategories]);
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const initialBatch = isLowEndDevice ? 18 : 36;
-  const batchSize = isLowEndDevice ? 12 : 24;
+  const initialBatch = IS_LOW_END_DEVICE ? 18 : 36;
+  const batchSize = IS_LOW_END_DEVICE ? 12 : 24;
   const totalProductsCount = filteredProducts.length;
   const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, totalProductsCount));
 
