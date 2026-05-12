@@ -36,18 +36,18 @@ const ProfilePage: React.FC = () => {
     if (!savedUser) navigate('/login');
     else setUser(savedUser);
 
-    // Fix: Await asynchronous RayDB calls
+    // Performance: Parallelize fetching and use Set for O(1) matching
     const loadData = async () => {
-      setReservations(await RayDB.getReservations());
-      const favIds = await RayDB.getFavorites();
-      const allProducts = await RayDB.getProducts();
-      
-      // Better matching logic - ensure both IDs are strings
-      const filteredProducts = allProducts.filter(p => {
-        const productId = String(p.id);
-        const isFavorite = favIds.some(favId => String(favId) === productId);
-        return isFavorite;
-      });
+      const [resData, favIds, allProducts] = await Promise.all([
+        RayDB.getReservations(),
+        RayDB.getFavorites(),
+        RayDB.getProducts(),
+      ]);
+
+      setReservations(resData);
+
+      const favSet = new Set(favIds.map(id => String(id)));
+      const filteredProducts = allProducts.filter(p => favSet.has(String(p.id)));
       setFavorites(filteredProducts);
     };
     loadData();
