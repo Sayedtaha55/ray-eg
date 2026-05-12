@@ -18,7 +18,7 @@ import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
 import { Skeleton } from '@/components/common/ui';
 import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
-import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl } from './utils';
+import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl, IS_LOW_END_DEVICE } from './utils';
 import { shopHasWhatsApp, shopHasVoiceOrdering } from '@/utils/shopApps';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
@@ -768,19 +768,7 @@ const ShopProfile: React.FC = () => {
     }
   })();
 
-  const lowEndDevice = (() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  })();
-
-  const disableCardMotion = Boolean(prefersReducedMotion) || lowEndDevice || products.length > 30;
+  const disableCardMotion = Boolean(prefersReducedMotion) || IS_LOW_END_DEVICE || products.length > 30;
 
   const footerBackgroundColor = String(currentDesign.footerBackgroundColor || (isBold ? '#0F172A' : '#F8FAFC'));
   const footerTransparent = coerceBoolean((currentDesign as any).footerTransparent, false);

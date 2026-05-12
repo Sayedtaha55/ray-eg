@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import NavTab from './NavTab';
-import { hexToRgba, isVideoUrl } from './utils';
+import { hexToRgba, isVideoUrl, IS_LOW_END_DEVICE } from './utils';
 
 const MotionDiv = motion.div as any;
 
@@ -72,18 +72,10 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const isVideoBanner = isVideoUrl(bannerUrl);
   const headerOverlayBanner = Boolean(currentDesign?.headerOverlayBanner);
 
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const shouldPlayVideoBanner = isVideoBanner && !IS_LOW_END_DEVICE && !prefersReducedMotion;
 
-  const shouldPlayVideoBanner = isVideoBanner && !isLowEndDevice && !prefersReducedMotion;
-
-  const MobileMenuWrapper: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
-  const mobileMenuMotionProps = prefersReducedMotion || isLowEndDevice
+  const MobileMenuWrapper: any = prefersReducedMotion || IS_LOW_END_DEVICE ? 'div' : MotionDiv;
+  const mobileMenuMotionProps = prefersReducedMotion || IS_LOW_END_DEVICE
     ? {}
     : {
       initial: { opacity: 0, x: '100%' },
@@ -91,8 +83,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       exit: { opacity: 0, x: '100%' },
     };
 
-  const Backdrop: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
-  const backdropMotionProps = prefersReducedMotion || isLowEndDevice
+  const Backdrop: any = prefersReducedMotion || IS_LOW_END_DEVICE ? 'div' : MotionDiv;
+  const backdropMotionProps = prefersReducedMotion || IS_LOW_END_DEVICE
     ? {}
     : {
       initial: { opacity: 0 },
