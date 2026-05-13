@@ -224,11 +224,13 @@ const ProductTab: React.FC<ProductTabProps> = ({
   onProductClick,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  // Bolt: Use deferred value for search to keep typing responsive during expensive filtering/renders
+  const deferredSearchQuery = React.useDeferredValue(searchQuery);
   const { t } = useTranslation();
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const normalizedSearchQuery = deferredSearchQuery.trim().toLowerCase();
 
   const sectionsContainerRef = useRef<HTMLDivElement | null>(null);
   const categoryHeaderRefs = useRef<Record<string, HTMLDivElement | null>>({});
