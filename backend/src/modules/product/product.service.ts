@@ -202,17 +202,18 @@ export class ProductService {
     }
 
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      // PERFORMANCE: Parallelize metadata lookups to reduce tail latency on cache miss
+      const shopId = String((product as any)?.shopId || '').trim();
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(shopId).catch(() => new Set<string>()),
+        this.getActiveImageMapHotspotLabelKeys(shopId).catch(() => new Set<string>()),
+      ]);
+
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
@@ -296,22 +297,28 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
+    // PERFORMANCE: Parallelize independent hotspot-related queries to reduce latency on cache miss
     const [linkedIds, labelKeys] = await Promise.all([
-      this.getLinkedImageMapProductIds(shopId),
-      this.getActiveImageMapHotspotLabelKeys(shopId),
+      this.getLinkedImageMapProductIds(shopId).catch(() => new Set<string>()),
+      this.getActiveImageMapHotspotLabelKeys(shopId).catch(() => new Set<string>()),
     ]);
-    return deduped.filter((p: any) => {
+
+    // PERFORMANCE: Pre-filter products before caching to eliminate 0-DB-query anti-pattern on cache hit.
+    // ShopImageMapService handles eager invalidation of 'products:*' keys when hotspots change.
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -457,17 +464,20 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    // PERFORMANCE: Pre-filter products before caching
+    const linkedIds = await this.getLinkedImageMapProductIds().catch(() => new Set<string>());
+    const filtered = products.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
