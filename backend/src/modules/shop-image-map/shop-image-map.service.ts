@@ -303,6 +303,9 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Invalidate products list cache when image map hotspots change
+      // because product visibility depends on hotspot links.
+      await this.redis.invalidatePattern('products:*');
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +544,8 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Invalidate products list cache when image map hotspots change
+      await this.redis.invalidatePattern('products:*');
     } catch {}
 
     return result;
