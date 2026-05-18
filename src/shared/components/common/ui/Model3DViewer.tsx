@@ -1,4 +1,5 @@
 import React, { Suspense, useRef, useState, useEffect, useMemo, useCallback } from 'react';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Environment, Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -101,21 +102,10 @@ export default function Model3DViewer({
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const nav = navigator as Navigator & { deviceMemory?: number; hardwareConcurrency?: number };
-      const mem = typeof nav?.deviceMemory === 'number' ? Number(nav.deviceMemory) : undefined;
-      const cores = typeof nav?.hardwareConcurrency === 'number' ? Number(nav.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
-  const dpr = isLowEndDevice ? 1 : Math.min(2, typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1);
-  const enableEnvironment = !isLowEndDevice;
+  const dpr = lowEnd ? 1 : Math.min(2, typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1);
+  const enableEnvironment = !lowEnd;
 
   const handleContextLost = useCallback((e: Event) => {
     try {
@@ -173,7 +163,7 @@ export default function Model3DViewer({
           }
         }}
         dpr={dpr}
-        gl={{ antialias: !isLowEndDevice, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: 'high-performance' }}
+        gl={{ antialias: !lowEnd, toneMapping: THREE.ACESFilmicToneMapping, powerPreference: 'high-performance' }}
         style={{ borderRadius: '1rem' }}
       >
         <ambientLight intensity={0.5} />
