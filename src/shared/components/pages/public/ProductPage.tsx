@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ArrowRight, Home, ShoppingCart, User } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { RayDB } from '@/constants';
 import { Offer, Product, Shop } from '@/types';
 import { Category } from '@/types';
@@ -625,13 +626,7 @@ const ProductPage: React.FC = () => {
     });
   }, [galleryImages]);
 
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const onGalleryTouchStart = (e: React.TouchEvent) => {
     try {
