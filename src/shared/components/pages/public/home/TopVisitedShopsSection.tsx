@@ -45,7 +45,7 @@ const ShopCard: React.FC<{ shop: Shop; idx: number }> = ({ shop, idx }) => {
       className={`group flex-shrink-0 w-[160px] sm:w-[200px] md:w-[240px] ${
         !prefersReducedMotion ? 'transition-all duration-700' : ''
       } ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-      style={{ transitionDelay: `${idx * 80}ms` }}
+      style={{ transitionDelay: `${Math.min(idx * 80, 500)}ms` }}
     >
       <Link
         to={`/shop/${shop.slug}`}
