@@ -15,6 +15,7 @@ import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 import ProductTabs from './product/ProductTabs';
 import ProductGallery from './product/ProductGallery';
 import ProductDetails from './product/ProductDetails';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 
 const ReservationModal = lazy(() => import('../shared/ReservationModal'));
 const CartDrawer = lazy(() => import('../shared/CartDrawer'));
@@ -625,13 +626,7 @@ const ProductPage: React.FC = () => {
     });
   }, [galleryImages]);
 
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const onGalleryTouchStart = (e: React.TouchEvent) => {
     try {
