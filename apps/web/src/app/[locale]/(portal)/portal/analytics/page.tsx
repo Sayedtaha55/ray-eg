@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { clientFetch } from '@/lib/api/client';
 import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
 
-export default function PortalAnalyticsPage() {
+function PortalAnalyticsContent() {
   const t = useT();
   const { dir } = useLocale();
   const searchParams = useSearchParams();
@@ -128,5 +128,13 @@ export default function PortalAnalyticsPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function PortalAnalyticsPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-40"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" /></div>}>
+      <PortalAnalyticsContent />
+    </Suspense>
   );
 }

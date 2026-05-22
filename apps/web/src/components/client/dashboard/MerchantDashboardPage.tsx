@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   BarChart3, Bell, CalendarCheck, Camera, CheckCircle2, CreditCard,
   FileText, Loader2, MapPin, Megaphone, Menu, Package, Palette, Settings,
-  ShoppingCart, Smartphone, TrendingUp, Users, Eye, Store,
+  ShoppingCart, Smartphone, TrendingUp, Users, Eye, Store, TicketPercent,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import * as merchantApi from '@/lib/api/merchant';
@@ -30,6 +30,7 @@ import ReservationsTab from './tabs/ReservationsTab';
 import SalesTab from './tabs/SalesTab';
 import AppsTab from './tabs/AppsTab';
 import ChatsTab from './tabs/ChatsTab';
+import SharedProductsTab from './tabs/SharedProductsTab';
 import PromotionsTab from './tabs/PromotionsTab';
 import ReportsTab from './tabs/ReportsTab';
 import CustomersTab from './tabs/CustomersTab';
@@ -52,11 +53,14 @@ const MotionDiv = motion.div as any;
 const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   overview: <TrendingUp size={18} />,
   notifications: <Bell size={18} />,
+  apps: <Package size={18} />,
+  chats: <Users size={18} />,
   gallery: <Camera size={18} />,
   reports: <BarChart3 size={18} />,
   customers: <Users size={18} />,
   products: <Package size={18} />,
-  promotions: <Megaphone size={18} />,
+  sharedProducts: <Package size={18} />,
+  promotions: <TicketPercent size={18} />,
   reservations: <CalendarCheck size={18} />,
   invoice: <FileText size={18} />,
   sales: <CreditCard size={18} />,
@@ -439,9 +443,20 @@ export default function MerchantDashboardPage() {
       case 'apps':
         return <AppsTab />;
       case 'chats':
-        return <ChatsTab />;
+        return <ChatsTab shopId={String(currentShop.id)} />;
       case 'sharedProducts':
-        return <SharedProductsTab />;
+        return (
+          <SharedProductsTab
+            products={products}
+            shopId={String(currentShop.id)}
+            shopCategory={shopCategory}
+            shop={currentShop}
+            onAdd={() => setShowProductModal(true)}
+            onMakeOffer={(p) => { setOfferSeedProduct(p); setOfferModalOpen(true); }}
+            onDelete={handleDeleteProduct}
+            onUpdate={(p) => setProducts(prev => prev.map(x => String(x?.id) === String(p?.id) ? { ...x, ...p } : x))}
+          />
+        );
       case 'reservations':
         return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
       case 'invoice':

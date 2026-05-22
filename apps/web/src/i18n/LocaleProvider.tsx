@@ -32,5 +32,9 @@ export function LocaleProvider({
 }
 
 export function useLocale() {
-  return useContext(LocaleContext);
+  const ctx = useContext(LocaleContext);
+  if (!ctx || !ctx.locale) {
+    return { locale: 'ar' as Locale, dir: 'rtl' as const, dict: {} as Dictionary };
+  }
+  return ctx;
 }
