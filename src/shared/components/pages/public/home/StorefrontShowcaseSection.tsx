@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, FileText, Store } from 'lucide-react';
+import { SmartImage } from '@/components/common/ui';
 import { Offer, Product, Shop } from '@/types';
 import { coerceBoolean } from '../ShopProfile/utils';
 
@@ -128,11 +129,12 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
 
                   <div className="flex items-center gap-3 flex-row-reverse">
                     {logo ? (
-                      <img
+                      <SmartImage
                         src={logo}
                         alt={shop.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-slate-200 shadow-sm"
-                        loading="lazy"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-slate-200 shadow-sm"
+                        imgClassName="object-cover"
+                        optimizeVariant="thumb"
                       />
                     ) : (
                       <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
@@ -198,9 +200,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         style={{ scrollSnapAlign: 'start' }}
                       >
                         <div className="aspect-[4/3] bg-slate-100">
-                          {String(product?.imageUrl || '').trim() ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : null}
+                          <SmartImage
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-full"
+                            imgClassName="object-cover"
+                            optimizeVariant="md"
+                          />
                         </div>
                         <div className="p-3">
                           <p className="font-black text-xs text-slate-900 line-clamp-1">{product.name}</p>
@@ -247,14 +253,20 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         >
                           <div className="aspect-[4/3] bg-slate-100 relative">
                             {offer.imageUrl ? (
-                              <img src={offer.imageUrl} alt={offer.title} className="w-full h-full object-cover" loading="lazy" />
+                              <SmartImage
+                                src={offer.imageUrl}
+                                alt={offer.title}
+                                className="w-full h-full"
+                                imgClassName="object-cover"
+                                optimizeVariant="md"
+                              />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-slate-300">
                                 <Store size={32} />
                               </div>
                             )}
                             {hasPrice && (
-                              <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-white/90 text-[10px] font-black text-slate-700 shadow-sm">
+                              <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-white/90 text-[10px] font-black text-slate-700 shadow-sm z-10">
                                 {t('home.topSelling.currency')} {Number(offer.newPrice).toLocaleString('ar-EG')}
                               </div>
                             )}
