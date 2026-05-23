@@ -1,6 +1,7 @@
 import React, { useMemo, useState, Suspense, lazy } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Box, RotateCw } from 'lucide-react';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 
 const Spin360Viewer = lazy(() => import('@/components/common/ui/Spin360Viewer'));
 const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
@@ -63,19 +64,8 @@ const ProductGallery: React.FC<ProductGalleryProps> = ({
   }, [enable3dMedia, mode]);
 
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
 
-  const disableMotion = Boolean(prefersReducedMotion) || isLowEndDevice;
+  const disableMotion = Boolean(prefersReducedMotion) || isLowEndDevice();
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
 
   const modeLabels: Record<MediaMode, string> = { image: 'صورة', '360': '360°', '3d': '3D' };

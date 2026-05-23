@@ -7,6 +7,7 @@ import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
 import { backendPostWithOptions } from '@/services/api/httpClient';
 import { useTranslation } from 'react-i18next';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 
 const EditProductModal = lazy(() => import('../modals/EditProductModal'));
 const ProductEditorLegacyModal = lazy(() => import('../modals/ProductEditorLegacyModal'));
@@ -716,20 +717,8 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     });
   })();
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const initialBatch = isLowEndDevice ? 40 : 80;
-  const batchSize = isLowEndDevice ? 30 : 60;
+  const initialBatch = isLowEndDevice() ? 40 : 80;
+  const batchSize = isLowEndDevice() ? 30 : 60;
   const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, filteredProducts.length));
 
   useEffect(() => {
