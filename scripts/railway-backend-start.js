@@ -129,6 +129,12 @@ function resolveRolledBack(migrationName) {
   return run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--rolled-back', migrationName]);
 }
 
+function extractFailedMigrationName(combinedOutput) {
+  const output = String(combinedOutput || '');
+  const match = output.match(/The `([^`]+)` migration started at/i);
+  return match?.[1] || null;
+}
+
 function reconcileLegacyReservationUpdatedAtColumn() {
   return run('node', ['scripts/fix-railway-reservations-updated-at.js']);
 }
@@ -136,6 +142,8 @@ function reconcileLegacyReservationUpdatedAtColumn() {
 function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
   const output = String(combinedOutput || '');
   if (!output.includes('P3009')) return 0;
+  const failedMigration = extractFailedMigrationName(output);
+  if (failedMigration !== '20260422151343_add_ai_platform_core') return 0;
 
   // This repair is safe + idempotent. It makes the original migration effectively apply on non-empty DBs.
   const prisma = prismaBin();
@@ -147,11 +155,36 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
   const execStatus = run(prisma, ['db', 'execute', '--schema', 'prisma/schema.prisma', '--file', repairFile]);
   if (execStatus !== 0) return execStatus;
 
-  const failedMigration = '20260422151343_add_ai_platform_core';
   const resolveStatus = run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--applied', failedMigration]);
   if (resolveStatus !== 0) return resolveStatus;
 
   return 0;
+}
+
+function applyPortalEmailPasswordRepairIfNeeded(combinedOutput) {
+  const output = String(combinedOutput || '');
+  if (!output.includes('P3018') && !output.includes('P3009')) return 0;
+  if (!output.includes('20260502160020_add_portal_email_password')) return 0;
+  if (!output.includes('MapListingStatus') && !output.includes('already exists')) return 0;
+
+  const prisma = prismaBin();
+  const repairFile = 'prisma/migrations/20260524110000_portal_email_password_repair/migration.sql';
+  const execStatus = run(prisma, ['db', 'execute', '--schema', 'prisma/schema.prisma', '--file', repairFile]);
+  if (execStatus !== 0) return execStatus;
+
+  return run(prisma, ['migrate', 'resolve', '--schema', 'prisma/schema.prisma', '--applied', '20260502160020_add_portal_email_password']);
+}
+
+function resolveKnownFailedMigration(combinedOutput) {
+  const output = String(combinedOutput || '');
+  if (!output.includes('P3009')) return 0;
+
+  const failedMigration = extractFailedMigrationName(output);
+  if (!failedMigration) return 0;
+
+  // Mark the migration as rolled back to unblock deploy; this is idempotent and only targets
+  // the migration Prisma itself reported as failed in _prisma_migrations.
+  return resolveRolledBack(failedMigration);
 }
 
 (function main() {
@@ -188,16 +221,18 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
       const combined = `${res.stdout}\n${res.stderr}`;
       if (res.status !== 0) {
         const repairStatus = applyAiPlatformCoreRepairIfNeeded(combined);
-        if (repairStatus === 0) {
+        const portalRepairStatus = applyPortalEmailPasswordRepairIfNeeded(combined);
+        if (repairStatus === 0 && portalRepairStatus === 0) {
           tryBaselineInit();
           deployStatus = deployMigrations();
         }
       }
 
       if (deployStatus !== 0) {
-        // In our case, another historical migration can fail if it attempted to create an enum that already exists.
-        // Mark it as rolled back then retry deploy.
-        resolveRolledBack('20260208184005_shop_image_maps');
+        // If Prisma still reports P3009, mark exactly the reported failed migration as rolled back.
+        const res = deployMigrationsCapture();
+        const combined = `${res.stdout}\n${res.stderr}`;
+        resolveKnownFailedMigration(combined);
         tryBaselineInit();
         deployStatus = deployMigrations();
       }
