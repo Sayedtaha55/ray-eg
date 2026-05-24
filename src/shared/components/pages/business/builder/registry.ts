@@ -1,4 +1,4 @@
-import { Layout, Palette, Sliders, ShoppingBag } from 'lucide-react';
+import { Layout, Palette, Sliders, ShoppingBag, Sparkles, Home, FileText } from 'lucide-react';
 import React from 'react';
 import i18n from '@/i18n';
 
@@ -22,6 +22,9 @@ import {
   ImageShapeSection,
   ShoppingModeSection,
   FooterSection,
+  ThemesSection,
+  HomeExperienceSection,
+  CustomPagesSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -40,7 +43,10 @@ export type BuilderSectionId =
   | 'buttons'
   | 'customCss'
   | 'shoppingMode'
-  | 'footer';
+  | 'footer'
+  | 'themes'
+  | 'homeExperience'
+  | 'customPages';
 
 export type BuilderRenderCtx = {
   config: any;
@@ -70,6 +76,25 @@ export type BuilderSectionConfig = {
 };
 
 export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
+
+  {
+    id: 'themes',
+    title: 'الثيمات',
+    icon: React.createElement(Sparkles as any, { size: 16, className: 'text-amber-500' }),
+    render: ({ config, setConfig, shop }) => React.createElement(ThemesSection as any, { config, setConfig, shop }),
+  },
+  {
+    id: 'homeExperience',
+    title: 'صفحة الهوم',
+    icon: React.createElement(Home as any, { size: 16, className: 'text-sky-500' }),
+    render: ({ config, setConfig }) => React.createElement(HomeExperienceSection as any, { config, setConfig }),
+  },
+  {
+    id: 'customPages',
+    title: 'صفحات مخصصة',
+    icon: React.createElement(FileText as any, { size: 16, className: 'text-violet-500' }),
+    render: ({ config, setConfig }) => React.createElement(CustomPagesSection as any, { config, setConfig }),
+  },
   {
     id: 'colors',
     title: i18n.t('business.builder.sections.colors'),
