@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ArgumentsHost, BadRequestException, Catch, ExceptionFilter, HttpException, ValidationPipe } from '@nestjs/common';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from '@core/app.module';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -17,6 +17,7 @@ import { LoggingInterceptor } from '@common/interceptors/logging.interceptor';
 import { TimeoutInterceptor } from '@common/interceptors/timeout.interceptor';
 import { LoggerService } from '@common/logger/logger.service';
 import { captureException, initSentry } from '@common/monitoring/sentry.util';
+import { HttpExceptionFilter } from '@common/filters/http-exception.filter';
 
 async function bootstrap() {
   try { await initSentry(); } catch {}
@@ -25,6 +26,7 @@ async function bootstrap() {
     bodyParser: false,
     logger: isDev ? ['error', 'warn', 'log', 'debug', 'verbose'] : ['error', 'warn', 'log'],
   });
+  app.enableShutdownHooks();
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
@@ -83,7 +85,15 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1', {
     exclude: ['monitoring', 'monitoring/health'],
   });
-  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
+  app.useGlobalFilters(new HttpExceptionFilter());
+  app.useGlobalPipes(new ValidationPipe({
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+    stopAtFirstError: false,
+    transformOptions: { enableImplicitConversion: true },
+    validationError: { target: false, value: false },
+  }));
   const port = parseInt(process.env.PORT || '4000', 10);
   await app.listen(port, '0.0.0.0');
   console.log(`✅ MNMKNK High-Performance Backend running on port ${port}`);
