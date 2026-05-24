@@ -30,6 +30,12 @@ const DEFAULT_PAGE_DESIGN: any = {
   pageBackgroundColor: '#FFFFFF',
   backgroundImageUrl: '',
   productDisplay: 'cards',
+  homeLayoutMode: 'banner_ads_story',
+  homeRightAdTitle: '',
+  homeLeftAdTitle: '',
+  homeIntroText: '',
+  homeStoryText: '',
+  customPages: [],
   productsLayout: 'vertical',
   imageAspectRatio: 'square',
   rowsConfig: [
@@ -79,9 +85,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>(() => {
     try { if (typeof window === 'undefined') return 'desktop'; return window.matchMedia('(min-width: 768px)').matches ? 'desktop' : 'mobile'; } catch { return 'desktop'; }
   });
-  const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info'>('home');
+  const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info' | 'custom'>('home');
   const [isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen] = useState(false);
-  const [openSection, setOpenSection] = useState('colors');
+  const [openSection, setOpenSection] = useState('themes');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
@@ -89,6 +95,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [isDesktop, setIsDesktop] = useState(false);
   const [showSettingsMobile, setShowSettingsMobile] = useState(false);
   const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [baselineConfig, setBaselineConfig] = useState<any>(null);
+  const [showBeforeAfter, setShowBeforeAfter] = useState(false);
 
   const savingRef = useRef(false);
   const logoSavingRef = useRef(false);
@@ -155,6 +163,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const cssNorm = typeof merged?.customCss === 'string' ? merged.customCss : '';
       const normalized = { ...merged, elementsVisibility: evSynced, productEditorVisibility: pevNorm, imageMapVisibility: imvNorm, customCss: cssNorm };
       setConfig(normalized as any);
+      setBaselineConfig(normalized as any);
       try { lastSavedDesignRef.current = JSON.stringify(normalized); } catch { lastSavedDesignRef.current = ''; }
       dirtyRef.current = false;
     } catch {}
@@ -171,6 +180,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   }, []);
 
   useEffect(() => { setPreviewMode(isDesktop ? 'desktop' : 'mobile'); }, [isDesktop]);
+  useEffect(() => { if (!isDesktop) setShowSettingsMobile(true); }, [isDesktop]);
   useEffect(() => { setIsPreviewHeaderMenuOpen(false); }, [previewMode, previewPage]);
 
   useEffect(() => {
@@ -251,6 +261,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
       await clientFetch<any>(`/v1/shops/${shopId}/design`, { method: 'PUT', body: JSON.stringify(normalized) });
       setConfig(normalized as any);
+      setBaselineConfig(normalized as any);
 
       if (logoFile) {
         try {
@@ -355,7 +366,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle', 'معاينة')}</span>
                       <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                        {(['home', 'gallery', 'info', 'product'] as const).map(p => (
+                        {(([ 'home', 'gallery', 'info', 'product'] as const).concat((Array.isArray(config?.customPages) && config.customPages.length > 0) ? ['custom' as const] : [] as any)).map((p: any) => (
                           <button key={p} type="button" onClick={() => setPreviewPage(p)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-[0.98] ${previewPage === p ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}>{t(`business.pageBuilder.previewTabs.${p}`, p)}</button>
                         ))}
                       </div>
@@ -381,6 +392,27 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )}
         </header>
 
+        {!isDesktop && (
+          <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2">
+            <div className="flex items-center gap-2 overflow-x-auto">
+              {(([ 'home', 'gallery', 'info', 'product'] as const).concat((Array.isArray(config?.customPages) && config.customPages.length > 0) ? ['custom' as const] : [] as any)).map((p: any) => (
+                <button key={`mobile-tab-${p}`} type="button" onClick={() => setPreviewPage(p)} className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black ${previewPage === p ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  {t(`business.pageBuilder.previewTabs.${p}`, p)}
+                </button>
+              ))}
+              <button type="button" onClick={() => setShowBeforeAfter(v => !v)} className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black ${showBeforeAfter ? 'bg-violet-700 text-white' : 'bg-slate-100 text-slate-700'}`}>
+                {showBeforeAfter ? t('business.pageBuilder.afterMode', 'بعد') : t('business.pageBuilder.beforeMode', 'قبل')}
+              </button>
+              <button type="button" onClick={() => { if (baselineConfig) setConfigAny(baselineConfig); }} className="shrink-0 px-3 py-2 rounded-xl text-[11px] font-black bg-amber-100 text-amber-800">
+                {t('business.pageBuilder.resetToLoaded', 'رجوع للأصل')}
+              </button>
+              <button type="button" onClick={handleSave} disabled={saving} className="shrink-0 px-3 py-2 rounded-xl text-[11px] font-black bg-emerald-600 text-white disabled:opacity-60">
+                {saving ? t('business.pageBuilder.saving', 'جاري الحفظ...') : t('business.pageBuilder.saveDesign', 'حفظ التصميم')}
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto p-6 md:p-12 flex items-start justify-center">
           <MotionDiv
             layout
@@ -398,8 +430,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             <div className="w-full">
               <PreviewRenderer
                 page={previewPage}
-                config={config}
-                shop={{ id: shopId, name: t('business.pageBuilder.previewShopName', 'متجر تجريبي') }}
+                config={showBeforeAfter && baselineConfig ? baselineConfig : config}
+                shop={{ id: shopId, name: shop?.name || t('business.pageBuilder.previewShopName', 'متجر تجريبي'), category: shop?.category || shop?.shopCategory || '' }}
                 logoDataUrl={logoDataUrl}
                 isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
