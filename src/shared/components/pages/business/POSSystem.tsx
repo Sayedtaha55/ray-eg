@@ -77,6 +77,26 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
     loadProducts({ silent: false });
   }, [loadProducts]);
 
+
+  useEffect(() => {
+    if (!shopId) return;
+    try {
+      const raw = localStorage.getItem(`pos_cart_${shopId}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setCart(parsed);
+    } catch {
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    if (!shopId) return;
+    try {
+      localStorage.setItem(`pos_cart_${shopId}`, JSON.stringify(cart || []));
+    } catch {
+    }
+  }, [shopId, cart]);
+
   // Smart event-driven refresh - replaces the old timer-based auto-refresh
   useSmartRefreshListener(['products', 'all'], () => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
@@ -385,17 +405,51 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
         } catch {
         }
       }
-      await ApiService.placeOrder({
+      const placedOrder: any = await ApiService.placeOrder({
         shopId,
         items: cart.map(i => ({ productId: i.productId, quantity: i.quantity, addons: i.addons, variantSelection: i.variantSelection })),
         total,
         paymentMethod: 'COD',
         source: 'pos',
       });
-      const updated = await ApiService.getProducts(shopId);
-      setProducts(updated || []);
+
+      const queuedOffline = Boolean(placedOrder?.__queued);
+
+      if (queuedOffline) {
+        setUsingOfflineData(true);
+        setProducts((prev) => {
+          const next = (Array.isArray(prev) ? prev : []).map((p: any) => {
+          const trackStock = p?.trackStock ?? p?.track_stock ?? true;
+          if (!trackStock) return p;
+          const soldQty = cart
+            .filter((i) => i.productId === p?.id)
+            .reduce((sum, i) => sum + Number(i?.quantity || 0), 0);
+          if (!soldQty) return p;
+          const currentStock = Number.isFinite(Number(p?.stock)) ? Number(p.stock) : 0;
+          return { ...p, stock: Math.max(0, currentStock - soldQty) };
+          });
+          try {
+            localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(next));
+          } catch {
+          }
+          return next;
+        });
+      } else {
+        try {
+          const updated = await ApiService.getProducts(shopId);
+          setProducts(updated || []);
+          setUsingOfflineData(false);
+          localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(updated || []));
+        } catch {
+        }
+      }
+
       setShowSuccess(true);
       setCart([]);
+      try {
+        localStorage.removeItem(`pos_cart_${shopId}`);
+      } catch {
+      }
       try {
         window.dispatchEvent(new Event('orders-updated'));
       } catch {
