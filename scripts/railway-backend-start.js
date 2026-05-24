@@ -213,25 +213,28 @@ function resolveKnownFailedMigration(combinedOutput) {
 
     tryBaselineInit();
 
-    let deployStatus = deployMigrations();
+    // Capture deploy output so repair logic can inspect the real first failure (e.g. P3018 duplicate type).
+    let deployRes = deployMigrationsCapture();
+    process.stdout.write(deployRes.stdout || '');
+    process.stderr.write(deployRes.stderr || '');
+    let deployStatus = deployRes.status;
     if (deployStatus !== 0) {
       // If a migration is marked failed in the database, Prisma will refuse to apply new ones (P3009).
-      // Attempt automated repair for the known failing migration, then retry.
-      const res = deployMigrationsCapture();
-      const combined = `${res.stdout}\n${res.stderr}`;
-      if (res.status !== 0) {
-        const repairStatus = applyAiPlatformCoreRepairIfNeeded(combined);
-        const portalRepairStatus = applyPortalEmailPasswordRepairIfNeeded(combined);
-        if (repairStatus === 0 && portalRepairStatus === 0) {
-          tryBaselineInit();
-          deployStatus = deployMigrations();
-        }
+      // Attempt automated repair for known failing migrations, then retry.
+      const combined = `${deployRes.stdout}\n${deployRes.stderr}`;
+      const repairStatus = applyAiPlatformCoreRepairIfNeeded(combined);
+      const portalRepairStatus = applyPortalEmailPasswordRepairIfNeeded(combined);
+      if (repairStatus === 0 && portalRepairStatus === 0) {
+        tryBaselineInit();
+        deployStatus = deployMigrations();
       }
 
       if (deployStatus !== 0) {
         // If Prisma still reports P3009, mark exactly the reported failed migration as rolled back.
-        const res = deployMigrationsCapture();
-        const combined = `${res.stdout}\n${res.stderr}`;
+        deployRes = deployMigrationsCapture();
+        process.stdout.write(deployRes.stdout || '');
+        process.stderr.write(deployRes.stderr || '');
+        const combined = `${deployRes.stdout}\n${deployRes.stderr}`;
         resolveKnownFailedMigration(combined);
         tryBaselineInit();
         deployStatus = deployMigrations();
