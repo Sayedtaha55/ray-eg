@@ -1,14 +1,30 @@
 -- CreateEnum
-CREATE TYPE "MapListingStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED');
+DO $$ BEGIN
+    CREATE TYPE "MapListingStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED', 'SUSPENDED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "OwnershipRole" AS ENUM ('OWNER', 'MANAGER');
+DO $$ BEGIN
+    CREATE TYPE "OwnershipRole" AS ENUM ('OWNER', 'MANAGER');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "ClaimRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+DO $$ BEGIN
+    CREATE TYPE "ClaimRequestStatus" AS ENUM ('PENDING', 'APPROVED', 'REJECTED');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateEnum
-CREATE TYPE "AnalyticsEventType" AS ENUM ('LISTING_VIEW', 'WEBSITE_CLICK', 'WHATSAPP_CLICK', 'PHONE_CLICK', 'DIRECTIONS_CLICK');
+DO $$ BEGIN
+    CREATE TYPE "AnalyticsEventType" AS ENUM ('LISTING_VIEW', 'WEBSITE_CLICK', 'WHATSAPP_CLICK', 'PHONE_CLICK', 'DIRECTIONS_CLICK');
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- CreateTable
 CREATE TABLE "cart_events" (
