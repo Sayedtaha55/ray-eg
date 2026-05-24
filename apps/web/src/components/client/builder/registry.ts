@@ -1,6 +1,6 @@
 'use client';
 
-import { Layout, Palette, Sliders, ShoppingBag } from 'lucide-react';
+import { Layout, Palette, Sliders, ShoppingBag, Sparkles } from 'lucide-react';
 import React from 'react';
 import { useT } from '@/i18n/useT';
 
@@ -9,14 +9,14 @@ import {
   ColorsSection, CustomCssSection, HeaderFooterSection, HeaderTypeSection,
   ProductCardSection, ProductEditorSection, LayoutSection, ProductPageSection,
   ProductsSection, TypographySection, VisibilitySection, ImageMapVisibilitySection,
-  ImageShapeSection, ShoppingModeSection, FooterSection,
+  ImageShapeSection, ShoppingModeSection, FooterSection, HomeExperienceSection, ThemesSection, CustomPagesSection,
 } from './sections';
 
 export type BuilderSectionId =
   | 'colors' | 'background' | 'banner' | 'header' | 'headerFooter'
   | 'productCard' | 'categories' | 'productEditor' | 'productPage'
   | 'imageShape' | 'layout' | 'typography' | 'buttons' | 'customCss'
-  | 'shoppingMode' | 'footer';
+  | 'shoppingMode' | 'footer' | 'homeExperience' | 'themes' | 'customPages';
 
 export type BuilderRenderCtx = {
   config: any;
@@ -50,6 +50,9 @@ export function useBuilderSections() {
   const t = useT();
 
   const BUILDER_SECTIONS: BuilderSectionConfig[] = [
+    { id: 'themes', title: t('business.builder.sections.themes', 'الثيمات'), icon: React.createElement(Sparkles as any, { size: 16, className: 'text-amber-500' }), render: ({ config, setConfig, shop }) => React.createElement(ThemesSection as any, { config, setConfig, shop }) },
+    { id: 'homeExperience', title: t('business.builder.sections.homeExperience', 'صفحة الهوم'), icon: React.createElement(Layout as any, { size: 16, className: 'text-cyan-500' }), render: ({ config, setConfig }) => React.createElement(HomeExperienceSection as any, { config, setConfig }) },
+    { id: 'customPages', title: t('business.builder.sections.customPages', 'صفحات مخصصة'), icon: React.createElement(Layout as any, { size: 16, className: 'text-fuchsia-500' }), render: ({ config, setConfig }) => React.createElement(CustomPagesSection as any, { config, setConfig }) },
     { id: 'colors', title: t('business.builder.sections.colors', 'الألوان'), icon: React.createElement(Palette as any, { size: 16, className: 'text-[#00E5FF]' }), render: ({ config, setConfig }) => React.createElement(ColorsSection as any, { config, setConfig }) },
     { id: 'background', title: t('business.builder.sections.background', 'الخلفية'), icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) => React.createElement(BackgroundSection as any, { config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) },
     { id: 'banner', title: t('business.builder.sections.banner', 'البانر'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, bannerFile, setBannerFile, bannerPreview, setBannerPreview }) => React.createElement(BannerSection as any, { config, setConfig, bannerFile, setBannerFile, bannerPreview, setBannerPreview }) },
@@ -76,5 +79,5 @@ export const BUILDER_SECTION_IDS: BuilderSectionId[] = [
   'colors', 'background', 'banner', 'header', 'headerFooter',
   'productCard', 'categories', 'productEditor', 'productPage',
   'imageShape', 'layout', 'typography', 'buttons', 'customCss',
-  'shoppingMode', 'footer',
+  'themes', 'homeExperience', 'customPages', 'shoppingMode', 'footer',
 ];
