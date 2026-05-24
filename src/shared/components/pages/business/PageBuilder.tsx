@@ -84,6 +84,13 @@ const DEFAULT_PAGE_DESIGN = {
     imageMapCardAddToCart: true,
     imageMapCardDescription: true,
   },
+  quickTheme: 'catalog_clean',
+  homeLayoutMode: 'banner_products',
+  homeRightAdTitle: '',
+  homeLeftAdTitle: '',
+  homeIntroText: '',
+  homeStoryText: '',
+  customPages: [] as Array<{ id: string; title: string; content: string }>,
 };
 
 interface ShopDesign {
@@ -142,6 +149,13 @@ interface ShopDesign {
   productEditorVisibility?: Record<string, boolean>;
   imageMapVisibility?: Record<string, boolean>;
   customCss?: string;
+  quickTheme?: string;
+  homeLayoutMode?: string;
+  homeRightAdTitle?: string;
+  homeLeftAdTitle?: string;
+  homeIntroText?: string;
+  homeStoryText?: string;
+  customPages?: Array<{ id: string; title: string; content: string }>;
 }
 
 const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
@@ -166,9 +180,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       return 'desktop';
     }
   });
-  const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info'>('home');
+  const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info' | 'custom'>('home');
   const [isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen] = useState(false);
-  const [openSection, setOpenSection] = useState('colors');
+  const [openSection, setOpenSection] = useState('themes');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string>('');
   const [backgroundFile, setBackgroundFile] = useState<File | null>(null);
@@ -861,6 +875,15 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </div>
                     </div>
                   </div>
+
+                  <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white p-4">
+                    <div className="text-xs font-black text-slate-500 mb-3">وصول سريع</div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button type="button" onClick={() => setOpenSection('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
+                      <button type="button" onClick={() => setOpenSection('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
+                      <button type="button" onClick={() => setOpenSection('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
+                    </div>
+                  </div>
                   {sidebarMode ? (
                     activeSectionNode
                   ) : (
@@ -910,6 +933,16 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
            )}
         </header>
 
+
+        {!isDesktop && (
+          <div className="sticky top-0 z-20 px-4 py-2 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
+            <button onClick={() => setPreviewPage('home')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'home' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>هوم</button>
+            <button onClick={() => setPreviewPage('gallery')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'gallery' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>المعرض</button>
+            <button onClick={() => setPreviewPage('info')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'info' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>معلومات</button>
+            <button onClick={() => setPreviewPage('product')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'product' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>منتج</button>
+            <button onClick={handleSave} disabled={saving} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white disabled:opacity-60">حفظ</button>
+          </div>
+        )}
         <div className={`flex-1 overflow-y-auto p-6 md:p-12 ${integratedMode ? 'flex flex-col items-center gap-8' : 'flex items-start justify-center'}`}>
           <MotionDiv 
             layout
