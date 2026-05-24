@@ -164,11 +164,15 @@ function applyAiPlatformCoreRepairIfNeeded(combinedOutput) {
 function applyPortalEmailPasswordRepairIfNeeded(combinedOutput) {
   const output = String(combinedOutput || '');
   if (!output.includes('P3018') && !output.includes('P3009')) return 0;
-  if (!output.includes('20260502160020_add_portal_email_password')) return 0;
-  if (!output.includes('MapListingStatus') && !output.includes('already exists')) return 0;
+  const failedMigration = extractFailedMigrationName(output);
+  const isPortalMigrationFailure = output.includes('20260502160020_add_portal_email_password')
+    || failedMigration === '20260502160020_add_portal_email_password';
+  if (!isPortalMigrationFailure) return 0;
 
   const prisma = prismaBin();
   const repairFile = 'prisma/migrations/20260524110000_portal_email_password_repair/migration.sql';
+  // eslint-disable-next-line no-console
+  console.warn('[railway-backend-start] detected portal migration failure; applying portal repair SQL then resolving migration as applied');
   const execStatus = run(prisma, ['db', 'execute', '--schema', 'prisma/schema.prisma', '--file', repairFile]);
   if (execStatus !== 0) return execStatus;
 
