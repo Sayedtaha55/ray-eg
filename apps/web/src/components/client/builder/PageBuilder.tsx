@@ -372,6 +372,15 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       </div>
                     </div>
                   </div>
+                  <div className="border border-slate-100 rounded-2xl bg-white p-3">
+                    <div className="text-[11px] font-black text-slate-400 mb-2">{t('business.pageBuilder.quickAccess', 'وصول سريع')}</div>
+                    <div className="flex flex-wrap gap-2">
+                      <button type="button" onClick={() => setOpenSection('themes')} className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 text-xs font-black">{t('business.builder.sections.themes', 'الثيمات')}</button>
+                      <button type="button" onClick={() => setOpenSection('homeExperience')} className="px-3 py-2 rounded-xl bg-cyan-50 text-cyan-800 text-xs font-black">{t('business.builder.sections.homeExperience', 'صفحة الهوم')}</button>
+                      <button type="button" onClick={() => setOpenSection('customPages')} className="px-3 py-2 rounded-xl bg-fuchsia-50 text-fuchsia-800 text-xs font-black">{t('business.builder.sections.customPages', 'صفحات مخصصة')}</button>
+                    </div>
+                  </div>
+
                   <SectionRenderer {...renderCtx} toggleSection={toggleSection} openSection={openSection} />
                 </div>
               </MotionDiv>
