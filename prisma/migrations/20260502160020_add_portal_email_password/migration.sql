@@ -27,7 +27,7 @@ EXCEPTION
 END $$;
 
 -- CreateTable
-CREATE TABLE "cart_events" (
+CREATE TABLE IF NOT EXISTS "cart_events" (
     "id" TEXT NOT NULL,
     "shop_id" TEXT NOT NULL,
     "product_id" TEXT NOT NULL,
@@ -50,7 +50,7 @@ CREATE TABLE "cart_events" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listings" (
+CREATE TABLE IF NOT EXISTS "map_listings" (
     "id" TEXT NOT NULL,
     "linked_shop_id" TEXT,
     "title" TEXT NOT NULL,
@@ -73,7 +73,7 @@ CREATE TABLE "map_listings" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listing_branches" (
+CREATE TABLE IF NOT EXISTS "map_listing_branches" (
     "id" TEXT NOT NULL,
     "listing_id" TEXT NOT NULL,
     "name" TEXT,
@@ -91,7 +91,7 @@ CREATE TABLE "map_listing_branches" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listing_owners" (
+CREATE TABLE IF NOT EXISTS "map_listing_owners" (
     "id" TEXT NOT NULL,
     "phone" TEXT,
     "name" TEXT,
@@ -107,7 +107,7 @@ CREATE TABLE "map_listing_owners" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listing_ownerships" (
+CREATE TABLE IF NOT EXISTS "map_listing_ownerships" (
     "id" TEXT NOT NULL,
     "listing_id" TEXT NOT NULL,
     "owner_id" TEXT NOT NULL,
@@ -118,7 +118,7 @@ CREATE TABLE "map_listing_ownerships" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listing_claim_requests" (
+CREATE TABLE IF NOT EXISTS "map_listing_claim_requests" (
     "id" TEXT NOT NULL,
     "listing_id" TEXT NOT NULL,
     "owner_id" TEXT NOT NULL,
@@ -134,7 +134,7 @@ CREATE TABLE "map_listing_claim_requests" (
 );
 
 -- CreateTable
-CREATE TABLE "map_listing_analytics_events" (
+CREATE TABLE IF NOT EXISTS "map_listing_analytics_events" (
     "id" TEXT NOT NULL,
     "listing_id" TEXT NOT NULL,
     "type" "AnalyticsEventType" NOT NULL,
@@ -147,7 +147,7 @@ CREATE TABLE "map_listing_analytics_events" (
 );
 
 -- CreateTable
-CREATE TABLE "portal_otp_codes" (
+CREATE TABLE IF NOT EXISTS "portal_otp_codes" (
     "id" TEXT NOT NULL,
     "phone" TEXT NOT NULL,
     "code_hash" TEXT NOT NULL,
@@ -161,151 +161,187 @@ CREATE TABLE "portal_otp_codes" (
 );
 
 -- CreateIndex
-CREATE INDEX "cart_events_shop_id_event_idx" ON "cart_events"("shop_id", "event");
+CREATE INDEX IF NOT EXISTS "cart_events_shop_id_event_idx" ON "cart_events"("shop_id", "event");
 
 -- CreateIndex
-CREATE INDEX "cart_events_shop_id_created_at_idx" ON "cart_events"("shop_id", "created_at");
+CREATE INDEX IF NOT EXISTS "cart_events_shop_id_created_at_idx" ON "cart_events"("shop_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "cart_events_shop_id_product_id_idx" ON "cart_events"("shop_id", "product_id");
+CREATE INDEX IF NOT EXISTS "cart_events_shop_id_product_id_idx" ON "cart_events"("shop_id", "product_id");
 
 -- CreateIndex
-CREATE INDEX "cart_events_user_id_shop_id_idx" ON "cart_events"("user_id", "shop_id");
+CREATE INDEX IF NOT EXISTS "cart_events_user_id_shop_id_idx" ON "cart_events"("user_id", "shop_id");
 
 -- CreateIndex
-CREATE INDEX "cart_events_session_id_idx" ON "cart_events"("session_id");
+CREATE INDEX IF NOT EXISTS "cart_events_session_id_idx" ON "cart_events"("session_id");
 
 -- CreateIndex
-CREATE INDEX "cart_events_is_recovered_idx" ON "cart_events"("is_recovered");
+CREATE INDEX IF NOT EXISTS "cart_events_is_recovered_idx" ON "cart_events"("is_recovered");
 
 -- CreateIndex
-CREATE INDEX "map_listings_status_idx" ON "map_listings"("status");
+CREATE INDEX IF NOT EXISTS "map_listings_status_idx" ON "map_listings"("status");
 
 -- CreateIndex
-CREATE INDEX "map_listings_category_idx" ON "map_listings"("category");
+CREATE INDEX IF NOT EXISTS "map_listings_category_idx" ON "map_listings"("category");
 
 -- CreateIndex
-CREATE INDEX "map_listings_title_idx" ON "map_listings"("title");
+CREATE INDEX IF NOT EXISTS "map_listings_title_idx" ON "map_listings"("title");
 
 -- CreateIndex
-CREATE INDEX "map_listings_linked_shop_id_idx" ON "map_listings"("linked_shop_id");
+CREATE INDEX IF NOT EXISTS "map_listings_linked_shop_id_idx" ON "map_listings"("linked_shop_id");
 
 -- CreateIndex
-CREATE INDEX "map_listings_reviewed_by_admin_id_idx" ON "map_listings"("reviewed_by_admin_id");
+CREATE INDEX IF NOT EXISTS "map_listings_reviewed_by_admin_id_idx" ON "map_listings"("reviewed_by_admin_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_branches_listing_id_idx" ON "map_listing_branches"("listing_id");
+CREATE INDEX IF NOT EXISTS "map_listing_branches_listing_id_idx" ON "map_listing_branches"("listing_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_branches_listing_id_is_primary_idx" ON "map_listing_branches"("listing_id", "is_primary");
+CREATE INDEX IF NOT EXISTS "map_listing_branches_listing_id_is_primary_idx" ON "map_listing_branches"("listing_id", "is_primary");
 
 -- CreateIndex
-CREATE INDEX "map_listing_branches_governorate_idx" ON "map_listing_branches"("governorate");
+CREATE INDEX IF NOT EXISTS "map_listing_branches_governorate_idx" ON "map_listing_branches"("governorate");
 
 -- CreateIndex
-CREATE INDEX "map_listing_branches_city_idx" ON "map_listing_branches"("city");
+CREATE INDEX IF NOT EXISTS "map_listing_branches_city_idx" ON "map_listing_branches"("city");
 
 -- CreateIndex
-CREATE INDEX "map_listing_branches_latitude_longitude_idx" ON "map_listing_branches"("latitude", "longitude");
+CREATE INDEX IF NOT EXISTS "map_listing_branches_latitude_longitude_idx" ON "map_listing_branches"("latitude", "longitude");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "map_listing_owners_phone_key" ON "map_listing_owners"("phone");
+CREATE UNIQUE INDEX IF NOT EXISTS "map_listing_owners_phone_key" ON "map_listing_owners"("phone");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "map_listing_owners_email_key" ON "map_listing_owners"("email");
+CREATE UNIQUE INDEX IF NOT EXISTS "map_listing_owners_email_key" ON "map_listing_owners"("email");
 
 -- CreateIndex
-CREATE INDEX "map_listing_owners_phone_idx" ON "map_listing_owners"("phone");
+CREATE INDEX IF NOT EXISTS "map_listing_owners_phone_idx" ON "map_listing_owners"("phone");
 
 -- CreateIndex
-CREATE INDEX "map_listing_owners_email_idx" ON "map_listing_owners"("email");
+CREATE INDEX IF NOT EXISTS "map_listing_owners_email_idx" ON "map_listing_owners"("email");
 
 -- CreateIndex
-CREATE INDEX "map_listing_owners_is_active_idx" ON "map_listing_owners"("is_active");
+CREATE INDEX IF NOT EXISTS "map_listing_owners_is_active_idx" ON "map_listing_owners"("is_active");
 
 -- CreateIndex
-CREATE INDEX "map_listing_ownerships_listing_id_idx" ON "map_listing_ownerships"("listing_id");
+CREATE INDEX IF NOT EXISTS "map_listing_ownerships_listing_id_idx" ON "map_listing_ownerships"("listing_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_ownerships_owner_id_idx" ON "map_listing_ownerships"("owner_id");
+CREATE INDEX IF NOT EXISTS "map_listing_ownerships_owner_id_idx" ON "map_listing_ownerships"("owner_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_ownerships_owner_id_role_idx" ON "map_listing_ownerships"("owner_id", "role");
+CREATE INDEX IF NOT EXISTS "map_listing_ownerships_owner_id_role_idx" ON "map_listing_ownerships"("owner_id", "role");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "map_listing_ownerships_listing_id_owner_id_key" ON "map_listing_ownerships"("listing_id", "owner_id");
+CREATE UNIQUE INDEX IF NOT EXISTS "map_listing_ownerships_listing_id_owner_id_key" ON "map_listing_ownerships"("listing_id", "owner_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_claim_requests_listing_id_idx" ON "map_listing_claim_requests"("listing_id");
+CREATE INDEX IF NOT EXISTS "map_listing_claim_requests_listing_id_idx" ON "map_listing_claim_requests"("listing_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_claim_requests_owner_id_idx" ON "map_listing_claim_requests"("owner_id");
+CREATE INDEX IF NOT EXISTS "map_listing_claim_requests_owner_id_idx" ON "map_listing_claim_requests"("owner_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_claim_requests_status_idx" ON "map_listing_claim_requests"("status");
+CREATE INDEX IF NOT EXISTS "map_listing_claim_requests_status_idx" ON "map_listing_claim_requests"("status");
 
 -- CreateIndex
-CREATE INDEX "map_listing_analytics_events_listing_id_idx" ON "map_listing_analytics_events"("listing_id");
+CREATE INDEX IF NOT EXISTS "map_listing_analytics_events_listing_id_idx" ON "map_listing_analytics_events"("listing_id");
 
 -- CreateIndex
-CREATE INDEX "map_listing_analytics_events_listing_id_type_idx" ON "map_listing_analytics_events"("listing_id", "type");
+CREATE INDEX IF NOT EXISTS "map_listing_analytics_events_listing_id_type_idx" ON "map_listing_analytics_events"("listing_id", "type");
 
 -- CreateIndex
-CREATE INDEX "map_listing_analytics_events_listing_id_created_at_idx" ON "map_listing_analytics_events"("listing_id", "created_at");
+CREATE INDEX IF NOT EXISTS "map_listing_analytics_events_listing_id_created_at_idx" ON "map_listing_analytics_events"("listing_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "map_listing_analytics_events_created_at_idx" ON "map_listing_analytics_events"("created_at");
+CREATE INDEX IF NOT EXISTS "map_listing_analytics_events_created_at_idx" ON "map_listing_analytics_events"("created_at");
 
 -- CreateIndex
-CREATE INDEX "portal_otp_codes_phone_purpose_idx" ON "portal_otp_codes"("phone", "purpose");
+CREATE INDEX IF NOT EXISTS "portal_otp_codes_phone_purpose_idx" ON "portal_otp_codes"("phone", "purpose");
 
 -- CreateIndex
-CREATE INDEX "portal_otp_codes_expires_at_idx" ON "portal_otp_codes"("expires_at");
+CREATE INDEX IF NOT EXISTS "portal_otp_codes_expires_at_idx" ON "portal_otp_codes"("expires_at");
 
 -- CreateIndex
-CREATE INDEX "messages_shop_id_idx" ON "messages"("shop_id");
+CREATE INDEX IF NOT EXISTS "messages_shop_id_idx" ON "messages"("shop_id");
 
 -- CreateIndex
-CREATE INDEX "messages_shop_id_created_at_idx" ON "messages"("shop_id", "created_at");
+CREATE INDEX IF NOT EXISTS "messages_shop_id_created_at_idx" ON "messages"("shop_id", "created_at");
 
 -- CreateIndex
-CREATE INDEX "messages_sender_id_idx" ON "messages"("sender_id");
+CREATE INDEX IF NOT EXISTS "messages_sender_id_idx" ON "messages"("sender_id");
 
 -- CreateIndex
-CREATE INDEX "notifications_user_id_is_read_created_at_idx" ON "notifications"("user_id", "is_read", "created_at");
+CREATE INDEX IF NOT EXISTS "notifications_user_id_is_read_created_at_idx" ON "notifications"("user_id", "is_read", "created_at");
 
 -- CreateIndex
-CREATE INDEX "order_items_order_id_idx" ON "order_items"("order_id");
+CREATE INDEX IF NOT EXISTS "order_items_order_id_idx" ON "order_items"("order_id");
 
 -- CreateIndex
-CREATE INDEX "order_items_product_id_idx" ON "order_items"("product_id");
+CREATE INDEX IF NOT EXISTS "order_items_product_id_idx" ON "order_items"("product_id");
 
 -- CreateIndex
-CREATE INDEX "shop_themes_shop_id_idx" ON "shop_themes"("shop_id");
+CREATE INDEX IF NOT EXISTS "shop_themes_shop_id_idx" ON "shop_themes"("shop_id");
 
 -- AddForeignKey
-ALTER TABLE "cart_events" ADD CONSTRAINT "cart_events_shop_id_fkey" FOREIGN KEY ("shop_id") REFERENCES "shops"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "cart_events" ADD CONSTRAINT "cart_events_shop_id_fkey" FOREIGN KEY ("shop_id") REFERENCES "shops"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listings" ADD CONSTRAINT "map_listings_linked_shop_id_fkey" FOREIGN KEY ("linked_shop_id") REFERENCES "shops"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listings" ADD CONSTRAINT "map_listings_linked_shop_id_fkey" FOREIGN KEY ("linked_shop_id") REFERENCES "shops"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listings" ADD CONSTRAINT "map_listings_reviewed_by_admin_id_fkey" FOREIGN KEY ("reviewed_by_admin_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listings" ADD CONSTRAINT "map_listings_reviewed_by_admin_id_fkey" FOREIGN KEY ("reviewed_by_admin_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_branches" ADD CONSTRAINT "map_listing_branches_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_branches" ADD CONSTRAINT "map_listing_branches_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_ownerships" ADD CONSTRAINT "map_listing_ownerships_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_ownerships" ADD CONSTRAINT "map_listing_ownerships_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_ownerships" ADD CONSTRAINT "map_listing_ownerships_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "map_listing_owners"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_ownerships" ADD CONSTRAINT "map_listing_ownerships_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "map_listing_owners"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_claim_requests" ADD CONSTRAINT "map_listing_claim_requests_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_claim_requests" ADD CONSTRAINT "map_listing_claim_requests_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_claim_requests" ADD CONSTRAINT "map_listing_claim_requests_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "map_listing_owners"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_claim_requests" ADD CONSTRAINT "map_listing_claim_requests_owner_id_fkey" FOREIGN KEY ("owner_id") REFERENCES "map_listing_owners"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "map_listing_analytics_events" ADD CONSTRAINT "map_listing_analytics_events_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "map_listing_analytics_events" ADD CONSTRAINT "map_listing_analytics_events_listing_id_fkey" FOREIGN KEY ("listing_id") REFERENCES "map_listings"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN null;
+END $$;
