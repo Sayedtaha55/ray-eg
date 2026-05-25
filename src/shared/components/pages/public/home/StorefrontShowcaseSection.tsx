@@ -3,6 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { ChevronLeft, ChevronRight, FileText, Store } from 'lucide-react';
 import { Offer, Product, Shop } from '@/types';
 import { coerceBoolean } from '../ShopProfile/utils';
+import { isLowEndDevice } from '@/utils/performanceProfile';
+import { SmartImage } from '@/components/common/ui';
 
 interface StorefrontShowcaseSectionProps {
   shops: Shop[];
@@ -11,6 +13,8 @@ interface StorefrontShowcaseSectionProps {
   loading?: boolean;
   onOpenShop: (shop: Shop) => void;
 }
+
+const EMPTY_ARRAY: any[] = [];
 
 const normalizeColor = (value: unknown, fallback: string) => {
   const raw = String(value || '').trim();
@@ -25,10 +29,11 @@ const isVideoUrl = (url: string) => /\.(mp4|webm|mov)(\?.*)?$/i.test(String(url 
 const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ shops, offers, shopProductsById = {}, loading = false, onOpenShop }) => {
   const { t } = useTranslation();
   const slidersRef = useRef<Record<string, HTMLDivElement | null>>({});
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const approvedShops = useMemo(
     () =>
-      (Array.isArray(shops) ? shops : []).filter((s) => {
+      (Array.isArray(shops) ? shops : EMPTY_ARRAY).filter((s) => {
         const status = String((s as any)?.status || '').trim().toLowerCase();
         if (!status) return Boolean((s as any)?.id);
         return status === 'approved';
@@ -38,7 +43,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
 
   const offersByShopId = useMemo(() => {
     const map = new Map<string, Offer[]>();
-    for (const offer of Array.isArray(offers) ? offers : []) {
+    for (const offer of Array.isArray(offers) ? offers : EMPTY_ARRAY) {
       const sid = String((offer as any)?.shopId || '').trim();
       if (!sid) continue;
       if (!map.has(sid)) map.set(sid, []);
@@ -76,7 +81,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
 
       <div className="space-y-5 md:space-y-7">
         {approvedShops.slice(0, 8).map((shop) => {
-          const shopOffers = offersByShopId.get(String(shop.id)) || [];
+          const shopOffers = offersByShopId.get(String(shop.id)) || EMPTY_ARRAY;
           const logo = String((shop as any)?.logoUrl || (shop as any)?.logo_url || '').trim();
           const design = (shop as any)?.pageDesign || (shop as any)?.page_design || {};
           const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
@@ -88,16 +93,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
           const showPrice = isVisible('productCardPrice', true);
           const primaryColor = normalizeColor((design as any)?.primaryColor, '#0f172a');
           const secondaryColor = normalizeColor((design as any)?.secondaryColor, '#334155');
-          const pageBgColor = normalizeColor((design as any)?.pageBackgroundColor || (design as any)?.backgroundColor, '#f8fafc');
-          const backgroundImageUrl = String((design as any)?.backgroundImageUrl || '').trim();
-          const bannerUrl = String((design as any)?.bannerUrl || '').trim();
-          const bannerPosterUrl = String((design as any)?.bannerPosterUrl || '').trim();
-          const previewBannerUrl = isVideoUrl(bannerUrl) ? (bannerPosterUrl || '') : bannerUrl;
-          const bannerPosX = Number((design as any)?.bannerPosX);
-          const bannerPosY = Number((design as any)?.bannerPosY);
-          const bannerPosition = `${Number.isFinite(bannerPosX) ? bannerPosX : 50}% ${Number.isFinite(bannerPosY) ? bannerPosY : 50}%`;
-          const headerTextColor = normalizeColor((design as any)?.headerTextColor, '#0f172a');
-          const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : [];
+          const shopProducts = Array.isArray(shopProductsById[String(shop.id)]) ? shopProductsById[String(shop.id)] : EMPTY_ARRAY;
           const hasProducts = shopProducts.length > 0;
           const isPharmacy = String((shop as any)?.category || '').trim().toUpperCase() === 'HEALTH';
           const whatsappRaw = String((shop as any)?.layoutConfig?.whatsapp || '').trim() || String((shop as any)?.phone || '').trim();
@@ -128,11 +124,12 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
 
                   <div className="flex items-center gap-3 flex-row-reverse">
                     {logo ? (
-                      <img
+                      <SmartImage
                         src={logo}
                         alt={shop.name}
-                        className="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover border border-slate-200 shadow-sm"
-                        loading="lazy"
+                        className="w-10 h-10 md:w-12 md:h-12 rounded-full border border-slate-200 shadow-sm"
+                        imgClassName="w-full h-full object-cover rounded-full"
+                        optimizeVariant="thumb"
                       />
                     ) : (
                       <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border border-slate-200">
@@ -198,9 +195,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                         style={{ scrollSnapAlign: 'start' }}
                       >
                         <div className="aspect-[4/3] bg-slate-100">
-                          {String(product?.imageUrl || '').trim() ? (
-                            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                          ) : null}
+                          <SmartImage
+                            src={product.imageUrl}
+                            alt={product.name}
+                            className="w-full h-full"
+                            imgClassName={`w-full h-full ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} object-cover`}
+                            optimizeVariant="md"
+                          />
                         </div>
                         <div className="p-3">
                           <p className="font-black text-xs text-slate-900 line-clamp-1">{product.name}</p>
@@ -235,7 +236,7 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                           <p className="text-slate-700 text-xs font-black text-center">{t('home.stores.sendPrescription')}</p>
                         </button>
                       )
-                    ) : shopOffers.length ? shopOffers.slice(0, 4).map((offer) => {
+                    ) : shopOffers.length ? shopOffers.slice(0, 4).map((offer: any) => {
                       const hasPrice = Number(offer.newPrice || 0) > 0;
                       return (
                         <button
@@ -246,13 +247,13 @@ const StorefrontShowcaseSection: React.FC<StorefrontShowcaseSectionProps> = ({ s
                           style={{ scrollSnapAlign: 'start' }}
                         >
                           <div className="aspect-[4/3] bg-slate-100 relative">
-                            {offer.imageUrl ? (
-                              <img src={offer.imageUrl} alt={offer.title} className="w-full h-full object-cover" loading="lazy" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-300">
-                                <Store size={32} />
-                              </div>
-                            )}
+                            <SmartImage
+                              src={offer.imageUrl}
+                              alt={offer.title}
+                              className="w-full h-full"
+                              imgClassName={`w-full h-full ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} object-cover`}
+                              optimizeVariant="md"
+                            />
                             {hasPrice && (
                               <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-white/90 text-[10px] font-black text-slate-700 shadow-sm">
                                 {t('home.topSelling.currency')} {Number(offer.newPrice).toLocaleString('ar-EG')}
