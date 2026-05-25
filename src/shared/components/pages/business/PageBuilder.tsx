@@ -752,7 +752,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
       <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#00E5FF]" /></div>}>
         <SectionRenderer
-          activeBuilderTab={activeBuilderTab}
+          activeBuilderTab={openSection}
           config={config}
           setConfig={setConfigAny}
           shop={shop}
@@ -776,7 +776,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   })();
 
   const desktopAccordionSlot = desktopIntegratedAccordionMode && sidebarMode
-    ? document.getElementById(`builder-accordion-${String(activeBuilderTab)}`)
+    ? document.getElementById(`builder-accordion-${String(openSection)}`)
     : null;
 
   return (
