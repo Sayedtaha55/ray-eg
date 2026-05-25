@@ -163,6 +163,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const location = useLocation();
+  const navigate = useNavigate();
   const [shopId, setShopId] = useState<string>('');
   const [shop, setShop] = useState<any>(null);
   const [config, setConfig] = useState<ShopDesign>(DEFAULT_PAGE_DESIGN);
@@ -281,6 +282,18 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     if (isDesktop) return;
     setShowSettingsMobile(true);
   }, [integratedMode, isDesktop, sidebarMode]);
+
+
+  const openBuilderTab = useCallback((tabId: string) => {
+    if (sidebarMode) {
+      const nextQuery = new URLSearchParams(String(location?.search || ''));
+      nextQuery.set('builderTab', tabId);
+      if (String(nextQuery.get('tab') || '').trim() !== 'builder') nextQuery.set('tab', 'builder');
+      navigate({ search: `?${nextQuery.toString()}` }, { replace: true });
+      return;
+    }
+    setOpenSection(tabId);
+  }, [location?.search, navigate, sidebarMode]);
 
   const loadCurrentDesign = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
@@ -880,9 +893,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                   <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white p-4">
                     <div className="text-xs font-black text-slate-500 mb-3">وصول سريع</div>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                      <button type="button" onClick={() => setOpenSection('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
-                      <button type="button" onClick={() => setOpenSection('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
-                      <button type="button" onClick={() => setOpenSection('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
+                      <button type="button" onClick={() => openBuilderTab('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
+                      <button type="button" onClick={() => openBuilderTab('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
+                      <button type="button" onClick={() => openBuilderTab('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
                     </div>
                   </div>
                   {sidebarMode ? (
