@@ -255,7 +255,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   // ─── Focus section for zoom preview ────────────────────────────────────
   const focusSection: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null = (() => {
     if (!sidebarMode) return null;
-    const tab = activeBuilderTab;
+    const tab = openSection;
     if (['colors', 'background', 'banner', 'header', 'headerFooter'].includes(tab)) return 'top';
     if (['productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'].includes(tab)) return 'middle';
     if (tab === 'shoppingMode') return 'shopping';
@@ -752,7 +752,6 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
       <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#00E5FF]" /></div>}>
         <SectionRenderer
-          activeBuilderTab={activeBuilderTab}
           config={config}
           setConfig={setConfigAny}
           shop={shop}
@@ -770,14 +769,17 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           setBackgroundFile={setBackgroundFile}
           backgroundPreview={backgroundPreview}
           setBackgroundPreview={setBackgroundPreview}
+          toggleSection={toggleSection}
+          openSection={openSection}
         />
       </Suspense>
     );
   })();
 
   const desktopAccordionSlot = desktopIntegratedAccordionMode && sidebarMode
-    ? document.getElementById(`builder-accordion-${String(activeBuilderTab)}`)
+    ? document.getElementById(`builder-accordion-${String(openSection)}`)
     : null;
+  const shouldRenderSidebar = (!integratedMode || !isDesktop) || !desktopAccordionSlot;
 
   return (
     <div className={`w-full bg-[#F8F9FA] flex flex-col ${isArabic ? 'md:flex-row-reverse text-right' : 'md:flex-row text-left'} font-sans overflow-hidden`} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -791,7 +793,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )
         : null}
 
-      {(!integratedMode || !isDesktop) && (
+      {shouldRenderSidebar && (
         <AnimatePresence>
           {(showSettingsMobile || isDesktop) && (
             <>
