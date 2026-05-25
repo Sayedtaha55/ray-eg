@@ -752,7 +752,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     return (
       <Suspense fallback={<div className="p-8 flex justify-center"><Loader2 className="animate-spin text-[#00E5FF]" /></div>}>
         <SectionRenderer
-          activeBuilderTab={openSection}
+          activeBuilderTab={activeBuilderTab}
           config={config}
           setConfig={setConfigAny}
           shop={shop}
@@ -776,8 +776,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   })();
 
   const desktopAccordionSlot = desktopIntegratedAccordionMode && sidebarMode
-    ? document.getElementById(`builder-accordion-${String(openSection)}`)
+    ? document.getElementById(`builder-accordion-${String(activeBuilderTab)}`)
     : null;
+  const shouldRenderSidebar = (!integratedMode || !isDesktop) || !desktopAccordionSlot;
 
   return (
     <div className={`w-full bg-[#F8F9FA] flex flex-col ${isArabic ? 'md:flex-row-reverse text-right' : 'md:flex-row text-left'} font-sans overflow-hidden`} dir={isArabic ? 'rtl' : 'ltr'}>
@@ -791,7 +792,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )
         : null}
 
-      {(!integratedMode || !isDesktop) && (
+      {shouldRenderSidebar && (
         <AnimatePresence>
           {(showSettingsMobile || isDesktop) && (
             <>
