@@ -85,7 +85,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>(() => {
     try { if (typeof window === 'undefined') return 'desktop'; return window.matchMedia('(min-width: 768px)').matches ? 'desktop' : 'mobile'; } catch { return 'desktop'; }
   });
-  const [previewPage, setPreviewPage] = useState<'home' | 'product' | 'gallery' | 'info' | 'custom'>('home');
+  const [previewPage, setPreviewPage] = useState<'home' | 'homeAds' | 'product' | 'gallery' | 'info' | 'custom'>('home');
   const [isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen] = useState(false);
   const [openSection, setOpenSection] = useState('themes');
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -182,6 +182,21 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   useEffect(() => { setPreviewMode(isDesktop ? 'desktop' : 'mobile'); }, [isDesktop]);
   useEffect(() => { if (!isDesktop) setShowSettingsMobile(true); }, [isDesktop]);
   useEffect(() => { setIsPreviewHeaderMenuOpen(false); }, [previewMode, previewPage]);
+
+
+  useEffect(() => {
+    if (openSection === 'homeExperience') { setPreviewPage(String(config?.homeLayoutMode || '') === 'banner_ads_story' ? 'homeAds' : 'home'); return; }
+    if (openSection === 'customPages' && Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) { setPreviewPage('custom'); return; }
+    if (openSection === 'shoppingMode') { setPreviewPage('product'); return; }
+    if (openSection === 'footer') { setPreviewPage('info'); return; }
+  }, [openSection, config?.customPages]);
+
+  const focusSection = (() => {
+    if (openSection === 'homeExperience') return 'middle';
+    if (openSection === 'shoppingMode') return 'productPage';
+    if (openSection === 'footer') return 'footer';
+    return null;
+  })();
 
   useEffect(() => {
     handleSaveRef.current = () => { handleSave(); };
@@ -330,16 +345,16 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   return (
     <div className={`w-full bg-[#F8F9FA] flex flex-col ${isArabic ? 'md:flex-row-reverse text-right' : 'md:flex-row text-left'} font-sans overflow-hidden`} dir={isArabic ? 'rtl' : 'ltr'}>
-      {(!isDesktop || true) && (
+      {(isDesktop || showSettingsMobile) && (
         <AnimatePresence>
-          {(showSettingsMobile || isDesktop) && (
+          {(isDesktop || showSettingsMobile) && (
             <>
               <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowSettingsMobile(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[220] md:hidden" />
               <MotionDiv
-                initial={!isDesktop ? { y: '100%' } : { x: isArabic ? '100%' : '-100%' }}
-                animate={!isDesktop ? { y: 0 } : { x: 0 }}
-                exit={!isDesktop ? { y: '100%' } : { x: isArabic ? '100%' : '-100%' }}
-                className={`fixed bottom-0 left-0 right-0 md:relative ${isDesktop && desktopSidebarCollapsed ? 'md:w-[88px]' : 'md:w-[340px] lg:w-[380px]'} h-[80vh] md:h-full bg-white ${isArabic ? 'md:border-l' : 'md:border-r'} border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2rem] sm:rounded-t-[2.5rem] md:rounded-none`}
+                initial={isDesktop ? { x: isArabic ? '100%' : '-100%' } : { y: '100%' }}
+                animate={isDesktop ? { x: 0 } : { y: 0 }}
+                exit={isDesktop ? { x: isArabic ? '100%' : '-100%' } : { y: '100%' }}
+                className={`${isDesktop ? 'relative' : 'fixed bottom-0 left-0 right-0'} ${isDesktop && desktopSidebarCollapsed ? 'md:w-[88px]' : 'md:w-[340px] lg:w-[380px]'} h-[80vh] md:h-full bg-white ${isArabic ? 'md:border-l' : 'md:border-r'} border-slate-200 flex flex-col shadow-2xl z-[230] rounded-t-[2rem] sm:rounded-t-[2.5rem] md:rounded-none`}
               >
                 <header className="p-4 sm:p-6 md:p-8 border-b border-slate-50 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-xl z-30">
                   <div className="flex items-center gap-3">
@@ -366,7 +381,10 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle', 'معاينة')}</span>
                       <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                        {(([ 'home', 'gallery', 'info', 'product'] as const).concat((Array.isArray(config?.customPages) && config.customPages.length > 0) ? ['custom' as const] : [] as any)).map((p: any) => (
+                        {(([ 'home'] as const)
+                          .concat(String(config?.homeLayoutMode || '') === 'banner_ads_story' ? ['homeAds' as const] : [] as any)
+                          .concat(['gallery', 'info', 'product'] as const)
+                          .concat((Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) ? ['custom' as const] : [] as any)).map((p: any) => (
                           <button key={p} type="button" onClick={() => setPreviewPage(p)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-[0.98] ${previewPage === p ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}>{t(`business.pageBuilder.previewTabs.${p}`, p)}</button>
                         ))}
                       </div>
@@ -401,10 +419,13 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           )}
         </header>
 
-        {!isDesktop && (
+        {(isDesktop || showSettingsMobile) && (
           <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2">
             <div className="flex items-center gap-2 overflow-x-auto">
-              {(([ 'home', 'gallery', 'info', 'product'] as const).concat((Array.isArray(config?.customPages) && config.customPages.length > 0) ? ['custom' as const] : [] as any)).map((p: any) => (
+              {(([ 'home'] as const)
+                          .concat(String(config?.homeLayoutMode || '') === 'banner_ads_story' ? ['homeAds' as const] : [] as any)
+                          .concat(['gallery', 'info', 'product'] as const)
+                          .concat((Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) ? ['custom' as const] : [] as any)).map((p: any) => (
                 <button key={`mobile-tab-${p}`} type="button" onClick={() => setPreviewPage(p)} className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black ${previewPage === p ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>
                   {t(`business.pageBuilder.previewTabs.${p}`, p)}
                 </button>
@@ -446,6 +467,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}
                 isMobilePreview={previewMode === 'mobile'}
                 onProductClick={() => setPreviewPage('product')}
+                focusSection={focusSection as any}
               />
             </div>
           </MotionDiv>
