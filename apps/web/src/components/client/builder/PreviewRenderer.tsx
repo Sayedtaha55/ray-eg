@@ -3,7 +3,7 @@
 import React from 'react';
 
 interface PreviewRendererProps {
-  page: 'home' | 'product' | 'gallery' | 'info' | 'custom';
+  page: 'home' | 'homeAds' | 'product' | 'gallery' | 'info' | 'custom';
   config: any;
   shop: any;
   logoDataUrl: string;
@@ -27,9 +27,12 @@ const PreviewFallback = () => (
 
 const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
   // Simplified preview - renders a basic shop profile layout based on config
-  const { page, config, shop, logoDataUrl, isMobilePreview } = props;
+  const { page, config, shop, logoDataUrl, isMobilePreview, focusSection } = props;
+  const customPages = (Array.isArray(config?.customPages) ? config.customPages : []).filter((p: any) => p?.enabled !== false);
   const shopName = shop?.name || 'متجر';
   const pageCardStyle = String(config.quickTheme || '').includes('tech') ? 'rounded-xl border border-slate-700 bg-slate-900/60' : 'rounded-2xl border border-slate-200 bg-white';
+  const showHomeAds = (page === 'home' || page === 'homeAds') && config.homeLayoutMode === 'banner_ads_story';
+  const showProducts = page === 'product' || page === 'gallery' || (page === 'home' && config.homeLayoutMode !== 'banner_ads_story') || focusSection === 'productPage';
 
   return (
     <div className="w-full" style={{ backgroundColor: config.pageBackgroundColor || config.backgroundColor || '#FFFFFF' }}>
@@ -47,7 +50,7 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
       )}
 
       {/* Content area based on page */}
-      {page === 'home' && config.homeLayoutMode === 'banner_ads_story' && (
+      {showHomeAds && (
         <div className="px-4 pt-4">
           <div className={`grid ${isMobilePreview ? 'grid-cols-1' : 'grid-cols-2'} gap-3`}>
             <div className="rounded-xl bg-slate-100 p-3 text-xs font-black text-slate-600 text-right">{String(config.homeRightAdTitle || 'إعلان جانبي يمين')}</div>
@@ -57,10 +60,10 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
       )}
       <div className="p-4 space-y-4">
         <h2 className={`font-black ${config.headingSize || 'text-2xl md:text-4xl'}`} style={{ color: config.headerTextColor || '#0F172A' }}>
-          {page === 'home' ? shopName : page === 'product' ? 'معاينة المنتج' : page === 'gallery' ? 'المعرض' : page === 'custom' ? 'صفحة مخصصة' : 'معلومات'}
+          {page === 'home' ? shopName : page === 'homeAds' ? 'الإعلانات والتعريفات' : page === 'product' ? 'معاينة المنتج' : page === 'gallery' ? 'المعرض' : page === 'custom' ? 'صفحة مخصصة' : 'معلومات'}
         </h2>
 
-        {page === 'home' && config.homeLayoutMode === 'banner_ads_story' && (
+        {showHomeAds && (
           <div className={`${pageCardStyle} p-4 text-right`}>
             <div className="text-sm font-black" style={{ color: String(config.headerTextColor || '#0F172A') }}>{String(config.homeIntroText || 'تعريف بالمكان')}</div>
             <div className="mt-2 text-xs font-bold" style={{ color: String(config.secondaryColor || '#64748B') }}>{String(config.homeStoryText || 'مساحة للإعلانات والتعريف بالخدمات.')}</div>
@@ -70,17 +73,19 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
 
 
         {page === 'custom' && (
-          <div className={`${pageCardStyle} p-4 text-right`}>
-            <div className="text-sm font-black" style={{ color: String(config.headerTextColor || '#0F172A') }}>
-              {String(config?.customPages?.[0]?.title || 'صفحة مخصصة')}
-            </div>
-            <div className="mt-2 text-xs font-bold text-slate-500 leading-relaxed">
-              {String(config?.customPages?.[0]?.content || 'محتوى الصفحة المخصصة سيظهر هنا.') }
-            </div>
+          <div className="space-y-3">
+            {customPages.length === 0 && <div className={`${pageCardStyle} p-4 text-right text-xs font-bold text-slate-500`}>لا توجد صفحات مفعلة حالياً.</div>}
+            {customPages.map((cp: any, idx: number) => (
+              <div key={cp.id || idx} className={`${pageCardStyle} p-4 text-right`}>
+                <div className="text-sm font-black" style={{ color: String(config.headerTextColor || '#0F172A') }}>{String(cp?.title || `صفحة ${idx + 1}`)}</div>
+                <div className="mt-2 text-xs font-bold text-slate-500 leading-relaxed">{String(cp?.content || 'محتوى الصفحة المخصصة سيظهر هنا.')}</div>
+              </div>
+            ))}
           </div>
         )}
 
         {/* Product grid preview */}
+        {showProducts && (
         <div className={`grid ${config.productsLayout === 'horizontal' ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
           {[1, 2, 3, 4, 5, 6].map(i => (
             <div key={i} className={`rounded-xl overflow-hidden ${config.productDisplay === 'list' ? 'flex items-center gap-2 p-2' : ''}`} style={{ backgroundColor: config.productCardOverlayBgColor || '#0F172A' }}>
@@ -94,6 +99,7 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {/* Footer */}
