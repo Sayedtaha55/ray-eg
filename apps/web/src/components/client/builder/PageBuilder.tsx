@@ -381,11 +381,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="px-5 py-4 flex items-center justify-between">
                       <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle', 'معاينة')}</span>
                       <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                        {(([ 'home'] as const)
-                          .concat(String(config?.homeLayoutMode || '') === 'banner_ads_story' ? ['homeAds' as const] : [] as any)
-                          .concat(['gallery', 'info', 'product'] as const)
-                          .concat((Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) ? ['custom' as const] : [] as any)).map((p: any) => (
-                          <button key={p} type="button" onClick={() => setPreviewPage(p)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-[0.98] ${previewPage === p ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}>{t(`business.pageBuilder.previewTabs.${p}`, p)}</button>
+                        {((): string[] => {
+                          const tabs: string[] = ['home'];
+                          if (String(config?.homeLayoutMode || '') === 'banner_ads_story') tabs.push('homeAds');
+                          tabs.push('gallery', 'info', 'product');
+                          if (Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) tabs.push('custom');
+                          return tabs;
+                        })().map((p: string) => (
+                          <button key={p} type="button" onClick={() => setPreviewPage(p as any)} className={`px-4 py-2 rounded-xl text-xs font-black transition-all active:scale-[0.98] ${previewPage === p ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}>{t(`business.pageBuilder.previewTabs.${p}`, p)}</button>
                         ))}
                       </div>
                     </div>
@@ -395,6 +398,8 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="flex flex-wrap gap-2">
                       <button type="button" onClick={() => setOpenSection('themes')} className="px-3 py-2 rounded-xl bg-amber-50 text-amber-800 text-xs font-black">{t('business.builder.sections.themes', 'الثيمات')}</button>
                       <button type="button" onClick={() => setOpenSection('homeExperience')} className="px-3 py-2 rounded-xl bg-cyan-50 text-cyan-800 text-xs font-black">{t('business.builder.sections.homeExperience', 'صفحة الهوم')}</button>
+                      <button type="button" onClick={() => setOpenSection('headerFooter')} className="px-3 py-2 rounded-xl bg-rose-50 text-rose-800 text-xs font-black">{t('business.builder.sections.headerFooter', 'أعلى الصفحة')}</button>
+                      <button type="button" onClick={() => setOpenSection('footer')} className="px-3 py-2 rounded-xl bg-slate-50 text-slate-800 text-xs font-black">{t('business.builder.sections.footer', 'أسفل الصفحة')}</button>
                       <button type="button" onClick={() => setOpenSection('customPages')} className="px-3 py-2 rounded-xl bg-fuchsia-50 text-fuchsia-800 text-xs font-black">{t('business.builder.sections.customPages', 'صفحات مخصصة')}</button>
                     </div>
                   </div>
@@ -422,11 +427,14 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         {(isDesktop || showSettingsMobile) && (
           <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100 px-3 py-2">
             <div className="flex items-center gap-2 overflow-x-auto">
-              {(([ 'home'] as const)
-                          .concat(String(config?.homeLayoutMode || '') === 'banner_ads_story' ? ['homeAds' as const] : [] as any)
-                          .concat(['gallery', 'info', 'product'] as const)
-                          .concat((Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) ? ['custom' as const] : [] as any)).map((p: any) => (
-                <button key={`mobile-tab-${p}`} type="button" onClick={() => setPreviewPage(p)} className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black ${previewPage === p ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              {((): string[] => {
+                const tabs: string[] = ['home'];
+                if (String(config?.homeLayoutMode || '') === 'banner_ads_story') tabs.push('homeAds');
+                tabs.push('gallery', 'info', 'product');
+                if (Array.isArray(config?.customPages) && config.customPages.some((p: any) => p?.enabled !== false)) tabs.push('custom');
+                return tabs;
+              })().map((p: string) => (
+                <button key={`mobile-tab-${p}`} type="button" onClick={() => setPreviewPage(p as any)} className={`shrink-0 px-3 py-2 rounded-xl text-[11px] font-black ${previewPage === p ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600'}`}>
                   {t(`business.pageBuilder.previewTabs.${p}`, p)}
                 </button>
               ))}

@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/common/ui';
 const ShopProfilePreview = lazy(() => import('@/components/pages/business/builder/ShopProfilePreview'));
 
 interface PreviewRendererProps {
-  page: 'home' | 'product' | 'gallery' | 'info';
+  page: 'home' | 'products' | 'product' | 'gallery' | 'info';
   config: any;
   shop: any;
   logoDataUrl: string;

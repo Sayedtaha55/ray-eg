@@ -31,6 +31,9 @@
   },
   "builder": {
     "colors": "الألوان",
+    "themes": "الثيمات",
+    "homeExperience": "صفحة الهوم",
+    "customPages": "صفحات مخصصة",
     "background": "صورة الخلفية",
     "banner": "البانر",
     "logo": "اللوجو",

@@ -17,7 +17,7 @@ type Props = {
   shop?: any;
 };
 
-const TOP_VIS_KEYS = ['headerNavHome', 'headerNavGallery', 'headerNavInfo', 'headerChatButton', 'headerShareButton', 'shopFollowersCount', 'shopFollowButton', 'profileBanner', 'floatingChatButton', 'purchaseModeButton'] as const;
+const TOP_VIS_KEYS = ['headerNavHome', 'headerNavGallery', 'headerNavInfo', 'headerChatButton', 'headerShareButton', 'shopFollowersCount', 'shopFollowButton'] as const;
 
 const HeaderTypeSection: React.FC<Props> = ({ config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile, logoSaving, onSaveLogo, shop }) => {
   const t = useT();

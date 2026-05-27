@@ -16,7 +16,7 @@ export { default as ProductCardSection } from './ProductCardSection';
 export { default as CategorySection } from './CategorySection';
 export { default as ImageShapeSection } from './ImageShapeSection';
 export { default as ShoppingModeSection } from './ShoppingModeSection';
-export { default as FooterSection } from './FooterSection';
+export { default as StoreFooter } from './StoreFooter';
 
 export { default as HomeExperienceSection } from './HomeExperienceSection';
 export { default as ThemesSection } from './ThemesSection';

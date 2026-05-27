@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -971,11 +971,11 @@ const BusinessLayout: React.FC = () => {
             );
 
             // Map each builderTab to its section
-            const topSectionTabs = ['colors', 'background', 'banner', 'header', 'headerFooter'];
-            const middleSectionTabs = ['productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'];
+            const topSectionTabs = ['themes', 'colors', 'background', 'banner', 'header', 'headerFooter'];
+            const middleSectionTabs = ['homeExperience', 'productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'];
             const shoppingSectionTabs = ['shoppingMode'];
             const productPageSectionTabs = ['productEditor', 'productPage'];
-            const footerSectionTabs = ['footer', 'customCss'];
+            const footerSectionTabs = ['footer', 'customPages', 'customCss'];
 
             if (focusMode) {
               // Determine which section header to show in focus mode
@@ -993,11 +993,11 @@ const BusinessLayout: React.FC = () => {
                   <NavItem to={buildBuilderIndexUrl()} onClick={handleNavItemClick} icon={<ChevronRight size={20} />} showIcon={false} label={t('common.back')} active={false} />
                   {focusSectionHeader}
                   {/* Show the active item with its accordion */}
-                  {topSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId === 'header' ? 'logo' : activeBuilderId === 'headerFooter' ? 'headerFooter' : activeBuilderId}`), activeBuilderId === 'colors' || activeBuilderId === 'background' ? <Palette size={20} /> : <Layout size={20} />) : null}
-                  {middleSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId}`), <Layout size={20} />) : null}
+                  {topSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, activeBuilderId === 'headerFooter' ? 'أعلى الصفحة' : t(`dashboard.builder.${activeBuilderId === 'header' ? 'logo' : activeBuilderId}`), activeBuilderId === 'themes' ? <Sparkles size={20} className="text-amber-500" /> : (activeBuilderId === 'colors' || activeBuilderId === 'background' ? <Palette size={20} /> : <Layout size={20} />)) : null}
+                  {middleSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId}`), activeBuilderId === 'homeExperience' ? <Home size={20} className="text-sky-500" /> : <Layout size={20} />) : null}
                   {shoppingSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t('dashboard.builder.shoppingMode'), <ShoppingCart size={20} />) : null}
                   {productPageSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId}`), activeBuilderId === 'productPage' ? <Package size={20} /> : <ShoppingBag size={20} />) : null}
-                  {footerSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, t(`dashboard.builder.${activeBuilderId === 'footer' ? 'footer' : 'customCss'}`), activeBuilderId === 'customCss' ? <Sliders size={20} /> : <Layout size={20} />) : null}
+                  {footerSectionTabs.includes(activeBuilderId) ? item(activeBuilderId, activeBuilderId === 'footer' ? 'أسفل الصفحة' : t(`dashboard.builder.${activeBuilderId === 'customCss' ? 'customCss' : activeBuilderId}`), activeBuilderId === 'customPages' ? <FileText size={20} className="text-violet-500" /> : (activeBuilderId === 'customCss' ? <Sliders size={20} /> : <Layout size={20} />)) : null}
                 </>
               );
             }
@@ -1008,14 +1008,16 @@ const BusinessLayout: React.FC = () => {
 
                 {/* ─── أعلى الصفحة (Top Section) ─────────────────────────────── */}
                 {sectionHeader('top', t('dashboard.builder.sectionTop'), <ArrowUp size={14} className="text-slate-400" />)}
+                {item('themes', t('dashboard.builder.themes'), <Sparkles size={20} className="text-amber-500" />)}
                 {item('colors', t('dashboard.builder.colors'), <Palette size={20} />)}
                 {item('background', t('dashboard.builder.background'), <Palette size={20} />)}
                 {item('banner', t('dashboard.builder.banner'), <Layout size={20} />)}
                 {item('header', t('dashboard.builder.logo'), <Layout size={20} />)}
-                {item('headerFooter', t('dashboard.builder.headerFooter'), <Layout size={20} />)}
+                {item('headerFooter', 'أعلى الصفحة', <Layout size={20} />)}
 
                 {/* ─── المحتوى (Middle/Content Section) ──────────────────────── */}
                 {sectionHeader('middle', t('dashboard.builder.sectionMiddle'), <LayoutGrid size={14} className="text-slate-400" />)}
+                {item('homeExperience', t('dashboard.builder.homeExperience'), <Home size={20} className="text-sky-500" />)}
                 {item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />)}
                 {item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />)}
                 {item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />)}
@@ -1034,7 +1036,8 @@ const BusinessLayout: React.FC = () => {
 
                 {/* ─── أسفل الصفحة (Footer Section) ────────────────────────── */}
                 {sectionHeader('footer', t('dashboard.builder.sectionFooter'), <ArrowDown size={14} className="text-slate-400" />)}
-                {item('footer', t('dashboard.builder.footer'), <Layout size={20} />)}
+                {item('footer', 'أسفل الصفحة', <Layout size={20} />)}
+                {item('customPages', t('dashboard.builder.customPages'), <FileText size={20} className="text-violet-500" />)}
                 {item('customCss', t('dashboard.builder.customCss'), <Sliders size={20} />)}
               </>
             );

@@ -31,6 +31,9 @@
   },
   "builder": {
     "colors": "Colors",
+    "themes": "Themes",
+    "homeExperience": "Home Page",
+    "customPages": "Custom Pages",
     "background": "Background Image",
     "banner": "Banner",
     "logo": "Logo",

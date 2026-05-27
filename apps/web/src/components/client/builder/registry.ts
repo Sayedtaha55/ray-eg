@@ -9,7 +9,7 @@ import {
   ColorsSection, CustomCssSection, HeaderFooterSection, HeaderTypeSection,
   ProductCardSection, ProductEditorSection, LayoutSection, ProductPageSection,
   ProductsSection, TypographySection, VisibilitySection, ImageMapVisibilitySection,
-  ImageShapeSection, ShoppingModeSection, FooterSection, HomeExperienceSection, ThemesSection, CustomPagesSection,
+  ImageShapeSection, ShoppingModeSection, StoreFooter, HomeExperienceSection, ThemesSection, CustomPagesSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -52,12 +52,13 @@ export function useBuilderSections() {
   const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     { id: 'themes', title: t('business.builder.sections.themes', 'الثيمات'), icon: React.createElement(Sparkles as any, { size: 16, className: 'text-amber-500' }), render: ({ config, setConfig, shop }) => React.createElement(ThemesSection as any, { config, setConfig, shop }) },
     { id: 'homeExperience', title: t('business.builder.sections.homeExperience', 'صفحة الهوم'), icon: React.createElement(Layout as any, { size: 16, className: 'text-cyan-500' }), render: ({ config, setConfig }) => React.createElement(HomeExperienceSection as any, { config, setConfig }) },
+    { id: 'footer', title: t('business.builder.sections.footer', 'أسفل الصفحة'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig }) => React.createElement(StoreFooter as any, { config, setConfig }) },
     { id: 'customPages', title: t('business.builder.sections.customPages', 'صفحات مخصصة'), icon: React.createElement(Layout as any, { size: 16, className: 'text-fuchsia-500' }), render: ({ config, setConfig }) => React.createElement(CustomPagesSection as any, { config, setConfig }) },
     { id: 'colors', title: t('business.builder.sections.colors', 'الألوان'), icon: React.createElement(Palette as any, { size: 16, className: 'text-[#00E5FF]' }), render: ({ config, setConfig }) => React.createElement(ColorsSection as any, { config, setConfig }) },
     { id: 'background', title: t('business.builder.sections.background', 'الخلفية'), icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) => React.createElement(BackgroundSection as any, { config, setConfig, backgroundFile, setBackgroundFile, backgroundPreview, setBackgroundPreview }) },
     { id: 'banner', title: t('business.builder.sections.banner', 'البانر'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, bannerFile, setBannerFile, bannerPreview, setBannerPreview }) => React.createElement(BannerSection as any, { config, setConfig, bannerFile, setBannerFile, bannerPreview, setBannerPreview }) },
     { id: 'header', title: t('business.builder.sections.logo', 'الشعار'), icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }), render: ({ config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile, logoSaving, onSaveLogo, shop }) => React.createElement(HeaderTypeSection as any, { config, setConfig, logoDataUrl, setLogoDataUrl, logoFile, setLogoFile, logoSaving, onSaveLogo, shop }) },
-    { id: 'headerFooter', title: t('business.builder.sections.headerFooter', 'هيدر/فوتر'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }) },
+    { id: 'headerFooter', title: t('business.builder.sections.headerFooter', 'أعلى الصفحة'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }) },
     { id: 'productCard', title: t('business.builder.sections.productCard', 'بطاقة المنتج'), icon: React.createElement(Palette as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, shop }) => React.createElement(ProductCardSection as any, { config, setConfig, shop }) },
     { id: 'categories', title: t('business.builder.sections.categories', 'الفئات'), icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig, shop }) => React.createElement(CategorySection as any, { config, setConfig, shopId: shop?.id }) },
     { id: 'productEditor', title: t('business.builder.sections.productEditor', 'محرر المنتج'), icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig }) => React.createElement(ProductEditorSection as any, { config, setConfig }) },
@@ -68,7 +69,7 @@ export function useBuilderSections() {
     { id: 'buttons', title: t('business.builder.sections.buttons', 'الأزرار'), icon: React.createElement(Layout as any, { size: 16, className: 'text-[#BD00FF]' }), render: ({ config, setConfig }) => React.createElement(ButtonsSection as any, { config, setConfig }) },
     { id: 'customCss', title: t('business.builder.sections.customCss', 'CSS مخصص'), icon: React.createElement(Sliders as any, { size: 16, className: 'text-[#BD00FF]' }), render: ({ config, setConfig }) => React.createElement(CustomCssSection as any, { config, setConfig }) },
     { id: 'shoppingMode', title: t('business.builder.sections.shoppingMode', 'وضع التسوق'), icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-[#00E5FF]' }), render: ({ config, setConfig }) => React.createElement(ShoppingModeSection as any, { config, setConfig }) },
-    { id: 'footer', title: t('business.builder.sections.footer', 'الفوتر'), icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }), render: ({ config, setConfig }) => React.createElement(FooterSection as any, { config, setConfig }) },
+
   ];
 
   return BUILDER_SECTIONS;

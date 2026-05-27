@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Layout, Move, X } from 'lucide-react';
+import { Layout, Move, X, Eye, EyeOff } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { useTranslation } from 'react-i18next';
 
@@ -30,6 +30,17 @@ const BannerSection: React.FC<Props> = ({
   setBannerPreview,
 }) => {
   const { t } = useTranslation();
+  
+  const getVis = (key: string, fallback = true) => {
+    const cur = config?.elementsVisibility || {};
+    if (cur[key] === undefined || cur[key] === null) return fallback;
+    return Boolean(cur[key]);
+  };
+
+  const setVis = (key: string, value: boolean) => {
+    const base = (config?.elementsVisibility && typeof config.elementsVisibility === 'object') ? config.elementsVisibility : {};
+    setConfig({ ...config, elementsVisibility: { ...base, [key]: value } });
+  };
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [moveMode, setMoveMode] = useState(false);
   const dragRef = useRef<{ startX: number; startY: number; startPosX: number; startPosY: number; pointerId: number | null }>({
@@ -227,6 +238,18 @@ const BannerSection: React.FC<Props> = ({
         )}
       </div>
     )}
+    {/* ─── Banner Section Visibility Toggle ─── */}
+    <div className="h-px bg-slate-100 my-3" />
+    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60">
+      <span className="font-black text-xs text-slate-700">{t('business.builder.visibility.items.profileBanner')}</span>
+      <button
+        type="button"
+        onClick={() => setVis('profileBanner', !getVis('profileBanner'))}
+        className={`p-1.5 rounded-lg transition-all ${getVis('profileBanner') ? 'bg-[#00E5FF]/10 text-[#00E5FF]' : 'bg-slate-200 text-slate-400'}`}
+      >
+        {getVis('profileBanner') ? <Eye size={14} /> : <EyeOff size={14} />}
+      </button>
+    </div>
   </div>
 
   );

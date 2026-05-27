@@ -21,7 +21,7 @@ import {
   ImageMapVisibilitySection,
   ImageShapeSection,
   ShoppingModeSection,
-  FooterSection,
+  StoreFooter,
   ThemesSection,
   HomeExperienceSection,
   CustomPagesSection,
@@ -87,7 +87,13 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     id: 'homeExperience',
     title: 'صفحة الهوم',
     icon: React.createElement(Home as any, { size: 16, className: 'text-sky-500' }),
-    render: ({ config, setConfig }) => React.createElement(HomeExperienceSection as any, { config, setConfig }),
+    render: ({ config, setConfig, shop }) => React.createElement(HomeExperienceSection as any, { config, setConfig, shop }),
+  },
+  {
+    id: 'footer',
+    title: 'أسفل الصفحة',
+    icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
+    render: ({ config, setConfig }) => React.createElement(StoreFooter as any, { config, setConfig }),
   },
   {
     id: 'customPages',
@@ -158,7 +164,7 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'headerFooter',
-    title: i18n.t('business.builder.sections.headerFooter'),
+    title: 'أعلى الصفحة',
     icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
     render: ({ config, setConfig }) => React.createElement(HeaderFooterSection as any, { config, setConfig }),
   },
@@ -222,10 +228,5 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     icon: React.createElement(ShoppingBag as any, { size: 16, className: 'text-[#00E5FF]' }),
     render: ({ config, setConfig }) => React.createElement(ShoppingModeSection as any, { config, setConfig }),
   },
-  {
-    id: 'footer',
-    title: i18n.t('business.builder.sections.footer'),
-    icon: React.createElement(Layout as any, { size: 16, className: 'text-slate-900' }),
-    render: ({ config, setConfig }) => React.createElement(FooterSection as any, { config, setConfig }),
-  },
+
 ];

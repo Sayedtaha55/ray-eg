@@ -173,27 +173,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <div ref={bannerRef} className="relative h-[250px] md:h-[400px] overflow-hidden">
           {!bannerReady && <div className="absolute inset-0 bg-slate-100 animate-pulse" />}
           {bannerUrl ? (isVideoBanner ? (
-            shouldPlayVideoBanner ? (
-              <video
-                autoPlay
-                loop
-                muted
-                playsInline
-                poster={currentDesign?.bannerPosterUrl}
-                className="w-full h-full object-cover"
-                src={bannerUrl}
-                preload="none"
-              />
-            ) : (
-              <video
-                controls
-                playsInline
-                poster={currentDesign?.bannerPosterUrl}
-                className="w-full h-full object-cover"
-                src={bannerUrl}
-                preload="metadata"
-              />
-            )
+            <video
+              key={bannerUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              poster={currentDesign?.bannerPosterUrl}
+              className="w-full h-full object-cover"
+              src={bannerUrl}
+              preload="auto"
+            />
           ) : (
             <img
               src={bannerUrl}
@@ -220,9 +210,14 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <header
         ref={headerRef as any}
         className={`${headerPositionClass} z-[100] transition-all duration-300 ${
-          effectiveStuck ? 'bg-white/80 backdrop-blur-md shadow-sm' : 'bg-transparent'
+          effectiveStuck ? 'shadow-sm' : ''
         }`}
-        style={{ color: effectiveStuck ? undefined : headerTextColor }}
+        style={{ 
+          color: headerTextColor, 
+          backgroundColor: headerBg,
+          backdropFilter: (currentDesign as any)?.headerTransparent ? 'blur(12px)' : undefined,
+          WebkitBackdropFilter: (currentDesign as any)?.headerTransparent ? 'blur(12px)' : undefined,
+        }}
       >
           <div className="max-w-[1400px] mx-auto px-4 md:px-8 h-16 md:h-20 flex items-center justify-between flex-row-reverse">
             {/* Logo & Name */}
@@ -253,14 +248,37 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
             {/* Desktop Nav */}
             <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
-              {showHeaderNavHome && (
-                <NavTab 
-                  active={activeTab === 'products'} 
-                  onClick={() => setActiveTab('products')}
-                  icon={<ShoppingBag size={18} />}
-                  label={t('shopProfile.productsTab')}
-                  design={currentDesign}
-                />
+              {String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
+                <>
+                  {showHeaderNavHome && (
+                    <NavTab 
+                      active={activeTab === 'home'} 
+                      onClick={() => setActiveTab('home')}
+                      icon={<Home size={18} />}
+                      label={String(currentDesign.homePageName || 'الرئيسية')}
+                      design={currentDesign}
+                    />
+                  )}
+                  {showHeaderNavHome && (
+                    <NavTab 
+                      active={activeTab === 'products'} 
+                      onClick={() => setActiveTab('products')}
+                      icon={<ShoppingBag size={18} />}
+                      label={String(currentDesign.allProductsPageName || 'جميع المنتجات')}
+                      design={currentDesign}
+                    />
+                  )}
+                </>
+              ) : (
+                showHeaderNavHome && (
+                  <NavTab 
+                    active={activeTab === 'products'} 
+                    onClick={() => setActiveTab('products')}
+                    icon={<ShoppingBag size={18} />}
+                    label={t('shopProfile.productsTab')}
+                    design={currentDesign}
+                  />
+                )
               )}
               {showHeaderNavGallery && (
                 <NavTab 
@@ -339,13 +357,34 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 </div>
                 
                 <div className="space-y-4 flex-1">
-                  {showHeaderNavHome && (
-                    <button 
-                      onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
-                      className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
-                    >
-                      <ShoppingBag /> {t('shopProfile.productsTab')}
-                    </button>
+                  {String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
+                    <>
+                      {showHeaderNavHome && (
+                        <button 
+                          onClick={() => { setActiveTab('home'); setIsHeaderMenuOpen(false); }}
+                          className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'home' ? 'bg-slate-100' : ''}`}
+                        >
+                          <Home /> {String(currentDesign.homePageName || 'الرئيسية')}
+                        </button>
+                      )}
+                      {showHeaderNavHome && (
+                        <button 
+                          onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
+                          className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
+                        >
+                          <ShoppingBag /> {String(currentDesign.allProductsPageName || 'جميع المنتجات')}
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    showHeaderNavHome && (
+                      <button 
+                        onClick={() => { setActiveTab('products'); setIsHeaderMenuOpen(false); }}
+                        className={`w-full p-4 rounded-2xl flex items-center gap-4 font-black transition-colors active:scale-[0.99] ${activeTab === 'products' ? 'bg-slate-100' : ''}`}
+                      >
+                        <ShoppingBag /> {t('shopProfile.productsTab')}
+                      </button>
+                    )
                   )}
                   {showHeaderNavGallery && (
                     <button 

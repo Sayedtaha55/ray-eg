@@ -24,6 +24,16 @@ function coerceBoolean(val: any, fallback = true): boolean {
   return fallback;
 }
 
+function hexToRgba(hex: string, alpha: number) {
+  const raw = String(hex || '').replace('#', '').trim();
+  const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
+  if (normalized.length !== 6) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 const ShopProfilePreview: React.FC<Props> = ({
   page, config, shop, logoDataUrl, isPreviewHeaderMenuOpen, setIsPreviewHeaderMenuOpen,
   isMobilePreview, onProductClick, focusSection,
@@ -62,14 +72,16 @@ const ShopProfilePreview: React.FC<Props> = ({
     };
   }, [currentDesign]);
 
-  const headerBg = (currentDesign as any)?.headerTransparent
-    ? `rgba(255,255,255,${Number((currentDesign as any)?.headerOpacity ?? 60) / 100})`
-    : String((currentDesign as any)?.headerBackgroundColor || '#FFFFFF');
+  const headerBackgroundColor = String((currentDesign as any)?.headerBackgroundColor || '#FFFFFF');
+  const headerOpacity = Number((currentDesign as any)?.headerOpacity ?? 60) / 100;
+  const headerTransparent = coerceBoolean((currentDesign as any)?.headerTransparent, false);
+  const headerBg = headerTransparent ? hexToRgba(headerBackgroundColor, headerOpacity) : headerBackgroundColor;
   const headerTextColor = String((currentDesign as any)?.headerTextColor || '#0F172A');
 
-  const footerBg = (currentDesign as any)?.footerTransparent
-    ? `rgba(255,255,255,${Number((currentDesign as any)?.footerOpacity ?? 90) / 100})`
-    : String((currentDesign as any)?.footerBackgroundColor || '#FFFFFF');
+  const footerBackgroundColor = String((currentDesign as any)?.footerBackgroundColor || '#FFFFFF');
+  const footerOpacity = Number((currentDesign as any)?.footerOpacity ?? 90) / 100;
+  const footerTransparent = coerceBoolean((currentDesign as any)?.footerTransparent, false);
+  const footerBg = footerTransparent ? hexToRgba(footerBackgroundColor, footerOpacity) : footerBackgroundColor;
   const footerTextColor = String((currentDesign as any)?.footerTextColor || '#0F172A');
 
   const isBold = String((currentDesign as any)?.layout || '').toLowerCase() === 'bold';

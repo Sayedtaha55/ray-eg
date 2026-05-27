@@ -52,7 +52,7 @@ const ShopProfile: React.FC = () => {
   const [galleryImages, setGalleryImages] = useState<ShopGallery[]>([]);
   const [imageMapLinkedProductIds, setImageMapLinkedProductIds] = useState<Set<string>>(new Set());
   const [hasActiveImageMap, setHasActiveImageMap] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'gallery' | 'info'>('products');
+  const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>('products');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(t('shopProfile.all'));
   const [hasFollowed, setHasFollowed] = useState(false);
@@ -226,6 +226,16 @@ const ShopProfile: React.FC = () => {
   }, [syncData]);
 
   useEffect(() => {
+    if (currentDesign) {
+      if (String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story') {
+        setActiveTab('home');
+      } else {
+        setActiveTab('products');
+      }
+    }
+  }, [currentDesign?.homeLayoutMode]);
+
+  useEffect(() => {
     if (!slug) return;
 
     const onRefresh = () => {
@@ -385,7 +395,6 @@ const ShopProfile: React.FC = () => {
     tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
     setProductsTabError(null);
     setActiveCategory(t('shopProfile.all'));
-    setActiveTab('products');
     try {
       setProductsTabLoading(true);
       const page = 1;
@@ -421,7 +430,6 @@ const ShopProfile: React.FC = () => {
     const key = `gallery:${shopId}`;
     tabLoadStateRef.current[key] = { loaded: false, inFlight: false };
     setGalleryTabError(null);
-    setActiveTab('gallery');
     try {
       setGalleryTabLoading(true);
       const galleryData = await ApiService.getShopGallery(shopId);
@@ -441,13 +449,13 @@ const ShopProfile: React.FC = () => {
       if (!shopId) return;
 
       const tab = activeTab;
-      const key = `${tab}:${shopId}`;
+      const key = `${tab === 'home' ? 'products' : tab}:${shopId}`;
       const state = tabLoadStateRef.current[key] || { loaded: false, inFlight: false };
       if (state.loaded || state.inFlight) return;
       tabLoadStateRef.current[key] = { ...state, inFlight: true };
 
       try {
-        if (tab === 'products') {
+        if (tab === 'products' || tab === 'home') {
           await retryProductsTab();
         } else if (tab === 'gallery') {
           await retryGalleryTab();
@@ -867,6 +875,7 @@ const ShopProfile: React.FC = () => {
       >
         <TabRenderer
           activeTab={activeTab}
+          setActiveTab={setActiveTab}
           shop={shop}
           currentDesign={currentDesign}
           products={products}

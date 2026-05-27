@@ -55,6 +55,14 @@ export interface ShopDesign {
   elementsVisibility?: Record<string, boolean>;
   productEditorVisibility?: Record<string, boolean>;
   customCss?: string;
+  homePageName?: string;
+  allProductsPageName?: string;
+  homeLayoutMode?: string;
+  homeRightAdTitle?: string;
+  homeLeftAdTitle?: string;
+  homeIntroText?: string;
+  homeStoryText?: string;
+  customPages?: Array<{ id: string; title: string; content: string }>;
 }
 
 export interface Shop {

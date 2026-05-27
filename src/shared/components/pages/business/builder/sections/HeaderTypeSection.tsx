@@ -33,7 +33,6 @@ const HeaderTypeSection: React.FC<Props> = ({
     'headerNavHome', 'headerNavGallery', 'headerNavInfo',
     'headerChatButton', 'headerShareButton',
     'shopFollowersCount', 'shopFollowButton',
-    'profileBanner', 'floatingChatButton', 'purchaseModeButton',
   ] as const;
 
   const getVis = (key: string, fallback = true) => {

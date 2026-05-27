@@ -14,17 +14,6 @@ interface PreviewRendererProps {
   focusSection?: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null;
 }
 
-const PreviewFallback = () => (
-  <div className="w-full h-full bg-white flex flex-col items-center justify-center p-8">
-    <div className="w-full h-20 mb-8 rounded-2xl bg-slate-100 animate-pulse" />
-    <div className="w-full h-64 mb-8 rounded-[2.5rem] bg-slate-100 animate-pulse" />
-    <div className="grid grid-cols-2 gap-4 w-full">
-      <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-      <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />
-    </div>
-  </div>
-);
-
 const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
   // Simplified preview - renders a basic shop profile layout based on config
   const { page, config, shop, logoDataUrl, isMobilePreview, focusSection } = props;

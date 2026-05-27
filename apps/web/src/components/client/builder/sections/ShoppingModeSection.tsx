@@ -16,6 +16,7 @@ const ShoppingModeSection: React.FC<Props> = ({ config, setConfig }) => {
     { key: 'productCardPrice', label: t('business.builder.shoppingMode.price', 'السعر') },
     { key: 'productCardStock', label: t('business.builder.shoppingMode.stock', 'المخزون') },
     { key: 'mobileBottomNavCart', label: t('business.builder.shoppingMode.cartNav', 'زر السلة') },
+    { key: 'purchaseModeButton', label: t('business.builder.visibility.items.purchaseModeButton', 'إظهار زر (وضع الشراء)') },
   ];
 
   return (

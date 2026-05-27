@@ -1,4 +1,4 @@
-﻿import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -6,6 +6,7 @@ import { MediaPresignDto } from './media-presign.dto';
 import { MediaPresignService } from './media-presign.service';
 import { MediaStorageService } from '@modules/media/media-storage.service';
 import { MediaOptimizeQueue } from './media-optimize.queue';
+import { MediaOptimizeService } from '@modules/media/media-optimize.service';
 import { PrismaService } from '@common/prisma/prisma.service';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -23,6 +24,7 @@ export class MediaController {
   constructor(
     @Inject(MediaPresignService) private readonly mediaPresign: MediaPresignService,
     @Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService,
+    @Optional() @Inject(MediaOptimizeService) private readonly mediaOptimize?: MediaOptimizeService,
   ) {}
 
   private getMaxUploadBytes() {
@@ -136,7 +138,27 @@ export class MediaController {
 
       const fileWithBuffer = { ...file, buffer: buf };
       const result = await this.mediaStorage.upload({ file: fileWithBuffer, shopId, purpose });
-      return { url: result.url, key: result.key };
+
+      let finalUrl = result.url;
+      let finalKey = result.key;
+
+      if (this.mediaOptimize) {
+        try {
+          const optimized = await this.mediaOptimize.optimizeNow({
+            key: result.key,
+            mimeType: file.mimetype,
+            purpose,
+          });
+          if (optimized?.url) {
+            finalUrl = optimized.url;
+            finalKey = optimized.key;
+          }
+        } catch (optErr: any) {
+          console.error('[MediaController] Sync optimization failed, keeping original:', optErr?.message || optErr);
+        }
+      }
+
+      return { url: finalUrl, key: finalKey };
     } catch (e: any) {
       if (e instanceof HttpException) throw e;
 
@@ -350,7 +372,10 @@ export class MediaControllerPresignOnly {
 
 @Controller('media')
 export class MediaControllerUploadOnly {
-  constructor(@Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService) {}
+  constructor(
+    @Inject(MediaStorageService) private readonly mediaStorage: MediaStorageService,
+    @Optional() @Inject(MediaOptimizeService) private readonly mediaOptimize?: MediaOptimizeService,
+  ) {}
 
   private isProdBlock() {
     if (isProd) throw new BadRequestException('Direct uploads are disabled in production. Use the presign flow.');
@@ -426,7 +451,27 @@ export class MediaControllerUploadOnly {
 
     const fileWithBuffer = { ...file, buffer: buf };
     const result = await this.mediaStorage.upload({ file: fileWithBuffer, shopId, purpose });
-    return { url: result.url, key: result.key };
+
+    let finalUrl = result.url;
+    let finalKey = result.key;
+
+    if (this.mediaOptimize) {
+      try {
+        const optimized = await this.mediaOptimize.optimizeNow({
+          key: result.key,
+          mimeType: file.mimetype,
+          purpose,
+        });
+        if (optimized?.url) {
+          finalUrl = optimized.url;
+          finalKey = optimized.key;
+        }
+      } catch (optErr: any) {
+        console.error('[MediaControllerUploadOnly] Sync optimization failed, keeping original:', optErr?.message || optErr);
+      }
+    }
+
+    return { url: finalUrl, key: finalKey };
   }
 }
 
