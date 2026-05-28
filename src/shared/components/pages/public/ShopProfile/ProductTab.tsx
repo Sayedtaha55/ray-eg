@@ -26,6 +26,8 @@ interface ProductTabProps {
   allowReserve?: boolean;
   isPreview?: boolean;
   onProductClick?: () => void;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
 }
 
 type RowConfig = {
@@ -222,13 +224,17 @@ const ProductTab: React.FC<ProductTabProps> = ({
   allowReserve,
   isPreview,
   onProductClick,
+  searchQuery,
+  setSearchQuery,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [localSearchQuery, setLocalSearchQuery] = useState('');
+  const currentSearchQuery = searchQuery !== undefined ? searchQuery : localSearchQuery;
+  const currentSetSearchQuery = setSearchQuery !== undefined ? setSearchQuery : setLocalSearchQuery;
   const { t } = useTranslation();
   const primaryColor = String(currentDesign?.primaryColor || '').trim() || '#00E5FF';
   const buttonShape = String((currentDesign as any)?.buttonShape || '').trim() || 'rounded-full';
   const buttonPadding = String((currentDesign as any)?.buttonPadding || '').trim() || 'px-6 py-2.5';
-  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const normalizedSearchQuery = currentSearchQuery.trim().toLowerCase();
 
   const sectionsContainerRef = useRef<HTMLDivElement | null>(null);
   const categoryHeaderRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -399,16 +405,16 @@ const ProductTab: React.FC<ProductTabProps> = ({
         <input
           type="search"
           dir="rtl"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          value={currentSearchQuery}
+          onChange={(e) => currentSetSearchQuery(e.target.value)}
           placeholder={t('shopProfile.searchProducts')}
           className="w-full h-12 pr-11 pl-11 rounded-2xl border border-slate-200 bg-white text-sm font-bold text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-200 focus:border-cyan-300 transition-all"
         />
-        {searchQuery ? (
+        {currentSearchQuery ? (
           <button
             type="button"
             aria-label={t('shopProfile.clearSearch')}
-            onClick={() => setSearchQuery('')}
+            onClick={() => currentSetSearchQuery('')}
             className="absolute left-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors"
           >
             <X size={14} />

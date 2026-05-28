@@ -2,13 +2,7 @@ import React, { useMemo, useRef, useState } from 'react';
 import { Layout, Move, X, Eye, EyeOff } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { useTranslation } from 'react-i18next';
-
-const isVideoUrl = (url: string) => {
-  const raw = String(url || '').trim();
-  if (!raw) return false;
-  const cleaned = raw.split('#')[0].split('?')[0].toLowerCase();
-  return cleaned.endsWith('.mp4') || cleaned.endsWith('.webm') || cleaned.endsWith('.mov');
-};
+import { isVideoUrl } from '@/components/pages/public/ShopProfile/utils';
 
 type Props = {
   config: any;
@@ -38,8 +32,10 @@ const BannerSection: React.FC<Props> = ({
   };
 
   const setVis = (key: string, value: boolean) => {
-    const base = (config?.elementsVisibility && typeof config.elementsVisibility === 'object') ? config.elementsVisibility : {};
-    setConfig({ ...config, elementsVisibility: { ...base, [key]: value } });
+    setConfig((prev: any) => {
+      const base = (prev?.elementsVisibility && typeof prev.elementsVisibility === 'object') ? prev.elementsVisibility : {};
+      return { ...prev, elementsVisibility: { ...base, [key]: value } };
+    });
   };
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [moveMode, setMoveMode] = useState(false);
@@ -180,7 +176,7 @@ const BannerSection: React.FC<Props> = ({
           onClick={() => {
             setBannerFile(null);
             setBannerPreview('');
-            setConfig({ ...config, bannerUrl: '' });
+            setConfig((prev: any) => ({ ...prev, bannerUrl: '' }));
           }}
           className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2 active:scale-[0.98]"
         >
@@ -238,6 +234,125 @@ const BannerSection: React.FC<Props> = ({
         )}
       </div>
     )}
+
+    {/* ─── Banner Size Selector ─── */}
+    <div className="h-px bg-slate-100 my-3" />
+    <div className="space-y-2">
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest block text-right">حجم البانر (Banner Size)</label>
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { id: 'normal', label: 'افتراضي', desc: 'Normal', barH: 'h-4' },
+          { id: 'medium', label: 'متوسط', desc: 'Medium', barH: 'h-6' },
+          { id: 'large', label: 'كبير', desc: 'Large', barH: 'h-8' },
+          { id: 'fullscreen', label: 'ملء الشاشة', desc: 'Full Screen', barH: 'h-11' }
+        ].map((sz) => {
+          const isActive = (config.bannerSize || 'normal') === sz.id;
+          return (
+            <button
+              key={sz.id}
+              type="button"
+              onClick={() => setConfig((prev: any) => ({ ...prev, bannerSize: sz.id }))}
+              className={`p-3 rounded-xl border text-right transition-all flex items-center gap-3 flex-row-reverse ${
+                isActive 
+                  ? 'border-[#00E5FF] bg-cyan-50/70 shadow-sm' 
+                  : 'border-slate-100 bg-white hover:bg-slate-50'
+              }`}
+            >
+              <div className="flex-1">
+                <span className="font-black text-xs block">{sz.label}</span>
+                <span className="text-[10px] text-slate-400 font-bold">{sz.desc}</span>
+              </div>
+              <div className={`w-6 ${sz.barH} rounded-sm transition-colors ${isActive ? 'bg-[#00E5FF]/30' : 'bg-slate-200'}`} />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* ─── Banner Text Overlay ─── */}
+    <div className="h-px bg-slate-100 my-3" />
+    <div className="space-y-3">
+      <label className="text-xs font-black text-slate-400 uppercase tracking-widest block pr-2">النص داخل البانر (Text Overlay)</label>
+      
+      <div className="space-y-1">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">عنوان البانر (Banner Title)</label>
+        <input
+          type="text"
+          value={String(config.bannerTitle || '')}
+          onChange={(e) => {
+            const val = e.target.value;
+            setConfig((prev: any) => ({ ...prev, bannerTitle: val }));
+          }}
+          placeholder="مثال: خصومات الصيف الكبرى"
+          className="w-full py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold text-right"
+        />
+      </div>
+
+      <div className="space-y-1">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">عنوان فرعي (Banner Subtitle)</label>
+        <input
+          type="text"
+          value={String(config.bannerSubtitle || '')}
+          onChange={(e) => {
+            const val = e.target.value;
+            setConfig((prev: any) => ({ ...prev, bannerSubtitle: val }));
+          }}
+          placeholder="مثال: احصل على خصم يصل إلى 50% على جميع المنتجات"
+          className="w-full py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold text-right"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">موضع النص (Text Position)</label>
+        {/* Visual 3x3 grid selector */}
+        <div className="grid grid-cols-3 gap-1.5 p-3 bg-slate-50 rounded-2xl border border-slate-100">
+          {[
+            { id: 'top-right', label: '↗' },
+            { id: 'top-center', label: '↑' },
+            { id: 'top-left', label: '↖' },
+            { id: 'center-right', label: '→' },
+            { id: 'center', label: '◉' },
+            { id: 'center-left', label: '←' },
+            { id: 'bottom-right', label: '↘' },
+            { id: 'bottom-center', label: '↓' },
+            { id: 'bottom-left', label: '↙' },
+          ].map((pos) => {
+            const isActive = String(config.bannerTextPosition || 'center') === pos.id;
+            return (
+              <button
+                key={pos.id}
+                type="button"
+                onClick={() => setConfig((prev: any) => ({ ...prev, bannerTextPosition: pos.id }))}
+                className={`h-10 rounded-xl border text-sm font-black transition-all ${
+                  isActive
+                    ? 'border-[#00E5FF] bg-[#00E5FF]/10 text-[#00E5FF] shadow-sm scale-105'
+                    : 'border-slate-200 bg-white text-slate-400 hover:bg-slate-100 hover:text-slate-600'
+                }`}
+              >
+                {pos.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] font-bold text-slate-400 text-right">
+          {(() => {
+            const labels: Record<string, string> = {
+              'top-right': 'أعلى اليمين',
+              'top-center': 'أعلى الوسط',
+              'top-left': 'أعلى اليسار',
+              'center-right': 'الوسط يمين',
+              'center': 'الوسط',
+              'center-left': 'الوسط يسار',
+              'bottom-right': 'أسفل اليمين',
+              'bottom-center': 'أسفل الوسط',
+              'bottom-left': 'أسفل اليسار',
+            };
+            return labels[String(config.bannerTextPosition || 'center')] || 'الوسط';
+          })()}
+        </p>
+      </div>
+    </div>
+
     {/* ─── Banner Section Visibility Toggle ─── */}
     <div className="h-px bg-slate-100 my-3" />
     <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50/60">

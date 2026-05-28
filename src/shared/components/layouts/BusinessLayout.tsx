@@ -416,7 +416,23 @@ const BusinessLayout: React.FC = () => {
         uniq.push(n);
       }
       setNotifications(uniq);
-      setUnreadCount(uniq.filter((n: any) => !Boolean(n?.is_read)).length);
+      setUnreadCount(uniq.filter((n: any) => {
+        if (Boolean(n?.is_read)) return false;
+        
+        let metaObj: any = {};
+        try {
+          const rawMeta = n?.metadata;
+          if (typeof rawMeta === 'string') {
+            metaObj = JSON.parse(rawMeta);
+          } else if (rawMeta && typeof rawMeta === 'object') {
+            metaObj = rawMeta;
+          }
+        } catch {}
+        
+        const metaSource = String(metaObj?.source || '').trim().toLowerCase();
+        const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
+        return !isPosOrigin;
+      }).length);
     } catch (e) {
       // Failed to load notifications - handled silently
     }
@@ -432,7 +448,17 @@ const BusinessLayout: React.FC = () => {
         const nid = String((normalized as any)?.id || '').trim();
         if (!nid) return;
 
-        const metaSource = String(((normalized as any)?.metadata as any)?.source || '').trim().toLowerCase();
+        let metaObj: any = {};
+        try {
+          const rawMeta = (normalized as any)?.metadata;
+          if (typeof rawMeta === 'string') {
+            metaObj = JSON.parse(rawMeta);
+          } else if (rawMeta && typeof rawMeta === 'object') {
+            metaObj = rawMeta;
+          }
+        } catch {}
+
+        const metaSource = String(metaObj?.source || '').trim().toLowerCase();
         const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
 
         let isNew = false;
@@ -446,7 +472,7 @@ const BusinessLayout: React.FC = () => {
         if (!isNew) return;
 
         try {
-          if (!Boolean((normalized as any)?.is_read)) {
+          if (!Boolean((normalized as any)?.is_read) && !isPosOrigin) {
             setUnreadCount((prev) => prev + 1);
           }
         } catch {
@@ -520,10 +546,6 @@ const BusinessLayout: React.FC = () => {
         // إظهار توست للمستخدم
         if (!isPosOrigin) {
           addToast(String((normalized as any)?.title || ''), 'info');
-        }
-
-        if (!Boolean((normalized as any)?.is_read)) {
-          setUnreadCount(prev => prev + 1);
         }
       });
 

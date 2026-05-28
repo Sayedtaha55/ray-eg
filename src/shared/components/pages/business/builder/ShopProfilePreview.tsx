@@ -46,6 +46,7 @@ const ShopProfilePreview: React.FC<Props> = ({
     }
     return 'home';
   });
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     if (page === 'gallery') {
@@ -110,6 +111,11 @@ const ShopProfilePreview: React.FC<Props> = ({
   const isBold = String((currentDesign as any)?.layout || '').toLowerCase() === 'bold';
 
   const pageBgImageUrl = String((currentDesign as any)?.backgroundImageUrl || '').trim();
+
+  const hasHomeLayout = String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story';
+  const showProfileBanner = isVisible('profileBanner', true) && (!hasHomeLayout || activeTab === 'home');
+  const shouldOverlay = !currentDesign?.headerOverlayBanner;
+  const headerType = String(currentDesign?.headerType || 'centered').trim();
 
   const products = useMemo(() => ([
     {
@@ -212,13 +218,19 @@ const ShopProfilePreview: React.FC<Props> = ({
               headerTextColor={headerTextColor}
               bannerReady={true}
               isBuilderPreview={true}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
             />
           </div>
 
           {/* ─── Middle Section (content + cards) ─── */}
           <div className={`transition-all duration-500 ${focusSection && focusSection !== 'middle' && focusSection !== 'shopping' ? 'opacity-30 scale-[0.98]' : (focusSection === 'middle' || focusSection === 'shopping') ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-2xl' : ''}`}>
             {activeTab === 'home' && String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
-              <main className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 space-y-8">
+              <main className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 space-y-8 ${
+                (shouldOverlay && !showProfileBanner) 
+                  ? (headerType === 'stacked_bold' ? 'pt-[140px] md:pt-[180px]' : 'pt-[88px] md:pt-[120px]') 
+                  : ''
+              }`}>
                 {/* 1. Marquee Offers */}
                 <style>{`
                   @keyframes marquee {
@@ -325,7 +337,11 @@ const ShopProfilePreview: React.FC<Props> = ({
                 </div>
               </main>
             ) : (
-              <main className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+              <main className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 ${
+                (shouldOverlay && !showProfileBanner) 
+                  ? (headerType === 'stacked_bold' ? 'pt-[140px] md:pt-[180px]' : 'pt-[88px] md:pt-[120px]') 
+                  : ''
+              }`}>
                 <TabRenderer
                   activeTab={activeTab === 'home' ? 'products' : activeTab}
                   shop={previewShop}
@@ -352,6 +368,8 @@ const ShopProfilePreview: React.FC<Props> = ({
                   isVisible={isVisible as any}
                   whatsappHref={''}
                   isPreview={true}
+                  searchQuery={searchQuery}
+                  setSearchQuery={setSearchQuery}
                   onProductClick={() => {
                     if (onProductClick) {
                       onProductClick();

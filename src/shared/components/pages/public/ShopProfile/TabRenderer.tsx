@@ -34,6 +34,8 @@ interface TabRendererProps {
   whatsappHref: string;
   isPreview?: boolean;
   onProductClick?: () => void;
+  searchQuery?: string;
+  setSearchQuery?: (q: string) => void;
 }
 
 const ProductTab = lazy(() => import('./ProductTab'));
@@ -228,6 +230,8 @@ const TabRenderer: React.FC<TabRendererProps> = (props) => {
               allowReserve={props.allowReserve}
               isPreview={props.isPreview}
               onProductClick={props.onProductClick}
+              searchQuery={props.searchQuery}
+              setSearchQuery={props.setSearchQuery}
             />
           )}
 

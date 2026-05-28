@@ -584,7 +584,12 @@
       "namePlaceholder": "Customer name",
       "phone": "Phone number",
       "clear": "Clear",
-      "save": "Save"
+      "save": "Save",
+      "select": "Select Customer",
+      "searchCustomers": "Search customer by name or phone...",
+      "noCustomers": "No registered customers found.",
+      "totalSpent": "Total Spent: ",
+      "ordersCount": "Orders: "
     },
     "receipt": {
       "titleFallback": "Receipt",

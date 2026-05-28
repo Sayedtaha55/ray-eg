@@ -4,7 +4,7 @@ import { MediaOptimizeService } from '@modules/media/media-optimize.service';
 import { Media3dOptimizeService } from './media-3d-optimize.service';
 import { PrismaService } from '@common/prisma/prisma.service';
 
-const enabled = String(process.env.MEDIA_OPT_ENABLE_WORKER || '').toLowerCase().trim() === 'true';
+const enabled = String(process.env.MEDIA_OPT_ENABLE_WORKER || 'true').toLowerCase().trim() !== 'false';
 
 @Injectable()
 export class MediaOptimizeWorker implements OnModuleInit, OnModuleDestroy {
@@ -60,6 +60,52 @@ export class MediaOptimizeWorker implements OnModuleInit, OnModuleDestroy {
           mediumUrl: (out as any)?.mediumUrl,
           mediumKey: (out as any)?.mediumKey,
         });
+
+        // ─── Auto-update Shop configuration with optimized media ───
+        try {
+          const mediaRecord = await this.prisma.media.findFirst({
+            where: { originalKey: job.key },
+          });
+          const shopId = mediaRecord?.shopId;
+          if (shopId && shopId !== 'unknown') {
+            const outUrl = (out as any)?.url || (out as any)?.optimizedUrl;
+            const thumbUrl = (out as any)?.thumbUrl;
+            const purposeClean = String(job.purpose || '').trim();
+
+            if (purposeClean === 'shop_banner') {
+              const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
+              if (shop) {
+                let design: any = shop.pageDesign && typeof shop.pageDesign === 'object' ? { ...(shop.pageDesign as any) } : {};
+                design.bannerUrl = outUrl;
+                design.bannerIsVideo = job.mimeType.startsWith('video/');
+                if (thumbUrl) {
+                  design.bannerPosterUrl = thumbUrl;
+                }
+                await this.prisma.shop.update({
+                  where: { id: shopId },
+                  data: { pageDesign: design },
+                });
+              }
+            } else if (purposeClean === 'shop_background') {
+              const shop = await this.prisma.shop.findUnique({ where: { id: shopId } });
+              if (shop) {
+                let design: any = shop.pageDesign && typeof shop.pageDesign === 'object' ? { ...(shop.pageDesign as any) } : {};
+                design.backgroundImageUrl = outUrl;
+                await this.prisma.shop.update({
+                  where: { id: shopId },
+                  data: { pageDesign: design },
+                });
+              }
+            } else if (purposeClean === 'shop_logo') {
+              await this.prisma.shop.update({
+                where: { id: shopId },
+                data: { logoUrl: outUrl },
+              });
+            }
+          }
+        } catch (updateErr: any) {
+          console.error('[MediaOptimizeWorker] Failed to auto-update shop configuration:', updateErr?.message || updateErr);
+        }
 
         // Update Media table with variant URLs
         try {

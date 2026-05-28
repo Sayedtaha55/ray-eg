@@ -1,8 +1,12 @@
 export const isVideoUrl = (url: string) => {
   const raw = String(url || '').trim();
   if (!raw) return false;
+  // Blob URLs won't have extensions, so we can't detect them here
+  if (raw.startsWith('blob:')) return false;
   const cleaned = raw.split('#')[0].split('?')[0].toLowerCase();
-  return cleaned.endsWith('.mp4') || cleaned.endsWith('.webm') || cleaned.endsWith('.mov');
+  return cleaned.endsWith('.mp4') || cleaned.endsWith('.webm') || cleaned.endsWith('.mov') || cleaned.endsWith('.ogg') || cleaned.endsWith('.ogv') || cleaned.endsWith('.avi') || cleaned.endsWith('.3gp')
+    || /\/video\//.test(raw.toLowerCase())
+    || /content-type=video/i.test(raw);
 };
 
 export const hexToRgba = (hex: string, alpha: number) => {

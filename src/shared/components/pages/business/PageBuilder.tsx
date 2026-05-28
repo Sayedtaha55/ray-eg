@@ -91,6 +91,10 @@ const DEFAULT_PAGE_DESIGN = {
   homeIntroText: '',
   homeStoryText: '',
   customPages: [] as Array<{ id: string; title: string; content: string }>,
+  bannerSize: 'normal',
+  bannerTitle: '',
+  bannerSubtitle: '',
+  bannerTextPosition: 'center',
 };
 
 interface ShopDesign {
@@ -158,6 +162,10 @@ interface ShopDesign {
   customPages?: Array<{ id: string; title: string; content: string }>;
   homePageName?: string;
   allProductsPageName?: string;
+  bannerSize?: string;
+  bannerTitle?: string;
+  bannerSubtitle?: string;
+  bannerTextPosition?: string;
 }
 
 const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {

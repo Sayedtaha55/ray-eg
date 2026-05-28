@@ -54,6 +54,7 @@ const ShopProfile: React.FC = () => {
   const [hasActiveImageMap, setHasActiveImageMap] = useState(false);
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>('products');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState(t('shopProfile.all'));
   const [hasFollowed, setHasFollowed] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
@@ -802,6 +803,11 @@ const ShopProfile: React.FC = () => {
     </svg>
   );
 
+  const hasHomeLayout = String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story';
+  const showProfileBanner = isVisible('profileBanner', true) && (!hasHomeLayout || activeTab === 'home');
+  const shouldOverlay = !currentDesign?.headerOverlayBanner;
+  const headerType = String(currentDesign?.headerType || 'centered').trim();
+
   return (
     <div id="shop-profile-root" className="min-h-screen relative" style={{ backgroundColor: pageBgColor }}>
       {pageBgImage && (
@@ -840,6 +846,8 @@ const ShopProfile: React.FC = () => {
         headerBg={headerBg}
         headerTextColor={headerTextColor}
         bannerReady={bannerReady}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         purchaseModeButton={
           hasActiveImageMap &&
           isVisible('purchaseModeButton', true) &&
@@ -869,7 +877,11 @@ const ShopProfile: React.FC = () => {
       ) : null}
 
       <main
-        className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${mobileBottomSafeSpaceClass}`}
+        className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-8 md:py-12 ${mobileBottomSafeSpaceClass} ${
+          (shouldOverlay && !showProfileBanner) 
+            ? (headerType === 'stacked_bold' ? 'pt-36 md:pt-48' : 'pt-24 md:pt-32') 
+            : ''
+        }`}
         style={{ contentVisibility: 'auto', containIntrinsicSize: '0 900px' }}
         dir="rtl"
       >
@@ -901,6 +913,8 @@ const ShopProfile: React.FC = () => {
           retryGalleryTab={retryGalleryTab}
           isVisible={isVisible}
           whatsappHref={whatsappHref}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       </main>
 

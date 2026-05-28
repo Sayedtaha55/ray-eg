@@ -584,7 +584,12 @@
       "namePlaceholder": "اسم العميل",
       "phone": "رقم الهاتف",
       "clear": "مسح",
-      "save": "حفظ"
+      "save": "حفظ",
+      "select": "اختيار عميل",
+      "searchCustomers": "ابحث عن عميل بالاسم أو الهاتف...",
+      "noCustomers": "لا يوجد عملاء مسجلين حالياً.",
+      "totalSpent": "إجمالي المشتريات: ",
+      "ordersCount": "عدد الطلبات: "
     },
     "receipt": {
       "titleFallback": "فاتورة",

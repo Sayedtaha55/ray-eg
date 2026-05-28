@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
-import { Search, ChevronRight, Loader2, Ruler, CheckCircle2, UserPlus, X } from 'lucide-react';
+import { Search, ChevronRight, Loader2, Ruler, CheckCircle2, UserPlus, X, Plus, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { RayDB } from '@/constants';
@@ -41,6 +41,88 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
   const [selectedFashionSize, setSelectedFashionSize] = useState('');
   const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
   const [usingOfflineData, setUsingOfflineData] = useState(false);
+
+  // Customer List Selection States
+  const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
+  const [savedCustomers, setSavedCustomers] = useState<any[]>([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+
+  // Audio Synthesizer for Cash Register Success Sound
+  const playCashRegisterSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      // 1. Play the clink (low metallic pop/click)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(150, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.08);
+      gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.08);
+
+      // 2. Play the "ding" bell (high frequency chime)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1760, ctx.currentTime + 0.05); // slight delay
+      gain2.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain2.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.06); // quick attack
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); // decay
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.05);
+      osc2.stop(ctx.currentTime + 0.55);
+      
+      // 3. Secondary harmonic bell frequency for metallic ring
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(2200, ctx.currentTime + 0.05);
+      gain3.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain3.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.06);
+      gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(ctx.currentTime + 0.05);
+      osc3.stop(ctx.currentTime + 0.45);
+    } catch {
+      // browser blocked audio or not supported
+    }
+  };
+
+  const loadCustomers = useCallback(async () => {
+    if (!shopId) return;
+    setIsLoadingCustomers(true);
+    try {
+      const data = await ApiService.getShopCustomers(shopId);
+      const list = Array.isArray(data) ? data : [];
+      setSavedCustomers(list);
+      localStorage.setItem(`pos_customers_${shopId}`, JSON.stringify(list));
+    } catch {
+      try {
+        const cached = JSON.parse(localStorage.getItem(`pos_customers_${shopId}`) || '[]');
+        if (Array.isArray(cached) && cached.length > 0) {
+          setSavedCustomers(cached);
+        }
+      } catch {
+      }
+    } finally {
+      setIsLoadingCustomers(false);
+    }
+  }, [shopId]);
+
+  const handleOpenCustomerList = () => {
+    setIsCustomerListOpen(true);
+    loadCustomers();
+  };
 
   const isRestaurant = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'RESTAURANT';
   const isFashion = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'FASHION';
@@ -394,7 +476,7 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       if (trimmedPhone) {
         try {
           const firstItemName = String(cart?.[0]?.name || '').trim();
-          await ApiService.convertReservationToCustomer({
+          const savedCust = await ApiService.convertReservationToCustomer({
             shopId,
             customerName: trimmedName,
             customerPhone: trimmedPhone,
@@ -402,6 +484,16 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
             firstPurchaseAmount: total,
             firstPurchaseItem: firstItemName || 'POS',
           });
+
+          // Proactively update localStorage cache with the new customer info
+          if (savedCust) {
+            try {
+              const cached = JSON.parse(localStorage.getItem(`pos_customers_${shopId}`) || '[]');
+              const next = Array.isArray(cached) ? cached.filter((c: any) => c.phone !== trimmedPhone) : [];
+              next.unshift(savedCust);
+              localStorage.setItem(`pos_customers_${shopId}`, JSON.stringify(next));
+            } catch {}
+          }
         } catch {
         }
       }
@@ -445,6 +537,10 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
       }
 
       setShowSuccess(true);
+      try {
+        playCashRegisterSound();
+      } catch {
+      }
       setCart([]);
       try {
         localStorage.removeItem(`pos_cart_${shopId}`);
@@ -494,15 +590,25 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <button
-            type="button"
-            onClick={() => setIsCustomerCardOpen(true)}
-            className="bg-white border rounded-2xl py-3 px-4 w-40 md:w-48 outline-none flex items-center justify-center gap-2 font-black text-sm hover:bg-slate-50"
-            title={t('business.posSystem.customer.addTitle')}
-          >
-            <UserPlus size={18} />
-            {String(customerPhone || '').trim() ? t('business.posSystem.customer.edit') : t('business.posSystem.customer.add')}
-          </button>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setIsCustomerCardOpen(true)}
+              className="bg-white border rounded-r-2xl py-3 px-4 w-32 md:w-36 outline-none flex items-center justify-center gap-2 font-black text-sm hover:bg-slate-50 border-l-0"
+              title={t('business.posSystem.customer.addTitle')}
+            >
+              <UserPlus size={18} />
+              {String(customerPhone || '').trim() ? t('business.posSystem.customer.edit') : t('business.posSystem.customer.add')}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenCustomerList}
+              className="bg-white border rounded-l-2xl py-3 px-3 outline-none flex items-center justify-center hover:bg-slate-50 border-r-0 text-slate-500 hover:text-[#BD00FF]"
+              title={t('business.posSystem.customer.select')}
+            >
+              <Plus size={18} />
+            </button>
+          </div>
         </header>
 
         <div className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom,0px)+8.5rem)] md:p-4 md:pb-4">
@@ -697,33 +803,54 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                       const opts = Array.isArray(g?.options) ? g.options : [];
                       if (!groupId || opts.length === 0) return null;
 
-                      const selectedVariantId = selectedAddons.find((x) => String(x?.optionId) === groupId)?.variantId;
                       return (
-                        <div key={groupId} className="p-3 rounded-2xl border border-slate-100 bg-slate-50">
-                          <div className="font-black text-xs text-slate-700 mb-2">{groupName || t('business.posSystem.defaults.group')}</div>
-                          <div className="flex flex-wrap gap-2">
+                        <div key={groupId} className="p-3 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+                          <div className="font-black text-xs text-slate-700 mb-1">{groupName || t('business.posSystem.defaults.group')}</div>
+                          <div className="space-y-2">
                             {opts.map((opt: any) => {
                               const optId = String(opt?.id || '').trim();
                               if (!optId) return null;
-                              const label = String(opt?.name || opt?.label || '').trim() || t('business.posSystem.defaults.option');
-                              const price = Number(opt?.price);
-                              const isSelected = String(selectedVariantId || '') === optId;
+                              const optName = String(opt?.name || opt?.label || opt?.title || '').trim() || optId;
+                              const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                              if (variants.length === 0) return null;
+
+                              const selectedVariantId = selectedAddons.find((x) => String(x?.optionId) === optId)?.variantId;
+
                               return (
-                                <button
-                                  key={optId}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedAddons((prev) => {
-                                      const arr = Array.isArray(prev) ? prev : [];
-                                      const next = arr.filter((x) => String(x?.optionId) !== groupId);
-                                      if (isSelected) return next;
-                                      return [...next, { optionId: groupId, variantId: optId }];
-                                    });
-                                  }}
-                                  className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${isSelected ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'}`}
-                                >
-                                  {label}{Number.isFinite(price) && price > 0 ? ` (+${price})` : ''}
-                                </button>
+                                <div key={optId} className="bg-white p-2.5 rounded-xl border border-slate-150 flex flex-col gap-1.5">
+                                  <div className="font-bold text-xs text-slate-800 text-right">{optName}</div>
+                                  <div className="flex flex-wrap gap-1.5 justify-end">
+                                    {variants.map((v: any) => {
+                                      const vid = String(v?.id || '').trim();
+                                      if (!vid) return null;
+                                      const vLabel = String(v?.label || v?.name || '').trim() || vid;
+                                      const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                                      const isSelected = String(selectedVariantId || '') === vid;
+
+                                      return (
+                                        <button
+                                          key={vid}
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedAddons((prev) => {
+                                              const arr = Array.isArray(prev) ? prev : [];
+                                              const next = arr.filter((x) => String(x?.optionId) !== optId);
+                                              if (isSelected) return next;
+                                              return [...next, { optionId: optId, variantId: vid }];
+                                            });
+                                          }}
+                                          className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${
+                                            isSelected 
+                                              ? 'bg-slate-900 text-white border-slate-900' 
+                                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
                               );
                             })}
                           </div>
@@ -772,16 +899,28 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 const addonsPrice = (() => {
                   if (!isRestaurant) return 0;
                   if (!Array.isArray(shopAddonsDef) || shopAddonsDef.length === 0) return 0;
-                  const priceById = new Map<string, number>();
+                  
+                  const priceMap = new Map<string, number>();
                   for (const g of shopAddonsDef) {
-                    const opts = Array.isArray((g as any)?.options) ? (g as any).options : [];
+                    const opts = Array.isArray(g?.options) ? g.options : [];
                     for (const opt of opts) {
-                      const id = String(opt?.id || '').trim();
-                      const p = Number(opt?.price);
-                      if (id && Number.isFinite(p) && p > 0) priceById.set(id, p);
+                      const optId = String(opt?.id || '').trim();
+                      if (!optId) continue;
+                      const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                      for (const v of variants) {
+                        const vid = String(v?.id || '').trim();
+                        const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                        if (vid && Number.isFinite(p)) {
+                          priceMap.set(`${optId}:${vid}`, p);
+                        }
+                      }
                     }
                   }
-                  return (selectedAddons || []).reduce((sum, a) => sum + (priceById.get(String(a?.variantId || '').trim()) || 0), 0);
+                  
+                  return (selectedAddons || []).reduce((sum, a) => {
+                    const key = `${String(a?.optionId).trim()}:${String(a?.variantId).trim()}`;
+                    return sum + (priceMap.get(key) || 0);
+                  }, 0);
                 })();
 
                 const finalPrice = price + addonsPrice;
@@ -910,6 +1049,90 @@ const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any }> =
                 >
                   {t('business.posSystem.customer.save')}
                 </button>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCustomerListOpen ? (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setIsCustomerListOpen(false)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-[2rem] p-5 flex flex-col max-h-[85vh] overflow-hidden"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <h3 className="text-lg font-black">{t('business.posSystem.customer.select')}</h3>
+                <button type="button" onClick={() => setIsCustomerListOpen(false)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="relative mb-4">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder={t('business.posSystem.customer.searchCustomers')}
+                  className="w-full bg-slate-50 border rounded-xl py-2.5 pr-9 pl-4 outline-none text-sm text-right focus:ring-2 focus:ring-[#BD00FF]"
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 select-none">
+                {isLoadingCustomers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-slate-400" size={24} />
+                  </div>
+                ) : (() => {
+                  const filtered = savedCustomers.filter((c: any) => {
+                    const q = customerSearchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    const name = String(c?.name || '').toLowerCase();
+                    const phone = String(c?.phone || '');
+                    return name.includes(q) || phone.includes(q);
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center text-slate-400 py-8 font-bold text-sm">
+                        {t('business.posSystem.customer.noCustomers')}
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((cust: any) => (
+                    <button
+                      key={cust.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(cust.name || '');
+                        setCustomerPhone(cust.phone || '');
+                        setIsCustomerListOpen(false);
+                      }}
+                      className="w-full text-right p-3 rounded-xl border border-slate-100 hover:border-[#BD00FF] bg-slate-50/50 hover:bg-[#BD00FF]/5 transition-all flex flex-col gap-1"
+                    >
+                      <div className="font-black text-sm text-slate-900 flex justify-between flex-row-reverse w-full items-center">
+                        <span>{cust.name || t('customers.unnamed')}</span>
+                        <span className="text-xs font-bold text-slate-400">{cust.phone}</span>
+                      </div>
+                      <div className="flex justify-between flex-row-reverse text-[10px] text-slate-500 font-bold w-full">
+                        <span>{t('business.posSystem.customer.totalSpent')}{t('business.pos.egp')} {Number(cust.totalSpent || 0).toFixed(2)}</span>
+                        <span>{t('business.posSystem.customer.ordersCount')}{cust.orders || 0}</span>
+                      </div>
+                    </button>
+                  ));
+                })()}
               </div>
             </MotionDiv>
           </MotionDiv>

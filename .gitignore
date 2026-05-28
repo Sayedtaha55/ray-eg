@@ -52,3 +52,28 @@ uploads/
 dy
 .vercel
 .env*.local
+
+# Additional ignores
+# Vite/Build outputs
+out/
+build/
+dev-dist/
+
+# Cache and tool folders
+.cache/
+.parcel-cache/
+.esbuild-cache/
+.turbo/
+.vite/
+
+# Package manager stores
+pnpm-lock.yaml
+.pnpm/
+
+# Generated public media
+public/videos/
+
+# SQLite / DB local files
+*.sqlite
+*.db
+
