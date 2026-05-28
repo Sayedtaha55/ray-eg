@@ -17,6 +17,9 @@ type Props = {
   isMobilePreview?: boolean;
   onProductClick?: () => void;
   focusSection?: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null;
+  bannerPreview?: string;
+  backgroundPreview?: string;
+  bannerFile?: File | null;
 };
 
 const ShopProfilePreview: React.FC<Props> = ({
@@ -29,6 +32,9 @@ const ShopProfilePreview: React.FC<Props> = ({
   isMobilePreview,
   onProductClick,
   focusSection,
+  bannerPreview,
+  backgroundPreview,
+  bannerFile,
 }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>(() => {
@@ -66,7 +72,10 @@ const ShopProfilePreview: React.FC<Props> = ({
     primaryColor: '#00E5FF',
     secondaryColor: '#BD00FF',
     ...config,
-  }), [config]);
+    ...(bannerPreview ? { bannerUrl: bannerPreview } : {}),
+    ...(backgroundPreview ? { backgroundImageUrl: backgroundPreview } : {}),
+    ...(bannerPreview ? { bannerIsVideo: (bannerFile && bannerFile.type.startsWith('video/')) } : {}),
+  }), [config, bannerPreview, backgroundPreview, bannerFile]);
 
   const previewShop = useMemo(() => ({
     ...(shop && typeof shop === 'object' ? shop : {}),

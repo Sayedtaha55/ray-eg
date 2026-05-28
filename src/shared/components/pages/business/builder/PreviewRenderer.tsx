@@ -14,6 +14,9 @@ interface PreviewRendererProps {
   isMobilePreview?: boolean;
   onProductClick?: () => void;
   focusSection?: 'top' | 'middle' | 'shopping' | 'productPage' | 'footer' | null;
+  bannerPreview?: string;
+  backgroundPreview?: string;
+  bannerFile?: File | null;
 }
 
 const PreviewFallback = () => (
@@ -40,6 +43,9 @@ const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
         isMobilePreview={props.isMobilePreview}
         onProductClick={props.onProductClick}
         focusSection={props.focusSection}
+        bannerPreview={props.bannerPreview}
+        backgroundPreview={props.backgroundPreview}
+        bannerFile={props.bannerFile}
       />
     </Suspense>
   );

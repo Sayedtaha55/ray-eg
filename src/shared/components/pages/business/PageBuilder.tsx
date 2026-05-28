@@ -490,6 +490,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           const isVideo = String(bannerFile?.type || '').toLowerCase().startsWith('video/');
           uploadedBanner = {
             bannerUrl,
+            bannerIsVideo: isVideo,
             ...(isVideo ? {} : { bannerPosterUrl: bannerUrl }),
           };
           try {
@@ -566,6 +567,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
       const normalized = {
         ...config,
         ...(uploadedBanner?.bannerUrl ? { bannerUrl: uploadedBanner.bannerUrl } : {}),
+        ...(uploadedBanner?.bannerIsVideo !== undefined ? { bannerIsVideo: uploadedBanner.bannerIsVideo } : {}),
         ...(uploadedBanner?.bannerPosterUrl ? { bannerPosterUrl: uploadedBanner.bannerPosterUrl } : {}),
         ...(uploadedBackgroundUrl ? { backgroundImageUrl: uploadedBackgroundUrl } : {}),
         bannerPosX: coerceNumber((config as any)?.bannerPosX, Number((DEFAULT_PAGE_DESIGN as any).bannerPosX)),
@@ -1000,6 +1002,9 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 isMobilePreview={previewMode === 'mobile'}
                 onProductClick={() => setPreviewPage('product')}
                 focusSection={focusSection}
+                bannerPreview={bannerPreview}
+                backgroundPreview={backgroundPreview}
+                bannerFile={bannerFile}
               />
             </div>
           </MotionDiv>
