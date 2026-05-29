@@ -5,6 +5,7 @@ import {
   Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone, Search, Check
 } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import NavTab from './NavTab';
 import { coerceBoolean, hexToRgba, isVideoUrl } from './utils';
 
@@ -100,18 +101,12 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const headerType = String(currentDesign?.headerType || 'centered').trim();
   const isTransparentActive = coerceBoolean(currentDesign?.headerTransparent, false);
 
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
-  const shouldPlayVideoBanner = isVideoBanner && !isLowEndDevice && !prefersReducedMotion;
+  const shouldPlayVideoBanner = isVideoBanner && !lowEnd && !prefersReducedMotion;
 
-  const MobileMenuWrapper: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
-  const mobileMenuMotionProps = prefersReducedMotion || isLowEndDevice
+  const MobileMenuWrapper: any = prefersReducedMotion || lowEnd ? 'div' : MotionDiv;
+  const mobileMenuMotionProps = prefersReducedMotion || lowEnd
     ? {}
     : {
       initial: { opacity: 0, x: '100%' },
@@ -119,8 +114,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       exit: { opacity: 0, x: '100%' },
     };
 
-  const Backdrop: any = prefersReducedMotion || isLowEndDevice ? 'div' : MotionDiv;
-  const backdropMotionProps = prefersReducedMotion || isLowEndDevice
+  const Backdrop: any = prefersReducedMotion || lowEnd ? 'div' : MotionDiv;
+  const backdropMotionProps = prefersReducedMotion || lowEnd
     ? {}
     : {
       initial: { opacity: 0 },
