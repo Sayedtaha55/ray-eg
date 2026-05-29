@@ -1,3 +1,7 @@
 ## 2025-05-15 - Elimination of Zero-DB Cache Hit Anti-Pattern
 **Learning:** I discovered that the `ShopPublicQueryService.getShopBySlug` method was suffering from a "Zero-DB Cache Hit" anti-pattern. Even when data was found in Redis, the service was performing two additional database queries to fetch hotspot metadata for product filtering. This significantly reduced the benefits of caching.
 **Action:** When implementing caching, ensure that the cached object is "ready-to-use". Move expensive filtering or join logic to the cache-miss path (pre-filtering) and implement eager invalidation on the mutation side (e.g., in `ShopImageMapService`) to maintain consistency.
+
+## 2025-05-16 - Optimization of Multi-Query Cache Misses
+**Learning:** In `ProductService`, I observed that `listByShop` and other listing methods were performing database queries and hotspot metadata lookups sequentially. By parallelizing these independent operations with `Promise.all`, we can significantly reduce tail latency on cache misses. Furthermore, the same "Zero-DB Cache Hit" anti-pattern was present here (caching unfiltered data), which was corrected by moving filtering upstream of the cache.
+**Action:** Always look for independent async operations in cache-miss paths that can be parallelized. Ensure that data is "cache-ready" (pre-filtered/pre-processed) before calling `redis.set` to maximize cache hit performance.

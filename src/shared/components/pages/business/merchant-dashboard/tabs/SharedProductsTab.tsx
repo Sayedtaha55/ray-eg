@@ -3,6 +3,7 @@ import { Product } from '@/types';
 import { Plus, Tag, Trash2, Edit, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { Package } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { ApiService } from '@/services/api.service';
 import { useToast } from '@/components/common/feedback/Toaster';
 import EditProductModal from '../modals/EditProductModal';
@@ -39,20 +40,10 @@ const SharedProductsTab: React.FC<Props> = ({
   const isRestaurant = String(shopCategory || '').toUpperCase() === 'RESTAURANT';
   const pageTitle = isRestaurant ? t('business.sharedProducts.menu') : t('business.sharedProducts.inventory');
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
-  const initialBatch = isLowEndDevice ? 18 : 30;
-  const batchSize = isLowEndDevice ? 12 : 20;
+  const initialBatch = lowEnd ? 18 : 30;
+  const batchSize = lowEnd ? 12 : 20;
 
   useEffect(() => {
     setRenderCount(Math.min(initialBatch, products.length));
