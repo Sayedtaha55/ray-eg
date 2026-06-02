@@ -32,7 +32,7 @@ const BannerSection: React.FC<Props> = ({
   };
 
   const setVis = (key: string, value: boolean) => {
-    setConfig((prev: any) => {
+    setConfig((prev) => {
       const base = (prev?.elementsVisibility && typeof prev.elementsVisibility === 'object') ? prev.elementsVisibility : {};
       return { ...prev, elementsVisibility: { ...base, [key]: value } };
     });
@@ -176,7 +176,7 @@ const BannerSection: React.FC<Props> = ({
           onClick={() => {
             setBannerFile(null);
             setBannerPreview('');
-            setConfig((prev: any) => ({ ...prev, bannerUrl: '' }));
+            setConfig((prev) => ({ ...prev, bannerUrl: '' }));
           }}
           className="absolute top-2 left-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300 focus-visible:ring-offset-2 active:scale-[0.98]"
         >
@@ -251,7 +251,7 @@ const BannerSection: React.FC<Props> = ({
             <button
               key={sz.id}
               type="button"
-              onClick={() => setConfig((prev: any) => ({ ...prev, bannerSize: sz.id }))}
+              onClick={() => setConfig((prev) => ({ ...prev, bannerSize: sz.id }))}
               className={`p-3 rounded-xl border text-right transition-all flex items-center gap-3 flex-row-reverse ${
                 isActive 
                   ? 'border-[#00E5FF] bg-cyan-50/70 shadow-sm' 
@@ -281,7 +281,7 @@ const BannerSection: React.FC<Props> = ({
           value={String(config.bannerTitle || '')}
           onChange={(e) => {
             const val = e.target.value;
-            setConfig((prev: any) => ({ ...prev, bannerTitle: val }));
+            setConfig((prev) => ({ ...prev, bannerTitle: val }));
           }}
           placeholder="مثال: خصومات الصيف الكبرى"
           className="w-full py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold text-right"
@@ -295,7 +295,7 @@ const BannerSection: React.FC<Props> = ({
           value={String(config.bannerSubtitle || '')}
           onChange={(e) => {
             const val = e.target.value;
-            setConfig((prev: any) => ({ ...prev, bannerSubtitle: val }));
+            setConfig((prev) => ({ ...prev, bannerSubtitle: val }));
           }}
           placeholder="مثال: احصل على خصم يصل إلى 50% على جميع المنتجات"
           className="w-full py-2 px-3 rounded-xl border border-slate-200 text-xs font-bold text-right"
@@ -322,7 +322,7 @@ const BannerSection: React.FC<Props> = ({
               <button
                 key={pos.id}
                 type="button"
-                onClick={() => setConfig((prev: any) => ({ ...prev, bannerTextPosition: pos.id }))}
+                onClick={() => setConfig((prev) => ({ ...prev, bannerTextPosition: pos.id }))}
                 className={`h-10 rounded-xl border text-sm font-black transition-all ${
                   isActive
                     ? 'border-[#00E5FF] bg-[#00E5FF]/10 text-[#00E5FF] shadow-sm scale-105'
