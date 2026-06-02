@@ -56,6 +56,10 @@ export class BookingsService {
     itemName?: string;
     itemImage?: string | null;
     itemPrice?: number | null;
+    customerEmail?: string | null;
+    serviceId?: string | null;
+    slotId?: string | null;
+    participants?: number | null;
     startAt?: Date | null;
     endAt?: Date | null;
     resourceId?: string | null;
@@ -88,14 +92,19 @@ export class BookingsService {
         shopId,
         customerName,
         customerPhone: dbCustomerPhone,
+        customerEmail: input?.customerEmail ? String(input.customerEmail).trim().slice(0, 160) : null,
         status: 'PENDING',
+        paymentStatus: 'PENDING',
         itemId: input?.itemId ? String(input.itemId) : null,
         itemName: input?.itemName ? String(input.itemName) : null,
         itemImage: input?.itemImage ? String(input.itemImage) : null,
         itemPrice,
         startAt: input?.startAt ?? null,
         endAt: input?.endAt ?? null,
+        serviceId: input?.serviceId ? String(input.serviceId) : null,
+        slotId: input?.slotId ? String(input.slotId) : null,
         resourceId: input?.resourceId ? String(input.resourceId) : null,
+        participants: Math.max(1, Math.min(Number(input?.participants || 1) || 1, 999)),
         notes: notes || null,
         metadata: (input as any)?.metadata ?? null,
       },
@@ -110,6 +119,12 @@ export class BookingsService {
     itemPrice: number;
     customerPhone?: string;
     customerName?: string;
+    customerEmail?: string;
+    serviceId?: string;
+    slotId?: string;
+    resourceId?: string;
+    participants?: number;
+    notes?: string;
     addons?: any;
     variantSelection?: any;
     startAt?: Date | string | null;
@@ -153,14 +168,22 @@ export class BookingsService {
     if (!itemName) throw new BadRequestException('itemName مطلوب');
     if (itemName.length > 160) throw new BadRequestException('itemName طويل جداً');
 
+    const requestedCustomerName = String(input?.customerName || '').trim();
+
     return this.create({
       shopId,
-      customerName: String(user.name || '').trim().slice(0, 120) || 'عميل',
+      customerName: requestedCustomerName.slice(0, 120) || String(user.name || '').trim().slice(0, 120) || 'عميل',
       customerPhone: customerPhone && customerPhone !== '__INVALID__' ? customerPhone : null,
+      customerEmail: input?.customerEmail,
       itemId,
       itemName,
       itemImage: input?.itemImage,
       itemPrice: input?.itemPrice,
+      serviceId: input?.serviceId,
+      slotId: input?.slotId,
+      resourceId: input?.resourceId,
+      participants: input?.participants,
+      notes: input?.notes,
       startAt: input?.startAt ? (input.startAt instanceof Date ? input.startAt : new Date(String(input.startAt))) : null,
       endAt: input?.endAt ? (input.endAt instanceof Date ? input.endAt : new Date(String(input.endAt))) : null,
       metadata: {
@@ -219,7 +242,12 @@ export class BookingsService {
     if (normalized === 'COMPLETED' || normalized === 'CANCELLED' || normalized === 'CONFIRMED') {
       return (this.prisma as any).booking.update({
         where: { id: bookingId },
-        data: { status: normalized },
+        data: {
+          status: normalized,
+          ...(normalized === 'CONFIRMED' ? { confirmedAt: new Date() } : {}),
+          ...(normalized === 'COMPLETED' ? { completedAt: new Date() } : {}),
+          ...(normalized === 'CANCELLED' ? { cancelledAt: new Date() } : {}),
+        },
       });
     }
 

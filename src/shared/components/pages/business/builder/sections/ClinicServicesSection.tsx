@@ -8,13 +8,6 @@ type Specialty = {
   iconName: 'Stethoscope' | 'Shield' | 'User2' | 'CheckCircle2';
 };
 
-const DEFAULT_SPECIALTIES: Specialty[] = [
-  { id: 'dentistry', name: 'طب وجراحة الأسنان', iconName: 'Stethoscope' },
-  { id: 'dermatology', name: 'الأمراض الجلدية والتجميل', iconName: 'Shield' },
-  { id: 'pediatrics', name: 'طب الأطفال ورعاية الرضع', iconName: 'User2' },
-  { id: 'orthopedics', name: 'جراحة العظام والمفاصل', iconName: 'CheckCircle2' },
-];
-
 type Props = {
   config: any;
   setConfig: (next: any) => void;
@@ -24,7 +17,7 @@ const ClinicServicesSection: React.FC<Props> = ({ config, setConfig }) => {
   const { t } = useTranslation();
   const specialtiesList: Specialty[] = Array.isArray(config.clinicSpecialtiesList)
     ? config.clinicSpecialtiesList
-    : DEFAULT_SPECIALTIES;
+    : [];
 
   const [name, setName] = useState('');
   const [iconName, setIconName] = useState<'Stethoscope' | 'Shield' | 'User2' | 'CheckCircle2'>('Stethoscope');

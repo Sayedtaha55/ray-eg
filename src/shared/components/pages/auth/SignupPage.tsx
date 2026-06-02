@@ -62,6 +62,9 @@ const SignupPage: React.FC = () => {
     dashboardMode?: string;
     activityId?: string;
     category?: string;
+    bookingActivityType?: string;
+    bookingEnabledButtons?: string[];
+    pageDesign?: any;
   }>(null);
 
   useEffect(() => {
@@ -179,6 +182,10 @@ const SignupPage: React.FC = () => {
         const dashboardMode = String(cfg?.dashboardMode || '').trim();
         if (dashboardMode) {
           payload.dashboardMode = dashboardMode;
+        }
+
+        if (cfg?.pageDesign && typeof cfg.pageDesign === 'object') {
+          payload.pageDesign = cfg.pageDesign;
         }
       }
 

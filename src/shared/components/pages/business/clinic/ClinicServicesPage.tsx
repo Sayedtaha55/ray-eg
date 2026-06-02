@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -22,13 +22,6 @@ type Specialty = {
   iconName: 'Stethoscope' | 'Shield' | 'User2' | 'CheckCircle2' | 'Heart' | 'Activity';
 };
 
-const DEFAULT_SPECIALTIES: Specialty[] = [
-  { id: 'dentistry', name: 'طب وجراحة الأسنان', iconName: 'Stethoscope' },
-  { id: 'dermatology', name: 'الأمراض الجلدية والتجميل', iconName: 'Shield' },
-  { id: 'pediatrics', name: 'طب الأطفال ورعاية الرضع', iconName: 'User2' },
-  { id: 'orthopedics', name: 'جراحة العظام والمفاصل', iconName: 'CheckCircle2' },
-];
-
 type Props = {
   shop?: any;
   onSaved?: () => void;
@@ -36,14 +29,28 @@ type Props = {
 
 const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
   const { t } = useTranslation();
+  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
+  const effectiveShop = shop || loadedShop;
+
+  useEffect(() => {
+    if (shop || loadedShop) return;
+    let cancelled = false;
+    ApiService.getMyShop()
+      .then((myShop: any) => {
+        if (!cancelled) setLoadedShop(myShop);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shop, loadedShop]);
 
   const specialtiesList: Specialty[] = useMemo(() => {
-    if (Array.isArray(shop?.pageDesign?.clinicSpecialtiesList) && shop.pageDesign.clinicSpecialtiesList.length > 0) {
-      return shop.pageDesign.clinicSpecialtiesList;
+    if (Array.isArray(effectiveShop?.pageDesign?.clinicSpecialtiesList)) {
+      return effectiveShop.pageDesign.clinicSpecialtiesList;
     }
-    // Do not show hardcoded defaults — require real data in pageDesign
     return [];
-  }, [shop?.pageDesign?.clinicSpecialtiesList]);
+  }, [effectiveShop?.pageDesign?.clinicSpecialtiesList]);
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -61,12 +68,13 @@ const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
     setErrorMsg('');
     try {
       const updatedPageDesign = {
-        ...(shop?.pageDesign || {}),
+        ...(effectiveShop?.pageDesign || {}),
         clinicSpecialtiesList: nextList,
       };
-      await ApiService.updateMyShop({
+      const updatedShop = await ApiService.updateMyShop({
         pageDesign: updatedPageDesign,
       });
+      setLoadedShop(updatedShop || { ...(effectiveShop || {}), pageDesign: updatedPageDesign });
       setSuccessMsg('تم تحديث قائمة التخصصات والخدمات بنجاح!');
       if (onSaved) onSaved();
       setTimeout(() => setSuccessMsg(''), 4000);

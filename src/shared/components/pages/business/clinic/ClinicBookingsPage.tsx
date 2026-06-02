@@ -22,6 +22,21 @@ type Props = {
 
 const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
   const { t, i18n } = useTranslation();
+  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
+  const effectiveShop = shop || loadedShop;
+
+  useEffect(() => {
+    if (shop || loadedShop) return;
+    let cancelled = false;
+    ApiService.getMyShop()
+      .then((myShop: any) => {
+        if (!cancelled) setLoadedShop(myShop);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shop, loadedShop]);
   const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
   const { useLocation } = ReactRouterDOM as any;
   const location = useLocation();
@@ -56,11 +71,11 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
       const shopIdFromUser = String(user?.shopId || '').trim();
 
       if (role === 'admin' && impersonateShopId) return impersonateShopId;
-      return shopIdFromUser || shop?.id || '';
+      return shopIdFromUser || effectiveShop?.id || '';
     } catch {
-      return shop?.id || '';
+      return effectiveShop?.id || '';
     }
-  }, [location.search, shop]);
+  }, [location.search, effectiveShop?.id]);
 
   const loadBookings = useCallback(async () => {
     setLoading(true);
@@ -80,19 +95,19 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
     loadBookings();
   }, [loadBookings]);
 
-  // Extract doctors list from shop page design or defaults
+  // Extract doctors list from real shop page design only
   const doctorsList = useMemo(() => {
-    if (Array.isArray(shop?.pageDesign?.clinicDoctorsList) && shop.pageDesign.clinicDoctorsList.length > 0) {
-      return shop.pageDesign.clinicDoctorsList;
+    if (Array.isArray(effectiveShop?.pageDesign?.clinicDoctorsList)) {
+      return effectiveShop.pageDesign.clinicDoctorsList;
     }
     // No hardcoded placeholder doctors — show empty list when none provided
     return [];
-  }, [shop?.pageDesign?.clinicDoctorsList]);
+  }, [effectiveShop?.pageDesign?.clinicDoctorsList]);
 
   // Time slots list
   const slotsList = useMemo(() => {
-    if (Array.isArray(shop?.pageDesign?.clinicSlotsList) && shop.pageDesign.clinicSlotsList.length > 0) {
-      return shop.pageDesign.clinicSlotsList;
+    if (Array.isArray(effectiveShop?.pageDesign?.clinicSlotsList) && effectiveShop.pageDesign.clinicSlotsList.length > 0) {
+      return effectiveShop.pageDesign.clinicSlotsList;
     }
     return [
       { time: '05:30', label: '05:30 مساءً' },
@@ -102,7 +117,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
       { time: '07:30', label: '07:30 مساءً' },
       { time: '08:00', label: '08:00 مساءً' },
     ];
-  }, [shop?.pageDesign?.clinicSlotsList]);
+  }, [effectiveShop?.pageDesign?.clinicSlotsList]);
 
   // Initialize first doctor in modal
   useEffect(() => {
@@ -132,12 +147,17 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
     setModalSuccessMsg('');
 
     try {
+      const targetShopId = getTargetShopId?.() || effectiveShop?.id || '';
+      if (!targetShopId) {
+        setModalErrorMsg('لا يمكن إنشاء الحجز بدون ربطه بمتجر حقيقي.');
+        return;
+      }
       const payload = {
         itemId: selectedDoctor?.id || 'general',
         itemName: selectedDoctor?.name || 'استشارة عامة',
         itemImage: selectedDoctor?.photoUrl || '',
         itemPrice: 300, // Consulting standard price
-        shopId: getTargetShopId() || 'mock-shop-id',
+        shopId: targetShopId,
         customerName: patientName,
         customerPhone: patientPhone,
         customerEmail: patientEmail,
@@ -473,12 +493,12 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                   <select
                     value={selectedDoctor?.id || ''}
                     onChange={(e) => {
-                      const doc = doctorsList.find((d) => d.id === e.target.value);
+                      const doc = doctorsList.find((d: any) => d.id === e.target.value);
                       setSelectedDoctor(doc || null);
                     }}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                   >
-                    {doctorsList.map((d) => (
+                    {doctorsList.map((d: any) => (
                       <option key={d.id} value={d.id}>
                         {d.name} ({d.title})
                       </option>
@@ -505,7 +525,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                     >
                       <option value="">اختر الوقت</option>
-                      {slotsList.map((s) => (
+                      {slotsList.map((s: any) => (
                         <option key={s.time} value={s.time}>
                           {s.label}
                         </option>

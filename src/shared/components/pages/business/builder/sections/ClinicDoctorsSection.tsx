@@ -13,12 +13,6 @@ type Doctor = {
   photoUrl?: string;
 };
 
-const DEFAULT_DOCTORS: Doctor[] = [
-  { id: 'd1', name: 'د. أحمد سليمان', title: 'استشاري جراحة العظام والمفاصل', rating: 4.9, reviews: 320, next: '05:30 م' },
-  { id: 'd2', name: 'د. سارة المنصوري', title: 'استشارية الأمراض الجلدية والليزر', rating: 4.8, reviews: 210, next: '06:00 م' },
-  { id: 'd3', name: 'د. محمد الراوي', title: 'أخصائي طب الأطفال وحديثي الولادة', rating: 4.7, reviews: 185, next: '07:30 م' },
-];
-
 type Props = {
   config: any;
   setConfig: (next: any) => void;
@@ -29,7 +23,7 @@ const ClinicDoctorsSection: React.FC<Props> = ({ config, setConfig, shop }) => {
   const { t } = useTranslation();
   const doctorsList: Doctor[] = Array.isArray(config.clinicDoctorsList)
     ? config.clinicDoctorsList
-    : DEFAULT_DOCTORS;
+    : [];
 
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);

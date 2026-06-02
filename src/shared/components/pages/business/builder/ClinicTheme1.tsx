@@ -90,12 +90,17 @@ const ClinicTheme1: React.FC<Props> = ({
     setSuccessMsg('');
 
     try {
+      const targetShopId = shop?.id || '';
+      if (!targetShopId) {
+        setErrorMsg('لا يمكن إنشاء الحجز بدون ربطه بمتجر حقيقي.');
+        return;
+      }
       const payload = {
         itemId: activeDoctor?.id || 'general',
         itemName: activeDoctor?.name || 'استشارة عامة',
         itemImage: activeDoctor?.photoUrl || '',
         itemPrice: 300, // Standard fee
-        shopId: shop?.id || 'mock-shop-id',
+        shopId: targetShopId,
         customerName: patientName,
         customerPhone: patientPhone,
         customerEmail: patientEmail,

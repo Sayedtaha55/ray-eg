@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Plus,
@@ -26,12 +26,6 @@ type Doctor = {
   photoUrl?: string;
 };
 
-const DEFAULT_DOCTORS: Doctor[] = [
-  { id: 'd1', name: 'د. أحمد سليمان', title: 'استشاري جراحة العظام والمفاصل', rating: 4.9, reviews: 320, next: '05:30 م' },
-  { id: 'd2', name: 'د. سارة المنصوري', title: 'استشارية الأمراض الجلدية والليزر', rating: 4.8, reviews: 210, next: '06:00 م' },
-  { id: 'd3', name: 'د. محمد الراوي', title: 'أخصائي طب الأطفال وحديثي الولادة', rating: 4.7, reviews: 185, next: '07:30 م' },
-];
-
 type Props = {
   shop?: any;
   onSaved?: () => void;
@@ -39,13 +33,28 @@ type Props = {
 
 const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   const { t } = useTranslation();
+  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
+  const effectiveShop = shop || loadedShop;
+
+  useEffect(() => {
+    if (shop || loadedShop) return;
+    let cancelled = false;
+    ApiService.getMyShop()
+      .then((myShop: any) => {
+        if (!cancelled) setLoadedShop(myShop);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [shop, loadedShop]);
 
   const doctorsList: Doctor[] = useMemo(() => {
-    if (Array.isArray(shop?.pageDesign?.clinicDoctorsList) && shop.pageDesign.clinicDoctorsList.length > 0) {
-      return shop.pageDesign.clinicDoctorsList;
+    if (Array.isArray(effectiveShop?.pageDesign?.clinicDoctorsList)) {
+      return effectiveShop.pageDesign.clinicDoctorsList;
     }
-    return DEFAULT_DOCTORS;
-  }, [shop?.pageDesign?.clinicDoctorsList]);
+    return [];
+  }, [effectiveShop?.pageDesign?.clinicDoctorsList]);
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -65,7 +74,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
 
   // Handle image upload robustly
   const handleUploadPhoto = async (file: File, doctorId: string) => {
-    if (!shop?.id) {
+    if (!effectiveShop?.id) {
       setErrorMsg('معرف العيادة غير موجود');
       return;
     }
@@ -76,7 +85,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
       const uploaded = await ApiService.uploadMediaRobust({
         file,
         purpose: 'shop_banner',
-        shopId: shop.id,
+        shopId: effectiveShop.id,
       });
       const url = String(uploaded?.url || '').trim();
       if (url) {
@@ -104,12 +113,13 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
     setErrorMsg('');
     try {
       const updatedPageDesign = {
-        ...(shop?.pageDesign || {}),
+        ...(effectiveShop?.pageDesign || {}),
         clinicDoctorsList: nextList,
       };
-      await ApiService.updateMyShop({
+      const updatedShop = await ApiService.updateMyShop({
         pageDesign: updatedPageDesign,
       });
+      setLoadedShop(updatedShop || { ...(effectiveShop || {}), pageDesign: updatedPageDesign });
       setSuccessMsg('تم تحديث قائمة الأطباء وحفظ التعديلات بنجاح!');
       if (onSaved) onSaved();
       setTimeout(() => setSuccessMsg(''), 4000);

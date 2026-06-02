@@ -576,6 +576,7 @@ export class AuthService implements OnModuleInit {
       description,
       dashboardMode: dashboardModeRaw,
       enabledModules: enabledModulesRaw,
+      pageDesign: pageDesignRaw,
     } = dto;
 
     const resolvedName = String(name || fullName || '').trim() || undefined;
@@ -787,6 +788,7 @@ export class AuthService implements OnModuleInit {
           status: (autoApproveMerchantsInDev ? 'APPROVED' : 'PENDING') as any,
           ownerId: createdUser.id,
           layoutConfig: dashboardCfg as any,
+          ...(pageDesignRaw && typeof pageDesignRaw === 'object' && !Array.isArray(pageDesignRaw) ? { pageDesign: pageDesignRaw as any } : {}),
         },
       });
 
