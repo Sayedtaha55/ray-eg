@@ -18,3 +18,20 @@ export function isMobileViewportLike() {
 export function getDeferredDelay(baseMs: number, mobileMs: number) {
   return isMobileViewportLike() ? mobileMs : baseMs;
 }
+
+let lowEndCached: boolean | null = null;
+
+export function isLowEndDevice() {
+  if (typeof window === 'undefined') return false;
+  if (lowEndCached !== null) return lowEndCached;
+
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    lowEndCached = isMobile && (cores <= 4 || memory <= 4);
+    return lowEndCached;
+  } catch {
+    return false;
+  }
+}
