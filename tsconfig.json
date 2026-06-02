@@ -5,6 +5,8 @@
     "useDefineForClassFields": false,
     "module": "ESNext",
     "baseUrl": ".",
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
     "lib": [
       "ES2022",
       "DOM",

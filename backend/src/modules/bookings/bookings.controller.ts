@@ -40,6 +40,13 @@ class CreateBookingDto {
   @IsOptional()
   variantSelection?: any;
 }
+  @IsOptional()
+  @IsString()
+  bookingDate?: string;
+
+  @IsOptional()
+  @IsString()
+  bookingTime?: string;
 
 class UpdateBookingStatusDto {
   @IsString()
@@ -60,6 +67,21 @@ export class BookingsController {
       throw new BadRequestException('غير مصرح');
     }
 
+    // build optional startAt from bookingDate + bookingTime if provided
+    let startAt: Date | null = null;
+    try {
+      const datePart = String(body?.bookingDate || '').trim();
+      const timePart = String(body?.bookingTime || '').trim();
+      if (datePart) {
+        const t = timePart || '00:00';
+        const iso = `${datePart}T${t}:00`;
+        const d = new Date(iso);
+        if (!Number.isNaN(d.getTime())) startAt = d;
+      }
+    } catch {
+      // ignore parse errors
+    }
+
     return this.bookingsService.createForUser(String(userId), {
       itemId: body?.itemId,
       itemName: body?.itemName,
@@ -68,6 +90,7 @@ export class BookingsController {
       shopId: body?.shopId,
       addons: (body as any)?.addons,
       variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
+      startAt: startAt ?? undefined,
     });
   }
 

@@ -42,6 +42,14 @@ const MerchantProfilePage = React.lazy(() => import('../shared/components/pages/
 const BusinessPendingApproval = React.lazy(() => import('../shared/components/pages/business/BusinessPendingApproval'));
 const CourierSignupPage = React.lazy(() => import('../shared/components/pages/business/CourierSignupPage'));
 const BuilderPreviewPage = React.lazy(() => import('../shared/components/pages/business/builder/BuilderPreviewPage'));
+
+// Clinic pages
+const ClinicLayoutPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicLayoutPage'));
+const ClinicOverviewPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicOverviewPage'));
+const ClinicBookingManagementPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicBookingManagementPage'));
+const ClinicBookingsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicBookingsPage'));
+const ClinicDesignPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicDesignPage'));
+const ClinicSettingsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicSettingsPage'));
 const AdminLayout = React.lazy(() => import('../shared/components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../shared/components/pages/admin/AdminDashboard'));
 const AdminLogin = React.lazy(() => import('../shared/components/pages/auth/AdminLogin'));
@@ -122,6 +130,16 @@ const AppRoutes: React.FC = () => {
         <Route path="profile" element={suspense(<MerchantProfilePage />)} />
         <Route path="pending" element={suspense(<BusinessPendingApproval />)} />
         <Route path="courier-signup" element={suspense(<CourierSignupPage />)} />
+        
+        {/* Clinic booking dashboard routes */}
+        <Route path="clinic" element={suspense(<ClinicLayoutPage />)}>
+          <Route index element={<Navigate to="overview" replace />} />
+          <Route path="overview" element={suspense(<ClinicOverviewPage />)} />
+          <Route path="booking-management" element={suspense(<ClinicBookingManagementPage />)} />
+          <Route path="bookings" element={suspense(<ClinicBookingsPage />)} />
+          <Route path="design" element={suspense(<ClinicDesignPage />)} />
+          <Route path="settings" element={suspense(<ClinicSettingsPage />)} />
+        </Route>
       </Route>
       <Route path="/admin/gate" element={suspense(<AdminLogin />)} />
       <Route path="/admin" element={suspense(<AdminLayout />)}>

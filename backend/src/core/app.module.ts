@@ -28,6 +28,7 @@ import { ChatModule } from '@modules/chat/chat.module';
 import { AiModule } from '@common/ai/ai.module';
 import { MeasurementModule } from '@modules/measurement/measurement.module';
 import { AppsModule } from '@modules/apps/apps.module';
+import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CartEventModule } from '@modules/cart-event/cart-event.module';
 import { MapListingModule } from '@modules/map-listing/map-listing.module';
 import { PortalModule } from '@modules/portal/portal.module';
@@ -87,6 +88,7 @@ const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || n
     ...(includeAllModules || bootModules.has('measurement') ? [MeasurementModule] : []),
     ...(includeAllModules || bootModules.has('map-listing') ? [MapListingModule] : []),
     ...(includeAllModules || bootModules.has('map-listing') || bootModules.has('portal') ? [PortalModule] : []),
+    ...(includeAllModules || bootModules.has('bookings') ? [BookingsModule] : []),
   ],
   controllers: minimalBoot
     ? [HealthController, DatabaseTestController]

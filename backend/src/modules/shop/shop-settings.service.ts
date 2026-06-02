@@ -18,6 +18,7 @@ export class ShopSettingsService {
   async updateShopSettings(
     shopId: string,
     input: {
+      pageDesign?: any | null;
       name?: string;
       description?: string | null;
       category?: string;
@@ -320,6 +321,7 @@ export class ShopSettingsService {
           ...(typeof input.publicDisabled === 'undefined' ? {} : { publicDisabled: input.publicDisabled }),
           ...(typeof input.deliveryDisabled === 'undefined' ? {} : { deliveryDisabled: input.deliveryDisabled }),
           ...(typeof input.addons === 'undefined' ? {} : { addons: input.addons as any }),
+          ...(typeof input.pageDesign === 'undefined' ? {} : { pageDesign: input.pageDesign as any }),
           layoutConfig: nextLayout as any,
         },
         select: {

@@ -21,3 +21,7 @@ export { default as StoreFooter } from './StoreFooter';
 export { default as ThemesSection } from './ThemesSection';
 export { default as HomeExperienceSection } from './HomeExperienceSection';
 export { default as CustomPagesSection } from './CustomPagesSection';
+
+export { default as ClinicDoctorsSection } from './ClinicDoctorsSection';
+export { default as ClinicBookingSection } from './ClinicBookingSection';
+export { default as ClinicServicesSection } from './ClinicServicesSection';

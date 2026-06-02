@@ -17,9 +17,10 @@ export class MonitoringController {
     } catch (error) {
       console.error('Health check error:', error);
       const env = String(process.env.NODE_ENV || 'development').toLowerCase();
+      const errMsg = error instanceof Error ? error.message : String(error);
       return {
         status: 'unhealthy',
-        error: env === 'production' ? 'Internal error' : error.message,
+        error: env === 'production' ? 'Internal error' : errMsg,
         timestamp: new Date().toISOString()
       };
     }
@@ -33,8 +34,9 @@ export class MonitoringController {
       return this.monitoring.getMetrics();
     } catch (error) {
       console.error('Metrics error:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
       return {
-        error: error.message,
+        error: errMsg,
         timestamp: new Date().toISOString()
       };
     }
@@ -51,8 +53,9 @@ export class MonitoringController {
       };
     } catch (error) {
       console.error('Alerts error:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
       return {
-        error: error.message,
+        error: errMsg,
         timestamp: new Date().toISOString()
       };
     }
@@ -66,8 +69,9 @@ export class MonitoringController {
       return await this.monitoring.getDashboardData();
     } catch (error) {
       console.error('Dashboard error:', error);
+      const errMsg = error instanceof Error ? error.message : String(error);
       return {
-        error: error.message,
+        error: errMsg,
         timestamp: new Date().toISOString()
       };
     }

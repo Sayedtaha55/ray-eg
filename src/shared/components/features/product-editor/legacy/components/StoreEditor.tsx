@@ -661,7 +661,7 @@ export const StoreEditor = React.memo(({
               <Plus size={16} />
               <span className="text-[10px] mt-1">{t('storeEditor.newImage')}</span>
             </button>
-            <input type="file" ref={sectionInputRef} onChange={handleAddSection} accept="image/*" className="hidden" />
+            <input type="file" ref={sectionInputRef} onChange={handleAddSection} accept="image/*" className="hidden" title={t('storeEditor.uploadImage')} />
           </div>
 
           {activeSection && (

@@ -59,15 +59,38 @@ const Section = ({ id, title, icon, render, toggleSection, openSection }: any) =
 const SectionRenderer: React.FC<SectionRendererProps> = (props) => {
   const { activeBuilderTab, toggleSection, openSection, ...renderProps } = props;
 
+  const isClinic = props.shop?.category === 'SERVICE';
+
+
+
+  const visibleSections = BUILDER_SECTIONS.filter((s) => {
+    if (isClinic) {
+      return [
+        'themes',
+        'clinicDoctors',
+        'clinicBooking',
+        'clinicServices',
+        'homeExperience',
+        'footer',
+        'customPages',
+      ].includes(s.id);
+    }
+    return ![
+      'clinicDoctors',
+      'clinicBooking',
+      'clinicServices',
+    ].includes(s.id);
+  });
+
   if (activeBuilderTab) {
-    const s = BUILDER_SECTIONS.find((x) => String(x.id) === String(activeBuilderTab));
+    const s = visibleSections.find((x) => String(x.id) === String(activeBuilderTab));
     if (!s) return null;
     return <>{s.render(renderProps)}</>;
   }
 
   return (
     <div className="space-y-4">
-      {BUILDER_SECTIONS.map((s) => (
+      {visibleSections.map((s) => (
         <Section
           key={s.id}
           id={s.id}

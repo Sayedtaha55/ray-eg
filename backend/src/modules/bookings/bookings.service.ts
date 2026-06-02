@@ -51,7 +51,7 @@ export class BookingsService {
   async create(input: {
     shopId: string;
     customerName: string;
-    customerPhone: string;
+    customerPhone?: string | null;
     itemId?: string;
     itemName?: string;
     itemImage?: string | null;
@@ -65,12 +65,12 @@ export class BookingsService {
     const shopId = String(input?.shopId || '').trim();
     const customerName = String(input?.customerName || '').trim();
     const customerPhone = this.normalizePhone(input?.customerPhone);
+    const dbCustomerPhone = customerPhone && customerPhone !== '__INVALID__' ? customerPhone : null;
 
     if (!shopId) throw new BadRequestException('shopId مطلوب');
     if (!customerName) throw new BadRequestException('customerName مطلوب');
     if (customerName.length > 120) throw new BadRequestException('customerName طويل جداً');
     if (customerPhone === '__INVALID__') throw new BadRequestException('customerPhone غير صحيح');
-    if (!customerPhone) throw new BadRequestException('customerPhone مطلوب');
 
     const notes = input?.notes != null ? String(input.notes) : null;
     if (notes && notes.length > 2000) throw new BadRequestException('notes طويل جداً');
@@ -87,7 +87,7 @@ export class BookingsService {
       data: {
         shopId,
         customerName,
-        customerPhone,
+        customerPhone: dbCustomerPhone,
         status: 'PENDING',
         itemId: input?.itemId ? String(input.itemId) : null,
         itemName: input?.itemName ? String(input.itemName) : null,
@@ -108,8 +108,12 @@ export class BookingsService {
     itemName: string;
     itemImage?: string | null;
     itemPrice: number;
+    customerPhone?: string;
+    customerName?: string;
     addons?: any;
     variantSelection?: any;
+    startAt?: Date | string | null;
+    endAt?: Date | string | null;
   }) {
     const uid = String(userId || '').trim();
     if (!uid) throw new BadRequestException('غير مصرح');
@@ -120,12 +124,24 @@ export class BookingsService {
     });
     if (!user) throw new BadRequestException('غير مصرح');
 
-    const customerPhone = this.normalizePhone(user.phone);
-    if (!customerPhone) {
-      throw new BadRequestException('يرجى إضافة رقم هاتف لحسابك لإتمام الحجز');
+    const phoneFromForm = this.normalizePhone(input?.customerPhone);
+    let customerPhone = this.normalizePhone(user.phone);
+
+    if (phoneFromForm && phoneFromForm !== '__INVALID__') {
+      if (!customerPhone) {
+        try {
+          await this.prisma.user.update({
+            where: { id: uid },
+            data: { phone: phoneFromForm },
+          });
+        } catch {
+          // ignore duplicate phone errors
+        }
+      }
+      customerPhone = phoneFromForm;
     }
-    if (customerPhone === '__INVALID__') {
-      throw new BadRequestException('يرجى إضافة رقم هاتف صحيح لحسابك لإتمام الحجز');
+    if (customerPhone === '__INVALID__' || phoneFromForm === '__INVALID__') {
+      throw new BadRequestException('يرجى إدخال رقم هاتف صحيح');
     }
 
     const shopId = String(input?.shopId || '').trim();
@@ -140,11 +156,13 @@ export class BookingsService {
     return this.create({
       shopId,
       customerName: String(user.name || '').trim().slice(0, 120) || 'عميل',
-      customerPhone,
+      customerPhone: customerPhone && customerPhone !== '__INVALID__' ? customerPhone : null,
       itemId,
       itemName,
       itemImage: input?.itemImage,
       itemPrice: input?.itemPrice,
+      startAt: input?.startAt ? (input.startAt instanceof Date ? input.startAt : new Date(String(input.startAt))) : null,
+      endAt: input?.endAt ? (input.endAt instanceof Date ? input.endAt : new Date(String(input.endAt))) : null,
       metadata: {
         addons: (input as any)?.addons ?? null,
         variantSelection: (input as any)?.variantSelection ?? (input as any)?.variant_selection ?? null,

@@ -78,6 +78,7 @@ model User {
   followingShops Shop[] @relation("ShopFollowers")
   notificationPreferences NotificationPreference?
   userMeasurements UserMeasurement[]
+  bookings   Booking[]
 
   @@index([role, isActive, createdAt])
   @@index([isActive, createdAt])
@@ -153,6 +154,9 @@ model Shop {
   visits           Visit[]
   imageMaps        ShopImageMap[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
+  bookingServices  BookingService[]
+  bookingResources BookingResource[]
+  bookings         Booking[]
 
   @@map("shops")
 }
@@ -393,7 +397,7 @@ model Reservation {
   id          String   @id @default(cuid())
   name        String
   email       String
-  phone       String
+  phone       String?
   date        DateTime
   time        String
   guests      Int
@@ -706,4 +710,209 @@ model PortalOtpCode {
 enum MediaType {
   IMAGE
   VIDEO
+}
+
+// Booking Enums
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum BookingPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum BookingCategoryType {
+  HOTEL
+  HOSPITAL
+  CLINIC
+  RESTAURANT
+  GYM
+  SALON
+  SPA
+  CAR_RENTAL
+  REAL_ESTATE
+  EVENT
+  OTHER
+}
+
+enum BookingSlotStatus {
+  AVAILABLE
+  BOOKED
+  BLOCKED
+  EXPIRED
+}
+
+// Booking Models
+model BookingCategory {
+  id          String              @id @default(cuid())
+  name        String
+  nameAr      String              @map("name_ar")
+  type        BookingCategoryType
+  description String?
+  icon        String?
+  isActive    Boolean             @default(true) @map("is_active")
+  createdAt   DateTime           @default(now()) @map("created_at")
+  updatedAt   DateTime           @updatedAt @map("updated_at")
+
+  services    BookingService[]
+
+  @@index([type])
+  @@index([isActive])
+  @@map("booking_categories")
+}
+
+model BookingService {
+  id              String            @id @default(cuid())
+  categoryId      String           @map("category_id")
+  shopId          String           @map("shop_id")
+  name            String
+  nameAr          String?          @map("name_ar")
+  description     String?
+  durationMinutes Int?             @map("duration_minutes")
+  price           Float
+  currency        String           @default("EGP")
+  capacity        Int?             @default(1)
+  isActive        Boolean          @default(true) @map("is_active")
+  metadata        Json?            @map("metadata")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  category        BookingCategory  @relation(fields: [categoryId], references: [id])
+  shop            Shop             @relation(fields: [shopId], references: [id])
+  resources       BookingResource[]
+  slots           BookingSlot[]
+  bookings        Booking[]
+
+  @@index([categoryId])
+  @@index([shopId])
+  @@index([isActive])
+  @@map("booking_services")
+}
+
+model BookingResource {
+  id          String          @id @default(cuid())
+  serviceId   String          @map("service_id")
+  shopId      String          @map("shop_id")
+  name        String
+  nameAr      String?         @map("name_ar")
+  type        String?         @map("type")
+  capacity    Int?            @default(1)
+  isActive    Boolean         @default(true) @map("is_active")
+  metadata    Json?           @map("metadata")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  service     BookingService  @relation(fields: [serviceId], references: [id])
+  shop        Shop            @relation(fields: [shopId], references: [id])
+
+  @@index([serviceId])
+  @@index([shopId])
+  @@index([isActive])
+  @@map("booking_resources")
+}
+
+model BookingSlot {
+  id          String            @id @default(cuid())
+  serviceId   String            @map("service_id")
+  resourceId  String?           @map("resource_id")
+  date        DateTime
+  startTime   String           @map("start_time")
+  endTime     String           @map("end_time")
+  status      BookingSlotStatus @default(AVAILABLE)
+  maxCapacity Int              @default(1) @map("max_capacity")
+  currentBookings Int          @default(0) @map("current_bookings")
+  metadata    Json?            @map("metadata")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  service     BookingService   @relation(fields: [serviceId], references: [id])
+  bookings    Booking[]
+
+  @@index([serviceId])
+  @@index([resourceId])
+  @@index([date, status])
+  @@index([status])
+  @@map("booking_slots")
+}
+
+model Booking {
+  id              String              @id @default(cuid())
+  bookingNumber   String              @unique @map("booking_number")
+  serviceId       String              @map("service_id")
+  slotId          String              @map("slot_id")
+  shopId          String              @map("shop_id")
+  userId          String              @map("user_id")
+  
+  customerName    String              @map("customer_name")
+  customerEmail   String              @map("customer_email")
+  customerPhone   String?             @map("customer_phone")
+  
+  date            DateTime
+  startTime       String              @map("start_time")
+  endTime         String              @map("end_time")
+  
+  participants    Int                 @default(1)
+  totalAmount     Float               @map("total_amount")
+  currency        String              @default("EGP")
+  
+  status          BookingStatus       @default(PENDING)
+  paymentStatus   BookingPaymentStatus @default(PENDING)
+  
+  notes           String?
+  specialRequests String?             @map("special_requests")
+  metadata        Json?               @map("metadata")
+  
+  confirmedAt     DateTime?           @map("confirmed_at")
+  cancelledAt     DateTime?           @map("cancelled_at")
+  completedAt     DateTime?           @map("completed_at")
+  
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  service         BookingService      @relation(fields: [serviceId], references: [id])
+  slot            BookingSlot         @relation(fields: [slotId], references: [id])
+  shop            Shop                @relation(fields: [shopId], references: [id])
+  user            User                @relation(fields: [userId], references: [id])
+  payments        BookingPayment[]
+
+  @@index([serviceId])
+  @@index([slotId])
+  @@index([shopId])
+  @@index([userId])
+  @@index([status])
+  @@index([date])
+  @@index([bookingNumber])
+  @@map("bookings")
+}
+
+model BookingPayment {
+  id              String                @id @default(cuid())
+  bookingId       String                @map("booking_id")
+  amount          Float
+  currency        String                @default("EGP")
+  paymentMethod   String                @map("payment_method")
+  paymentReference String?              @map("payment_reference")
+  status          BookingPaymentStatus  @default(PENDING)
+  
+  paidAt          DateTime?             @map("paid_at")
+  refundedAt      DateTime?             @map("refunded_at")
+  refundAmount    Float?                @map("refund_amount")
+  
+  metadata        Json?                @map("metadata")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+
+  booking         Booking               @relation(fields: [bookingId], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("booking_payments")
 }

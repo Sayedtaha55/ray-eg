@@ -289,9 +289,26 @@ export class AuthService implements OnModuleInit {
       } as any,
     );
 
-    // Intentionally do not return the token (or reset URL) to the client.
-    // The token must be delivered out-of-band (e.g. email/SMS) to avoid account takeover.
-    void token;
+    // Send the reset token via email (out-of-band delivery)
+    try {
+      const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim().replace(/\/$/, '');
+      const resetUrl = `${appUrl}/reset-password?token=${encodeURIComponent(token)}`;
+      const text = [
+        `مرحباً,`,
+        '',
+        'تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بحسابك.',
+        `رابط إعادة التعيين (صالح لمدة 15 دقيقة): ${resetUrl}`,
+        '',
+        'إذا لم تطلب ذلك، يمكنك تجاهل هذه الرسالة.',
+      ].join('\n');
+      await this.email.sendMail({
+        to: user.email,
+        subject: 'إعادة تعيين كلمة المرور',
+        text,
+      });
+    } catch {
+      // swallow email failures - don't leak token to response
+    }
 
     await this.recordAuthEvent({
       userId: user.id,
@@ -364,7 +381,7 @@ export class AuthService implements OnModuleInit {
 
     const role = String(user?.role || '').toUpperCase();
 
-    let shopToInvalidate: { id: string; slug: string } | null = null;
+    let shopToInvalidate: any = null;
     const restored = await this.prisma.$transaction(async (tx) => {
       const nextUser = await tx.user.update({
         where: { id: String(user.id) },
@@ -393,7 +410,7 @@ export class AuthService implements OnModuleInit {
 
     if (shopToInvalidate) {
       try {
-        await this.redis.invalidateShopCache(shopToInvalidate.id, shopToInvalidate.slug);
+        await this.redis.invalidateShopCache((shopToInvalidate as any).id, (shopToInvalidate as any).slug);
       } catch {
       }
     }
@@ -411,7 +428,7 @@ export class AuthService implements OnModuleInit {
     });
     if (!user) throw new UnauthorizedException('غير مصرح');
 
-    let shopToInvalidate: { id: string; slug: string } | null = null;
+    let shopToInvalidate: any = null;
     const now = new Date();
     const graceDaysRaw = String(process.env.ACCOUNT_DELETE_GRACE_DAYS || '30').trim();
     const graceDays = Math.max(1, Math.min(365, Number(graceDaysRaw) || 30));
@@ -440,7 +457,7 @@ export class AuthService implements OnModuleInit {
 
     if (shopToInvalidate) {
       try {
-        await this.redis.invalidateShopCache(shopToInvalidate.id, shopToInvalidate.slug);
+        await this.redis.invalidateShopCache((shopToInvalidate as any).id, (shopToInvalidate as any).slug);
       } catch {
       }
     }
@@ -734,7 +751,7 @@ export class AuthService implements OnModuleInit {
       const createdUser = await tx.user.create({
         data: {
           email: normalizedEmail,
-          name: resolvedName || null,
+          name: resolvedName || '',
           phone,
           password: hashedPassword,
           role: normalizedRole,
@@ -753,9 +770,11 @@ export class AuthService implements OnModuleInit {
         enabledModules: enabledModulesRaw,
       });
 
+      const shopNameSafe = String(resolvedShopName || resolvedName || createdUser.name || `shop-${createdUser.id}`);
+
       const createdShop = await tx.shop.create({
         data: {
-          name: resolvedShopName,
+          name: shopNameSafe,
           slug,
           description: resolvedShopDescription || null,
           category: this.normalizeShopCategory(resolvedCategory),
@@ -1236,13 +1255,13 @@ export class AuthService implements OnModuleInit {
 
     // تحديث تاريخ آخر ظهور (Last Login)
     await this.prisma.user.update({
-      where: { id: user.id },
+      where: { id: user!.id },
       data: { lastLogin: new Date() }
     });
 
     await this.recordAuthEvent({
-      userId: user.id,
-      email: user.email,
+      userId: user!.id,
+      email: user!.email,
       action: 'login',
       status: 'success',
       ip: meta?.ip,

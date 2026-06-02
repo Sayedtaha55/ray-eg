@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL';
+type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL' | 'CLINIC';
 
 type ThemePreset = {
   id: string;
@@ -27,20 +27,36 @@ const PRESETS: ThemePreset[] = [
     id: 'tech_modern', name: 'Tech Modern', subtitle: 'تصميم تقني نظيف للالكترونيات والخدمات', activity: 'TECH',
     patch: { quickTheme: 'tech_modern', primaryColor: '#0EA5E9', secondaryColor: '#1E293B', headerBackgroundColor: '#0F172A', headerTextColor: '#E2E8F0', footerBackgroundColor: '#020617', footerTextColor: '#94A3B8', productDisplay: 'minimal', productsLayout: 'horizontal', imageAspectRatio: 'landscape', homeLayoutMode: 'banner_products', productCardOverlayBgColor: '#1E293B' },
   },
+  {
+    id: 'clinic_elegant_blue', name: 'رعاية الشفاء الكلاسيكية (أزرق)', subtitle: 'ثيم الشفاء الحديث - تصميم طبي كلاسيكي أنيق بالأزرق والرمادي الفاتح بنمط هادئ ومريح', activity: 'CLINIC',
+    patch: { quickTheme: 'clinic_elegant_blue', clinicLayout: 'classic_grid', primaryColor: '#0EA5E9', secondaryColor: '#0369A1', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FFFFFF', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+  {
+    id: 'clinic_modern_purple', name: 'النخبة الطبية الفاخرة (بنفسجي)', subtitle: 'ثيم النخبة الفاخر - تصميم عصري متميز بالبنفسجي والوردي واللمسات الزجاجية والتأثيرات التفاعلية', activity: 'CLINIC',
+    patch: { quickTheme: 'clinic_modern_purple', clinicLayout: 'banner_promo_booking', primaryColor: '#8B5CF6', secondaryColor: '#EC4899', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FCF8FF', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
 ];
 
 const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; shop?: any }> = ({ config, setConfig, shop }) => {
-  const activeTheme = String(config.quickTheme || 'restaurant_pro');
   const rawCategory = String(shop?.category || shop?.shopCategory || '').trim().toUpperCase();
-  const shopActivity: ThemeActivity = rawCategory.includes('RESTAURANT')
-    ? 'RESTAURANT'
-    : rawCategory.includes('FASHION')
-      ? 'FASHION'
-      : (rawCategory.includes('TECH') || rawCategory.includes('ELECTRON'))
-        ? 'TECH'
-        : 'GENERAL';
+  const shopActivity: ThemeActivity = rawCategory.includes('SERVICE')
+    ? 'CLINIC'
+    : rawCategory.includes('RESTAURANT')
+      ? 'RESTAURANT'
+      : rawCategory.includes('FASHION')
+        ? 'FASHION'
+        : (rawCategory.includes('TECH') || rawCategory.includes('ELECTRON'))
+          ? 'TECH'
+          : 'GENERAL';
 
-  const visiblePresets = PRESETS.filter((preset) => preset.activity === shopActivity || preset.activity === 'GENERAL');
+  const activeTheme = String(config.quickTheme || (shopActivity === 'CLINIC' ? 'clinic_elegant_blue' : 'clinic_clean'));
+
+  const visiblePresets = PRESETS.filter((preset) => {
+    if (shopActivity === 'CLINIC') {
+      return preset.activity === 'CLINIC';
+    }
+    return preset.activity === shopActivity || preset.activity === 'GENERAL';
+  });
 
   return (
     <div className="space-y-3">

@@ -2,6 +2,10 @@
   "yes": "Yes",
   "no": "No",
   "arabicComma": ", ",
+  "removePack": "Remove pack",
+  "selectUnit": "Select unit",
+  "selectSize": "Select size",
+  "uploadImage": "Upload image",
   "labels": {
     "unit": "Unit",
     "packOptions": "Packs",

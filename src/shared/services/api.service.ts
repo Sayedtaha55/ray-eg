@@ -1270,6 +1270,8 @@ export const ApiService = {
         itemImage: reservation.itemImage,
         itemPrice: reservation.itemPrice,
         shopId: reservation.shopId,
+        customerPhone: (reservation as any)?.customerPhone,
+        customerName: (reservation as any)?.customerName,
         addons: (reservation as any)?.addons,
         variantSelection: (reservation as any)?.variantSelection ?? (reservation as any)?.variant_selection,
       };
@@ -1335,6 +1337,30 @@ export const ApiService = {
     if (!bid) throw new Error('Missing booking id');
     return await backendPatch<any>(`/api/v1/bookings/${encodeURIComponent(bid)}/status`, { status });
   },
+  addBooking: async (booking: any) => {
+    try {
+      const res = await backendPost<any>('/api/v1/bookings', booking);
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+        dispatchSmartRefresh('reservations', { shopId: booking?.shopId });
+      } catch {}
+      return res;
+    } catch (e) {
+      if (!shouldQueueOfflineMutation(e)) throw e;
+      await addToSyncQueue('/api/v1/bookings', 'POST', booking);
+      try {
+        window.dispatchEvent(new Event('ray-db-update'));
+        dispatchSmartRefresh('reservations', { shopId: booking?.shopId });
+      } catch {}
+      return {
+        ...booking,
+        id: `local-${Date.now()}`,
+        status: 'pending_sync',
+        __queued: true,
+      } as any;
+    }
+  },
+
 
   // Orders / Sales
   getAllOrders: async (opts?: { shopId?: string; from?: string; to?: string }) => {

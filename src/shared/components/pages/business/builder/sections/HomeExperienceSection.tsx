@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 const HomeExperienceSection: React.FC<{ config: any; setConfig: (next: any) => void; shop?: any }> = ({ config, setConfig, shop }) => {
   const { t } = useTranslation();
   const mode = String(config.homeLayoutMode || 'banner_ads_story');
+  const clinicLayout = String(config.clinicLayout || 'classic_grid');
   
   const [products, setProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
@@ -89,38 +90,91 @@ const HomeExperienceSection: React.FC<{ config: any; setConfig: (next: any) => v
           />
         </div>
         <div>
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">اسم صفحة المنتجات</label>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+            {shop?.category === 'SERVICE' ? 'اسم صفحة الخدمات والأطباء' : 'اسم صفحة المنتجات'}
+          </label>
           <input 
-            value={String(config.allProductsPageName || 'جميع المنتجات')} 
+            value={String(config.allProductsPageName || (shop?.category === 'SERVICE' ? 'خدماتنا وأطباؤنا' : 'جميع المنتجات'))} 
             onChange={(e) => setVal('allProductsPageName', e.target.value)} 
             className="w-full p-3 rounded-xl border border-slate-200 text-sm font-bold bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-400/20 transition-all" 
-            placeholder="مثال: المنتجات / المنيو" 
+            placeholder={shop?.category === 'SERVICE' ? 'مثال: الأطباء والعيادات' : 'مثال: المنتجات / المنيو'} 
           />
         </div>
       </div>
 
-      {/* 2. Theme Type */}
-      <div>
-        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">نوع الصفحة الرئيسية</label>
-        <div className="grid grid-cols-1 gap-2">
-          <button 
-            type="button" 
-            onClick={() => setVal('homeLayoutMode', 'banner_products')} 
-            className={`p-3.5 rounded-xl border text-right font-black text-xs transition-all ${mode === 'banner_products' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-          >
-            بانر + منتجات مباشرة (Catalog Clean)
-          </button>
-          <button 
-            type="button" 
-            onClick={() => setVal('homeLayoutMode', 'banner_ads_story')} 
-            className={`p-3.5 rounded-xl border text-right font-black text-xs transition-all ${mode === 'banner_ads_story' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
-          >
-            بانر + إعلانات متحركة + تعريفات + فوتر (Restaurant Pro / Fashion Glow)
-          </button>
+      {/* 2. Theme Type — Hidden for clinics (they always use story layout) */}
+      {shop?.category !== 'SERVICE' && (
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">نوع الصفحة الرئيسية</label>
+          <div className="grid grid-cols-1 gap-2">
+            <button 
+              type="button" 
+              onClick={() => setVal('homeLayoutMode', 'banner_products')} 
+              className={`p-3.5 rounded-xl border text-right font-black text-xs transition-all ${mode === 'banner_products' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              بانر + منتجات مباشرة (Catalog Clean)
+            </button>
+            <button 
+              type="button" 
+              onClick={() => setVal('homeLayoutMode', 'banner_ads_story')} 
+              className={`p-3.5 rounded-xl border text-right font-black text-xs transition-all ${mode === 'banner_ads_story' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              بانر + إعلانات متحركة + تعريفات + فوتر (Restaurant Pro / Fashion Glow)
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+      {shop?.category === 'SERVICE' && (
+        <div>
+          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">هيكل وتصميم صفحة الحجوزات</label>
+          <div className="grid grid-cols-1 gap-2">
+            <button 
+              type="button" 
+              onClick={() => {
+                setConfig({
+                  ...config,
+                  clinicLayout: 'classic_grid',
+                  quickTheme: 'clinic_elegant_blue',
+                  primaryColor: '#0EA5E9',
+                  secondaryColor: '#0369A1',
+                  headerBackgroundColor: '#FFFFFF',
+                  headerTextColor: '#0F172A',
+                  footerBackgroundColor: '#FFFFFF',
+                  footerTextColor: '#0F172A',
+                  pageBackgroundColor: '#FFFFFF'
+                });
+              }} 
+              className={`p-4 rounded-2xl border text-right transition-all flex flex-col gap-1 ${clinicLayout === 'classic_grid' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              <span className="text-xs font-black">1. رعاية الشفاء الكلاسيكية (ثيم أزرق طبي كلاسيكي)</span>
+              <span className="text-[10px] font-bold text-slate-500">حجز سريع مباشر + شبكة الأطباء والخدمات + آراء العملاء بتصميم أزرق هادئ</span>
+            </button>
+            <button 
+              type="button" 
+              onClick={() => {
+                setConfig({
+                  ...config,
+                  clinicLayout: 'banner_promo_booking',
+                  quickTheme: 'clinic_modern_purple',
+                  primaryColor: '#8B5CF6',
+                  secondaryColor: '#EC4899',
+                  headerBackgroundColor: '#FFFFFF',
+                  headerTextColor: '#0F172A',
+                  footerBackgroundColor: '#FFFFFF',
+                  footerTextColor: '#0F172A',
+                  pageBackgroundColor: '#FCF8FF'
+                });
+              }} 
+              className={`p-4 rounded-2xl border text-right transition-all flex flex-col gap-1 ${clinicLayout === 'banner_promo_booking' ? 'border-cyan-400 bg-cyan-50/50 text-cyan-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}
+            >
+              <span className="text-xs font-black">2. النخبة الطبية الفاخرة (ثيم بنفسجي ووردي عصري)</span>
+              <span className="text-[10px] font-bold text-slate-500">بنر رئيسي فاخر + بطاقات تعريفية مع صور مميزة + تأثيرات زجاجية وتفاعلية</span>
+            </button>
+          </div>
+        </div>
+      )}
 
-      {mode === 'banner_ads_story' && (
+      {(mode === 'banner_ads_story' || shop?.category === 'SERVICE') && (
         <>
           <div className="h-px bg-slate-100 my-4" />
 
@@ -282,84 +336,89 @@ const HomeExperienceSection: React.FC<{ config: any; setConfig: (next: any) => v
             </div>
           </div>
 
-          <div className="h-px bg-slate-100 my-4" />
-
-          {/* 5. Highlighted Products Selector */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">اختر المنتجات المميزة (6 كحد أقصى)</span>
-              <span className="text-[10px] font-black text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">
-                {selectedProductIds.length} / 6
-              </span>
-            </div>
-            
-            {/* Search */}
-            <div className="relative">
-              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="ابحث في المنتجات..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full p-2.5 pr-9 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-cyan-200 transition-all"
-              />
-            </div>
-
-            {/* List */}
-            <div className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
-              {loadingProducts ? (
-                <div className="py-8 flex flex-col items-center justify-center text-slate-400">
-                  <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mb-2" />
-                  <span className="text-[10px] font-bold">جاري تحميل المنتجات...</span>
+          {/* 5. Highlighted Products Selector — Hidden for clinics */}
+          {shop?.category !== 'SERVICE' && (
+            <>
+              <div className="h-px bg-slate-100 my-4" />
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    اختر المنتجات المميزة (6 كحد أقصى)
+                  </span>
+                  <span className="text-[10px] font-black text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-full">
+                    {selectedProductIds.length} / 6
+                  </span>
                 </div>
-              ) : filteredProducts.length === 0 ? (
-                <div className="py-8 text-center text-slate-400 font-bold text-xs">
-                  لا توجد منتجات مطابقة للبحث
+                
+                {/* Search */}
+                <div className="relative">
+                  <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="ابحث في المنتجات..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full p-2.5 pr-9 rounded-xl border border-slate-200 text-xs font-bold focus:outline-none focus:ring-2 focus:ring-cyan-200 transition-all"
+                  />
                 </div>
-              ) : (
-                <div className="max-h-[220px] overflow-y-auto divide-y divide-slate-100">
-                  {filteredProducts.map((prod) => {
-                    const id = String(prod.id);
-                    const active = selectedProductIds.includes(id);
-                    const disabled = !active && selectedProductIds.length >= 6;
-                    
-                    return (
-                      <button
-                        key={id}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => handleToggleProduct(id)}
-                        className={`w-full p-3 flex items-center justify-between text-right transition-colors ${active ? 'bg-cyan-50/30' : 'hover:bg-slate-50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-200 flex-shrink-0">
-                            {prod.imageUrl || prod.image_url ? (
-                              <img src={prod.imageUrl || prod.image_url} alt={prod.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center text-slate-400">
-                                <ImageIcon size={16} />
-                              </div>
-                            )}
-                          </div>
-                          <div>
-                            <span className="font-black text-xs text-slate-900 block leading-tight">{prod.name}</span>
-                            <span className="text-[9px] text-slate-400 font-bold leading-none">{prod.category || 'تصنيف عام'}</span>
-                          </div>
-                        </div>
+
+                {/* List */}
+                <div className="border border-slate-100 rounded-xl overflow-hidden bg-slate-50/50">
+                  {loadingProducts ? (
+                    <div className="py-8 flex flex-col items-center justify-center text-slate-400">
+                      <Loader2 className="w-6 h-6 animate-spin text-cyan-500 mb-2" />
+                      <span className="text-[10px] font-bold">جاري تحميل المنتجات...</span>
+                    </div>
+                  ) : filteredProducts.length === 0 ? (
+                    <div className="py-8 text-center text-slate-400 font-bold text-xs">
+                      لا توجد منتجات مطابقة للبحث
+                    </div>
+                  ) : (
+                    <div className="max-h-[220px] overflow-y-auto divide-y divide-slate-100">
+                      {filteredProducts.map((prod) => {
+                        const id = String(prod.id);
+                        const active = selectedProductIds.includes(id);
+                        const disabled = !active && selectedProductIds.length >= 6;
                         
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-slate-600">{prod.price} ج.م</span>
-                          <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${active ? 'bg-cyan-400 border-cyan-400 text-white' : 'border-slate-200 bg-white'}`}>
-                            {active && <Check size={12} strokeWidth={3} />}
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            disabled={disabled}
+                            onClick={() => handleToggleProduct(id)}
+                            className={`w-full p-3 flex items-center justify-between text-right transition-colors ${active ? 'bg-cyan-50/30' : 'hover:bg-slate-50'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-200 flex-shrink-0">
+                                {prod.imageUrl || prod.image_url ? (
+                                  <img src={prod.imageUrl || prod.image_url} alt={prod.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                    <ImageIcon size={16} />
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <span className="font-black text-xs text-slate-900 block leading-tight">{prod.name}</span>
+                                <span className="text-[9px] text-slate-400 font-bold leading-none">{prod.category || 'تصنيف عام'}</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] font-black text-slate-600">{prod.price} ج.م</span>
+                              <div className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${active ? 'bg-cyan-400 border-cyan-400 text-white' : 'border-slate-200 bg-white'}`}>
+                                {active && <Check size={12} strokeWidth={3} />}
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

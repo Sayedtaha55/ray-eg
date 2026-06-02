@@ -162,6 +162,8 @@ const BusinessLayout: React.FC = () => {
     notifications: <Bell size={20} />,
     sales: <CreditCard size={20} />,
     reservations: <Calendar size={20} />,
+    clinicDoctors: <Users size={20} />,
+    clinicServices: <HelpCircle size={20} />,
     invoice: <FileText size={20} />,
     products: <ShoppingBag size={20} />,
     customers: <Users size={20} />,
@@ -993,10 +995,13 @@ const BusinessLayout: React.FC = () => {
             );
 
             // Map each builderTab to its section
+            const isClinic = shopCategory === 'SERVICE';
             const topSectionTabs = ['themes', 'colors', 'background', 'banner', 'header', 'headerFooter'];
-            const middleSectionTabs = ['homeExperience', 'productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'];
-            const shoppingSectionTabs = ['shoppingMode'];
-            const productPageSectionTabs = ['productEditor', 'productPage'];
+            const middleSectionTabs = isClinic
+              ? ['homeExperience', 'typography', 'buttons']
+              : ['homeExperience', 'productCard', 'imageShape', 'categories', 'layout', 'typography', 'buttons'];
+            const shoppingSectionTabs = isClinic ? [] : ['shoppingMode'];
+            const productPageSectionTabs = isClinic ? [] : ['productEditor', 'productPage'];
             const footerSectionTabs = ['footer', 'customPages', 'customCss'];
 
             if (focusMode) {
@@ -1040,21 +1045,21 @@ const BusinessLayout: React.FC = () => {
                 {/* ─── المحتوى (Middle/Content Section) ──────────────────────── */}
                 {sectionHeader('middle', t('dashboard.builder.sectionMiddle'), <LayoutGrid size={14} className="text-slate-400" />)}
                 {item('homeExperience', t('dashboard.builder.homeExperience'), <Home size={20} className="text-sky-500" />)}
-                {item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />)}
-                {item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />)}
-                {item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />)}
-                {item('layout', t('dashboard.builder.layout'), <Layout size={20} />)}
+                {!isClinic && item('productCard', t('dashboard.builder.productCard'), <Palette size={20} />)}
+                {!isClinic && item('imageShape', t('dashboard.builder.imageShape'), <Layout size={20} />)}
+                {!isClinic && item('categories', t('dashboard.builder.categories'), <ShoppingBag size={20} />)}
+                {!isClinic && item('layout', t('dashboard.builder.layout'), <Layout size={20} />)}
                 {item('typography', t('dashboard.builder.typography'), <Type size={20} />)}
                 {item('buttons', t('dashboard.builder.buttons'), <Layout size={20} />)}
 
                 {/* ─── وضع الشراء (Shopping Mode) ──────────────────────────── */}
-                {sectionHeader('shopping', t('dashboard.builder.sectionShopping'), <ShoppingCart size={14} className="text-slate-400" />)}
-                {item('shoppingMode', t('dashboard.builder.shoppingMode'), <ShoppingCart size={20} />)}
+                {!isClinic && sectionHeader('shopping', t('dashboard.builder.sectionShopping'), <ShoppingCart size={14} className="text-slate-400" />)}
+                {!isClinic && item('shoppingMode', t('dashboard.builder.shoppingMode'), <ShoppingCart size={20} />)}
 
                 {/* ─── صفحة المنتج (Product Page) ──────────────────────────── */}
-                {sectionHeader('productPage', t('dashboard.builder.sectionProductPage'), <Package size={14} className="text-slate-400" />)}
-                {item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />)}
-                {item('productPage', t('dashboard.builder.productPage'), <Package size={20} />)}
+                {!isClinic && sectionHeader('productPage', t('dashboard.builder.sectionProductPage'), <Package size={14} className="text-slate-400" />)}
+                {!isClinic && item('productEditor', t('dashboard.builder.productEditor'), <ShoppingBag size={20} />)}
+                {!isClinic && item('productPage', t('dashboard.builder.productPage'), <Package size={20} />)}
 
                 {/* ─── أسفل الصفحة (Footer Section) ────────────────────────── */}
                 {sectionHeader('footer', t('dashboard.builder.sectionFooter'), <ArrowDown size={14} className="text-slate-400" />)}
@@ -1400,6 +1405,17 @@ const BusinessLayout: React.FC = () => {
                 className="p-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all"
               >
                 <Store className="w-5 h-5" />
+              </button>
+            )}
+            {isDev && (
+              <button
+                onClick={() => switchDevActivity('SERVICE')}
+                aria-label={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
+                title={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
+                className="flex items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 rounded-2xl text-emerald-800 transition-all text-xs font-black shadow-sm"
+              >
+                <Calendar className="w-4 h-4 text-emerald-600" />
+                <span>{isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}</span>
               </button>
             )}
             <button

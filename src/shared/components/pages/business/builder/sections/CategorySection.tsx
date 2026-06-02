@@ -36,7 +36,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
         setCategories(Array.from(uniqueCategories).sort());
       })
       .catch((err) => {
-        console.error('Failed to fetch categories:', err);
+        console.error('Failed to fetch categories:', err instanceof Error ? err.message : 'Unknown error');
       })
       .finally(() => {
         setLoading(false);
@@ -87,6 +87,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
         <div className="space-y-1">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.category.iconShape')}</label>
           <select
+            title={t('business.builder.category.iconShape')}
             value={String(config.categoryIconShape || 'circular')}
             onChange={(e) => setConfig({ ...config, categoryIconShape: e.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white font-black text-sm"
@@ -100,6 +101,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
         <div className="space-y-1">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.category.iconSize')}</label>
           <select
+            title={t('business.builder.category.iconSize')}
             value={String(config.categoryIconSize || 'medium')}
             onChange={(e) => setConfig({ ...config, categoryIconSize: e.target.value })}
             className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white font-black text-sm"
@@ -114,6 +116,7 @@ const CategorySection: React.FC<Props> = ({ config, setConfig, shopId }) => {
           <span className="font-black text-sm">{t('business.builder.category.showProductsInCategoriesOnly')}</span>
           <input
             type="checkbox"
+            title={t('business.builder.category.showProductsInCategoriesOnly')}
             checked={Boolean(config.showProductsInCategories)}
             onChange={(e) => setConfig({ ...config, showProductsInCategories: e.target.checked })}
           />

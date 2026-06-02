@@ -21,6 +21,7 @@ import {
   Users,
   Eye,
   Store,
+  Stethoscope,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
@@ -51,6 +52,14 @@ const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
 const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
 const AbandonedCartTab = lazy(() => import('./tabs/AbandonedCartTab'));
 
+// Clinic pages
+const ClinicOverviewPage = lazy(() => import('../clinic/ClinicOverviewPage'));
+const ClinicBookingsPage = lazy(() => import('../clinic/ClinicBookingsPage'));
+const ClinicDesignPage = lazy(() => import('../clinic/ClinicDesignPage'));
+const ClinicSettingsPage = lazy(() => import('../clinic/ClinicSettingsPage'));
+const ClinicDoctorsPage = lazy(() => import('../clinic/ClinicDoctorsPage'));
+const ClinicServicesPage = lazy(() => import('../clinic/ClinicServicesPage'));
+
 import TabButton from './components/TabButton';
 import AiAssistantPanel from './AiAssistantPanel';
 import {
@@ -75,6 +84,8 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
   builder: () => import('../builder/PageBuilder'),
   settings: () => import('../../../../../components/MerchantDashboard/Settings'),
   pos: () => import('../POSSystem'),
+  clinicDoctors: () => import('../clinic/ClinicDoctorsPage'),
+  clinicServices: () => import('../clinic/ClinicServicesPage'),
 };
 
 type TabType = MerchantDashboardTabId;
@@ -94,6 +105,8 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   builder: <Palette size={18} />,
   settings: <Settings size={18} />,
   pos: <Smartphone size={18} />,
+  clinicDoctors: <Users size={18} />,
+  clinicServices: <Stethoscope size={18} />,
 };
 
 const MerchantDashboardPage: React.FC = () => {
@@ -512,6 +525,25 @@ const MerchantDashboardPage: React.FC = () => {
     return (
       <Suspense fallback={TabFallback}>
         {(() => {
+          if (shopCategory === 'SERVICE') {
+            switch (effectiveTab) {
+              case 'overview':
+                return <ClinicOverviewPage />;
+              case 'reservations':
+                return <ClinicBookingsPage shop={currentShop} />;
+              case 'clinicDoctors':
+                return <ClinicDoctorsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
+              case 'clinicServices':
+                return <ClinicServicesPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
+              case 'builder':
+                return <ClinicDesignPage />;
+              case 'settings':
+                return <ClinicSettingsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
+              default:
+                return <ClinicOverviewPage />;
+            }
+          }
+
           switch (effectiveTab) {
             case 'overview':
               return (

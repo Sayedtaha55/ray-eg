@@ -53,7 +53,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true, shopId: true, isActive: true },
+      select: { id: true, email: true, role: true, shop: { select: { id: true } }, isActive: true },
     });
 
     if (!user || user.isActive === false) {
@@ -63,7 +63,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const role = String((user as any)?.role || '').toUpperCase();
     let shop: { id: string; deliveryDisabled: boolean } | undefined;
     if (role === 'MERCHANT') {
-      const shopId = String((user as any)?.shopId || '').trim();
+      const shopId = String((user as any)?.shop?.id || '').trim();
       let shopRecord: any = null;
 
       if (shopId) {
@@ -85,13 +85,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         const approvedShop = ownerShops.find((s: any) => String((s as any)?.status || '').toUpperCase() === 'APPROVED');
         if (approvedShop) {
           shopRecord = approvedShop;
-          try {
-            await this.prisma.user.update({
-              where: { id: String((user as any).id) },
-              data: { shopId: String((approvedShop as any).id) as any },
-            });
-          } catch {
-          }
         }
       }
 
@@ -110,7 +103,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       id: String((user as any).id),
       email: String((user as any).email),
       role: (user as any).role,
-      shopId: (user as any).shopId,
+      shopId: (user as any).shop?.id || null,
       shop,
     };
   }

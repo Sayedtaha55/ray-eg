@@ -257,8 +257,30 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const query = new URLSearchParams(String(location?.search || ''));
   const requestedBuilderTabRaw = String(query.get('builderTab') || '').trim();
-  const allowedBuilderTabs = new Set(BUILDER_SECTIONS.map((s) => String(s.id)));
-  const activeBuilderTab = allowedBuilderTabs.has(requestedBuilderTabRaw) ? requestedBuilderTabRaw : 'colors';
+  
+  const isClinic = shop?.category === 'SERVICE';
+  const visibleSections = BUILDER_SECTIONS.filter((s) => {
+    if (isClinic) {
+      return [
+        'themes',
+        'clinicDoctors',
+        'clinicBooking',
+        'clinicServices',
+        'homeExperience',
+        'footer',
+        'customPages',
+      ].includes(s.id);
+    }
+    return ![
+      'clinicDoctors',
+      'clinicBooking',
+      'clinicServices',
+    ].includes(s.id);
+  });
+
+  const allowedBuilderTabs = new Set(visibleSections.map((s) => String(s.id)));
+  const defaultTab = isClinic ? 'themes' : 'colors';
+  const activeBuilderTab = allowedBuilderTabs.has(requestedBuilderTabRaw) ? requestedBuilderTabRaw : defaultTab;
   const sidebarMode = allowedBuilderTabs.has(requestedBuilderTabRaw);
   const integratedMode = String(query.get('tab') || '').trim() === 'builder';
   const desktopIntegratedAccordionMode = integratedMode && isDesktop;
@@ -866,59 +888,75 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </header>
 
                 <div className={`flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-4 ${desktopSidebarCollapsed ? 'hidden md:hidden' : ''}`}>
-                  <div className="hidden md:block border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
-                    <div className="px-5 py-4 flex items-center justify-between">
-                      <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle')}</span>
-                      <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage('home')}
-                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'home' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                          {String(config.homePageName || 'الرئيسية')}
-                        </button>
-                        {String(config.homeLayoutMode || '') === 'banner_ads_story' && (
+                  {shop?.category !== 'SERVICE' && (
+                    <div className="hidden md:block border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white">
+                      <div className="px-5 py-4 flex items-center justify-between">
+                        <span className="font-black text-sm text-slate-900">{t('business.pageBuilder.previewTitle')}</span>
+                        <div className="inline-flex items-center bg-white border border-slate-100 rounded-2xl p-1 shadow-sm">
                           <button
                             type="button"
-                            onClick={() => setPreviewPage('products')}
-                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'products' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                            onClick={() => setPreviewPage('home')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'home' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
                           >
-                            {String(config.allProductsPageName || 'جميع المنتجات')}
+                            {String(config.homePageName || 'الرئيسية')}
                           </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage('gallery')}
-                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'gallery' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                          {t('business.pageBuilder.previewTabs.gallery')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage('info')}
-                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'info' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                          {t('business.pageBuilder.previewTabs.info')}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewPage('product')}
-                          className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'product' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
-                        >
-                          {t('business.pageBuilder.previewTabs.product')}
-                        </button>
+                          {String(config.homeLayoutMode || '') === 'banner_ads_story' && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewPage('products')}
+                              className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'products' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                            >
+                              {String(config.allProductsPageName || 'جميع المنتجات')}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPage('gallery')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'gallery' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                          >
+                            {t('business.pageBuilder.previewTabs.gallery')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPage('info')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'info' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                          >
+                            {t('business.pageBuilder.previewTabs.info')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewPage('product')}
+                            className={`px-4 py-2 rounded-xl text-xs font-black transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 active:scale-[0.98] ${previewPage === 'product' ? 'text-white bg-slate-900' : 'text-slate-500 hover:bg-slate-50'}`}
+                          >
+                            {t('business.pageBuilder.previewTabs.product')}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   <div className="border border-slate-100 rounded-[1.5rem] overflow-hidden bg-white p-4">
                     <div className="text-xs font-black text-slate-500 mb-3">وصول سريع</div>
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                      <button type="button" onClick={() => openBuilderTab('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
-                      <button type="button" onClick={() => openBuilderTab('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
-                      <button type="button" onClick={() => openBuilderTab('headerFooter')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أعلى الصفحة</button>
-                      <button type="button" onClick={() => openBuilderTab('footer')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أسفل الصفحة</button>
-                      <button type="button" onClick={() => openBuilderTab('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
+                      {isClinic ? (
+                        <>
+                          <button type="button" onClick={() => openBuilderTab('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
+                          <button type="button" onClick={() => openBuilderTab('clinicDoctors')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">بيانات الأطباء</button>
+                          <button type="button" onClick={() => openBuilderTab('clinicBooking')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أوقات الحجز</button>
+                          <button type="button" onClick={() => openBuilderTab('clinicServices')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">التخصصات والخدمات</button>
+                          <button type="button" onClick={() => openBuilderTab('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
+                          <button type="button" onClick={() => openBuilderTab('footer')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أسفل الصفحة</button>
+                          <button type="button" onClick={() => openBuilderTab('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
+                        </>
+                      ) : (
+                        <>
+                          <button type="button" onClick={() => openBuilderTab('themes')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">الثيمات</button>
+                          <button type="button" onClick={() => openBuilderTab('homeExperience')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحة الهوم</button>
+                          <button type="button" onClick={() => openBuilderTab('headerFooter')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أعلى الصفحة</button>
+                          <button type="button" onClick={() => openBuilderTab('footer')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">أسفل الصفحة</button>
+                          <button type="button" onClick={() => openBuilderTab('customPages')} className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-black">صفحات مخصصة</button>
+                        </>
+                      )}
                     </div>
                   </div>
                   {sidebarMode ? (
@@ -972,16 +1010,22 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
 
         {!isDesktop && (
-          <div className="sticky top-0 z-20 px-4 py-2 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
-            <button onClick={() => setPreviewPage('home')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'home' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>{String(config.homePageName || 'الرئيسية')}</button>
-            {String(config.homeLayoutMode || '') === 'banner_ads_story' && (
-              <button onClick={() => setPreviewPage('products')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'products' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>{String(config.allProductsPageName || 'جميع المنتجات')}</button>
-            )}
-            <button onClick={() => setPreviewPage('gallery')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'gallery' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>المعرض</button>
-            <button onClick={() => setPreviewPage('info')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'info' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>معلومات</button>
-            <button onClick={() => setPreviewPage('product')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'product' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>منتج</button>
-            <button onClick={handleSave} disabled={saving} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white disabled:opacity-60">حفظ</button>
-          </div>
+          shop?.category === 'SERVICE' ? (
+            <div className="sticky top-0 z-20 px-4 py-2 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center justify-end">
+              <button onClick={handleSave} disabled={saving} className="px-5 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white disabled:opacity-60">حفظ</button>
+            </div>
+          ) : (
+            <div className="sticky top-0 z-20 px-4 py-2 bg-white/90 backdrop-blur border-b border-slate-200 flex items-center gap-2 overflow-x-auto">
+              <button onClick={() => setPreviewPage('home')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'home' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>{String(config.homePageName || 'الرئيسية')}</button>
+              {String(config.homeLayoutMode || '') === 'banner_ads_story' && (
+                <button onClick={() => setPreviewPage('products')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'products' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>{String(config.allProductsPageName || 'جميع المنتجات')}</button>
+              )}
+              <button onClick={() => setPreviewPage('gallery')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'gallery' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>المعرض</button>
+              <button onClick={() => setPreviewPage('info')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'info' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>معلومات</button>
+              <button onClick={() => setPreviewPage('product')} className={`px-3 py-1.5 rounded-lg text-xs font-black ${previewPage === 'product' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700'}`}>منتج</button>
+              <button onClick={handleSave} disabled={saving} className="ml-auto px-3 py-1.5 rounded-lg text-xs font-black bg-emerald-600 text-white disabled:opacity-60">حفظ</button>
+            </div>
+          )
         )}
         <div className={`flex-1 overflow-y-auto p-6 md:p-12 ${integratedMode ? 'flex flex-col items-center gap-8' : 'flex items-start justify-center'}`}>
           <MotionDiv 
@@ -1003,7 +1047,7 @@ const PageBuilder: React.FC<{ onClose: () => void }> = ({ onClose }) => {
               <PreviewRendererAny
                 page={previewPage}
                 config={config}
-                shop={{ id: shopId, name: t('business.pageBuilder.previewShopName') }}
+                shop={{ id: shopId, name: t('business.pageBuilder.previewShopName'), category: shop?.category }}
                 logoDataUrl={logoDataUrl}
                 isPreviewHeaderMenuOpen={isPreviewHeaderMenuOpen}
                 setIsPreviewHeaderMenuOpen={setIsPreviewHeaderMenuOpen}

@@ -71,6 +71,18 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
       return;
     }
 
+    const trimmedPhone = phone.trim();
+    const trimmedName = name.trim();
+
+    if (!trimmedPhone) {
+      setError(t('public.reservation.phoneRequired') || 'يرجى إدخال رقم الهاتف');
+      return;
+    }
+    if (!trimmedName) {
+      setError(t('public.reservation.nameRequired') || 'يرجى إدخال الاسم');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
@@ -81,6 +93,8 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, it
         itemImage: String(item.image),
         itemPrice: Number(item.price),
         shopId: String(item.shopId),
+        customerPhone: trimmedPhone,
+        customerName: trimmedName,
         addons: (item as any)?.addons,
         variantSelection: (item as any)?.variantSelection,
       };

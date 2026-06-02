@@ -258,6 +258,8 @@ export class ShopController {
 
     try {
       return await this.shopService.updateShopSettings(targetShopId, {
+        // allow frontend to update pageDesign JSON blob
+        ...(typeof body?.pageDesign === 'undefined' ? {} : { pageDesign: body.pageDesign }),
         name: typeof body?.name === 'string' ? body.name : undefined,
         description: typeof body?.description === 'string' ? body.description : undefined,
         category: typeof body?.category === 'string' ? body.category : undefined,

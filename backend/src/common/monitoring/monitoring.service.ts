@@ -216,10 +216,11 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     this.alerts.push(alert);
     
     // Safe logging with fallback
+    const safeMessage = String(message).slice(0, 500);
     if (this.logger && typeof this.logger.warn === 'function') {
-      this.logger.warn(`ALERT: ${message}`, details);
+      this.logger.warn(`ALERT: ${safeMessage}`, details);
     } else {
-      console.warn(`ALERT: ${message}`, details);
+      console.warn(`ALERT: ${safeMessage}`, details);
     }
 
     // Keep only last 100 alerts

@@ -721,7 +721,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                               );
                             })()}
                           </div>
-                          <button onClick={() => onRemove(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`))} className="text-slate-300 hover:text-red-500 transition-colors">
+                          <button onClick={() => onRemove(String(item.lineId || `${item.shopId || 'unknown'}:${item.id}`))} className="text-slate-300 hover:text-red-500 transition-colors" aria-label={t('public.cartDrawer.removeItem')}>
                             <Trash2 size={16} className="sm:w-[18px] sm:h-[18px]" />
                           </button>
                         </div>
@@ -735,6 +735,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                   )
                                 }
                                 className="text-slate-900 hover:text-[#00E5FF]"
+                                aria-label={t('public.cartDrawer.increaseQuantity')}
                               >
                                 <Plus size={14} className="sm:w-4 sm:h-4" />
                               </button>
@@ -747,6 +748,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose, items, onRemov
                                   )
                                 }
                                 className="text-slate-900 hover:text-red-500"
+                                aria-label={t('public.cartDrawer.decreaseQuantity')}
                               >
                                 <Minus size={14} className="sm:w-4 sm:h-4" />
                               </button>

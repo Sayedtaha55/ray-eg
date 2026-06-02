@@ -51,7 +51,7 @@ export class AiJobsService implements OnModuleInit, OnModuleDestroy {
         });
 
         this.queue = new Queue<AiJobData, AiJobResult>('ai-jobs', {
-          connection: this.redis,
+          connection: this.redis as any,
           defaultJobOptions: {
             attempts: 3,
             backoff: { type: 'exponential', delay: 5000 },
@@ -97,7 +97,7 @@ export class AiJobsService implements OnModuleInit, OnModuleDestroy {
       'ai-jobs',
       async (job) => this.processJob(job),
       {
-        connection: this.redis,
+        connection: this.redis as any,
         concurrency: 5,
       }
     );

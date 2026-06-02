@@ -19,15 +19,15 @@ export class MonitoringMiddleware implements NestMiddleware, OnModuleInit {
   use(req: Request, res: Response, next: NextFunction) {
     const startTime = Date.now();
     const originalSend = res.send;
-
     // Override res.send to capture response
+    const monitoring = this.monitoring;
     res.send = function (body: any) {
       const duration = Date.now() - startTime;
       const statusCode = res.statusCode;
 
       // Track API call - with safety check
-      if (this.monitoring && typeof this.monitoring.trackApiCall === 'function') {
-        this.monitoring.trackApiCall(
+      if (monitoring && typeof monitoring.trackApiCall === 'function') {
+        monitoring.trackApiCall(
           req.method,
           req.originalUrl,
           statusCode,
@@ -36,7 +36,7 @@ export class MonitoringMiddleware implements NestMiddleware, OnModuleInit {
       }
 
       return originalSend.call(res, body);
-    }.bind({ monitoring: this.monitoring });
+    };
 
     next();
   }

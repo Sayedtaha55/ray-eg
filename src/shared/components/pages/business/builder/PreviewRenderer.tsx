@@ -3,6 +3,7 @@ import { Skeleton } from '@/components/common/ui';
 
 // Lazy load actual page previews
 const ShopProfilePreview = lazy(() => import('@/components/pages/business/builder/ShopProfilePreview'));
+const ClinicPublicPreview = lazy(() => import('./ClinicPublicPreview'));
 
 interface PreviewRendererProps {
   page: 'home' | 'products' | 'product' | 'gallery' | 'info';
@@ -31,22 +32,32 @@ const PreviewFallback = () => (
 );
 
 const PreviewRenderer: React.FC<PreviewRendererProps> = (props) => {
+  const isClinic = props.shop?.category === 'SERVICE';
+
   return (
     <Suspense fallback={<PreviewFallback />}>
-      <ShopProfilePreview
-        page={props.page}
-        config={props.config}
-        shop={props.shop}
-        logoDataUrl={props.logoDataUrl}
-        isPreviewHeaderMenuOpen={props.isPreviewHeaderMenuOpen}
-        setIsPreviewHeaderMenuOpen={props.setIsPreviewHeaderMenuOpen}
-        isMobilePreview={props.isMobilePreview}
-        onProductClick={props.onProductClick}
-        focusSection={props.focusSection}
-        bannerPreview={props.bannerPreview}
-        backgroundPreview={props.backgroundPreview}
-        bannerFile={props.bannerFile}
-      />
+      {isClinic ? (
+        <ClinicPublicPreview
+          config={props.config}
+          logoDataUrl={props.logoDataUrl}
+          shop={props.shop}
+        />
+      ) : (
+        <ShopProfilePreview
+          page={props.page}
+          config={props.config}
+          shop={props.shop}
+          logoDataUrl={props.logoDataUrl}
+          isPreviewHeaderMenuOpen={props.isPreviewHeaderMenuOpen}
+          setIsPreviewHeaderMenuOpen={props.setIsPreviewHeaderMenuOpen}
+          isMobilePreview={props.isMobilePreview}
+          onProductClick={props.onProductClick}
+          focusSection={props.focusSection}
+          bannerPreview={props.bannerPreview}
+          backgroundPreview={props.backgroundPreview}
+          bannerFile={props.bannerFile}
+        />
+      )}
     </Suspense>
   );
 };

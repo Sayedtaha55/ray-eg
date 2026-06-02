@@ -2,6 +2,10 @@
   "yes": "نعم",
   "no": "لا",
   "arabicComma": "، ",
+  "removePack": "حذف الباقة",
+  "selectUnit": "اختر الوحدة",
+  "selectSize": "اختر المقاس",
+  "uploadImage": "رفع صورة",
   "labels": {
     "unit": "الوحدة",
     "packOptions": "باقات",

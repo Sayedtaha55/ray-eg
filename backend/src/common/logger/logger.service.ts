@@ -4,7 +4,7 @@ import pino, { Logger as PinoLogger } from 'pino';
 
 @Injectable()
 export class LoggerService implements OnModuleInit {
-  private logger: PinoLogger;
+  private logger!: PinoLogger;
 
   onModuleInit() {
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';

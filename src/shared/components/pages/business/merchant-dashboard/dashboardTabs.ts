@@ -8,6 +8,8 @@ export type MerchantDashboardTabId =
   | 'notifications'
   | 'products'
   | 'reservations'
+  | 'clinicDoctors'
+  | 'clinicServices'
   | 'invoice'
   | 'sales'
   | 'promotions'
@@ -32,21 +34,47 @@ export const getProductTabLabel = (category?: string): string => {
   return i18n.t('business.dashboardTabs.inventory');
 };
 
+export const getOverviewTabLabel = (category?: string): string => {
+  const cat = String(category || '').toUpperCase();
+  if (cat === 'SERVICE') return 'نظرة عامة على العيادة';
+  return i18n.t('business.dashboardTabs.overview');
+};
+
+export const getReservationsTabLabel = (category?: string): string => {
+  const cat = String(category || '').toUpperCase();
+  if (cat === 'SERVICE') return 'جدول وقائمة الحجوزات';
+  return i18n.t('business.dashboardTabs.reservations');
+};
+
+export const getBuilderTabLabel = (category?: string): string => {
+  const cat = String(category || '').toUpperCase();
+  if (cat === 'SERVICE') return 'تصميم موقع العيادة';
+  return i18n.t('business.dashboardTabs.builder');
+};
+
+export const getSettingsTabLabel = (category?: string): string => {
+  const cat = String(category || '').toUpperCase();
+  if (cat === 'SERVICE') return 'إعدادات الحجوزات والعيادة';
+  return i18n.t('business.dashboardTabs.settings');
+};
+
 export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
-  { id: 'overview', label: i18n.t('business.dashboardTabs.overview') },
+  { id: 'overview', label: i18n.t('business.dashboardTabs.overview'), dynamicLabel: getOverviewTabLabel },
   { id: 'notifications', label: i18n.t('business.dashboardTabs.notifications') },
   { id: 'gallery', label: i18n.t('business.dashboardTabs.gallery') },
   { id: 'reports', label: i18n.t('business.dashboardTabs.reports') },
   { id: 'customers', label: i18n.t('business.dashboardTabs.customers') },
   { id: 'products', label: i18n.t('business.dashboardTabs.inventory'), dynamicLabel: getProductTabLabel },
   { id: 'promotions', label: i18n.t('business.dashboardTabs.promotions') },
-  { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations') },
+  { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations'), dynamicLabel: getReservationsTabLabel },
+  { id: 'clinicDoctors', label: 'بيانات وأطباء العيادة' },
+  { id: 'clinicServices', label: 'التخصصات والعيادات الفرعية' },
   { id: 'invoice', label: i18n.t('business.dashboardTabs.invoice') },
   { id: 'sales', label: i18n.t('business.dashboardTabs.sales') },
   { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
   { id: 'pos', label: i18n.t('business.dashboardTabs.pos') },
-  { id: 'builder', label: i18n.t('business.dashboardTabs.builder') },
-  { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
+  { id: 'builder', label: i18n.t('business.dashboardTabs.builder'), dynamicLabel: getBuilderTabLabel },
+  { id: 'settings', label: i18n.t('business.dashboardTabs.settings'), dynamicLabel: getSettingsTabLabel },
 ];
 
 export type ShopDashboardMode = 'showcase' | 'manage';
@@ -80,6 +108,8 @@ const getAllowedTabsForMode = (mode?: ShopDashboardMode): Set<MerchantDashboardT
     'products',
     'promotions',
     'reservations',
+    'clinicDoctors',
+    'clinicServices',
     'invoice',
     'sales',
     'abandonedCart',
@@ -116,13 +146,35 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
 
   const enabledSet = (() => {
     const set = new Set<MerchantDashboardTabId>();
-    for (const coreId of CORE_MERCHANT_MODULES) set.add(coreId);
+    const cat = String(category || '').toUpperCase();
+    
+    if (cat === 'SERVICE') {
+      set.add('overview');
+      set.add('reservations');
+      set.add('clinicDoctors');
+      set.add('clinicServices');
+      set.add('builder');
+      set.add('settings');
+    } else {
+      for (const coreId of CORE_MERCHANT_MODULES) set.add(coreId);
+    }
 
     if (!Array.isArray(enabledRaw)) return set;
 
     for (const id of enabledRaw) {
       const normalized = normalizeTabId(id);
       if (!normalized) continue;
+      if (
+        cat === 'SERVICE' &&
+        normalized !== 'overview' &&
+        normalized !== 'reservations' &&
+        normalized !== 'clinicDoctors' &&
+        normalized !== 'clinicServices' &&
+        normalized !== 'builder' &&
+        normalized !== 'settings'
+      ) {
+        continue;
+      }
       set.add(normalized);
     }
 

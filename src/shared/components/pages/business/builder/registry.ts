@@ -1,4 +1,4 @@
-import { Layout, Palette, Sliders, ShoppingBag, Sparkles, Home, FileText } from 'lucide-react';
+import { Layout, Palette, Sliders, ShoppingBag, Sparkles, Home, FileText, UserCheck, CalendarClock, HeartPulse } from 'lucide-react';
 import React from 'react';
 import i18n from '@/i18n';
 
@@ -25,6 +25,9 @@ import {
   ThemesSection,
   HomeExperienceSection,
   CustomPagesSection,
+  ClinicDoctorsSection,
+  ClinicBookingSection,
+  ClinicServicesSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -46,7 +49,10 @@ export type BuilderSectionId =
   | 'footer'
   | 'themes'
   | 'homeExperience'
-  | 'customPages';
+  | 'customPages'
+  | 'clinicDoctors'
+  | 'clinicBooking'
+  | 'clinicServices';
 
 export type BuilderRenderCtx = {
   config: any;
@@ -82,6 +88,24 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
     title: 'الثيمات',
     icon: React.createElement(Sparkles as any, { size: 16, className: 'text-amber-500' }),
     render: ({ config, setConfig, shop }) => React.createElement(ThemesSection as any, { config, setConfig, shop }),
+  },
+  {
+    id: 'clinicDoctors',
+    title: 'بيانات الأطباء',
+    icon: React.createElement(UserCheck as any, { size: 16, className: 'text-teal-500' }),
+    render: ({ config, setConfig, shop }) => React.createElement(ClinicDoctorsSection as any, { config, setConfig, shop }),
+  },
+  {
+    id: 'clinicBooking',
+    title: 'أوقات الحجز المتاحة',
+    icon: React.createElement(CalendarClock as any, { size: 16, className: 'text-violet-500' }),
+    render: ({ config, setConfig }) => React.createElement(ClinicBookingSection as any, { config, setConfig }),
+  },
+  {
+    id: 'clinicServices',
+    title: 'التخصصات والخدمات',
+    icon: React.createElement(HeartPulse as any, { size: 16, className: 'text-rose-500' }),
+    render: ({ config, setConfig }) => React.createElement(ClinicServicesSection as any, { config, setConfig }),
   },
   {
     id: 'homeExperience',

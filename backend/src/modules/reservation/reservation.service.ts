@@ -189,14 +189,16 @@ export class ReservationService {
     shopId: string;
     shopName: string;
     customerName: string;
-    customerPhone: string;
+    customerPhone?: string | null;
   }) {
     const itemId = String(input?.itemId || '').trim();
     const itemName = String(input?.itemName || '').trim();
     const shopId = String(input?.shopId || '').trim();
     const shopName = String(input?.shopName || '').trim();
     const customerName = String(input?.customerName || '').trim();
-    const customerPhone = String(input?.customerPhone || '').trim();
+    const customerPhone = input?.customerPhone != null && String(input.customerPhone).trim() !== ''
+      ? String(input.customerPhone).trim()
+      : null;
     const itemImage = input?.itemImage ? String(input.itemImage) : null;
     const itemPrice = Number(input?.itemPrice);
     const selectedAddons = this.normalizeItemAddons((input as any)?.addons);
@@ -206,7 +208,6 @@ export class ReservationService {
     if (!shopId) throw new BadRequestException('shopId مطلوب');
     if (!shopName) throw new BadRequestException('shopName مطلوب');
     if (!customerName) throw new BadRequestException('customerName مطلوب');
-    if (!customerPhone) throw new BadRequestException('customerPhone مطلوب');
     if (Number.isNaN(itemPrice) || itemPrice < 0) throw new BadRequestException('itemPrice غير صحيح');
 
     const shop = await this.prisma.shop.findUnique({
@@ -368,6 +369,8 @@ export class ReservationService {
     itemImage?: string | null;
     itemPrice: number;
     shopId: string;
+    customerPhone?: string;
+    customerName?: string;
     addons?: any;
     variantSelection?: any;
   }) {
@@ -380,10 +383,29 @@ export class ReservationService {
     });
     if (!user) throw new BadRequestException('غير مصرح');
 
-    const customerPhone = String(user.phone || '').trim();
-    if (!customerPhone) {
-      throw new BadRequestException('يرجى إضافة رقم هاتف لحسابك لإتمام الحجز');
+    // استخدم الـ phone من الفورم لو موجود، وإلا من حساب المستخدم
+    const phoneFromForm = input?.customerPhone != null && String(input.customerPhone).trim() !== ''
+      ? String(input.customerPhone).trim()
+      : null;
+    let customerPhone = user.phone ? String(user.phone).trim() : null;
+
+    if (phoneFromForm && !customerPhone) {
+      // حدّث حساب المستخدم بالرقم الجديد
+      try {
+        await this.prisma.user.update({
+          where: { id: uid },
+          data: { phone: phoneFromForm },
+        });
+      } catch {
+        // لو فشل التحديث (مثلاً الرقم مكرر) نكمل بالرقم من الفورم
+      }
+      customerPhone = phoneFromForm;
+    } else if (phoneFromForm) {
+      customerPhone = phoneFromForm;
     }
+    // customerPhone may be null — allow reservation without phone
+
+    const customerName = String(input?.customerName || user.name || '').trim();
 
     const shopId = String(input?.shopId || '').trim();
     if (!shopId) throw new BadRequestException('shopId مطلوب');
@@ -401,7 +423,7 @@ export class ReservationService {
       itemPrice: input?.itemPrice,
       shopId: shop.id,
       shopName: shop.name,
-      customerName: user.name,
+      customerName,
       customerPhone,
       addons: (input as any)?.addons,
       variantSelection: (input as any)?.variantSelection ?? (input as any)?.variant_selection,
