@@ -101,7 +101,7 @@ const ClinicPublicPreview: React.FC<Props> = ({ config, logoDataUrl, shop }) => 
   const filteredDoctors = useMemo(() => {
     const q = String(query || '').trim().toLowerCase();
     if (!q) return doctors;
-    return doctors.filter((d) => String(d.name).toLowerCase().includes(q) || String(d.title).toLowerCase().includes(q));
+    return doctors.filter((d: any) => String(d.name).toLowerCase().includes(q) || String(d.title).toLowerCase().includes(q));
   }, [doctors, query]);
 
   const clinicLayout = String((config as any)?.clinicLayout || 'classic_grid');

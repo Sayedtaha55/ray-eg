@@ -39,7 +39,7 @@ class CreateBookingDto {
 
   @IsOptional()
   variantSelection?: any;
-}
+
   @IsOptional()
   @IsString()
   bookingDate?: string;
@@ -47,6 +47,7 @@ class CreateBookingDto {
   @IsOptional()
   @IsString()
   bookingTime?: string;
+}
 
 class UpdateBookingStatusDto {
   @IsString()

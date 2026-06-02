@@ -40,7 +40,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
   const isBold = layout === 'bold';
   const isMinimal = layout === 'minimal';
 
-  const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
+  const selectedImage = selectedIndex !== null ? (images[selectedIndex] || null) : null;
   const selectedIsVideo = Boolean(selectedImage && (selectedImage as any).mediaType === 'VIDEO');
   const canPlayVideo = !lowEndDevice && !prefersReducedMotion;
 
@@ -179,7 +179,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                   ) : (
                     <img 
                       src={(selectedImage as any)?.thumbUrl || selectedImage.imageUrl} 
-                      alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                      alt={selectedImage.caption || `${shopName} - ${(selectedIndex ?? 0) + 1}`}
                       className="w-full h-auto max-h-[70vh] object-contain"
                       loading="lazy"
                       decoding="async"
@@ -188,7 +188,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                 ) : (
                   <img 
                     src={selectedImage.imageUrl} 
-                    alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                    alt={selectedImage.caption || `${shopName} - ${(selectedIndex ?? 0) + 1}`}
                     className="w-full h-auto max-h-[70vh] object-contain"
                     loading="lazy"
                     decoding="async"
@@ -219,7 +219,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
               {/* Image Info */}
               <div className="mt-6 text-center text-white">
                 <h3 className="text-xl md:text-2xl font-black mb-2">
-                  {shopName} - {selectedIndex + 1} / {images.length}
+                  {shopName} - {(selectedIndex ?? 0) + 1} / {images.length}
                 </h3>
                 {selectedImage.caption && (
                   <p className="text-white/80 text-sm md:text-base">{selectedImage.caption}</p>
@@ -253,7 +253,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                       key={img.id}
                       onClick={() => setSelectedIndex(index)}
                       className={`flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        index === selectedIndex 
+                        index === (selectedIndex ?? -1)
                           ? 'border-white scale-110' 
                           : 'border-white/30 opacity-60 hover:opacity-100'
                       }`}

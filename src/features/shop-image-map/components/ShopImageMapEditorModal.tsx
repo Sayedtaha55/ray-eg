@@ -60,8 +60,8 @@ const ShopImageMapEditorModal: React.FC<Props> = ({ open, onClose, shopId, produ
   const [productEditPrice, setProductEditPrice] = useState<string>('');
   const [productEditStock, setProductEditStock] = useState<string>('');
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const canvasRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const canvasRef = useRef<HTMLDivElement | null>(null);
 
   const productOptions = useMemo(() => {
     return (Array.isArray(productsState) ? productsState : [])

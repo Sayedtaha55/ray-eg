@@ -27,7 +27,7 @@ const ProductPagePreview: React.FC<Props> = ({ config, shop }) => {
     stock: 8,
   };
 
-  const offer = null;
+  const offer: any = null;
   const galleryImages = [''];
   const displayedPrice = 249;
 

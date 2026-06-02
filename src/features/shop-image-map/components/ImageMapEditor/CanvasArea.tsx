@@ -34,8 +34,8 @@ interface CanvasAreaProps {
   imageUploading: boolean;
   onCanvasClick: (e: React.MouseEvent) => void;
   onHotspotClick: (id: string) => void;
-  canvasRef: React.RefObject<HTMLDivElement>;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  canvasRef: React.RefObject<HTMLDivElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const CanvasArea: React.FC<CanvasAreaProps> = ({
