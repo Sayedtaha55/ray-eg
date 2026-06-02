@@ -128,28 +128,9 @@ const ClinicOverviewPage: React.FC = () => {
           <div className="mt-1 text-sm font-bold text-slate-500">{t('business.clinic.overview.subtitle')}</div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          <button
-            type="button"
-            onClick={() => navigate('/business/dashboard?tab=clinicDoctors')}
-            className="px-5 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all"
-          >
-            إدارة أطباء العيادة
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/business/dashboard?tab=clinicServices')}
-            className="px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-sm hover:bg-slate-50 transition-all"
-          >
-            إدارة التخصصات والخدمات
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate('/business/dashboard?tab=settings')}
-            className="px-5 py-3 rounded-2xl bg-white border border-slate-100 text-slate-700 font-black text-sm hover:bg-slate-50 transition-all"
-          >
-            إعدادات الحجوزات والعيادة
-          </button>
+        <div className="rounded-2xl bg-cyan-50 border border-cyan-100 px-5 py-3 text-right max-w-md">
+          <div className="text-xs font-black text-cyan-800">تم نقل إدارة الأطباء والتخصصات إلى قائمة لوحة الحجوزات.</div>
+          <div className="mt-1 text-[11px] font-bold text-cyan-700/80">استخدم أزرار القائمة العلوية للوصول إلى كل نشاط خاص بدون ازدحام النظرة العامة.</div>
         </div>
       </div>
 
@@ -175,7 +156,7 @@ const ClinicOverviewPage: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/business/dashboard?tab=reservations')}
+              onClick={() => navigate('/business/clinic/bookings')}
               className="px-4 py-2 rounded-2xl bg-slate-50 text-slate-700 font-black text-xs hover:bg-slate-100 transition-all"
             >
               {t('business.clinic.overview.openBookingMgmt')}

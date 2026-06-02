@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL' | 'CLINIC';
+type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL' | 'BOOKING';
 
 type ThemePreset = {
   id: string;
@@ -28,19 +28,49 @@ const PRESETS: ThemePreset[] = [
     patch: { quickTheme: 'tech_modern', primaryColor: '#0EA5E9', secondaryColor: '#1E293B', headerBackgroundColor: '#0F172A', headerTextColor: '#E2E8F0', footerBackgroundColor: '#020617', footerTextColor: '#94A3B8', productDisplay: 'minimal', productsLayout: 'horizontal', imageAspectRatio: 'landscape', homeLayoutMode: 'banner_products', productCardOverlayBgColor: '#1E293B' },
   },
   {
-    id: 'clinic_elegant_blue', name: 'رعاية الشفاء الكلاسيكية (أزرق)', subtitle: 'ثيم الشفاء الحديث - تصميم طبي كلاسيكي أنيق بالأزرق والرمادي الفاتح بنمط هادئ ومريح', activity: 'CLINIC',
-    patch: { quickTheme: 'clinic_elegant_blue', clinicLayout: 'classic_grid', primaryColor: '#0EA5E9', secondaryColor: '#0369A1', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FFFFFF', productDisplay: 'cards', productsLayout: 'vertical' },
+    id: 'clinic_elegant_blue', name: 'رعاية الشفاء الكلاسيكية (أزرق)', subtitle: 'ثيم الشفاء الحديث - تصميم طبي كلاسيكي أنيق بالأزرق والرمادي الفاتح بنمط هادئ ومريح', activity: 'BOOKING',
+    patch: { quickTheme: 'clinic_elegant_blue', clinicLayout: 'classic_grid', bookingActivityType: 'clinic_hospital', primaryColor: '#0EA5E9', secondaryColor: '#0369A1', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FFFFFF', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+
+  {
+    id: 'salon_luxury_rose', name: 'صالون فاخر (وردي ذهبي)', subtitle: 'ثيم مناسب للصالونات والحلاقة: ألوان دافئة، كروت خدمات أنيقة، وحجز سريع للجلسات', activity: 'BOOKING',
+    patch: { quickTheme: 'salon_luxury_rose', clinicLayout: 'banner_promo_booking', bookingActivityType: 'salon_barber', primaryColor: '#E11D48', secondaryColor: '#BE123C', headerBackgroundColor: '#FFF1F2', headerTextColor: '#881337', footerBackgroundColor: '#4C0519', footerTextColor: '#FFE4E6', pageBackgroundColor: '#FFF7F8', productDisplay: 'cards', productsLayout: 'vertical' },
   },
   {
-    id: 'clinic_modern_purple', name: 'النخبة الطبية الفاخرة (بنفسجي)', subtitle: 'ثيم النخبة الفاخر - تصميم عصري متميز بالبنفسجي والوردي واللمسات الزجاجية والتأثيرات التفاعلية', activity: 'CLINIC',
-    patch: { quickTheme: 'clinic_modern_purple', clinicLayout: 'banner_promo_booking', primaryColor: '#8B5CF6', secondaryColor: '#EC4899', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FCF8FF', productDisplay: 'cards', productsLayout: 'vertical' },
+    id: 'wellness_spa_green', name: 'سبا وراحة (أخضر هادئ)', subtitle: 'ثيم لجلسات السبا والعناية: هدوء بصري، ألوان طبيعية، وتركيز على مدة الجلسة والغرف', activity: 'BOOKING',
+    patch: { quickTheme: 'wellness_spa_green', clinicLayout: 'classic_grid', bookingActivityType: 'wellness_spa', primaryColor: '#059669', secondaryColor: '#047857', headerBackgroundColor: '#ECFDF5', headerTextColor: '#064E3B', footerBackgroundColor: '#022C22', footerTextColor: '#D1FAE5', pageBackgroundColor: '#F6FFFB', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+
+  {
+    id: 'chalets_resort_sand', name: 'شاليهات ومنتجعات (رملي بحري)', subtitle: 'ثيم مناسب لحجز الشاليهات والوحدات: ألوان بحرية ورملية مع تركيز على المرافق والمواسم', activity: 'BOOKING',
+    patch: { quickTheme: 'chalets_resort_sand', clinicLayout: 'banner_promo_booking', bookingActivityType: 'chalets_resorts', primaryColor: '#0891B2', secondaryColor: '#D97706', headerBackgroundColor: '#ECFEFF', headerTextColor: '#164E63', footerBackgroundColor: '#164E63', footerTextColor: '#CFFAFE', pageBackgroundColor: '#FFFBEB', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+  {
+    id: 'hotel_midnight_gold', name: 'فنادق وغرف (كحلي ذهبي)', subtitle: 'ثيم للإقامة والفنادق: شكل فاخر للغرف، الليالي المتاحة، وسياسات الوصول والمغادرة', activity: 'BOOKING',
+    patch: { quickTheme: 'hotel_midnight_gold', clinicLayout: 'classic_grid', bookingActivityType: 'hotels_rooms', primaryColor: '#1E3A8A', secondaryColor: '#B45309', headerBackgroundColor: '#EFF6FF', headerTextColor: '#172554', footerBackgroundColor: '#111827', footerTextColor: '#FDE68A', pageBackgroundColor: '#F8FAFC', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+  {
+    id: 'events_violet_stage', name: 'فعاليات وقاعات (بنفسجي)', subtitle: 'ثيم لحجز القاعات والفعاليات مع إبراز السعات، التذاكر، وتجهيزات المناسبة', activity: 'BOOKING',
+    patch: { quickTheme: 'events_violet_stage', clinicLayout: 'banner_promo_booking', bookingActivityType: 'events_venues', primaryColor: '#7C3AED', secondaryColor: '#DB2777', headerBackgroundColor: '#F5F3FF', headerTextColor: '#4C1D95', footerBackgroundColor: '#2E1065', footerTextColor: '#DDD6FE', pageBackgroundColor: '#FAF5FF', productDisplay: 'cards', productsLayout: 'vertical' },
+  },
+  {
+    id: 'rental_steel_blue', name: 'تأجير مركبات (أزرق معدني)', subtitle: 'ثيم لتأجير السيارات والمركبات: وضوح في المدد، الاستلام، التأمين، والشروط', activity: 'BOOKING',
+    patch: { quickTheme: 'rental_steel_blue', clinicLayout: 'classic_grid', bookingActivityType: 'vehicle_rental', primaryColor: '#2563EB', secondaryColor: '#475569', headerBackgroundColor: '#F8FAFC', headerTextColor: '#0F172A', footerBackgroundColor: '#020617', footerTextColor: '#BFDBFE', pageBackgroundColor: '#FFFFFF', productDisplay: 'list', productsLayout: 'vertical' },
+  },
+  {
+    id: 'appointments_neutral', name: 'مواعيد عامة (محايد)', subtitle: 'ثيم عام لأي نشاط حجوزات بدون بيانات وهمية أو تخصصات إجبارية', activity: 'BOOKING',
+    patch: { quickTheme: 'appointments_neutral', clinicLayout: 'classic_grid', bookingActivityType: 'general_appointments', primaryColor: '#334155', secondaryColor: '#0F172A', headerBackgroundColor: '#F8FAFC', headerTextColor: '#0F172A', footerBackgroundColor: '#0F172A', footerTextColor: '#CBD5E1', pageBackgroundColor: '#FFFFFF', productDisplay: 'list', productsLayout: 'vertical' },
+  },
+  {
+    id: 'clinic_modern_purple', name: 'النخبة الطبية الفاخرة (بنفسجي)', subtitle: 'ثيم النخبة الفاخر - تصميم عصري متميز بالبنفسجي والوردي واللمسات الزجاجية والتأثيرات التفاعلية', activity: 'BOOKING',
+    patch: { quickTheme: 'clinic_modern_purple', clinicLayout: 'banner_promo_booking', bookingActivityType: 'clinic_hospital', primaryColor: '#8B5CF6', secondaryColor: '#EC4899', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FCF8FF', productDisplay: 'cards', productsLayout: 'vertical' },
   },
 ];
 
 const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; shop?: any }> = ({ config, setConfig, shop }) => {
   const rawCategory = String(shop?.category || shop?.shopCategory || '').trim().toUpperCase();
   const shopActivity: ThemeActivity = rawCategory.includes('SERVICE')
-    ? 'CLINIC'
+    ? 'BOOKING'
     : rawCategory.includes('RESTAURANT')
       ? 'RESTAURANT'
       : rawCategory.includes('FASHION')
@@ -49,11 +79,11 @@ const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; sho
           ? 'TECH'
           : 'GENERAL';
 
-  const activeTheme = String(config.quickTheme || (shopActivity === 'CLINIC' ? 'clinic_elegant_blue' : 'clinic_clean'));
+  const activeTheme = String(config.quickTheme || (shopActivity === 'BOOKING' ? 'clinic_elegant_blue' : 'clinic_clean'));
 
   const visiblePresets = PRESETS.filter((preset) => {
-    if (shopActivity === 'CLINIC') {
-      return preset.activity === 'CLINIC';
+    if (shopActivity === 'BOOKING') {
+      return preset.activity === 'BOOKING';
     }
     return preset.activity === shopActivity || preset.activity === 'GENERAL';
   });

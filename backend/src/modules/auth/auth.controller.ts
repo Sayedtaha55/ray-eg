@@ -89,6 +89,9 @@ class SignupDto {
 
   @IsOptional()
   enabledModules?: any;
+
+  @IsOptional()
+  pageDesign?: any;
 }
 
 class CourierSignupDto {

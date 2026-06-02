@@ -42,6 +42,40 @@ class CreateBookingDto {
 
   @IsOptional()
   @IsString()
+  customerName?: string;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  customerEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  serviceId?: string;
+
+  @IsOptional()
+  @IsString()
+  slotId?: string;
+
+  @IsOptional()
+  @IsString()
+  resourceId?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  participants?: number;
+
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @IsOptional()
+  @IsString()
   bookingDate?: string;
 
   @IsOptional()
@@ -89,6 +123,14 @@ export class BookingsController {
       itemImage: body?.itemImage,
       itemPrice: body?.itemPrice,
       shopId: body?.shopId,
+      customerName: body?.customerName,
+      customerPhone: body?.customerPhone,
+      customerEmail: body?.customerEmail,
+      serviceId: body?.serviceId,
+      slotId: body?.slotId,
+      resourceId: body?.resourceId,
+      participants: body?.participants,
+      notes: body?.notes,
       addons: (body as any)?.addons,
       variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
       startAt: startAt ?? undefined,
