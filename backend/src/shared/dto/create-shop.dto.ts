@@ -27,6 +27,11 @@ export class CreateShopDto {
   category: ShopCategory;
 
   @IsString()
+  @MaxLength(80)
+  @IsOptional()
+  activityId?: string;
+
+  @IsString()
   @MinLength(10)
   @MaxLength(20)
   phone: string;

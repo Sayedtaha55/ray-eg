@@ -394,9 +394,10 @@ export default function MerchantDashboardPage() {
 
   const handleUpdateResStatus = async (id: string, status: string) => {
     try {
-      await merchantApi.merchantUpdateReservationStatus(id, status);
+      const res = reservations.find((r: any) => r.id === id);
+      const source = String((res as any)?.__bookingSource || 'booking') === 'reservation' ? 'reservation' : 'booking';
+      await merchantApi.merchantUpdateReservationStatus(id, status, source);
       if (status === 'completed') {
-        const res = reservations.find((r: any) => r.id === id);
         if (res) await merchantApi.merchantConvertReservationToCustomer({
           customerName: (res as any).customerName,
           customerPhone: (res as any).customerPhone,
@@ -458,7 +459,7 @@ export default function MerchantDashboardPage() {
           />
         );
       case 'reservations':
-        return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
+        return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} shop={currentShop} />;
       case 'invoice':
         return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
       case 'sales':

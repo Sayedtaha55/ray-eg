@@ -11,6 +11,7 @@ import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
 import * as merchantApi from '@/lib/api/merchant';
 import { useToast } from '@/lib/hooks/useToast';
+import { BOOKING_ACTIVITY_OPTIONS, DEVELOPER_ACTIVITY_OPTIONS, getActivityOptionById } from '@/lib/dashboard/activity-config';
 
 type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications';
 
@@ -209,6 +210,7 @@ const StoreSettingsTab: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop,
     openingHours: String(shop?.openingHours || shop?.opening_hours || ''),
     displayAddress: String(shop?.displayAddress || shop?.display_address || ''),
     mapLabel: String(shop?.mapLabel || shop?.map_label || ''),
+    activityId: String(shop?.activityId || shop?.layoutConfig?.activityId || ''),
   });
   const onChange = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((p) => ({ ...p, [key]: e.target.value }));
   const [latitude, setLatitude] = useState<number | null>(typeof shop?.latitude === 'number' ? shop.latitude : null);
@@ -243,7 +245,16 @@ const StoreSettingsTab: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop,
   const saveStore = async () => {
     setSaving(true);
     try {
-      await merchantApi.merchantUpdateMyShop({ whatsapp: form.whatsapp, customDomain: form.customDomain, openingHours: form.openingHours, displayAddress: form.displayAddress || null, mapLabel: form.mapLabel || null, latitude, longitude });
+      await merchantApi.merchantUpdateMyShop({
+        whatsapp: form.whatsapp,
+        customDomain: form.customDomain,
+        openingHours: form.openingHours,
+        displayAddress: form.displayAddress || null,
+        mapLabel: form.mapLabel || null,
+        activityId: form.activityId || null,
+        latitude,
+        longitude,
+      });
       addToast(t('storeSettings.saved', 'تم الحفظ'), '', 'success'); onSaved?.();
     } catch { addToast(t('storeSettings.error', 'خطأ'), '', 'destructive'); }
     finally { setSaving(false); }
@@ -264,6 +275,24 @@ const StoreSettingsTab: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop,
         <div><h3 className="font-black text-slate-700">{t('storeSettings.delivery', 'التوصيل')}</h3><p className="text-sm text-slate-400">{deliveryDisabled ? t('storeSettings.deliveryDisabledDesc', 'التوصيل معطل') : t('storeSettings.deliveryEnabledDesc', 'التوصيل مفعل')}</p></div>
         <button onClick={toggleDelivery} className={`px-5 py-3 rounded-xl font-black text-xs ${deliveryDisabled ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>{deliveryDisabled ? t('storeSettings.enableDelivery', 'تفعيل') : t('storeSettings.disableDelivery', 'تعطيل')}</button>
       </div>
+      <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-4">
+        <h3 className="font-black text-slate-700">{t('storeSettings.activityTitle', 'نوع النشاط')}</h3>
+        <div>
+          <label className="block text-[11px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('storeSettings.activityLabel', 'النشاط')}</label>
+          <select
+            value={form.activityId}
+            onChange={(e) => setForm((p) => ({ ...p, activityId: e.target.value }))}
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-bold text-slate-900 text-right outline-none"
+          >
+            <option value="">{t('storeSettings.activityNotSet', 'غير محدد')}</option>
+            {DEVELOPER_ACTIVITY_OPTIONS.map((activity) => (
+              <option key={activity.id} value={activity.id}>{activity.label}</option>
+            ))}
+          </select>
+          <p className="mt-2 text-xs font-bold text-slate-400">{t('storeSettings.activityHint', 'تغيير النشاط يغيّر تبويبات لوحة التحكم حسب النشاط بدون حذف بياناتك الحالية.')}</p>
+        </div>
+      </div>
+
       <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm space-y-4">
         <h3 className="font-black text-slate-700">{t('storeSettings.contact', 'التواصل')}</h3>
         <div className="grid gap-4 md:grid-cols-2">
@@ -290,7 +319,7 @@ const StoreSettingsTab: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop,
 type ModuleId = 'overview' | 'products' | 'reservations' | 'invoice' | 'pos' | 'sales' | 'promotions' | 'reports' | 'customers' | 'gallery' | 'abandonedCart' | 'builder' | 'settings';
 const CORE_IDS: ModuleId[] = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
-const ModulesSettings: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop, onSaved }) => {
+const ModulesSettings: React.FC<{ shop: any; onSaved?: () => void; bookingMode?: boolean }> = ({ shop, onSaved, bookingMode = false }) => {
   const t = useT();
   const { addToast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -383,17 +412,24 @@ const ModulesSettings: React.FC<{ shop: any; onSaved?: () => void }> = ({ shop, 
   };
 
   const coreModules = MODULES.filter((m) => m.kind === 'core');
-  const optionalModules = MODULES.filter((m) => m.kind === 'optional');
+  const optionalModules = MODULES.filter((m) => {
+    if (m.kind !== 'optional') return false;
+    if (!bookingMode) return true;
+    return ['reservations', 'gallery', 'customers', 'reports'].includes(m.id);
+  });
 
   return (
     <div className="space-y-6">
-      <div><h2 className="text-2xl font-black">{t('modulesSettings.upgrade', 'ترقية الوحدات')}</h2><p className="text-sm text-slate-400">{t('modulesSettings.upgradeDesc', 'إدارة وحدات المحل')}</p></div>
+      <div>
+        <h2 className="text-2xl font-black">{bookingMode ? t('modulesSettings.bookingUpgrade', 'أزرار لوحة الحجوزات') : t('modulesSettings.upgrade', 'ترقية الوحدات')}</h2>
+        <p className="text-sm text-slate-400">{bookingMode ? t('modulesSettings.bookingUpgradeDesc', 'إدارة أزرار مناسبة للحجوزات فقط بدون أزرار الفواتير أو البيع العامة.') : t('modulesSettings.upgradeDesc', 'إدارة وحدات المحل')}</p>
+      </div>
       <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-2">
         <h3 className="font-black text-slate-900 mb-3">{t('modulesSettings.coreModules', 'الوحدات الأساسية')}</h3>
         {coreModules.map((m) => (<div key={m.id} className="flex items-center justify-between px-5 py-4 rounded-xl bg-slate-50 border border-slate-100"><span className="font-black text-slate-900">{m.label}</span><span className="text-[10px] font-black text-slate-400">{t('modulesSettings.core', 'أساسي')}</span></div>))}
       </div>
       <div className="bg-white rounded-2xl border border-slate-100 p-5 space-y-3">
-        <h3 className="font-black text-slate-900 mb-3">{t('modulesSettings.optionalModules', 'وحدات اختيارية')}</h3>
+        <h3 className="font-black text-slate-900 mb-3">{bookingMode ? t('modulesSettings.bookingOptionalModules', 'أزرار اختيارية للحجوزات') : t('modulesSettings.optionalModules', 'وحدات اختيارية')}</h3>
         {optionalModules.map((m) => {
           const checked = enabled.has(m.id);
           const isActiveMod = activeEnabled.includes(m.id);
@@ -599,10 +635,29 @@ const SettingsPage: React.FC<Props> = ({ shop, onSaved, settingsTab, onSettingsT
   const { dir } = useLocale();
   const isArabic = dir === 'rtl';
 
-  const tabs = SETTINGS_TAB_IDS.map((item) => ({
-    ...item,
-    label: t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`, item.id.replace(/_/g, ' ')),
-  }));
+  const bookingActivityId = String(shop?.activityId || shop?.layoutConfig?.activityId || '').trim();
+  const bookingActivity = getActivityOptionById(bookingActivityId);
+  const isBookingSettings = BOOKING_ACTIVITY_OPTIONS.some((option) => option.id === bookingActivityId);
+
+  const bookingTabLabels: Partial<Record<SettingsTab, string>> = {
+    overview: t('settingsIndex.bookingOverview', 'ملخص الحجوزات'),
+    account: t('settingsIndex.bookingAccount', 'بيانات النشاط'),
+    security: t('settingsIndex.bookingSecurity', 'الأمان والصلاحيات'),
+    store: t('settingsIndex.bookingSite', 'الموقع وسياسات الحجز'),
+    modules: t('settingsIndex.bookingModules', 'أزرار الحجوزات'),
+    apps: t('settingsIndex.bookingApps', 'تطبيقات الحجوزات'),
+    payments: t('settingsIndex.bookingPayments', 'مدفوعات وتأمين'),
+    notifications: t('settingsIndex.bookingNotifications', 'إشعارات وتأكيدات'),
+  };
+
+  const tabs = SETTINGS_TAB_IDS
+    .filter((item) => !isBookingSettings || item.id !== 'receipt_theme')
+    .map((item) => ({
+      ...item,
+      label: isBookingSettings && bookingTabLabels[item.id]
+        ? bookingTabLabels[item.id]
+        : t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`, item.id.replace(/_/g, ' ')),
+    }));
 
   const activeTab = (tabs.some((tab) => tab.id === settingsTab) ? settingsTab : 'overview') as SettingsTab;
 
@@ -612,9 +667,9 @@ const SettingsPage: React.FC<Props> = ({ shop, onSaved, settingsTab, onSettingsT
       case 'account': return <Account shop={shop} onSaved={onSaved} />;
       case 'security': return <Security shop={shop} onSaved={onSaved} />;
       case 'store': return <StoreSettingsTab shop={shop} onSaved={onSaved} />;
-      case 'modules': return <ModulesSettings shop={shop} onSaved={onSaved} />;
+      case 'modules': return <ModulesSettings shop={shop} onSaved={onSaved} bookingMode={isBookingSettings} />;
       case 'apps': return <AppsTab />;
-      case 'receipt_theme': return <ReceiptThemeSettings shop={shop} />;
+      case 'receipt_theme': return isBookingSettings ? <Overview shop={shop} /> : <ReceiptThemeSettings shop={shop} />;
       case 'payments': return <Payments shop={shop} onSaved={onSaved} />;
       case 'notifications': return <NotificationsSettings shop={shop} />;
       default: return <Overview shop={shop} />;
@@ -625,8 +680,17 @@ const SettingsPage: React.FC<Props> = ({ shop, onSaved, settingsTab, onSettingsT
     <div className={`space-y-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={dir}>
       <div className="flex items-center gap-3 mb-2">
         <SettingsIcon className="w-6 h-6 text-slate-400" />
-        <h2 className="text-2xl font-black">{t('settingsIndex.settings', 'الإعدادات')}</h2>
+        <h2 className="text-2xl font-black">{isBookingSettings ? t('settingsIndex.bookingSettingsTitle', 'إعدادات لوحة الحجوزات') : t('settingsIndex.settings', 'الإعدادات')}</h2>
       </div>
+
+      {isBookingSettings && (
+        <div className="rounded-[2rem] border border-cyan-100 bg-cyan-50/70 p-5 text-sm font-bold text-cyan-900">
+          <div className="font-black text-base">{t('settingsIndex.bookingSettingsOnly', 'هذه الإعدادات مخصصة للحجوزات فقط')}</div>
+          <p className="mt-2 text-cyan-800/80">
+            {t('settingsIndex.bookingSettingsOnlyDesc', `النشاط الحالي: ${bookingActivity?.label || 'حجوزات'}. تم إخفاء ثيم الفاتورة وأزرار البيع العامة، وتظهر هنا إعدادات الموقع والأمان والمدفوعات والإشعارات المناسبة للحجوزات.`)}
+          </p>
+        </div>
+      )}
 
       {/* Sub-tab pills */}
       <div className="flex gap-2 p-2 bg-slate-50/60 backdrop-blur-xl rounded-2xl border border-slate-100 overflow-x-auto no-scrollbar">

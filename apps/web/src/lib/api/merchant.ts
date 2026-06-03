@@ -3,7 +3,13 @@
 import { clientFetch } from './client';
 
 /* ── Shop ─────────────────────────────────────────── */
-export const merchantGetMyShop = () => clientFetch<any>('/v1/shops/me');
+const normalizeShopActivity = (shop: any) => {
+  if (!shop || typeof shop !== 'object') return shop;
+  const activityId = String(shop?.activityId || shop?.activity_id || shop?.layoutConfig?.activityId || shop?.layout_config?.activityId || '').trim();
+  return activityId ? { ...shop, activityId } : shop;
+};
+
+export const merchantGetMyShop = async () => normalizeShopActivity(await clientFetch<any>('/v1/shops/me'));
 export const merchantUpdateMyShop = (data: Record<string, unknown>) =>
   clientFetch<any>('/v1/shops/me', { method: 'PATCH', body: JSON.stringify(data) });
 export const merchantUpdateShopDesign = (data: Record<string, unknown>) =>
@@ -37,11 +43,36 @@ export const merchantGetOrders = (params: { shopId: string; from?: string; to?: 
 export const merchantUpdateOrder = (id: string, data: Record<string, unknown>) =>
   clientFetch<any>(`/v1/orders/${id}`, { method: 'PATCH', body: JSON.stringify(data) });
 
-/* ── Reservations ─────────────────────────────────── */
-export const merchantGetReservations = (shopId: string) =>
+/* ── Reservations / Bookings ───────────────────────── */
+const withBookingSource = (items: any, source: 'booking' | 'reservation') =>
+  (Array.isArray(items) ? items : []).map((item: any) => ({ ...item, __bookingSource: source }));
+
+export const merchantGetBookings = (shopId: string) =>
+  clientFetch<any[]>(`/v1/bookings?shopId=${shopId}`);
+export const merchantGetLegacyReservations = (shopId: string) =>
   clientFetch<any[]>(`/v1/reservations?shopId=${shopId}`);
-export const merchantUpdateReservationStatus = (id: string, status: string) =>
+export const merchantGetReservations = async (shopId: string) => {
+  const [bookings, legacyReservations] = await Promise.all([
+    merchantGetBookings(shopId).then((items) => withBookingSource(items, 'booking')).catch(() => []),
+    merchantGetLegacyReservations(shopId).then((items) => withBookingSource(items, 'reservation')).catch(() => []),
+  ]);
+
+  const seen = new Set<string>();
+  return [...bookings, ...legacyReservations].filter((item: any) => {
+    const key = `${String(item?.__bookingSource || '')}:${String(item?.id || '')}`;
+    if (!item?.id || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+export const merchantUpdateBookingStatus = (id: string, status: string) =>
+  clientFetch<any>(`/v1/bookings/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const merchantUpdateLegacyReservationStatus = (id: string, status: string) =>
   clientFetch<any>(`/v1/reservations/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+export const merchantUpdateReservationStatus = (id: string, status: string, source: 'booking' | 'reservation' = 'booking') =>
+  source === 'reservation'
+    ? merchantUpdateLegacyReservationStatus(id, status)
+    : merchantUpdateBookingStatus(id, status);
 export const merchantConvertReservationToCustomer = (data: any) =>
   clientFetch<any>('/v1/customers/convert-reservation', { method: 'POST', body: JSON.stringify(data) });
 
@@ -112,7 +143,7 @@ export const merchantMarkCartEventRecovered = (id: string) =>
 
 /* ── Module Upgrade Requests ──────────────────────── */
 export const merchantCreateModuleUpgradeRequest = (data: { requestedModules: string[] }) =>
-  clientFetch<any>('/v1/module-upgrade-requests', { method: 'POST', body: JSON.stringify(data) });
+  clientFetch<any>('/v1/shops/me/module-upgrade-requests', { method: 'POST', body: JSON.stringify(data) });
 
 /* ── Auth / Account ──────────────────────────────── */
 export const merchantChangePassword = (data: { currentPassword: string; newPassword: string }) =>

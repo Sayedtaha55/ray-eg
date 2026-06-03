@@ -96,6 +96,9 @@ function SignupPageInner() {
         } catch (e) {
           console.error('Failed to read onboarding data', e);
         }
+
+        const activityIdFromQuery = String(params.get('activityId') || '').trim();
+        if (activityIdFromQuery && !payload.activityId) payload.activityId = activityIdFromQuery;
       }
 
       const res = await apiSignup(payload);

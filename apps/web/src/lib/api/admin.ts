@@ -35,17 +35,23 @@ export const adminApproveMapListing = (id: string) =>
   clientFetch<any>(`/v1/admin/map-listings/${id}/approve`, { method: 'PATCH' });
 export const adminRejectMapListing = (id: string, note?: string) =>
   clientFetch<any>(`/v1/admin/map-listings/${id}/reject`, { method: 'PATCH', body: JSON.stringify({ note }) });
-export const adminListModuleUpgradeRequests = (params?: { status?: string; take?: number }) =>
-  clientFetch<any[]>('/v1/admin/module-upgrade-requests?' + new URLSearchParams(params as Record<string, string>).toString());
+export const adminListModuleUpgradeRequests = (params?: { status?: string; take?: number; category?: string; activityId?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.status) q.set('status', params.status);
+  if (params?.take) q.set('take', String(params.take));
+  if (params?.category) q.set('category', params.category);
+  if (params?.activityId) q.set('activityId', params.activityId);
+  return clientFetch<any[]>(`/v1/shops/admin/module-upgrade-requests?${q.toString()}`);
+};
 export const adminApproveModuleUpgradeRequest = (id: string) =>
-  clientFetch<any>(`/v1/admin/module-upgrade-requests/${id}/approve`, { method: 'PATCH' });
+  clientFetch<any>(`/v1/shops/admin/module-upgrade-requests/${id}/approve`, { method: 'PATCH' });
 export const adminRejectModuleUpgradeRequest = (id: string, data?: { note?: string | null }) =>
-  clientFetch<any>(`/v1/admin/module-upgrade-requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify(data) });
+  clientFetch<any>(`/v1/shops/admin/module-upgrade-requests/${id}/reject`, { method: 'PATCH', body: JSON.stringify(data) });
 
 /* ── Dashboard / Analytics ──────────────────────────── */
 export const adminGetDashboardStats = () => clientFetch<any>('/v1/admin/dashboard/stats');
 export const adminGetRecentActivity = () => clientFetch<any[]>('/v1/admin/dashboard/activity');
 
 /* ── Settings ──────────────────────────────────────── */
-export const adminUpgradeDashboardConfig = (data: { dryRun: boolean }) =>
-  clientFetch<any>('/v1/admin/settings/upgrade-dashboard-config', { method: 'POST', body: JSON.stringify(data) });
+export const adminUpgradeDashboardConfig = (data: { dryRun: boolean; category?: string; activityId?: string }) =>
+  clientFetch<any>('/v1/shops/admin/upgrade-dashboard-config', { method: 'POST', body: JSON.stringify(data) });

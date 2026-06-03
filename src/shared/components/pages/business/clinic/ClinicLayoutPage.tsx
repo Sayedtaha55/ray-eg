@@ -3,7 +3,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { CalendarCheck, ClipboardList, ListChecks, Palette, Settings, Sparkles, Stethoscope, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
-import { getBookingActivityDefinition } from './bookingActivityConfig';
+import { getBookingActivityDefinition, getBookingActivityExtraPageId } from './bookingActivityConfig';
 
 const ClinicLayoutPage: React.FC = () => {
   const { t } = useTranslation();
@@ -79,11 +79,14 @@ const ClinicLayoutPage: React.FC = () => {
               {activityTabs.map((tab) => (
                 <NavLink key={tab.id} to={tab.to} className={tabClass(isActive(tab.id))}>{tab.icon}{tab.label}</NavLink>
               ))}
-              {bookingActivity.extraButtons.map((label) => (
-                <span key={label} className="px-5 py-3 rounded-2xl font-black text-sm inline-flex items-center gap-2 bg-cyan-50 text-cyan-800 border border-cyan-100">
-                  <ListChecks size={16} />{label}
-                </span>
-              ))}
+              {bookingActivity.extraButtons.map((label, index) => {
+                const pageId = getBookingActivityExtraPageId(label, index);
+                return (
+                  <NavLink key={label} to={`/business/clinic/activity/${pageId}`} className={tabClass(isActive(`activity/${pageId}`))}>
+                    <ListChecks size={16} />{label}
+                  </NavLink>
+                );
+              })}
               <NavLink to="/business/clinic/settings" className="px-5 py-3 rounded-2xl font-black text-sm inline-flex items-center gap-2 bg-amber-50 text-amber-800 border border-amber-100 hover:bg-amber-100 transition-all">
                 <Sparkles size={16} />تغيير نوع نشاط الحجوزات
               </NavLink>

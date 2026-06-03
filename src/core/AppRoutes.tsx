@@ -53,6 +53,7 @@ const ClinicDesignPage = React.lazy(() => import('../shared/components/pages/bus
 const ClinicDoctorsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicDoctorsPage'));
 const ClinicServicesPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicServicesPage'));
 const ClinicSettingsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicSettingsPage'));
+const BookingActivityExtraPage = React.lazy(() => import('../shared/components/pages/business/clinic/BookingActivityExtraPage'));
 const AdminLayout = React.lazy(() => import('../shared/components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../shared/components/pages/admin/AdminDashboard'));
 const AdminLogin = React.lazy(() => import('../shared/components/pages/auth/AdminLogin'));
@@ -145,6 +146,7 @@ const AppRoutes: React.FC = () => {
           <Route path="doctors" element={suspense(<ClinicDoctorsPage />)} />
           <Route path="services" element={suspense(<ClinicServicesPage />)} />
           <Route path="settings" element={suspense(<ClinicSettingsPage />)} />
+          <Route path="activity/:pageId" element={suspense(<BookingActivityExtraPage />)} />
         </Route>
       </Route>
       <Route path="/admin/gate" element={suspense(<AdminLogin />)} />

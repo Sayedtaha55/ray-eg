@@ -240,6 +240,13 @@ export class ShopController {
       return v ? v : undefined;
     })();
 
+    const activityId = (() => {
+      if (typeof body?.activityId === 'undefined') return undefined;
+      if (body.activityId === null) return null;
+      const v = String(body.activityId || '').trim();
+      return v ? v : null;
+    })();
+
     const shouldTouchLocationMeta =
       typeof body?.latitude !== 'undefined' ||
       typeof body?.longitude !== 'undefined' ||
@@ -289,6 +296,7 @@ export class ShopController {
         receiptTheme,
         notificationSoundId,
         dashboardMode: typeof dashboardMode === 'string' ? dashboardMode : undefined,
+        activityId,
         deliveryFee:
           userRole === 'ADMIN' && (typeof body?.deliveryFee === 'number' || typeof body?.deliveryFee === 'string')
             ? ((): number | null => {
@@ -399,10 +407,12 @@ export class ShopController {
   @Post('admin/upgrade-dashboard-config')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async adminUpgradeDashboardConfig(@Body() body: { shopIds?: string[]; dryRun?: boolean }) {
+  async adminUpgradeDashboardConfig(@Body() body: { shopIds?: string[]; dryRun?: boolean; category?: string; activityId?: string }) {
     const shopIds = Array.isArray(body?.shopIds) ? body.shopIds : undefined;
     const dryRun = Boolean(body?.dryRun);
-    return this.shopService.adminUpgradeDashboardConfig({ shopIds, dryRun });
+    const category = typeof body?.category === 'string' ? body.category : undefined;
+    const activityId = typeof body?.activityId === 'string' ? body.activityId : undefined;
+    return this.shopService.adminUpgradeDashboardConfig({ shopIds, dryRun, category, activityId });
   }
 
   @Post('admin/:id/reset-visitors')
@@ -420,16 +430,21 @@ export class ShopController {
     @Query('shopId') shopId: string,
     @Query('take') take: string,
     @Query('skip') skip: string,
+    @Query('category') category: string,
+    @Query('activityId') activityId: string,
   ) {
     return this.shopService.adminListModuleUpgradeRequests({
       status: typeof status === 'string' ? status : undefined,
       shopId: typeof shopId === 'string' ? String(shopId).trim() || undefined : undefined,
       take: this.parseOptionalInt(take),
       skip: this.parseOptionalInt(skip),
+      category: typeof category === 'string' ? String(category).trim() || undefined : undefined,
+      activityId: typeof activityId === 'string' ? String(activityId).trim() || undefined : undefined,
     });
   }
 
   @Post('admin/module-upgrade-requests/:id/approve')
+  @Patch('admin/module-upgrade-requests/:id/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async adminApproveModuleUpgradeRequest(@Param('id') id: string, @Request() req) {
@@ -438,6 +453,7 @@ export class ShopController {
   }
 
   @Post('admin/module-upgrade-requests/:id/reject')
+  @Patch('admin/module-upgrade-requests/:id/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async adminRejectModuleUpgradeRequest(@Param('id') id: string, @Body() body: any, @Request() req) {

@@ -78,6 +78,8 @@ export function normalizeShopFromBackend(shop: any) {
     return c;
   })();
 
+  const activityId = String(firstDefined(shop.activityId, shop.activity_id, (normalizedLayoutConfig as any)?.activityId, (normalizedLayoutConfig as any)?.activity_id) || '').trim();
+
   const paymentConfig =
     shop.paymentConfig ??
     shop.payment_config ??
@@ -140,6 +142,8 @@ export function normalizeShopFromBackend(shop: any) {
     publicDisabled,
     deliveryDisabled,
     addons,
+    activityId,
+    activity_id: shop.activity_id ?? activityId,
     layoutConfig: normalizedLayoutConfig ?? shop.layoutConfig,
     layout_config: shop.layout_config ?? normalizedLayoutConfig,
     paymentConfig,
