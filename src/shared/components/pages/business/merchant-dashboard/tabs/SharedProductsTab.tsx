@@ -209,7 +209,7 @@ const SharedProductsTab: React.FC<Props> = ({
             setEditModalOpen(false);
             setSelectedProduct(null);
           }}
-          shopId={shopId}
+          shopId={String(shopId || shop?.id || '')}
           shopCategory={shopCategory}
         />
       )}

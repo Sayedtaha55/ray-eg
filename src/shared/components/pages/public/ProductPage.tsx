@@ -847,8 +847,8 @@ const ProductPage: React.FC = () => {
             name: product.name,
             image: productImageSrc,
             price: displayedPrice,
-            shopId: shop?.id,
-            shopName: shop?.name,
+            shopId: String(shop?.id || ''),
+            shopName: String(shop?.name || ''),
           } : null}
         />
         {canUseCart ? (

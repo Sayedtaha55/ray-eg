@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 interface AdditionalImagesSectionProps {
   extraImagePreviews: string[];
-  extraFilesInputRef: React.RefObject<HTMLInputElement>;
+  extraFilesInputRef: React.RefObject<HTMLInputElement | null>;
   handleExtraImagesChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   setExtraImagePreviews: React.Dispatch<React.SetStateAction<string[]>>;
   setExtraImageUploadFiles: React.Dispatch<React.SetStateAction<File[]>>;

@@ -437,7 +437,7 @@ export const ApiService = {
     if (!sid) throw new Error('Missing shopId');
     return await backendPost<any>(`/api/v1/shops/${encodeURIComponent(sid)}/image-maps/analyze`, payload);
   },
-  uploadMedia: async (payload: { file: File; purpose?: string; shopId?: string }) => {
+  uploadMedia: async (payload: { file: File; purpose?: string; shopId?: string }): Promise<{ url: string; key: string }> => {
     const file = payload?.file;
     if (!file) throw new Error('Missing file');
 
@@ -461,7 +461,7 @@ export const ApiService = {
     }
   },
 
-  uploadMediaRobust: async (payload: { file: File; purpose?: string; shopId?: string }) => {
+  uploadMediaRobust: async (payload: { file: File; purpose?: string; shopId?: string }): Promise<{ url: string; key: string }> => {
     const file = payload?.file;
     if (!file) throw new Error('Missing file');
 
@@ -1096,7 +1096,7 @@ export const ApiService = {
     } catch {
       // fallback to mock db if backend fails
       const shops = await mockDb.getShops('all' as any);
-      const allOffers = shops.flatMap(s => (s.offers || []).map(o => ({ ...o, shopId: s.id })));
+      const allOffers = shops.flatMap(s => (s.offers || []).map((o: any) => ({ ...o, shopId: s.id })));
       return allOffers || [];
     }
   },

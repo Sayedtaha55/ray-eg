@@ -22,7 +22,7 @@ interface SidebarProps {
   setActiveMap: (m: any) => void;
   normalizeHotspotsFromMap: (m: any) => any[];
   setAddingMode: (v: boolean) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({

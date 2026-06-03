@@ -203,7 +203,7 @@ const POSCart: React.FC<POSCartProps> = ({
               drag="y"
               dragConstraints={{ top: 0, bottom: sheetYClosed }}
               dragElastic={0.12}
-              onDragEnd={(_, info) => {
+              onDragEnd={(_: any, info: any) => {
                 if (info.offset.y > 160 || info.velocity.y > 900) setMobileOpen(false);
               }}
               className="fixed bottom-0 left-0 right-0 z-[140] md:hidden bg-white rounded-t-[2rem] shadow-2xl flex flex-col h-[92vh]"
