@@ -28,6 +28,14 @@ export async function deleteFeedbackAdminViaBackend(id: string) {
   return await backendDelete<any>(`/api/v1/feedback/admin/${encodeURIComponent(id)}`);
 }
 
-export async function createFeedbackViaBackend(payload: { text?: string; comment?: string; rating?: number; shopId?: string; productId?: string }) {
+export async function createFeedbackViaBackend(payload: { text?: string; comment?: string; type?: string; rating?: number; shopId?: string; productId?: string; userName?: string; userEmail?: string }) {
   return await backendPost<any>(`/api/v1/feedback/public`, payload);
+}
+
+export async function listFeedbackPublicViaBackend(opts?: { take?: number; skip?: number }) {
+  const params = new URLSearchParams();
+  if (typeof opts?.take === 'number') params.set('take', String(opts.take));
+  if (typeof opts?.skip === 'number') params.set('skip', String(opts.skip));
+  const qs = params.toString();
+  return await backendGet<any[]>(`/api/v1/feedback/public${qs ? `?${qs}` : ''}`);
 }

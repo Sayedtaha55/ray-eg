@@ -9,7 +9,48 @@ import StorefrontShowcaseSection from './home/StorefrontShowcaseSection';
 const OffersSection = lazy(() => import('./home/OffersSection'));
 const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
 
-const ReservationModal = lazy(() => import('../shared/ReservationModal'));
+const HOME_CACHE_KEY = 'ray_home_feed_cache_v1';
+
+type HomeFeedCache = {
+  offers: Offer[];
+  shops: Shop[];
+  shopProductsById: Record<string, Product[]>;
+  savedAt: number;
+};
+
+function readHomeFeedCache(): HomeFeedCache | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(HOME_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const savedAt = Number(parsed?.savedAt || 0);
+    if (!savedAt || Date.now() - savedAt > 1000 * 60 * 60 * 24) return null;
+    return {
+      offers: Array.isArray(parsed?.offers) ? parsed.offers : [],
+      shops: Array.isArray(parsed?.shops) ? parsed.shops : [],
+      shopProductsById: parsed?.shopProductsById && typeof parsed.shopProductsById === 'object' ? parsed.shopProductsById : {},
+      savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeHomeFeedCache(next: Partial<HomeFeedCache>) {
+  if (typeof window === 'undefined') return;
+  try {
+    const current = readHomeFeedCache();
+    const merged: HomeFeedCache = {
+      offers: next.offers || current?.offers || [],
+      shops: next.shops || current?.shops || [],
+      shopProductsById: next.shopProductsById || current?.shopProductsById || {},
+      savedAt: Date.now(),
+    };
+    window.localStorage.setItem(HOME_CACHE_KEY, JSON.stringify(merged));
+  } catch {
+  }
+}
 
 const HomeFeed: React.FC = () => {
   const [offers, setOffers] = useState<Offer[]>([]);
@@ -19,7 +60,6 @@ const HomeFeed: React.FC = () => {
   const [shopProductsById, setShopProductsById] = useState<Record<string, Product[]>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const navigate = useNavigate();
   const { playSound } = useCartSound();
@@ -42,10 +82,31 @@ const HomeFeed: React.FC = () => {
   const previewCacheRef = useRef<Record<string, Product[]>>({});
   const latestLoadIdRef = useRef(0);
   const MAX_RENDERED_OFFERS = 48;
+  const hasHydratedCacheRef = useRef(false);
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
       ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
       : false;
+
+  useEffect(() => {
+    if (hasHydratedCacheRef.current) return;
+    hasHydratedCacheRef.current = true;
+    const cached = readHomeFeedCache();
+    if (!cached) return;
+    if (cached.offers.length) {
+      setOffers(cached.offers);
+      offersLenRef.current = cached.offers.length;
+      setLoading(false);
+    }
+    if (cached.shops.length) {
+      setShops(cached.shops);
+      setLoadingShops(false);
+    }
+    if (Object.keys(cached.shopProductsById || {}).length) {
+      previewCacheRef.current = cached.shopProductsById;
+      setShopProductsById(cached.shopProductsById);
+    }
+  }, []);
 
   useEffect(() => {
     const PAGE_SIZE = 12;
@@ -93,15 +154,23 @@ const HomeFeed: React.FC = () => {
       previewCacheRef.current = { ...previewCacheRef.current, ...fetched };
 
       if (latestLoadIdRef.current === loadId) {
-        setShopProductsById((prev) => ({ ...prev, ...fetched }));
+        setShopProductsById((prev) => {
+          const next = { ...prev, ...fetched };
+          writeHomeFeedCache({ shopProductsById: next });
+          return next;
+        });
       }
     };
 
     const loadData = async () => {
       const loadId = Date.now();
       latestLoadIdRef.current = loadId;
-      setLoading(true);
-      setLoadingShops(true);
+      const cachedAtStart = readHomeFeedCache();
+      const hasCachedAtStart = Boolean(cachedAtStart && (cachedAtStart.offers.length || cachedAtStart.shops.length));
+      if (!hasCachedAtStart) {
+        setLoading(true);
+        setLoadingShops(true);
+      }
 
       try {
         const [offersData, shopsData] = await Promise.all([
@@ -111,6 +180,7 @@ const HomeFeed: React.FC = () => {
 
         const offersList = Array.isArray(offersData) ? offersData : [];
         setOffers(offersList);
+        if (offersList.length) writeHomeFeedCache({ offers: offersList });
 
         const nextHasMore = offersList.length >= PAGE_SIZE;
         offersLenRef.current = offersList.length;
@@ -135,6 +205,7 @@ const HomeFeed: React.FC = () => {
         });
         if (latestLoadIdRef.current === loadId) {
           setShops(mapVisibleShops);
+          if (mapVisibleShops.length) writeHomeFeedCache({ shops: mapVisibleShops });
           setLoadingShops(false);
         }
 
@@ -143,17 +214,32 @@ const HomeFeed: React.FC = () => {
         });
       } catch {
         if (latestLoadIdRef.current === loadId) {
-          setOffers([]);
-          offersLenRef.current = 0;
+          const cached = readHomeFeedCache();
+          if (cached && (cached.offers.length || cached.shops.length)) {
+            setOffers(cached.offers);
+            offersLenRef.current = cached.offers.length;
+            hasMoreOffersRef.current = false;
+            setHasMoreOffers(false);
+            setShops(cached.shops);
+            setShopProductsById(cached.shopProductsById || {});
+            previewCacheRef.current = cached.shopProductsById || {};
+            setLoading(false);
+            setLoadingShops(false);
+            return;
+          }
+
           hasMoreOffersRef.current = false;
           setHasMoreOffers(false);
-          setShops([]);
-          setShopProductsById({});
-          setLoadingShops(false);
+          // Keep the skeleton visible on first-load network failures instead of showing scary empty/error states.
+          setLoading(true);
+          setLoadingShops(true);
         }
       } finally {
         if (latestLoadIdRef.current === loadId) {
-          setLoading(false);
+          const hasCachedUi = offersLenRef.current > 0 || Object.keys(previewCacheRef.current || {}).length > 0;
+          if (hasCachedUi || (typeof navigator !== 'undefined' && navigator.onLine !== false)) {
+            setLoading(false);
+          }
         }
       }
     };
@@ -169,6 +255,7 @@ const HomeFeed: React.FC = () => {
           const merged = [...prev, ...list];
           const capped = merged.length > MAX_RENDERED_OFFERS ? merged.slice(merged.length - MAX_RENDERED_OFFERS) : merged;
           offersLenRef.current = capped.length;
+          writeHomeFeedCache({ offers: capped });
           return capped;
         });
         const nextHasMore = list.length >= PAGE_SIZE;
@@ -187,6 +274,7 @@ const HomeFeed: React.FC = () => {
 
     loadData();
     window.addEventListener('ray-db-update', loadData);
+    window.addEventListener('online', loadData);
 
     try {
       if (observerRef.current) {
@@ -205,6 +293,7 @@ const HomeFeed: React.FC = () => {
     }
     return () => {
       window.removeEventListener('ray-db-update', loadData);
+      window.removeEventListener('online', loadData);
       try {
         observerRef.current?.disconnect();
         observerRef.current = null;
@@ -269,27 +358,12 @@ const HomeFeed: React.FC = () => {
           hasMoreOffers={hasMoreOffers}
           offers={offers}
           navigate={navigate as any}
-          setSelectedItem={setSelectedItem}
           playSound={playSound}
           loadMoreSentinelRef={loadMoreSentinelRef}
           loadMoreOffers={() => loadMoreOffersRef.current?.()}
         />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <ReservationModal
-          isOpen={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
-          item={selectedItem ? {
-            id: selectedItem.id,
-            name: selectedItem.title,
-            image: selectedItem.imageUrl,
-            price: selectedItem.newPrice,
-            shopId: selectedItem.shopId,
-            shopName: selectedItem.shopName,
-          } : null}
-        />
-      </Suspense>
     </div>
   );
 };

@@ -14,6 +14,7 @@ import { getDeferredDelay, isMobileViewportLike } from '@/utils/performanceProfi
 
 const RayAssistant = React.lazy(() => import('@/components/pages/shared/RayAssistant'));
 const CartDrawer = React.lazy(() => import('@/components/pages/shared/CartDrawer'));
+const FeedbackWidget = React.lazy(() => import('@/components/pages/public/home/FeedbackWidget'));
 
 const PublicLayout: React.FC = () => {
   const { t } = useTranslation();
@@ -372,6 +373,7 @@ const PublicLayout: React.FC = () => {
 
   const pathname = String(location?.pathname || '');
   const hideCartButton = pathname === '/shop' || pathname.startsWith('/shop/') || pathname === '/s' || pathname.startsWith('/s/');
+  const showFeedbackWidget = pathname === '/' || pathname === '';
 
   return (
     <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] selection:bg-[#00E5FF] selection:text-black font-sans">
@@ -581,6 +583,12 @@ const PublicLayout: React.FC = () => {
         </React.Suspense>
       )}
 
+      {showFeedbackWidget && (
+        <React.Suspense fallback={null}>
+          <FeedbackWidget />
+        </React.Suspense>
+      )}
+
       <PwaInstallPrompt />
 
       {authPrompt.open && (
@@ -656,6 +664,7 @@ const PublicLayout: React.FC = () => {
                   <h3 className="font-black text-[10px] uppercase tracking-widest text-green-300 mb-6">{t('public.help')}</h3>
                   <nav className="flex flex-col gap-4 text-slate-300 font-bold text-sm md:text-lg">
                     <Link to="/support" className="hover:text-white transition-colors">{t('common.helpCenter')}</Link>
+                    <Link to="/suggestions" className="hover:text-white transition-colors">الاقتراحات</Link>
                     <Link to="/terms" className="hover:text-white transition-colors">{t('common.terms')}</Link>
                     <Link to="/privacy" className="hover:text-white transition-colors">{t('common.privacy')}</Link>
                     <Link to="/contact" className="hover:text-white transition-colors">{t('common.contactUs')}</Link>

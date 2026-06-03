@@ -12,7 +12,6 @@ interface OffersSectionProps {
   hasMoreOffers: boolean;
   offers: Offer[];
   navigate: (url: string) => void;
-  setSelectedItem: (item: any) => void;
   playSound: () => void;
   loadMoreSentinelRef: React.RefObject<HTMLDivElement | null>;
   loadMoreOffers: () => void;
@@ -24,7 +23,6 @@ const OffersSection: React.FC<OffersSectionProps> = ({
   hasMoreOffers,
   offers,
   navigate,
-  setSelectedItem,
   playSound,
   loadMoreSentinelRef,
   loadMoreOffers,
@@ -63,7 +61,6 @@ const OffersSection: React.FC<OffersSectionProps> = ({
                   offer={offer}
                   idx={idx}
                   navigate={navigate}
-                  setSelectedItem={setSelectedItem}
                   playSound={playSound}
                 />
               </div>

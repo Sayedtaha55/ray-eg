@@ -137,6 +137,7 @@ import {
   deleteFeedbackAdminViaBackend,
   getFeedbackViaMock,
   listFeedbackAdminViaBackend,
+  listFeedbackPublicViaBackend,
   saveFeedbackViaMock,
   updateFeedbackStatusAdminViaBackend,
 } from './api/modules/feedback';
@@ -1676,6 +1677,9 @@ export const ApiService = {
   },
   saveFeedback: async (feedbackData: any) => {
     return await createFeedbackViaBackend(feedbackData);
+  },
+  getPublicFeedback: async (opts?: { take?: number; skip?: number }) => {
+    return await listFeedbackPublicViaBackend(opts);
   },
 
   // Customer Management

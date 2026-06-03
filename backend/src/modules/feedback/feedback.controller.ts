@@ -31,6 +31,12 @@ export class FeedbackController {
     });
   }
 
+  @Get('public')
+  async listPublic(@Query('take') take: string, @Query('skip') skip: string) {
+    const paging = this.feedbackService.parseListQuery(take, skip);
+    return this.feedbackService.listPublic(paging);
+  }
+
   @Get('admin')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
