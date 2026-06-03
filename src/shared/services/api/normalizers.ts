@@ -1,5 +1,34 @@
 import { toBackendUrl } from './httpClient';
 
+const firstDefined = (...values: any[]) => values.find((value) => value !== undefined && value !== null);
+
+export function normalizeShopGalleryFromBackend(img: any) {
+  if (!img) return img;
+  const imageUrlRaw = firstDefined(img.imageUrl, img.image_url, img.url);
+  const thumbUrlRaw = firstDefined(img.thumbUrl, img.thumb_url, img.thumbnailUrl, img.thumbnail_url);
+  const mediumUrlRaw = firstDefined(img.mediumUrl, img.medium_url);
+  const mediaTypeRaw = firstDefined(img.mediaType, img.media_type, img.type);
+  const normalizedMediaType = String(mediaTypeRaw || '').trim().toUpperCase();
+  const imageUrl = typeof imageUrlRaw === 'string' ? toBackendUrl(imageUrlRaw) : imageUrlRaw;
+  const thumbUrl = typeof thumbUrlRaw === 'string' ? toBackendUrl(thumbUrlRaw) : thumbUrlRaw;
+  const mediumUrl = typeof mediumUrlRaw === 'string' ? toBackendUrl(mediumUrlRaw) : mediumUrlRaw;
+  const mediaType = normalizedMediaType === 'VIDEO' || normalizedMediaType === 'IMAGE'
+    ? normalizedMediaType
+    : (/\.(mp4|webm|mov|ogg|ogv|avi|3gp)(?:[?#]|$)|\/video\//i.test(String(imageUrlRaw || '')) ? 'VIDEO' : img.mediaType);
+
+  return {
+    ...img,
+    imageUrl,
+    image_url: img.image_url ?? imageUrl,
+    mediaType,
+    media_type: img.media_type ?? mediaType,
+    thumbUrl,
+    thumb_url: img.thumb_url ?? thumbUrl,
+    mediumUrl,
+    medium_url: img.medium_url ?? mediumUrl,
+  };
+}
+
 export function normalizeUserFromBackend(user: any) {
   if (!user) return user;
   return {
@@ -73,6 +102,11 @@ export function normalizeShopFromBackend(shop: any) {
   const normalizedPageDesign = (() => {
     if (!rawPageDesign || typeof rawPageDesign !== 'object') return rawPageDesign;
     const d: any = { ...(rawPageDesign as any) };
+    d.bannerUrl = firstDefined(d.bannerUrl, d.banner_url);
+    d.bannerPosterUrl = firstDefined(d.bannerPosterUrl, d.banner_poster_url);
+    d.bannerIsVideo = firstDefined(d.bannerIsVideo, d.banner_is_video);
+    d.backgroundImageUrl = firstDefined(d.backgroundImageUrl, d.background_image_url);
+    d.headerBackgroundImageUrl = firstDefined(d.headerBackgroundImageUrl, d.header_background_image_url);
     if (typeof d.bannerUrl === 'string') d.bannerUrl = toBackendUrl(d.bannerUrl);
     if (typeof d.bannerPosterUrl === 'string') d.bannerPosterUrl = toBackendUrl(d.bannerPosterUrl);
     if (typeof d.backgroundImageUrl === 'string') d.backgroundImageUrl = toBackendUrl(d.backgroundImageUrl);

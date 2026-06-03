@@ -13,6 +13,15 @@ import type { ShopGallery } from '@/types';
 
 const { Link } = ReactRouterDOM as any;
 
+const getVideoSourceType = (url: string) => {
+  const cleaned = String(url || '').split('#')[0].split('?')[0].toLowerCase();
+  if (cleaned.endsWith('.webm')) return 'video/webm';
+  if (cleaned.endsWith('.ogg') || cleaned.endsWith('.ogv')) return 'video/ogg';
+  if (cleaned.endsWith('.mov')) return 'video/quicktime';
+  if (cleaned.endsWith('.mp4') || cleaned.endsWith('.m4v')) return 'video/mp4';
+  return undefined;
+};
+
 const WhatsAppIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
     <path d="M12 2C6.477 2 2 6.145 2 11.26c0 2.007.688 3.866 1.86 5.367L3 22l5.633-1.76c1.413.747 3.046 1.172 4.367 1.172 5.523 0 10-4.145 10-9.26C23 6.145 17.523 2 12 2Z" fill="currentColor" opacity="0.22" />
@@ -108,9 +117,10 @@ const BusinessLanding: React.FC = () => {
     };
   }, [featuredShopId]);
 
-  const heroMp4 = heroVideo?.imageUrl ? String(heroVideo.imageUrl) : fallbackHero.mp4;
+  const heroVideoUrl = heroVideo?.imageUrl ? String(heroVideo.imageUrl) : fallbackHero.mp4;
   const heroPoster = heroVideo?.thumbUrl ? String(heroVideo.thumbUrl) : fallbackHero.poster;
   const hasDynamicHero = Boolean(heroVideo?.imageUrl);
+  const heroVideoType = getVideoSourceType(heroVideoUrl);
 
   const scrollToAbout = () => {
     aboutRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -139,6 +149,7 @@ const BusinessLanding: React.FC = () => {
       {/* Hero Section - preserved with video */}
       <div className="relative min-h-[86vh] md:min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
         <video
+          key={heroVideoUrl}
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted
@@ -147,9 +158,14 @@ const BusinessLanding: React.FC = () => {
           preload="metadata"
           poster={heroPoster}
         >
-          {!hasDynamicHero && <source src={fallbackHero.webm} type="video/webm" />}
-          <source src={heroMp4} type="video/mp4" />
-          {!hasDynamicHero && <source src={fallbackHero.mp4} type="video/mp4" />}
+          {hasDynamicHero ? (
+            <source src={heroVideoUrl} {...(heroVideoType ? { type: heroVideoType } : {})} />
+          ) : (
+            <>
+              <source src={fallbackHero.webm} type="video/webm" />
+              <source src={fallbackHero.mp4} type="video/mp4" />
+            </>
+          )}
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/50 to-[#FAFAF7]" />
 

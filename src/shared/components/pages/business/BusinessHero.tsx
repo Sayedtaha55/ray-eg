@@ -6,6 +6,15 @@ import { ApiService } from '@/services/api.service';
 import type { ShopGallery } from '@/types';
 
 const { Link } = ReactRouterDOM as any;
+
+const getVideoSourceType = (url: string) => {
+  const cleaned = String(url || '').split('#')[0].split('?')[0].toLowerCase();
+  if (cleaned.endsWith('.webm')) return 'video/webm';
+  if (cleaned.endsWith('.ogg') || cleaned.endsWith('.ogv')) return 'video/ogg';
+  if (cleaned.endsWith('.mov')) return 'video/quicktime';
+  if (cleaned.endsWith('.mp4') || cleaned.endsWith('.m4v')) return 'video/mp4';
+  return undefined;
+};
 const MotionDiv = motion.div as any;
 
 const BusinessHero: React.FC = () => {
@@ -36,19 +45,11 @@ const BusinessHero: React.FC = () => {
 
     const loadShopAndGallery = async () => {
       try {
-        // Load shop info
-        const shopData = await fetch(`/api/v1/shops/${encodeURIComponent(shopId)}`).then((r) => {
-          if (!r.ok) throw new Error('Shop not found');
-          return r.json();
-        });
+        const shopData = await ApiService.getShopBySlugOrId(shopId);
         if (cancelled) return;
         setShop(shopData);
 
-        // Load gallery
-        const galleryItems = await fetch(`/api/v1/gallery/${encodeURIComponent(shopId)}`).then((r) => {
-          if (!r.ok) throw new Error('Gallery not found');
-          return r.json();
-        });
+        const galleryItems = await ApiService.getShopGallery(shopId);
         if (cancelled) return;
         const list = Array.isArray(galleryItems) ? (galleryItems as ShopGallery[]) : [];
         const firstVideo = list.find((x) => String((x as any)?.mediaType || '').toUpperCase() === 'VIDEO') || null;
@@ -69,9 +70,10 @@ const BusinessHero: React.FC = () => {
     };
   }, [shopId]);
 
-  const heroMp4 = heroVideo?.imageUrl ? String(heroVideo.imageUrl) : fallbackHero.mp4;
+  const heroVideoUrl = heroVideo?.imageUrl ? String(heroVideo.imageUrl) : fallbackHero.mp4;
   const heroPoster = heroVideo?.thumbUrl ? String(heroVideo.thumbUrl) : fallbackHero.poster;
   const hasDynamicHero = Boolean(heroVideo?.imageUrl);
+  const heroVideoType = getVideoSourceType(heroVideoUrl);
 
   if (loading) {
     return (
@@ -98,6 +100,7 @@ const BusinessHero: React.FC = () => {
       {/* Hero Section */}
       <div className="relative min-h-[92vh] bg-slate-950 overflow-hidden flex items-center">
         <video
+          key={heroVideoUrl}
           className="absolute inset-0 w-full h-full object-cover"
           autoPlay
           muted
@@ -106,9 +109,14 @@ const BusinessHero: React.FC = () => {
           preload="metadata"
           poster={heroPoster}
         >
-          {!hasDynamicHero && <source src={fallbackHero.webm} type="video/webm" />}
-          <source src={heroMp4} type="video/mp4" />
-          {!hasDynamicHero && <source src={fallbackHero.mp4} type="video/mp4" />}
+          {hasDynamicHero ? (
+            <source src={heroVideoUrl} {...(heroVideoType ? { type: heroVideoType } : {})} />
+          ) : (
+            <>
+              <source src={fallbackHero.webm} type="video/webm" />
+              <source src={fallbackHero.mp4} type="video/mp4" />
+            </>
+          )}
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-black/75 via-black/55 to-black-80" />
         <div className="relative z-10 w-full">

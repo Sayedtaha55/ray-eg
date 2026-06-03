@@ -1,5 +1,5 @@
 import { BackendRequestError, backendDelete, backendGet, backendPatch, backendPost, disablePathPrefix, toBackendUrl } from '../httpClient';
-import { normalizeShopFromBackend } from '../normalizers';
+import { normalizeShopFromBackend, normalizeShopGalleryFromBackend } from '../normalizers';
 import { clearSession } from '../../authStorage';
 
 export async function getShopsViaBackend(
@@ -199,13 +199,7 @@ export async function getShopAnalyticsViaBackend(shopId: string, opts?: { from?:
 export async function getShopGalleryViaBackend(shopId: string) {
   try {
     const images = await backendGet<any[]>(`/api/v1/gallery/${shopId}`);
-    return (images || []).map((img: any) => ({
-      ...img,
-      imageUrl: toBackendUrl(img?.imageUrl),
-      mediaType: img?.mediaType,
-      thumbUrl: toBackendUrl(img?.thumbUrl),
-      mediumUrl: toBackendUrl(img?.mediumUrl),
-    }));
+    return (images || []).map(normalizeShopGalleryFromBackend);
   } catch (e) {
     const status = typeof (e as any)?.status === 'number' ? (e as any).status : undefined;
     const name = String((e as any)?.name || '');
@@ -222,13 +216,7 @@ export async function addShopGalleryImageFileViaBackend(shopId: string, image: {
   formData.append('caption', image.caption || '');
   formData.append('shopId', shopId);
   const created = await backendPost<any>(`/api/v1/gallery/upload`, formData);
-  return {
-    ...created,
-    imageUrl: toBackendUrl(created?.imageUrl),
-    mediaType: created?.mediaType,
-    thumbUrl: toBackendUrl(created?.thumbUrl),
-    mediumUrl: toBackendUrl(created?.mediumUrl),
-  };
+  return normalizeShopGalleryFromBackend(created);
 }
 
 export async function deleteShopGalleryImageViaBackend(imageId: string) {
