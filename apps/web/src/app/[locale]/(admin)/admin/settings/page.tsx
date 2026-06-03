@@ -5,17 +5,24 @@ import { Settings, Shield, Globe, Save, RefreshCw, Play, AlertTriangle, Loader2 
 import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
 import { adminUpgradeDashboardConfig } from '@/lib/api/admin';
+import { DEVELOPER_ACTIVITY_OPTIONS } from '@/lib/dashboard/activity-config';
 
 export default function AdminSettingsPage() {
   const t = useT();
   const { dir } = useLocale();
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [upgradeResult, setUpgradeResult] = useState<any>(null);
+  const [upgradeActivityId, setUpgradeActivityId] = useState('restaurant');
 
   const runUpgrade = async (dryRun: boolean) => {
     setUpgradeLoading(true);
     try {
-      const res = await adminUpgradeDashboardConfig({ dryRun });
+      const selectedActivity = DEVELOPER_ACTIVITY_OPTIONS.find((a) => a.id === upgradeActivityId);
+      const res = await adminUpgradeDashboardConfig({
+        dryRun,
+        ...(selectedActivity?.category ? { category: selectedActivity.category } : {}),
+        ...(selectedActivity?.id ? { activityId: selectedActivity.id } : {}),
+      });
       setUpgradeResult(res);
     } catch (e: any) {
       alert(String(e?.message || t('admin.settings.upgradeFailed', 'فشل التحديث')));
@@ -51,6 +58,25 @@ export default function AdminSettingsPage() {
             </div>
           </div>
 
+          <div className="space-y-2 text-right">
+            <label className="text-xs font-black text-slate-500 uppercase tracking-widest pr-4">
+              {t('admin.settings.upgradeActivityLabel', 'النشاط المطلوب تحديثه')}
+            </label>
+            <select
+              value={upgradeActivityId}
+              onChange={(e) => setUpgradeActivityId(e.target.value)}
+              disabled={upgradeLoading}
+              className="w-full bg-slate-800 border border-white/5 rounded-2xl py-4 px-6 text-white font-black outline-none disabled:opacity-60"
+            >
+              {DEVELOPER_ACTIVITY_OPTIONS.map((activity) => (
+                <option key={activity.id} value={activity.id}>{activity.label}</option>
+              ))}
+            </select>
+            <p className="text-[11px] font-bold text-slate-500 pr-4">
+              {t('admin.settings.upgradeActivityHint', 'التحديث سيتم على النشاط المختار فقط، وليس على كل أنشطة المنصة مرة واحدة.')}
+            </p>
+          </div>
+
           <div className="flex flex-col md:flex-row gap-3">
             <button
               disabled={upgradeLoading}
@@ -75,9 +101,9 @@ export default function AdminSettingsPage() {
 
           {upgradeResult && (
             <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-right">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Matched</div>
                   <div className="text-2xl font-black text-white">{Number(upgradeResult?.total ?? 0)}</div>
                 </div>
                 <div>
@@ -85,8 +111,12 @@ export default function AdminSettingsPage() {
                   <div className="text-2xl font-black text-white">{Number(upgradeResult?.updated ?? 0)}</div>
                 </div>
                 <div>
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dry Run</div>
-                  <div className="text-2xl font-black text-white">{String(Boolean(upgradeResult?.dryRun))}</div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Scanned</div>
+                  <div className="text-2xl font-black text-white">{Number(upgradeResult?.scanned ?? upgradeResult?.total ?? 0)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Activity</div>
+                  <div className="text-lg font-black text-white">{DEVELOPER_ACTIVITY_OPTIONS.find((a) => a.id === upgradeResult?.activityId)?.label || '-'}</div>
                 </div>
               </div>
             </div>

@@ -13,75 +13,46 @@ import {
 } from 'lucide-react';
 import { useLocale } from '@/i18n/LocaleProvider';
 import { useT } from '@/i18n/useT';
+import {
+  CORE_MERCHANT_MODULES,
+  DEVELOPER_ACTIVITY_OPTIONS,
+  BOOKING_ACTIVITY_OPTIONS,
+  MerchantDashboardTabId,
+  getActivityOptionById,
+  resolveActivityConfigByActivityId,
+} from '@/lib/dashboard/activity-config';
 
-type ActivityId = 
-  | 'restaurant'
-  | 'grocery'
-  | 'fashion'
-  | 'homeTextiles'
-  | 'furniture'
-  | 'electronics'
-  | 'health'
-  | 'homeGoods'
-  | 'realEstate'
-  | 'carShowroom'
-  | 'other';
-
-interface ActivityDef {
-  id: ActivityId;
-  category: string;
-}
-
-const ACTIVITIES: ActivityDef[] = [
-  { id: 'restaurant', category: 'RESTAURANT' },
-  { id: 'grocery', category: 'FOOD' },
-  { id: 'fashion', category: 'FASHION' },
-  { id: 'homeTextiles', category: 'RETAIL' },
-  { id: 'furniture', category: 'SERVICE' },
-  { id: 'electronics', category: 'ELECTRONICS' },
-  { id: 'health', category: 'HEALTH' },
-  { id: 'homeGoods', category: 'RETAIL' },
-  { id: 'realEstate', category: 'SERVICE' },
-  { id: 'carShowroom', category: 'RETAIL' },
-  { id: 'other', category: 'OTHER' },
-];
-
-type ModuleId =
-  | 'overview'
-  | 'products'
-  | 'reservations'
-  | 'invoice'
-  | 'sales'
-  | 'pos'
-  | 'promotions'
-  | 'reports'
-  | 'customers'
-  | 'gallery'
-  | 'builder'
-  | 'settings';
+type ActivityId = string;
+type ModuleId = MerchantDashboardTabId;
 
 interface ModuleDef {
   id: ModuleId;
+  labelKey: string;
 }
 
-const CORE_MODULES: ModuleDef[] = [
-  { id: 'overview' },
-  { id: 'products' },
-  { id: 'promotions' },
-  { id: 'builder' },
-  { id: 'settings' },
-];
+const MODULE_FALLBACKS: Record<string, string> = {
+  overview: 'نظرة عامة',
+  notifications: 'الإشعارات',
+  products: 'المنتجات',
+  sharedProducts: 'منتجات مشتركة',
+  reservations: 'لوحة الحجوزات',
+  invoice: 'الفواتير',
+  sales: 'المبيعات',
+  pos: 'نقاط البيع',
+  promotions: 'العروض',
+  reports: 'التقارير',
+  customers: 'العملاء',
+  gallery: 'المعرض',
+  builder: 'منشئ الصفحة',
+  abandonedCart: 'السلات المتروكة',
+  apps: 'التطبيقات',
+  chats: 'المحادثات',
+  settings: 'الإعدادات',
+  design: 'التصميم',
+};
 
-const OPTIONAL_MODULES: ModuleDef[] = [
-  { id: 'gallery' },
-  { id: 'reservations' },
-  { id: 'invoice' },
-  { id: 'pos' },
-  { id: 'sales' },
-  { id: 'customers' },
-  { id: 'reports' },
-];
-
+const CORE_MODULE_IDS = CORE_MERCHANT_MODULES;
+const ACTIVITIES = DEVELOPER_ACTIVITY_OPTIONS;
 const STORAGE_KEY = 'ray_merchant_onboarding';
 
 function OnboardingPageInner() {
@@ -93,27 +64,39 @@ function OnboardingPageInner() {
   const [step, setStep] = useState<'activity' | 'modules'>('activity');
   const [activityId, setActivityId] = useState<ActivityId | ''>('');
   const [enabledModules, setEnabledModules] = useState<Set<ModuleId>>(
-    new Set(CORE_MODULES.map((m) => m.id))
+    new Set(CORE_MODULE_IDS)
   );
   const [previewActiveTab, setPreviewActiveTab] = useState<ModuleId>('overview');
   const [error, setError] = useState('');
 
   const selectedActivity = useMemo(
-    () => ACTIVITIES.find((a) => a.id === activityId) || null,
+    () => getActivityOptionById(activityId),
     [activityId]
   );
 
+  const activityModules = useMemo<ModuleDef[]>(() => {
+    const cfg = resolveActivityConfigByActivityId(activityId || selectedActivity?.id);
+    return cfg.tabs
+      .filter((m) => m.id !== 'notifications' && m.id !== 'apps' && m.id !== 'chats' && m.id !== 'design')
+      .map((m) => ({ id: m.id, labelKey: m.labelKey }));
+  }, [activityId, selectedActivity?.id]);
+
+  const optionalModules = useMemo(() =>
+    activityModules.filter((m) => !CORE_MODULE_IDS.includes(m.id)),
+    [activityModules]
+  );
+
   const previewModules = useMemo(() => {
-    const list: ModuleDef[] = [...CORE_MODULES];
-    for (const m of OPTIONAL_MODULES) {
+    const list: ModuleDef[] = activityModules.filter((m) => CORE_MODULE_IDS.includes(m.id));
+    for (const m of optionalModules) {
       if (enabledModules.has(m.id)) list.push(m);
     }
     return list;
-  }, [enabledModules]);
+  }, [activityModules, enabledModules, optionalModules]);
 
   const toggleOptional = (id: ModuleId) => {
     setError('');
-    if (CORE_MODULES.some((m) => m.id === id)) return;
+    if (CORE_MODULE_IDS.includes(id)) return;
 
     setEnabledModules((prev) => {
       const next = new Set(prev);
@@ -165,6 +148,7 @@ function OnboardingPageInner() {
     const q = new URLSearchParams();
     q.set('role', 'merchant');
     q.set('category', selectedActivity?.category || 'OTHER');
+    q.set('activityId', activityId);
     if (returnTo) q.set('returnTo', returnTo);
 
     router.push(`/${locale}/signup?${q.toString()}`);
@@ -212,10 +196,11 @@ function OnboardingPageInner() {
 
         {/* Step 1: Activity Selection */}
         {step === 'activity' ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {ACTIVITIES.map((a) => {
               const active = a.id === activityId;
-              const label = t('business.onboarding.activities.' + a.id, a.id);
+              const label = t('business.onboarding.activities.' + a.id, a.label);
               return (
                 <button
                   key={a.id}
@@ -240,6 +225,15 @@ function OnboardingPageInner() {
                 </button>
               );
             })}
+            </div>
+            <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50/70 p-5 text-right">
+              <div className="font-black text-emerald-800 text-sm mb-2">لوحة الحجوزات تشمل كل أنشطة الحجوزات</div>
+              <div className="flex flex-wrap gap-2 justify-end">
+                {BOOKING_ACTIVITY_OPTIONS.map((a) => (
+                  <span key={a.id} className="px-3 py-1 rounded-full bg-white border border-emerald-100 text-emerald-700 text-[11px] font-black">{a.label}</span>
+                ))}
+              </div>
+            </div>
           </div>
         ) : (
           /* Step 2: Module Selection & Preview */
@@ -258,7 +252,7 @@ function OnboardingPageInner() {
                     </span>
                   </div>
                   <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-black text-slate-400">
-                    {t('business.onboarding.activities.' + activityId)}
+                    {selectedActivity?.label || activityId}
                   </div>
                 </div>
 
@@ -279,7 +273,7 @@ function OnboardingPageInner() {
                         >
                           <div className={`w-2 h-2 rounded-full ${active ? 'bg-[#00E5FF] shadow-[0_0_8px_#00E5FF]' : 'bg-slate-700'}`} />
                           <span className="font-black text-xs uppercase tracking-wider">
-                            {t('business.onboarding.modules.' + m.id, m.id)}
+                            {t('business.dashboardTabs.' + m.id, MODULE_FALLBACKS[m.id] || m.id)}
                           </span>
                         </button>
                       );
@@ -290,7 +284,7 @@ function OnboardingPageInner() {
                   <div className="flex-1 p-8 bg-slate-50/5 relative overflow-hidden">
                     <div className={dir === 'rtl' ? 'text-right' : 'text-left'}>
                       <h3 className="text-3xl font-black text-white mb-2 uppercase tracking-tight">
-                        {t('business.onboarding.modules.' + previewActiveTab)}
+                        {t('business.dashboardTabs.' + previewActiveTab, MODULE_FALLBACKS[previewActiveTab] || previewActiveTab)}
                       </h3>
                       <p className="text-slate-500 font-bold text-sm max-w-sm">
                         {t('business.onboarding.previewHint', 'This is a preview — the real content will be filled after you complete signup.')}
@@ -320,7 +314,7 @@ function OnboardingPageInner() {
                 </p>
 
                 <div className="space-y-3">
-                  {OPTIONAL_MODULES.map((m) => {
+                  {optionalModules.map((m) => {
                     const checked = enabledModules.has(m.id);
                     const disabled = (m.id === 'customers' || m.id === 'reports') && !enabledModules.has('sales');
                     return (
@@ -333,7 +327,7 @@ function OnboardingPageInner() {
                             : 'border-white bg-white/50 hover:bg-white text-slate-400'
                         } ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
                       >
-                        <span className="font-black text-sm">{t('business.onboarding.modules.' + m.id)}</span>
+                        <span className="font-black text-sm">{t('business.dashboardTabs.' + m.id, MODULE_FALLBACKS[m.id] || m.id)}</span>
                         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors ${
                           checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'border-slate-200'
                         }`}>
@@ -371,10 +365,10 @@ function OnboardingPageInner() {
             <p className="text-slate-400 font-bold text-sm mt-2">{t('business.onboarding.buttonsGuideSubtitle')}</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...CORE_MODULES, ...OPTIONAL_MODULES].map((m) => (
+            {activityModules.map((m) => (
               <div key={m.id} className="p-6 rounded-3xl bg-slate-50 border border-slate-100 hover:border-slate-200 transition-colors">
                 <div className="font-black text-slate-900 uppercase tracking-widest text-xs mb-3 text-[#BD00FF]">
-                  {t('business.onboarding.modules.' + m.id)}
+                  {t('business.dashboardTabs.' + m.id, MODULE_FALLBACKS[m.id] || m.id)}
                 </div>
                 <p className="text-slate-600 font-bold text-sm leading-relaxed">
                   {t('business.onboarding.moduleExplanations.' + m.id)}

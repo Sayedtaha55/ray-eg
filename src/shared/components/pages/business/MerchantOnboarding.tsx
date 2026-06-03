@@ -252,6 +252,7 @@ const MerchantOnboarding: React.FC = () => {
     const qs = new URLSearchParams();
     qs.set('role', 'merchant');
     qs.set('category', String(selectedActivity.category));
+    qs.set('activityId', String(selectedActivity.id));
     if (returnTo) qs.set('returnTo', returnTo);
     if (followShopId) qs.set('followShopId', followShopId);
 

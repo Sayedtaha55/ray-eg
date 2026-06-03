@@ -85,6 +85,10 @@ class SignupDto {
 
   @IsOptional()
   @IsString()
+  activityId?: string;
+
+  @IsOptional()
+  @IsString()
   dashboardMode?: string;
 
   @IsOptional()

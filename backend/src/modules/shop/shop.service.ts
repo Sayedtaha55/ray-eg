@@ -190,12 +190,16 @@ export class ShopService {
     shopId?: string;
     take?: number;
     skip?: number;
+    category?: string;
+    activityId?: string;
   }) {
     const statusRaw = String(input?.status || '').trim().toUpperCase();
     const allowedStatuses = new Set(['PENDING', 'APPROVED', 'REJECTED', 'CANCELED', 'ALL', '']);
     if (!allowedStatuses.has(statusRaw)) throw new BadRequestException('status غير صحيح');
 
     const shopId = typeof input?.shopId === 'string' ? String(input.shopId).trim() : '';
+    const category = typeof input?.category === 'string' ? String(input.category).trim().toUpperCase() : '';
+    const activityId = typeof input?.activityId === 'string' ? String(input.activityId).trim() : '';
     const take = typeof input?.take === 'number' && Number.isFinite(input.take)
       ? Math.min(200, Math.max(1, Math.floor(input.take)))
       : 50;
@@ -207,12 +211,18 @@ export class ShopService {
       where: {
         ...(shopId ? { shopId } : {}),
         ...(statusRaw && statusRaw !== 'ALL' ? { status: statusRaw as any } : {}),
+        ...((category || activityId) ? {
+          shop: {
+            ...(category ? { category: category as any } : {}),
+            ...(activityId ? { layoutConfig: { path: ['activityId'], equals: activityId } as any } : {}),
+          },
+        } : {}),
       },
       orderBy: { createdAt: 'desc' },
       take,
       skip,
       include: {
-        shop: { select: { id: true, name: true, slug: true } },
+        shop: { select: { id: true, name: true, slug: true, category: true, layoutConfig: true } },
       },
     });
   }
@@ -317,18 +327,32 @@ export class ShopService {
   async adminUpgradeDashboardConfig(input?: {
     shopIds?: string[];
     dryRun?: boolean;
+    category?: string;
+    activityId?: string;
   }) {
     const dryRun = Boolean(input?.dryRun);
     const shopIds = Array.isArray(input?.shopIds)
       ? input?.shopIds.map((id) => String(id || '').trim()).filter(Boolean)
       : [];
+    const category = String(input?.category || '').trim().toUpperCase();
+    const activityId = String(input?.activityId || '').trim();
 
-    const where = shopIds.length > 0 ? { id: { in: shopIds } } : {};
+    const where = {
+      ...(shopIds.length > 0 ? { id: { in: shopIds } } : {}),
+      ...(category ? { category: category as any } : {}),
+    };
 
-    const shops = await this.prisma.shop.findMany({
+    const shopsRaw = await this.prisma.shop.findMany({
       where: where as any,
       select: { id: true, category: true, layoutConfig: true },
     });
+
+    const shops = activityId
+      ? shopsRaw.filter((s: any) => {
+          const existingActivityId = String((s?.layoutConfig as any)?.activityId || '').trim();
+          return existingActivityId ? existingActivityId === activityId : true;
+        })
+      : shopsRaw;
 
     let updatedCount = 0;
     const details: Array<{ id: string; changed: boolean }> = [];
@@ -349,17 +373,27 @@ export class ShopService {
       const prevMode = String(prevModeRaw || '').trim().toLowerCase();
       const hasValidMode = prevMode === 'showcase' || prevMode === 'manage';
 
+      const nextActivityId = activityId && !String(prevLayout?.activityId || '').trim() ? activityId : String(prevLayout?.activityId || '').trim();
+
       const nextLayout = {
         ...prevLayout,
         ...(prevEnabled.length > 0 ? {} : { enabledModules: nextEnabled }),
+        ...(nextActivityId ? { activityId: nextActivityId } : {}),
         dashboardMode: hasValidMode ? prevMode : String((defaults as any)?.dashboardMode || 'manage'),
       };
 
       const changed =
         JSON.stringify(prevLayout?.enabledModules || null) !== JSON.stringify(nextLayout.enabledModules || null) ||
-        String(prevLayout?.dashboardMode || '') !== String(nextLayout.dashboardMode || '');
+        String(prevLayout?.dashboardMode || '') !== String(nextLayout.dashboardMode || '') ||
+        String(prevLayout?.activityId || '') !== String(nextLayout.activityId || '');
 
-      details.push({ id: String((s as any)?.id || ''), changed });
+      details.push({
+        id: String((s as any)?.id || ''),
+        category: String((s as any)?.category || ''),
+        activityId: String(prevLayout?.activityId || ''),
+        nextActivityId: String((nextLayout as any)?.activityId || ''),
+        changed,
+      } as any);
       if (!changed) continue;
       updatedCount++;
       if (dryRun) continue;
@@ -374,7 +408,10 @@ export class ShopService {
       ok: true,
       dryRun,
       total: shops.length,
+      scanned: shopsRaw.length,
       updated: updatedCount,
+      category: category || null,
+      activityId: activityId || null,
       details,
     };
   }
@@ -527,6 +564,7 @@ export class ShopService {
       isActive?: boolean;
       dashboardMode?: string;
       enabledModules?: any;
+      activityId?: string | null;
     },
   ) {
     return await this.shopSettings.updateShopSettings(shopId, input);
@@ -1134,6 +1172,8 @@ ${urlset}
       counter++;
     }
 
+    const activityId = String(createShopDto.activityId || '').trim();
+
     const shop = await this.prisma.shop.create({
       data: {
         name: createShopDto.name,
@@ -1147,7 +1187,10 @@ ${urlset}
         governorate: createShopDto.governorate,
         city: createShopDto.city,
         openingHours: createShopDto.openingHours,
-        layoutConfig: this.getDefaultDashboardConfigForCategory(createShopDto.category) as any,
+        layoutConfig: {
+          ...this.getDefaultDashboardConfigForCategory(createShopDto.category),
+          ...(activityId ? { activityId } : {}),
+        } as any,
         owner: {
           connect: {
             id: ownerId,

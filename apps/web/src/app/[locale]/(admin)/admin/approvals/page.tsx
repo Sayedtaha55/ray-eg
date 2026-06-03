@@ -5,6 +5,7 @@ import { Check, X, Loader2, Store, MapPin, ShieldAlert, Truck } from 'lucide-rea
 import Link from 'next/link';
 import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
+import { DEVELOPER_ACTIVITY_OPTIONS } from '@/lib/dashboard/activity-config';
 import {
   adminGetPendingShops, adminUpdateShopStatus,
   adminGetPendingMapListings, adminApproveMapListing, adminRejectMapListing,
@@ -19,6 +20,8 @@ export default function AdminApprovalsPage() {
   const [mapListings, setMapListings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [moduleLoading, setModuleLoading] = useState(false);
+  const [moduleActionError, setModuleActionError] = useState('');
+  const [moduleActivityFilter, setModuleActivityFilter] = useState('all');
   const [mapLoading, setMapLoading] = useState(false);
 
   const loadShops = async (silent = false) => {
@@ -36,7 +39,13 @@ export default function AdminApprovalsPage() {
   const loadModuleRequests = async (silent = false) => {
     if (!silent) setModuleLoading(true);
     try {
-      const res = await adminListModuleUpgradeRequests({ status: 'PENDING', take: 100 });
+      const selectedActivity = DEVELOPER_ACTIVITY_OPTIONS.find((a) => a.id === moduleActivityFilter);
+      const res = await adminListModuleUpgradeRequests({
+        status: 'PENDING',
+        take: 100,
+        ...(selectedActivity?.category ? { category: selectedActivity.category } : {}),
+        ...(selectedActivity?.id ? { activityId: selectedActivity.id } : {}),
+      });
       setModuleRequests(Array.isArray(res) ? res : []);
     } catch {
       if (!silent) setModuleRequests([]);
@@ -57,11 +66,48 @@ export default function AdminApprovalsPage() {
     }
   };
 
+  const moduleRequestActivityLabel = (request: any) => {
+    const activityId = String(request?.shop?.layoutConfig?.activityId || '').trim();
+    const activity = DEVELOPER_ACTIVITY_OPTIONS.find((a) => a.id === activityId);
+    if (activity) return activity.label;
+
+    const category = String(request?.shop?.category || '').trim().toUpperCase();
+    const byCategory = DEVELOPER_ACTIVITY_OPTIONS.find((a) => a.category === category);
+    if (byCategory) return `${byCategory.label} · نشاط قديم غير محدد`;
+    return category ? `${category} · نشاط قديم غير محدد` : 'نشاط غير محدد';
+  };
+
+  const moduleRequestActivityIsMissing = (request: any) =>
+    !String(request?.shop?.layoutConfig?.activityId || '').trim();
+
+  const moduleLabel = (id: any) => {
+    const key = String(id || '').trim();
+    const labels: Record<string, string> = {
+      overview: 'نظرة عامة',
+      products: 'المنتجات / الخدمات',
+      promotions: 'العروض',
+      builder: 'منشئ الصفحة',
+      settings: 'الإعدادات',
+      gallery: 'المعرض',
+      reservations: 'لوحة الحجوزات',
+      invoice: 'الفواتير',
+      sales: 'المبيعات',
+      customers: 'العملاء',
+      reports: 'التقارير',
+      pos: 'نقاط البيع',
+      abandonedCart: 'السلات المتروكة',
+    };
+    return labels[key] || key;
+  };
+
   useEffect(() => {
     loadShops();
-    loadModuleRequests();
     loadMapListings();
   }, []);
+
+  useEffect(() => {
+    loadModuleRequests();
+  }, [moduleActivityFilter]);
 
   const handleShopAction = async (id: string, action: 'approved' | 'rejected') => {
     try {
@@ -73,21 +119,23 @@ export default function AdminApprovalsPage() {
   };
 
   const handleModuleApprove = async (id: string) => {
+    setModuleActionError('');
     try {
       await adminApproveModuleUpgradeRequest(id);
       loadModuleRequests();
-    } catch {
-      // error
+    } catch (e: any) {
+      setModuleActionError(String(e?.message || t('admin.approvals.moduleApproveFailed', 'فشل قبول طلب الترقية')));
     }
   };
 
   const handleModuleReject = async (id: string) => {
     const note = prompt(t('admin.approvals.rejectReasonPrompt', 'سبب الرفض:')) || '';
+    setModuleActionError('');
     try {
       await adminRejectModuleUpgradeRequest(id, { note: note || null });
       loadModuleRequests();
-    } catch {
-      // error
+    } catch (e: any) {
+      setModuleActionError(String(e?.message || t('admin.approvals.moduleRejectFailed', 'فشل رفض طلب الترقية')));
     }
   };
 
@@ -128,7 +176,24 @@ export default function AdminApprovalsPage() {
         <div className="space-y-10">
           {/* Module Upgrade Requests */}
           <div className="space-y-4">
-            <h3 className="text-white font-black text-lg">{t('admin.approvals.moduleRequestsTitle', 'طلبات ترقية الأزرار')}</h3>
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <h3 className="text-white font-black text-lg">{t('admin.approvals.moduleRequestsTitle', 'طلبات ترقية الأزرار')}</h3>
+              <select
+                value={moduleActivityFilter}
+                onChange={(e) => setModuleActivityFilter(e.target.value)}
+                className="bg-slate-900 border border-white/10 rounded-2xl px-4 py-3 text-white text-xs font-black outline-none"
+              >
+                <option value="all">{t('admin.approvals.allActivities', 'كل الأنشطة')}</option>
+                {DEVELOPER_ACTIVITY_OPTIONS.map((activity) => (
+                  <option key={activity.id} value={activity.id}>{activity.label}</option>
+                ))}
+              </select>
+            </div>
+            {moduleActionError && (
+              <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 text-right text-sm font-black text-red-300">
+                {moduleActionError}
+              </div>
+            )}
             {moduleLoading ? (
               <div className="flex justify-center py-10"><Loader2 className="animate-spin text-[#00E5FF]" /></div>
             ) : moduleRequests.length === 0 ? (
@@ -141,6 +206,8 @@ export default function AdminApprovalsPage() {
                   const shopName = r?.shop?.name || '';
                   const shopSlug = r?.shop?.slug || '';
                   const modules = Array.isArray(r?.requestedModules) ? r.requestedModules : [];
+                  const activityLabel = moduleRequestActivityLabel(r);
+                  const missingActivity = moduleRequestActivityIsMissing(r);
                   return (
                     <div key={r.id} className="bg-slate-900 border border-white/5 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-6">
                       <div className="text-right flex-1">
@@ -148,6 +215,12 @@ export default function AdminApprovalsPage() {
                           <div>
                             <h4 className="text-xl font-black text-white">{shopName || t('admin.approvals.shop', 'متجر')}</h4>
                             <div className="text-slate-500 text-xs font-bold mt-1">{shopSlug ? `/${shopSlug}` : ''}</div>
+                            <div className="mt-2 flex flex-wrap gap-2 justify-end">
+                              <span className="px-3 py-1 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/20 text-[#00E5FF] text-[11px] font-black">{activityLabel}</span>
+                              {missingActivity && (
+                                <span className="px-3 py-1 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[11px] font-black">يحتاج تحديث النشاط</span>
+                              )}
+                            </div>
                           </div>
                           <div className="text-slate-500 text-xs font-bold">
                             {r?.createdAt ? new Date(r.createdAt).toLocaleString('ar-EG') : ''}
@@ -156,7 +229,7 @@ export default function AdminApprovalsPage() {
                         <div className="mt-4 flex flex-wrap gap-2 justify-end">
                           {modules.map((m: any) => (
                             <span key={String(m)} className="px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">
-                              {String(m)}
+                              {moduleLabel(m)}
                             </span>
                           ))}
                         </div>

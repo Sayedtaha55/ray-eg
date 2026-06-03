@@ -4,10 +4,12 @@ import React, { useState } from 'react';
 import { CalendarCheck, Clock, Phone, User, UserCheck } from 'lucide-react';
 import { useT } from '@/i18n/useT';
 import { useLocale } from '@/i18n/LocaleProvider';
+import { BOOKING_ACTIVITY_OPTIONS, getActivityOptionById } from '@/lib/dashboard/activity-config';
 
 type Props = {
   reservations: any[];
   onUpdateStatus: (id: string, s: string) => void;
+  shop?: any;
 };
 
 const normalizeReservationStatus = (status: any): 'pending' | 'completed' | 'expired' => {
@@ -17,13 +19,28 @@ const normalizeReservationStatus = (status: any): 'pending' | 'completed' | 'exp
   return 'pending';
 };
 
-const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
+const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus, shop }) => {
   const t = useT();
   const { dir } = useLocale();
   const locale = dir === 'rtl' ? 'ar-EG' : 'en-US';
   const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'expired'>('pending');
+  const activityId = String(shop?.activityId || shop?.layoutConfig?.activityId || '').trim();
+  const activityOption = getActivityOptionById(activityId);
+  const isBookingActivity = BOOKING_ACTIVITY_OPTIONS.some((a) => a.id === activityId);
+  const title = activityOption?.label
+    ? `لوحة حجوزات ${activityOption.label}`
+    : t('business.reservations.title', 'لوحة الحجوزات');
+  const autoAddNote = isBookingActivity
+    ? 'كل حجوزات هذا النشاط تظهر هنا: مواعيد، عملاء، مشاركين، ملاحظات، وحالة الحجز.'
+    : t('business.reservations.autoAddNote', 'تظهر الحجوزات تلقائياً هنا.');
 
-  const filteredReservations = reservations.filter((res) => {
+  const sortedReservations = [...reservations].sort((a: any, b: any) => {
+    const ad = new Date(a?.startAt || a?.createdAt || 0).getTime();
+    const bd = new Date(b?.startAt || b?.createdAt || 0).getTime();
+    return bd - ad;
+  });
+
+  const filteredReservations = sortedReservations.filter((res) => {
     if (filter === 'all') return true;
     const normalized = normalizeReservationStatus((res as any).status);
     if (filter === 'pending') return normalized === 'pending';
@@ -40,8 +57,8 @@ const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
     <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 flex-row-reverse">
         <div>
-          <h3 className="text-2xl md:text-3xl font-black">{t('business.reservations.title')}</h3>
-          <p className="text-slate-400 font-black text-xs md:text-sm mt-2">{t('business.reservations.autoAddNote')}</p>
+          <h3 className="text-2xl md:text-3xl font-black">{title}</h3>
+          <p className="text-slate-400 font-black text-xs md:text-sm mt-2">{autoAddNote}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <span className="bg-amber-100 text-amber-600 px-4 md:px-6 py-1.5 md:py-2 rounded-full font-black text-[11px] md:text-xs uppercase tracking-normal md:tracking-widest whitespace-nowrap">{pendingCount} {t('business.reservations.pending')}</span>
@@ -75,12 +92,23 @@ const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus }) => {
                     <p className="text-slate-400 font-bold text-sm flex items-center justify-end gap-2 break-all"><Phone size={14} /> {(res as any).customerPhone}</p>
                   </div>
                   <p className="text-[10px] text-[#00E5FF] font-black mt-3 uppercase tracking-tighter flex items-center justify-end gap-1"><Clock size={12} /> {new Date((res as any).createdAt).toLocaleString(locale)}</p>
+                  {((res as any).startAt || (res as any).bookingDate || (res as any).bookingTime) && (
+                    <p className="text-[11px] text-slate-500 font-black mt-2 flex items-center justify-end gap-1">
+                      <CalendarCheck size={12} />
+                      {(res as any).startAt ? new Date((res as any).startAt).toLocaleString(locale) : `${(res as any).bookingDate || ''} ${(res as any).bookingTime || ''}`.trim()}
+                    </p>
+                  )}
+                  {Number((res as any).participants || 0) > 1 && (
+                    <p className="text-[11px] text-slate-500 font-black mt-2 flex items-center justify-end gap-1"><UserCheck size={12} /> عدد الأفراد: {(res as any).participants}</p>
+                  )}
+                  {(res as any).notes && <p className="text-xs text-slate-400 font-bold mt-2 break-words">{(res as any).notes}</p>}
                 </div>
               </div>
               <div className="flex flex-col md:flex-row items-center gap-6 w-full lg:w-auto">
                 <div className="text-right md:text-left px-0 md:px-8">
                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{t('business.reservations.amountDue')}</p>
-                  <p className="text-2xl md:text-3xl font-black text-slate-900">{t('business.reservations.currency')} {(res as any).itemPrice}</p>
+                  <p className="text-2xl md:text-3xl font-black text-slate-900">{t('business.reservations.currency')} {(res as any).itemPrice ?? 0}</p>
+                  <p className="mt-2 text-[10px] font-black text-slate-400">{String((res as any).__bookingSource || 'booking') === 'reservation' ? 'حجز قديم' : 'حجز شامل'}</p>
                 </div>
                 {normalizeReservationStatus((res as any).status) === 'pending' ? (
                   <div className="flex gap-3 w-full md:w-auto">

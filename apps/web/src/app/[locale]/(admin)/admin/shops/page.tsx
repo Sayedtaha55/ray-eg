@@ -11,6 +11,7 @@ import {
   adminGetShops, adminGetPendingShops, adminGetShopById,
   adminUpdateShopStatus, adminUpdateShop,
 } from '@/lib/api/admin';
+import { DEVELOPER_ACTIVITY_OPTIONS } from '@/lib/dashboard/activity-config';
 
 export default function AdminShopsPage() {
   const t = useT();
@@ -20,6 +21,7 @@ export default function AdminShopsPage() {
   const [pendingShops, setPendingShops] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED'>('all');
+  const [activityFilter, setActivityFilter] = useState('all');
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [selectedShop, setSelectedShop] = useState<any>(null);
@@ -104,15 +106,39 @@ export default function AdminShopsPage() {
     }
   };
 
+  const getShopActivityId = (shop: any) => String(shop?.activityId || shop?.layoutConfig?.activityId || '').trim();
+
+  const getShopActivityOption = (shop: any) => {
+    const activityId = getShopActivityId(shop);
+    if (activityId) {
+      return DEVELOPER_ACTIVITY_OPTIONS.find((option) => option.id === activityId) || null;
+    }
+    const category = String(shop?.category || shop?.layoutConfig?.category || '').toUpperCase();
+    return DEVELOPER_ACTIVITY_OPTIONS.find((option) => option.category === category) || null;
+  };
+
+  const getShopActivityLabel = (shop: any) => {
+    const option = getShopActivityOption(shop);
+    if (option) return option.label;
+    const category = String(shop?.category || '').trim();
+    return category || t('admin.shops.activityUnspecified', 'نشاط غير محدد');
+  };
+
+  const isLegacyActivityShop = (shop: any) => !getShopActivityId(shop) && Boolean(getShopActivityOption(shop));
+
   const filteredShops = useMemo(() => {
     return shops.filter((shop: any) => {
       const q = searchTerm.toLowerCase();
-      const matchesSearch = !searchTerm || [shop?.name, shop?.email, shop?.phone, shop?.city, shop?.governorate, shop?.slug]
+      const matchesSearch = !searchTerm || [shop?.name, shop?.email, shop?.phone, shop?.city, shop?.governorate, shop?.slug, getShopActivityLabel(shop)]
         .some((x) => String(x || '').toLowerCase().includes(q));
       const matchesStatus = statusFilter === 'all' || String(shop?.status || '').toUpperCase() === statusFilter;
-      return matchesSearch && matchesStatus;
+      const selectedActivity = DEVELOPER_ACTIVITY_OPTIONS.find((option) => option.id === activityFilter);
+      const matchesActivity = activityFilter === 'all' || (selectedActivity
+        ? getShopActivityId(shop) === selectedActivity.id || (!getShopActivityId(shop) && String(shop?.category || '').toUpperCase() === selectedActivity.category)
+        : false);
+      return matchesSearch && matchesStatus && matchesActivity;
     });
-  }, [shops, searchTerm, statusFilter]);
+  }, [shops, searchTerm, statusFilter, activityFilter]);
 
   const statusLabel = (s: string) => {
     const upper = String(s || '').toUpperCase();
@@ -181,7 +207,7 @@ export default function AdminShopsPage() {
                   />
                   <div className="text-right">
                     <div className="text-white font-black">{shop.name}</div>
-                    <div className="text-slate-500 text-xs font-bold">{shop.governorate} • {shop.city} • {shop.category}</div>
+                    <div className="text-slate-500 text-xs font-bold">{shop.governorate} • {shop.city} • {getShopActivityLabel(shop)}</div>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -209,6 +235,16 @@ export default function AdminShopsPage() {
             />
           </div>
           <select
+            value={activityFilter}
+            onChange={(e) => setActivityFilter(e.target.value)}
+            className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
+          >
+            <option value="all">{t('admin.shops.allActivities', 'كل الأنشطة')}</option>
+            {DEVELOPER_ACTIVITY_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>{option.label}</option>
+            ))}
+          </select>
+          <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
             className="px-4 py-3 bg-slate-800/50 border border-white/5 rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/30"
@@ -228,6 +264,7 @@ export default function AdminShopsPage() {
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.shop', 'المتجر')}</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.owner', 'المالك')}</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.location', 'الموقع')}</th>
+                <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.activity', 'النشاط')}</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.status', 'الحالة')}</th>
                 <th className="p-4 text-slate-400 font-black text-xs uppercase tracking-widest">{t('admin.shops.table.actions', 'إجراءات')}</th>
               </tr>
@@ -236,6 +273,7 @@ export default function AdminShopsPage() {
               {filteredShops.map((shop: any) => {
                 const status = String(shop.status || '').toUpperCase();
                 const isActive = Boolean(shop?.isActive ?? true);
+                const legacyActivity = isLegacyActivityShop(shop);
                 return (
                   <tr key={shop.id} className="border-b border-white/5 hover:bg-white/[0.02]">
                     <td className="p-4">
@@ -254,6 +292,14 @@ export default function AdminShopsPage() {
                     <td className="p-4 text-slate-300 font-bold text-sm">
                       {shop.governorate || '-'}
                       <div className="text-slate-500 text-xs mt-1">{shop.city || '-'}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="inline-flex flex-col gap-1 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-3 py-2 text-xs font-black text-cyan-100">
+                        <span>{getShopActivityLabel(shop)}</span>
+                        {legacyActivity && (
+                          <span className="text-[10px] text-amber-200">{t('admin.shops.legacyActivityWarning', 'يحتاج ترقية النشاط')}</span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-4">
                       <span className={`px-3 py-1 rounded-xl text-xs font-black ${statusClass(status)}`}>
@@ -307,6 +353,10 @@ export default function AdminShopsPage() {
                       <div className="flex items-center gap-2 justify-end"><Mail size={14} className="text-slate-500" /> {selected?.email || selected?.owner?.email || '-'}</div>
                       <div className="flex items-center gap-2 justify-end"><Phone size={14} className="text-slate-500" /> {selected?.phone || '-'}</div>
                       <div className="flex items-center gap-2 justify-end"><MapPin size={14} className="text-slate-500" /> {selected?.governorate || '-'} • {selected?.city || '-'}</div>
+                      <div className="flex items-center gap-2 justify-end text-cyan-200"><Store size={14} className="text-cyan-400" /> {getShopActivityLabel(selected)}</div>
+                      {isLegacyActivityShop(selected) && (
+                        <div className="text-amber-200 text-xs">{t('admin.shops.legacyActivityWarning', 'يحتاج ترقية النشاط')}</div>
+                      )}
                     </div>
                   </div>
                   <img src={selected?.logoUrl || selected?.logo_url || '/default-shop.png'} className="w-20 h-20 rounded-3xl object-cover bg-slate-800" alt="" />

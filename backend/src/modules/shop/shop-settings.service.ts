@@ -47,6 +47,7 @@ export class ShopSettingsService {
       deliveryDisabled?: boolean;
       dashboardMode?: string;
       enabledModules?: any;
+      activityId?: string | null;
       receiptTheme?: {
         shopName?: string;
         phone?: string;
@@ -137,6 +138,13 @@ export class ShopSettingsService {
       };
 
       const hasDashboardUpdate = typeof input.dashboardMode !== 'undefined' || typeof input.enabledModules !== 'undefined';
+
+      const activityId = (() => {
+        if (typeof input.activityId === 'undefined') return undefined;
+        if (input.activityId === null) return null;
+        const v = String(input.activityId || '').trim();
+        return v ? v : null;
+      })();
 
       const dashboardCfg = hasDashboardUpdate
         ? normalizeDashboardConfigUpdate({
@@ -244,6 +252,7 @@ export class ShopSettingsService {
       const nextLayout = {
         ...prevLayout,
         ...(dashboardCfg ? { dashboardMode: dashboardCfg.dashboardMode, enabledModules: dashboardCfg.enabledModules } : {}),
+        ...(typeof activityId === 'undefined' ? {} : { activityId }),
         ...(typeof input.whatsapp === 'undefined' ? {} : { whatsapp: input.whatsapp }),
         ...(typeof input.customDomain === 'undefined' ? {} : { customDomain: input.customDomain }),
         ...(typeof input.deliveryFee === 'undefined' ? {} : { deliveryFee: input.deliveryFee }),

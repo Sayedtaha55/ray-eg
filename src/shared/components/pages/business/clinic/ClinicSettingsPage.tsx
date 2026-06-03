@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import * as ReactRouterDOM from 'react-router-dom';
 import {
   Building2,
   CalendarClock,
@@ -19,6 +20,7 @@ import {
 import { ApiService } from '@/services/api.service';
 import {
   BOOKING_ACTIVITY_DEFINITIONS,
+  BOOKING_SETTINGS_PAGE_BUTTONS,
   BookingActivityType,
   getBookingActivityDefinition,
 } from './bookingActivityConfig';
@@ -44,6 +46,7 @@ type Props = {
 };
 
 const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
+  const { NavLink } = ReactRouterDOM as any;
   const [loadedShop, setLoadedShop] = useState<any>(shop || null);
   const effectiveShop = shop || loadedShop;
 
@@ -74,6 +77,14 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
     () => getBookingActivityDefinition(selectedActivity),
     [selectedActivity],
   );
+
+  const bookingGeneralButtons = [
+    'نظرة عامة الحجوزات',
+    'حجوزات لوحة الحجوزات',
+    'تصميم صفحة الحجز',
+    'إعدادات الحجوزات',
+  ];
+
 
   const saveSettings = async () => {
     setSaving(true);
@@ -155,7 +166,7 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
           <div className="rounded-3xl bg-slate-50 border border-slate-100 p-5">
             <div className="text-xs font-black text-slate-500">الأزرار العامة للحجوزات</div>
             <div className="mt-3 flex flex-wrap gap-2">
-              {['نظرة عامة الحجوزات', 'حجوزات لوحة الحجوزات', 'التصميم', 'إعدادات الحجوزات'].map((label) => (
+              {bookingGeneralButtons.map((label) => (
                 <span key={label} className="px-3 py-2 rounded-2xl bg-white border border-slate-100 text-xs font-black text-slate-700">{label}</span>
               ))}
             </div>
@@ -168,6 +179,23 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm p-6 md:p-8">
+        <div className="flex items-center gap-2 justify-end">
+          <Settings size={18} className="text-emerald-600" />
+          <h4 className="text-lg font-black text-slate-900">إعدادات مناسبة للحجوزات فقط</h4>
+        </div>
+        <p className="mt-2 text-xs font-bold text-slate-500 leading-6">
+          هنا تظهر أزرار الموقع والأمان والمدفوعات والإشعارات الخاصة بالحجوزات. تم استبعاد ثيم الفاتورة وأزرار البيع العامة من لوحة الحجوزات حتى لا تختلط بإعدادات المتجر الأخرى.
+        </p>
+        <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {BOOKING_SETTINGS_PAGE_BUTTONS.map((page) => (
+            <NavLink key={page.id} to={`/business/clinic/activity/${page.id}`} className="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition-all">
+              {page.label}
+            </NavLink>
+          ))}
         </div>
       </div>
     </div>

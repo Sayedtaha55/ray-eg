@@ -576,6 +576,7 @@ export class AuthService implements OnModuleInit {
       description,
       dashboardMode: dashboardModeRaw,
       enabledModules: enabledModulesRaw,
+      activityId: activityIdRaw,
       pageDesign: pageDesignRaw,
     } = dto;
 
@@ -602,6 +603,7 @@ export class AuthService implements OnModuleInit {
         'sales',
         'customers',
         'reports',
+        'abandonedCart',
       ]);
       const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
@@ -616,19 +618,19 @@ export class AuthService implements OnModuleInit {
 
         // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
         if (cat === 'RESTAURANT') {
-          add('reservations', 'sales', 'customers', 'reports', 'pos');
+          add('reservations', 'invoice', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
           return always;
         }
         if (cat === 'SERVICE') {
-          add('reservations', 'sales', 'customers', 'reports', 'pos');
+          add('reservations', 'invoice', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
           return always;
         }
         if (cat === 'FASHION') {
-          add('sales', 'customers', 'reports', 'pos');
+          add('invoice', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
           return always;
         }
         if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
-          add('sales', 'customers', 'reports', 'pos');
+          add('invoice', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
           return always;
         }
 
@@ -787,7 +789,7 @@ export class AuthService implements OnModuleInit {
           addressDetailed: resolvedAddressDetailed || null,
           status: (autoApproveMerchantsInDev ? 'APPROVED' : 'PENDING') as any,
           ownerId: createdUser.id,
-          layoutConfig: dashboardCfg as any,
+          layoutConfig: { ...dashboardCfg, ...(activityIdRaw ? { activityId: String(activityIdRaw).trim() } : {}) } as any,
           ...(pageDesignRaw && typeof pageDesignRaw === 'object' && !Array.isArray(pageDesignRaw) ? { pageDesign: pageDesignRaw as any } : {}),
         },
       });

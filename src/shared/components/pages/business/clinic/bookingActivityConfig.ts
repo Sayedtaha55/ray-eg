@@ -129,3 +129,24 @@ export const getBookingPrivateButtons = (raw?: unknown): string[] => {
   const definition = getBookingActivityDefinition(raw);
   return [definition.primaryTabLabel, definition.secondaryTabLabel, ...definition.extraButtons];
 };
+
+
+
+export const BOOKING_SETTINGS_PAGE_BUTTONS = [
+  { id: 'booking-site', label: 'الموقع العام للحجوزات' },
+  { id: 'booking-security', label: 'الأمان والصلاحيات' },
+  { id: 'booking-notifications', label: 'إشعارات وتأكيدات' },
+  { id: 'booking-payments', label: 'مدفوعات وتأمين' },
+  { id: 'booking-cancellation', label: 'سياسات الإلغاء' },
+  { id: 'booking-privacy', label: 'الخصوصية وبيانات العملاء' },
+];
+
+export const getBookingActivityExtraPageId = (label: string, index = 0): string => {
+  const normalized = String(label || '')
+    .trim()
+    .replace(/[ً-ٰٟ]/g, '')
+    .replace(/[^\p{L}\p{N}]+/gu, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase();
+  return normalized || `extra-${index + 1}`;
+};

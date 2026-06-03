@@ -41,6 +41,7 @@ const SignupPage: React.FC = () => {
   const params = new URLSearchParams(location.search);
   const roleParam = params.get('role');
   const categoryParam = params.get('category');
+  const activityIdParam = params.get('activityId');
 
   const returnTo = normalizeSafeReturnTo(params.get('returnTo'));
   const followShopId = params.get('followShopId');
@@ -174,6 +175,11 @@ const SignupPage: React.FC = () => {
         const enabledModules = Array.isArray(cfg?.enabledModules)
           ? cfg?.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
           : [];
+
+        const activityId = String(cfg?.activityId || activityIdParam || '').trim();
+        if (activityId) {
+          payload.activityId = activityId;
+        }
 
         if (enabledModules.length > 0) {
           payload.enabledModules = enabledModules;
