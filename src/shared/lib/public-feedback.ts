@@ -25,7 +25,7 @@ function safeParseList(value: string | null): PublicFeedbackItem[] {
         userEmail: item?.userEmail ? String(item.userEmail).trim() : null,
         status: String(item?.status || 'PENDING').trim() || 'PENDING',
         createdAt: String(item?.createdAt || '').trim(),
-        source: item?.source === 'backend' ? 'backend' : 'local',
+        source: (item?.source === 'backend' ? 'backend' : 'local') as PublicFeedbackItem['source'],
       }))
       .filter((item) => item.id && item.text && item.createdAt);
   } catch {

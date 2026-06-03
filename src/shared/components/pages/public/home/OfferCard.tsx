@@ -7,7 +7,8 @@ interface OfferCardProps {
   offer: any;
   idx: number;
   navigate: (url: string) => void;
-  playSound: () => void;
+  setSelectedItem?: (item: any) => void;
+  playSound: () => void | Promise<void>;
 }
 
 const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, playSound }) => {
