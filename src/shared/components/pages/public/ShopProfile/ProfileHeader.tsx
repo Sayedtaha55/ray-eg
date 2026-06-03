@@ -83,8 +83,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   const showProfileBanner = isVisible('profileBanner', true) && (!hasHomeLayout || activeTab === 'home');
 
   const bannerUrl = String(currentDesign?.bannerUrl || '').trim();
-  const isVideoBanner = currentDesign?.bannerIsVideo !== undefined
-    ? Boolean(currentDesign.bannerIsVideo)
+  const bannerIsVideoFlag = currentDesign?.bannerIsVideo ?? currentDesign?.banner_is_video;
+  const isVideoBanner = bannerIsVideoFlag !== undefined
+    ? coerceBoolean(bannerIsVideoFlag, isVideoUrl(bannerUrl))
     : isVideoUrl(bannerUrl);
   const headerOverlayBanner = Boolean(currentDesign?.headerOverlayBanner);
   const shouldOverlay = !headerOverlayBanner;
@@ -490,7 +491,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               muted
               playsInline
               {...{ webkitPlaysInline: true } as any}
-              poster={currentDesign?.bannerPosterUrl || undefined}
+              poster={currentDesign?.bannerPosterUrl || currentDesign?.banner_poster_url || undefined}
               className="w-full h-full object-cover"
               src={bannerUrl}
               preload="auto"
