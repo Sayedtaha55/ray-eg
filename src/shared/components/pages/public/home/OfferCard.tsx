@@ -1,37 +1,16 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, CalendarCheck, ShoppingCart } from 'lucide-react';
+import { Eye, ShoppingCart } from 'lucide-react';
 import { getOptimizedImageUrl } from '@/lib/image-utils';
-
-// Use a simple IntersectionObserver for reveal to avoid many whileInView listeners
-const useInView = (options?: IntersectionObserverInit) => {
-  const [ref, setRef] = React.useState<HTMLElement | null>(null);
-  const [inView, setInView] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!ref) return;
-    const observer = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting) {
-        setInView(true);
-        observer.unobserve(ref);
-      }
-    }, options);
-    observer.observe(ref);
-    return () => observer.disconnect();
-  }, [ref, options]);
-
-  return [setRef, inView] as const;
-};
 
 interface OfferCardProps {
   offer: any;
   idx: number;
   navigate: (url: string) => void;
-  setSelectedItem: (item: any) => void;
   playSound: () => void;
 }
 
-const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelectedItem, playSound }) => {
+const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, playSound }) => {
   const { t } = useTranslation();
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -66,19 +45,15 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
     window.dispatchEvent(event);
   };
 
-  const [setRef, inView] = useInView({ rootMargin: '50px' });
 
   return (
     <div
-      ref={setRef}
-      className={`group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] transition-all duration-500 ${
-        !prefersReducedMotion ? 'transform transition-all duration-700' : ''
-      } ${inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+      onClick={handleNavigate}
+      className={`group bg-white p-3 md:p-5 rounded-[2rem] md:rounded-[3rem] border border-slate-50 hover:shadow-[0_40px_80px_-20px_rgba(0,0,0,0.08)] cursor-pointer ${
+        !prefersReducedMotion ? 'transition-all duration-300' : ''
+      }`}
     >
-      <div 
-        onClick={handleNavigate}
-        className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50 cursor-pointer"
-      >
+      <div className="relative aspect-[4/5] rounded-[1.8rem] md:rounded-[2.5rem] overflow-hidden mb-4 md:mb-6 bg-slate-50">
         <img
           loading={idx === 0 ? 'eager' : 'lazy'}
           fetchPriority={idx === 0 ? 'high' : 'auto'}
@@ -107,18 +82,10 @@ const OfferCard: React.FC<OfferCardProps> = ({ offer, idx, navigate, setSelected
               <p className="text-base md:text-2xl lg:text-3xl font-black text-[#BD00FF] tracking-tighter">{t('home.topSelling.currency')} {offer.newPrice}</p>
            </div>
            <div className="flex items-center justify-between gap-2 sm:justify-start">
-              <button
-                type="button"
-                aria-label={t('home.topSelling.reserve')}
-                onClick={() => setSelectedItem(offer)}
-                className="w-8 h-8 md:w-10 md:h-10 lg:w-12 lg:h-12 bg-[#00E5FF] rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
-              >
-                <CalendarCheck size={16} className="md:w-5 md:h-5" />
-              </button>
               <button 
                 type="button"
                 aria-label={t('home.topSelling.addToCart')}
-                onClick={handleAddToCart}
+                onClick={(event) => { event.stopPropagation(); handleAddToCart(); }}
                 className="w-8 h-8 md:w-10 md:h-12 bg-slate-900 text-white rounded-lg md:rounded-xl lg:rounded-2xl flex items-center justify-center hover:scale-110 transition-all shadow-md"
               >
                 <ShoppingCart size={18} className="md:w-5 md:h-5" />

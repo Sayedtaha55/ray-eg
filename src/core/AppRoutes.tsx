@@ -26,6 +26,7 @@ const SupportPage = React.lazy(() => import('../shared/components/pages/public/S
 const TermsPage = React.lazy(() => import('../shared/components/pages/public/TermsPage'));
 const PrivacyPage = React.lazy(() => import('../shared/components/pages/public/PrivacyPage'));
 const ContactPage = React.lazy(() => import('../shared/components/pages/public/ContactPage'));
+const SuggestionsPage = React.lazy(() => import('../shared/components/pages/public/SuggestionsPage'));
 const ReturnPolicyPage = React.lazy(() => import('../shared/components/pages/public/ReturnPolicyPage'));
 const SeoDirectoryPage = React.lazy(() => import('../shared/components/pages/public/SeoDirectoryPage'));
 const ProductPage = React.lazy(() => import('../shared/components/pages/public/ProductPage'));
@@ -101,6 +102,7 @@ const AppRoutes: React.FC = () => {
         <Route path="return-policy" element={suspense(<ReturnPolicyPage />)} />
         <Route path="privacy" element={suspense(<PrivacyPage />)} />
         <Route path="contact" element={suspense(<ContactPage />)} />
+        <Route path="suggestions" element={suspense(<SuggestionsPage />)} />
         <Route path="dalil" element={suspense(<SeoDirectoryPage />)} />
         <Route path="dalil-almahalat" element={<Navigate to="/dalil" replace />} />
         <Route path="dalil-almat3am" element={<Navigate to="/dalil" replace />} />

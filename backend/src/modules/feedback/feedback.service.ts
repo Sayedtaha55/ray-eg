@@ -96,6 +96,30 @@ export class FeedbackService {
     });
   }
 
+
+  async listPublic(opts?: { take?: number; skip?: number }) {
+    const take = typeof opts?.take === 'number' ? Math.min(Math.max(opts.take, 1), 100) : 50;
+    const skip = typeof opts?.skip === 'number' ? Math.max(opts.skip, 0) : 0;
+
+    const rows = await (this.prisma as any).feedback.findMany({
+      where: { status: { not: 'REJECTED' } },
+      include: {
+        user: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      skip,
+    });
+
+    return (Array.isArray(rows) ? rows : []).map((item: any) => ({
+      id: item.id,
+      text: item.comment,
+      userName: item.userName || item.user?.name || 'زائر',
+      status: item.status,
+      createdAt: item.createdAt,
+    }));
+  }
+
   async updateStatusAdmin(id: string, statusRaw: any) {
     const fid = String(id || '').trim();
     if (!fid) throw new BadRequestException('id مطلوب');

@@ -9,9 +9,7 @@ import {
 import RouteSeoManager from './shared/components/seo/RouteSeoManager';
 import AppRoutes from './core/AppRoutes';
 import { shouldWarmupRoutes, warmupRouteChunks } from './core/routeWarmup';
-import { getDeferredDelay, isMobileViewportLike } from './shared/utils/performanceProfile';
-import BackendStatusBanner from './shared/components/common/feedback/BackendStatusBanner';
-import SyncStatusBanner from './shared/components/common/feedback/SyncStatusBanner';
+import { getDeferredDelay } from './shared/utils/performanceProfile';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();
@@ -237,8 +235,6 @@ const App: React.FC = () => {
     <Router>
       <ScrollToTop />
       <RoleRedirector authReady={authReady} />
-      <BackendStatusBanner />
-      <SyncStatusBanner />
       <RouteSeoManager />
       <AppRoutes />
     </Router>

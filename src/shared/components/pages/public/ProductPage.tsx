@@ -21,6 +21,48 @@ const CartDrawer = lazy(() => import('../shared/CartDrawer'));
 
 const { useParams, useNavigate } = ReactRouterDOM as any;
 
+type ProductPageCache = {
+  product: Product | null;
+  offer: Offer | null;
+  shop: Shop | null;
+  savedAt: number;
+};
+
+function productCacheKey(id: string) {
+  return `ray_product_page_cache_v1:${String(id || '').trim()}`;
+}
+
+function readProductPageCache(id: string): ProductPageCache | null {
+  if (typeof window === 'undefined') return null;
+  const pid = String(id || '').trim();
+  if (!pid) return null;
+  try {
+    const raw = window.localStorage.getItem(productCacheKey(pid));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const savedAt = Number(parsed?.savedAt || 0);
+    if (!savedAt || Date.now() - savedAt > 1000 * 60 * 60 * 24 * 3) return null;
+    return {
+      product: parsed?.product || null,
+      offer: parsed?.offer || null,
+      shop: parsed?.shop || null,
+      savedAt,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeProductPageCache(id: string, data: Omit<ProductPageCache, 'savedAt'>) {
+  if (typeof window === 'undefined') return;
+  const pid = String(id || '').trim();
+  if (!pid || !data.product) return;
+  try {
+    window.localStorage.setItem(productCacheKey(pid), JSON.stringify({ ...data, savedAt: Date.now() }));
+  } catch {
+  }
+}
+
 const ProductPage: React.FC = () => {
   const { t } = useTranslation();
   const { id, slug } = useParams();
@@ -102,6 +144,17 @@ const ProductPage: React.FC = () => {
 
   const loadData = useCallback(async (opts?: { silent?: boolean }) => {
     const silent = Boolean(opts?.silent);
+    let keepSkeleton = false;
+    const applyCachedPage = () => {
+      const cached = readProductPageCache(String(id || ''));
+      if (!cached?.product) return false;
+      setProduct(cached.product);
+      if (cached.offer) setOffer(cached.offer);
+      if (cached.shop) setShop(cached.shop);
+      setError(false);
+      return true;
+    };
+
     if (!silent) {
       setLoading(true);
       setError(false);
@@ -115,6 +168,10 @@ const ProductPage: React.FC = () => {
       setSelectedAddons([]);
       setSelectedMenuTypeId('');
       setSelectedMenuSizeId('');
+
+      if (!silent && applyCachedPage()) {
+        setLoading(false);
+      }
 
       let p: any = null;
       try {
@@ -138,12 +195,16 @@ const ProductPage: React.FC = () => {
           if (o) setOffer(o);
         }
 
+        let shopForCache: any = null;
         if (shopRes.status === 'fulfilled') {
           const s = shopRes.value as any;
           if (s) {
+            shopForCache = s;
             setShop(s);
           }
         }
+
+        writeProductPageCache(String(id), { product: p, offer: o || null, shop: shopForCache });
 
         const favs = await RayDB.getFavorites();
         setIsFavorite(favs.includes(String(p.id)));
@@ -167,25 +228,46 @@ const ProductPage: React.FC = () => {
           setProduct(prodResolved);
           const favs = await RayDB.getFavorites();
           setIsFavorite(favs.includes(String(prodResolved.id)));
+        } else if (applyCachedPage()) {
+          setLoading(false);
         } else {
-          setError(true);
+          keepSkeleton = true;
+          setError(false);
+          setLoading(true);
         }
 
         const shopId = (found as any)?.shopId;
+        let foundShop: any = null;
         if (shopId) {
           try {
             const s = await ApiService.getShopBySlugOrId(String(shopId));
+            foundShop = s;
             setShop(s);
           } catch {
           }
         }
+        if (prodResolved?.id) {
+          writeProductPageCache(String(id), { product: prodResolved, offer: found as any, shop: foundShop });
+        }
       } else {
-        setError(true);
+        if (applyCachedPage()) {
+          setLoading(false);
+        } else {
+          keepSkeleton = true;
+          setError(false);
+          setLoading(true);
+        }
       }
     } catch {
-      setError(true);
+      if (applyCachedPage()) {
+        setLoading(false);
+      } else {
+        keepSkeleton = true;
+        setError(false);
+        setLoading(true);
+      }
     } finally {
-      if (!silent) setLoading(false);
+      if (!silent && !keepSkeleton) setLoading(false);
     }
   }, [id]);
 
@@ -208,6 +290,9 @@ const ProductPage: React.FC = () => {
   useEffect(() => {
     loadData({ silent: false });
     window.scrollTo(0, 0);
+    const handleOnline = () => loadData({ silent: false });
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
   }, [loadData]);
 
   // Smart event-driven refresh

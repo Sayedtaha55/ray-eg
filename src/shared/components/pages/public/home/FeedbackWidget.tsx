@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, MessageSquarePlus, X, Loader2 } from 'lucide-react';
+import { Sparkles, MessageSquarePlus, X, Loader2, Lightbulb, Wrench, AlertTriangle } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { saveLocalPublicFeedback } from '@/lib/public-feedback';
 
 const MotionDiv = motion.div as any;
 
@@ -14,6 +15,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
   const { t } = useTranslation();
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [feedbackType, setFeedbackType] = useState<'suggestion' | 'edit' | 'problem'>('suggestion');
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackResponse, setFeedbackResponse] = useState('');
 
@@ -24,15 +26,32 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
       const userStr = localStorage.getItem('ray_user');
       const user = userStr ? JSON.parse(userStr) : null;
 
-      await ApiService.saveFeedback({
+      const saved = await ApiService.saveFeedback({
         text: feedbackText,
+        type: feedbackType,
         userName: user?.name,
         userEmail: user?.email
       });
 
-      setFeedbackResponse(t('home.feedback.thanksSuccess'));
+      saveLocalPublicFeedback({
+        id: saved?.id,
+        text: feedbackText,
+        type: feedbackType,
+        userName: user?.name || null,
+        userEmail: user?.email || null,
+        status: saved?.status || 'PENDING',
+        createdAt: saved?.createdAt,
+      });
+
+      setFeedbackResponse('وصلنا كلامك ✅ هتلاقيه ظاهر في صفحة الاقتراحات من الفوتر.');
     } catch (e) {
-      setFeedbackResponse(t('home.feedback.thanksError'));
+      saveLocalPublicFeedback({
+        text: feedbackText,
+        type: feedbackType,
+        userName: 'زائر',
+        status: 'PENDING',
+      });
+      setFeedbackResponse('تم حفظ رسالتك محلياً ✅ وهتظهر في صفحة الاقتراحات.');
     } finally {
       setFeedbackLoading(false);
       setFeedbackText('');
@@ -52,7 +71,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
           >
             <div className="flex items-center justify-between mb-6">
               <h4 className="font-black text-slate-900 flex items-center gap-2">
-                <Sparkles size={16} className="text-[#00E5FF]" /> {t('home.feedback.title')}
+                <Sparkles size={16} className="text-[#00E5FF]" /> اقتراح جديد أو تعديل
               </h4>
               <button type="button" aria-label={t('home.feedback.close')} onClick={() => setIsFeedbackOpen(false)}>
                 <X size={16} />
@@ -74,10 +93,27 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-xs text-slate-600 font-bold mb-4">{t('home.feedback.prompt')}</p>
+                <p className="text-xs text-slate-600 font-bold mb-4">اكتب اقتراح، تعديل مطلوب، أو مشكلة حصلت معاك من غير تسجيل.</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { key: 'suggestion', label: 'اقتراح', icon: <Lightbulb size={14} /> },
+                    { key: 'edit', label: 'تعديل', icon: <Wrench size={14} /> },
+                    { key: 'problem', label: 'مشكلة', icon: <AlertTriangle size={14} /> },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setFeedbackType(item.key as any)}
+                      className={`flex items-center justify-center gap-1 rounded-2xl px-2 py-3 text-[11px] font-black transition-all ${feedbackType === item.key ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
                 <textarea 
                   className="w-full bg-slate-50 rounded-2xl p-4 text-xs font-bold border-none focus:ring-2 focus:ring-[#00E5FF] h-28 outline-none"
-                  placeholder={t('home.feedback.placeholder')}
+                  placeholder="اكتب اللي تحب نطوره أو نصلحه..."
                   value={feedbackText}
                   onChange={(e) => setFeedbackText(e.target.value)}
                 />
@@ -86,7 +122,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
                   disabled={feedbackLoading}
                   className="w-full py-5 bg-[#00E5FF] text-black rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl"
                 >
-                  {feedbackLoading ? <Loader2 className="animate-spin" size={16} /> : <><MessageSquarePlus size={16} /> {t('home.feedback.send')}</>}
+                  {feedbackLoading ? <Loader2 className="animate-spin" size={16} /> : <><MessageSquarePlus size={16} /> إرسال</>}
                 </button>
               </div>
             )}
@@ -95,7 +131,7 @@ const FeedbackWidget: React.FC<FeedbackWidgetProps> = () => {
       </AnimatePresence>
       <button 
         type="button"
-        aria-label={t('home.feedback.openAssistant')}
+        aria-label="افتح صندوق الاقتراحات"
         onClick={() => setIsFeedbackOpen(!isFeedbackOpen)}
         className="w-12 h-12 sm:w-14 sm:h-14 md:w-20 md:h-20 bg-slate-900 text-white rounded-full flex items-center justify-center shadow-[0_20px_60px_rgba(0,0,0,0.3)] hover:scale-110 transition-all hover:bg-[#BD00FF] group"
       >
