@@ -5,15 +5,12 @@ import { CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { Category } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { BOOKING_ACTIVITY_DEFINITIONS, BookingActivityType, getBookingActivityDefinition } from './clinic/bookingActivityConfig';
+import { BUSINESS_ACTIVITIES, BusinessActivityWithGroup, getBusinessActivityThemePatch } from '@/utils/businessActivityCatalog';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
 
-type ActivityDef = {
-  id: string;
-  label: string;
-  category: Category;
-};
+type ActivityDef = BusinessActivityWithGroup;
 
 type ModuleId = string;
 
@@ -49,23 +46,15 @@ const OPTIONAL_MODULES: ModuleDef[] = [
   { id: 'reports', label: '' },
 ];
 
-type Step = 'activity' | 'modules';
 
-const ACTIVITIES: ActivityDef[] = [
-  { id: 'restaurant', label: '', category: Category.RESTAURANT },
-  { id: 'grocery', label: '', category: Category.FOOD },
-  { id: 'fashion', label: '', category: Category.FASHION },
-  { id: 'homeTextiles', label: '', category: Category.RETAIL },
-  { id: 'furniture', label: '', category: Category.SERVICE },
-  { id: 'electronics', label: '', category: Category.ELECTRONICS },
-  { id: 'health', label: '', category: Category.HEALTH },
-  { id: 'homeGoods', label: '', category: Category.RETAIL },
-  { id: 'realEstate', label: '', category: Category.SERVICE },
-  { id: 'carShowroom', label: '', category: Category.RETAIL },
-  { id: 'bookings', label: 'الحجوزات', category: Category.SERVICE },
-  { id: 'other', label: '', category: Category.OTHER },
+const GENERAL_MODULES: ModuleDef[] = [
+  ...CORE_MODULES,
+  ...OPTIONAL_MODULES,
 ];
 
+type Step = 'activity' | 'modules';
+
+const ACTIVITIES: ActivityDef[] = BUSINESS_ACTIVITIES;
 const STORAGE_KEY = 'ray_merchant_onboarding';
 
 const MerchantOnboarding: React.FC = () => {
@@ -81,6 +70,7 @@ const MerchantOnboarding: React.FC = () => {
   const [previewActiveTab, setPreviewActiveTab] = useState<ModuleId>('overview');
   const [selectedBookingActivityId, setSelectedBookingActivityId] = useState<BookingActivityType>('clinic_hospital');
   const [enabledBookingButtons, setEnabledBookingButtons] = useState<Set<string>>(new Set());
+  const [enabledActivityButtons, setEnabledActivityButtons] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');
 
   const selectedActivity = useMemo(
@@ -95,7 +85,7 @@ const MerchantOnboarding: React.FC = () => {
     [selectedBookingActivityId],
   );
 
-  const getActivityLabel = (activity: ActivityDef) => activity.label || t('business.onboarding.activities.' + activity.id);
+  const getActivityLabel = (activity: ActivityDef) => activity.title || t('business.onboarding.activities.' + activity.id);
 
   const bookingPrivateModules = useMemo<ModuleDef[]>(() => {
     const activity = getBookingActivityDefinition(selectedBookingActivityId);
@@ -111,10 +101,12 @@ const MerchantOnboarding: React.FC = () => {
       setEnabledModules(new Set(BOOKING_GENERAL_MODULES.map((m) => m.id)));
       setPreviewActiveTab('overview');
       setEnabledBookingButtons(new Set());
+      setEnabledActivityButtons(new Set());
     } else {
       setEnabledModules(new Set(CORE_MODULES.map((m) => m.id)));
       setPreviewActiveTab('overview');
       setEnabledBookingButtons(new Set());
+      setEnabledActivityButtons(new Set());
     }
   };
 
@@ -126,13 +118,18 @@ const MerchantOnboarding: React.FC = () => {
       ];
     }
 
+    const activityPrivateModules = (selectedActivity?.privateButtons || [])
+      .filter((button) => enabledActivityButtons.has(button.id))
+      .map((button) => ({ id: `activity:${selectedActivity?.id}:${button.id}`, label: button.label }));
+
     const list: ModuleDef[] = [];
+    for (const m of activityPrivateModules) list.push(m);
     for (const m of CORE_MODULES) list.push(m);
     for (const m of OPTIONAL_MODULES) {
       if (enabledModules.has(m.id)) list.push(m);
     }
     return list;
-  }, [bookingPrivateModules, enabledBookingButtons, enabledModules, isBookingsActivity]);
+  }, [bookingPrivateModules, enabledActivityButtons, enabledBookingButtons, enabledModules, isBookingsActivity, selectedActivity]);
 
   const getModuleLabel = (m: ModuleDef | ModuleId) => {
     const id = typeof m === 'string' ? m : m.id;
@@ -158,6 +155,19 @@ const MerchantOnboarding: React.FC = () => {
       if (next.has(id)) {
         next.delete(id);
         if (previewActiveTab === id) setPreviewActiveTab('overview');
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleActivityButton = (id: string) => {
+    setEnabledActivityButtons((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        if (previewActiveTab === `activity:${selectedActivity?.id}:${id}`) setPreviewActiveTab('overview');
       } else {
         next.add(id);
       }
@@ -213,14 +223,20 @@ const MerchantOnboarding: React.FC = () => {
       activityId: selectedActivity.id,
       category: selectedActivity.category,
       enabledModules: Array.from(enabledModules),
-      ...(isBookingsActivity ? {
-        bookingActivityType: selectedBookingActivityId,
-        bookingEnabledButtons: Array.from(enabledBookingButtons),
-        pageDesign: {
+      pageDesign: {
+        ...getBusinessActivityThemePatch(selectedActivity.id),
+        businessActivityId: selectedActivity.id,
+        businessActivityTitle: getActivityLabel(selectedActivity),
+        businessActivityGroupId: selectedActivity.groupId,
+        businessActivityGroupTitle: selectedActivity.groupTitle,
+        activityEnabledButtons: Array.from(enabledActivityButtons),
+        activityPrivateButtonLabels: Object.fromEntries((selectedActivity.privateButtons || []).map((button) => [button.id, button.label])),
+        ...(isBookingsActivity ? {
           bookingActivityType: selectedBookingActivityId,
+          bookingEnabledButtons: Array.from(enabledBookingButtons),
           bookingDashboardScope: 'booking_only',
-        },
-      } : {}),
+        } : {}),
+      },
       ts: Date.now(),
     };
 
@@ -310,6 +326,8 @@ const MerchantOnboarding: React.FC = () => {
                       {active ? <CheckCircle2 className="text-[#00E5FF]" /> : null}
                     </div>
                     <div className="mt-4 font-black text-lg text-slate-900">{getActivityLabel(a)}</div>
+                    <div className="mt-2 text-[11px] font-black text-cyan-700">{a.groupTitle}</div>
+                    <p className="mt-2 text-xs font-bold text-slate-500 leading-6">{a.description}</p>
                   </button>
                 );
               })}
@@ -472,6 +490,27 @@ const MerchantOnboarding: React.FC = () => {
                           </button>
                         );
                       })}
+                    </div>
+
+
+                    <div className="mt-5 rounded-3xl bg-slate-50 border border-slate-100 p-4">
+                      <div className="text-[11px] font-black text-slate-400 mb-3">الأزرار الخاصة — حسب نشاط {selectedActivity ? getActivityLabel(selectedActivity) : ''}</div>
+                      <div className="space-y-3">
+                        {(selectedActivity?.privateButtons || []).map((button) => {
+                          const checked = enabledActivityButtons.has(button.id);
+                          return (
+                            <button
+                              key={button.id}
+                              type="button"
+                              onClick={() => toggleActivityButton(button.id)}
+                              className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all ${checked ? 'border-[#00E5FF] bg-[#00E5FF]/5' : 'border-slate-100 bg-white'}`}
+                            >
+                              <span className="font-black text-slate-900">{button.label}</span>
+                              <span className={`w-6 h-6 rounded-lg border ${checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'}`} />
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </>
                 )}

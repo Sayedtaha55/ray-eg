@@ -1,12 +1,15 @@
 import React from 'react';
+import { BUSINESS_ACTIVITIES, getBusinessActivityThemePatch } from '@/utils/businessActivityCatalog';
 
-type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL' | 'BOOKING';
+type ThemeActivity = 'RESTAURANT' | 'FASHION' | 'TECH' | 'GENERAL' | 'BOOKING' | 'ACTIVITY';
 
 type ThemePreset = {
   id: string;
   name: string;
   subtitle: string;
   activity: ThemeActivity;
+  activityId?: string;
+  category?: string;
   patch: Record<string, any>;
 };
 
@@ -67,6 +70,23 @@ const PRESETS: ThemePreset[] = [
   },
 ];
 
+const ACTIVITY_PRESETS: ThemePreset[] = BUSINESS_ACTIVITIES.map((activity) => ({
+  id: getBusinessActivityThemePatch(activity.id).quickTheme,
+  name: `ثيم ${activity.title}`,
+  subtitle: `ألوان وتخطيط جاهز لنشاط ${activity.title}: ${activity.description}`,
+  activity: 'ACTIVITY' as const,
+  activityId: activity.id,
+  category: String(activity.category || '').toUpperCase(),
+  patch: {
+    ...getBusinessActivityThemePatch(activity.id),
+    businessActivityId: activity.id,
+    businessActivityTitle: activity.title,
+    businessActivityGroupId: activity.groupId,
+    businessActivityGroupTitle: activity.groupTitle,
+    activityPrivateButtonLabels: Object.fromEntries((activity.privateButtons || []).map((button) => [button.id, button.label])),
+  },
+}));
+
 const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; shop?: any }> = ({ config, setConfig, shop }) => {
   const rawCategory = String(shop?.category || shop?.shopCategory || '').trim().toUpperCase();
   const shopActivity: ThemeActivity = rawCategory.includes('SERVICE')
@@ -79,14 +99,25 @@ const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; sho
           ? 'TECH'
           : 'GENERAL';
 
-  const activeTheme = String(config.quickTheme || (shopActivity === 'BOOKING' ? 'clinic_elegant_blue' : 'clinic_clean'));
+  const currentBusinessActivityId = String(config.businessActivityId || shop?.pageDesign?.businessActivityId || '').trim();
+  const activeTheme = String(config.quickTheme || (shopActivity === 'BOOKING' ? 'clinic_elegant_blue' : 'catalog_clean'));
 
-  const visiblePresets = PRESETS.filter((preset) => {
+  const defaultPresets = PRESETS.filter((preset) => {
     if (shopActivity === 'BOOKING') {
       return preset.activity === 'BOOKING';
     }
     return preset.activity === shopActivity || preset.activity === 'GENERAL';
   });
+
+  const activityPresets = ACTIVITY_PRESETS.filter((preset) => {
+    if (currentBusinessActivityId && preset.activityId === currentBusinessActivityId) return true;
+    if (!rawCategory) return preset.activityId === 'other';
+    return preset.category === rawCategory;
+  });
+
+  const visiblePresets = [...activityPresets, ...defaultPresets].filter((preset, index, arr) =>
+    arr.findIndex((item) => item.id === preset.id) === index,
+  );
 
   return (
     <div className="space-y-3">
@@ -98,14 +129,17 @@ const ThemesSection: React.FC<{ config: any; setConfig: (next: any) => void; sho
             <button key={preset.id} type="button" onClick={() => setConfig({ ...config, ...preset.patch })} className={`p-4 rounded-2xl border text-right transition-all ${isActive ? 'border-cyan-400 bg-cyan-50' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-black text-slate-900">{preset.name}</span>
-                {isActive && <span className="text-[10px] font-black text-cyan-700">مفعل</span>}
+                <span className="flex items-center gap-1">
+                  {preset.activityId === currentBusinessActivityId ? <span className="text-[10px] font-black text-amber-700">نشاطك</span> : null}
+                  {isActive && <span className="text-[10px] font-black text-cyan-700">مفعل</span>}
+                </span>
               </div>
               <p className="mt-1 text-[11px] font-bold text-slate-500">{preset.subtitle}</p>
             </button>
           );
         })}
       </div>
-      <p className="text-[11px] font-bold text-slate-400">تصنيف المتجر الحالي: {shopActivity}.</p>
+      <p className="text-[11px] font-bold text-slate-400">تصنيف المتجر الحالي: {shopActivity}. الثيمات الخاصة بالنشاط تظهر أولًا وتتطبق فور الضغط عليها.</p>
     </div>
   );
 };
