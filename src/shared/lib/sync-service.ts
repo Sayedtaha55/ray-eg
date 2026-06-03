@@ -119,9 +119,9 @@ export class SyncService {
   private async syncItem(item: any): Promise<void> {
     const url = toBackendUrl(item.endpoint);
     const token = this.getAuthToken();
-    const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+    const authHeader: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
     const idempotencyKey = String(item?.idempotencyKey || item?.opId || item?.id || '').trim();
-    const idemHeader = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
+    const idemHeader: Record<string, string> = idempotencyKey ? { 'Idempotency-Key': idempotencyKey } : {};
 
     switch (item.method) {
       case 'GET':

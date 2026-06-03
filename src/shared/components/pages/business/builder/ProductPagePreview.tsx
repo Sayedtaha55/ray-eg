@@ -27,7 +27,7 @@ const ProductPagePreview: React.FC<Props> = ({ config, shop }) => {
     stock: 8,
   };
 
-  const offer = null;
+  const offer: { discount?: number } | null = null;
   const galleryImages = [''];
   const displayedPrice = 249;
 
@@ -61,7 +61,7 @@ const ProductPagePreview: React.FC<Props> = ({ config, shop }) => {
             setActiveImageSrc={setActiveImageSrc}
             productName={product.name}
             hasDiscount={!!offer}
-            discount={offer?.discount}
+            discount={0}
             onGalleryTouchStart={() => {}}
             onGalleryTouchEnd={() => {}}
           />

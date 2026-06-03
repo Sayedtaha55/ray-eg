@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 interface ImageUploadSectionProps {
   imagePreview: string | null;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   handleImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isRestaurant?: boolean;
 }

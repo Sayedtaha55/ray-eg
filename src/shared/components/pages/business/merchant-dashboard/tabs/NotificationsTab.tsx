@@ -140,7 +140,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({ shopId }) => {
   };
 
   const getNotificationColor = (type: NotificationType, priority: NotificationPriority) => {
-    const baseColors = {
+    const baseColors: Partial<Record<NotificationType, string>> = {
       [NotificationType.NEW_FOLLOWER]: 'text-blue-500 bg-blue-50',
       [NotificationType.NEW_ORDER]: 'text-green-500 bg-green-50',
       [NotificationType.ORDER_STATUS_CHANGED]: 'text-orange-500 bg-orange-50',

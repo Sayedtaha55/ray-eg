@@ -2,21 +2,9 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
 import { useTranslation } from 'react-i18next';
+import { BUSINESS_ACTIVITY_GROUPS, getBusinessActivityById, getBusinessActivityThemePatch, getDefaultActivityForCategory } from '@/utils/businessActivityCatalog';
 
-type ModuleId =
-  | 'overview'
-  | 'products'
-  | 'reservations'
-  | 'invoice'
-  | 'pos'
-  | 'sales'
-  | 'promotions'
-  | 'reports'
-  | 'customers'
-  | 'gallery'
-  | 'abandonedCart'
-  | 'builder'
-  | 'settings';
+type ModuleId = string;
 
 type ModuleDef = {
   id: ModuleId;
@@ -58,6 +46,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   ], [t]);
 
   const baselineRef = useRef<string[]>([]);
+  const activityBaselineRef = useRef<string[]>([]);
 
   const activeEnabled = useMemo(() => {
     const raw = (shop as any)?.layoutConfig?.enabledModules;
@@ -76,6 +65,10 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     return activeEnabled;
   }, [activeEnabled]);
 
+  const initialActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
+  const [selectedActivityId, setSelectedActivityId] = useState<string>(initialActivity.id);
+  const selectedActivityBaselineRef = useRef<string>(initialActivity.id);
+  const [enabledActivityButtons, setEnabledActivityButtons] = useState<Set<string>>(() => new Set(Array.isArray((shop as any)?.pageDesign?.activityEnabledButtons) ? (shop as any).pageDesign.activityEnabledButtons.map((x: any) => String(x || '').trim()).filter(Boolean) : []));
   const [enabled, setEnabled] = useState<Set<ModuleId>>(() => new Set(initialEnabled as any));
   const [saving, setSaving] = useState(false);
 
@@ -84,6 +77,16 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     setEnabled(s);
     baselineRef.current = Array.from(s).map(String).sort();
   }, [initialEnabled]);
+
+  useEffect(() => {
+    const nextActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
+    setSelectedActivityId(nextActivity.id);
+    selectedActivityBaselineRef.current = nextActivity.id;
+    const rawButtons = (shop as any)?.pageDesign?.activityEnabledButtons;
+    const nextButtons = Array.isArray(rawButtons) ? rawButtons.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
+    setEnabledActivityButtons(new Set(nextButtons));
+    activityBaselineRef.current = nextButtons.sort();
+  }, [shop]);
 
   const toSortedArray = (s: Set<ModuleId>) => Array.from(s).map(String).sort();
 
@@ -101,9 +104,12 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   useEffect(() => {
     const current = toSortedArray(enabled);
     const baseline = baselineRef.current || [];
-    const changed = JSON.stringify(current) !== JSON.stringify(baseline);
+    const activityCurrent = Array.from(enabledActivityButtons).map(String).sort();
+    const activityBaseline = activityBaselineRef.current || [];
+    const activityChanged = selectedActivityId !== selectedActivityBaselineRef.current;
+    const changed = JSON.stringify(current) !== JSON.stringify(baseline) || JSON.stringify(activityCurrent) !== JSON.stringify(activityBaseline) || activityChanged;
     emitChanges(changed ? 1 : 0);
-  }, [enabled]);
+  }, [enabled, enabledActivityButtons, selectedActivityId]);
 
   const canEnableCustomersOrReports = (next: Set<ModuleId>) => next.has('sales');
 
@@ -172,6 +178,20 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     [activeEnabled, adminShopId, onSaved, toast],
   );
 
+  const selectedActivity = getBusinessActivityById(selectedActivityId) || getDefaultActivityForCategory((shop as any)?.category);
+
+  const toggleActivityButton = (id: string) => {
+    setEnabledActivityButtons((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
   const toggleOptional = (id: ModuleId) => {
     if (CORE_IDS.includes(id)) return;
 
@@ -212,14 +232,31 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     setSaving(true);
     try {
       const list = toSortedArray(enabled);
+      const activityButtonList = Array.from(enabledActivityButtons).map(String).sort();
+      const previousPageDesign = ((shop as any)?.pageDesign && typeof (shop as any).pageDesign === 'object') ? (shop as any).pageDesign : {};
+      const activityChanged = selectedActivity.id !== selectedActivityBaselineRef.current;
+      const shouldApplyActivityTheme = activityChanged || !String(previousPageDesign?.quickTheme || '').trim();
+      const nextPageDesign = {
+        ...previousPageDesign,
+        ...(shouldApplyActivityTheme ? getBusinessActivityThemePatch(selectedActivity.id) : {}),
+        businessActivityId: selectedActivity.id,
+        businessActivityTitle: selectedActivity.title,
+        activityEnabledButtons: activityButtonList,
+        activityPrivateButtonLabels: Object.fromEntries((selectedActivity.privateButtons || []).map((button) => [button.id, button.label])),
+      };
+      const activityButtonsChanged = JSON.stringify(activityButtonList) !== JSON.stringify(activityBaselineRef.current || []);
+      const activitySelectionChanged = selectedActivity.id !== selectedActivityBaselineRef.current;
 
       if (adminShopId) {
         await ApiService.updateMyShop({
           shopId: adminShopId,
           enabledModules: list,
+          pageDesign: nextPageDesign,
         });
 
         baselineRef.current = list;
+        activityBaselineRef.current = activityButtonList;
+        selectedActivityBaselineRef.current = selectedActivity.id;
         emitChanges(0);
         toast({ title: t('modulesSettings.saved'), description: t('modulesSettings.modulesSavedDesc') });
         onSaved();
@@ -244,6 +281,18 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
         .filter((id) => !CORE_IDS.includes(id as any));
 
       if (requestedModules.length === 0) {
+        if (activityButtonsChanged || activitySelectionChanged) {
+          await ApiService.updateMyShop(adminShopId ? { shopId: adminShopId, pageDesign: nextPageDesign } : { pageDesign: nextPageDesign });
+          activityBaselineRef.current = activityButtonList;
+          selectedActivityBaselineRef.current = selectedActivity.id;
+          baselineRef.current = toSortedArray(latestActiveSet as any);
+          emitChanges(0);
+          setEnabled(new Set(latestActiveSet as any));
+          toast({ title: t('modulesSettings.saved'), description: 'تم حفظ أزرار النشاط الخاصة.' });
+          onSaved();
+          return true;
+        }
+
         toast({ title: t('modulesSettings.nothingNew'), description: t('modulesSettings.noNewModulesSelected') });
         baselineRef.current = toSortedArray(latestActiveSet as any);
         emitChanges(0);
@@ -254,6 +303,12 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       await (ApiService as any).createMyModuleUpgradeRequest?.({
         requestedModules,
       });
+
+      if (activityButtonsChanged || activitySelectionChanged) {
+        await ApiService.updateMyShop(adminShopId ? { shopId: adminShopId, pageDesign: nextPageDesign } : { pageDesign: nextPageDesign });
+        activityBaselineRef.current = activityButtonList;
+        selectedActivityBaselineRef.current = selectedActivity.id;
+      }
 
       toast({
         title: t('modulesSettings.requestSent'),
@@ -301,7 +356,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     } finally {
       setSaving(false);
     }
-  }, [activeEnabled, adminShopId, enabled, onSaved, toast]);
+  }, [activeEnabled, adminShopId, enabled, enabledActivityButtons, onSaved, selectedActivity, shop, toast]);
 
   useEffect(() => {
     try {
@@ -338,6 +393,63 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
               <span className="text-[10px] font-black text-slate-400">{t('modulesSettings.core')}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="bg-white border border-slate-100 rounded-2xl p-5">
+        <div className="font-black text-slate-900 mb-2">أزرار النشاط الخاص</div>
+        <p className="text-xs font-black text-slate-500 mb-4">اختر النشاط الدقيق ثم فعّل الأزرار الخاصة التي تظهر للتاجر بجانب الأزرار العامة.</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+          {BUSINESS_ACTIVITY_GROUPS.map((group) => (
+            <div key={group.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+              <div className="font-black text-slate-900 text-sm mb-2">{group.title}</div>
+              <div className="flex flex-wrap gap-2">
+                {group.activities.map((activity) => {
+                  const checked = selectedActivityId === activity.id;
+                  return (
+                    <button
+                      key={activity.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedActivityId(activity.id);
+                        setEnabledActivityButtons(new Set());
+                      }}
+                      className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'}`}
+                    >
+                      {activity.title}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-3xl bg-slate-50 border border-slate-100 p-4">
+          <div className="flex items-start justify-between gap-3 mb-4">
+            <div>
+              <div className="font-black text-slate-900">{selectedActivity.title}</div>
+              <div className="text-xs font-bold text-slate-500 mt-1">{selectedActivity.description}</div>
+            </div>
+            <div className="text-[11px] font-black text-cyan-700 bg-white border border-cyan-100 rounded-full px-3 py-1">خاص</div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {selectedActivity.privateButtons.map((button) => {
+              const checked = enabledActivityButtons.has(button.id);
+              return (
+                <button
+                  key={button.id}
+                  type="button"
+                  onClick={() => toggleActivityButton(button.id)}
+                  className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border transition-all ${checked ? 'border-[#00E5FF] bg-[#00E5FF]/5' : 'border-slate-100 bg-white'}`}
+                >
+                  <span className="font-black text-slate-900 text-sm">{button.label}</span>
+                  <span className={`w-6 h-6 rounded-lg border ${checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'}`} />
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

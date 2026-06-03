@@ -143,7 +143,7 @@ const NotificationsPanel: React.FC<NotificationsPanelProps> = ({ userId, isOpen,
   };
 
   const getNotificationColor = (type: NotificationType, priority: NotificationPriority) => {
-    const baseColors = {
+    const baseColors: Partial<Record<NotificationType, string>> = {
       [NotificationType.ORDER_CONFIRMED]: 'text-green-500 bg-green-50',
       [NotificationType.ORDER_SHIPPED]: 'text-blue-500 bg-blue-50',
       [NotificationType.ORDER_DELIVERED]: 'text-emerald-500 bg-emerald-50',

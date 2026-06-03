@@ -61,7 +61,7 @@ const BannerSection: React.FC<Props> = ({
   const src = bannerPreview || config.bannerUrl;
 
   const setPos = (nextX: number, nextY: number) => {
-    setConfig((prev) => ({
+    setConfig((prev: any) => ({
       ...prev,
       bannerPosX: clamp(nextX, 0, 100),
       bannerPosY: clamp(nextY, 0, 100),

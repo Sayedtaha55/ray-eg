@@ -40,7 +40,8 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
   const isBold = layout === 'bold';
   const isMinimal = layout === 'minimal';
 
-  const selectedImage = selectedIndex !== null ? images[selectedIndex] : null;
+  const safeSelectedIndex = selectedIndex ?? 0;
+  const selectedImage = selectedIndex !== null ? images[safeSelectedIndex] : null;
   const selectedIsVideo = Boolean(selectedImage && (selectedImage as any).mediaType === 'VIDEO');
   const canPlayVideo = !lowEndDevice && !prefersReducedMotion;
 
@@ -179,7 +180,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                   ) : (
                     <img 
                       src={(selectedImage as any)?.thumbUrl || selectedImage.imageUrl} 
-                      alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                      alt={selectedImage.caption || `${shopName} - ${safeSelectedIndex + 1}`}
                       className="w-full h-auto max-h-[70vh] object-contain"
                       loading="lazy"
                       decoding="async"
@@ -188,7 +189,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                 ) : (
                   <img 
                     src={selectedImage.imageUrl} 
-                    alt={selectedImage.caption || `${shopName} - ${selectedIndex + 1}`}
+                    alt={selectedImage.caption || `${shopName} - ${safeSelectedIndex + 1}`}
                     className="w-full h-auto max-h-[70vh] object-contain"
                     loading="lazy"
                     decoding="async"
@@ -200,14 +201,14 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
                   <>
                     <button
                       onClick={prevImage}
-                      disabled={selectedIndex === 0}
+                      disabled={safeSelectedIndex === 0}
                       className={`absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
                     >
                       <ChevronRight size={24} />
                     </button>
                     <button
                       onClick={nextImage}
-                      disabled={selectedIndex === images.length - 1}
+                      disabled={safeSelectedIndex === images.length - 1}
                       className={`absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
                     >
                       <ChevronLeft size={24} />
@@ -219,7 +220,7 @@ const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({
               {/* Image Info */}
               <div className="mt-6 text-center text-white">
                 <h3 className="text-xl md:text-2xl font-black mb-2">
-                  {shopName} - {selectedIndex + 1} / {images.length}
+                  {shopName} - {safeSelectedIndex + 1} / {images.length}
                 </h3>
                 {selectedImage.caption && (
                   <p className="text-white/80 text-sm md:text-base">{selectedImage.caption}</p>

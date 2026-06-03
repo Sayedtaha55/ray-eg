@@ -61,7 +61,7 @@ class MockDatabase {
       if (Array.isArray(parsed)) {
         this.messages = parsed
           .map((m: any) => this.normalizeStoredMessage(m))
-          .filter(Boolean);
+          .filter((m: any): m is any => Boolean(m));
         this.knownMessageIds = new Set(this.messages.map((m: any) => String(m.id)));
         this.saveMessagesToStorage();
       }
@@ -222,7 +222,7 @@ class MockDatabase {
     const sid = String(shopId);
     const shopMessages = this.messages
       .map((m: any) => this.normalizeStoredMessage(m) || null)
-      .filter(Boolean)
+      .filter((m: any): m is any => Boolean(m))
       .filter((m: any) => String(m.shopId) === sid && m.userId);
     const byUserId: Record<string, any[]> = {};
     for (const m of shopMessages) {
@@ -259,7 +259,7 @@ class MockDatabase {
         if (!Array.isArray(parsed)) return;
         const normalized = parsed
           .map((m: any) => this.normalizeStoredMessage(m))
-          .filter(Boolean);
+          .filter((m: any): m is any => Boolean(m));
 
         for (const m of normalized) {
           const id = String(m.id);

@@ -43,8 +43,11 @@ const MapContainer: React.FC<MapContainerProps> = ({ pins, coords, onMapReady, n
         });
         L.Marker.prototype.options.icon = defaultIcon;
 
+        const mapEl = mapContainerRef.current;
+        if (!mapEl) return;
+
         if (!mapRef.current) {
-          mapRef.current = L.map(mapContainerRef.current, {
+          mapRef.current = L.map(mapEl, {
             zoomControl: true,
             attributionControl: false,
           }).setView([30.0444, 31.2357], 12);

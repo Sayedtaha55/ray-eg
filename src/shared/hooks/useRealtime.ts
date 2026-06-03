@@ -148,7 +148,7 @@ export function useRealtime(options: UseRealtimeOptions) {
 
     socket.on('connect', () => {
       setIsConnected(true);
-      setConnectionId(socket.id);
+      setConnectionId(socket.id || null);
       globalSocket = socket;
       connectionCount++;
       callbacksRef.current.onConnect?.();
@@ -181,7 +181,7 @@ export function useRealtime(options: UseRealtimeOptions) {
     });
 
     socket.on('connected', (data) => {
-      setConnectionId(socket.id);
+      setConnectionId(socket.id || null);
     });
 
     // Business event handlers
