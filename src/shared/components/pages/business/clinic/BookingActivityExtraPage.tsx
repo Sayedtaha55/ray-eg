@@ -218,8 +218,17 @@ const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved, pageId: prop
           </div>
           <div className="flex gap-2">
             <button type="submit" disabled={saving} className="flex-1 py-3 rounded-2xl bg-slate-900 text-white font-black text-sm disabled:opacity-60 inline-flex items-center justify-center gap-2">
-              {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-              {editingId ? 'حفظ التعديل' : 'حفظ العنصر'}
+              {saving ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>جاري الحفظ...</span>
+                </>
+              ) : (
+                <>
+                  <Save size={16} />
+                  <span>{editingId ? 'حفظ التعديل' : 'ضيف العنصر'}</span>
+                </>
+              )}
             </button>
             {editingId && <button type="button" onClick={resetForm} className="px-4 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black text-sm">إلغاء</button>}
           </div>
