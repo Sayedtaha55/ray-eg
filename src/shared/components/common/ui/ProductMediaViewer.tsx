@@ -1,9 +1,9 @@
 import React, { useMemo, useState, Suspense, lazy, useCallback } from 'react';
 import SmartImage from './SmartImage';
-import Spin360Viewer from './Spin360Viewer';
 import { Box, RotateCw, Image } from 'lucide-react';
 
 const Model3DViewer = lazy(() => import('./Model3DViewer'));
+const Spin360Viewer = lazy(() => import('./Spin360Viewer'));
 
 interface ProductMediaViewerProps {
   imageUrl?: string;

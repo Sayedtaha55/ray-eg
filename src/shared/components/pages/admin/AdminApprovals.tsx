@@ -8,9 +8,30 @@ import { BackendRequestError } from '@/services/api/httpClient';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 import { useTranslation } from 'react-i18next';
 
+import { BUSINESS_ACTIVITIES } from '@/utils/businessActivityCatalog';
+
 const MotionDiv = motion.div as any;
 
 const { Link } = ReactRouterDOM as any;
+
+const getDisplayNameForModuleOrButton = (id: string, t: any) => {
+  const moduleKeys: Record<string, string> = {
+    gallery: t('modulesSettings.moduleGallery') || 'معرض الصور',
+    reservations: t('modulesSettings.moduleReservations') || 'الحجوزات',
+    invoice: t('modulesSettings.moduleInvoice') || 'فاتورة',
+    pos: t('modulesSettings.modulePos') || 'الكاشير',
+    sales: t('modulesSettings.moduleSales') || 'الطلبات / المبيعات',
+    customers: t('modulesSettings.moduleCustomers') || 'العملاء',
+    reports: t('modulesSettings.moduleReports') || 'التقارير',
+    abandonedCart: t('modulesSettings.moduleAbandonedCart') || 'السلة المتروكة',
+  };
+  if (moduleKeys[id]) return moduleKeys[id];
+
+  const button = BUSINESS_ACTIVITIES.flatMap((a) => a.privateButtons).find((b) => b.id === id);
+  if (button) return button.label;
+
+  return id;
+};
 
 const AdminApprovals: React.FC = () => {
   const { t } = useTranslation();
@@ -162,7 +183,7 @@ const AdminApprovals: React.FC = () => {
                         <div className="mt-4 flex flex-wrap gap-2 justify-end">
                           {(modules || []).map((m: any) => (
                             <span key={String(m)} className="px-3 py-1 rounded-xl bg-white/5 border border-white/10 text-slate-200 text-xs font-black">
-                              {String(m)}
+                              {getDisplayNameForModuleOrButton(String(m), t)}
                             </span>
                           ))}
                         </div>

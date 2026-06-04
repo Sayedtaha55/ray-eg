@@ -9,6 +9,8 @@ export type MerchantDashboardTabId =
   | 'reservations'
   | 'clinicDoctors'
   | 'clinicServices'
+  | 'clinicRooms'
+  | 'clinicPatients'
   | 'invoice'
   | 'sales'
   | 'promotions'
@@ -199,14 +201,15 @@ export const ACTIVITY_CONFIGS: Record<string, MerchantDashboardActivityConfig> =
     name: i18n.t('business.activities.service'),
     category: Category.SERVICE,
     tabs: [
-      { id: 'overview', label: i18n.t('business.dashboardTabs.overview') },
       { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations') },
-      { id: 'clinicDoctors', label: 'بيانات وأطباء العيادة' },
-      { id: 'clinicServices', label: 'التخصصات والعيادات الفرعية' },
+      { id: 'clinicDoctors', label: 'الأطباء والكادر' },
+      { id: 'clinicServices', label: 'التخصصات والخدمات' },
+      { id: 'clinicRooms', label: 'غرف/عيادات فرعية' },
+      { id: 'clinicPatients', label: 'ملفات المرضى' },
       { id: 'builder', label: i18n.t('business.dashboardTabs.builder') },
       { id: 'settings', label: i18n.t('business.dashboardTabs.settings') },
     ],
-    defaultTab: 'overview',
+    defaultTab: 'reservations',
     features: {
       showReservations: true,
       showMenuBuilder: false,
@@ -249,10 +252,11 @@ export const getAllowedTabIdsForCategory = (category?: Category): Set<MerchantDa
   const cat = String(category || '').toUpperCase();
   if (cat === 'SERVICE') {
     return new Set<MerchantDashboardTabId>([
-      'overview',
       'reservations',
       'clinicDoctors',
       'clinicServices',
+      'clinicRooms',
+      'clinicPatients',
       'builder',
       'settings',
     ]);

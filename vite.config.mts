@@ -3,6 +3,8 @@ import { fileURLToPath } from 'node:url';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { visualizer } from 'rollup-plugin-visualizer';
+import viteCompression from 'vite-plugin-compression';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,6 +44,26 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [
       react(),
+      viteCompression({
+        algorithm: 'gzip',
+        ext: '.gz',
+        threshold: 1024,
+        filter: /\.(js|css|html|json|svg|ico)$/,
+      }),
+      {
+        name: 'remove-heavy-optional-preload',
+        enforce: 'post',
+        transformIndexHtml: {
+          order: 'post',
+          handler(html) {
+            // Remove modulepreload for heavy-optional chunk from initial HTML
+            return html.replace(
+              /<link rel="modulepreload"[^>]*heavy-optional[^>]*>/g,
+              '',
+            );
+          },
+        },
+      },
       VitePWA({
         registerType: 'autoUpdate',
         manifestFilename: 'manifest.json',
@@ -84,16 +106,40 @@ export default defineConfig(({ mode }) => {
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom'],
-            router: ['react-router-dom'],
-            ui: ['framer-motion', 'lucide-react'],
-            charts: ['recharts'],
-            maps: ['leaflet'],
+          manualChunks(id) {
+            // Core vendor (react/react-dom) — always needed
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('node_modules/scheduler/')) {
+              return 'vendor';
+            }
+            // Router — needed on most pages
+            if (id.includes('node_modules/react-router-dom/') || id.includes('node_modules/@remix-run/')) {
+              return 'router';
+            }
+            // i18n — needed early but not on every page init
+            if (id.includes('node_modules/i18next/') || id.includes('node_modules/react-i18next/')) {
+              return 'i18n';
+            }
+            // Heavy libs — NEVER in initial chunk, split by feature
+            if (id.includes('node_modules/framer-motion/') || id.includes('node_modules/motion-dom/') || id.includes('node_modules/motion-utils/')) {
+              return 'motion';
+            }
+            if (id.includes('node_modules/recharts/') || id.includes('node_modules/d3-')) {
+              return 'charts';
+            }
+            if (id.includes('node_modules/leaflet/')) {
+              return 'maps';
+            }
+            if (id.includes('node_modules/lucide-react/')) {
+              return 'icons';
+            }
+            if (id.includes('node_modules/three/') || id.includes('node_modules/@react-three/') || id.includes('node_modules/@mediapipe/') || id.includes('node_modules/hls.js/')) {
+              return 'heavy-optional';
+            }
+            return null; // Let Rollup decide
           },
         },
       },
-      chunkSizeWarningLimit: 600,
+      chunkSizeWarningLimit: 250,
       minify: 'esbuild',
       sourcemap: mode !== 'production',
     },

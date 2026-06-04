@@ -46,9 +46,18 @@ type Props = {
 };
 
 const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
-  const { NavLink } = ReactRouterDOM as any;
-  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
-  const effectiveShop = shop || loadedShop;
+  const { NavLink, useLocation, useOutletContext } = ReactRouterDOM as any;
+  const location = useLocation();
+  const context = useOutletContext?.() || {};
+  const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
+  const effectiveShop = shop || context.shop || loadedShop;
+
+  useEffect(() => {
+    if (context.shop && !shop) {
+      setLoadedShop(context.shop);
+    }
+  }, [context.shop, shop]);
 
   useEffect(() => {
     if (shop || loadedShop) return;
@@ -192,7 +201,7 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
         </p>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {BOOKING_SETTINGS_PAGE_BUTTONS.map((page) => (
-            <NavLink key={page.id} to={`/business/clinic/activity/${page.id}`} className="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition-all">
+            <NavLink key={page.id} to={`/business/${basePath}/activity/${page.id}`} className="px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-800 hover:bg-emerald-100 transition-all">
               {page.label}
             </NavLink>
           ))}

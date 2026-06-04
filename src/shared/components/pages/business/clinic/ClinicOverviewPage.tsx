@@ -1,19 +1,48 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Calendar, CheckCircle2, Clock, Loader2, User2, XCircle } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Loader2, User2, XCircle, Settings, Shield, Bell, CreditCard, FileText, Palette, Users, ListChecks, CalendarCheck, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
+import { getBookingActivityVocabulary, BOOKING_SETTINGS_PAGE_BUTTONS, getBookingActivityDefinition } from './bookingActivityConfig';
 
 const ClinicOverviewPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
-  const { useLocation, useNavigate } = ReactRouterDOM as any;
+  const { useLocation, useNavigate, useOutletContext } = ReactRouterDOM as any;
   const location = useLocation();
   const navigate = useNavigate();
+  const context = useOutletContext?.() || {};
+  const isInMasterDashboard = context.bookings !== undefined;
 
-  const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [error, setError] = useState<string>('');
+  const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const vocab = getBookingActivityVocabulary(basePath);
+  const activityDefinition = getBookingActivityDefinition(
+    basePath === 'clinic' ? 'clinic_hospital' :
+    basePath === 'salon' ? 'salon_barber' :
+    basePath === 'spa' ? 'wellness_spa' :
+    basePath === 'chalets' ? 'chalets_resorts' :
+    basePath === 'hotels' ? 'hotels_rooms' :
+    basePath === 'restaurants' ? 'restaurants_tables' :
+    basePath === 'events' ? 'events_venues' :
+    basePath === 'rental' ? 'vehicle_rental' :
+    basePath === 'sports' ? 'sports_trainers' :
+    basePath === 'education' ? 'education_courses' :
+    basePath === 'maintenance' ? 'maintenance_services' :
+    basePath === 'appointments' ? 'general_appointments' : 'clinic_hospital'
+  );
+
+  const [loading, setLoading] = useState(isInMasterDashboard ? context.loading : true);
+  const [bookings, setBookings] = useState<any[]>(isInMasterDashboard ? context.bookings : []);
+  const [error, setError] = useState<string>(isInMasterDashboard ? context.error || '' : '');
+
+  // Sync with context if present
+  useEffect(() => {
+    if (isInMasterDashboard) {
+      setBookings(context.bookings || []);
+      setLoading(context.loading);
+      setError(context.error || '');
+    }
+  }, [context.bookings, context.loading, context.error, isInMasterDashboard]);
 
   const getTargetShopId = useCallback(() => {
     try {
@@ -33,6 +62,12 @@ const ClinicOverviewPage: React.FC = () => {
   }, [location.search]);
 
   const loadData = useCallback(async () => {
+    if (isInMasterDashboard) {
+      if (context.loadBookings) {
+        await context.loadBookings();
+      }
+      return;
+    }
     setLoading(true);
     setError('');
     try {
@@ -44,11 +79,13 @@ const ClinicOverviewPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [getTargetShopId]);
+  }, [getTargetShopId, isInMasterDashboard, context.loadBookings]);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!isInMasterDashboard) {
+      loadData();
+    }
+  }, [loadData, isInMasterDashboard]);
 
   // Compute stats
   const todayStr = new Date().toISOString().split('T')[0];
@@ -72,8 +109,8 @@ const ClinicOverviewPage: React.FC = () => {
     .sort((a, b) => String(a.bookingTime).localeCompare(String(b.bookingTime)))
     .map((b) => ({
       time: b.bookingTime || '10:00',
-      patient: b.customerName || 'مريض مجهول',
-      doctor: b.itemName || 'استشارة عامة',
+      patient: b.customerName || `${vocab.customerSingular} مجهول`,
+      doctor: b.itemName || 'حجز عام',
       status: b.status || 'PENDING',
     }));
 
@@ -84,7 +121,7 @@ const ClinicOverviewPage: React.FC = () => {
     .slice(0, 5)
     .map((b) => ({
       id: b.id,
-      name: b.customerName || 'مريض مجهول',
+      name: b.customerName || `${vocab.customerSingular} مجهول`,
       phone: b.customerPhone || '—',
       time: b.bookingDate ? `${b.bookingDate} (${b.bookingTime || ''})` : new Date(b.createdAt).toLocaleDateString(locale),
       status: b.status || 'PENDING',
@@ -105,46 +142,167 @@ const ClinicOverviewPage: React.FC = () => {
     return t('business.clinic.overview.status.pending');
   };
 
-  if (loading) {
+  if (loading && !isInMasterDashboard) {
     return (
       <div className="py-20 flex flex-col items-center justify-center gap-4 bg-white rounded-3xl border border-slate-100 shadow-sm">
         <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-        <p className="font-bold text-slate-400">جاري تحميل لوحة التحكم للعيادة...</p>
+        <p className="font-bold text-slate-400">جاري تحميل {vocab.dashboardTitle}...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 text-red-600 border border-red-100 rounded-2xl p-4 text-xs font-black">
+      {error && !isInMasterDashboard && (
+        <div className="bg-red-50 text-red-655 border border-red-100 rounded-2xl p-4 text-xs font-black">
           ⚠️ {error}
         </div>
       )}
 
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div className="text-right">
-          <div className="text-lg md:text-xl font-black text-slate-900">{t('business.clinic.overview.title')}</div>
-          <div className="mt-1 text-sm font-bold text-slate-500">{t('business.clinic.overview.subtitle')}</div>
+      {!isInMasterDashboard && (
+        <>
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="text-right">
+              <div className="text-lg md:text-xl font-black text-slate-900">{vocab.dashboardTitle}</div>
+              <div className="mt-1 text-sm font-bold text-slate-500">{vocab.dashboardSubtitle}</div>
+            </div>
+
+            <div className="rounded-2xl bg-cyan-50 border border-cyan-100 px-5 py-3 text-right max-w-md">
+              <div className="text-xs font-black text-cyan-800">تم نقل إدارة {vocab.providerPlural} و {vocab.servicePlural} إلى قائمة لوحة الحجوزات.</div>
+              <div className="mt-1 text-[11px] font-bold text-cyan-700/80">استخدم أزرار القائمة الجانبية للوصول إلى كل نشاط خاص بدون ازدحام النظرة العامة.</div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {stats.map((s) => (
+              <div key={s.label} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between flex-row-reverse">
+                  <div className="text-xs font-black text-slate-400">{s.label}</div>
+                  <div className="text-slate-500">{s.icon}</div>
+                </div>
+                <div className="mt-3 text-3xl font-black text-slate-900 text-right">{s.value}</div>
+                <div className="mt-1 text-xs font-bold text-slate-400 text-right">{t('business.clinic.overview.last24h')}</div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* إعدادات الحجوزات */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
+        <div className="flex items-center justify-between gap-3 flex-wrap flex-row-reverse mb-5">
+          <div>
+            <div className="text-sm font-black text-slate-900">إعدادات الحجوزات</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">تحكم في إعدادات الموقع والصلاحيات والإشعارات</div>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-cyan-50 border border-cyan-100 px-5 py-3 text-right max-w-md">
-          <div className="text-xs font-black text-cyan-800">تم نقل إدارة الأطباء والتخصصات إلى قائمة لوحة الحجوزات.</div>
-          <div className="mt-1 text-[11px] font-bold text-cyan-700/80">استخدم أزرار القائمة العلوية للوصول إلى كل نشاط خاص بدون ازدحام النظرة العامة.</div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          {BOOKING_SETTINGS_PAGE_BUTTONS.map((btn) => (
+            <button
+              key={btn.id}
+              type="button"
+              onClick={() => navigate(`/business/${basePath}/activity/${btn.id}`)}
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 transition-all"
+            >
+              {btn.id === 'booking-site' && <Settings size={20} className="text-emerald-600" />}
+              {btn.id === 'booking-security' && <Shield size={20} className="text-emerald-600" />}
+              {btn.id === 'booking-notifications' && <Bell size={20} className="text-emerald-600" />}
+              {btn.id === 'booking-payments' && <CreditCard size={20} className="text-emerald-600" />}
+              {btn.id === 'booking-cancellation' && <FileText size={20} className="text-emerald-600" />}
+              {btn.id === 'booking-privacy' && <Shield size={20} className="text-emerald-600" />}
+              <span className="text-xs font-black text-slate-700 text-center leading-tight">{btn.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 flex flex-col justify-between">
-            <div className="flex items-center justify-between flex-row-reverse">
-              <div className="text-xs font-black text-slate-400">{s.label}</div>
-              <div className="text-slate-500">{s.icon}</div>
-            </div>
-            <div className="mt-3 text-3xl font-black text-slate-900 text-right">{s.value}</div>
-            <div className="mt-1 text-xs font-bold text-slate-400 text-right">{t('business.clinic.overview.last24h')}</div>
+      {/* أزرار الأنشطة الخاصة */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
+        <div className="flex items-center justify-between gap-3 flex-wrap flex-row-reverse mb-5">
+          <div>
+            <div className="text-sm font-black text-slate-900">{vocab.providerPlural} و {vocab.servicePlural}</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">إدارة {vocab.providerPlural.toLowerCase()} و {vocab.servicePlural.toLowerCase()}</div>
           </div>
-        ))}
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/doctors`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+          >
+            <Users size={20} className="text-cyan-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">{vocab.providerLabel}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/services`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+          >
+            <ListChecks size={20} className="text-cyan-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">{vocab.serviceSingular}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/overview`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+          >
+            <CalendarCheck size={20} className="text-cyan-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">لوحة الحجوزات</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/bookings`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+          >
+            <ClipboardList size={20} className="text-cyan-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">جدول المواعيد</span>
+          </button>
+          {activityDefinition.extraButtons.map((label, idx) => {
+            const pageId = label.replace(/[ً-ٰٟ]/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').toLowerCase();
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => navigate(`/business/${basePath}/activity/${pageId}`)}
+                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+              >
+                <ListChecks size={20} className="text-cyan-600" />
+                <span className="text-xs font-black text-slate-700 text-center leading-tight">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* التصميم والإعدادات */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
+        <div className="flex items-center justify-between gap-3 flex-wrap flex-row-reverse mb-5">
+          <div>
+            <div className="text-sm font-black text-slate-900">التصميم والإعدادات</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">خصص مظهر متجرك وإعداداته الأساسية</div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/design`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-violet-50 border border-slate-100 hover:border-violet-200 transition-all"
+          >
+            <Palette size={20} className="text-violet-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">التصميم</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(`/business/${basePath}/settings`)}
+            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-violet-50 border border-slate-100 hover:border-violet-200 transition-all"
+          >
+            <Settings size={20} className="text-violet-600" />
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">الإعدادات</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -156,7 +314,7 @@ const ClinicOverviewPage: React.FC = () => {
             </div>
             <button
               type="button"
-              onClick={() => navigate('/business/clinic/bookings')}
+              onClick={() => navigate(`/business/${basePath}/bookings`)}
               className="px-4 py-2 rounded-2xl bg-slate-50 text-slate-700 font-black text-xs hover:bg-slate-100 transition-all"
             >
               {t('business.clinic.overview.openBookingMgmt')}
@@ -166,8 +324,8 @@ const ClinicOverviewPage: React.FC = () => {
           <div className="mt-5 overflow-hidden rounded-2xl border border-slate-100">
             <div className="grid grid-cols-12 bg-slate-50 px-4 py-3 text-[11px] font-black text-slate-500 text-right flex-row-reverse">
               <div className="col-span-2 text-right">{t('business.clinic.overview.table.time')}</div>
-              <div className="col-span-4 text-right">{t('business.clinic.overview.table.patient')}</div>
-              <div className="col-span-4 text-right">{t('business.clinic.overview.table.doctor')}</div>
+              <div className="col-span-4 text-right">اسم {vocab.customerSingular}</div>
+              <div className="col-span-4 text-right">{vocab.providerLabel}</div>
               <div className="col-span-2 text-right">{t('business.clinic.overview.table.status')}</div>
             </div>
             <div className="divide-y divide-slate-100 text-right" dir="rtl">

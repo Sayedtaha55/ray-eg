@@ -221,12 +221,14 @@ export function toBackendUrl(url: string) {
   return url.startsWith('/') ? `${BACKEND_BASE_URL}${url}` : url;
 }
 
+import { getBearerToken, usesHttpOnlyCookies, getFetchCredentials } from './tokenService';
+
 function getAuthToken() {
-  try {
-    return localStorage.getItem('ray_token') || '';
-  } catch {
+  if (usesHttpOnlyCookies()) {
+    // httpOnly cookie handles auth — don't send Bearer header
     return '';
   }
+  return getBearerToken();
 }
 
 function isAuthPublicEndpoint(path: string) {
@@ -297,6 +299,7 @@ export async function backendPostWithOptions<T>(
   opts?: { timeoutMs?: number; signal?: AbortSignal },
 ): Promise<T> {
   const token = getAuthToken();
+  const fetchCredentials = getFetchCredentials();
   const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
   const maxAttempts = 3;
@@ -314,7 +317,7 @@ export async function backendPostWithOptions<T>(
         `${BACKEND_BASE_URL}${path}`,
         {
           method: 'POST',
-          credentials: 'include',
+          credentials: fetchCredentials,
           ...(opts?.signal ? { signal: opts.signal } : {}),
           headers: {
             ...(!isFormData ? { 'Content-Type': 'application/json' } : {}),
@@ -392,6 +395,7 @@ export async function backendPostWithOptions<T>(
 
 export async function backendDelete<T>(path: string, opts?: { __allowAuthRefresh?: boolean }): Promise<T> {
   const token = getAuthToken();
+  const fetchCredentials = getFetchCredentials();
   const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   let res: Response;
   if (isBackendTemporarilyDown()) {
@@ -403,7 +407,7 @@ export async function backendDelete<T>(path: string, opts?: { __allowAuthRefresh
   try {
     res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'DELETE',
-      credentials: 'include',
+      credentials: fetchCredentials,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -460,6 +464,7 @@ export async function backendDelete<T>(path: string, opts?: { __allowAuthRefresh
 
 export async function backendGet<T>(path: string, opts?: { __allowAuthRefresh?: boolean }): Promise<T> {
   const token = getAuthToken();
+  const fetchCredentials = getFetchCredentials();
   const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   let res: Response;
   if (isBackendTemporarilyDown()) {
@@ -471,7 +476,7 @@ export async function backendGet<T>(path: string, opts?: { __allowAuthRefresh?: 
   try {
     res = await fetchWithTimeout(`${BACKEND_BASE_URL}${path}`, {
       method: 'GET',
-      credentials: 'include',
+      credentials: fetchCredentials,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -522,6 +527,7 @@ export async function backendGet<T>(path: string, opts?: { __allowAuthRefresh?: 
 
 export async function backendPatch<T>(path: string, body: any, opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
   const token = getAuthToken();
+  const fetchCredentials = getFetchCredentials();
   const allowRefresh = Boolean((opts as any)?.__allowAuthRefresh ?? true);
   const maxAttempts = 3;
   let lastTransientError: any = null;
@@ -538,7 +544,7 @@ export async function backendPatch<T>(path: string, body: any, opts?: { timeoutM
         `${BACKEND_BASE_URL}${path}`,
         {
           method: 'PATCH',
-          credentials: 'include',
+          credentials: fetchCredentials,
           ...(opts?.signal ? { signal: opts.signal } : {}),
           headers: {
             'Content-Type': 'application/json',
@@ -605,6 +611,7 @@ export async function backendPatch<T>(path: string, body: any, opts?: { timeoutM
 
 export async function backendPut<T>(path: string, body: any, opts?: { timeoutMs?: number; signal?: AbortSignal }): Promise<T> {
   const token = getAuthToken();
+  const fetchCredentials = getFetchCredentials();
   const maxAttempts = 3;
   let lastTransientError: any = null;
   if (isBackendTemporarilyDown()) {
@@ -620,7 +627,7 @@ export async function backendPut<T>(path: string, body: any, opts?: { timeoutMs?
         `${BACKEND_BASE_URL}${path}`,
         {
           method: 'PUT',
-          credentials: 'include',
+          credentials: fetchCredentials,
           ...(opts?.signal ? { signal: opts.signal } : {}),
           headers: {
             'Content-Type': 'application/json',

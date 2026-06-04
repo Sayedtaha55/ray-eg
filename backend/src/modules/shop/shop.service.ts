@@ -11,6 +11,51 @@ import { createHash } from 'crypto';
 import { ShopMediaService } from './shop-media.service';
 import { ShopAnalyticsService } from './shop-analytics.service';
 
+const ACTIVITY_PRIVATE_BUTTONS: Record<string, string[]> = {
+  restaurant: ['tables', 'delivery_zones', 'meal_combos', 'kitchen_queue'],
+  grocery: ['fresh_sections', 'suppliers', 'expiry_batches', 'bundle_offers'],
+  fashion: ['sizes_colors', 'collections', 'try_exchange', 'tailoring'],
+  homeTextiles: ['measurements', 'fabric_catalog', 'installation', 'custom_orders'],
+  fabricStore: ['fabric_types', 'meter_pricing', 'patterns_tailoring', 'wholesale_rolls'],
+  curtainsBlinds: ['curtain_catalog', 'window_measurements', 'rails_accessories', 'installation_visits'],
+  sofasUpholstery: ['sofa_models', 'upholstery_fabrics', 'custom_sizes', 'repair_renewal'],
+  mattressesBedding: ['mattress_sizes', 'bedding_sets', 'pillows_duvets', 'comfort_levels'],
+  furniture: ['showroom_sets', 'custom_furniture', 'delivery_installation', 'materials_finishes'],
+  homeGoods: ['home_sections', 'warranty', 'kitchen_tools', 'cleaning_tools'],
+  goldJewelry: ['karats_pricing', 'sets_rings', 'bullion_coins', 'maintenance_polish'],
+  silverAccessories: ['silver_catalog', 'custom_engraving', 'gift_wrapping', 'repair_resize'],
+  watchesGifts: ['watch_brands', 'gift_sets', 'warranty_cards', 'battery_straps'],
+  realEstate: ['properties_sale', 'properties_rent', 'viewing_requests', 'brokers_owners'],
+  lands: ['lands_sale', 'lands_rent', 'utilities', 'land_documents'],
+  contractors: ['quotations', 'projects', 'crews', 'materials'],
+  building_supplies: ['cement_steel', 'paint_finishing', 'sanitary_electric', 'bulk_delivery'],
+  carShowroom: ['new_cars', 'used_cars', 'finance_installments', 'test_drives'],
+  auto_services: ['maintenance_jobs', 'mechanics', 'inspection', 'service_packages'],
+  auto_parts: ['parts_catalog', 'vehicle_fitment', 'tires_batteries', 'installation_services'],
+  agri_supplies: ['seeds_seedlings', 'fertilizers', 'pesticides', 'irrigation_tools'],
+  nurseries_landscaping: ['plants_catalog', 'garden_design', 'maintenance_visits', 'irrigation_systems'],
+  serviceCompanies: ['service_packages', 'service_teams', 'coverage_areas', 'contracts'],
+  individualTechnicians: ['skills', 'visit_fees', 'available_areas', 'before_after'],
+  workshops: ['work_orders', 'custom_manufacturing', 'repair_requests', 'materials_stock'],
+  electronics: ['devices', 'accessories', 'repairs', 'warranty_claims'],
+  health: ['prescriptions', 'cosmetics', 'medical_devices', 'repeat_orders'],
+  bookings: [],
+  other: ['custom_services', 'custom_requests', 'branches_locations', 'team_members'],
+};
+
+const getDefaultActivityIdForCategory = (categoryRaw: any): string => {
+  const cat = String(categoryRaw || '').trim().toUpperCase();
+  if (cat === 'RESTAURANT') return 'restaurant';
+  if (cat === 'FOOD') return 'grocery';
+  if (cat === 'FASHION') return 'fashion';
+  if (cat === 'RETAIL') return 'homeTextiles';
+  if (cat === 'SERVICE') return 'sofasUpholstery';
+  if (cat === 'ELECTRONICS') return 'electronics';
+  if (cat === 'HEALTH') return 'health';
+  if (cat === 'OTHER') return 'other';
+  return 'restaurant'; // Fallback
+};
+
 @Injectable()
 export class ShopService {
   constructor(
@@ -86,14 +131,16 @@ export class ShopService {
     return always;
   }
 
-  private normalizeRequestedModules(raw: any) {
+  private normalizeRequestedModules(raw: any, activityId?: string) {
     const list = Array.isArray(raw) ? raw : [];
     const allowed = this.getAllowedDashboardModules();
-    const core = this.getCoreDashboardModules();
+    const allowedButtons = activityId ? (ACTIVITY_PRIVATE_BUTTONS[activityId] || []) : [];
+    const allowedSet = new Set([...Array.from(allowed), ...allowedButtons]);
+
     const normalized = list
       .map((x) => String(x || '').trim())
       .filter(Boolean)
-      .filter((id) => allowed.has(id));
+      .filter((id) => allowedSet.has(id));
     return Array.from(new Set(normalized));
   }
 
@@ -122,17 +169,25 @@ export class ShopService {
 
     const requestedByUserId = input?.requestedByUserId ? String(input.requestedByUserId).trim() : null;
 
-    const requestedModules = this.normalizeRequestedModules(input?.requestedModules);
-    if (requestedModules.length === 0) throw new BadRequestException('requestedModules مطلوب');
-
     const shop = await this.prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, slug: true, category: true, layoutConfig: true },
+      select: { id: true, slug: true, category: true, layoutConfig: true, pageDesign: true },
     });
     if (!shop) throw new NotFoundException('المتجر غير موجود');
 
+    let activityId = String((shop.pageDesign as any)?.businessActivityId || '').trim();
+    if (!activityId) {
+      activityId = getDefaultActivityIdForCategory(shop.category);
+    }
+
+    const requestedModules = this.normalizeRequestedModules(input?.requestedModules, activityId);
+    if (requestedModules.length === 0) throw new BadRequestException('requestedModules مطلوب');
+
     const allowedForCategory = this.getAllowedDashboardModulesForCategory((shop as any)?.category);
-    const requestedAllowed = requestedModules.filter((m) => allowedForCategory.has(m));
+    const allowedButtons = activityId ? (ACTIVITY_PRIVATE_BUTTONS[activityId] || []) : [];
+    const allowedButtonsSet = new Set(allowedButtons);
+
+    const requestedAllowed = requestedModules.filter((m) => allowedForCategory.has(m) || allowedButtonsSet.has(m));
     if (requestedAllowed.length === 0) {
       throw new BadRequestException('الأزرار المطلوبة غير متاحة لهذا النشاط');
     }
@@ -142,7 +197,20 @@ export class ShopService {
       ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
       : [];
     const enabledSet = new Set(prevEnabled);
-    const pendingModules = requestedAllowed.filter((m) => !enabledSet.has(m));
+
+    const prevPageDesign = (shop.pageDesign as any) || {};
+    const prevEnabledButtons = Array.isArray(prevPageDesign?.activityEnabledButtons)
+      ? prevPageDesign.activityEnabledButtons.map((x: any) => String(x || '').trim()).filter(Boolean)
+      : [];
+    const enabledButtonsSet = new Set(prevEnabledButtons);
+
+    const pendingModules = requestedAllowed.filter((m) => {
+      if (allowedButtonsSet.has(m)) {
+        return !enabledButtonsSet.has(m);
+      }
+      return !enabledSet.has(m);
+    });
+
     if (pendingModules.length === 0) throw new BadRequestException('كل الأزرار المطلوبة مفعلة بالفعل');
 
     const existingPending = await this.upgradeRequests.findFirst({
@@ -244,18 +312,29 @@ export class ShopService {
           shopId: true,
           status: true,
           requestedModules: true,
-          shop: { select: { id: true, slug: true, category: true, layoutConfig: true } },
+          shop: { select: { id: true, slug: true, category: true, layoutConfig: true, pageDesign: true } },
         },
       });
 
       if (!req) throw new NotFoundException('الطلب غير موجود');
       if (String(req.status) !== 'PENDING') throw new BadRequestException('هذا الطلب ليس قيد المراجعة');
 
+      let activityId = String((req.shop?.pageDesign as any)?.businessActivityId || '').trim();
+      if (!activityId) {
+        activityId = getDefaultActivityIdForCategory(req.shop?.category);
+      }
+      const allowedButtons = activityId ? (ACTIVITY_PRIVATE_BUTTONS[activityId] || []) : [];
+      const allowedButtonsSet = new Set(allowedButtons);
+
       const requested = Array.isArray(req.requestedModules)
         ? (req.requestedModules as any[]).map((x) => String(x || '').trim()).filter(Boolean)
         : [];
-      const requestedFiltered = Array.from(new Set(requested.filter((m) => allowed.has(m))));
+      
+      const requestedFiltered = Array.from(new Set(requested.filter((m) => allowed.has(m) || allowedButtonsSet.has(m))));
       if (requestedFiltered.length === 0) throw new BadRequestException('requestedModules غير صالح');
+
+      const approvedModules = requestedFiltered.filter((m) => allowed.has(m));
+      const approvedButtons = requestedFiltered.filter((m) => allowedButtonsSet.has(m));
 
       const prevLayout = (req.shop?.layoutConfig as any) || {};
       const prevEnabled = Array.isArray(prevLayout?.enabledModules)
@@ -265,17 +344,31 @@ export class ShopService {
       const shopCategory = (req.shop as any)?.category;
       const allowedForCategory = this.getAllowedDashboardModulesForCategory(shopCategory);
 
-      const mergedRequested = Array.from(new Set([...prevEnabled, ...requestedFiltered, ...core]));
-      const nextEnabled = mergedRequested.filter((m) => allowed.has(m) && allowedForCategory.has(m));
+      const mergedRequested = Array.from(new Set([...prevEnabled, ...approvedModules, ...core]));
+      const nextEnabled = mergedRequested.filter((m) => (allowed.has(m) || core.includes(m)) && allowedForCategory.has(m));
 
       const nextLayout = {
         ...prevLayout,
         enabledModules: nextEnabled,
       };
 
+      const prevPageDesign = (req.shop?.pageDesign as any) || {};
+      const prevButtons = Array.isArray(prevPageDesign?.activityEnabledButtons)
+        ? prevPageDesign.activityEnabledButtons.map((x: any) => String(x || '').trim()).filter(Boolean)
+        : [];
+      const nextButtons = Array.from(new Set([...prevButtons, ...approvedButtons]));
+
+      const nextPageDesign = {
+        ...prevPageDesign,
+        activityEnabledButtons: nextButtons,
+      };
+
       const shopUpdated = await tx.shop.update({
         where: { id: req.shopId },
-        data: { layoutConfig: nextLayout as any },
+        data: { 
+          layoutConfig: nextLayout as any,
+          pageDesign: nextPageDesign as any
+        },
         select: { id: true, slug: true, layoutConfig: true },
       });
 

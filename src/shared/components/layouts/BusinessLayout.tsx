@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -14,6 +14,8 @@ import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
 } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
+import { BOOKING_ACTIVITY_DEFINITIONS, getBookingActivityDefinition, getBookingActivityExtraPageId, BOOKING_SETTINGS_PAGE_BUTTONS, ACTIVITY_MODULES, getBookingActivityTypeFromParam } from '../pages/business/clinic/bookingActivityConfig';
+import * as LucideIcons from 'lucide-react';
 
 // Sub-components
 import NavItem from './business/NavItem';
@@ -31,7 +33,10 @@ const BusinessLayout: React.FC = () => {
   const navigate = useNavigate();
   const prefersReducedMotion = useReducedMotion();
   const isDev = !Boolean((import.meta as any)?.env?.PROD);
-  const isDashboard = location.pathname.includes('/dashboard') || location.pathname.includes('/profile');
+  const isDashboard =
+    location.pathname.includes('/dashboard') ||
+    location.pathname.includes('/profile') ||
+    ['clinic', 'salon', 'spa', 'chalets', 'hotels', 'restaurants', 'events', 'rental', 'sports', 'education', 'maintenance', 'appointments'].some(act => location.pathname.includes(`/business/${act}`));
   const isBusinessLanding = location.pathname === '/business' || location.pathname === '/business/';
   const isProfilePage = location.pathname.includes('/profile');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -59,10 +64,66 @@ const BusinessLayout: React.FC = () => {
   const builderTabRaw = new URLSearchParams(location.search).get('builderTab') || '';
   const isSettingsTab = activeTab === 'settings';
   const isBuilderTab = activeTab === 'builder';
+  const bookingActivities = useMemo(() => [
+    'clinic',
+    'salon',
+    'spa',
+    'chalets',
+    'hotels',
+    'restaurants',
+    'events',
+    'rental',
+    'sports',
+    'education',
+    'maintenance',
+    'appointments'
+  ], []);
+
+  const pathParts = useMemo(() => String(location.pathname || '').split('/').filter(Boolean), [location.pathname]);
+
+  const currentBookingActivity = useMemo(() => {
+    if (pathParts[0] === 'business' && bookingActivities.includes(pathParts[1])) {
+      return pathParts[1];
+    }
+    return null;
+  }, [pathParts, bookingActivities]);
+
+  const bookingActivityDef = useMemo(() => {
+    if (!currentBookingActivity) return null;
+    const activityMap: Record<string, string> = {
+      'clinic': 'clinic_hospital',
+      'salon': 'salon_barber',
+      'spa': 'wellness_spa',
+      'chalets': 'chalets_resorts',
+      'hotels': 'hotels_rooms',
+      'restaurants': 'restaurants_tables',
+      'events': 'events_venues',
+      'rental': 'vehicle_rental',
+      'sports': 'sports_trainers',
+      'education': 'education_courses',
+      'maintenance': 'maintenance_services',
+      'appointments': 'general_appointments',
+    };
+    const actId = activityMap[currentBookingActivity] || 'clinic_hospital';
+    return getBookingActivityDefinition(actId);
+  }, [currentBookingActivity]);
+
+  const isBookingSettingsTab = useMemo(() => {
+    if (!currentBookingActivity) return false;
+    if (location.pathname === `/business/${currentBookingActivity}/settings`) return true;
+    const match = location.pathname.match(new RegExp(`^/business/${currentBookingActivity}/activity/([^/]+)`));
+    if (match) {
+      const pageId = match[1];
+      return BOOKING_SETTINGS_PAGE_BUTTONS.some(btn => btn.id === pageId);
+    }
+    return false;
+  }, [currentBookingActivity, location.pathname]);
+
   const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isDevActivityMenuOpen, setIsDevActivityMenuOpen] = useState(false);
+  const [isBookingsMenuOpen, setIsBookingsMenuOpen] = useState(false);
   const [devSwitchLoading, setDevSwitchLoading] = useState(false);
   const [shopCategory, setShopCategory] = useState<Category | undefined>(() => {
     try {
@@ -163,7 +224,9 @@ const BusinessLayout: React.FC = () => {
     sales: <CreditCard size={20} />,
     reservations: <Calendar size={20} />,
     clinicDoctors: <Users size={20} />,
-    clinicServices: <HelpCircle size={20} />,
+    clinicServices: <ListChecks size={20} />,
+    clinicRooms: <Store size={20} />,
+    clinicPatients: <FileText size={20} />,
     invoice: <FileText size={20} />,
     products: <ShoppingBag size={20} />,
     customers: <Users size={20} />,
@@ -268,13 +331,39 @@ const BusinessLayout: React.FC = () => {
     const pick = (...ids: MerchantDashboardTabId[]) =>
       ids.map((id) => byId.get(String(id))).filter(Boolean);
 
-    return [
-      { title: t('dashboard.sections.dashboard'), items: pick('overview') },
-      { title: t('dashboard.sections.operations'), items: pick('products', 'pos', 'reservations', 'invoice') },
-      { title: t('dashboard.sections.sales'), items: pick('sales', 'abandonedCart') },
-      { title: t('dashboard.sections.growth'), items: pick('promotions', 'customers', 'reports', 'gallery') },
-      { title: t('dashboard.sections.setup'), items: pick('builder', 'settings') },
-    ].filter((s) => Array.isArray(s.items) && s.items.length > 0);
+    const sections = [];
+
+    const dashboardItems = pick('overview');
+    if (dashboardItems.length > 0) {
+      sections.push({ title: t('dashboard.sections.dashboard'), items: dashboardItems });
+    }
+
+    const clinicItems = pick('clinicDoctors', 'clinicServices', 'clinicRooms', 'clinicPatients');
+    if (clinicItems.length > 0) {
+      sections.push({ title: 'إدارة العيادة', items: clinicItems });
+    }
+
+    const operationsItems = pick('products', 'pos', 'reservations', 'invoice');
+    if (operationsItems.length > 0) {
+      sections.push({ title: t('dashboard.sections.operations'), items: operationsItems });
+    }
+
+    const salesItems = pick('sales', 'abandonedCart');
+    if (salesItems.length > 0) {
+      sections.push({ title: t('dashboard.sections.sales'), items: salesItems });
+    }
+
+    const growthItems = pick('promotions', 'customers', 'reports', 'gallery');
+    if (growthItems.length > 0) {
+      sections.push({ title: t('dashboard.sections.growth'), items: growthItems });
+    }
+
+    const setupItems = pick('builder', 'settings');
+    if (setupItems.length > 0) {
+      sections.push({ title: t('dashboard.sections.setup'), items: setupItems });
+    }
+
+    return sections.filter((s) => Array.isArray(s.items) && s.items.length > 0);
   }, [visibleMainTabs]);
 
   const normalizeNotif = (n: any) => {
@@ -835,7 +924,7 @@ const BusinessLayout: React.FC = () => {
             >
               {isArabic ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
             </button>
-            <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
+            <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full" aria-label={isArabic ? 'إغلاق القائمة' : 'Close menu'} title={isArabic ? 'إغلاق القائمة' : 'Close menu'}>
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -871,7 +960,7 @@ const BusinessLayout: React.FC = () => {
               >
                 {isArabic ? <ChevronRight className="w-6 h-6" /> : <ChevronLeft className="w-6 h-6" />}
               </button>
-              <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full">
+              <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-slate-100 rounded-full" aria-label={isArabic ? 'إغلاق القائمة' : 'Close menu'} title={isArabic ? 'إغلاق القائمة' : 'Close menu'}>
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -879,7 +968,191 @@ const BusinessLayout: React.FC = () => {
         )}
 
         <nav className="flex-1 px-6 py-4 overflow-y-auto no-scrollbar min-h-0">
-          {!isSettingsTab && !isBuilderTab ? (
+          {currentBookingActivity ? (
+            isBookingSettingsTab ? (
+              <>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    {!isDesktopSidebarCollapsed && (
+                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                        لوحة التحكم الرئيسية
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/overview`} 
+                        onClick={handleNavItemClick} 
+                        icon={<LayoutDashboard size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="رجوع للوحة الحجوزات" 
+                        active={false} 
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    {!isDesktopSidebarCollapsed && (
+                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                        إعدادات الحجوزات
+                      </div>
+                    )}
+                    <div className="space-y-2">
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/settings`} 
+                        onClick={handleNavItemClick} 
+                        icon={<Settings size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="الإعدادات العامة" 
+                        active={location.pathname === `/business/${currentBookingActivity}/settings`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-site`} 
+                        onClick={handleNavItemClick} 
+                        icon={<Store size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="الموقع العام للحجوزات" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-site`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-security`} 
+                        onClick={handleNavItemClick} 
+                        icon={<Shield size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="الأمان والصلاحيات" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-security`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-notifications`} 
+                        onClick={handleNavItemClick} 
+                        icon={<Bell size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="إشعارات وتأكيدات" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-notifications`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-payments`} 
+                        onClick={handleNavItemClick} 
+                        icon={<CreditCard size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="مدفوعات وتأمين" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-payments`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-cancellation`} 
+                        onClick={handleNavItemClick} 
+                        icon={<Clock size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="سياسات الإلغاء" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-cancellation`} 
+                      />
+                      <NavItem 
+                        to={`/business/${currentBookingActivity}/activity/booking-privacy`} 
+                        onClick={handleNavItemClick} 
+                        icon={<FileText size={20} />} 
+                        showIcon={isDesktopSidebarCollapsed}
+                        hideLabel={isDesktopSidebarCollapsed}
+                        label="الخصوصية وبيانات العملاء" 
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-privacy`} 
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (() => {
+              const selectedActivity = getBookingActivityTypeFromParam(currentBookingActivity);
+              const modules = ACTIVITY_MODULES[selectedActivity] || [];
+              const renderSidebarIcon = (iconName: string) => {
+                const IconComp = (LucideIcons as any)[iconName] || LucideIcons.HelpCircle;
+                return <IconComp size={20} />;
+              };
+              return (
+                <>
+                  <div className="space-y-6">
+                    <div className="space-y-2">
+                      {!isDesktopSidebarCollapsed && bookingActivityDef && (
+                        <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                          {`إدارة نشاط ${bookingActivityDef.title}`}
+                        </div>
+                      )}
+                      <div className="space-y-2">
+                        <NavItem 
+                          to="/business/dashboard" 
+                          onClick={handleNavItemClick} 
+                          icon={<LayoutDashboard size={20} />} 
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label={t('dashboard.backToDashboard')} 
+                          active={false} 
+                        />
+                        <NavItem 
+                          to={`/business/${currentBookingActivity}/overview`} 
+                          onClick={handleNavItemClick} 
+                          icon={<CalendarCheck size={20} />} 
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label="لوحة الحجوزات" 
+                          active={location.pathname === `/business/${currentBookingActivity}/overview`} 
+                        />
+                        <NavItem 
+                          to={`/business/${currentBookingActivity}/bookings`} 
+                          onClick={handleNavItemClick} 
+                          icon={<ClipboardList size={20} />} 
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label="جدول المواعيد" 
+                          active={location.pathname === `/business/${currentBookingActivity}/bookings`} 
+                        />
+
+                        {/* Dynamic modules for the selected booking activity */}
+                        {modules.map((mod) => {
+                          const targetPath = `/business/${currentBookingActivity}/${mod.route}`;
+                          const isActive = location.pathname === targetPath;
+                          return (
+                            <NavItem 
+                              key={mod.id}
+                              to={targetPath} 
+                              onClick={handleNavItemClick} 
+                              icon={renderSidebarIcon(mod.icon)} 
+                              showIcon={isDesktopSidebarCollapsed}
+                              hideLabel={isDesktopSidebarCollapsed}
+                              label={mod.label} 
+                              active={isActive} 
+                            />
+                          );
+                        })}
+
+                        <NavItem 
+                          to={`/business/${currentBookingActivity}/design`} 
+                          onClick={handleNavItemClick} 
+                          icon={<Palette size={20} />} 
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label={t('business.clinic.layout.design')} 
+                          active={location.pathname === `/business/${currentBookingActivity}/design`} 
+                        />
+                        <NavItem 
+                          to={`/business/${currentBookingActivity}/settings`} 
+                          onClick={handleNavItemClick} 
+                          icon={<Settings size={20} />} 
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label={t('business.clinic.layout.settings')} 
+                          active={location.pathname === `/business/${currentBookingActivity}/settings`} 
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              );
+            })()
+          ) : !isSettingsTab && !isBuilderTab ? (
             <>
               <div className="space-y-6">
                 {sidebarNavSections.map((section) => (
@@ -1095,7 +1368,7 @@ const BusinessLayout: React.FC = () => {
             >
                 <div className="flex items-center justify-between mb-8">
                    <h3 className="text-2xl font-black">{t('dashboard.notifications')}</h3>
-                   <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full"><X size={20} /></button>
+                   <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full" aria-label={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'} title={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'}><X size={20} /></button>
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar">
                    {notifications.length === 0 ? (
@@ -1198,19 +1471,85 @@ const BusinessLayout: React.FC = () => {
             </div>
 
             {canUseDevActivitySwitcher && (
-              <div className="relative">
-                <button
-                  type="button"
-                  disabled={devSwitchLoading}
-                  onClick={() => setIsDevActivityMenuOpen((v) => !v)}
-                  className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all font-black text-xs"
-                  title={t('dashboard.devActivity.switchLabel')}
-                  aria-label={t('dashboard.devActivity.switchLabel')}
-                >
-                  <Store size={16} />
-                  <span>{t('dashboard.devActivity.title')}</span>
-                  <ChevronDown size={14} className="text-slate-500" />
-                </button>
+              <>
+                <div className="relative ml-2">
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => setIsBookingsMenuOpen((v) => !v)}
+                    className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-emerald-50 to-teal-50 hover:from-emerald-100 hover:to-teal-100 border border-emerald-200/50 rounded-2xl text-emerald-800 transition-all font-black text-xs shadow-sm hover:shadow-md active:scale-95"
+                    title={t('dashboard.devActivity.bookings')}
+                    aria-label={t('dashboard.devActivity.bookings')}
+                  >
+                    <Calendar className="w-4 h-4 text-emerald-600 animate-pulse" />
+                    <span>{t('dashboard.devActivity.bookings')}</span>
+                    <ChevronDown size={14} className="text-emerald-600" />
+                  </button>
+
+                  {isBookingsMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsBookingsMenuOpen(false)} />
+                      <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-right">
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('ray_dev_activity_id');
+                            } catch {}
+                            try {
+                              localStorage.setItem('ray_dev_activity_target_tab', 'reservations');
+                            } catch {}
+                            if (shopCategory === 'SERVICE') {
+                              navigate('/business/dashboard?tab=reservations');
+                              setIsBookingsMenuOpen(false);
+                            } else {
+                              switchDevActivity('SERVICE');
+                              setIsBookingsMenuOpen(false);
+                            }
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3"
+                        >
+                          <CalendarCheck className="w-4 h-4 text-slate-500" />
+                          <span>لوحة الحجوزات</span>
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            setIsBookingsMenuOpen(false);
+                            try {
+                              localStorage.setItem('ray_dev_activity_target_tab', 'clinicDoctors');
+                            } catch {}
+                            if (shopCategory === 'SERVICE') {
+                              navigate('/business/dashboard?tab=clinicDoctors');
+                            } else {
+                              switchDevActivity('SERVICE');
+                            }
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3 border-t border-slate-50"
+                        >
+                          <Users className="w-4 h-4 text-slate-500" />
+                          <span>العيادات والمستشفيات</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="relative">
+                  <button
+                    type="button"
+                    disabled={devSwitchLoading}
+                    onClick={() => setIsDevActivityMenuOpen((v) => !v)}
+                    className="flex items-center gap-2 px-4 py-3 bg-slate-100 hover:bg-slate-200 rounded-2xl text-slate-900 transition-all font-black text-xs"
+                    title={t('dashboard.devActivity.switchLabel')}
+                    aria-label={t('dashboard.devActivity.switchLabel')}
+                  >
+                    <Store size={16} />
+                    <span>{t('dashboard.devActivity.title')}</span>
+                    <ChevronDown size={14} className="text-slate-500" />
+                  </button>
 
                 {isDevActivityMenuOpen && (
                   <>
@@ -1362,20 +1701,6 @@ const BusinessLayout: React.FC = () => {
                             localStorage.removeItem('ray_dev_activity_id');
                           } catch {
                           }
-                          switchDevActivity('SERVICE');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.bookings')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.removeItem('ray_dev_activity_id');
-                          } catch {
-                          }
                           switchDevActivity('OTHER');
                         }}
                         className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
@@ -1386,6 +1711,7 @@ const BusinessLayout: React.FC = () => {
                   </>
                 )}
               </div>
+              </>
             )}
 
             <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
@@ -1407,17 +1733,63 @@ const BusinessLayout: React.FC = () => {
                 <Store className="w-5 h-5" />
               </button>
             )}
-            {isDev && (
+            <div className="relative">
               <button
-                onClick={() => switchDevActivity('SERVICE')}
+                type="button"
+                onClick={() => setIsBookingsMenuOpen((v) => !v)}
                 aria-label={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
                 title={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
                 className="flex items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 rounded-2xl text-emerald-800 transition-all text-xs font-black shadow-sm"
               >
                 <Calendar className="w-4 h-4 text-emerald-600" />
                 <span>{isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}</span>
+                <ChevronDown size={14} className="text-emerald-600" />
               </button>
-            )}
+
+              {isBookingsMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsBookingsMenuOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                    <div className="py-2 px-3 bg-emerald-50 border-b border-emerald-100">
+                      <span className="text-xs font-black text-emerald-800">{isArabic ? 'اختر نشاط الحجوزات' : 'Select Booking Activity'}</span>
+                    </div>
+                    {BOOKING_ACTIVITY_DEFINITIONS.map((activity) => {
+                      const routeMap: Record<string, string> = {
+                        'clinic_hospital': 'clinic',
+                        'salon_barber': 'salon',
+                        'wellness_spa': 'spa',
+                        'chalets_resorts': 'chalets',
+                        'hotels_rooms': 'hotels',
+                        'restaurants_tables': 'restaurants',
+                        'events_venues': 'events',
+                        'vehicle_rental': 'rental',
+                        'sports_trainers': 'sports',
+                        'education_courses': 'education',
+                        'maintenance_services': 'maintenance',
+                        'general_appointments': 'appointments',
+                      };
+                      const route = routeMap[activity.id] || 'clinic';
+                      return (
+                        <button
+                          key={activity.id}
+                          type="button"
+                          onClick={() => {
+                            setIsBookingsMenuOpen(false);
+                            navigate(`/business/${route}/overview`);
+                          }}
+                          className="w-full py-3 px-4 text-right hover:bg-emerald-50 transition-all font-black text-sm text-slate-800 border-b border-slate-50 last:border-b-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <span>{activity.title}</span>
+                            <CalendarCheck size={14} className="text-emerald-400" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
             <button
               onClick={() => navigate(buildBuilderIndexUrl())}
               aria-label={t('dashboard.storeIdentity')}
@@ -1447,6 +1819,24 @@ const BusinessLayout: React.FC = () => {
         </header>
 
         <div className="p-4 md:p-12 md:pt-36 min-h-screen">
+          {bookingActivityDef && (
+            <div className="mb-8 flex items-start justify-between gap-6 flex-wrap" dir="rtl">
+              <div className="text-right">
+                <div className="text-xl md:text-2xl font-black text-slate-900">
+                  لوحة حجوزات نشاط: <span className="text-[#00E5FF]">{bookingActivityDef.title}</span>
+                </div>
+                <p className="mt-2 text-xs font-bold text-slate-400 max-w-2xl leading-6">
+                  {bookingActivityDef.description}
+                </p>
+              </div>
+              <Link
+                to="/business/builder/preview?page=clinic"
+                className="px-5 py-3 rounded-2xl font-black text-sm transition-all inline-flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-100"
+              >
+                {t('business.clinic.layout.previewPage')}
+              </Link>
+            </div>
+          )}
           <Outlet />
         </div>
       </main>

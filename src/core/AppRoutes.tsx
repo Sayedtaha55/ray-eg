@@ -45,7 +45,6 @@ const CourierSignupPage = React.lazy(() => import('../shared/components/pages/bu
 const BuilderPreviewPage = React.lazy(() => import('../shared/components/pages/business/builder/BuilderPreviewPage'));
 
 // Clinic pages
-const ClinicLayoutPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicLayoutPage'));
 const ClinicOverviewPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicOverviewPage'));
 const ClinicBookingManagementPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicBookingManagementPage'));
 const ClinicBookingsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicBookingsPage'));
@@ -54,6 +53,7 @@ const ClinicDoctorsPage = React.lazy(() => import('../shared/components/pages/bu
 const ClinicServicesPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicServicesPage'));
 const ClinicSettingsPage = React.lazy(() => import('../shared/components/pages/business/clinic/ClinicSettingsPage'));
 const BookingActivityExtraPage = React.lazy(() => import('../shared/components/pages/business/clinic/BookingActivityExtraPage'));
+const BookingsPage = React.lazy(() => import('../shared/components/pages/business/bookings/BookingsPage'));
 const AdminLayout = React.lazy(() => import('../shared/components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../shared/components/pages/admin/AdminDashboard'));
 const AdminLogin = React.lazy(() => import('../shared/components/pages/auth/AdminLogin'));
@@ -136,8 +136,9 @@ const AppRoutes: React.FC = () => {
         <Route path="pending" element={suspense(<BusinessPendingApproval />)} />
         <Route path="courier-signup" element={suspense(<CourierSignupPage />)} />
         
-        {/* Clinic booking dashboard routes */}
-        <Route path="clinic" element={suspense(<ClinicLayoutPage />)}>
+        {/* Master Booking Dashboard — single dynamic route for ALL booking activities */}
+        {/* Supports: clinic, salon, spa, chalets, hotels, restaurants, events, rental, sports, education, maintenance, appointments */}
+        <Route path=":activityType" element={suspense(<BookingsPage />)}>
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={suspense(<ClinicOverviewPage />)} />
           <Route path="booking-management" element={suspense(<ClinicBookingManagementPage />)} />

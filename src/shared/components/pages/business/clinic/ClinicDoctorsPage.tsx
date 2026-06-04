@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as ReactRouterDOM from 'react-router-dom';
 import {
   Plus,
   Trash2,
@@ -15,6 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { getBookingActivityVocabulary } from './bookingActivityConfig';
 
 type Doctor = {
   id: string;
@@ -33,8 +35,19 @@ type Props = {
 
 const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   const { t } = useTranslation();
-  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
-  const effectiveShop = shop || loadedShop;
+  const { useLocation, useOutletContext } = ReactRouterDOM as any;
+  const location = useLocation();
+  const context = useOutletContext?.() || {};
+  const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const vocab = getBookingActivityVocabulary(basePath);
+  const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
+  const effectiveShop = shop || context.shop || loadedShop;
+
+  useEffect(() => {
+    if (context.shop && !shop) {
+      setLoadedShop(context.shop);
+    }
+  }, [context.shop, shop]);
 
   useEffect(() => {
     if (shop || loadedShop) return;
@@ -75,7 +88,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   // Handle image upload robustly
   const handleUploadPhoto = async (file: File, doctorId: string) => {
     if (!effectiveShop?.id) {
-      setErrorMsg('معرف العيادة غير موجود');
+      setErrorMsg('معرف النشاط غير موجود');
       return;
     }
     setUploadingId(doctorId);
@@ -102,7 +115,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
         }
       }
     } catch (err: any) {
-      setErrorMsg(err?.message || 'فشل تحميل الصورة الشخصية للطبيب');
+      setErrorMsg(err?.message || `فشل تحميل الصورة الشخصية`);
     } finally {
       setUploadingId(null);
     }
@@ -120,7 +133,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
         pageDesign: updatedPageDesign,
       });
       setLoadedShop(updatedShop || { ...(effectiveShop || {}), pageDesign: updatedPageDesign });
-      setSuccessMsg('تم تحديث قائمة الأطباء وحفظ التعديلات بنجاح!');
+      setSuccessMsg(`تم تحديث قائمة ${vocab.providerPlural} وحفظ التعديلات بنجاح!`);
       if (onSaved) onSaved();
       setTimeout(() => setSuccessMsg(''), 4000);
     } catch (err: any) {
@@ -133,7 +146,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   const handleAddOrEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
-      setErrorMsg('الرجاء إدخال اسم الطبيب');
+      setErrorMsg(`الرجاء إدخال اسم ${vocab.providerSingular}`);
       return;
     }
 
@@ -145,7 +158,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
           return {
             ...doc,
             name: name.trim(),
-            title: title.trim() || 'طبيب أخصائي',
+            title: title.trim() || vocab.providerSingular,
             rating: parseFloat(rating) || 4.8,
             reviews: parseInt(reviews) || 120,
             next: next.trim() || '05:30 م',
@@ -159,7 +172,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
       const newDoc: Doctor = {
         id: 'doc_' + Date.now(),
         name: name.trim(),
-        title: title.trim() || 'طبيب أخصائي',
+        title: title.trim() || vocab.providerSingular,
         rating: parseFloat(rating) || 4.8,
         reviews: parseInt(reviews) || 120,
         next: next.trim() || '05:30 م',
@@ -190,7 +203,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('هل أنت متأكد من رغبتك في حذف هذا الطبيب من العيادة؟')) return;
+    if (!window.confirm(`هل أنت متأكد من رغبتك في حذف هذا من ${vocab.providerPlural}؟`)) return;
     const nextList = doctorsList.filter((doc) => doc.id !== id);
     await saveDoctorsList(nextList);
   };
@@ -211,24 +224,26 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   };
 
   return (
-    <div className="bg-white rounded-[3.5rem] border border-slate-100 shadow-sm p-8 md:p-12 text-right" dir="rtl">
+    <div className={context.shop !== undefined ? "text-right" : "bg-white rounded-[3.5rem] border border-slate-100 shadow-sm p-8 md:p-12 text-right"} dir="rtl">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10 border-b border-slate-100 pb-6 flex-row-reverse">
-        <div className="text-right">
-          <div className="flex items-center gap-2.5 justify-end">
-            <Sparkles size={18} className="text-cyan-500" />
-            <h3 className="text-2xl md:text-3xl font-black text-slate-900">إدارة الكادر الطبي والأطباء</h3>
+        {context.shop === undefined ? (
+          <div className="text-right">
+            <div className="flex items-center gap-2.5 justify-end">
+              <Sparkles size={18} className="text-cyan-500" />
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900">{`إدارة ${vocab.providerPlural}`}</h3>
+            </div>
+            <p className="text-slate-400 font-bold text-xs md:text-sm mt-2">
+              {`قم بإضافة ${vocab.providerPlural}، وتحديث بياناتهم وصورهم وساعات العمل المتاحة.`}
+            </p>
           </div>
-          <p className="text-slate-400 font-bold text-xs md:text-sm mt-2">
-            قم بإضافة أطباء المركز الطبي، وتحديث بياناتهم وصورهم وساعات العمل المتاحة لكل طبيب.
-          </p>
-        </div>
+        ) : <div />}
         <button
           onClick={handleOpenAdd}
           className="w-full sm:w-auto px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus size={18} />
-          <span>إضافة طبيب جديد للعيادة</span>
+          <span>{vocab.addProviderButton}</span>
         </button>
       </div>
 
@@ -248,7 +263,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
       {isSaving && !isModalOpen && (
         <div className="mb-6 bg-cyan-50 text-cyan-700 border border-cyan-100 rounded-2xl px-6 py-4 font-bold text-xs sm:text-sm flex items-center justify-center gap-2">
           <Loader2 className="animate-spin text-cyan-600" size={16} />
-          <span>جاري حفظ البيانات وتحديث موقع العيادة بالخارج...</span>
+          <span>جاري حفظ البيانات وتحديث الموقع بالخارج...</span>
         </div>
       )}
 
@@ -256,12 +271,12 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
       {doctorsList.length === 0 ? (
         <div className="py-24 text-center border-2 border-dashed border-slate-100 rounded-[2.5rem] text-slate-350 bg-slate-50/20">
           <Users size={56} className="mx-auto mb-5 opacity-20" />
-          <p className="font-black text-lg">لا يوجد أطباء مسجلين بالعيادة حالياً.</p>
+          <p className="font-black text-lg">{`لا يوجد ${vocab.providerPlural} مسجلين حالياً.`}</p>
           <button
             onClick={handleOpenAdd}
             className="mt-4 px-5 py-2.5 bg-slate-100 text-slate-700 hover:bg-slate-200 transition-all font-black text-xs rounded-xl"
           >
-            إضافة أول طبيب
+            {`إضافة أول ${vocab.providerSingular}`}
           </button>
         </div>
       ) : (
@@ -276,14 +291,14 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                 <button
                   onClick={() => handleOpenEdit(doc)}
                   className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-200 text-slate-650 hover:bg-slate-100 hover:text-slate-900 flex items-center justify-center transition-all"
-                  title="تعديل بيانات الطبيب"
+                  title={`تعديل بيانات ${vocab.providerSingular}`}
                 >
                   <Edit2 size={13} />
                 </button>
                 <button
                   onClick={() => handleDelete(doc.id)}
                   className="w-8 h-8 rounded-lg bg-red-50 border border-red-200 text-red-500 hover:bg-red-100 flex items-center justify-center transition-all"
-                  title="حذف الطبيب"
+                  title={`حذف ${vocab.providerSingular}`}
                 >
                   <Trash2 size={13} />
                 </button>
@@ -348,9 +363,9 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
             <div className="relative p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-row-reverse text-right">
               <div>
                 <h3 className="text-xl font-black text-slate-900">
-                  {editingId ? 'تعديل بيانات الطبيب' : 'إضافة طبيب جديد'}
+                  {editingId ? `تعديل بيانات ${vocab.providerSingular}` : `إضافة ${vocab.providerSingular} جديد`}
                 </h3>
-                <p className="text-xs font-bold text-slate-400 mt-1">تعبئة مواصفات الكادر الطبي الظاهرة في موقع العيادة</p>
+                <p className="text-xs font-bold text-slate-400 mt-1">{`تعبئة مواصفات ${vocab.providerPlural} الظاهرة في الموقع`}</p>
               </div>
               <button
                 onClick={closeAndResetForm}
@@ -364,25 +379,25 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
             <form onSubmit={handleAddOrEditSubmit} className="p-6 sm:p-8 space-y-4 text-right" dir="rtl">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">اسم الطبيب المعالج</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">{`اسم ${vocab.providerLabel}`}</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="مثال: د. أحمد سليمان"
+                    placeholder={`مثال: اسم ${vocab.providerSingular}`}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">المسمى الوظيفي والتخصص الدقيق</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">المسمى الوظيفي والتخصص</label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="مثال: استشاري جراحة العظام والمفاصل"
+                    placeholder={`مثال: ${vocab.providerSingular} متخصص`}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                   />
                 </div>
@@ -426,7 +441,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-slate-500 mb-1.5">رابط صورة الطبيب (اختياري)</label>
+                    <label className="block text-xs font-black text-slate-500 mb-1.5">{`رابط صورة ${vocab.providerSingular} (اختياري)`}</label>
                     <input
                       type="text"
                       value={photoUrl}
@@ -453,7 +468,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                   ) : (
                     <>
                       <Save size={16} />
-                      <span>حفظ الطبيب والبيانات</span>
+                      <span>{`حفظ ${vocab.providerSingular} والبيانات`}</span>
                     </>
                   )}
                 </button>

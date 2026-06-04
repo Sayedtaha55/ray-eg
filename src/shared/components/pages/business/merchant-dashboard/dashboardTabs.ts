@@ -10,6 +10,8 @@ export type MerchantDashboardTabId =
   | 'reservations'
   | 'clinicDoctors'
   | 'clinicServices'
+  | 'clinicRooms'
+  | 'clinicPatients'
   | 'invoice'
   | 'sales'
   | 'promotions'
@@ -67,8 +69,10 @@ export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'products', label: i18n.t('business.dashboardTabs.inventory'), dynamicLabel: getProductTabLabel },
   { id: 'promotions', label: i18n.t('business.dashboardTabs.promotions') },
   { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations'), dynamicLabel: getReservationsTabLabel },
-  { id: 'clinicDoctors', label: 'بيانات وأطباء العيادة' },
-  { id: 'clinicServices', label: 'التخصصات والعيادات الفرعية' },
+  { id: 'clinicDoctors', label: 'الأطباء والكادر' },
+  { id: 'clinicServices', label: 'التخصصات والخدمات' },
+  { id: 'clinicRooms', label: 'غرف/عيادات فرعية' },
+  { id: 'clinicPatients', label: 'ملفات المرضى' },
   { id: 'invoice', label: i18n.t('business.dashboardTabs.invoice') },
   { id: 'sales', label: i18n.t('business.dashboardTabs.sales') },
   { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
@@ -149,10 +153,11 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
     const cat = String(category || '').toUpperCase();
     
     if (cat === 'SERVICE') {
-      set.add('overview');
       set.add('reservations');
       set.add('clinicDoctors');
       set.add('clinicServices');
+      set.add('clinicRooms');
+      set.add('clinicPatients');
       set.add('builder');
       set.add('settings');
     } else {
@@ -166,10 +171,11 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
       if (!normalized) continue;
       if (
         cat === 'SERVICE' &&
-        normalized !== 'overview' &&
         normalized !== 'reservations' &&
         normalized !== 'clinicDoctors' &&
         normalized !== 'clinicServices' &&
+        normalized !== 'clinicRooms' &&
+        normalized !== 'clinicPatients' &&
         normalized !== 'builder' &&
         normalized !== 'settings'
       ) {
@@ -194,8 +200,9 @@ export const resolveMerchantDashboardTab = (requested: any, category?: unknown):
   const req = String(requested || '').trim() as MerchantDashboardTabId;
   if (req === 'pos' || req === 'builder') return req;
   const known = MERCHANT_DASHBOARD_TABS.find((t) => t.id === req);
-  if (!known) return 'overview';
-  return isMerchantDashboardTabVisibleForCategory(known, category) ? known.id : 'overview';
+  const visible = getVisibleMerchantDashboardTabs(category);
+  if (!known) return visible[0]?.id || 'overview';
+  return isMerchantDashboardTabVisibleForCategory(known, category) ? known.id : (visible[0]?.id || 'overview');
 };
 
 export const resolveMerchantDashboardTabForShop = (requested: any, shop?: any): MerchantDashboardTabId => {
@@ -208,12 +215,15 @@ export const resolveMerchantDashboardTabForShop = (requested: any, shop?: any): 
     const mode = (String(modeRaw || '').trim().toLowerCase() as ShopDashboardMode) || undefined;
     const allowedForMode = getAllowedTabsForMode(mode);
 
-    if (allowedForMode && !allowedForMode.has('pos')) return 'overview';
+    if (allowedForMode && !allowedForMode.has('pos')) {
+      const tabs = getMerchantDashboardTabsForShop(shop);
+      return tabs[0]?.id || 'overview';
+    }
     return 'pos';
   }
 
   const tabs = getMerchantDashboardTabsForShop(shop);
   const known = tabs.find((t) => t.id === req);
-  if (!known) return 'overview';
+  if (!known) return tabs[0]?.id || 'overview';
   return known.id;
 };

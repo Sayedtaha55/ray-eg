@@ -15,6 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
+import { getBookingActivityVocabulary } from './bookingActivityConfig';
 
 type Props = {
   shop?: any;
@@ -38,13 +39,27 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
     };
   }, [shop, loadedShop]);
   const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
-  const { useLocation } = ReactRouterDOM as any;
+  const { useLocation, useOutletContext } = ReactRouterDOM as any;
   const location = useLocation();
+  const context = useOutletContext?.() || {};
+  const isInMasterDashboard = context.bookings !== undefined;
 
-  const [loading, setLoading] = useState(true);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [errorMsg, setErrorMsg] = useState<string>('');
+  const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const vocab = getBookingActivityVocabulary(basePath);
+
+  const [loading, setLoading] = useState(isInMasterDashboard ? context.loading : true);
+  const [bookings, setBookings] = useState<any[]>(isInMasterDashboard ? context.bookings : []);
+  const [errorMsg, setErrorMsg] = useState<string>(isInMasterDashboard ? context.error || '' : '');
   
+  // Sync with context if present
+  useEffect(() => {
+    if (isInMasterDashboard) {
+      setBookings(context.bookings || []);
+      setLoading(context.loading);
+      setErrorMsg(context.error || '');
+    }
+  }, [context.bookings, context.loading, context.error, isInMasterDashboard]);
+
   // Secretary manual booking states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [patientName, setPatientName] = useState('');
@@ -78,6 +93,12 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
   }, [location.search, effectiveShop?.id]);
 
   const loadBookings = useCallback(async () => {
+    if (isInMasterDashboard) {
+      if (context.loadBookings) {
+        await context.loadBookings();
+      }
+      return;
+    }
     setLoading(true);
     setErrorMsg('');
     try {
@@ -89,11 +110,13 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
     } finally {
       setLoading(false);
     }
-  }, [getTargetShopId]);
+  }, [getTargetShopId, isInMasterDashboard, context.loadBookings]);
 
   useEffect(() => {
-    loadBookings();
-  }, [loadBookings]);
+    if (!isInMasterDashboard) {
+      loadBookings();
+    }
+  }, [loadBookings, isInMasterDashboard]);
 
   // Extract doctors list from real shop page design only
   const doctorsList = useMemo(() => {
@@ -130,11 +153,11 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
   const handleManualBookingSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientName.trim()) {
-      setModalErrorMsg('الرجاء إدخال اسم المريض');
+      setModalErrorMsg(`الرجاء إدخال اسم ${vocab.customerSingular}`);
       return;
     }
     if (!patientPhone.trim()) {
-      setModalErrorMsg('الرجاء إدخال رقم هاتف المريض');
+      setModalErrorMsg(`الرجاء إدخال رقم هاتف ${vocab.customerSingular}`);
       return;
     }
     if (!bookingTime) {
@@ -154,7 +177,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
       }
       const payload = {
         itemId: selectedDoctor?.id || 'general',
-        itemName: selectedDoctor?.name || 'استشارة عامة',
+        itemName: selectedDoctor?.name || `${vocab.serviceSingular} عامة`,
         itemImage: selectedDoctor?.photoUrl || '',
         itemPrice: 300, // Consulting standard price
         shopId: targetShopId,
@@ -167,7 +190,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
       };
 
       await ApiService.addBooking(payload);
-      setModalSuccessMsg('تمت إضافة حجز المريض بنجاح!');
+      setModalSuccessMsg(`تمت إضافة حجز ${vocab.customerSingular} بنجاح!`);
       
       // Reload and reset
       await loadBookings();
@@ -233,21 +256,23 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
   }).length;
 
   return (
-    <div className="bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm text-right" dir="rtl">
+    <div className={isInMasterDashboard ? "text-right" : "bg-white p-8 md:p-12 rounded-[3.5rem] border border-slate-100 shadow-sm text-right"} dir="rtl">
       {/* 1. Header with manual addition */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10 flex-row-reverse">
-        <div className="text-right">
-          <h3 className="text-2xl md:text-3xl font-black text-slate-900">إدارة وجدول الحجوزات الطبية</h3>
-          <p className="text-slate-400 font-bold text-xs md:text-sm mt-2">
-            متابعة مواعيد الكشوفات، تأكيد الحجوزات القادمة، أو تسجيل مواعيد المرضى يدوياً.
-          </p>
-        </div>
+        {!isInMasterDashboard ? (
+          <div className="text-right">
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900">إدارة وجدول حجوزات {vocab.customerPlural}</h3>
+            <p className="text-slate-400 font-bold text-xs md:text-sm mt-2">
+              متابعة مواعيد الحجوزات، تأكيد الحجوزات القادمة، أو تسجيل مواعيد {vocab.customerPlural} يدوياً.
+            </p>
+          </div>
+        ) : <div />}
         <button
           onClick={() => setIsModalOpen(true)}
           className="w-full sm:w-auto px-6 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-black transition-all flex items-center justify-center gap-2 shadow-lg hover:scale-[1.02] active:scale-[0.98]"
         >
           <Plus size={18} />
-          <span>إضافة حجز مريض جديد</span>
+          <span>إضافة حجز {vocab.customerSingular} جديد</span>
         </button>
       </div>
 
@@ -283,7 +308,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
             activeFilter === 'completed' ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-600 hover:text-slate-900 bg-white/50 hover:bg-white'
           }`}
         >
-          <span>كشوفات مكتملة</span>
+          <span>حجوزات مكتملة</span>
           <span className="px-2 py-0.5 rounded-full bg-white/20 text-xs">{completedCount}</span>
         </button>
         <button
@@ -342,7 +367,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                         <span className={`inline-flex items-center justify-center px-3 py-1 rounded-full text-[11px] font-black leading-none ${getStatusBadgeClass(b.status)}`}>
                           {getStatusLabel(b.status)}
                         </span>
-                        <h4 className="text-lg font-black text-slate-900">{b.customerName || 'مريض مجهول'}</h4>
+                        <h4 className="text-lg font-black text-slate-900">{b.customerName || `${vocab.customerSingular} مجهول`}</h4>
                       </div>
                       
                       <div className="flex items-center gap-2 justify-end text-xs font-bold text-slate-400">
@@ -353,7 +378,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                       <div className="flex items-center gap-3.5 flex-wrap pt-2 justify-end text-xs font-black text-slate-650">
                         <div className="flex items-center gap-1.5 flex-row-reverse bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
                           <User size={12} className="text-slate-400" />
-                          <span>الطبيب: {b.itemName || '—'}</span>
+                          <span>{vocab.providerSingular}: {b.itemName || '—'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 flex-row-reverse bg-slate-50 px-2.5 py-1 rounded-lg border border-slate-100">
                           <Calendar size={12} className="text-slate-400" />
@@ -394,7 +419,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                           className="flex-1 sm:w-32 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1 shadow-md shadow-emerald-100"
                         >
                           <CheckCircle2 size={14} />
-                          <span>حضور المريض</span>
+                          <span>حضور {vocab.customerSingular}</span>
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(b.id, 'cancelled')}
@@ -425,8 +450,8 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
             {/* Modal Header */}
             <div className="relative p-6 sm:p-8 border-b border-slate-100 flex justify-between items-center bg-slate-50 flex-row-reverse text-right">
               <div>
-                <h3 className="text-xl font-black text-slate-900">إضافة موعد كشف جديد (يدوياً)</h3>
-                <p className="text-xs font-bold text-slate-400 mt-1">تعبئة نموذج الحجز لمريض حضر للعيادة أو هاتفياً</p>
+                <h3 className="text-xl font-black text-slate-900">{`إضافة حجز جديد يدوياً (${vocab.customerSingular})`}</h3>
+                <p className="text-xs font-bold text-slate-400 mt-1">{`تعبئة نموذج الحجز لـ ${vocab.customerSingular} حضر أو هاتفياً`}</p>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -454,7 +479,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
               {/* Form Fields */}
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">اسم المريض ثلاثي</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">{`اسم ${vocab.customerSingular} ثلاثي`}</label>
                   <input
                     type="text"
                     required
@@ -466,7 +491,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">رقم هاتف المريض</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">{`رقم هاتف ${vocab.customerSingular}`}</label>
                   <input
                     type="tel"
                     required
@@ -489,7 +514,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">اختر الطبيب المعالج</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">{`اختر ${vocab.providerLabel}`}</label>
                   <select
                     value={selectedDoctor?.id || ''}
                     onChange={(e) => {

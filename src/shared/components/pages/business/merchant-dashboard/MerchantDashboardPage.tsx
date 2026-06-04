@@ -22,6 +22,7 @@ import {
   Eye,
   Store,
   Stethoscope,
+  ListChecks,
 } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
@@ -59,6 +60,7 @@ const ClinicDesignPage = lazy(() => import('../clinic/ClinicDesignPage'));
 const ClinicSettingsPage = lazy(() => import('../clinic/ClinicSettingsPage'));
 const ClinicDoctorsPage = lazy(() => import('../clinic/ClinicDoctorsPage'));
 const ClinicServicesPage = lazy(() => import('../clinic/ClinicServicesPage'));
+const BookingActivityExtraPage = lazy(() => import('../clinic/BookingActivityExtraPage'));
 
 import TabButton from './components/TabButton';
 import AiAssistantPanel from './AiAssistantPanel';
@@ -86,6 +88,8 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
   pos: () => import('../POSSystem'),
   clinicDoctors: () => import('../clinic/ClinicDoctorsPage'),
   clinicServices: () => import('../clinic/ClinicServicesPage'),
+  clinicRooms: () => import('../clinic/BookingActivityExtraPage'),
+  clinicPatients: () => import('../clinic/BookingActivityExtraPage'),
 };
 
 type TabType = MerchantDashboardTabId;
@@ -106,7 +110,9 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   settings: <Settings size={18} />,
   pos: <Smartphone size={18} />,
   clinicDoctors: <Users size={18} />,
-  clinicServices: <Stethoscope size={18} />,
+  clinicServices: <ListChecks size={18} />,
+  clinicRooms: <Store size={18} />,
+  clinicPatients: <FileText size={18} />,
 };
 
 const MerchantDashboardPage: React.FC = () => {
@@ -186,6 +192,16 @@ const MerchantDashboardPage: React.FC = () => {
       setTab(effectiveTab);
     }
   }, [currentShop, effectiveTab]);
+
+  useEffect(() => {
+    try {
+      const targetTab = localStorage.getItem('ray_dev_activity_target_tab');
+      if (targetTab) {
+        localStorage.removeItem('ray_dev_activity_target_tab');
+        setTab(targetTab as any);
+      }
+    } catch {}
+  }, [currentShop]);
 
   const savedUserForView = (() => {
     try {
@@ -527,20 +543,22 @@ const MerchantDashboardPage: React.FC = () => {
         {(() => {
           if (shopCategory === 'SERVICE') {
             switch (effectiveTab) {
-              case 'overview':
-                return <ClinicOverviewPage />;
               case 'reservations':
                 return <ClinicBookingsPage shop={currentShop} />;
               case 'clinicDoctors':
                 return <ClinicDoctorsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
               case 'clinicServices':
                 return <ClinicServicesPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
+              case 'clinicRooms':
+                return <BookingActivityExtraPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} pageId="غرف-عيادات-فرعية" />;
+              case 'clinicPatients':
+                return <BookingActivityExtraPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} pageId="ملفات-المرضى" />;
               case 'builder':
                 return <ClinicDesignPage />;
               case 'settings':
                 return <ClinicSettingsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
               default:
-                return <ClinicOverviewPage />;
+                return <ClinicBookingsPage shop={currentShop} />;
             }
           }
 

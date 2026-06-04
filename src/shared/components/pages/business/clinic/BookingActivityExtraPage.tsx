@@ -20,6 +20,7 @@ type BookingActivityPageItem = {
 type Props = {
   shop?: any;
   onSaved?: () => void;
+  pageId?: string;
 };
 
 const emptyForm = {
@@ -30,18 +31,25 @@ const emptyForm = {
   schedule: '',
 };
 
-const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved }) => {
-  const { useParams } = ReactRouterDOM as any;
+const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved, pageId: propsPageId }) => {
+  const { useParams, useOutletContext } = ReactRouterDOM as any;
   const params = useParams?.() || {};
-  const pageId = String(params.pageId || '').trim();
+  const pageId = String(propsPageId || params.pageId || '').trim();
+  const context = useOutletContext?.() || {};
 
-  const [loadedShop, setLoadedShop] = useState<any>(shop || null);
-  const effectiveShop = shop || loadedShop;
+  const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
+  const effectiveShop = shop || context.shop || loadedShop;
   const [form, setForm] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (context.shop && !shop) {
+      setLoadedShop(context.shop);
+    }
+  }, [context.shop, shop]);
 
   useEffect(() => {
     if (shop || loadedShop) return;
