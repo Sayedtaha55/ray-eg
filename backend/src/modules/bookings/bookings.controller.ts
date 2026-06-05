@@ -41,6 +41,17 @@ class CreateBookingDto {
   variantSelection?: any;
 
   @IsOptional()
+  metadata?: any;
+
+  @IsOptional()
+  @IsString()
+  bookingActivityType?: string;
+
+  @IsOptional()
+  @IsString()
+  bookingActivityRoute?: string;
+
+  @IsOptional()
   @IsString()
   customerName?: string;
 
@@ -133,6 +144,9 @@ export class BookingsController {
       notes: body?.notes,
       addons: (body as any)?.addons,
       variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
+      metadata: (body as any)?.metadata,
+      bookingActivityType: body?.bookingActivityType || (body as any)?.metadata?.bookingActivityType,
+      bookingActivityRoute: body?.bookingActivityRoute || (body as any)?.metadata?.bookingActivityRoute,
       startAt: startAt ?? undefined,
     });
   }

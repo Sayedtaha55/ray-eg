@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { getBookingActivityVocabulary } from './bookingActivityConfig';
+import { getBookingActivityScopedList, getBookingActivityTypeFromPath, getBookingActivityVocabulary, withBookingActivityScopedList } from './bookingActivityConfig';
 
 type Doctor = {
   id: string;
@@ -39,6 +39,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   const location = useLocation();
   const context = useOutletContext?.() || {};
   const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const activityType = getBookingActivityTypeFromPath(basePath);
   const vocab = getBookingActivityVocabulary(basePath);
   const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
   const effectiveShop = shop || context.shop || loadedShop;
@@ -63,11 +64,8 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
   }, [shop, loadedShop]);
 
   const doctorsList: Doctor[] = useMemo(() => {
-    if (Array.isArray(effectiveShop?.pageDesign?.clinicDoctorsList)) {
-      return effectiveShop.pageDesign.clinicDoctorsList;
-    }
-    return [];
-  }, [effectiveShop?.pageDesign?.clinicDoctorsList]);
+    return getBookingActivityScopedList(effectiveShop?.pageDesign, activityType, 'providers');
+  }, [effectiveShop?.pageDesign, activityType]);
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -125,10 +123,12 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
     setIsSaving(true);
     setErrorMsg('');
     try {
-      const updatedPageDesign = {
-        ...(effectiveShop?.pageDesign || {}),
-        clinicDoctorsList: nextList,
-      };
+      const updatedPageDesign = withBookingActivityScopedList(
+        effectiveShop?.pageDesign,
+        activityType,
+        'providers',
+        nextList,
+      );
       const updatedShop = await ApiService.updateMyShop({
         pageDesign: updatedPageDesign,
       });
@@ -158,7 +158,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
           return {
             ...doc,
             name: name.trim(),
-            title: title.trim() || vocab.providerSingular,
+            title: title.trim() || vocab.providerDefaultTitle,
             rating: parseFloat(rating) || 4.8,
             reviews: parseInt(reviews) || 120,
             next: next.trim() || '05:30 م',
@@ -172,7 +172,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
       const newDoc: Doctor = {
         id: 'doc_' + Date.now(),
         name: name.trim(),
-        title: title.trim() || vocab.providerSingular,
+        title: title.trim() || vocab.providerDefaultTitle,
         rating: parseFloat(rating) || 4.8,
         reviews: parseInt(reviews) || 120,
         next: next.trim() || '05:30 م',
@@ -347,7 +347,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                 </div>
                 <div className="flex items-center gap-1 font-black text-cyan-600 bg-cyan-50 px-2 py-0.5 rounded-lg border border-cyan-100">
                   <Clock size={12} />
-                  <span>الموعد: {doc.next}</span>
+                  <span>{vocab.providerNextSlotLabel}: {doc.next}</span>
                 </div>
               </div>
             </div>
@@ -391,13 +391,13 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">المسمى الوظيفي والتخصص</label>
+                  <label className="block text-xs font-black text-slate-500 mb-1.5">{vocab.providerTitleLabel}</label>
                   <input
                     type="text"
                     required
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder={`مثال: ${vocab.providerSingular} متخصص`}
+                    placeholder={`مثال: ${vocab.providerDefaultTitle}`}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                   />
                 </div>
@@ -430,7 +430,7 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-black text-slate-500 mb-1.5">ساعة أقرب كشف متاح</label>
+                    <label className="block text-xs font-black text-slate-500 mb-1.5">{vocab.providerNextSlotLabel}</label>
                     <input
                       type="text"
                       required
@@ -441,12 +441,12 @@ const ClinicDoctorsPage: React.FC<Props> = ({ shop, onSaved }) => {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-black text-slate-500 mb-1.5">{`رابط صورة ${vocab.providerSingular} (اختياري)`}</label>
+                    <label className="block text-xs font-black text-slate-500 mb-1.5">{vocab.providerImageLabel}</label>
                     <input
                       type="text"
                       value={photoUrl}
                       onChange={(e) => setPhotoUrl(e.target.value)}
-                      placeholder="https://example.com/avatar.jpg"
+                      placeholder={vocab.providerImagePlaceholder}
                       className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-left"
                     />
                   </div>

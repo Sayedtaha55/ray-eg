@@ -120,6 +120,38 @@ export const BOOKING_ACTIVITY_DEFINITIONS: BookingActivityDefinition[] = [
   },
 ];
 
+
+export const BOOKING_ACTIVITY_ROUTE_MAP: Record<BookingActivityType, string> = {
+  clinic_hospital: 'clinic',
+  salon_barber: 'salon',
+  wellness_spa: 'spa',
+  chalets_resorts: 'chalets',
+  hotels_rooms: 'hotels',
+  restaurants_tables: 'restaurants',
+  events_venues: 'events',
+  vehicle_rental: 'rental',
+  sports_trainers: 'sports',
+  education_courses: 'education',
+  maintenance_services: 'maintenance',
+  general_appointments: 'appointments',
+};
+
+export const BOOKING_ROUTE_ACTIVITY_MAP: Record<string, BookingActivityType> = Object.entries(BOOKING_ACTIVITY_ROUTE_MAP)
+  .reduce((acc, [activityType, route]) => {
+    acc[route] = activityType as BookingActivityType;
+    return acc;
+  }, {} as Record<string, BookingActivityType>);
+
+export const getBookingRouteFromActivityType = (raw?: unknown): string => {
+  const definition = getBookingActivityDefinition(raw);
+  return BOOKING_ACTIVITY_ROUTE_MAP[definition.id] || 'clinic';
+};
+
+export const isBookingActivityRoute = (pathSegment?: unknown): boolean => {
+  const normalized = String(pathSegment || '').trim().toLowerCase();
+  return Boolean(BOOKING_ROUTE_ACTIVITY_MAP[normalized]);
+};
+
 export const getBookingActivityDefinition = (raw?: unknown): BookingActivityDefinition => {
   const id = String(raw || '').trim() as BookingActivityType;
   return BOOKING_ACTIVITY_DEFINITIONS.find((activity) => activity.id === id) || BOOKING_ACTIVITY_DEFINITIONS[0];
@@ -162,24 +194,19 @@ export type ActivityVocabulary = {
   dashboardSubtitle: string;
   addProviderButton: string;
   providerLabel: string;
+  providerTitleLabel: string;
+  providerNextSlotLabel: string;
+  providerImageLabel: string;
+  providerImagePlaceholder: string;
+  providerDefaultTitle: string;
+  customerNamePlaceholder: string;
+  customerEmailPlaceholder: string;
+  defaultItemPrice: number;
 };
 
 export const getBookingActivityTypeFromPath = (pathSegment: string): BookingActivityType => {
-  const activityMap: Record<string, BookingActivityType> = {
-    'clinic': 'clinic_hospital',
-    'salon': 'salon_barber',
-    'spa': 'wellness_spa',
-    'chalets': 'chalets_resorts',
-    'hotels': 'hotels_rooms',
-    'restaurants': 'restaurants_tables',
-    'events': 'events_venues',
-    'rental': 'vehicle_rental',
-    'sports': 'sports_trainers',
-    'education': 'education_courses',
-    'maintenance': 'maintenance_services',
-    'appointments': 'general_appointments',
-  };
-  return activityMap[pathSegment] || 'clinic_hospital';
+  const normalized = String(pathSegment || '').trim().toLowerCase();
+  return BOOKING_ROUTE_ACTIVITY_MAP[normalized] || 'clinic_hospital';
 };
 
 export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocabulary => {
@@ -197,6 +224,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع كشوفات اليوم، الأطباء والمواعيد الطبية بسرعة.',
       addProviderButton: 'إضافة طبيب جديد',
       providerLabel: 'الطبيب المعالج',
+      providerTitleLabel: 'المسمى الطبي والتخصص',
+      providerNextSlotLabel: 'ساعة أقرب كشف متاح',
+      providerImageLabel: 'رابط صورة الطبيب (اختياري)',
+      providerImagePlaceholder: 'https://example.com/doctor.jpg',
+      providerDefaultTitle: 'طبيب متخصص',
+      customerNamePlaceholder: 'مثال: أحمد عبد الله حسين',
+      customerEmailPlaceholder: 'patient@gmail.com',
+      defaultItemPrice: 300,
     },
     salon_barber: {
       customerSingular: 'عميل',
@@ -209,6 +244,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع حجوزات الكراسي، المصففين وأداء الصالون اليوم.',
       addProviderButton: 'إضافة خبير/مصفف جديد',
       providerLabel: 'الخبير/المصفف',
+      providerTitleLabel: 'المسمى والخبرة',
+      providerNextSlotLabel: 'أقرب موعد متاح',
+      providerImageLabel: 'رابط صورة الخبير/المصفف (اختياري)',
+      providerImagePlaceholder: 'https://example.com/stylist.jpg',
+      providerDefaultTitle: 'خبير صالون',
+      customerNamePlaceholder: 'مثال: سارة محمد',
+      customerEmailPlaceholder: 'customer@gmail.com',
+      defaultItemPrice: 250,
     },
     wellness_spa: {
       customerSingular: 'عميل',
@@ -221,6 +264,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع مواعيد الجلسات، غرف المساج وحالات الاسترخاء.',
       addProviderButton: 'إضافة معالج جديد',
       providerLabel: 'المعالج المختص',
+      providerTitleLabel: 'نوع الخبرة أو العلاج',
+      providerNextSlotLabel: 'أقرب جلسة متاحة',
+      providerImageLabel: 'رابط صورة المعالج (اختياري)',
+      providerImagePlaceholder: 'https://example.com/therapist.jpg',
+      providerDefaultTitle: 'معالج متخصص',
+      customerNamePlaceholder: 'مثال: نور أحمد',
+      customerEmailPlaceholder: 'guest@gmail.com',
+      defaultItemPrice: 400,
     },
     chalets_resorts: {
       customerSingular: 'نزيل',
@@ -233,6 +284,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع حجوزات الوحدات، التوافر الموسمي والدخول اليومي.',
       addProviderButton: 'إضافة شاليه/وحدة جديدة',
       providerLabel: 'الشاليه/الوحدة',
+      providerTitleLabel: 'نوع الوحدة أو الإطلالة',
+      providerNextSlotLabel: 'أقرب تاريخ متاح',
+      providerImageLabel: 'رابط صورة الشاليه/الوحدة (اختياري)',
+      providerImagePlaceholder: 'https://example.com/unit.jpg',
+      providerDefaultTitle: 'وحدة إقامة',
+      customerNamePlaceholder: 'مثال: محمد خالد',
+      customerEmailPlaceholder: 'guest@gmail.com',
+      defaultItemPrice: 1200,
     },
     hotels_rooms: {
       customerSingular: 'نزيل',
@@ -245,6 +304,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع نزلاء الفندق، الغرف الشاغرة وعمليات الدخول والخروج.',
       addProviderButton: 'إضافة غرفة/جناح جديد',
       providerLabel: 'الغرفة/الجناح',
+      providerTitleLabel: 'نوع الغرفة أو الجناح',
+      providerNextSlotLabel: 'أقرب ليلة متاحة',
+      providerImageLabel: 'رابط صورة الغرفة/الجناح (اختياري)',
+      providerImagePlaceholder: 'https://example.com/room.jpg',
+      providerDefaultTitle: 'غرفة إقامة',
+      customerNamePlaceholder: 'مثال: محمود علي',
+      customerEmailPlaceholder: 'guest@gmail.com',
+      defaultItemPrice: 900,
     },
     restaurants_tables: {
       customerSingular: 'عميل',
@@ -257,6 +324,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع إشغال الطاولات، الحفلات وطلبات الوجبات الخاصة.',
       addProviderButton: 'إضافة طاولة/قاعة جديدة',
       providerLabel: 'الطاولة/القاعة',
+      providerTitleLabel: 'نوع الطاولة أو القاعة',
+      providerNextSlotLabel: 'أقرب وقت حجز متاح',
+      providerImageLabel: 'رابط صورة الطاولة/القاعة (اختياري)',
+      providerImagePlaceholder: 'https://example.com/table.jpg',
+      providerDefaultTitle: 'مساحة حجز',
+      customerNamePlaceholder: 'مثال: منى حسن',
+      customerEmailPlaceholder: 'customer@gmail.com',
+      defaultItemPrice: 150,
     },
     events_venues: {
       customerSingular: 'حاضر',
@@ -269,6 +344,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع مبيعات التذاكر، سعة الحضور وجدول حفلات القاعات.',
       addProviderButton: 'إضافة قاعة/فعالية جديدة',
       providerLabel: 'القاعة/الفعالية',
+      providerTitleLabel: 'نوع الفعالية أو القاعة',
+      providerNextSlotLabel: 'أقرب موعد فعالية',
+      providerImageLabel: 'رابط صورة القاعة/الفعالية (اختياري)',
+      providerImagePlaceholder: 'https://example.com/event.jpg',
+      providerDefaultTitle: 'فعالية/قاعة',
+      customerNamePlaceholder: 'مثال: عمر سامي',
+      customerEmailPlaceholder: 'attendee@gmail.com',
+      defaultItemPrice: 500,
     },
     vehicle_rental: {
       customerSingular: 'مستأجر',
@@ -281,6 +364,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع عقود الإيجار، استلام وتسليم السيارات وحالة التأمين.',
       addProviderButton: 'إضافة مركبة/سيارة جديدة',
       providerLabel: 'المركبة/السيارة',
+      providerTitleLabel: 'نوع المركبة وفئتها',
+      providerNextSlotLabel: 'أقرب موعد استلام',
+      providerImageLabel: 'رابط صورة المركبة (اختياري)',
+      providerImagePlaceholder: 'https://example.com/car.jpg',
+      providerDefaultTitle: 'مركبة للإيجار',
+      customerNamePlaceholder: 'مثال: كريم عادل',
+      customerEmailPlaceholder: 'renter@gmail.com',
+      defaultItemPrice: 700,
     },
     sports_trainers: {
       customerSingular: 'متدرب',
@@ -293,6 +384,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع حجوزات الملاعب، جداول المدربين وحصص التدريب.',
       addProviderButton: 'إضافة ملعب/مدرب جديد',
       providerLabel: 'الملعب/المدرب',
+      providerTitleLabel: 'نوع الملعب أو خبرة المدرب',
+      providerNextSlotLabel: 'أقرب حصة متاحة',
+      providerImageLabel: 'رابط صورة الملعب/المدرب (اختياري)',
+      providerImagePlaceholder: 'https://example.com/training.jpg',
+      providerDefaultTitle: 'ملعب/مدرب',
+      customerNamePlaceholder: 'مثال: يوسف أحمد',
+      customerEmailPlaceholder: 'trainee@gmail.com',
+      defaultItemPrice: 300,
     },
     education_courses: {
       customerSingular: 'طالب',
@@ -305,6 +404,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع حضور الطلاب، فصول المحاضرات ومستويات التعليم.',
       addProviderButton: 'إضافة معلم/محاضر جديد',
       providerLabel: 'المعلم/المحاضر',
+      providerTitleLabel: 'المادة أو الخبرة التعليمية',
+      providerNextSlotLabel: 'أقرب حصة متاحة',
+      providerImageLabel: 'رابط صورة المعلم/المحاضر (اختياري)',
+      providerImagePlaceholder: 'https://example.com/instructor.jpg',
+      providerDefaultTitle: 'معلم/محاضر',
+      customerNamePlaceholder: 'مثال: ليلى محمود',
+      customerEmailPlaceholder: 'student@gmail.com',
+      defaultItemPrice: 250,
     },
     maintenance_services: {
       customerSingular: 'عميل',
@@ -317,6 +424,14 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع زيارات الفنيين، طلبات الصيانة ورسوم الانتقال الكشف.',
       addProviderButton: 'إضافة فني/فريق جديد',
       providerLabel: 'الفني/الفريق',
+      providerTitleLabel: 'التخصص أو نوع الفريق',
+      providerNextSlotLabel: 'أقرب زيارة متاحة',
+      providerImageLabel: 'رابط صورة الفني/الفريق (اختياري)',
+      providerImagePlaceholder: 'https://example.com/technician.jpg',
+      providerDefaultTitle: 'فني/فريق صيانة',
+      customerNamePlaceholder: 'مثال: هند مصطفى',
+      customerEmailPlaceholder: 'customer@gmail.com',
+      defaultItemPrice: 200,
     },
     general_appointments: {
       customerSingular: 'عميل',
@@ -329,10 +444,61 @@ export const getBookingActivityVocabulary = (pathSegment: string): ActivityVocab
       dashboardSubtitle: 'تابع مواعيد الاستشارات، فروع الخدمة وقواعد الحجز.',
       addProviderButton: 'إضافة مقدم خدمة جديد',
       providerLabel: 'مقدم الخدمة',
+      providerTitleLabel: 'نوع الخبرة أو الخدمة',
+      providerNextSlotLabel: 'أقرب موعد متاح',
+      providerImageLabel: 'رابط صورة مقدم الخدمة (اختياري)',
+      providerImagePlaceholder: 'https://example.com/provider.jpg',
+      providerDefaultTitle: 'مقدم خدمة',
+      customerNamePlaceholder: 'مثال: أحمد سمير',
+      customerEmailPlaceholder: 'customer@gmail.com',
+      defaultItemPrice: 250,
     },
   };
 
   return vocabs[type] || vocabs.clinic_hospital;
+};
+
+
+export const getBookingActivityScopedList = (
+  pageDesign: any,
+  activityType: BookingActivityType,
+  listKey: 'providers' | 'services',
+): any[] => {
+  const activityData = pageDesign?.bookingActivityData?.[activityType];
+  if (Array.isArray(activityData?.[listKey])) return activityData[listKey];
+
+  if (activityType === 'clinic_hospital') {
+    if (listKey === 'providers' && Array.isArray(pageDesign?.clinicDoctorsList)) return pageDesign.clinicDoctorsList;
+    if (listKey === 'services' && Array.isArray(pageDesign?.clinicSpecialtiesList)) return pageDesign.clinicSpecialtiesList;
+  }
+
+  return [];
+};
+
+export const withBookingActivityScopedList = (
+  pageDesign: any,
+  activityType: BookingActivityType,
+  listKey: 'providers' | 'services',
+  nextList: any[],
+) => {
+  const nextPageDesign = {
+    ...(pageDesign || {}),
+    bookingActivityType: activityType,
+    bookingActivityData: {
+      ...((pageDesign || {}).bookingActivityData || {}),
+      [activityType]: {
+        ...(((pageDesign || {}).bookingActivityData || {})[activityType] || {}),
+        [listKey]: nextList,
+      },
+    },
+  };
+
+  if (activityType === 'clinic_hospital') {
+    if (listKey === 'providers') nextPageDesign.clinicDoctorsList = nextList;
+    if (listKey === 'services') nextPageDesign.clinicSpecialtiesList = nextList;
+  }
+
+  return nextPageDesign;
 };
 
 export type SidebarItem = {

@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { getBookingActivityVocabulary } from './bookingActivityConfig';
+import { getBookingActivityScopedList, getBookingActivityTypeFromPath, getBookingActivityVocabulary, withBookingActivityScopedList } from './bookingActivityConfig';
 
 type Specialty = {
   id: string;
@@ -35,6 +35,7 @@ const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
   const location = useLocation();
   const context = useOutletContext?.() || {};
   const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const activityType = getBookingActivityTypeFromPath(basePath);
   const vocab = getBookingActivityVocabulary(basePath);
   const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
   const effectiveShop = shop || context.shop || loadedShop;
@@ -59,11 +60,8 @@ const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
   }, [shop, loadedShop]);
 
   const specialtiesList: Specialty[] = useMemo(() => {
-    if (Array.isArray(effectiveShop?.pageDesign?.clinicSpecialtiesList)) {
-      return effectiveShop.pageDesign.clinicSpecialtiesList;
-    }
-    return [];
-  }, [effectiveShop?.pageDesign?.clinicSpecialtiesList]);
+    return getBookingActivityScopedList(effectiveShop?.pageDesign, activityType, 'services');
+  }, [effectiveShop?.pageDesign, activityType]);
 
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -80,10 +78,12 @@ const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
     setIsSaving(true);
     setErrorMsg('');
     try {
-      const updatedPageDesign = {
-        ...(effectiveShop?.pageDesign || {}),
-        clinicSpecialtiesList: nextList,
-      };
+      const updatedPageDesign = withBookingActivityScopedList(
+        effectiveShop?.pageDesign,
+        activityType,
+        'services',
+        nextList,
+      );
       const updatedShop = await ApiService.updateMyShop({
         pageDesign: updatedPageDesign,
       });
@@ -181,19 +181,19 @@ const ClinicServicesPage: React.FC<Props> = ({ shop, onSaved }) => {
   const getIconLabel = (icon: string) => {
     switch (icon) {
       case 'Stethoscope':
-        return 'سماعة الطبيب (Stethoscope)';
+        return 'خدمة رئيسية (Stethoscope)';
       case 'Shield':
-        return 'تأمين ورعاية (Shield)';
+        return 'حماية/شروط (Shield)';
       case 'User2':
-        return 'طب الأطفال والأسرة (User2)';
+        return 'أفراد/فريق (User2)';
       case 'CheckCircle2':
-        return 'تأكيدات الصحة (CheckCircle)';
+        return 'تأكيد/جاهزية (CheckCircle)';
       case 'Heart':
-        return 'طب القلب والشرايين (Heart)';
+        return 'عناية/مميز (Heart)';
       case 'Activity':
-        return 'مؤشرات الحيوية (Activity)';
+        return 'نشاط/متابعة (Activity)';
       default:
-        return 'سماعة الطبيب';
+        return 'خدمة رئيسية';
     }
   };
 

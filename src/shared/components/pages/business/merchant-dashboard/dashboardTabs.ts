@@ -44,19 +44,19 @@ export const getOverviewTabLabel = (category?: string): string => {
 
 export const getReservationsTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'SERVICE') return 'جدول وقائمة الحجوزات';
+  if (cat === 'SERVICE') return 'حجوزات';
   return i18n.t('business.dashboardTabs.reservations');
 };
 
 export const getBuilderTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'SERVICE') return 'تصميم موقع العيادة';
+  if (cat === 'SERVICE') return 'التصميم';
   return i18n.t('business.dashboardTabs.builder');
 };
 
 export const getSettingsTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'SERVICE') return 'إعدادات الحجوزات والعيادة';
+  if (cat === 'SERVICE') return 'الإعدادات';
   return i18n.t('business.dashboardTabs.settings');
 };
 
@@ -112,8 +112,6 @@ const getAllowedTabsForMode = (mode?: ShopDashboardMode): Set<MerchantDashboardT
     'products',
     'promotions',
     'reservations',
-    'clinicDoctors',
-    'clinicServices',
     'invoice',
     'sales',
     'abandonedCart',
@@ -154,10 +152,6 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
     
     if (cat === 'SERVICE') {
       set.add('reservations');
-      set.add('clinicDoctors');
-      set.add('clinicServices');
-      set.add('clinicRooms');
-      set.add('clinicPatients');
       set.add('builder');
       set.add('settings');
     } else {
@@ -172,10 +166,6 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
       if (
         cat === 'SERVICE' &&
         normalized !== 'reservations' &&
-        normalized !== 'clinicDoctors' &&
-        normalized !== 'clinicServices' &&
-        normalized !== 'clinicRooms' &&
-        normalized !== 'clinicPatients' &&
         normalized !== 'builder' &&
         normalized !== 'settings'
       ) {

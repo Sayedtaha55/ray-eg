@@ -328,6 +328,30 @@ const MerchantDashboardPage: React.FC = () => {
     return null;
   }, [impersonateShopId, navigate]);
 
+  const loadBookingDashboardRecords = useCallback(async (shopId: string) => {
+    const [reservationsResult, bookingsResult] = await Promise.allSettled([
+      ApiService.getReservations(shopId),
+      ApiService.getBookings(shopId),
+    ]);
+
+    const reservationsList = reservationsResult.status === 'fulfilled' && Array.isArray(reservationsResult.value)
+      ? reservationsResult.value
+      : [];
+    const bookingsList = bookingsResult.status === 'fulfilled' && Array.isArray(bookingsResult.value)
+      ? bookingsResult.value.map((booking: any) => ({ ...booking, __recordType: 'booking' }))
+      : [];
+
+    const seen = new Set<string>();
+    return [...bookingsList, ...reservationsList]
+      .filter((record: any) => {
+        const id = record?.id != null ? String(record.id).trim() : '';
+        if (!id || seen.has(id)) return false;
+        seen.add(id);
+        return true;
+      })
+      .sort((a: any, b: any) => new Date(b?.createdAt || b?.created_at || 0).getTime() - new Date(a?.createdAt || a?.created_at || 0).getTime());
+  }, []);
+
   const ensureTabData = useCallback(async (tab: TabType, shop: any, force = false) => {
     const shopId = shop?.id ? String(shop.id) : '';
     if (!shopId) return;
@@ -358,8 +382,8 @@ const MerchantDashboardPage: React.FC = () => {
         const list = await (ApiService as any).getProductsForManage(shopId);
         setProducts(dedupeProductsById(list));
       } else if (tab === 'reservations') {
-        const list = await ApiService.getReservations(shopId);
-        setReservations(list);
+        const list = await loadBookingDashboardRecords(shopId);
+        setReservations(list as any);
       } else if (tab === 'sales') {
         const list = await ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() });
         setSales(list);
@@ -374,11 +398,11 @@ const MerchantDashboardPage: React.FC = () => {
         const [orders, analytics, reservations] = await Promise.all([
           ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() }),
           ApiService.getShopAnalytics(shopId, { from: analyticsFrom.toISOString(), to: now.toISOString() }),
-          ApiService.getReservations(shopId),
+          loadBookingDashboardRecords(shopId),
         ]);
         setSales(orders);
         setAnalytics(analytics);
-        setReservations(reservations || []);
+        setReservations((reservations || []) as any);
       } else if (tab === 'promotions') {
         const offers = await ApiService.getOffers();
         setActiveOffers((offers || []).filter((o: any) => o.shopId === shopId));
@@ -392,7 +416,7 @@ const MerchantDashboardPage: React.FC = () => {
     } finally {
       tabLoadStateRef.current[key] = { loaded: true, inFlight: false };
     }
-  }, []);
+  }, [loadBookingDashboardRecords]);
 
   const refreshShopAndActiveTab = useCallback(async (forceTab = true) => {
     const shop = (await loadShop()) || currentShop;
@@ -504,21 +528,25 @@ const MerchantDashboardPage: React.FC = () => {
 
   const handleUpdateResStatus = async (id: string, status: string) => {
     try {
-      await ApiService.updateReservationStatus(id, status);
+      const reservation = reservations.find((r: any) => String(r.id) === String(id)) as any;
+      const isBookingRecord = reservation?.__recordType === 'booking' || Boolean(reservation?.bookingNumber || reservation?.serviceId || reservation?.slotId);
 
-      if (status === 'completed') {
-        const reservation = reservations.find((r: any) => r.id === id);
-        if (reservation) {
-          await ApiService.convertReservationToCustomer({
-            customerName: reservation.customerName,
-            customerPhone: reservation.customerPhone,
-            customerEmail: reservation.customerEmail || '',
-            shopId: currentShop.id,
-            firstPurchaseAmount: reservation.itemPrice,
-            firstPurchaseItem: reservation.itemName,
-          });
-          addToast(t('business.dashboard.customerConverted'), 'success');
-        }
+      if (isBookingRecord) {
+        await ApiService.updateBookingStatus(id, status);
+      } else {
+        await ApiService.updateReservationStatus(id, status);
+      }
+
+      if (status === 'completed' && reservation) {
+        await ApiService.convertReservationToCustomer({
+          customerName: reservation.customerName,
+          customerPhone: reservation.customerPhone,
+          customerEmail: reservation.customerEmail || '',
+          shopId: currentShop.id,
+          firstPurchaseAmount: reservation.itemPrice,
+          firstPurchaseItem: reservation.itemName,
+        });
+        addToast(t('business.dashboard.customerConverted'), 'success');
       }
 
       addToast(t('business.dashboard.reservationStatusUpdated'), 'success');

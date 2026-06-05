@@ -14,7 +14,7 @@ import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
 } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
-import { BOOKING_ACTIVITY_DEFINITIONS, getBookingActivityDefinition, getBookingActivityExtraPageId, BOOKING_SETTINGS_PAGE_BUTTONS, ACTIVITY_MODULES, getBookingActivityTypeFromParam } from '../pages/business/clinic/bookingActivityConfig';
+import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, ACTIVITY_MODULES, getBookingActivityTypeFromParam } from '../pages/business/clinic/bookingActivityConfig';
 import * as LucideIcons from 'lucide-react';
 
 // Sub-components
@@ -90,22 +90,7 @@ const BusinessLayout: React.FC = () => {
 
   const bookingActivityDef = useMemo(() => {
     if (!currentBookingActivity) return null;
-    const activityMap: Record<string, string> = {
-      'clinic': 'clinic_hospital',
-      'salon': 'salon_barber',
-      'spa': 'wellness_spa',
-      'chalets': 'chalets_resorts',
-      'hotels': 'hotels_rooms',
-      'restaurants': 'restaurants_tables',
-      'events': 'events_venues',
-      'rental': 'vehicle_rental',
-      'sports': 'sports_trainers',
-      'education': 'education_courses',
-      'maintenance': 'maintenance_services',
-      'appointments': 'general_appointments',
-    };
-    const actId = activityMap[currentBookingActivity] || 'clinic_hospital';
-    return getBookingActivityDefinition(actId);
+    return getBookingActivityDefinition(getBookingActivityTypeFromPath(currentBookingActivity));
   }, [currentBookingActivity]);
 
   const isBookingSettingsTab = useMemo(() => {
@@ -340,7 +325,7 @@ const BusinessLayout: React.FC = () => {
 
     const clinicItems = pick('clinicDoctors', 'clinicServices', 'clinicRooms', 'clinicPatients');
     if (clinicItems.length > 0) {
-      sections.push({ title: 'إدارة العيادة', items: clinicItems });
+      sections.push({ title: 'إدارة نشاط الحجوزات', items: clinicItems });
     }
 
     const operationsItems = pick('products', 'pos', 'reservations', 'invoice');
@@ -509,7 +494,7 @@ const BusinessLayout: React.FC = () => {
       setNotifications(uniq);
       setUnreadCount(uniq.filter((n: any) => {
         if (Boolean(n?.is_read)) return false;
-        
+
         let metaObj: any = {};
         try {
           const rawMeta = n?.metadata;
@@ -519,7 +504,7 @@ const BusinessLayout: React.FC = () => {
             metaObj = rawMeta;
           }
         } catch {}
-        
+
         const metaSource = String(metaObj?.source || '').trim().toLowerCase();
         const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
         return !isPosOrigin;
@@ -532,7 +517,7 @@ const BusinessLayout: React.FC = () => {
   useEffect(() => {
     if (canUseShopNotifications) {
       loadNotifications();
-      
+
       // الاشتراك في قناة الإشعارات الحية
       const subscription = ApiService.subscribeToNotifications(effectiveUser.shopId, (notif) => {
         const normalized = normalizeNotif(notif);
@@ -979,14 +964,14 @@ const BusinessLayout: React.FC = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/overview`} 
-                        onClick={handleNavItemClick} 
-                        icon={<LayoutDashboard size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/overview`}
+                        onClick={handleNavItemClick}
+                        icon={<LayoutDashboard size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="رجوع للوحة الحجوزات" 
-                        active={false} 
+                        label="رجوع للوحة الحجوزات"
+                        active={false}
                       />
                     </div>
                   </div>
@@ -998,68 +983,68 @@ const BusinessLayout: React.FC = () => {
                       </div>
                     )}
                     <div className="space-y-2">
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/settings`} 
-                        onClick={handleNavItemClick} 
-                        icon={<Settings size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/settings`}
+                        onClick={handleNavItemClick}
+                        icon={<Settings size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="الإعدادات العامة" 
-                        active={location.pathname === `/business/${currentBookingActivity}/settings`} 
+                        label="الإعدادات العامة"
+                        active={location.pathname === `/business/${currentBookingActivity}/settings`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-site`} 
-                        onClick={handleNavItemClick} 
-                        icon={<Store size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-site`}
+                        onClick={handleNavItemClick}
+                        icon={<Store size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="الموقع العام للحجوزات" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-site`} 
+                        label="الموقع العام للحجوزات"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-site`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-security`} 
-                        onClick={handleNavItemClick} 
-                        icon={<Shield size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-security`}
+                        onClick={handleNavItemClick}
+                        icon={<Shield size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="الأمان والصلاحيات" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-security`} 
+                        label="الأمان والصلاحيات"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-security`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-notifications`} 
-                        onClick={handleNavItemClick} 
-                        icon={<Bell size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-notifications`}
+                        onClick={handleNavItemClick}
+                        icon={<Bell size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="إشعارات وتأكيدات" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-notifications`} 
+                        label="إشعارات وتأكيدات"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-notifications`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-payments`} 
-                        onClick={handleNavItemClick} 
-                        icon={<CreditCard size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-payments`}
+                        onClick={handleNavItemClick}
+                        icon={<CreditCard size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="مدفوعات وتأمين" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-payments`} 
+                        label="مدفوعات وتأمين"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-payments`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-cancellation`} 
-                        onClick={handleNavItemClick} 
-                        icon={<Clock size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-cancellation`}
+                        onClick={handleNavItemClick}
+                        icon={<Clock size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="سياسات الإلغاء" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-cancellation`} 
+                        label="سياسات الإلغاء"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-cancellation`}
                       />
-                      <NavItem 
-                        to={`/business/${currentBookingActivity}/activity/booking-privacy`} 
-                        onClick={handleNavItemClick} 
-                        icon={<FileText size={20} />} 
+                      <NavItem
+                        to={`/business/${currentBookingActivity}/activity/booking-privacy`}
+                        onClick={handleNavItemClick}
+                        icon={<FileText size={20} />}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="الخصوصية وبيانات العملاء" 
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-privacy`} 
+                        label="الخصوصية وبيانات العملاء"
+                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-privacy`}
                       />
                     </div>
                   </div>
@@ -1082,69 +1067,74 @@ const BusinessLayout: React.FC = () => {
                         </div>
                       )}
                       <div className="space-y-2">
-                        <NavItem 
-                          to="/business/dashboard" 
-                          onClick={handleNavItemClick} 
-                          icon={<LayoutDashboard size={20} />} 
+                        <NavItem
+                          to="/business/dashboard"
+                          onClick={handleNavItemClick}
+                          icon={<LayoutDashboard size={20} />}
                           showIcon={isDesktopSidebarCollapsed}
                           hideLabel={isDesktopSidebarCollapsed}
-                          label={t('dashboard.backToDashboard')} 
-                          active={false} 
+                          label={t('dashboard.backToDashboard')}
+                          active={false}
                         />
-                        <NavItem 
-                          to={`/business/${currentBookingActivity}/overview`} 
-                          onClick={handleNavItemClick} 
-                          icon={<CalendarCheck size={20} />} 
+                        <NavItem
+                          to={`/business/${currentBookingActivity}/overview`}
+                          onClick={handleNavItemClick}
+                          icon={<CalendarCheck size={20} />}
                           showIcon={isDesktopSidebarCollapsed}
                           hideLabel={isDesktopSidebarCollapsed}
-                          label="لوحة الحجوزات" 
-                          active={location.pathname === `/business/${currentBookingActivity}/overview`} 
+                          label="نظرة عامة الحجوزات"
+                          active={location.pathname === `/business/${currentBookingActivity}/overview`}
                         />
-                        <NavItem 
-                          to={`/business/${currentBookingActivity}/bookings`} 
-                          onClick={handleNavItemClick} 
-                          icon={<ClipboardList size={20} />} 
+                        <NavItem
+                          to={`/business/${currentBookingActivity}/bookings`}
+                          onClick={handleNavItemClick}
+                          icon={<ClipboardList size={20} />}
                           showIcon={isDesktopSidebarCollapsed}
                           hideLabel={isDesktopSidebarCollapsed}
-                          label="جدول المواعيد" 
-                          active={location.pathname === `/business/${currentBookingActivity}/bookings`} 
+                          label="حجوزات"
+                          active={location.pathname === `/business/${currentBookingActivity}/bookings`}
                         />
 
+                        {!isDesktopSidebarCollapsed && modules.length > 0 && (
+                          <div className="px-2 pt-3 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                            الأزرار الخاصة بالنشاط
+                          </div>
+                        )}
                         {/* Dynamic modules for the selected booking activity */}
                         {modules.map((mod) => {
                           const targetPath = `/business/${currentBookingActivity}/${mod.route}`;
                           const isActive = location.pathname === targetPath;
                           return (
-                            <NavItem 
+                            <NavItem
                               key={mod.id}
-                              to={targetPath} 
-                              onClick={handleNavItemClick} 
-                              icon={renderSidebarIcon(mod.icon)} 
+                              to={targetPath}
+                              onClick={handleNavItemClick}
+                              icon={renderSidebarIcon(mod.icon)}
                               showIcon={isDesktopSidebarCollapsed}
                               hideLabel={isDesktopSidebarCollapsed}
-                              label={mod.label} 
-                              active={isActive} 
+                              label={mod.label}
+                              active={isActive}
                             />
                           );
                         })}
 
-                        <NavItem 
-                          to={`/business/${currentBookingActivity}/design`} 
-                          onClick={handleNavItemClick} 
-                          icon={<Palette size={20} />} 
+                        <NavItem
+                          to={`/business/${currentBookingActivity}/design`}
+                          onClick={handleNavItemClick}
+                          icon={<Palette size={20} />}
                           showIcon={isDesktopSidebarCollapsed}
                           hideLabel={isDesktopSidebarCollapsed}
-                          label={t('business.clinic.layout.design')} 
-                          active={location.pathname === `/business/${currentBookingActivity}/design`} 
+                          label={t('business.clinic.layout.design')}
+                          active={location.pathname === `/business/${currentBookingActivity}/design`}
                         />
-                        <NavItem 
-                          to={`/business/${currentBookingActivity}/settings`} 
-                          onClick={handleNavItemClick} 
-                          icon={<Settings size={20} />} 
+                        <NavItem
+                          to={`/business/${currentBookingActivity}/settings`}
+                          onClick={handleNavItemClick}
+                          icon={<Settings size={20} />}
                           showIcon={isDesktopSidebarCollapsed}
                           hideLabel={isDesktopSidebarCollapsed}
-                          label={t('business.clinic.layout.settings')} 
-                          active={location.pathname === `/business/${currentBookingActivity}/settings`} 
+                          label={t('business.clinic.layout.settings')}
+                          active={location.pathname === `/business/${currentBookingActivity}/settings`}
                         />
                       </div>
                     </div>
@@ -1380,7 +1370,7 @@ const BusinessLayout: React.FC = () => {
                      notifications.map((n: any) => (
                        <div key={n.id} className={`p-4 rounded-2xl border flex items-start gap-4 flex-row-reverse ${n.is_read ? 'bg-white border-slate-100' : 'bg-cyan-50 border-cyan-100 ring-1 ring-cyan-200'}`}>
                           <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            n.type === 'sale' ? 'bg-green-100 text-green-600' : 
+                            n.type === 'sale' ? 'bg-green-100 text-green-600' :
                             n.type === 'reservation' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
                           }`}>
                              {n.type === 'sale' ? <ShoppingBag size={18} /> : n.type === 'reservation' ? <Calendar size={18} /> : <UserPlus size={18} />}
@@ -1410,7 +1400,7 @@ const BusinessLayout: React.FC = () => {
         >
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 pr-4 border-r border-slate-100 relative">
-               <div 
+               <div
                  className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"
                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                >
@@ -1423,7 +1413,7 @@ const BusinessLayout: React.FC = () => {
                  </div>
                  <ChevronDown size={16} className="text-slate-400" />
                </div>
-               
+
                {/* User Dropdown Menu */}
                {isUserMenuOpen && (
                  <>
@@ -1511,7 +1501,7 @@ const BusinessLayout: React.FC = () => {
                           className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3"
                         >
                           <CalendarCheck className="w-4 h-4 text-slate-500" />
-                          <span>لوحة الحجوزات</span>
+                          <span>حجوزات</span>
                         </button>
                         <button
                           type="button"
@@ -1519,10 +1509,10 @@ const BusinessLayout: React.FC = () => {
                           onClick={() => {
                             setIsBookingsMenuOpen(false);
                             try {
-                              localStorage.setItem('ray_dev_activity_target_tab', 'clinicDoctors');
+                              localStorage.setItem('ray_dev_activity_target_tab', 'reservations');
                             } catch {}
                             if (shopCategory === 'SERVICE') {
-                              navigate('/business/dashboard?tab=clinicDoctors');
+                              navigate(`/business/${getBookingRouteFromActivityType(shopForModules?.pageDesign?.bookingActivityType)}/overview`);
                             } else {
                               switchDevActivity('SERVICE');
                             }
@@ -1530,7 +1520,7 @@ const BusinessLayout: React.FC = () => {
                           className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3 border-t border-slate-50"
                         >
                           <Users className="w-4 h-4 text-slate-500" />
-                          <span>العيادات والمستشفيات</span>
+                          <span>النشاط المختار للحجوزات</span>
                         </button>
                       </div>
                     </>
@@ -1733,63 +1723,16 @@ const BusinessLayout: React.FC = () => {
                 <Store className="w-5 h-5" />
               </button>
             )}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setIsBookingsMenuOpen((v) => !v)}
-                aria-label={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
-                title={isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}
-                className="flex items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 rounded-2xl text-emerald-800 transition-all text-xs font-black shadow-sm"
-              >
-                <Calendar className="w-4 h-4 text-emerald-600" />
-                <span>{isArabic ? 'لوحة الحجوزات' : 'Bookings Dashboard'}</span>
-                <ChevronDown size={14} className="text-emerald-600" />
-              </button>
-
-              {isBookingsMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setIsBookingsMenuOpen(false)} />
-                  <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
-                    <div className="py-2 px-3 bg-emerald-50 border-b border-emerald-100">
-                      <span className="text-xs font-black text-emerald-800">{isArabic ? 'اختر نشاط الحجوزات' : 'Select Booking Activity'}</span>
-                    </div>
-                    {BOOKING_ACTIVITY_DEFINITIONS.map((activity) => {
-                      const routeMap: Record<string, string> = {
-                        'clinic_hospital': 'clinic',
-                        'salon_barber': 'salon',
-                        'wellness_spa': 'spa',
-                        'chalets_resorts': 'chalets',
-                        'hotels_rooms': 'hotels',
-                        'restaurants_tables': 'restaurants',
-                        'events_venues': 'events',
-                        'vehicle_rental': 'rental',
-                        'sports_trainers': 'sports',
-                        'education_courses': 'education',
-                        'maintenance_services': 'maintenance',
-                        'general_appointments': 'appointments',
-                      };
-                      const route = routeMap[activity.id] || 'clinic';
-                      return (
-                        <button
-                          key={activity.id}
-                          type="button"
-                          onClick={() => {
-                            setIsBookingsMenuOpen(false);
-                            navigate(`/business/${route}/overview`);
-                          }}
-                          className="w-full py-3 px-4 text-right hover:bg-emerald-50 transition-all font-black text-sm text-slate-800 border-b border-slate-50 last:border-b-0"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span>{activity.title}</span>
-                            <CalendarCheck size={14} className="text-emerald-400" />
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
+            <button
+              type="button"
+              onClick={() => navigate(buildDashboardUrl('reservations'))}
+              aria-label={isArabic ? 'حجوزات' : 'Bookings'}
+              title={isArabic ? 'حجوزات' : 'Bookings'}
+              className="flex items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 rounded-2xl text-emerald-800 transition-all text-xs font-black shadow-sm"
+            >
+              <Calendar className="w-4 h-4 text-emerald-600" />
+              <span>{isArabic ? 'حجوزات' : 'Bookings'}</span>
+            </button>
             <button
               onClick={() => navigate(buildBuilderIndexUrl())}
               aria-label={t('dashboard.storeIdentity')}
@@ -1823,14 +1766,14 @@ const BusinessLayout: React.FC = () => {
             <div className="mb-8 flex items-start justify-between gap-6 flex-wrap" dir="rtl">
               <div className="text-right">
                 <div className="text-xl md:text-2xl font-black text-slate-900">
-                  لوحة حجوزات نشاط: <span className="text-[#00E5FF]">{bookingActivityDef.title}</span>
+                  حجوزات نشاط: <span className="text-[#00E5FF]">{bookingActivityDef.title}</span>
                 </div>
                 <p className="mt-2 text-xs font-bold text-slate-400 max-w-2xl leading-6">
                   {bookingActivityDef.description}
                 </p>
               </div>
               <Link
-                to="/business/builder/preview?page=clinic"
+                to={`/business/builder/preview?page=${currentBookingActivity || 'clinic'}`}
                 className="px-5 py-3 rounded-2xl font-black text-sm transition-all inline-flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-100"
               >
                 {t('business.clinic.layout.previewPage')}

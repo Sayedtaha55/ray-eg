@@ -23,6 +23,8 @@ import {
   BOOKING_SETTINGS_PAGE_BUTTONS,
   BookingActivityType,
   getBookingActivityDefinition,
+  getBookingActivityTypeFromPath,
+  isBookingActivityRoute,
 } from './bookingActivityConfig';
 
 const ICON_BY_ACTIVITY: Record<BookingActivityType, React.ReactNode> = {
@@ -49,7 +51,9 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
   const { NavLink, useLocation, useOutletContext } = ReactRouterDOM as any;
   const location = useLocation();
   const context = useOutletContext?.() || {};
-  const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const pathParts = String(location?.pathname || '').split('/').filter(Boolean);
+  const basePath = pathParts[1] || 'clinic';
+  const routeActivityType = isBookingActivityRoute(basePath) ? getBookingActivityTypeFromPath(basePath) : null;
   const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
   const effectiveShop = shop || context.shop || loadedShop;
 
@@ -72,7 +76,7 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
     };
   }, [shop, loadedShop]);
 
-  const currentActivity = String(effectiveShop?.pageDesign?.bookingActivityType || 'clinic_hospital') as BookingActivityType;
+  const currentActivity = (routeActivityType || String(effectiveShop?.pageDesign?.bookingActivityType || 'clinic_hospital')) as BookingActivityType;
   const [selectedActivity, setSelectedActivity] = useState<BookingActivityType>(currentActivity);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
@@ -89,7 +93,7 @@ const ClinicSettingsPage: React.FC<Props> = ({ shop, onSaved }) => {
 
   const bookingGeneralButtons = [
     'نظرة عامة الحجوزات',
-    'حجوزات لوحة الحجوزات',
+    'حجوزات',
     'تصميم صفحة الحجز',
     'إعدادات الحجوزات',
   ];
