@@ -102,6 +102,11 @@ import {
   updateReservationStatusViaBackend,
 } from './api/modules/reservations';
 import {
+  addBookingViaBackend,
+  getBookingsViaBackend,
+  updateBookingStatusViaBackend,
+} from './api/modules/bookings';
+import {
   createCourierViaBackend,
   deleteUserViaMock,
   getAllUsersViaMock,
@@ -364,6 +369,8 @@ if (typeof window !== 'undefined') {
         cacheDelByPrefix('products:');
         cacheDelByPrefix('gallery:');
         cacheDelByPrefix('offers:');
+        cacheDelByPrefix('reservations:');
+        cacheDelByPrefix('bookings:');
       } catch {
       }
     });
@@ -1324,8 +1331,7 @@ export const ApiService = {
       30_000,
       async () => {
         try {
-          const qs = sid ? `?shopId=${encodeURIComponent(sid)}` : '';
-          return await backendGet<any[]>(`/api/v1/bookings${qs}`);
+          return await getBookingsViaBackend(sid || undefined);
         } catch {
           return [];
         }
@@ -1336,11 +1342,16 @@ export const ApiService = {
   updateBookingStatus: async (id: string, status: string) => {
     const bid = String(id || '').trim();
     if (!bid) throw new Error('Missing booking id');
-    return await backendPatch<any>(`/api/v1/bookings/${encodeURIComponent(bid)}/status`, { status });
+    const result = await updateBookingStatusViaBackend(bid, status);
+    try {
+      window.dispatchEvent(new Event('ray-db-update'));
+      dispatchSmartRefresh('reservations');
+    } catch {}
+    return result;
   },
   addBooking: async (booking: any) => {
     try {
-      const res = await backendPost<any>('/api/v1/bookings', booking);
+      const res = await addBookingViaBackend(booking);
       try {
         window.dispatchEvent(new Event('ray-db-update'));
         dispatchSmartRefresh('reservations', { shopId: booking?.shopId });
@@ -1358,6 +1369,7 @@ export const ApiService = {
         id: `local-${Date.now()}`,
         status: 'pending_sync',
         __queued: true,
+        __recordType: 'booking',
       } as any;
     }
   },

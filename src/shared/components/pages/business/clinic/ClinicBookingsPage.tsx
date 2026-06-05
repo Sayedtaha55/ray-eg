@@ -15,7 +15,7 @@ import {
   Check,
 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
-import { getBookingActivityVocabulary } from './bookingActivityConfig';
+import { getBookingActivityScopedList, getBookingActivityTypeFromPath, getBookingActivityVocabulary } from './bookingActivityConfig';
 
 type Props = {
   shop?: any;
@@ -45,6 +45,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
   const isInMasterDashboard = context.bookings !== undefined;
 
   const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const activityType = getBookingActivityTypeFromPath(basePath);
   const vocab = getBookingActivityVocabulary(basePath);
 
   const [loading, setLoading] = useState(isInMasterDashboard ? context.loading : true);
@@ -120,12 +121,8 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
 
   // Extract doctors list from real shop page design only
   const doctorsList = useMemo(() => {
-    if (Array.isArray(effectiveShop?.pageDesign?.clinicDoctorsList)) {
-      return effectiveShop.pageDesign.clinicDoctorsList;
-    }
-    // No hardcoded placeholder doctors — show empty list when none provided
-    return [];
-  }, [effectiveShop?.pageDesign?.clinicDoctorsList]);
+    return getBookingActivityScopedList(effectiveShop?.pageDesign, activityType, 'providers');
+  }, [effectiveShop?.pageDesign, activityType]);
 
   // Time slots list
   const slotsList = useMemo(() => {
@@ -179,7 +176,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
         itemId: selectedDoctor?.id || 'general',
         itemName: selectedDoctor?.name || `${vocab.serviceSingular} عامة`,
         itemImage: selectedDoctor?.photoUrl || '',
-        itemPrice: 300, // Consulting standard price
+        itemPrice: vocab.defaultItemPrice,
         shopId: targetShopId,
         customerName: patientName,
         customerPhone: patientPhone,
@@ -187,6 +184,15 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
         bookingDate: bookingDate,
         bookingTime: bookingTime,
         status: 'PENDING',
+        bookingActivityType: activityType,
+        bookingActivityRoute: basePath,
+        metadata: {
+          bookingActivityType: activityType,
+          bookingActivityRoute: basePath,
+          providerId: selectedDoctor?.id || null,
+          providerName: selectedDoctor?.name || '',
+          source: 'activity_dashboard_manual_booking',
+        },
       };
 
       await ApiService.addBooking(payload);
@@ -401,7 +407,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                           className="flex-1 sm:w-32 py-3 bg-sky-500 hover:bg-sky-650 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1 shadow-md shadow-sky-100"
                         >
                           <Check size={14} />
-                          <span>تأكيد الموعد</span>
+                          <span>تأكيد الحجز</span>
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(b.id, 'cancelled')}
@@ -419,7 +425,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                           className="flex-1 sm:w-32 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-black text-xs transition-all flex items-center justify-center gap-1 shadow-md shadow-emerald-100"
                         >
                           <CheckCircle2 size={14} />
-                          <span>حضور {vocab.customerSingular}</span>
+                          <span>إكمال حجز {vocab.customerSingular}</span>
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(b.id, 'cancelled')}
@@ -485,7 +491,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                     required
                     value={patientName}
                     onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="مثال: أحمد عبد الله حسين"
+                    placeholder={vocab.customerNamePlaceholder}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-right"
                   />
                 </div>
@@ -508,7 +514,7 @@ const ClinicBookingsPage: React.FC<Props> = ({ shop }) => {
                     type="email"
                     value={patientEmail}
                     onChange={(e) => setPatientEmail(e.target.value)}
-                    placeholder="patient@gmail.com"
+                    placeholder={vocab.customerEmailPlaceholder}
                     className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-slate-900 transition-all text-left"
                   />
                 </div>

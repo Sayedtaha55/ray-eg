@@ -64,18 +64,21 @@ export async function addBookingViaBackend(booking: any) {
     bookingTime: booking.bookingTime || '10:00',
     status: booking.status || 'PENDING',
     createdAt: booking.createdAt || new Date().toISOString(),
+    __recordType: 'booking',
+    bookingActivityType: booking.bookingActivityType ?? booking.metadata?.bookingActivityType,
+    bookingActivityRoute: booking.bookingActivityRoute ?? booking.metadata?.bookingActivityRoute,
+    metadata: booking.metadata,
     addons: booking.addons,
     variantSelection: booking.variantSelection ?? booking.variant_selection,
   };
 
-  const current = getLocalBookings();
-  current.push(newBooking);
-  saveLocalBookings(current);
-
   try {
     return await backendPost<any>('/api/v1/bookings', newBooking);
   } catch (e) {
-    return newBooking;
+    const current = getLocalBookings();
+    current.push({ ...newBooking, __recordType: 'booking' });
+    saveLocalBookings(current);
+    return { ...newBooking, __recordType: 'booking' };
   }
 }
 

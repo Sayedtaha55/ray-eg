@@ -1,9 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Calendar, CheckCircle2, Clock, Loader2, User2, XCircle, Settings, Shield, Bell, CreditCard, FileText, Palette, Users, ListChecks, CalendarCheck, ClipboardList } from 'lucide-react';
+import { Calendar, CheckCircle2, Clock, Loader2, User2, XCircle, Settings, Palette, Users, ListChecks, ClipboardList } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { ApiService } from '@/services/api.service';
-import { getBookingActivityVocabulary, BOOKING_SETTINGS_PAGE_BUTTONS, getBookingActivityDefinition } from './bookingActivityConfig';
+import { ACTIVITY_MODULES, getBookingActivityVocabulary, getBookingActivityDefinition, getBookingActivityTypeFromPath } from './bookingActivityConfig';
 
 const ClinicOverviewPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -15,21 +15,10 @@ const ClinicOverviewPage: React.FC = () => {
   const isInMasterDashboard = context.bookings !== undefined;
 
   const basePath = String(location?.pathname || '').split('/').filter(Boolean)[1] || 'clinic';
+  const activityType = getBookingActivityTypeFromPath(basePath);
   const vocab = getBookingActivityVocabulary(basePath);
-  const activityDefinition = getBookingActivityDefinition(
-    basePath === 'clinic' ? 'clinic_hospital' :
-    basePath === 'salon' ? 'salon_barber' :
-    basePath === 'spa' ? 'wellness_spa' :
-    basePath === 'chalets' ? 'chalets_resorts' :
-    basePath === 'hotels' ? 'hotels_rooms' :
-    basePath === 'restaurants' ? 'restaurants_tables' :
-    basePath === 'events' ? 'events_venues' :
-    basePath === 'rental' ? 'vehicle_rental' :
-    basePath === 'sports' ? 'sports_trainers' :
-    basePath === 'education' ? 'education_courses' :
-    basePath === 'maintenance' ? 'maintenance_services' :
-    basePath === 'appointments' ? 'general_appointments' : 'clinic_hospital'
-  );
+  const activityDefinition = getBookingActivityDefinition(activityType);
+  const activityExtraModules = (ACTIVITY_MODULES[activityType] || []).filter((module) => module.isExtra);
 
   const [loading, setLoading] = useState(isInMasterDashboard ? context.loading : true);
   const [bookings, setBookings] = useState<any[]>(isInMasterDashboard ? context.bookings : []);
@@ -168,7 +157,7 @@ const ClinicOverviewPage: React.FC = () => {
             </div>
 
             <div className="rounded-2xl bg-cyan-50 border border-cyan-100 px-5 py-3 text-right max-w-md">
-              <div className="text-xs font-black text-cyan-800">تم نقل إدارة {vocab.providerPlural} و {vocab.servicePlural} إلى قائمة لوحة الحجوزات.</div>
+              <div className="text-xs font-black text-cyan-800">تم ترتيب إدارة {vocab.providerPlural} و {vocab.servicePlural} داخل الهيكل الأساسي للحجوزات.</div>
               <div className="mt-1 text-[11px] font-bold text-cyan-700/80">استخدم أزرار القائمة الجانبية للوصول إلى كل نشاط خاص بدون ازدحام النظرة العامة.</div>
             </div>
           </div>
@@ -188,41 +177,12 @@ const ClinicOverviewPage: React.FC = () => {
         </>
       )}
 
-      {/* إعدادات الحجوزات */}
+      {/* الأزرار الخاصة بالنشاط المختار */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
         <div className="flex items-center justify-between gap-3 flex-wrap flex-row-reverse mb-5">
           <div>
-            <div className="text-sm font-black text-slate-900">إعدادات الحجوزات</div>
-            <div className="mt-1 text-xs font-bold text-slate-400">تحكم في إعدادات الموقع والصلاحيات والإشعارات</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {BOOKING_SETTINGS_PAGE_BUTTONS.map((btn) => (
-            <button
-              key={btn.id}
-              type="button"
-              onClick={() => navigate(`/business/${basePath}/activity/${btn.id}`)}
-              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-emerald-50 border border-slate-100 hover:border-emerald-200 transition-all"
-            >
-              {btn.id === 'booking-site' && <Settings size={20} className="text-emerald-600" />}
-              {btn.id === 'booking-security' && <Shield size={20} className="text-emerald-600" />}
-              {btn.id === 'booking-notifications' && <Bell size={20} className="text-emerald-600" />}
-              {btn.id === 'booking-payments' && <CreditCard size={20} className="text-emerald-600" />}
-              {btn.id === 'booking-cancellation' && <FileText size={20} className="text-emerald-600" />}
-              {btn.id === 'booking-privacy' && <Shield size={20} className="text-emerald-600" />}
-              <span className="text-xs font-black text-slate-700 text-center leading-tight">{btn.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* أزرار الأنشطة الخاصة */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-right">
-        <div className="flex items-center justify-between gap-3 flex-wrap flex-row-reverse mb-5">
-          <div>
-            <div className="text-sm font-black text-slate-900">{vocab.providerPlural} و {vocab.servicePlural}</div>
-            <div className="mt-1 text-xs font-bold text-slate-400">إدارة {vocab.providerPlural.toLowerCase()} و {vocab.servicePlural.toLowerCase()}</div>
+            <div className="text-sm font-black text-slate-900">الأزرار الخاصة بنشاط {activityDefinition.title}</div>
+            <div className="mt-1 text-xs font-bold text-slate-400">إدارة {vocab.providerPlural.toLowerCase()} و {vocab.servicePlural.toLowerCase()} بدون خلطها مع أزرار الحجوزات الأساسية</div>
           </div>
         </div>
 
@@ -245,34 +205,23 @@ const ClinicOverviewPage: React.FC = () => {
           </button>
           <button
             type="button"
-            onClick={() => navigate(`/business/${basePath}/overview`)}
-            className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
-          >
-            <CalendarCheck size={20} className="text-cyan-600" />
-            <span className="text-xs font-black text-slate-700 text-center leading-tight">لوحة الحجوزات</span>
-          </button>
-          <button
-            type="button"
             onClick={() => navigate(`/business/${basePath}/bookings`)}
             className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
           >
             <ClipboardList size={20} className="text-cyan-600" />
-            <span className="text-xs font-black text-slate-700 text-center leading-tight">جدول المواعيد</span>
+            <span className="text-xs font-black text-slate-700 text-center leading-tight">حجوزات</span>
           </button>
-          {activityDefinition.extraButtons.map((label, idx) => {
-            const pageId = label.replace(/[ً-ٰٟ]/g, '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '').toLowerCase();
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => navigate(`/business/${basePath}/activity/${pageId}`)}
-                className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
-              >
-                <ListChecks size={20} className="text-cyan-600" />
-                <span className="text-xs font-black text-slate-700 text-center leading-tight">{label}</span>
-              </button>
-            );
-          })}
+          {activityExtraModules.map((module) => (
+            <button
+              key={module.route}
+              type="button"
+              onClick={() => navigate(`/business/${basePath}/${module.route}`)}
+              className="flex flex-col items-center gap-2 p-4 rounded-2xl bg-slate-50 hover:bg-cyan-50 border border-slate-100 hover:border-cyan-200 transition-all"
+            >
+              <ListChecks size={20} className="text-cyan-600" />
+              <span className="text-xs font-black text-slate-700 text-center leading-tight">{module.label}</span>
+            </button>
+          ))}
         </div>
       </div>
 

@@ -3,9 +3,12 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { CheckCircle2, Edit2, Loader2, Plus, Save, Trash2 } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import {
+  ACTIVITY_MODULES,
   BOOKING_SETTINGS_PAGE_BUTTONS,
   getBookingActivityDefinition,
   getBookingActivityExtraPageId,
+  getBookingActivityTypeFromPath,
+  isBookingActivityRoute,
 } from './bookingActivityConfig';
 
 type BookingActivityPageItem = {
@@ -32,10 +35,13 @@ const emptyForm = {
 };
 
 const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved, pageId: propsPageId }) => {
-  const { useParams, useOutletContext } = ReactRouterDOM as any;
+  const { useLocation, useParams, useOutletContext } = ReactRouterDOM as any;
+  const location = useLocation();
   const params = useParams?.() || {};
   const pageId = String(propsPageId || params.pageId || '').trim();
   const context = useOutletContext?.() || {};
+  const pathParts = String(location?.pathname || '').split('/').filter(Boolean);
+  const routeActivityType = isBookingActivityRoute(pathParts[1]) ? getBookingActivityTypeFromPath(pathParts[1]) : null;
 
   const [loadedShop, setLoadedShop] = useState<any>(shop || context.shop || null);
   const effectiveShop = shop || context.shop || loadedShop;
@@ -65,31 +71,55 @@ const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved, pageId: prop
   }, [shop, loadedShop]);
 
   const activityDefinition = useMemo(
-    () => getBookingActivityDefinition(effectiveShop?.pageDesign?.bookingActivityType),
-    [effectiveShop?.pageDesign?.bookingActivityType],
+    () => getBookingActivityDefinition(routeActivityType || effectiveShop?.pageDesign?.bookingActivityType),
+    [routeActivityType, effectiveShop?.pageDesign?.bookingActivityType],
   );
 
   const extraPages = useMemo(
-    () => [
-      ...activityDefinition.extraButtons.map((label, index) => ({
+    () => {
+      const dynamicModulePages = (ACTIVITY_MODULES[activityDefinition.id] || [])
+        .filter((module) => module.isExtra)
+        .map((module) => ({
+          id: String(module.route || '').split('/').pop() || module.id,
+          label: module.label,
+        }));
+
+      const definitionPages = activityDefinition.extraButtons.map((label, index) => ({
         id: getBookingActivityExtraPageId(label, index),
         label,
-      })),
-      ...BOOKING_SETTINGS_PAGE_BUTTONS,
-    ],
-    [activityDefinition.extraButtons],
+      }));
+
+      const merged = [...dynamicModulePages, ...definitionPages, ...BOOKING_SETTINGS_PAGE_BUTTONS];
+      const seen = new Set<string>();
+      return merged.filter((page) => {
+        if (seen.has(page.id)) return false;
+        seen.add(page.id);
+        return true;
+      });
+    },
+    [activityDefinition],
   );
 
   const currentPage = extraPages.find((page) => page.id === pageId) || extraPages[0];
   const currentPageId = currentPage?.id || pageId || 'general';
 
-  const savedPages = (effectiveShop?.pageDesign?.bookingActivityPages && typeof effectiveShop.pageDesign.bookingActivityPages === 'object')
+  const savedPagesByActivity = (effectiveShop?.pageDesign?.bookingActivityPagesByActivity && typeof effectiveShop.pageDesign.bookingActivityPagesByActivity === 'object')
+    ? effectiveShop.pageDesign.bookingActivityPagesByActivity
+    : {};
+
+  const activitySavedPages = (savedPagesByActivity?.[activityDefinition.id] && typeof savedPagesByActivity[activityDefinition.id] === 'object')
+    ? savedPagesByActivity[activityDefinition.id]
+    : {};
+
+  const legacySavedPages = (effectiveShop?.pageDesign?.bookingActivityPages && typeof effectiveShop.pageDesign.bookingActivityPages === 'object')
     ? effectiveShop.pageDesign.bookingActivityPages
     : {};
 
-  const currentItems: BookingActivityPageItem[] = Array.isArray(savedPages?.[currentPageId]?.items)
-    ? savedPages[currentPageId].items
-    : [];
+  const currentItems: BookingActivityPageItem[] = Array.isArray(activitySavedPages?.[currentPageId]?.items)
+    ? activitySavedPages[currentPageId].items
+    : activityDefinition.id === 'clinic_hospital' && Array.isArray(legacySavedPages?.[currentPageId]?.items)
+      ? legacySavedPages[currentPageId].items
+      : [];
 
   const resetForm = () => {
     setForm(emptyForm);
@@ -105,15 +135,31 @@ const BookingActivityExtraPage: React.FC<Props> = ({ shop, onSaved, pageId: prop
         ...(effectiveShop?.pageDesign || {}),
         bookingActivityType: activityDefinition.id,
         bookingDashboardScope: 'booking_only',
-        bookingActivityPages: {
-          ...savedPages,
-          [currentPageId]: {
-            id: currentPageId,
-            label: currentPage?.label || currentPageId,
-            items: nextItems,
-            updatedAt: new Date().toISOString(),
+        bookingActivityPagesByActivity: {
+          ...savedPagesByActivity,
+          [activityDefinition.id]: {
+            ...activitySavedPages,
+            [currentPageId]: {
+              id: currentPageId,
+              label: currentPage?.label || currentPageId,
+              items: nextItems,
+              updatedAt: new Date().toISOString(),
+            },
           },
         },
+        ...(activityDefinition.id === 'clinic_hospital'
+          ? {
+              bookingActivityPages: {
+                ...legacySavedPages,
+                [currentPageId]: {
+                  id: currentPageId,
+                  label: currentPage?.label || currentPageId,
+                  items: nextItems,
+                  updatedAt: new Date().toISOString(),
+                },
+              },
+            }
+          : {}),
       };
       const updatedShop = await ApiService.updateMyShop({ pageDesign: nextPageDesign });
       setLoadedShop(updatedShop || { ...(effectiveShop || {}), pageDesign: nextPageDesign });
