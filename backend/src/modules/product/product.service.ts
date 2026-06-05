@@ -17,10 +17,12 @@ export class ProductService {
 
   private async getActiveImageMapHotspotLabelKeys(shopId?: string) {
     const sid = String(shopId || '').trim();
-    if (!sid) return new Set<string>();
     try {
+      const where = sid
+        ? { map: { shopId: sid, isActive: true } }
+        : { map: { isActive: true } };
       const rows = await (this.prisma as any).shopImageHotspot.findMany({
-        where: { map: { shopId: sid, isActive: true } },
+        where,
         select: { label: true },
       });
       const keys = new Set<string>();
@@ -201,24 +203,21 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
-      const pid = String((product as any)?.id || '').trim();
-      if (pid && linkedIds.has(pid)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    // PERFORMANCE: Parallelize hotspot metadata lookups to reduce latency on cache miss
+    const sid = String((product as any)?.shopId || '').trim();
+    const [linkedIds, labelKeys] = await Promise.all([
+      this.getLinkedImageMapProductIds(sid).catch(() => new Set<string>()),
+      this.getActiveImageMapHotspotLabelKeys(sid).catch(() => new Set<string>()),
+    ]);
+
+    const pid = String((product as any)?.id || '').trim();
+    if (pid && linkedIds.has(pid)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
-      if (nameKey && labelKeys.has(nameKey)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    const nameKey = this.normalizeProductNameKey((product as any)?.name);
+    if (nameKey && labelKeys.has(nameKey)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
     try {
@@ -296,22 +295,27 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
+    // PERFORMANCE: Parallelize independent hotspot-related queries to reduce latency on cache miss
     const [linkedIds, labelKeys] = await Promise.all([
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+
+    // PERFORMANCE: Filter products BEFORE caching to enable Zero-DB cache hits on subsequent requests
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -457,17 +461,27 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
+    // PERFORMANCE: Filter products BEFORE caching to enable Zero-DB cache hits on subsequent requests
+    // Parallelize global hotspot lookup to minimize latency
+    const [linkedIds, labelKeys] = await Promise.all([
+      this.getLinkedImageMapProductIds(),
+      this.getActiveImageMapHotspotLabelKeys(),
+    ]);
+
+    const filtered = products.filter((p: any) => {
+      const id = String((p as any)?.id || '').trim();
+      if (id && linkedIds.has(id)) return false;
+      const nameKey = this.normalizeProductNameKey((p as any)?.name);
+      if (nameKey && labelKeys.has(nameKey)) return false;
+      return true;
+    });
+
     try {
-      await this.redis.set(cacheKey, products, 60);
+      await this.redis.set(cacheKey, filtered, 60);
     } catch {
     }
 
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
-      const id = String((p as any)?.id || '').trim();
-      if (id && linkedIds.has(id)) return false;
-      return true;
-    });
+    return filtered;
   }
 
   async create(input: {
