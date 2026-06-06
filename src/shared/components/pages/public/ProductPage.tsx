@@ -10,6 +10,7 @@ import { useCartSound } from '@/hooks/useCartSound';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
 import { Skeleton } from '@/components/common/ui';
 import { coerceBoolean } from '@/components/pages/public/ShopProfile/utils';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
 
 import ProductTabs from './product/ProductTabs';
