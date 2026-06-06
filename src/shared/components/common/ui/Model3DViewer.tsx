@@ -3,6 +3,7 @@ import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Environment, Html, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Box, RotateCw, ZoomIn, AlertCircle } from 'lucide-react';
+import { isLowEndDevice as checkIsLowEndDevice } from '@/utils/performanceProfile';
 
 useGLTF.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
 
@@ -101,18 +102,7 @@ export default function Model3DViewer({
   const [contextLost, setContextLost] = useState(false);
   const [canvasKey, setCanvasKey] = useState(0);
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const nav = navigator as Navigator & { deviceMemory?: number; hardwareConcurrency?: number };
-      const mem = typeof nav?.deviceMemory === 'number' ? Number(nav.deviceMemory) : undefined;
-      const cores = typeof nav?.hardwareConcurrency === 'number' ? Number(nav.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const isLowEndDevice = useMemo(() => checkIsLowEndDevice(), []);
 
   const dpr = isLowEndDevice ? 1 : Math.min(2, typeof window !== 'undefined' ? (window.devicePixelRatio || 1) : 1);
   const enableEnvironment = !isLowEndDevice;
