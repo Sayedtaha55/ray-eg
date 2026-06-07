@@ -7,6 +7,7 @@ import SmartImage from '@/components/common/ui/SmartImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { coerceBoolean, hexToRgba } from './utils';
 
 const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
@@ -43,13 +44,7 @@ const ProductCard = React.memo(function ProductCard({
 }) {
   const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -255,7 +250,7 @@ const ProductCard = React.memo(function ProductCard({
   const has3D = Boolean(model3dUrl);
 
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion || isLowEndDevice ? {} : { 
+  const motionProps = disableMotion || lowEnd ? {} : {
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
     animate: { opacity: 1, y: 0 } 
   };
@@ -273,7 +268,7 @@ const ProductCard = React.memo(function ProductCard({
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
@@ -424,7 +419,7 @@ const ProductCard = React.memo(function ProductCard({
               loading="lazy"
               decoding="async"
               src={product.imageUrl || (product as any).image_url}
-              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
               style={{ transitionProperty: 'opacity, transform' }}
               alt={product.name}
               onLoad={(e) => {
