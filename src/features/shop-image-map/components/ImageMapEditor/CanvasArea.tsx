@@ -1,4 +1,5 @@
 import React, { memo, useMemo } from 'react';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { Loader2 } from 'lucide-react';
 
 interface HotspotMarkerProps {
@@ -50,13 +51,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
   canvasRef,
   fileInputRef
 }) => {
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   if (loading || imageUploading) {
     return (
@@ -98,7 +93,7 @@ const CanvasArea: React.FC<CanvasAreaProps> = ({
           src={mapImageUrl} 
           className="max-w-full max-h-full object-contain select-none shadow-2xl" 
           alt="Map"
-          loading={isLowEndDevice ? "lazy" : "eager"}
+          loading={lowEnd ? "lazy" : "eager"}
           decoding="async"
         />
 
