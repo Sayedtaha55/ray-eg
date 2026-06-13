@@ -302,6 +302,12 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Invalidate product lists when hotspots change.
+        // We invalidate both shop-specific and global lists to ensure visibility rules are applied.
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
@@ -540,6 +546,12 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Invalidate product lists when hotspots change.
+        // We invalidate both shop-specific and global lists to ensure visibility rules are applied.
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
