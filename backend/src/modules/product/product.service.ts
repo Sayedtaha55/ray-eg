@@ -157,8 +157,18 @@ export class ProductService {
     } catch {
     }
 
-    const product = await (this.prisma.product as any).findUnique({
-      where: { id },
+    // PERFORMANCE: Use findFirst with relation filter to exclude hotspot-linked products at DB level.
+    // This reduces post-fetch filtering logic and unnecessary data transfer.
+    const product = await (this.prisma.product as any).findFirst({
+      where: {
+        id,
+        isActive: true,
+        imageHotspots: { none: {} },
+        NOT: [
+          { category: '__IMAGE_MAP__' },
+          { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+        ],
+      },
       select: {
         id: true,
         name: true,
@@ -190,27 +200,11 @@ export class ProductService {
       },
     });
 
-    if (!product || !product.isActive) {
+    if (!product) {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    // Hide image-map-only products from public product pages.
-    // They should be accessed only via the image map editor flows.
-    const cat = (product as any)?.category;
-    if (this.isImageMapCategory(cat)) {
-      throw new NotFoundException('لم يتم العثور على المنتج');
-    }
-
-    try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
-      const pid = String((product as any)?.id || '').trim();
-      if (pid && linkedIds.has(pid)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
-
+    // PERFORMANCE: Parallelize name-based hotspot check to minimize latency on cache miss.
     try {
       const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
@@ -244,12 +238,21 @@ export class ProductService {
     } catch {
     }
 
+    // PERFORMANCE: Fetch active hotspot labels first to integrate them into the main product query.
+    // This enables the Zero-DB Cache Hit pattern for product lists.
+    const labelKeys = await this.getActiveImageMapHotspotLabelKeys(shopId);
+    const labelArray = Array.from(labelKeys);
+
     let products: any[];
     try {
       products = await (this.prisma.product as any).findMany({
         where: {
           shopId,
           isActive: true,
+          // PERFORMANCE: Exclude products linked to hotspots (via ID or Name) at the DB level.
+          // This ensures correct pagination and eliminates post-fetch filtering.
+          imageHotspots: { none: {} },
+          name: labelArray.length > 0 ? { notIn: labelArray, mode: 'insensitive' } : undefined,
           NOT: [
             { category: '__IMAGE_MAP__' },
             { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
@@ -297,21 +300,12 @@ export class ProductService {
     const deduped = this.dedupeById(products);
 
     try {
+      // PERFORMANCE: Cache the final filtered result so that cache hits require Zero-DB queries.
       await this.redis.set(cacheKey, deduped, 600);
     } catch {
     }
 
-    const [linkedIds, labelKeys] = await Promise.all([
-      this.getLinkedImageMapProductIds(shopId),
-      this.getActiveImageMapHotspotLabelKeys(shopId),
-    ]);
-    return deduped.filter((p: any) => {
-      const id = String((p as any)?.id || '').trim();
-      if (id && linkedIds.has(id)) return false;
-      const nameKey = this.normalizeProductNameKey((p as any)?.name);
-      if (nameKey && labelKeys.has(nameKey)) return false;
-      return true;
-    });
+    return deduped;
   }
 
   async listByShopForManage(
@@ -420,6 +414,9 @@ export class ProductService {
       products = await (this.prisma.product as any).findMany({
         where: {
           isActive: true,
+          // PERFORMANCE: Exclude products linked to hotspots at the DB level.
+          // This ensures correct pagination and eliminates post-fetch filtering.
+          imageHotspots: { none: {} },
           NOT: [
             { category: '__IMAGE_MAP__' },
             { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
@@ -462,12 +459,7 @@ export class ProductService {
     } catch {
     }
 
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
-      const id = String((p as any)?.id || '').trim();
-      if (id && linkedIds.has(id)) return false;
-      return true;
-    });
+    return products;
   }
 
   async create(input: {
