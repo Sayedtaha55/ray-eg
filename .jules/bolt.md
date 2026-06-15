@@ -1,0 +1,3 @@
+## 2025-05-22 - [Centralized Hardware Profiling & Component Memoization]
+**Learning:** Redundant hardware profiling (User Agent regex matching and navigator property access) across high-frequency components like `ProductCard` adds unnecessary CPU overhead. Centralizing this logic with a module-level cache ensures it runs only once per application lifecycle. Additionally, memoizing derived styles and labels in `ProductCard` prevents O(N) redundant calculations when parent state changes.
+**Action:** Always check for existing performance utilities before implementing hardware-based UI logic. Ensure that expensive derived calculations (like color contrast/YIQ checks) in list items are memoized to maintain high scroll performance.

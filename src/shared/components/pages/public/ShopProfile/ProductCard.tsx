@@ -7,6 +7,7 @@ import SmartImage from '@/components/common/ui/SmartImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { coerceBoolean, hexToRgba } from './utils';
 
 const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
@@ -43,13 +44,7 @@ const ProductCard = React.memo(function ProductCard({
 }) {
   const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -107,7 +102,7 @@ const ProductCard = React.memo(function ProductCard({
     ? (design as any).productCardOverlayOpacity
     : Number((design as any)?.productCardOverlayOpacity);
   const overlayOpacityPct = Number.isFinite(overlayOpacityPctRaw) ? Math.max(0, Math.min(100, overlayOpacityPctRaw)) : 70;
-  const overlayBg = hexToRgba(overlayBgHex, overlayOpacityPct / 100);
+  const overlayBg = useMemo(() => hexToRgba(overlayBgHex, overlayOpacityPct / 100), [overlayBgHex, overlayOpacityPct]);
   const titleColor = String((design as any)?.productCardTitleColor || '').trim() || '#FFFFFF';
   const priceColor = String((design as any)?.productCardPriceColor || '').trim() || '#FFFFFF';
 
@@ -188,7 +183,7 @@ const ProductCard = React.memo(function ProductCard({
     return Math.min(...values);
   }, [isFashion, fashionSizePriceRowsAfterDiscount]);
 
-  const reserveTextClass = (() => {
+  const reserveTextClass = useMemo(() => {
     const hex = String((design as any)?.primaryColor || '').trim();
     const raw = hex.replace('#', '');
     const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
@@ -199,14 +194,14 @@ const ProductCard = React.memo(function ProductCard({
     if (![r, g, b].every((n) => Number.isFinite(n))) return 'text-black';
     const yiq = (r * 299 + g * 587 + b * 114) / 1000;
     return yiq < 140 ? 'text-white' : 'text-black';
-  })();
+  }, [(design as any)?.primaryColor]);
 
-  const buttonPresetCls = (() => {
+  const buttonPresetCls = useMemo(() => {
     if (buttonPreset === 'ghost') return 'border border-white/30 bg-white/10 backdrop-blur text-white';
     if (buttonPreset === 'premium') return 'bg-gradient-to-l from-fuchsia-600 to-indigo-600 text-white shadow-lg';
     if (buttonPreset === 'urgent') return 'bg-gradient-to-l from-rose-600 to-orange-500 text-white shadow-lg';
     return '';
-  })();
+  }, [buttonPreset]);
   const usePrimarySolidColor = buttonPreset === 'primary' || !buttonPreset;
 
   const trackStock =
@@ -216,14 +211,22 @@ const ProductCard = React.memo(function ProductCard({
         ? (product as any).track_stock
         : true;
   const rawStock = typeof (product as any)?.stock === 'number' ? (product as any).stock : undefined;
-  const stockLabel = !trackStock ? t('shopProfile.available') : (rawStock ?? 0) <= 0 ? t('shopProfile.soldOut') : String(rawStock);
-  const stockCls = !trackStock
-    ? 'bg-emerald-50 text-emerald-700'
-    : (rawStock ?? 0) <= 0
-      ? 'bg-slate-900 text-white'
-      : (rawStock ?? 0) < 5
-        ? 'bg-red-500 text-white'
-        : 'bg-white/90 text-slate-900';
+
+  const stockLabel = useMemo(() =>
+    !trackStock ? t('shopProfile.available') : (rawStock ?? 0) <= 0 ? t('shopProfile.soldOut') : String(rawStock),
+    [trackStock, rawStock, t]
+  );
+
+  const stockCls = useMemo(() =>
+    !trackStock
+      ? 'bg-emerald-50 text-emerald-700'
+      : (rawStock ?? 0) <= 0
+        ? 'bg-slate-900 text-white'
+        : (rawStock ?? 0) < 5
+          ? 'bg-red-500 text-white'
+          : 'bg-white/90 text-slate-900',
+    [trackStock, rawStock]
+  );
 
   const descriptionLine = useMemo(() => {
     const d = typeof (product as any)?.description === 'string' ? String((product as any).description).trim() : '';
@@ -255,7 +258,7 @@ const ProductCard = React.memo(function ProductCard({
   const has3D = Boolean(model3dUrl);
 
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion || isLowEndDevice ? {} : { 
+  const motionProps = disableMotion || lowEnd ? {} : {
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
     animate: { opacity: 1, y: 0 } 
   };
@@ -273,7 +276,7 @@ const ProductCard = React.memo(function ProductCard({
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
@@ -424,7 +427,7 @@ const ProductCard = React.memo(function ProductCard({
               loading="lazy"
               decoding="async"
               src={product.imageUrl || (product as any).image_url}
-              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
               style={{ transitionProperty: 'opacity, transform' }}
               alt={product.name}
               onLoad={(e) => {

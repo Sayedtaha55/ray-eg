@@ -1,3 +1,5 @@
+let lowEndCached: boolean | null = null;
+
 export function isMobileViewportLike() {
   if (typeof window === 'undefined') return false;
 
@@ -17,4 +19,29 @@ export function isMobileViewportLike() {
 
 export function getDeferredDelay(baseMs: number, mobileMs: number) {
   return isMobileViewportLike() ? mobileMs : baseMs;
+}
+
+/**
+ * Returns true if the device is likely low-end (mobile with <= 4 cores or <= 4GB RAM).
+ * Results are cached for the lifetime of the application.
+ */
+export function isLowEndDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (lowEndCached !== null) return lowEndCached;
+
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) {
+      lowEndCached = false;
+      return false;
+    }
+
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+
+    lowEndCached = cores <= 4 || memory <= 4;
+    return lowEndCached;
+  } catch {
+    return false;
+  }
 }
