@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/components/common/feedback/Toaster';
 import { ApiService } from '@/services/api.service';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { Skeleton } from '@/components/common/ui';
 import { PurchaseModeButton } from '@/components/common/PurchaseModeButton';
 import { coerceBoolean, coerceNumber, hexToRgba, isVideoUrl } from './utils';
@@ -777,17 +778,7 @@ const ShopProfile: React.FC = () => {
     }
   })();
 
-  const lowEndDevice = (() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  })();
+  const lowEndDevice = isLowEndDevice();
 
   const disableCardMotion = Boolean(prefersReducedMotion) || lowEndDevice || products.length > 30;
 
