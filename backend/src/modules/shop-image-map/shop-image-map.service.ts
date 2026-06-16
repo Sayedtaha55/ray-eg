@@ -302,6 +302,11 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Surgical invalidation of products cache for this shop when image map changes
+        await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+        await this.redis.invalidatePattern('products:all:*');
+        // Clear potential stall product detail caches
+        await this.redis.invalidatePattern('product:*');
       }
     } catch {}
 
@@ -540,6 +545,11 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Surgical invalidation of products cache for this shop when image map changes
+        await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+        await this.redis.invalidatePattern('products:all:*');
+        // Clear potential stall product detail caches
+        await this.redis.invalidatePattern('product:*');
       }
     } catch {}
 
