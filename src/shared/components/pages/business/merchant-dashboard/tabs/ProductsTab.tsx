@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useEffect, useMemo, useState, memo } from 'react
 import { Plus, Trash2, Edit, Eye, EyeOff, Loader2, ShoppingCart, ChevronDown, Lock, Unlock, Upload, Download } from 'lucide-react';
 import { Product } from '@/types';
 import { ApiService } from '@/services/api.service';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { useToast } from '@/components/common/feedback/Toaster';
 import SmartImage from '@/components/common/ui/SmartImage';
 import { compressImage } from '@/lib/image-utils';
@@ -716,20 +717,10 @@ const ProductsTab: React.FC<Props> = ({ products, onAdd, onDelete, onUpdate, sho
     });
   })();
 
-  const isLowEndDevice = useMemo(() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
-  const initialBatch = isLowEndDevice ? 40 : 80;
-  const batchSize = isLowEndDevice ? 30 : 60;
+  const initialBatch = lowEnd ? 40 : 80;
+  const batchSize = lowEnd ? 30 : 60;
   const [renderCount, setRenderCount] = useState(() => Math.min(initialBatch, filteredProducts.length));
 
   useEffect(() => {

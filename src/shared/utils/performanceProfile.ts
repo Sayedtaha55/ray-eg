@@ -15,6 +15,23 @@ export function isMobileViewportLike() {
   }
 }
 
+let cachedIsLowEnd: boolean | null = null;
+
+export function isLowEndDevice() {
+  if (typeof window === 'undefined') return false;
+  if (cachedIsLowEnd !== null) return cachedIsLowEnd;
+
+  try {
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as any).deviceMemory || 4;
+    cachedIsLowEnd = isMobile && (cores <= 4 || memory <= 4);
+    return cachedIsLowEnd;
+  } catch {
+    return false;
+  }
+}
+
 export function getDeferredDelay(baseMs: number, mobileMs: number) {
   return isMobileViewportLike() ? mobileMs : baseMs;
 }

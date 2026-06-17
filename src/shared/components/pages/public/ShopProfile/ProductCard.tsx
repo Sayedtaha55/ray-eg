@@ -7,6 +7,7 @@ import SmartImage from '@/components/common/ui/SmartImage';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { coerceBoolean, hexToRgba } from './utils';
 
 const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
@@ -43,13 +44,7 @@ const ProductCard = React.memo(function ProductCard({
 }) {
   const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
@@ -62,16 +57,21 @@ const ProductCard = React.memo(function ProductCard({
   const location = useLocation();
 
   const elementsVisibility = (((design as any)?.elementsVisibility || {}) as Record<string, any>) || {};
-  const isVisible = (key: string, fallback: boolean = true) => {
-    if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
-    if (!(key in elementsVisibility)) return fallback;
-    return coerceBoolean(elementsVisibility[key], fallback);
-  };
 
-  const showPrice = isVisible('productCardPrice', true);
-  const showStock = isVisible('productCardStock', true);
-  const showAddToCart = isVisible('productCardAddToCart', true) && (allowAddToCart ?? true);
-  const showReserve = isVisible('productCardReserve', true) && (allowReserve ?? true);
+  // Optimization: Memoize visibility checks
+  const visibility = useMemo(() => {
+    const isVisible = (key: string, fallback: boolean = true) => {
+      if (!elementsVisibility || typeof elementsVisibility !== 'object') return fallback;
+      if (!(key in elementsVisibility)) return fallback;
+      return coerceBoolean(elementsVisibility[key], fallback);
+    };
+    return {
+      price: isVisible('productCardPrice', true),
+      stock: isVisible('productCardStock', true),
+      addToCart: isVisible('productCardAddToCart', true) && (allowAddToCart ?? true),
+      reserve: isVisible('productCardReserve', true) && (allowReserve ?? true),
+    };
+  }, [elementsVisibility, allowAddToCart, allowReserve]);
 
   const productDisplay = (design.productDisplay || ((design as any).productDisplayStyle === 'list' ? 'list' : undefined)) as (
     | ShopDesign['productDisplay']
@@ -107,9 +107,13 @@ const ProductCard = React.memo(function ProductCard({
     ? (design as any).productCardOverlayOpacity
     : Number((design as any)?.productCardOverlayOpacity);
   const overlayOpacityPct = Number.isFinite(overlayOpacityPctRaw) ? Math.max(0, Math.min(100, overlayOpacityPctRaw)) : 70;
-  const overlayBg = hexToRgba(overlayBgHex, overlayOpacityPct / 100);
-  const titleColor = String((design as any)?.productCardTitleColor || '').trim() || '#FFFFFF';
-  const priceColor = String((design as any)?.productCardPriceColor || '').trim() || '#FFFFFF';
+
+  // Optimization: Memoize color calculations
+  const colors = useMemo(() => ({
+    overlayBg: hexToRgba(overlayBgHex, overlayOpacityPct / 100),
+    title: String((design as any)?.productCardTitleColor || '').trim() || '#FFFFFF',
+    price: String((design as any)?.productCardPriceColor || '').trim() || '#FFFFFF',
+  }), [overlayBgHex, overlayOpacityPct, design]);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -188,7 +192,8 @@ const ProductCard = React.memo(function ProductCard({
     return Math.min(...values);
   }, [isFashion, fashionSizePriceRowsAfterDiscount]);
 
-  const reserveTextClass = (() => {
+  // Optimization: Memoize button style calculations
+  const reserveTextClass = useMemo(() => {
     const hex = String((design as any)?.primaryColor || '').trim();
     const raw = hex.replace('#', '');
     const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
@@ -199,14 +204,15 @@ const ProductCard = React.memo(function ProductCard({
     if (![r, g, b].every((n) => Number.isFinite(n))) return 'text-black';
     const yiq = (r * 299 + g * 587 + b * 114) / 1000;
     return yiq < 140 ? 'text-white' : 'text-black';
-  })();
+  }, [(design as any)?.primaryColor]);
 
-  const buttonPresetCls = (() => {
+  const buttonPresetCls = useMemo(() => {
     if (buttonPreset === 'ghost') return 'border border-white/30 bg-white/10 backdrop-blur text-white';
     if (buttonPreset === 'premium') return 'bg-gradient-to-l from-fuchsia-600 to-indigo-600 text-white shadow-lg';
     if (buttonPreset === 'urgent') return 'bg-gradient-to-l from-rose-600 to-orange-500 text-white shadow-lg';
     return '';
-  })();
+  }, [buttonPreset]);
+
   const usePrimarySolidColor = buttonPreset === 'primary' || !buttonPreset;
 
   const trackStock =
@@ -255,7 +261,7 @@ const ProductCard = React.memo(function ProductCard({
   const has3D = Boolean(model3dUrl);
 
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion || isLowEndDevice ? {} : { 
+  const motionProps = disableMotion || lowEnd ? {} : {
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
     animate: { opacity: 1, y: 0 } 
   };
@@ -273,7 +279,7 @@ const ProductCard = React.memo(function ProductCard({
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
@@ -301,29 +307,29 @@ const ProductCard = React.memo(function ProductCard({
             <Heart size={11} className="sm:w-3 sm:h-3 md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
 
-          {showStock && (
+          {visibility.stock && (
             <div className={`absolute top-3 left-3 px-3 py-1 rounded-full font-black text-[10px] shadow-lg ${stockCls}`}>
               {stockLabel}
             </div>
           )}
 
-          <div className="absolute inset-x-0 bottom-0 backdrop-blur-sm px-4 py-3" style={{ background: overlayBg }}>
+          <div className="absolute inset-x-0 bottom-0 backdrop-blur-sm px-4 py-3" style={{ background: colors.overlayBg }}>
             <p
               className="font-black text-[11px] md:text-sm tracking-wide uppercase line-clamp-1 text-center"
-              style={{ color: titleColor }}
+              style={{ color: colors.title }}
             >
               {product.name}
             </p>
-            {showPrice && (
+            {visibility.price && (
               <div className="mt-1 flex items-center justify-center gap-3">
                 {offer ? <span className="text-white/70 line-through text-[10px] font-bold">{t('shopProfile.currency')} {product.price}</span> : null}
-                <span className="font-black text-sm md:text-base" style={{ color: priceColor }}>
+                <span className="font-black text-sm md:text-base" style={{ color: colors.price }}>
                   {isFashion && typeof fashionMinPrice === 'number' ? `${t('shopProfile.startsFrom')} ${t('shopProfile.currency')} ${fashionMinPrice}` : `${t('shopProfile.currency')} ${currentPrice}`}
                 </span>
               </div>
             )}
 
-            {showPrice && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
+            {visibility.price && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
               <div className="mt-1 flex flex-wrap justify-center gap-2 text-white/90 text-[9px] font-black">
                 {fashionSizePriceRowsAfterDiscount.slice(0, 4).map((r) => (
                   <span key={r.label} className="px-2 py-0.5 rounded-full bg-white/10 border border-white/10">
@@ -348,10 +354,12 @@ const ProductCard = React.memo(function ProductCard({
             </DialogHeader>
 
             <div className="p-4 bg-slate-50">
-              <img
-                src={String(product.imageUrl || (product as any).image_url || '')}
+              <SmartImage
+                src={product.imageUrl || (product as any).image_url}
                 alt=""
-                className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                className="w-full max-h-[75vh] rounded-2xl bg-white"
+                imgClassName="w-full max-h-[75vh] object-contain"
+                optimizeVariant="opt"
                 loading="lazy"
                 decoding="async"
               />
@@ -420,23 +428,27 @@ const ProductCard = React.memo(function ProductCard({
               <Model3DViewer url={model3dUrl} autoRotate />
             </Suspense>
           ) : (product.imageUrl || (product as any).image_url) ? (
-            <img
+            <SmartImage
+              src={product.imageUrl || (product as any).image_url}
+              alt={product.name}
+              className="w-full h-full"
+              imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+              optimizeVariant="md"
               loading="lazy"
               decoding="async"
-              src={product.imageUrl || (product as any).image_url}
-              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
               style={{ transitionProperty: 'opacity, transform' }}
-              alt={product.name}
-              onLoad={(e) => {
-                setImageReady(true);
-                if (imageFitMode !== 'adaptive') return;
-                const w = e.currentTarget.naturalWidth || 0;
-                const h = e.currentTarget.naturalHeight || 0;
-                if (!w || !h) return;
-                const ratio = w / h;
-                setAutoImageFit(ratio > 1.9 || ratio < 0.56 ? 'contain' : 'cover');
+              imgProps={{
+                onLoad: (e) => {
+                  setImageReady(true);
+                  if (imageFitMode !== 'adaptive') return;
+                  const w = e.currentTarget.naturalWidth || 0;
+                  const h = e.currentTarget.naturalHeight || 0;
+                  if (!w || !h) return;
+                  const ratio = w / h;
+                  setAutoImageFit(ratio > 1.9 || ratio < 0.56 ? 'contain' : 'cover');
+                },
+                onError: () => setImageReady(true),
               }}
-              onError={() => setImageReady(true)}
             />
           ) : null}
 
@@ -491,7 +503,7 @@ const ProductCard = React.memo(function ProductCard({
             <Heart size={11} className="sm:w-3 sm:h-3 md:w-[14px] md:h-[14px]" fill={isFavorite ? 'currentColor' : 'none'} />
           </button>
 
-          {showStock && (
+          {visibility.stock && (
             <div className={`absolute top-2 right-2 px-2 py-1 rounded-full font-black text-[9px] md:text-[10px] shadow-lg ${stockCls}`}>
               {stockLabel}
             </div>
@@ -520,7 +532,7 @@ const ProductCard = React.memo(function ProductCard({
         ) : null}
 
         <div className="mt-auto w-full">
-          {showPrice && (
+          {visibility.price && (
             <div
               className={`flex items-center justify-between flex-row-reverse mb-2 md:mb-3 ${isMinimal ? 'flex-col items-end gap-1' : ''}`}
             >
@@ -536,7 +548,7 @@ const ProductCard = React.memo(function ProductCard({
             </div>
           )}
 
-          {showPrice && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
+          {visibility.price && isFashion && fashionHasDifferentSizePrices && fashionSizePriceRowsAfterDiscount.length > 0 && (
             <div className="w-full mb-2 md:mb-3">
               <div className="flex flex-wrap justify-end gap-2">
                 {fashionSizePriceRowsAfterDiscount.slice(0, 6).map((r) => (
@@ -556,9 +568,9 @@ const ProductCard = React.memo(function ProductCard({
             </div>
           )}
 
-          {(showAddToCart || showReserve) && (
+          {(visibility.addToCart || visibility.reserve) && (
             <div className="flex gap-1.5 md:gap-2">
-              {showAddToCart && (
+              {visibility.addToCart && (
                 <button
                   type="button"
                   aria-label={isAdded ? t('shopProfile.addedToCart') : t('shopProfile.addToCart')}
@@ -575,7 +587,7 @@ const ProductCard = React.memo(function ProductCard({
                   <span className="text-[9px] md:text-[11px] font-black uppercase">{isAdded ? t('shopProfile.added') : t('shopProfile.toCart')}</span>
                 </button>
               )}
-              {showReserve && (
+              {visibility.reserve && (
                 <button
                   type="button"
                   aria-label={t('shopProfile.reserveAria')}
@@ -604,10 +616,12 @@ const ProductCard = React.memo(function ProductCard({
           </DialogHeader>
 
           <div className="p-4 bg-slate-50">
-            <img
-              src={String(product.imageUrl || (product as any).image_url || '')}
+            <SmartImage
+              src={product.imageUrl || (product as any).image_url}
               alt=""
-              className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+              className="w-full max-h-[75vh] rounded-2xl bg-white"
+              imgClassName="w-full max-h-[75vh] object-contain"
+              optimizeVariant="opt"
               loading="lazy"
               decoding="async"
             />
