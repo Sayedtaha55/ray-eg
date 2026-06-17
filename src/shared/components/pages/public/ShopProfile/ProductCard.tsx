@@ -3,10 +3,11 @@ import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Box, CalendarCheck, Check, Eye, Heart, Plus, Zap } from 'lucide-react';
-import SmartImage from '@/components/common/ui/SmartImage';
+import { SmartImage } from '@/components/common/ui';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { RayDB } from '@/constants';
 import { Category, Offer, Product, ShopDesign } from '@/types';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 import { coerceBoolean, hexToRgba } from './utils';
 
 const Model3DViewer = lazy(() => import('@/components/common/ui/Model3DViewer'));
@@ -43,15 +44,8 @@ const ProductCard = React.memo(function ProductCard({
 }) {
   const { t } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
-  const isLowEndDevice = useMemo(() => {
-    if (typeof window === 'undefined') return false;
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const cores = navigator.hardwareConcurrency || 4;
-    const memory = (navigator as any).deviceMemory || 4;
-    return isMobile && (cores <= 4 || memory <= 4);
-  }, []);
+  const lowEnd = isLowEndDevice();
 
-  const [imageReady, setImageReady] = useState(false);
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [cardMediaMode, setCardMediaMode] = useState<'image' | '3d'>('image');
   const [isFavorite, setIsFavorite] = useState(() => {
@@ -255,7 +249,7 @@ const ProductCard = React.memo(function ProductCard({
   const has3D = Boolean(model3dUrl);
 
   const Wrapper: any = disableMotion ? 'div' : MotionDiv;
-  const motionProps = disableMotion || isLowEndDevice ? {} : { 
+  const motionProps = disableMotion || lowEnd ? {} : {
     initial: prefersReducedMotion ? { opacity: 0 } : { opacity: 0, y: 20 }, 
     animate: { opacity: 1, y: 0 } 
   };
@@ -268,22 +262,17 @@ const ProductCard = React.memo(function ProductCard({
           className="group relative transition-all duration-500 overflow-hidden"
         >
           <div onClick={goToProduct} className={`relative overflow-hidden cursor-pointer ${imageAspectClass}`}>
-          {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
           <SmartImage
             src={product.imageUrl || (product as any).image_url}
             alt={product.name}
             className="w-full h-full"
-            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+            imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''}`}
             optimizeVariant="md"
             fallbackSrc="/brand/logo.png"
             loading="lazy"
             decoding="async"
             fetchPriority="low"
             style={{ transitionProperty: 'opacity, transform' }}
-            imgProps={{
-              onLoad: () => setImageReady(true),
-              onError: () => setImageReady(true),
-            }}
           />
 
           {offer && (
@@ -348,10 +337,11 @@ const ProductCard = React.memo(function ProductCard({
             </DialogHeader>
 
             <div className="p-4 bg-slate-50">
-              <img
+              <SmartImage
                 src={String(product.imageUrl || (product as any).image_url || '')}
-                alt=""
-                className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+                alt={product.name}
+                className="w-full max-h-[75vh] rounded-2xl bg-white"
+                imgClassName="object-contain"
                 loading="lazy"
                 decoding="async"
               />
@@ -408,7 +398,6 @@ const ProductCard = React.memo(function ProductCard({
               : `${imageAspectClass} ${isBold ? 'rounded-[1.4rem] md:rounded-[2rem]' : isModern ? 'rounded-[1rem]' : 'rounded-none'}`
           }`}
         >
-          {!imageReady && <div className="absolute inset-0 animate-pulse bg-slate-100" />}
           {cardMediaMode === '3d' && has3D ? (
             <Suspense
               fallback={
@@ -420,23 +409,24 @@ const ProductCard = React.memo(function ProductCard({
               <Model3DViewer url={model3dUrl} autoRotate />
             </Suspense>
           ) : (product.imageUrl || (product as any).image_url) ? (
-            <img
+            <SmartImage
               loading="lazy"
               decoding="async"
               src={product.imageUrl || (product as any).image_url}
-              className={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!isLowEndDevice ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''} ${imageReady ? 'opacity-100' : 'opacity-0'}`}
+              className="w-full h-full"
+              imgClassName={`w-full h-full ${effectiveImageFit === 'contain' ? 'object-contain bg-slate-50' : 'object-cover'} ${!lowEnd ? 'group-hover:scale-110 transition-transform duration-[1s]' : ''}`}
               style={{ transitionProperty: 'opacity, transform' }}
               alt={product.name}
-              onLoad={(e) => {
-                setImageReady(true);
-                if (imageFitMode !== 'adaptive') return;
-                const w = e.currentTarget.naturalWidth || 0;
-                const h = e.currentTarget.naturalHeight || 0;
-                if (!w || !h) return;
-                const ratio = w / h;
-                setAutoImageFit(ratio > 1.9 || ratio < 0.56 ? 'contain' : 'cover');
+              imgProps={{
+                onLoad: (e) => {
+                  if (imageFitMode !== 'adaptive') return;
+                  const w = e.currentTarget.naturalWidth || 0;
+                  const h = e.currentTarget.naturalHeight || 0;
+                  if (!w || !h) return;
+                  const ratio = w / h;
+                  setAutoImageFit(ratio > 1.9 || ratio < 0.56 ? 'contain' : 'cover');
+                }
               }}
-              onError={() => setImageReady(true)}
             />
           ) : null}
 
@@ -604,10 +594,11 @@ const ProductCard = React.memo(function ProductCard({
           </DialogHeader>
 
           <div className="p-4 bg-slate-50">
-            <img
+            <SmartImage
               src={String(product.imageUrl || (product as any).image_url || '')}
-              alt=""
-              className="w-full max-h-[75vh] object-contain rounded-2xl bg-white"
+              alt={product.name}
+              className="w-full max-h-[75vh] rounded-2xl bg-white"
+              imgClassName="object-contain"
               loading="lazy"
               decoding="async"
             />
