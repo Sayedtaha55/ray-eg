@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense, useCallback } from 'react';
 import { ApiService } from '@/services/api.service';
 import { Offer, Product, Shop } from '@/types';
 import { useNavigate } from 'react-router-dom';
@@ -64,13 +64,20 @@ const HomeFeed: React.FC = () => {
   const navigate = useNavigate();
   const { playSound } = useCartSound();
 
-  const nextCategory = () => {
-    setCurrentCategoryIndex((prev) => prev + 1);
-  };
+  // PERFORMANCE: Memoize callbacks to prevent unnecessary re-renders of memoized child components
+  const handleOpenShop = useCallback((shop: Shop) => {
+    const slug = String((shop as any)?.slug || '').trim();
+    if (!slug) return;
+    navigate(`/s/${slug}`);
+  }, [navigate]);
 
-  const prevCategory = () => {
+  const nextCategory = useCallback(() => {
+    setCurrentCategoryIndex((prev) => prev + 1);
+  }, []);
+
+  const prevCategory = useCallback(() => {
     setCurrentCategoryIndex((prev) => prev - 1);
-  };
+  }, []);
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -344,11 +351,7 @@ const HomeFeed: React.FC = () => {
         offers={offers}
         shopProductsById={shopProductsById}
         loading={loadingShops}
-        onOpenShop={(shop) => {
-          const slug = String((shop as any)?.slug || '').trim();
-          if (!slug) return;
-          navigate(`/s/${slug}`);
-        }}
+        onOpenShop={handleOpenShop}
       />
 
       <Suspense fallback={<div className="min-h-[55vh]" /> }>
@@ -360,7 +363,7 @@ const HomeFeed: React.FC = () => {
           navigate={navigate as any}
           playSound={playSound}
           loadMoreSentinelRef={loadMoreSentinelRef}
-          loadMoreOffers={() => loadMoreOffersRef.current?.()}
+          loadMoreOffers={useCallback(() => loadMoreOffersRef.current?.(), [])}
         />
       </Suspense>
 
