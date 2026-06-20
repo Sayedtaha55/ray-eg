@@ -302,6 +302,7 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        await this.redis.invalidatePattern('products:*');
       }
     } catch {}
 
@@ -540,6 +541,7 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        await this.redis.invalidatePattern('products:*');
       }
     } catch {}
 
