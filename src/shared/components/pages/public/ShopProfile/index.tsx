@@ -23,6 +23,7 @@ import { shopHasWhatsApp, shopHasVoiceOrdering } from '@/utils/shopApps';
 import { useCartSound } from '@/hooks/useCartSound';
 import CartDrawer from '@/components/pages/shared/CartDrawer';
 import { CartIconWithAnimation } from '@/components/common/CartIconWithAnimation';
+import { isLowEndDevice } from '@/utils/performanceProfile';
 
 // New Sub-components
 import ProfileHeader from './ProfileHeader';
@@ -77,6 +78,8 @@ const ShopProfile: React.FC = () => {
     if (!Array.isArray(raw)) return false;
     return raw.some((x: any) => String(x || '').trim() === 'reservations');
   }, [shop]);
+
+  const lowEnd = useMemo(() => isLowEndDevice(), []);
 
   useEffect(() => {
     const syncCart = () => {
@@ -777,19 +780,7 @@ const ShopProfile: React.FC = () => {
     }
   })();
 
-  const lowEndDevice = (() => {
-    try {
-      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
-      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
-      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
-      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
-      return false;
-    } catch {
-      return false;
-    }
-  })();
-
-  const disableCardMotion = Boolean(prefersReducedMotion) || lowEndDevice || products.length > 30;
+  const disableCardMotion = Boolean(prefersReducedMotion) || lowEnd || products.length > 30;
 
   const footerBackgroundColor = String(currentDesign.footerBackgroundColor || (isBold ? '#0F172A' : '#F8FAFC'));
   const footerTransparent = coerceBoolean((currentDesign as any).footerTransparent, false);
