@@ -244,74 +244,80 @@ export class ProductService {
     } catch {
     }
 
-    let products: any[];
-    try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          shopId,
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          images: true,
-          colors: true,
-          sizes: true,
-          addons: true,
-          packOptions: true,
-          menuVariants: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
+    // PERFORMANCE: Parallelize independent database queries to reduce latency on cache miss
+    const [productsResult, linkedIds, labelKeys] = await Promise.all([
+      (async () => {
+        try {
+          return await (this.prisma.product as any).findMany({
+            where: {
+              shopId,
+              isActive: true,
+              NOT: [
+                { category: '__IMAGE_MAP__' },
+                { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                { category: '__DUPLICATE__AUTO__' },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
             select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              stock: true,
+              trackStock: true,
+              category: true,
               unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
-          },
-        },
-        ...(pagination ? pagination : {}),
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
-      throw this.mapDbErrorToBadRequest(e);
-    }
-
-    const deduped = this.dedupeById(products);
-
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
-    const [linkedIds, labelKeys] = await Promise.all([
+              imageUrl: true,
+              images: true,
+              colors: true,
+              sizes: true,
+              addons: true,
+              packOptions: true,
+              menuVariants: true,
+              model3dUrl: true,
+              spinImages: true,
+              isActive: true,
+              shopId: true,
+              furnitureMeta: {
+                select: {
+                  unit: true,
+                  lengthCm: true,
+                  widthCm: true,
+                  heightCm: true,
+                }
+              },
+            },
+            ...(pagination ? pagination : {}),
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
+          throw this.mapDbErrorToBadRequest(e);
+        }
+      })(),
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+
+    const deduped = this.dedupeById(productsResult);
+
+    // PERFORMANCE: Apply visibility filters BEFORE caching results (Zero-DB Cache Hit pattern)
+    // This ensures subsequent requests hit Redis and return immediately without DB filtering lookups.
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -415,59 +421,67 @@ export class ProductService {
     } catch {
     }
 
-    let products: any[];
-    try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
+    // PERFORMANCE: Parallelize database queries to reduce latency on cache miss
+    const [productsResult, linkedIds] = await Promise.all([
+      (async () => {
+        try {
+          return await (this.prisma.product as any).findMany({
+            where: {
+              isActive: true,
+              NOT: [
+                { category: '__IMAGE_MAP__' },
+                { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                { category: '__DUPLICATE__AUTO__' },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
             select: {
+              id: true,
+              name: true,
+              price: true,
+              stock: true,
+              trackStock: true,
+              category: true,
               unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
-          },
-        },
-        ...(pagination ? pagination : {}),
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
-      throw this.mapDbErrorToBadRequest(e);
-    }
+              imageUrl: true,
+              model3dUrl: true,
+              spinImages: true,
+              isActive: true,
+              shopId: true,
+              furnitureMeta: {
+                select: {
+                  unit: true,
+                  lengthCm: true,
+                  widthCm: true,
+                  heightCm: true,
+                }
+              },
+            },
+            ...(pagination ? pagination : {}),
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
+          throw this.mapDbErrorToBadRequest(e);
+        }
+      })(),
+      this.getLinkedImageMapProductIds(),
+    ]);
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    // PERFORMANCE: Apply visibility filters BEFORE caching results (Zero-DB Cache Hit pattern)
+    // This ensures subsequent requests hit Redis and return immediately without DB filtering lookups.
+    const filtered = productsResult.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
