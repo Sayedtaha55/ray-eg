@@ -1,0 +1,3 @@
+## 2026-06-01 - [Parallelizing Independent Visibility Checks]
+**Learning:** In `ProductService.getById`, independent visibility checks against image map hotspots were performed sequentially. Parallelizing them with `Promise.allSettled` reduces latency on cache misses while maintaining robustness. Using `Promise.allSettled` instead of `Promise.all` ensures that a failure in one DB query doesn't block the other, preserving the "fail-open" pattern used in this codebase.
+**Action:** Always look for independent `await` calls that can be parallelized, but use `allSettled` if the original code had per-call error swallowing.

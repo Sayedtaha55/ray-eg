@@ -201,18 +201,24 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
+    // PERFORMANCE: Parallelize independent visibility checks to minimize latency on cache miss.
+    // Using Promise.allSettled ensures that if one check fails (e.g., DB error),
+    // we still try the other check, maintaining the original robustness ("fail open" behavior).
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const shopId = String((product as any)?.shopId || '').trim();
+      const results = await Promise.allSettled([
+        this.getLinkedImageMapProductIds(shopId),
+        this.getActiveImageMapHotspotLabelKeys(shopId),
+      ]);
+
+      const linkedIds = results[0].status === 'fulfilled' ? results[0].value : new Set<string>();
+      const labelKeys = results[1].status === 'fulfilled' ? results[1].value : new Set<string>();
+
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
