@@ -18,3 +18,30 @@ export function isMobileViewportLike() {
 export function getDeferredDelay(baseMs: number, mobileMs: number) {
   return isMobileViewportLike() ? mobileMs : baseMs;
 }
+
+let lowEndCached: boolean | null = null;
+
+/**
+ * Checks if the current device is likely a low-end device.
+ * Results are cached after the first call.
+ *
+ * Target: Mobile devices with <= 4 CPU cores or <= 4GB RAM.
+ * Also targets low-end desktops/laptops with <= 4 CPU cores or <= 4GB RAM.
+ */
+export function isLowEndDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (lowEndCached !== null) return lowEndCached;
+
+  try {
+    const nav = navigator as any;
+
+    const cores = nav.hardwareConcurrency || 4;
+    const memory = nav.deviceMemory || 4;
+
+    lowEndCached = cores <= 4 || memory <= 4;
+    return lowEndCached;
+  } catch {
+    lowEndCached = false;
+    return false;
+  }
+}
