@@ -266,6 +266,12 @@ export class ShopImageMapService {
       },
     });
 
+    // PERFORMANCE: Invalidate product caches when maps are created as they might link existing products
+    try {
+      await this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`);
+      await this.redis.invalidatePattern('products:all:*');
+    } catch {}
+
     return created;
   }
 
@@ -302,6 +308,9 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Invalidate product caches when maps are activated
+        await this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`);
+        await this.redis.invalidatePattern('products:all:*');
       }
     } catch {}
 
@@ -540,6 +549,9 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Invalidate product caches when maps are modified
+        await this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`);
+        await this.redis.invalidatePattern('products:all:*');
       }
     } catch {}
 

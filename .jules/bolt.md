@@ -1,0 +1,3 @@
+## 2026-06-29 - Zero-DB Cache Hits and Query Parallelization
+**Learning:** Sequential database lookups for visibility filtering (hotspots) in `ProductService` created a significant latency bottleneck. By parallelizing independent lookups and implementing a "Zero-DB Cache Hit" pattern (caching already-filtered results), we reduced cache-hit latency from $T_{db} + T_{hotspots}$ to zero, and cache-miss latency from $T_{db} + T_{hotspots}$ to $\max(T_{db}, T_{hotspots})$.
+**Action:** Always filter visibility-constrained data *before* caching to ensure cache hits require no subsequent database validation. Parallelize independent Prisma queries using `Promise.all` or `Promise.allSettled`.
