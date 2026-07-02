@@ -554,6 +554,17 @@
       "hideOutOfStock": "إخفاء النافد"
     }
   },
+  "booking": {
+    "design": {
+      "title": "التصميم",
+      "subtitle": "خصص ألوان ومظهر صفحة الحجوزات.",
+      "primaryColor": "اللون الأساسي",
+      "headerBg": "خلفية الهيدر",
+      "headerTextColor": "لون نص الهيدر",
+      "primaryButton": "زر الإجراء الأساسي",
+      "save": "حفظ التصميم"
+    }
+  },
   "posSystem": {
     "placeOrderError": "حدث خطأ أثناء إتمام العملية",
     "searchPlaceholder": "ابحث عن منتج...",

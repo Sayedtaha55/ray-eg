@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks, Activity, Scissors, Ticket, Car, Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon, ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper, ShieldCheck, MapPin, CalendarHeart, Map as MapIcon, Coins, UserSquare, Building, Stethoscope } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -13,9 +13,10 @@ import { Category } from '@/types';
 import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
+  getTabLabel,
 } from '@/components/pages/business/merchant-dashboard/dashboardTabs';
-import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, ACTIVITY_MODULES, getBookingActivityTypeFromParam } from '../pages/business/clinic/bookingActivityConfig';
-import * as LucideIcons from 'lucide-react';
+import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, SHARED_DASHBOARD_BUTTONS, BOOKING_ACTIVITIES, ACTIVITY_MODULES } from '../pages/business/bookings/config';
+import type { BookingActivityType } from '../pages/business/bookings/config';
 
 // Sub-components
 import NavItem from './business/NavItem';
@@ -23,6 +24,27 @@ const DashboardHeader = lazy(() => import('./business/DashboardHeader'));
 
 const { Link, Outlet, useLocation, useNavigate } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
+
+// ✅ FIX: Type-safe icon lookup
+const BOOKING_ACTIVITY_ICONS: Record<string, React.ComponentType<any>> = {
+  clinic: Activity,
+  salon_barber: Scissors,
+  wellness_spa: Sparkles,
+  chalets_resorts: Home,
+  hotels_rooms: Hotel,
+  restaurants_tables: Utensils,
+  events_venues: Ticket,
+  vehicle_rental: Car,
+  sports_trainers: Dumbbell,
+  education_courses: GraduationCap,
+  maintenance_services: Wrench,
+  general_appointments: Calendar,
+};
+
+const getBookingActivityIcon = (type?: string) => {
+  const IconComponent = BOOKING_ACTIVITY_ICONS[type || ''] || Users;
+  return <IconComponent className="w-4 h-4 text-slate-500" />;
+};
 
 
 const BusinessLayout: React.FC = () => {
@@ -79,6 +101,12 @@ const BusinessLayout: React.FC = () => {
     'appointments'
   ], []);
 
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const [shopForModules, setShopForModules] = useState<any>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  const activityParam = useMemo(() => {
+    return searchParams.get('activity') || shopForModules?.pageDesign?.bookingActivityType || 'clinic';
+  }, [searchParams, shopForModules?.pageDesign?.bookingActivityType]);
   const pathParts = useMemo(() => String(location.pathname || '').split('/').filter(Boolean), [location.pathname]);
 
   const currentBookingActivity = useMemo(() => {
@@ -90,19 +118,9 @@ const BusinessLayout: React.FC = () => {
 
   const bookingActivityDef = useMemo(() => {
     if (!currentBookingActivity) return null;
-    return getBookingActivityDefinition(getBookingActivityTypeFromPath(currentBookingActivity));
-  }, [currentBookingActivity]);
+    return getBookingActivityDefinition(activityParam);
+  }, [currentBookingActivity, activityParam]);
 
-  const isBookingSettingsTab = useMemo(() => {
-    if (!currentBookingActivity) return false;
-    if (location.pathname === `/business/${currentBookingActivity}/settings`) return true;
-    const match = location.pathname.match(new RegExp(`^/business/${currentBookingActivity}/activity/([^/]+)`));
-    if (match) {
-      const pageId = match[1];
-      return BOOKING_SETTINGS_PAGE_BUTTONS.some(btn => btn.id === pageId);
-    }
-    return false;
-  }, [currentBookingActivity, location.pathname]);
 
   const [settingsDirtyCount, setSettingsDirtyCount] = useState(0);
   const [settingsSaving, setSettingsSaving] = useState(false);
@@ -123,8 +141,7 @@ const BusinessLayout: React.FC = () => {
       return undefined;
     }
   });
-  const [shopForModules, setShopForModules] = useState<any>(null);
-  const [isMobile, setIsMobile] = useState(false);
+
   const SidebarOverlayWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
   const NotifOverlayWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
   const NotifPanelWrapper: any = prefersReducedMotion ? 'div' : MotionDiv;
@@ -208,10 +225,10 @@ const BusinessLayout: React.FC = () => {
     notifications: <Bell size={20} />,
     sales: <CreditCard size={20} />,
     reservations: <Calendar size={20} />,
-    clinicDoctors: <Users size={20} />,
-    clinicServices: <ListChecks size={20} />,
-    clinicRooms: <Store size={20} />,
-    clinicPatients: <FileText size={20} />,
+    providers: <Users size={20} />,
+    services: <ListChecks size={20} />,
+    activityRooms: <Store size={20} />,
+    activityPatients: <FileText size={20} />,
     invoice: <FileText size={20} />,
     products: <ShoppingBag size={20} />,
     customers: <Users size={20} />,
@@ -237,6 +254,8 @@ const BusinessLayout: React.FC = () => {
     if (tab !== 'builder') {
       params.delete('builderTab');
     }
+    params.delete('bookingModule');
+    params.delete('activity');
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   }, [location.search]);
@@ -245,6 +264,8 @@ const BusinessLayout: React.FC = () => {
     const params = new URLSearchParams(location.search);
     params.set('tab', 'settings');
     params.set('settingsTab', String(section || 'overview'));
+    params.delete('bookingModule');
+    params.delete('activity');
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   }, [location.search]);
@@ -253,6 +274,8 @@ const BusinessLayout: React.FC = () => {
     const params = new URLSearchParams(location.search);
     params.set('tab', 'builder');
     params.set('builderTab', String(section || 'colors'));
+    params.delete('bookingModule');
+    params.delete('activity');
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   }, [location.search]);
@@ -261,6 +284,8 @@ const BusinessLayout: React.FC = () => {
     const params = new URLSearchParams(location.search);
     params.set('tab', 'builder');
     params.delete('builderTab');
+    params.delete('bookingModule');
+    params.delete('activity');
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   }, [location.search]);
@@ -275,6 +300,8 @@ const BusinessLayout: React.FC = () => {
     } else {
       params.set('builderTab', next || 'colors');
     }
+    params.delete('bookingModule');
+    params.delete('activity');
     const qs = params.toString();
     return `/business/dashboard${qs ? `?${qs}` : ''}`;
   }, [location.search, builderTabRaw]);
@@ -296,7 +323,11 @@ const BusinessLayout: React.FC = () => {
 
   const visibleMainTabs = useMemo(
     () => getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
-      .map((t) => ({ ...t, icon: ICON_BY_TAB_ID[t.id] })),
+      .map((t) => ({
+        ...t,
+        icon: ICON_BY_TAB_ID[t.id],
+        label: getTabLabel(t, shopForModules || { category: shopCategory }),
+      })),
     [shopForModules, shopCategory],
   );
 
@@ -310,7 +341,7 @@ const BusinessLayout: React.FC = () => {
   const desktopSidebarHeaderOffsetClassRtl = isDesktopSidebarCollapsed ? 'md:right-24' : 'md:right-80';
 
   const sidebarNavSections = useMemo(() => {
-    const byId = new Map<string, any>();
+    const byId = new Map();
     for (const tab of visibleMainTabs) byId.set(String(tab.id), tab);
 
     const pick = (...ids: MerchantDashboardTabId[]) =>
@@ -323,9 +354,9 @@ const BusinessLayout: React.FC = () => {
       sections.push({ title: t('dashboard.sections.dashboard'), items: dashboardItems });
     }
 
-    const clinicItems = pick('clinicDoctors', 'clinicServices', 'clinicRooms', 'clinicPatients');
-    if (clinicItems.length > 0) {
-      sections.push({ title: 'إدارة نشاط الحجوزات', items: clinicItems });
+    const bookingItems = pick('providers', 'services', 'activityRooms', 'activityPatients');
+    if (bookingItems.length > 0) {
+      sections.push({ title: 'إدارة نشاط الحجوزات', items: bookingItems });
     }
 
     const operationsItems = pick('products', 'pos', 'reservations', 'invoice');
@@ -415,7 +446,7 @@ const BusinessLayout: React.FC = () => {
     const askPermission = () => {
       try {
         if (Notification.permission === 'default') {
-          Notification.requestPermission().catch(() => {});
+          Notification.requestPermission().catch(() => { });
         }
       } catch {
       }
@@ -465,9 +496,9 @@ const BusinessLayout: React.FC = () => {
         const subscription = existing
           ? existing
           : await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            });
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
 
         await ApiService.registerWebPushSubscription(shopId, subscription);
       } catch {
@@ -503,7 +534,7 @@ const BusinessLayout: React.FC = () => {
           } else if (rawMeta && typeof rawMeta === 'object') {
             metaObj = rawMeta;
           }
-        } catch {}
+        } catch { }
 
         const metaSource = String(metaObj?.source || '').trim().toLowerCase();
         const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
@@ -532,7 +563,7 @@ const BusinessLayout: React.FC = () => {
           } else if (rawMeta && typeof rawMeta === 'object') {
             metaObj = rawMeta;
           }
-        } catch {}
+        } catch { }
 
         const metaSource = String(metaObj?.source || '').trim().toLowerCase();
         const isPosOrigin = metaSource === 'pos' || metaSource === 'cashier';
@@ -613,7 +644,7 @@ const BusinessLayout: React.FC = () => {
                 audio.currentTime = 0;
               } catch {
               }
-              audio.play().catch(() => {});
+              audio.play().catch(() => { });
             }
           } catch {
           }
@@ -862,15 +893,13 @@ const BusinessLayout: React.FC = () => {
       </AnimatePresence>
 
       <aside
-        className={`bg-white text-slate-900 flex flex-col fixed inset-y-0 z-[310] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-slate-100 ${
-          isArabic ? 'right-0 border-l' : 'left-0 border-r'
-        } ${desktopSidebarWidthClass} ${
-          isSidebarOpen
+        className={`bg-white text-slate-900 flex flex-col fixed inset-y-0 z-[310] shadow-2xl transition-transform duration-500 ease-in-out overflow-hidden min-h-0 md:translate-x-0 border-slate-100 ${isArabic ? 'right-0 border-l' : 'left-0 border-r'
+          } ${desktopSidebarWidthClass} ${isSidebarOpen
             ? 'translate-x-0'
             : isArabic
               ? 'translate-x-full'
               : '-translate-x-full'
-        }`}
+          }`}
       >
         {!isBuilderTab ? (
           <div className={`${isDesktopSidebarCollapsed ? 'p-4' : 'p-10'} flex items-center justify-between gap-3`}>
@@ -953,223 +982,80 @@ const BusinessLayout: React.FC = () => {
         )}
 
         <nav className="flex-1 px-6 py-4 overflow-y-auto no-scrollbar min-h-0">
-          {currentBookingActivity ? (
-            isBookingSettingsTab ? (
-              <>
-                <div className="space-y-6">
-                  <div className="space-y-2">
-                    {!isDesktopSidebarCollapsed && (
-                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                        لوحة التحكم الرئيسية
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/overview`}
-                        onClick={handleNavItemClick}
-                        icon={<LayoutDashboard size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="رجوع للوحة الحجوزات"
-                        active={false}
-                      />
+          {!isSettingsTab && !isBuilderTab ? (
+            <div className="space-y-6">
+              {/* ── الأقسام الرئيسية ── */}
+              {sidebarNavSections.map((section) => (
+                <div key={section.title} className="space-y-2">
+                  {!isDesktopSidebarCollapsed && (
+                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                      {section.title}
                     </div>
-                  </div>
-
+                  )}
                   <div className="space-y-2">
-                    {!isDesktopSidebarCollapsed && (
-                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                        إعدادات الحجوزات
-                      </div>
-                    )}
-                    <div className="space-y-2">
+                    {section.items.map((t: any) => (
                       <NavItem
-                        to={`/business/${currentBookingActivity}/settings`}
+                        key={t.id}
+                        to={buildUrlForTab(t.id)}
                         onClick={handleNavItemClick}
-                        icon={<Settings size={20} />}
+                        icon={t.icon}
                         showIcon={isDesktopSidebarCollapsed}
                         hideLabel={isDesktopSidebarCollapsed}
-                        label="الإعدادات العامة"
-                        active={location.pathname === `/business/${currentBookingActivity}/settings`}
+                        label={t.label}
+                        active={isTabActive(t.id)}
                       />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-site`}
-                        onClick={handleNavItemClick}
-                        icon={<Store size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="الموقع العام للحجوزات"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-site`}
-                      />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-security`}
-                        onClick={handleNavItemClick}
-                        icon={<Shield size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="الأمان والصلاحيات"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-security`}
-                      />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-notifications`}
-                        onClick={handleNavItemClick}
-                        icon={<Bell size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="إشعارات وتأكيدات"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-notifications`}
-                      />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-payments`}
-                        onClick={handleNavItemClick}
-                        icon={<CreditCard size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="مدفوعات وتأمين"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-payments`}
-                      />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-cancellation`}
-                        onClick={handleNavItemClick}
-                        icon={<Clock size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="سياسات الإلغاء"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-cancellation`}
-                      />
-                      <NavItem
-                        to={`/business/${currentBookingActivity}/activity/booking-privacy`}
-                        onClick={handleNavItemClick}
-                        icon={<FileText size={20} />}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label="الخصوصية وبيانات العملاء"
-                        active={location.pathname === `/business/${currentBookingActivity}/activity/booking-privacy`}
-                      />
-                    </div>
+                    ))}
                   </div>
                 </div>
-              </>
-            ) : (() => {
-              const selectedActivity = getBookingActivityTypeFromParam(currentBookingActivity);
-              const modules = ACTIVITY_MODULES[selectedActivity] || [];
-              const renderSidebarIcon = (iconName: string) => {
-                const IconComp = (LucideIcons as any)[iconName] || LucideIcons.HelpCircle;
-                return <IconComp size={20} />;
-              };
-              return (
-                <>
-                  <div className="space-y-6">
-                    <div className="space-y-2">
-                      {!isDesktopSidebarCollapsed && bookingActivityDef && (
-                        <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                          {`إدارة نشاط ${bookingActivityDef.title}`}
-                        </div>
-                      )}
-                      <div className="space-y-2">
-                        <NavItem
-                          to="/business/dashboard"
-                          onClick={handleNavItemClick}
-                          icon={<LayoutDashboard size={20} />}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label={t('dashboard.backToDashboard')}
-                          active={false}
-                        />
-                        <NavItem
-                          to={`/business/${currentBookingActivity}/overview`}
-                          onClick={handleNavItemClick}
-                          icon={<CalendarCheck size={20} />}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label="نظرة عامة الحجوزات"
-                          active={location.pathname === `/business/${currentBookingActivity}/overview`}
-                        />
-                        <NavItem
-                          to={`/business/${currentBookingActivity}/bookings`}
-                          onClick={handleNavItemClick}
-                          icon={<ClipboardList size={20} />}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label="حجوزات"
-                          active={location.pathname === `/business/${currentBookingActivity}/bookings`}
-                        />
+              ))}
 
-                        {!isDesktopSidebarCollapsed && modules.length > 0 && (
-                          <div className="px-2 pt-3 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                            الأزرار الخاصة بالنشاط
-                          </div>
-                        )}
-                        {/* Dynamic modules for the selected booking activity */}
-                        {modules.map((mod) => {
-                          const targetPath = `/business/${currentBookingActivity}/${mod.route}`;
-                          const isActive = location.pathname === targetPath;
-                          return (
-                            <NavItem
-                              key={mod.id}
-                              to={targetPath}
-                              onClick={handleNavItemClick}
-                              icon={renderSidebarIcon(mod.icon)}
-                              showIcon={isDesktopSidebarCollapsed}
-                              hideLabel={isDesktopSidebarCollapsed}
-                              label={mod.label}
-                              active={isActive}
-                            />
-                          );
-                        })}
-
-                        <NavItem
-                          to={`/business/${currentBookingActivity}/design`}
-                          onClick={handleNavItemClick}
-                          icon={<Palette size={20} />}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label={t('business.clinic.layout.design')}
-                          active={location.pathname === `/business/${currentBookingActivity}/design`}
-                        />
-                        <NavItem
-                          to={`/business/${currentBookingActivity}/settings`}
-                          onClick={handleNavItemClick}
-                          icon={<Settings size={20} />}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label={t('business.clinic.layout.settings')}
-                          active={location.pathname === `/business/${currentBookingActivity}/settings`}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </>
-              );
-            })()
-          ) : !isSettingsTab && !isBuilderTab ? (
-            <>
-              <div className="space-y-6">
-                {sidebarNavSections.map((section) => (
-                  <div key={section.title} className="space-y-2">
+              {/* ── أزرار النشاط الديناميكية ── */}
+              {(searchParams.get('activity') || shopCategory === 'SERVICE' || shopForModules?.category === 'SERVICE') && (() => {
+                const actType = activityParam as BookingActivityType;
+                const modules = ACTIVITY_MODULES[actType] || [];
+                if (modules.length === 0) return null;
+                const actDef = getBookingActivityDefinition(activityParam);
+                const modIconMap: Record<string, React.ComponentType<any>> = {
+                  LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, Users,
+                  ListChecks, FileText, Calendar, Activity, Scissors, Ticket, Car,
+                  Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, Sparkles,
+                  ClipboardList, HelpCircle, Shield, Home, Package, CalendarCheck,
+                  DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon,
+                  ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper,
+                  ShieldCheck, MapPin, CalendarHeart, Map: MapIcon, Coins, UserSquare, Building, Stethoscope,
+                };
+                return (
+                  <div className="space-y-2">
                     {!isDesktopSidebarCollapsed && (
-                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                        {section.title}
+                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-emerald-500 text-right">
+                        {actDef.title}
                       </div>
                     )}
                     <div className="space-y-2">
-                      {section.items.map((t: any) => (
-                        <NavItem
-                          key={t.id}
-                          to={buildUrlForTab(t.id)}
-                          onClick={handleNavItemClick}
-                          icon={t.icon}
-                          showIcon={isDesktopSidebarCollapsed}
-                          hideLabel={isDesktopSidebarCollapsed}
-                          label={t.label}
-                          active={isTabActive(t.id)}
-                        />
-                      ))}
+                      {modules.map((mod: any) => {
+                        const IconComp = modIconMap[mod.icon] || HelpCircle;
+                        const qp = new URLSearchParams();
+                        qp.set('tab', 'reservations');
+                        qp.set('activity', activityParam);
+                        qp.set('bookingModule', mod.route);
+                        return (
+                          <NavItem
+                            key={mod.id}
+                            to={`/business/dashboard?${qp.toString()}`}
+                            onClick={handleNavItemClick}
+                            icon={<IconComp size={20} />}
+                            showIcon={isDesktopSidebarCollapsed}
+                            hideLabel={isDesktopSidebarCollapsed}
+                            label={mod.label}
+                            active={searchParams.get('bookingModule') === mod.route}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                );
+              })()}
+            </div>
           ) : isSettingsTab ? (
             <>
               <div className="space-y-6">
@@ -1183,6 +1069,9 @@ const BusinessLayout: React.FC = () => {
                     <NavItem to={buildSettingsUrl('account')} onClick={handleNavItemClick} icon={<User size={20} />} showIcon={false} label={t('dashboard.settings.account')} active={String(settingsTab) === 'account'} />
                     <NavItem to={buildSettingsUrl('security')} onClick={handleNavItemClick} icon={<Shield size={20} />} showIcon={false} label={t('dashboard.settings.security')} active={String(settingsTab) === 'security'} />
                     <NavItem to={buildSettingsUrl('store')} onClick={handleNavItemClick} icon={<Store size={20} />} showIcon={false} label={t('dashboard.settings.storeSettings')} active={String(settingsTab) === 'store'} />
+                    {(shopForModules?.category === 'SERVICE' || shopCategory === 'SERVICE') && (
+                      <NavItem to={buildSettingsUrl('booking_settings')} onClick={handleNavItemClick} icon={<Clock size={20} />} showIcon={false} label="إعدادات الحجوزات" active={String(settingsTab) === 'booking_settings'} />
+                    )}
                   </div>
                 </div>
 
@@ -1193,7 +1082,9 @@ const BusinessLayout: React.FC = () => {
                   <div className="space-y-2">
                     <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label={t('dashboard.settings.upgrade')} active={String(settingsTab) === 'modules'} />
                     <NavItem to={buildSettingsUrl('apps')} onClick={handleNavItemClick} icon={<LayoutGrid size={20} />} showIcon={false} label={t('dashboard.settings.apps')} active={String(settingsTab) === 'apps'} />
-                    <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label={t('dashboard.settings.receiptTheme')} active={String(settingsTab) === 'receipt_theme'} />
+                    {(shopForModules?.category !== 'SERVICE' && shopCategory !== 'SERVICE') && (
+                      <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label={t('dashboard.settings.receiptTheme')} active={String(settingsTab) === 'receipt_theme'} />
+                    )}
                     <NavItem to={buildSettingsUrl('payments')} onClick={handleNavItemClick} icon={<CreditCard size={20} />} showIcon={false} label={t('dashboard.settings.payments')} active={String(settingsTab) === 'payments'} />
                     <NavItem to={buildSettingsUrl('notifications')} onClick={handleNavItemClick} icon={<Bell size={20} />} showIcon={false} label={t('dashboard.settings.notifications')} active={String(settingsTab) === 'notifications'} />
                   </div>
@@ -1214,11 +1105,10 @@ const BusinessLayout: React.FC = () => {
                   active={String(builderTabRaw) === id}
                 />
                 <div
-                  className={`hidden md:block transition-all ${
-                    String(builderTabRaw) === id
-                      ? 'max-h-[70vh] pb-4 overflow-y-auto'
-                      : 'max-h-0 overflow-hidden'
-                  }`}
+                  className={`hidden md:block transition-all ${String(builderTabRaw) === id
+                    ? 'max-h-[70vh] pb-4 overflow-y-auto'
+                    : 'max-h-0 overflow-hidden'
+                    }`}
                 >
                   <div id={`builder-accordion-${id}`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
                 </div>
@@ -1238,11 +1128,10 @@ const BusinessLayout: React.FC = () => {
                   />
                 </div>
                 <div
-                  className={`hidden md:block transition-all ${
-                    String(builderTabRaw) === id
-                      ? 'max-h-[70vh] pb-4 overflow-y-auto'
-                      : 'max-h-0 overflow-hidden'
-                  }`}
+                  className={`hidden md:block transition-all ${String(builderTabRaw) === id
+                    ? 'max-h-[70vh] pb-4 overflow-y-auto'
+                    : 'max-h-0 overflow-hidden'
+                    }`}
                 >
                   <div id={`builder-accordion-${id}`} className="mx-2 rounded-2xl bg-white border border-slate-100 p-4 shadow-sm" />
                 </div>
@@ -1335,12 +1224,12 @@ const BusinessLayout: React.FC = () => {
         </nav>
 
         <div className="p-6 mt-auto border-t border-slate-100 space-y-2">
-           <button
-             onClick={handleLogout}
-             className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-black group"
-           >
-             <span>{t('common.logout')}</span>
-           </button>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl text-red-600 hover:bg-red-50 transition-all font-black group"
+          >
+            <span>{t('common.logout')}</span>
+          </button>
         </div>
       </aside>
 
@@ -1356,35 +1245,34 @@ const BusinessLayout: React.FC = () => {
               {...(prefersReducedMotion ? {} : { initial: { x: '100%' }, animate: { x: 0 }, exit: { x: '100%' } })}
               className="fixed top-0 right-0 h-full w-full max-w-sm bg-white z-[160] shadow-2xl flex flex-col p-8 text-right"
             >
-                <div className="flex items-center justify-between mb-8">
-                   <h3 className="text-2xl font-black">{t('dashboard.notifications')}</h3>
-                   <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full" aria-label={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'} title={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'}><X size={20} /></button>
-                </div>
-                <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar">
-                   {notifications.length === 0 ? (
-                     <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
-                        <Bell size={48} className="opacity-10" />
-                        <p className="font-bold">{t('dashboard.noNotifications')}</p>
-                     </div>
-                   ) : (
-                     notifications.map((n: any) => (
-                       <div key={n.id} className={`p-4 rounded-2xl border flex items-start gap-4 flex-row-reverse ${n.is_read ? 'bg-white border-slate-100' : 'bg-cyan-50 border-cyan-100 ring-1 ring-cyan-200'}`}>
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                            n.type === 'sale' ? 'bg-green-100 text-green-600' :
-                            n.type === 'reservation' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
-                          }`}>
-                             {n.type === 'sale' ? <ShoppingBag size={18} /> : n.type === 'reservation' ? <Calendar size={18} /> : <UserPlus size={18} />}
-                          </div>
-                          <div className="flex-1 text-right">
-                             <p className="font-black text-sm text-slate-900 leading-tight mb-1">{n.title}</p>
-                             <p className="text-xs text-slate-500 font-bold mb-2">{n.message}</p>
-                             <span className="text-[9px] text-slate-400 font-black flex items-center gap-1 justify-end"><Clock size={10} /> {new Date(n.created_at).toLocaleTimeString(locale)}</span>
-                          </div>
-                       </div>
-                     ))
-                   )}
-                </div>
-                <button onClick={() => setNotifOpen(false)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">{t('common.close')}</button>
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-2xl font-black">{t('dashboard.notifications')}</h3>
+                <button onClick={() => setNotifOpen(false)} className="p-2 bg-slate-100 rounded-full" aria-label={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'} title={isArabic ? 'إغلاق الإشعارات' : 'Close notifications'}><X size={20} /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto space-y-4 no-scrollbar">
+                {notifications.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-slate-300 gap-4">
+                    <Bell size={48} className="opacity-10" />
+                    <p className="font-bold">{t('dashboard.noNotifications')}</p>
+                  </div>
+                ) : (
+                  notifications.map((n: any) => (
+                    <div key={n.id} className={`p-4 rounded-2xl border flex items-start gap-4 flex-row-reverse ${n.is_read ? 'bg-white border-slate-100' : 'bg-cyan-50 border-cyan-100 ring-1 ring-cyan-200'}`}>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${n.type === 'sale' ? 'bg-green-100 text-green-600' :
+                        n.type === 'reservation' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'
+                        }`}>
+                        {n.type === 'sale' ? <ShoppingBag size={18} /> : n.type === 'reservation' ? <Calendar size={18} /> : <UserPlus size={18} />}
+                      </div>
+                      <div className="flex-1 text-right">
+                        <p className="font-black text-sm text-slate-900 leading-tight mb-1">{n.title}</p>
+                        <p className="text-xs text-slate-500 font-bold mb-2">{n.message}</p>
+                        <span className="text-[9px] text-slate-400 font-black flex items-center gap-1 justify-end"><Clock size={10} /> {new Date(n.created_at).toLocaleTimeString(locale)}</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button onClick={() => setNotifOpen(false)} className="mt-6 w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-sm">{t('common.close')}</button>
             </NotifPanelWrapper>
           </>
         )}
@@ -1392,72 +1280,71 @@ const BusinessLayout: React.FC = () => {
 
       <main className={`flex-1 overflow-x-hidden ${isArabic ? desktopSidebarOffsetClassRtl : desktopSidebarOffsetClass}`}>
         <header
-          className={`hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 z-[200] ${
-            isArabic
-              ? `md:left-0 ${desktopSidebarHeaderOffsetClassRtl}`
-              : `md:right-0 ${desktopSidebarHeaderOffsetClass}`
-          }`}
+          className={`hidden md:flex h-24 bg-white/80 backdrop-blur-xl border-b border-slate-100 items-center justify-between px-12 md:fixed md:top-0 z-[200] ${isArabic
+            ? `md:left-0 ${desktopSidebarHeaderOffsetClassRtl}`
+            : `md:right-0 ${desktopSidebarHeaderOffsetClass}`
+            }`}
         >
           <div className="flex items-center gap-8">
             <div className="flex items-center gap-4 pr-4 border-r border-slate-100 relative">
-               <div
-                 className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"
-                 onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-               >
-                 <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
-                   {effectiveUser?.name?.charAt(0)}
-                 </div>
-                 <div className="text-right">
-                   <p className="font-black text-sm text-slate-900 leading-none">{effectiveUser?.name || t('dashboard.merchantAccount')}</p>
-                   <p className="text-[10px] text-slate-400 font-bold mt-1">{t('dashboard.merchant')}</p>
-                 </div>
-                 <ChevronDown size={16} className="text-slate-400" />
-               </div>
+              <div
+                className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-2 rounded-2xl transition-all"
+                onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center font-black text-[#00E5FF] shadow-lg shadow-cyan-500/10">
+                  {effectiveUser?.name?.charAt(0)}
+                </div>
+                <div className="text-right">
+                  <p className="font-black text-sm text-slate-900 leading-none">{effectiveUser?.name || t('dashboard.merchantAccount')}</p>
+                  <p className="text-[10px] text-slate-400 font-bold mt-1">{t('dashboard.merchant')}</p>
+                </div>
+                <ChevronDown size={16} className="text-slate-400" />
+              </div>
 
-               {/* User Dropdown Menu */}
-               {isUserMenuOpen && (
-                 <>
-                   <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
-                   <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
-                     <div className="p-4 border-b border-slate-100">
-                       <p className="font-black text-slate-900">{effectiveUser?.name}</p>
-                       <p className="text-xs text-slate-400">{effectiveUser?.email}</p>
-                     </div>
-                     <div className="p-2">
-                       <button
-                         onClick={() => { navigate(buildSettingsUrl('account')); setIsUserMenuOpen(false); }}
-                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
-                       >
-                         <User size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.profile')}</span>
-                       </button>
-                       <button
-                         onClick={() => { navigate(buildSettingsUrl('store')); setIsUserMenuOpen(false); }}
-                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
-                       >
-                         <Store size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.storeSettings')}</span>
-                       </button>
-                       <button
-                         onClick={() => { navigate(buildSettingsUrl('notifications')); setIsUserMenuOpen(false); }}
-                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
-                       >
-                         <Bell size={18} className="text-slate-400" />
-                         <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.notifications')}</span>
-                       </button>
-                     </div>
-                     <div className="p-2 border-t border-slate-100">
-                       <button
-                         onClick={() => { handleLogout(); setIsUserMenuOpen(false); }}
-                         className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-right transition-all group"
-                       >
-                         <LogOut size={18} className="text-red-500" />
-                         <span className="text-sm font-bold text-red-500 group-hover:text-red-600">{t('common.logout')}</span>
-                       </button>
-                     </div>
-                   </div>
-                 </>
-               )}
+              {/* User Dropdown Menu */}
+              {isUserMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsUserMenuOpen(false)} />
+                  <div className="absolute top-full right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                    <div className="p-4 border-b border-slate-100">
+                      <p className="font-black text-slate-900">{effectiveUser?.name}</p>
+                      <p className="text-xs text-slate-400">{effectiveUser?.email}</p>
+                    </div>
+                    <div className="p-2">
+                      <button
+                        onClick={() => { navigate(buildSettingsUrl('account')); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                      >
+                        <User size={18} className="text-slate-400" />
+                        <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.profile')}</span>
+                      </button>
+                      <button
+                        onClick={() => { navigate(buildSettingsUrl('store')); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                      >
+                        <Store size={18} className="text-slate-400" />
+                        <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.storeSettings')}</span>
+                      </button>
+                      <button
+                        onClick={() => { navigate(buildSettingsUrl('notifications')); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 text-right transition-all"
+                      >
+                        <Bell size={18} className="text-slate-400" />
+                        <span className="text-sm font-bold text-slate-700">{t('dashboard.userMenu.notifications')}</span>
+                      </button>
+                    </div>
+                    <div className="p-2 border-t border-slate-100">
+                      <button
+                        onClick={() => { handleLogout(); setIsUserMenuOpen(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-50 text-right transition-all group"
+                      >
+                        <LogOut size={18} className="text-red-500" />
+                        <span className="text-sm font-bold text-red-500 group-hover:text-red-600">{t('common.logout')}</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {canUseDevActivitySwitcher && (
@@ -1479,49 +1366,41 @@ const BusinessLayout: React.FC = () => {
                   {isBookingsMenuOpen && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setIsBookingsMenuOpen(false)} />
-                      <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden text-right">
-                        <button
-                          type="button"
-                          disabled={devSwitchLoading}
-                          onClick={() => {
-                            try {
-                              localStorage.removeItem('ray_dev_activity_id');
-                            } catch {}
-                            try {
-                              localStorage.setItem('ray_dev_activity_target_tab', 'reservations');
-                            } catch {}
-                            if (shopCategory === 'SERVICE') {
-                              navigate('/business/dashboard?tab=reservations');
-                              setIsBookingsMenuOpen(false);
-                            } else {
-                              switchDevActivity('SERVICE');
-                              setIsBookingsMenuOpen(false);
-                            }
-                          }}
-                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3"
-                        >
-                          <CalendarCheck className="w-4 h-4 text-slate-500" />
-                          <span>حجوزات</span>
-                        </button>
-                        <button
-                          type="button"
-                          disabled={devSwitchLoading}
-                          onClick={() => {
-                            setIsBookingsMenuOpen(false);
-                            try {
-                              localStorage.setItem('ray_dev_activity_target_tab', 'reservations');
-                            } catch {}
-                            if (shopCategory === 'SERVICE') {
-                              navigate(`/business/${getBookingRouteFromActivityType(shopForModules?.pageDesign?.bookingActivityType)}/overview`);
-                            } else {
-                              switchDevActivity('SERVICE');
-                            }
-                          }}
-                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800 flex items-center gap-3 border-t border-slate-50"
-                        >
-                          <Users className="w-4 h-4 text-slate-500" />
-                          <span>النشاط المختار للحجوزات</span>
-                        </button>
+                      <div className="absolute top-full right-0 mt-2 w-80 bg-white rounded-[1.5rem] shadow-2xl border border-slate-100 z-50 overflow-hidden text-right">
+                        <div className="p-4 border-b border-slate-100">
+                          <div className="text-sm font-black text-slate-900">اختر نشاط الحجوزات</div>
+                          <p className="text-[10px] font-bold text-slate-400 mt-1 leading-5">اختر النشاط المناسب لعرض لوحة التحكم الخاصة به</p>
+                        </div>
+                        <div className="max-h-80 overflow-y-auto">
+                          {BOOKING_ACTIVITIES.map((activity) => {
+                            const isSelected = activityParam === activity.id;
+                            const IconComp = BOOKING_ACTIVITY_ICONS[activity.id] || Users;
+                            return (
+                              <button
+                                key={activity.id}
+                                type="button"
+                                onClick={() => {
+                                  try {
+                                    localStorage.setItem('ray_selected_booking_activity', activity.id);
+                                  } catch { }
+                                  const params = new URLSearchParams(location.search);
+                                  params.set('activity', activity.id);
+                                  if (!params.get('tab') || params.get('tab') === 'overview') params.set('tab', 'reservations');
+                                  navigate(`/business/dashboard?${params.toString()}`);
+                                  setIsBookingsMenuOpen(false);
+                                }}
+                                className={`w-full py-3 px-5 text-right transition-all flex items-center gap-3 border-b border-slate-50 last:border-0 ${isSelected ? 'bg-emerald-50' : 'hover:bg-slate-50'
+                                  }`}
+                              >
+                                <IconComp className={`w-5 h-5 shrink-0 ${isSelected ? 'text-emerald-600' : 'text-slate-400'}`} />
+                                <div className="flex-1 min-w-0">
+                                  <div className={`text-xs font-black ${isSelected ? 'text-emerald-800' : 'text-slate-800'}`}>{activity.title}</div>
+                                </div>
+                                {isSelected && <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </>
                   )}
@@ -1541,177 +1420,177 @@ const BusinessLayout: React.FC = () => {
                     <ChevronDown size={14} className="text-slate-500" />
                   </button>
 
-                {isDevActivityMenuOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
-                    <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity(undefined)}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.retail')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('RESTAURANT')}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.restaurant')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => switchDevActivity('FASHION')}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.fashion')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.setItem('ray_dev_activity_id', 'homeTextiles');
-                          } catch {
-                          }
-                          switchDevActivity('RETAIL');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.homeTextiles')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.removeItem('ray_dev_activity_id');
-                          } catch {
-                          }
-                          switchDevActivity('FOOD');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.supermarketGrocery')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.removeItem('ray_dev_activity_id');
-                          } catch {
-                          }
-                          switchDevActivity('ELECTRONICS');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.computersMobiles')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.removeItem('ray_dev_activity_id');
-                          } catch {
-                          }
-                          switchDevActivity('HEALTH');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.pharmacy')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.setItem('ray_dev_activity_id', 'furniture');
-                          } catch {
-                          }
-                          switchDevActivity('SERVICE');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.furniture')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.setItem('ray_dev_activity_id', 'homeGoods');
-                          } catch {
-                          }
-                          switchDevActivity('RETAIL');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.homeGoods')}
-                      </button>
+                  {isDevActivityMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setIsDevActivityMenuOpen(false)} />
+                      <div className="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => switchDevActivity(undefined)}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.retail')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => switchDevActivity('RESTAURANT')}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.restaurant')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => switchDevActivity('FASHION')}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.fashion')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.setItem('ray_dev_activity_id', 'homeTextiles');
+                            } catch {
+                            }
+                            switchDevActivity('RETAIL');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.homeTextiles')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('ray_dev_activity_id');
+                            } catch {
+                            }
+                            switchDevActivity('FOOD');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.supermarketGrocery')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('ray_dev_activity_id');
+                            } catch {
+                            }
+                            switchDevActivity('ELECTRONICS');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.computersMobiles')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('ray_dev_activity_id');
+                            } catch {
+                            }
+                            switchDevActivity('HEALTH');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.pharmacy')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.setItem('ray_dev_activity_id', 'furniture');
+                            } catch {
+                            }
+                            switchDevActivity('SERVICE');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.furniture')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.setItem('ray_dev_activity_id', 'homeGoods');
+                            } catch {
+                            }
+                            switchDevActivity('RETAIL');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.homeGoods')}
+                        </button>
 
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.setItem('ray_dev_activity_id', 'realEstate');
-                          } catch {
-                          }
-                          switchDevActivity('SERVICE');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.realEstate')}
-                      </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.setItem('ray_dev_activity_id', 'realEstate');
+                            } catch {
+                            }
+                            switchDevActivity('SERVICE');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.realEstate')}
+                        </button>
 
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.setItem('ray_dev_activity_id', 'carShowroom');
-                          } catch {
-                          }
-                          switchDevActivity('RETAIL');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.carShowroom')}
-                      </button>
-                      <button
-                        type="button"
-                        disabled={devSwitchLoading}
-                        onClick={() => {
-                          try {
-                            localStorage.removeItem('ray_dev_activity_id');
-                          } catch {
-                          }
-                          switchDevActivity('OTHER');
-                        }}
-                        className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
-                      >
-                        {t('dashboard.devActivity.other')}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.setItem('ray_dev_activity_id', 'carShowroom');
+                            } catch {
+                            }
+                            switchDevActivity('RETAIL');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.carShowroom')}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={devSwitchLoading}
+                          onClick={() => {
+                            try {
+                              localStorage.removeItem('ray_dev_activity_id');
+                            } catch {
+                            }
+                            switchDevActivity('OTHER');
+                          }}
+                          className="w-full py-4 px-5 text-right hover:bg-slate-50 transition-all font-black text-sm text-slate-800"
+                        >
+                          {t('dashboard.devActivity.other')}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </>
             )}
 
             <div className="relative cursor-pointer group" onClick={() => { setNotifOpen(true); handleMarkRead(); }}>
-               <motion.div
-                 animate={!prefersReducedMotion && unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}}
-                 transition={!prefersReducedMotion && unreadCount > 0 ? { repeat: Infinity, duration: 2 } : {}}
-               >
-                 <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />
-               </motion.div>
-               {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
+              <motion.div
+                animate={!prefersReducedMotion && unreadCount > 0 ? { scale: [1, 1.1, 1] } : {}}
+                transition={!prefersReducedMotion && unreadCount > 0 ? { repeat: Infinity, duration: 2 } : {}}
+              >
+                <Bell className={`w-6 h-6 transition-colors ${unreadCount > 0 ? 'text-[#00E5FF]' : 'text-slate-300 group-hover:text-slate-900'}`} />
+              </motion.div>
+              {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full border-4 border-white text-[8px] flex items-center justify-center font-black text-white">{unreadCount}</span>}
             </div>
             {hasPosTab && (
               <button
@@ -1723,16 +1602,6 @@ const BusinessLayout: React.FC = () => {
                 <Store className="w-5 h-5" />
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => navigate(buildDashboardUrl('reservations'))}
-              aria-label={isArabic ? 'حجوزات' : 'Bookings'}
-              title={isArabic ? 'حجوزات' : 'Bookings'}
-              className="flex items-center gap-1.5 px-4 py-3 bg-emerald-50 hover:bg-emerald-100 border border-emerald-100/50 rounded-2xl text-emerald-800 transition-all text-xs font-black shadow-sm"
-            >
-              <Calendar className="w-4 h-4 text-emerald-600" />
-              <span>{isArabic ? 'حجوزات' : 'Bookings'}</span>
-            </button>
             <button
               onClick={() => navigate(buildBuilderIndexUrl())}
               aria-label={t('dashboard.storeIdentity')}
@@ -1756,8 +1625,8 @@ const BusinessLayout: React.FC = () => {
             </button>
           </div>
           <div className="flex flex-col text-right">
-             <h2 className="font-black text-slate-900 text-xl leading-none">{t('dashboard.title')}</h2>
-             <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">{t('dashboard.subtitle')}</p>
+            <h2 className="font-black text-slate-900 text-xl leading-none">{t('dashboard.title')}</h2>
+            <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">{t('dashboard.subtitle')}</p>
           </div>
         </header>
 
@@ -1773,7 +1642,7 @@ const BusinessLayout: React.FC = () => {
                 </p>
               </div>
               <Link
-                to={`/business/builder/preview?page=${currentBookingActivity || 'clinic'}`}
+                to={`/business/builder/preview?page=${getBookingRouteFromActivityType(activityParam) || 'clinic'}`}
                 className="px-5 py-3 rounded-2xl font-black text-sm transition-all inline-flex items-center gap-2 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-slate-100"
               >
                 {t('business.clinic.layout.previewPage')}
@@ -1783,8 +1652,10 @@ const BusinessLayout: React.FC = () => {
           <Outlet />
         </div>
       </main>
-    </div>
+    </div >
   );
 };
 
 export default BusinessLayout;
+
+

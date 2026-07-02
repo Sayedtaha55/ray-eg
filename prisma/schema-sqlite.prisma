@@ -223,25 +223,35 @@ model Notification {
 }
 
 model Reservation {
-  id            String            @id @default(cuid())
-  itemId        String            @map("item_id")
-  itemName      String            @map("item_name")
-  itemImage     String?           @map("item_image")
-  itemPrice     Float             @map("item_price")
-  extras        Json?
-  variantSelection Json?           @map("variant_selection")
-  shopId        String            @map("shop_id")
-  shopName      String            @map("shop_name")
-  customerName  String            @map("customer_name")
-  customerPhone String            @map("customer_phone")
-  status        String            @default("pending")
-  createdAt     DateTime          @default(now()) @map("created_at")
-  updatedAt     DateTime          @updatedAt
+  id               String            @id @default(cuid())
+  itemId           String            @map("item_id")
+  itemName         String            @map("item_name")
+  itemImage        String?           @map("item_image")
+  itemPrice        Float             @map("item_price")
+  shopId           String            @map("shop_id")
+  shopName         String            @map("shop_name")
+  customerName     String            @map("customer_name")
+  customerPhone    String?           @map("customer_phone")
+  customerId       String?           @map("customer_id")
+  status           String            @default("PENDING")
+  createdAt        DateTime          @default(now()) @map("created_at")
+  expiresAt        DateTime?         @map("expires_at")
+  confirmedAt      DateTime?         @map("confirmed_at")
+  cancelledAt      DateTime?         @map("cancelled_at")
+  completedAt      DateTime?         @map("completed_at")
+  extras           Json?
+  variantSelection Json?             @map("variant_selection")
+  updatedAt        DateTime          @updatedAt @map("updated_at")
 
   // Relations
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  shop             Shop              @relation(fields: [shopId], references: [id])
+  customer         User?             @relation(fields: [customerId], references: [id])
 
+  @@index([shopId, status, createdAt])
+  @@index([customerPhone, createdAt])
+  @@index([customerId, createdAt])
+  @@index([expiresAt])
+  @@index([createdAt])
   @@map("reservations")
 }
 

@@ -4,7 +4,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { CheckCircle2, AlertTriangle, ChevronLeft } from 'lucide-react';
 import { Category } from '@/types';
 import { useTranslation } from 'react-i18next';
-import { BOOKING_ACTIVITY_DEFINITIONS, BookingActivityType, getBookingActivityDefinition } from './clinic/bookingActivityConfig';
+import { BOOKING_ACTIVITY_DEFINITIONS, BookingActivityType, getBookingActivityDefinition } from './bookings/config';
 import { BUSINESS_ACTIVITIES, BusinessActivityWithGroup, getBusinessActivityThemePatch } from '@/utils/businessActivityCatalog';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
@@ -68,7 +68,7 @@ const MerchantOnboarding: React.FC = () => {
     new Set(CORE_MODULES.map((m) => m.id)),
   );
   const [previewActiveTab, setPreviewActiveTab] = useState<ModuleId>('overview');
-  const [selectedBookingActivityId, setSelectedBookingActivityId] = useState<BookingActivityType>('clinic_hospital');
+  const [selectedBookingActivityId, setSelectedBookingActivityId] = useState<BookingActivityType>('salon_barber');
   const [enabledBookingButtons, setEnabledBookingButtons] = useState<Set<string>>(new Set());
   const [enabledActivityButtons, setEnabledActivityButtons] = useState<Set<string>>(new Set());
   const [error, setError] = useState('');

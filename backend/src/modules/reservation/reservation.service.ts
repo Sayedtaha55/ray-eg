@@ -1,8 +1,11 @@
-import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '@common/prisma/prisma.service';
 
 @Injectable()
 export class ReservationService {
+  private readonly logger = new Logger(ReservationService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {}
@@ -190,6 +193,7 @@ export class ReservationService {
     shopName: string;
     customerName: string;
     customerPhone?: string | null;
+    customerId?: string | null;
   }) {
     const itemId = String(input?.itemId || '').trim();
     const itemName = String(input?.itemName || '').trim();
@@ -199,9 +203,15 @@ export class ReservationService {
     const customerPhone = input?.customerPhone != null && String(input.customerPhone).trim() !== ''
       ? String(input.customerPhone).trim()
       : null;
+    const customerId = input?.customerId != null && String(input.customerId).trim() !== ''
+      ? String(input.customerId).trim()
+      : null;
     const itemImage = input?.itemImage ? String(input.itemImage) : null;
     const itemPrice = Number(input?.itemPrice);
     const selectedAddons = this.normalizeItemAddons((input as any)?.addons);
+    
+    // Calculate expiry time (24 hours from now)
+    const expiresAt = new Date(Date.now() + this.RESERVATION_EXPIRY_MS);
 
     if (!itemId) throw new BadRequestException('itemId مطلوب');
     if (!itemName) throw new BadRequestException('itemName مطلوب');
@@ -332,6 +342,8 @@ export class ReservationService {
         shopName,
         customerName,
         customerPhone,
+        customerId,
+        expiresAt,
         status: 'PENDING' as any,
       } as any,
     });
@@ -371,6 +383,7 @@ export class ReservationService {
     shopId: string;
     customerPhone?: string;
     customerName?: string;
+    customerEmail?: string;
     addons?: any;
     variantSelection?: any;
   }) {
@@ -425,6 +438,7 @@ export class ReservationService {
       shopName: shop.name,
       customerName,
       customerPhone,
+      customerId: user.id,
       addons: (input as any)?.addons,
       variantSelection: (input as any)?.variantSelection ?? (input as any)?.variant_selection,
     });
@@ -448,15 +462,11 @@ export class ReservationService {
     const id = String(userId || '').trim();
     if (!id) throw new BadRequestException('userId مطلوب');
 
-    const user = await this.prisma.user.findUnique({ where: { id }, select: { phone: true } });
-    const phone = String(user?.phone || '').trim();
-    if (!phone) return [];
-
-    await this.expireStaleReservations({ customerPhone: phone } as any);
+    await this.expireStaleReservations({ customerId: id } as any);
 
     const pagination = this.getPagination(paging);
     return this.prisma.reservation.findMany({
-      where: { customerPhone: phone } as any,
+      where: { customerId: id } as any,
       orderBy: { createdAt: 'desc' },
       ...(pagination ? pagination : {}),
     });
@@ -515,13 +525,74 @@ export class ReservationService {
       throw new BadRequestException('لا يمكن تعديل حالة هذا الحجز');
     }
 
+    // Prepare update data with timestamps
+    const updateData: any = { status: normalized as any };
+    
+    if (normalized === 'CONFIRMED') {
+      updateData.confirmedAt = new Date();
+    } else if (normalized === 'CANCELLED') {
+      updateData.cancelledAt = new Date();
+    } else if (normalized === 'COMPLETED') {
+      updateData.completedAt = new Date();
+    }
+
     if (normalized === 'COMPLETED' || normalized === 'CANCELLED' || normalized === 'CONFIRMED') {
       return this.prisma.reservation.update({
         where: { id: reservationId },
-        data: { status: normalized as any },
+        data: updateData,
       });
     }
 
     throw new BadRequestException('حالة غير مدعومة');
+  }
+
+  /**
+   * Cron job to expire stale reservations
+   * Runs every hour
+   */
+  @Cron('0 * * * *')
+  async autoExpireStaleReservations() {
+    try {
+      const result = await this._autoExpireStaleReservations();
+      if (result.expired > 0) {
+        this.logger.log(`[Reservation] Auto-expired ${result.expired} stale reservations`);
+      }
+    } catch (err) {
+      this.logger.warn(`[Reservation] autoExpireStaleReservations failed: ${(err as any)?.message}`);
+    }
+  }
+
+  private async _autoExpireStaleReservations() {
+    const now = new Date();
+
+    // Expire reservations based on expiresAt field
+    const expiresResult = await this.prisma.reservation.updateMany({
+      where: {
+        status: { in: ['PENDING', 'CONFIRMED'] as any },
+        expiresAt: { lte: now },
+      },
+      data: { 
+        status: 'CANCELLED' as any,
+        cancelledAt: now,
+      },
+    });
+
+    // Also expire based on createdAt (legacy - 24 hours)
+    const cutoff = new Date(now.getTime() - this.RESERVATION_EXPIRY_MS);
+    const legacyResult = await this.prisma.reservation.updateMany({
+      where: {
+        status: { in: ['PENDING', 'CONFIRMED'] as any },
+        expiresAt: null,
+        createdAt: { lte: cutoff },
+      },
+      data: { 
+        status: 'CANCELLED' as any,
+        cancelledAt: now,
+      },
+    });
+
+    return {
+      expired: (expiresResult.count || 0) + (legacyResult.count || 0),
+    };
   }
 }

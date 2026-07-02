@@ -53,14 +53,54 @@ const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
 const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
 const AbandonedCartTab = lazy(() => import('./tabs/AbandonedCartTab'));
 
-// Clinic pages
-const ClinicOverviewPage = lazy(() => import('../clinic/ClinicOverviewPage'));
-const ClinicBookingsPage = lazy(() => import('../clinic/ClinicBookingsPage'));
-const ClinicDesignPage = lazy(() => import('../clinic/ClinicDesignPage'));
-const ClinicSettingsPage = lazy(() => import('../clinic/ClinicSettingsPage'));
-const ClinicDoctorsPage = lazy(() => import('../clinic/ClinicDoctorsPage'));
-const ClinicServicesPage = lazy(() => import('../clinic/ClinicServicesPage'));
-const BookingActivityExtraPage = lazy(() => import('../clinic/BookingActivityExtraPage'));
+// Booking shared pages
+const BookingOverviewPage = lazy(() => import('../bookings/shared/BookingOverviewPage'));
+const BookingBookingsPage = lazy(() => import('../bookings/shared/BookingBookingsPage'));
+const BookingDesignPage = lazy(() => import('../bookings/shared/BookingDesignPage'));
+const BookingSettingsPage = lazy(() => import('../bookings/shared/BookingSettingsPage'));
+const BookingProvidersPage = lazy(() => import('../bookings/shared/BookingProvidersPage'));
+const BookingServicesPage = lazy(() => import('../bookings/shared/BookingServicesPage'));
+
+// Activity-specific pages
+const ActivityRoomsPage = lazy(() => import('../bookings/activity/ActivityRoomsPage'));
+const ActivityPatientsPage = lazy(() => import('../bookings/activity/ActivityPatientsPage'));
+const ActivityPackagesPage = lazy(() => import('../bookings/activity/ActivityPackagesPage'));
+const ActivitySeasonsPage = lazy(() => import('../bookings/activity/ActivitySeasonsPage'));
+const ActivityPoliciesPage = lazy(() => import('../bookings/activity/ActivityPoliciesPage'));
+const ActivityAvailabilityPage = lazy(() => import('../bookings/activity/ActivityAvailabilityPage'));
+const ActivityCapacityPage = lazy(() => import('../bookings/activity/ActivityCapacityPage'));
+const ActivityRequestsPage = lazy(() => import('../bookings/activity/ActivityRequestsPage'));
+const ActivityTicketsPage = lazy(() => import('../bookings/activity/ActivityTicketsPage'));
+const ActivitySchedulePage = lazy(() => import('../bookings/activity/ActivitySchedulePage'));
+const ActivityInsurancePage = lazy(() => import('../bookings/activity/ActivityInsurancePage'));
+const ActivityLocationsPage = lazy(() => import('../bookings/activity/ActivityLocationsPage'));
+const ActivitySubscriptionsPage = lazy(() => import('../bookings/activity/ActivitySubscriptionsPage'));
+const ActivityLevelsPage = lazy(() => import('../bookings/activity/ActivityLevelsPage'));
+const ActivityZonesPage = lazy(() => import('../bookings/activity/ActivityZonesPage'));
+const ActivityFeesPage = lazy(() => import('../bookings/activity/ActivityFeesPage'));
+
+// Activity route page map
+const ACTIVITY_ROUTE_PAGE_MAP: Record<string, React.FC<{ activityType: any }>> = {
+  'activity/rooms': ActivityRoomsPage,
+  'activity/chairs': ActivityRoomsPage,
+  'activity/patients': ActivityPatientsPage,
+  'activity/packages': ActivityPackagesPage,
+  'activity/seasons': ActivitySeasonsPage,
+  'activity/policies': ActivityPoliciesPage,
+  'activity/rules': ActivityPoliciesPage,
+  'activity/availability': ActivityAvailabilityPage,
+  'activity/capacity': ActivityCapacityPage,
+  'activity/special': ActivityRequestsPage,
+  'activity/tickets': ActivityTicketsPage,
+  'activity/schedule': ActivitySchedulePage,
+  'activity/insurance': ActivityInsurancePage,
+  'activity/locations': ActivityLocationsPage,
+  'activity/branches': ActivityLocationsPage,
+  'activity/subscriptions': ActivitySubscriptionsPage,
+  'activity/levels': ActivityLevelsPage,
+  'activity/zones': ActivityZonesPage,
+  'activity/fees': ActivityFeesPage,
+};
 
 import TabButton from './components/TabButton';
 import AiAssistantPanel from './AiAssistantPanel';
@@ -68,6 +108,7 @@ import {
   MerchantDashboardTabId,
   getMerchantDashboardTabsForShop,
   resolveMerchantDashboardTabForShop,
+  getTabLabel,
 } from './dashboardTabs';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
@@ -86,10 +127,10 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
   builder: () => import('../builder/PageBuilder'),
   settings: () => import('../../../../../components/MerchantDashboard/Settings'),
   pos: () => import('../POSSystem'),
-  clinicDoctors: () => import('../clinic/ClinicDoctorsPage'),
-  clinicServices: () => import('../clinic/ClinicServicesPage'),
-  clinicRooms: () => import('../clinic/BookingActivityExtraPage'),
-  clinicPatients: () => import('../clinic/BookingActivityExtraPage'),
+  providers: () => import('../bookings/shared/BookingProvidersPage'),
+  services: () => import('../bookings/shared/BookingServicesPage'),
+  activityRooms: () => import('../bookings/activity/ActivityRoomsPage'),
+  activityPatients: () => import('../bookings/activity/ActivityPatientsPage'),
 };
 
 type TabType = MerchantDashboardTabId;
@@ -109,10 +150,10 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   builder: <Palette size={18} />,
   settings: <Settings size={18} />,
   pos: <Smartphone size={18} />,
-  clinicDoctors: <Users size={18} />,
-  clinicServices: <ListChecks size={18} />,
-  clinicRooms: <Store size={18} />,
-  clinicPatients: <FileText size={18} />,
+  providers: <Users size={18} />,
+  services: <ListChecks size={18} />,
+  activityRooms: <Store size={18} />,
+  activityPatients: <FileText size={18} />,
 };
 
 const MerchantDashboardPage: React.FC = () => {
@@ -120,8 +161,8 @@ const MerchantDashboardPage: React.FC = () => {
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const activeTab = (tabParam as MerchantDashboardTabId) || 'overview';
   const impersonateShopId = searchParams.get('impersonateShopId');
+  const [activeTab, setActiveTab] = useState<MerchantDashboardTabId>((tabParam as MerchantDashboardTabId) || 'overview');
 
   const [currentShop, setCurrentShop] = useState<any>(null);
   const [analytics, setAnalytics] = useState<any>(null);
@@ -155,7 +196,7 @@ const MerchantDashboardPage: React.FC = () => {
   const getDateRanges = () => {
     const now = new Date();
     const salesFrom = new Date(now);
-    salesFrom.setFullYear(salesFrom.getFullYear() - 2); // Increased from 1 to 2 years
+    salesFrom.setFullYear(salesFrom.getFullYear() - 2);
     const analyticsFrom = new Date(now);
     analyticsFrom.setDate(analyticsFrom.getDate() - 30);
     return { now, salesFrom, analyticsFrom };
@@ -165,7 +206,7 @@ const MerchantDashboardPage: React.FC = () => {
   const visibleTabs = getMerchantDashboardTabsForShop(currentShop || { category: shopCategory }).map((t) => ({
     ...t,
     icon: ICON_BY_TAB_ID[t.id],
-    label: t.dynamicLabel ? t.dynamicLabel(shopCategory) : t.label,
+    label: getTabLabel(t, currentShop || { category: shopCategory }),
   }));
   const hasPosTab = visibleTabs.some((t) => t.id === 'pos');
   const effectiveTab = resolveMerchantDashboardTabForShop(activeTab, currentShop || { category: shopCategory });
@@ -177,8 +218,13 @@ const MerchantDashboardPage: React.FC = () => {
     } else {
       next.set('tab', tab);
     }
+    next.delete('bookingModule');
+    next.delete('activityRoute'); // Clear dynamic activity route when switching tabs
+    // Preserve the activity param so activity type doesn't reset on tab switch
     setSearchParams(next as any, { replace: true } as any);
-  }, [searchParams, setSearchParams]);
+    setActiveTab(tab);
+  }, [searchParams, setSearchParams, setActiveTab]);
+
 
   useEffect(() => {
     if (tabParam === 'growth') {
@@ -188,10 +234,12 @@ const MerchantDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (!currentShop) return;
-    if (effectiveTab !== activeTab) {
-      setTab(effectiveTab);
+    const urlTab = (tabParam as MerchantDashboardTabId) || 'overview';
+    // Sync activeTab state from URL (e.g., sidebar navigation updates the URL)
+    if (urlTab !== activeTab) {
+      setActiveTab(urlTab);
     }
-  }, [currentShop, effectiveTab]);
+  }, [currentShop, tabParam]);
 
   useEffect(() => {
     try {
@@ -200,7 +248,7 @@ const MerchantDashboardPage: React.FC = () => {
         localStorage.removeItem('ray_dev_activity_target_tab');
         setTab(targetTab as any);
       }
-    } catch {}
+    } catch { }
   }, [currentShop]);
 
   const savedUserForView = (() => {
@@ -277,8 +325,7 @@ const MerchantDashboardPage: React.FC = () => {
         if (effectiveShop?.id) {
           localStorage.setItem('ray_last_shop', JSON.stringify(effectiveShop));
         }
-      } catch {
-      }
+      } catch { }
 
       const status = String(effectiveShop?.status || '').toLowerCase();
       if (status !== 'approved') {
@@ -300,8 +347,7 @@ const MerchantDashboardPage: React.FC = () => {
       const isOfflineError = (() => {
         try {
           if (typeof navigator !== 'undefined' && navigator?.onLine === false) return true;
-        } catch {
-        }
+        } catch { }
         const name = String((e as any)?.name || '');
         if (name === 'TypeError') return true;
         const msg = String((e as any)?.message || '').toLowerCase();
@@ -433,7 +479,6 @@ const MerchantDashboardPage: React.FC = () => {
     ensureTabData(resolveMerchantDashboardTabForShop(tabParam, currentShop), currentShop);
   }, [currentShop, ensureTabData, tabParam]);
 
-  // Smart event-driven refresh - replaces the old timer-based auto-refresh
   useSmartRefresh({
     shopId: currentShop?.id,
     role: 'merchant',
@@ -441,8 +486,6 @@ const MerchantDashboardPage: React.FC = () => {
     enabled: !!currentShop,
     onRefresh: (scope) => {
       if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      
-      // Refresh based on scope
       if (scope === 'orders' || scope === 'all') {
         refreshShopAndActiveTab(true);
       } else if (scope === 'products') {
@@ -457,19 +500,16 @@ const MerchantDashboardPage: React.FC = () => {
 
   useEffect(() => {
     if (loading) return;
-
     const ids = new Set(
       (sales || [])
         .map((o: any) => String(o?.id || o?.orderId || o?.order_id || '').trim())
         .filter((id: string) => Boolean(id))
     );
-
     if (!hasInitializedOrdersRef.current) {
       knownOrderIdsRef.current = ids;
       hasInitializedOrdersRef.current = true;
       return;
     }
-
     let hasNew = false;
     for (const id of ids) {
       if (!knownOrderIdsRef.current.has(id)) {
@@ -477,9 +517,7 @@ const MerchantDashboardPage: React.FC = () => {
         break;
       }
     }
-
     knownOrderIdsRef.current = ids;
-
     if (!hasNew) return;
   }, [loading, sales]);
 
@@ -506,7 +544,6 @@ const MerchantDashboardPage: React.FC = () => {
   const handleUpdateProduct = async (updatedProduct: any) => {
     try {
       addToast(t('business.dashboard.productUpdated'), 'success');
-      // Refresh products list
       if (currentShop?.id) {
         const list = await (ApiService as any).getProductsForManage(currentShop.id);
         const seen = new Set<string>();
@@ -537,7 +574,7 @@ const MerchantDashboardPage: React.FC = () => {
         await ApiService.updateReservationStatus(id, status);
       }
 
-      if (status === 'completed' && reservation) {
+      if ((status === 'confirmed' || status === 'completed') && reservation) {
         await ApiService.convertReservationToCustomer({
           customerName: reservation.customerName,
           customerPhone: reservation.customerPhone,
@@ -566,27 +603,69 @@ const MerchantDashboardPage: React.FC = () => {
   );
 
   const renderContent = () => {
+    // Map activity module routes to dashboard tab IDs
+    const PROVIDER_ROUTES = new Set(['providers', 'doctors', 'experts', 'therapists', 'coaches', 'instructors', 'technicians', 'vehicles', 'units', 'venues', 'rooms', 'tables']);
+
+    const handleNavigate = (route: string) => {
+      if (route === 'overview') {
+        setTab('overview');
+      } else if (route === 'bookings') {
+        setTab('reservations');
+      } else if (route === 'design') {
+        setTab('builder');
+      } else if (route === 'settings') {
+        setTab('settings');
+      } else if (route === 'services') {
+        setTab('services');
+      } else if (route.startsWith('activity/rooms') || route.startsWith('activity/chairs')) {
+        setTab('activityRooms');
+      } else if (route.startsWith('activity/patients')) {
+        setTab('activityPatients');
+      } else if (route.startsWith('activity/')) {
+        // All other activity/* routes — store the route in the URL and render dynamically
+        const next = new URLSearchParams(searchParams);
+        next.set('tab', 'activityPage');
+        next.set('activityRoute', route);
+        setSearchParams(next as any, { replace: true } as any);
+        setActiveTab('activityRooms' as any); // Use a known tab so effectiveTab resolves
+      } else if (PROVIDER_ROUTES.has(route)) {
+        setTab('providers');
+      } else {
+        setTab('overview');
+      }
+    };
+
     return (
       <Suspense fallback={TabFallback}>
         {(() => {
+          const activityType = (searchParams.get('activity') || currentShop?.pageDesign?.bookingActivityType || 'clinic') as any;
+          // Check if there's a dynamic activity route to render
+          const activityRoute = searchParams.get('activityRoute');
+          if (activityRoute && ACTIVITY_ROUTE_PAGE_MAP[activityRoute]) {
+            const ActivityPageComponent = ACTIVITY_ROUTE_PAGE_MAP[activityRoute];
+            return <ActivityPageComponent activityType={activityType} />;
+          }
+
           if (shopCategory === 'SERVICE') {
             switch (effectiveTab) {
-              case 'reservations':
-                return <ClinicBookingsPage shop={currentShop} />;
-              case 'clinicDoctors':
-                return <ClinicDoctorsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
-              case 'clinicServices':
-                return <ClinicServicesPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
-              case 'clinicRooms':
-                return <BookingActivityExtraPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} pageId="غرف-عيادات-فرعية" />;
-              case 'clinicPatients':
-                return <BookingActivityExtraPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} pageId="ملفات-المرضى" />;
-              case 'builder':
-                return <ClinicDesignPage />;
+              case 'overview':
+                return <BookingOverviewPage activityType={activityType} shop={currentShop} bookings={reservations as any} onNavigate={handleNavigate} />;
               case 'settings':
-                return <ClinicSettingsPage shop={currentShop} onSaved={refreshShopAndActiveTab as any} />;
+                return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
+              case 'reservations':
+                return <BookingBookingsPage activityType={activityType} bookings={reservations as any} />;
+              case 'builder':
+                return <BookingDesignPage activityType={activityType} shop={currentShop} />;
+              case 'providers':
+                return <BookingProvidersPage activityType={activityType} />;
+              case 'services':
+                return <BookingServicesPage activityType={activityType} />;
+              case 'activityRooms':
+                return <ActivityRoomsPage activityType={activityType} />;
+              case 'activityPatients':
+                return <ActivityPatientsPage activityType={activityType} />;
               default:
-                return <ClinicBookingsPage shop={currentShop} />;
+                return <BookingOverviewPage activityType={activityType} shop={currentShop} bookings={reservations as any} onNavigate={handleNavigate} />;
             }
           }
 
@@ -634,8 +713,9 @@ const MerchantDashboardPage: React.FC = () => {
                   }}
                 />
               );
-            case 'reservations':
+            case 'reservations': {
               return <ReservationsTab reservations={reservations} onUpdateStatus={handleUpdateResStatus} />;
+            }
             case 'invoice':
               return <InvoiceTab shopId={currentShop.id} shop={currentShop} />;
             case 'sales':
@@ -646,6 +726,14 @@ const MerchantDashboardPage: React.FC = () => {
               return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} />;
             case 'customers':
               return <CustomersTab shopId={currentShop.id} />;
+            case 'providers':
+              return <BookingProvidersPage activityType={activityType} />;
+            case 'services':
+              return <BookingServicesPage activityType={activityType} />;
+            case 'activityRooms':
+              return <ActivityRoomsPage activityType={activityType} />;
+            case 'activityPatients':
+              return <ActivityPatientsPage activityType={activityType} />;
             case 'settings':
               return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
             default:

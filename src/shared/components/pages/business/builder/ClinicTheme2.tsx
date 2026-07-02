@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Calendar,
   CheckCircle2,
@@ -56,6 +56,63 @@ const ClinicTheme2: React.FC<Props> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [newBookingTicket, setNewBookingTicket] = useState<any>(null);
+
+  // Fetch shop bookings to calculate dynamic queue
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
+
+  const loadBookings = async () => {
+    if (!shop?.id) return;
+    setLoadingBookings(true);
+    try {
+      const list = await ApiService.getBookings(shop.id);
+      setBookings(list || []);
+    } catch (err) {
+      console.error('Error fetching bookings:', err);
+    } finally {
+      setLoadingBookings(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBookings();
+  }, [shop?.id]);
+
+  const workStart = shop?.pageDesign?.bookingWorkStart || config?.bookingWorkStart || '16:00';
+  const slotDuration = shop?.pageDesign?.bookingSlotDuration || config?.bookingSlotDuration || 30;
+
+  // Filter bookings for selected date and doctor
+  const currentQueue = useMemo(() => {
+    const docId = activeDoctor?.id || 'general';
+    return bookings.filter((b: any) => {
+      const isSameDoc = b.itemId === docId;
+      const isSameDate = b.bookingDate === bookingDate;
+      const isNotCancelled = b.status?.toLowerCase() !== 'cancelled' && b.status?.toLowerCase() !== 'rejected';
+      return isSameDoc && isSameDate && isNotCancelled;
+    });
+  }, [bookings, activeDoctor, bookingDate]);
+
+  const queueCount = currentQueue.length;
+  const nextQueueNumber = queueCount + 1;
+
+  // Calculate expected time based on queue length
+  const estimatedTime = useMemo(() => {
+    const [h, m] = workStart.split(':').map(Number);
+    const totalMinutes = h * 60 + m + queueCount * slotDuration;
+    const finalH = Math.floor(totalMinutes / 60) % 24;
+    const finalM = totalMinutes % 60;
+    return `${String(finalH).padStart(2, '0')}:${String(finalM).padStart(2, '0')}`;
+  }, [workStart, queueCount, slotDuration]);
+
+  // Format time for Arabic display
+  const formatArabicTime = (timeStr: string) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    const period = h >= 12 ? 'مساءً' : 'صباحاً';
+    const displayH = h % 12 === 0 ? 12 : h % 12;
+    const displayM = String(m).padStart(2, '0');
+    return `${displayH}:${displayM} ${period}`;
+  };
 
   const renderIcon = (name: string) => {
     switch (name) {
@@ -103,20 +160,29 @@ const ClinicTheme2: React.FC<Props> = ({
         customerPhone: patientPhone,
         customerEmail: patientEmail,
         bookingDate: bookingDate,
-        bookingTime: selectedSlot || '10:00',
+        bookingTime: estimatedTime,
         status: 'PENDING',
+        metadata: {
+          queueNumber: nextQueueNumber,
+          peopleAhead: queueCount,
+          estimatedTime: estimatedTime,
+        },
       };
 
       await ApiService.addBooking(payload);
-      setSuccessMsg('تم تأكيد طلب الحجز بنجاح! سيتم التواصل معك قريباً.');
       
-      setTimeout(() => {
-        setIsModalOpen(false);
-        setSuccessMsg('');
-        setPatientName('');
-        setPatientPhone('');
-        setPatientEmail('');
-      }, 3000);
+      setNewBookingTicket({
+        customerName: patientName,
+        doctorName: activeDoctor?.name || 'العيادة العامة',
+        doctorTitle: activeDoctor?.title || 'استشارة عامة',
+        bookingDate: bookingDate,
+        queueNumber: nextQueueNumber,
+        peopleAhead: queueCount,
+        estimatedTime: estimatedTime,
+      });
+
+      setSuccessMsg('تم تسجيل حجزك في قائمة الانتظار بنجاح!');
+      loadBookings();
     } catch (err: any) {
       setErrorMsg(err?.message || 'فشل الحجز، يرجى المحاولة مرة أخرى');
     } finally {
@@ -208,14 +274,14 @@ const ClinicTheme2: React.FC<Props> = ({
               {t('business.builder.clinicPreview.hero.badge')}
             </div>
             
-            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-950 via-fuchsia-950 to-rose-950">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-955">
               {t('business.builder.clinicPreview.hero.title')}
               <span className="block mt-2 text-transparent bg-clip-text bg-gradient-to-l from-purple-600 via-fuchsia-600 to-rose-600">
                 {t('business.builder.clinicPreview.hero.titleAccent')}
               </span>
             </h1>
             
-            <p className="text-xs sm:text-sm md:text-base font-bold text-slate-600 leading-relaxed max-w-xl">
+            <p className="text-xs sm:text-sm md:text-base font-bold text-slate-650 leading-relaxed max-w-xl">
               {t('business.builder.clinicPreview.hero.description')}
             </p>
 
@@ -272,7 +338,7 @@ const ClinicTheme2: React.FC<Props> = ({
               <h2 className="text-xl sm:text-3xl font-black text-slate-900 leading-tight">
                 {config.homeAboutTitle || 'قيم العيادة ومركزنا الطبي'}
               </h2>
-              <p className="mt-4 text-xs sm:text-sm md:text-base font-bold text-slate-600 leading-relaxed whitespace-pre-wrap">
+              <p className="mt-4 text-xs sm:text-sm md:text-base font-bold text-slate-650 leading-relaxed whitespace-pre-wrap">
                 {config.homeIntroText || 'نحن نلتزم بتقديم أفضل الخدمات الطبية المتميزة بأعلى مستويات الجودة والاحترافية ورعاية لا تضاهى لمرضانا.'}
               </p>
               
@@ -287,7 +353,7 @@ const ClinicTheme2: React.FC<Props> = ({
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <div className="p-2 rounded-xl bg-rose-50 text-rose-600 mt-0.5">
+                  <div className="p-2 rounded-xl bg-rose-50 text-rose-650 mt-0.5">
                     <CheckCircle2 size={16} />
                   </div>
                   <div>
@@ -323,7 +389,7 @@ const ClinicTheme2: React.FC<Props> = ({
                 <span className="text-purple-600 bg-purple-50 p-4.5 rounded-[1.2rem] border border-purple-100/50 shadow-inner group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">
                   {s.iconName ? renderIcon(s.iconName) : s.icon}
                 </span>
-                <span className="text-xs sm:text-sm font-black text-slate-800 mt-4 group-hover:text-purple-900 transition-colors">{s.name}</span>
+                <span className="text-xs sm:text-sm font-black text-slate-800 mt-4 group-hover:text-purple-905 transition-colors">{s.name}</span>
                 <span className="text-[10px] font-bold text-slate-400 mt-1 leading-none">احجز موعد الآن</span>
               </button>
             ))}
@@ -334,7 +400,7 @@ const ClinicTheme2: React.FC<Props> = ({
         <section className="bg-white/80 backdrop-blur-xl border border-rose-100 rounded-[2.5rem] p-6 sm:p-8 md:p-12 shadow-xl shadow-rose-100/15">
           <div className="flex items-end justify-between gap-4 flex-wrap border-b border-rose-100/80 pb-5 mb-8">
             <div>
-              <div className="text-base sm:text-lg md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-950">
+              <div className="text-base sm:text-lg md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-955">
                 {t('business.builder.clinicPreview.doctorsSection.title')}
               </div>
               <div className="mt-1 text-xs sm:text-sm font-bold text-slate-400">
@@ -355,7 +421,7 @@ const ClinicTheme2: React.FC<Props> = ({
                 <div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-sm sm:text-base font-black text-slate-900 group-hover:text-purple-950 transition-colors">
+                      <div className="text-sm sm:text-base font-black text-slate-900 group-hover:text-purple-955 transition-colors">
                         {d.name}
                       </div>
                       <div className="mt-1 text-xs font-bold text-slate-400">{d.title}</div>
@@ -413,48 +479,50 @@ const ClinicTheme2: React.FC<Props> = ({
         <section className="bg-white/70 backdrop-blur-xl border border-rose-100 rounded-[2.5rem] shadow-xl shadow-rose-100/10 p-6 sm:p-10">
           <div className="border-r-4 pr-3.5 mb-8 border-purple-400" style={{ borderColor: secondary }}>
             <h3 className="text-base sm:text-xl font-black text-slate-900">
-              {t('business.builder.clinicPreview.quickBooking.title')}
+              نظام الحجز وقائمة الانتظار
             </h3>
             <p className="text-xs sm:text-sm font-bold text-slate-400 mt-1">
-              {t('business.builder.clinicPreview.quickBooking.subtitle')}
+              سجل اسمك في قائمة كشف العيادة للحصول على دور فوري اليوم
             </p>
           </div>
 
           <div className="rounded-[2rem] bg-gradient-to-r from-purple-500/5 to-rose-500/5 border border-purple-100/40 p-6 sm:p-8">
             <div className="flex items-center justify-between gap-4 flex-wrap border-b border-rose-100/80 pb-4 mb-6">
               <div>
-                <div className="text-xs sm:text-sm font-black text-slate-900">
-                  {t('business.builder.clinicPreview.quickBooking.today')}
-                </div>
-                <div className="mt-1.5 text-[11px] font-black text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md inline-block">
-                  {t('business.builder.clinicPreview.quickBooking.nearest')}
-                </div>
+                <h4 className="text-sm sm:text-base font-black text-purple-955 text-right">قائمة الانتظار الفورية لكشف اليوم</h4>
+                <p className="text-[11px] font-bold text-slate-400 mt-1 text-right">احجز دورك الآن وسيتم توجيهك للطبيب المختص تباعاً</p>
               </div>
-              <div className="flex items-center gap-2 text-xs font-black text-slate-600 bg-white border border-rose-100 px-4 py-1.5 rounded-full shadow-sm">
-                <Calendar size={14} className="text-fuchsia-600" />
-                {t('business.builder.clinicPreview.quickBooking.appointments')}
+              <div className="flex items-center gap-2 text-xs font-black text-slate-650 bg-white border border-rose-100 px-4 py-1.5 rounded-full shadow-sm">
+                <Clock size={14} className="text-fuchsia-600" />
+                قائمة الانتظار الحالية
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-              {slots.map((s) => (
-                <button
-                  key={s.time + '_' + s.label}
-                  type="button"
-                  disabled={!s.available}
-                  onClick={() => setSelectedSlot(s.time)}
-                  className={`px-4 py-3.5 rounded-[1.2rem] border text-xs font-black transition-all duration-300 transform hover:-translate-y-0.5 active:translate-y-0 ${
-                    selectedSlot === s.time
-                      ? 'text-white border-transparent shadow-lg shadow-fuchsia-500/20'
-                      : s.available
-                        ? 'bg-white border-rose-100 text-slate-800 hover:border-purple-400 hover:shadow-md shadow-sm'
-                        : 'bg-slate-100/50 border-slate-100 text-slate-400 cursor-not-allowed opacity-50'
-                  }`}
-                  style={selectedSlot === s.time ? { background: `linear-gradient(135deg, ${primary}, ${secondary})` } : undefined}
-                >
-                  {s.label}
-                </button>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/80 border border-rose-100 p-4 rounded-2xl text-right shadow-sm">
+                <span className="block text-[10px] font-bold text-slate-500">الحالات بالانتظار:</span>
+                <span className="block mt-1 text-sm font-black text-slate-800">
+                  {loadingBookings ? 'جاري التحميل...' : `${queueCount} مرضى`}
+                </span>
+              </div>
+              <div className="bg-white/80 border border-rose-100 p-4 rounded-2xl text-right shadow-sm">
+                <span className="block text-[10px] font-bold text-slate-500">ساعة بدء الاستقبال:</span>
+                <span className="block mt-1 text-sm font-black text-slate-800">
+                  {formatArabicTime(workStart)}
+                </span>
+              </div>
+              <div className="bg-white/80 border border-rose-100 p-4 rounded-2xl text-right shadow-sm">
+                <span className="block text-[10px] font-bold text-slate-500">دورك المتوقع عند الحجز:</span>
+                <span className="block mt-1 text-sm font-black text-purple-750">
+                  رقم #{nextQueueNumber}
+                </span>
+              </div>
+              <div className="bg-gradient-to-br from-emerald-50/50 to-teal-50/30 border border-emerald-100 p-4 rounded-2xl text-right shadow-sm">
+                <span className="block text-[10px] font-bold text-emerald-600">الموعد المتوقع للكشف:</span>
+                <span className="block mt-1 text-sm font-black text-emerald-700">
+                  {formatArabicTime(estimatedTime)}
+                </span>
+              </div>
             </div>
 
             <div className="mt-8 flex items-center justify-end gap-3 flex-wrap border-t border-rose-100/50 pt-6">
@@ -467,7 +535,7 @@ const ClinicTheme2: React.FC<Props> = ({
                 className="px-7 py-3.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-xl transition-all transform hover:-translate-y-0.5 active:translate-y-0"
                 style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
               >
-                تأكيد حجز الموعد الفوري
+                انضم إلى قائمة الانتظار الآن
               </button>
               <button
                 type="button"
@@ -477,7 +545,7 @@ const ClinicTheme2: React.FC<Props> = ({
                 }}
                 className="px-6 py-3.5 rounded-xl font-black text-xs sm:text-sm bg-white border border-rose-100 text-slate-700 hover:bg-slate-50 transition-all"
               >
-                تغيير الطبيب والتخصص
+                استشارة عامة
               </button>
             </div>
           </div>
@@ -536,14 +604,14 @@ const ClinicTheme2: React.FC<Props> = ({
               borderColor: `${primary}30`,
             }}
           >
-            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-purple-300/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+            <div className="absolute top-0 right-0 w-80 h-80 bg-gradient-to-br from-purple-355/10 to-transparent rounded-full blur-2xl pointer-events-none" />
             
             <div className="relative z-10 flex items-center justify-between gap-6 flex-wrap">
               <div>
                 <div className="text-lg sm:text-2xl md:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-950">
                   {t('business.builder.clinicPreview.cta.title')}
                 </div>
-                <div className="mt-3 text-xs sm:text-sm md:text-base font-bold text-slate-600 leading-relaxed max-w-xl">
+                <div className="mt-3 text-xs sm:text-sm md:text-base font-bold text-slate-650 leading-relaxed max-w-xl">
                   {t('business.builder.clinicPreview.cta.subtitle')}
                 </div>
               </div>
@@ -593,11 +661,18 @@ const ClinicTheme2: React.FC<Props> = ({
             {/* Modal Header */}
             <div className="relative p-6 sm:p-8 border-b border-rose-100/50 flex justify-between items-center bg-gradient-to-r from-purple-50/50 to-rose-50/30 flex-row-reverse text-right z-10">
               <div>
-                <h3 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-955">تأكيد حجز الموعد</h3>
-                <p className="text-xs font-bold text-slate-400 mt-1">الرجاء إدخال بيانات المريض لإتمام عملية الحجز</p>
+                <h3 className="text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-950 to-rose-955">
+                  {newBookingTicket ? 'تذكرة الحجز المعتمدة' : 'تأكيد حجز الموعد وقائمة الانتظار'}
+                </h3>
+                <p className="text-xs font-bold text-slate-400 mt-1">
+                  {newBookingTicket ? 'تم تسجيل دورك بنجاح في قائمة الانتظار' : 'الرجاء إدخال بيانات المريض لإتمام عملية الحجز'}
+                </p>
               </div>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => {
+                  setIsModalOpen(false);
+                  setNewBookingTicket(null);
+                }}
                 className="w-10 h-10 rounded-full bg-white border border-rose-100 text-purple-400 hover:text-purple-650 flex items-center justify-center transition-all shadow-sm"
               >
                 ✕
@@ -605,124 +680,174 @@ const ClinicTheme2: React.FC<Props> = ({
             </div>
 
             {/* Modal Body */}
-            <form onSubmit={handleBookingSubmit} className="p-6 sm:p-8 space-y-5 text-right relative z-10" dir="rtl">
-              {errorMsg && (
-                <div className="bg-rose-50 text-rose-650 border border-rose-100 rounded-2xl p-4 text-xs font-black">
-                  ⚠️ {errorMsg}
-                </div>
-              )}
-
-              {successMsg && (
-                <div className="bg-emerald-50 text-emerald-700 border border-emerald-100 rounded-2xl p-4 text-xs font-black flex items-center gap-2">
-                  <CheckCircle2 size={16} className="text-emerald-600" />
-                  {successMsg}
-                </div>
-              )}
-
-              {/* Selected Doctor Info */}
-              {activeDoctor && (
-                <div className="flex items-center gap-4 bg-gradient-to-r from-purple-50/30 to-rose-50/30 border border-rose-100/60 rounded-2xl p-4 flex-row-reverse shadow-inner">
-                  <div className="w-12 h-12 rounded-[1rem] bg-white border border-rose-100 overflow-hidden shadow-sm flex items-center justify-center">
-                    {activeDoctor.photoUrl ? (
-                      <img src={activeDoctor.photoUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <User2 className="text-slate-350" size={24} />
-                    )}
+            <div className="p-6 sm:p-8 relative z-10">
+              {newBookingTicket ? (
+                <div className="border-2 border-dashed border-rose-100 rounded-2xl p-6 bg-gradient-to-r from-purple-50/20 to-rose-50/20 relative overflow-hidden text-center space-y-4" dir="rtl">
+                  <div className="absolute top-1/2 right-0 w-8 h-8 bg-white rounded-full translate-x-4 -translate-y-4 border border-rose-100" />
+                  <div className="absolute top-1/2 left-0 w-8 h-8 bg-white rounded-full -translate-x-4 -translate-y-4 border border-rose-100" />
+                  
+                  <div className="inline-flex p-3 bg-gradient-to-br from-purple-500 to-rose-500 text-white rounded-full shadow-md shadow-purple-100">
+                    <CheckCircle2 size={32} />
                   </div>
-                  <div className="flex-1">
-                    <div className="text-xs font-bold text-slate-400">الطبيب المختص</div>
-                    <div className="text-sm font-black text-purple-950 mt-0.5">{activeDoctor.name}</div>
-                    <div className="text-[10px] font-bold text-slate-400">{activeDoctor.title}</div>
+                  
+                  <h4 className="text-base font-black text-slate-800">تفاصيل دور الانتظار الخاص بك</h4>
+                  
+                  <div className="border-t border-b border-dashed border-rose-200 py-4 my-2 space-y-3">
+                    <div className="flex justify-between text-xs font-bold text-slate-500 text-right">
+                      <span>اسم المريض:</span>
+                      <span className="text-slate-900 font-black">{newBookingTicket.customerName}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 text-right">
+                      <span>العيادة / الطبيب:</span>
+                      <span className="text-slate-900 font-black">{newBookingTicket.doctorName}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 text-right">
+                      <span>تاريخ الحجز:</span>
+                      <span className="text-slate-900 font-black">{newBookingTicket.bookingDate}</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 text-right">
+                      <span>المرضى أمامك:</span>
+                      <span className="text-slate-900 font-black">{newBookingTicket.peopleAhead} مرضى</span>
+                    </div>
+                    <div className="flex justify-between text-xs font-bold text-slate-500 text-right">
+                      <span>الوقت المقدر للكشف:</span>
+                      <span className="text-slate-900 font-black">{formatArabicTime(newBookingTicket.estimatedTime)}</span>
+                    </div>
                   </div>
-                </div>
-              )}
 
-              {/* Input Fields */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">اسم المريض ثلاثي</label>
-                  <input
-                    type="text"
-                    required
-                    value={patientName}
-                    onChange={(e) => setPatientName(e.target.value)}
-                    placeholder="مثال: محمد أحمد علي"
-                    className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">رقم الهاتف النشط</label>
-                  <input
-                    type="tel"
-                    required
-                    value={patientPhone}
-                    onChange={(e) => setPatientPhone(e.target.value)}
-                    placeholder="مثال: 01000000000"
-                    className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-black text-slate-500 mb-1.5">البريد الإلكتروني (اختياري)</label>
-                  <input
-                    type="email"
-                    value={patientEmail}
-                    onChange={(e) => setPatientEmail(e.target.value)}
-                    placeholder="example@mail.com"
-                    className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-left shadow-inner text-slate-800"
-                  />
-                </div>
-
-                {/* Date & Time selection */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-black text-slate-500 mb-1.5">تاريخ الحجز</label>
-                    <input
-                      type="date"
-                      required
-                      value={bookingDate}
-                      onChange={(e) => setBookingDate(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
-                    />
+                  <div className="bg-gradient-to-r from-purple-900 via-fuchsia-900 to-rose-900 text-white rounded-xl py-4 px-6 space-y-1 shadow-lg shadow-purple-900/10">
+                    <div className="text-[10px] font-bold text-purple-200">رقم دورك في قائمة الانتظار</div>
+                    <div className="text-3xl font-black tracking-widest">{newBookingTicket.queueNumber}#</div>
                   </div>
-                  <div>
-                    <label className="block text-xs font-black text-slate-500 mb-1.5">الوقت المحدد</label>
-                    <select
-                      value={selectedSlot}
-                      onChange={(e) => setSelectedSlot(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
+                  
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      setNewBookingTicket(null);
+                      setPatientName('');
+                      setPatientPhone('');
+                      setPatientEmail('');
+                    }}
+                    className="w-full py-3.5 rounded-xl bg-white border border-rose-200 text-purple-700 hover:bg-slate-50 font-black text-xs transition-all shadow-sm"
+                  >
+                    إغلاق وتأكيد
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleBookingSubmit} className="space-y-5 text-right relative z-10" dir="rtl">
+                  {errorMsg && (
+                    <div className="bg-rose-50 text-rose-650 border border-rose-100 rounded-2xl p-4 text-xs font-black">
+                      ⚠️ {errorMsg}
+                    </div>
+                  )}
+
+                  {/* Selected Doctor Info */}
+                  {activeDoctor && (
+                    <div className="flex items-center gap-4 bg-gradient-to-r from-purple-50/30 to-rose-50/30 border border-rose-100/60 rounded-2xl p-4 flex-row-reverse shadow-inner">
+                      <div className="w-12 h-12 rounded-[1rem] bg-white border border-rose-100 overflow-hidden shadow-sm flex items-center justify-center">
+                        {activeDoctor.photoUrl ? (
+                          <img src={activeDoctor.photoUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <User2 className="text-slate-355" size={24} />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-xs font-bold text-slate-400">الطبيب المختص</div>
+                        <div className="text-sm font-black text-purple-955 mt-0.5">{activeDoctor.name}</div>
+                        <div className="text-[10px] font-bold text-slate-400">{activeDoctor.title}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Input Fields */}
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-black text-slate-500 mb-1.5">اسم المريض ثلاثي</label>
+                      <input
+                        type="text"
+                        required
+                        value={patientName}
+                        onChange={(e) => setPatientName(e.target.value)}
+                        placeholder="مثال: محمد أحمد علي"
+                        className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-500 mb-1.5">رقم الهاتف النشط</label>
+                      <input
+                        type="tel"
+                        required
+                        value={patientPhone}
+                        onChange={(e) => setPatientPhone(e.target.value)}
+                        placeholder="مثال: 01000000000"
+                        className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-black text-slate-500 mb-1.5">البريد الإلكتروني (اختياري)</label>
+                      <input
+                        type="email"
+                        value={patientEmail}
+                        onChange={(e) => setPatientEmail(e.target.value)}
+                        placeholder="example@mail.com"
+                        className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-left shadow-inner text-slate-800"
+                      />
+                    </div>
+
+                    {/* Date selection and dynamic queue stats card */}
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-black text-slate-500 mb-1.5">تاريخ الحجز</label>
+                        <input
+                          type="date"
+                          required
+                          value={bookingDate}
+                          onChange={(e) => setBookingDate(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-rose-100 bg-slate-50/30 font-bold text-xs sm:text-sm outline-none focus:bg-white focus:border-purple-400 transition-all text-right shadow-inner text-slate-800"
+                        />
+                      </div>
+                      
+                      <div className="bg-gradient-to-r from-purple-500/5 to-rose-500/5 border border-rose-100/50 rounded-2xl p-4 space-y-2">
+                        <div className="text-[11px] font-black text-slate-500 flex justify-between">
+                          <span>المرضى بقائمة الانتظار في هذا اليوم:</span>
+                          <span className="text-slate-955">{queueCount} مرضى</span>
+                        </div>
+                        <div className="text-[11px] font-black text-slate-500 flex justify-between">
+                          <span>دورك المتوقع عند التأكيد:</span>
+                          <span className="text-purple-700 font-bold">رقم #{nextQueueNumber}</span>
+                        </div>
+                        <div className="text-[11px] font-black text-slate-500 flex justify-between">
+                          <span>موعد الكشف التقريبي:</span>
+                          <span className="text-emerald-700 font-black">{formatArabicTime(estimatedTime)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Submit Buttons */}
+                  <div className="flex gap-3 pt-4 border-t border-rose-100/50 flex-row-reverse relative z-10">
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="flex-1 py-3.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
+                      style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
                     >
-                      <option value="">اختر وقت الحجز</option>
-                      {slots.map((s) => (
-                        <option key={s.time} value={s.time} disabled={!s.available}>
-                          {s.label} {!s.available ? '(غير متاح)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      {isSubmitting ? 'جاري تسجيل الحجز...' : 'تأكيد وحجز الدور بالانتظار'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-6 py-3.5 rounded-xl font-black text-xs sm:text-sm bg-white border border-rose-100 text-slate-700 hover:bg-slate-50 transition-all"
+                    >
+                      إلغاء
+                    </button>
                   </div>
-                </div>
-              </div>
-
-              {/* Submit Buttons */}
-              <div className="flex gap-3 pt-4 border-t border-rose-100/50 flex-row-reverse">
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="flex-1 py-3.5 rounded-xl font-black text-xs sm:text-sm text-white shadow-lg transition-all active:scale-95 flex items-center justify-center gap-2"
-                  style={{ background: `linear-gradient(135deg, ${primary}, ${secondary})` }}
-                >
-                  {isSubmitting ? 'جاري تأكيد الحجز...' : 'تأكيد الحجز الفوري'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-6 py-3.5 rounded-xl font-black text-xs sm:text-sm bg-white border border-rose-100 text-slate-700 hover:bg-slate-50 transition-all"
-                >
-                  إلغاء
-                </button>
-              </div>
-            </form>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

@@ -31,6 +31,7 @@ import TabRenderer from './TabRenderer';
 
 // Lazy load heavy components
 const ReservationModal = lazy(() => import('../../shared/ReservationModal'));
+const ClinicPublicPreview = lazy(() => import('../../business/builder/ClinicPublicPreview'));
 
 
 const { useParams, useNavigate, useLocation } = ReactRouterDOM as any;
@@ -807,6 +808,22 @@ const ShopProfile: React.FC = () => {
   const showProfileBanner = isVisible('profileBanner', true) && (!hasHomeLayout || activeTab === 'home');
   const shouldOverlay = !currentDesign?.headerOverlayBanner;
   const headerType = String(currentDesign?.headerType || 'centered').trim();
+
+  if (shop?.category === 'SERVICE') {
+    return (
+      <Suspense fallback={
+        <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8">
+          <Loader2 className="animate-spin text-cyan-500 w-10 h-10 animate-spin" />
+        </div>
+      }>
+        <ClinicPublicPreview
+          config={currentDesign}
+          logoDataUrl={shop.logoUrl || ''}
+          shop={shop}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <div id="shop-profile-root" className="min-h-screen relative" style={{ backgroundColor: pageBgColor }}>

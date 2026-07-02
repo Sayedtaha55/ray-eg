@@ -3,13 +3,35 @@ import { Reservation } from '@/types';
 import { ApiService } from '@/services/api.service';
 import {
   ACTIVITY_MODULES,
-  BookingActivityType,
   getBookingActivityDefinition,
   getBookingActivityScopedList,
   getBookingActivityTypeFromPath,
   getBookingRouteFromActivityType,
-} from '@/components/pages/business/clinic/bookingActivityConfig';
+  getBookingActivityTypeFromParam,
+  BookingActivityType,
+} from '@/components/pages/business/bookings/config';
 import { ReadinessItem } from './types';
+
+const matchesActivity = (b: any, currentActivity: BookingActivityType) => {
+  const rawType = b.bookingActivityType 
+    || b.activityType 
+    || b.metadata?.bookingActivityType 
+    || b.metadata?.activityType
+    || b.bookingActivityRoute
+    || b.metadata?.bookingActivityRoute;
+  
+  if (!rawType) {
+    const shop = (() => {
+      try {
+        return JSON.parse(localStorage.getItem('ray_last_shop') || '{}');
+      } catch { return {}; }
+    })();
+    const shopActivity = shop?.pageDesign?.bookingActivityType || 'clinic';
+    return currentActivity === shopActivity;
+  }
+  
+  return getBookingActivityTypeFromParam(String(rawType)) === currentActivity;
+};
 
 type UseBookingActivityLaunchArgs = {
   reservations: Reservation[];
@@ -17,10 +39,12 @@ type UseBookingActivityLaunchArgs = {
 };
 
 export const useBookingActivityLaunch = ({ reservations, navigate }: UseBookingActivityLaunchArgs) => {
+  // دالة مساعدة لبناء مسار كل نشاط (مستقل عن تبويب الحجوزات)
+  const buildActivityRoute = (bookingModule: string) => {
+    return `/business/dashboard?activity=${selectedActivityType}&bookingModule=${bookingModule}`;
+  };
   const [defaultBookingRoute, setDefaultBookingRoute] = useState('clinic');
   const [shop, setShop] = useState<any>(null);
-  const [activitySaving, setActivitySaving] = useState('');
-  const [activitySaveError, setActivitySaveError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -38,10 +62,11 @@ export const useBookingActivityLaunch = ({ reservations, navigate }: UseBookingA
   }, []);
 
   const selectedActivityType = getBookingActivityTypeFromPath(defaultBookingRoute);
+  const filteredReservations = reservations.filter(r => matchesActivity(r, selectedActivityType));
   const selectedActivityDefinition = getBookingActivityDefinition(selectedActivityType);
   const selectedActivityProviders = getBookingActivityScopedList(shop?.pageDesign, selectedActivityType, 'providers');
   const selectedActivityServices = getBookingActivityScopedList(shop?.pageDesign, selectedActivityType, 'services');
-  const selectedActivityExtraModules = (ACTIVITY_MODULES[selectedActivityType] || []).filter((module) => module.isExtra);
+  const selectedActivityExtraModules = (ACTIVITY_MODULES[selectedActivityType] || []).filter((m) => m.isExtra);
   const selectedActivityPages = shop?.pageDesign?.bookingActivityPagesByActivity?.[selectedActivityType] || {};
 
   const completedExtraPages = selectedActivityExtraModules.filter((module) => {
@@ -60,60 +85,37 @@ export const useBookingActivityLaunch = ({ reservations, navigate }: UseBookingA
       done: selectedActivityProviders.length > 0,
       value: selectedActivityProviders.length,
       actionLabel: `إضافة ${selectedActivityDefinition.primaryTabLabel}`,
-      actionPath: `/business/${defaultBookingRoute}/doctors`,
+      actionPath: buildActivityRoute(ACTIVITY_MODULES[selectedActivityType]?.[0]?.route || 'providers'),
     },
     {
       label: selectedActivityDefinition.secondaryTabLabel,
       done: selectedActivityServices.length > 0,
       value: selectedActivityServices.length,
       actionLabel: `إضافة ${selectedActivityDefinition.secondaryTabLabel}`,
-      actionPath: `/business/${defaultBookingRoute}/services`,
+      actionPath: buildActivityRoute('services'),
     },
     {
       label: 'صفحات النشاط الخاصة',
       done: completedExtraPages >= selectedActivityExtraModules.length && selectedActivityExtraModules.length > 0,
       value: `${completedExtraPages}/${selectedActivityExtraModules.length}`,
       actionLabel: firstMissingExtraModule ? `إكمال ${firstMissingExtraModule.label}` : 'مراجعة الصفحات',
-      actionPath: `/business/${defaultBookingRoute}/${firstMissingExtraModule?.route || selectedActivityExtraModules[0]?.route || 'overview'}`,
+      actionPath: buildActivityRoute(firstMissingExtraModule?.route || selectedActivityExtraModules[0]?.route || 'overview'),
     },
     {
       label: 'حجوزات مسجلة',
-      done: reservations.length > 0,
-      value: reservations.length,
+      done: filteredReservations.length > 0,
+      value: filteredReservations.length,
       actionLabel: 'إدارة الحجوزات',
-      actionPath: `/business/${defaultBookingRoute}/bookings`,
+      actionPath: `/business/dashboard?activity=${selectedActivityType}`,
     },
   ];
 
-  const readinessPercent = Math.round((readinessItems.filter((item) => item.done).length / readinessItems.length) * 100);
-
-  const handleSelectActivity = async (activityId: BookingActivityType) => {
-    const route = getBookingRouteFromActivityType(activityId);
-    setDefaultBookingRoute(route);
-    setActivitySaving(activityId);
-    setActivitySaveError('');
-    try {
-      const updatedShop = await ApiService.updateMyShop({
-        pageDesign: {
-          ...(shop?.pageDesign || {}),
-          bookingActivityType: activityId,
-          bookingDashboardScope: 'booking_only',
-        },
-      });
-      setShop(updatedShop || { ...(shop || {}), pageDesign: { ...(shop?.pageDesign || {}), bookingActivityType: activityId } });
-    } catch (err: any) {
-      setActivitySaveError(err?.message || 'تعذر حفظ النشاط المختار حالياً، سيتم فتحه فقط بدون حفظ دائم.');
-    } finally {
-      setActivitySaving('');
-      navigate(`/business/${route}/overview`);
-    }
-  };
+  const readinessPercent = Math.round(
+    (readinessItems.filter((item) => item.done).length / readinessItems.length) * 100,
+  );
 
   return {
-    activitySaveError,
-    activitySaving,
     defaultBookingRoute,
-    handleSelectActivity,
     readinessItems,
     readinessPercent,
     selectedActivityDefinition,

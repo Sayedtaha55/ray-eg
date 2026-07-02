@@ -105,6 +105,44 @@ export class BookingsController {
     @Inject(BookingsService) private readonly bookingsService: BookingsService,
   ) {}
 
+  @Post('guest')
+  async createGuest(@Body() body: CreateBookingDto) {
+    // Guest booking - no auth required
+    let startAt: Date | null = null;
+    try {
+      const datePart = String(body?.bookingDate || '').trim();
+      const timePart = String(body?.bookingTime || '').trim();
+      if (datePart) {
+        const t = timePart || '00:00';
+        const iso = `${datePart}T${t}:00`;
+        const d = new Date(iso);
+        if (!Number.isNaN(d.getTime())) startAt = d;
+      }
+    } catch {}
+
+    return this.bookingsService.createForGuest({
+      itemId: body?.itemId,
+      itemName: body?.itemName,
+      itemImage: body?.itemImage,
+      itemPrice: body?.itemPrice,
+      shopId: body?.shopId,
+      customerName: body?.customerName || 'زائر',
+      customerPhone: body?.customerPhone,
+      customerEmail: body?.customerEmail,
+      serviceId: body?.serviceId,
+      slotId: body?.slotId,
+      resourceId: body?.resourceId,
+      participants: body?.participants,
+      notes: body?.notes,
+      addons: (body as any)?.addons,
+      variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
+      metadata: (body as any)?.metadata,
+      bookingActivityType: body?.bookingActivityType || (body as any)?.metadata?.bookingActivityType,
+      bookingActivityRoute: body?.bookingActivityRoute || (body as any)?.metadata?.bookingActivityRoute,
+      startAt: startAt ?? undefined,
+    });
+  }
+
   @Post()
   @UseGuards(JwtAuthGuard)
   async create(@Body() body: CreateBookingDto, @Request() req) {
@@ -188,5 +226,68 @@ export class BookingsController {
   @Roles('merchant', 'admin')
   async updateStatus(@Param('id') id: string, @Body() body: UpdateBookingStatusDto, @Request() req) {
     return this.bookingsService.updateStatus(id, body?.status, { role: req.user?.role, shopId: req.user?.shopId });
+  }
+
+  @Get('availability/slot')
+  @UseGuards(JwtAuthGuard)
+  async checkSlotAvailability(
+    @Query('serviceId') serviceId: string,
+    @Query('date') date: string,
+    @Query('startTime') startTime: string,
+    @Query('endTime') endTime: string,
+    @Query('excludeBookingId') excludeBookingId?: string,
+  ) {
+    const d = new Date(String(date || ''));
+    if (Number.isNaN(d.getTime())) {
+      throw new BadRequestException('تاريخ غير صحيح');
+    }
+    return this.bookingsService.checkSlotAvailability(
+      String(serviceId || ''),
+      d,
+      String(startTime || ''),
+      String(endTime || ''),
+      excludeBookingId
+    );
+  }
+
+  @Get('availability/resource')
+  @UseGuards(JwtAuthGuard)
+  async checkResourceAvailability(
+    @Query('resourceId') resourceId: string,
+    @Query('date') date: string,
+    @Query('startTime') startTime: string,
+    @Query('endTime') endTime: string,
+    @Query('excludeBookingId') excludeBookingId?: string,
+  ) {
+    const d = new Date(String(date || ''));
+    if (Number.isNaN(d.getTime())) {
+      throw new BadRequestException('تاريخ غير صحيح');
+    }
+    return this.bookingsService.checkResourceAvailability(
+      String(resourceId || ''),
+      d,
+      String(startTime || ''),
+      String(endTime || ''),
+      excludeBookingId
+    );
+  }
+
+  @Get('slots/available')
+  @UseGuards(JwtAuthGuard)
+  async getAvailableSlots(
+    @Query('serviceId') serviceId: string,
+    @Query('date') date: string,
+    @Query('duration') duration?: string,
+  ) {
+    const d = new Date(String(date || ''));
+    if (Number.isNaN(d.getTime())) {
+      throw new BadRequestException('تاريخ غير صحيح');
+    }
+    const durationNum = parseOptionalNumber(duration);
+    return this.bookingsService.getAvailableSlots(
+      String(serviceId || ''),
+      d,
+      durationNum
+    );
   }
 }

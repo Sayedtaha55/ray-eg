@@ -212,8 +212,8 @@ function dispatchSmartRefresh(scope: RefreshScope, context?: { shopId?: string }
         bc.postMessage({ ts: Date.now(), scope, shopId: context?.shopId });
         bc.close();
       }
-    } catch {}
-  } catch {}
+    } catch { }
+  } catch { }
 }
 
 function shouldQueueOfflineMutation(error: any) {
@@ -1183,7 +1183,7 @@ export const ApiService = {
       try {
         const sid = String((product as any)?.shopId || (product as any)?.shop_id || '').trim();
         if (sid) window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
-      } catch {}
+      } catch { }
       dispatchRayDbUpdateDebounced('products', { shopId: product?.shopId });
       return { ...product, id: `local-${Date.now()}`, __queued: true } as any;
     }
@@ -1208,7 +1208,7 @@ export const ApiService = {
       try {
         const sid = String((data as any)?.shopId || (data as any)?.shop_id || '').trim();
         if (sid) window.dispatchEvent(new CustomEvent('ray-products-updated', { detail: { shopId: sid } }));
-      } catch {}
+      } catch { }
       dispatchRayDbUpdateDebounced('products', { shopId: data?.shopId });
       return { id: pid, ...data, __queued: true } as any;
     }
@@ -1346,7 +1346,7 @@ export const ApiService = {
     try {
       window.dispatchEvent(new Event('ray-db-update'));
       dispatchSmartRefresh('reservations');
-    } catch {}
+    } catch { }
     return result;
   },
   addBooking: async (booking: any) => {
@@ -1355,7 +1355,7 @@ export const ApiService = {
       try {
         window.dispatchEvent(new Event('ray-db-update'));
         dispatchSmartRefresh('reservations', { shopId: booking?.shopId });
-      } catch {}
+      } catch { }
       return res;
     } catch (e) {
       if (!shouldQueueOfflineMutation(e)) throw e;
@@ -1363,7 +1363,7 @@ export const ApiService = {
       try {
         window.dispatchEvent(new Event('ray-db-update'));
         dispatchSmartRefresh('reservations', { shopId: booking?.shopId });
-      } catch {}
+      } catch { }
       return {
         ...booking,
         id: `local-${Date.now()}`,
@@ -1372,6 +1372,114 @@ export const ApiService = {
         __recordType: 'booking',
       } as any;
     }
+  },
+
+  getBookingProviders: async (shopId: string, activityType: string) => {
+    try {
+      const shop = await ApiService.getShopBySlugOrId(shopId);
+      const design = shop?.pageDesign || {};
+      return Array.isArray(design.clinicDoctorsList) ? design.clinicDoctorsList : [];
+    } catch {
+      return [];
+    }
+  },
+  createBookingProvider: async (payload: { shopId: string; activityType: string; name: string; phone?: string; specialty?: string; bio?: string }) => {
+    const shopId = String(payload.shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(shopId);
+    const design = shop?.pageDesign || {};
+    const list = Array.isArray(design.clinicDoctorsList) ? [...design.clinicDoctorsList] : [];
+    const newProvider = {
+      id: `prov-${Date.now()}`,
+      name: payload.name,
+      title: payload.specialty || '',
+      phone: payload.phone || '',
+      specialty: payload.specialty || '',
+      bio: payload.bio || '',
+      createdAt: new Date().toISOString(),
+    };
+    list.push(newProvider);
+    await ApiService.updateShopDesign(shopId, { ...design, clinicDoctorsList: list });
+    return newProvider;
+  },
+  updateBookingProvider: async (shopId: string, providerId: string, data: any) => {
+    const sid = String(shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(sid);
+    const design = shop?.pageDesign || {};
+    let list = Array.isArray(design.clinicDoctorsList) ? [...design.clinicDoctorsList] : [];
+    list = list.map(p => p.id === providerId ? { ...p, ...data } : p);
+    await ApiService.updateShopDesign(sid, { ...design, clinicDoctorsList: list });
+    return { id: providerId, ...data };
+  },
+  deleteBookingProvider: async (shopId: string, providerId: string) => {
+    const sid = String(shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(sid);
+    const design = shop?.pageDesign || {};
+    let list = Array.isArray(design.clinicDoctorsList) ? [...design.clinicDoctorsList] : [];
+    list = list.filter(p => p.id !== providerId);
+    await ApiService.updateShopDesign(sid, { ...design, clinicDoctorsList: list });
+    return { id: providerId, deleted: true };
+  },
+
+  getBookingServices: async (shopId: string, activityType: string) => {
+    try {
+      const shop = await ApiService.getShopBySlugOrId(shopId);
+      const design = shop?.pageDesign || {};
+      return Array.isArray(design.clinicSpecialtiesList) ? design.clinicSpecialtiesList : [];
+    } catch {
+      return [];
+    }
+  },
+  createBookingService: async (payload: { shopId: string; activityType: string; name: string; price?: number; durationMinutes?: number; description?: string }) => {
+    const shopId = String(payload.shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(shopId);
+    const design = shop?.pageDesign || {};
+    const list = Array.isArray(design.clinicSpecialtiesList) ? [...design.clinicSpecialtiesList] : [];
+    const newService = {
+      id: `srv-${Date.now()}`,
+      name: payload.name,
+      price: payload.price ?? 0,
+      durationMinutes: payload.durationMinutes ?? 30,
+      description: payload.description || '',
+      createdAt: new Date().toISOString(),
+    };
+    list.push(newService);
+    await ApiService.updateShopDesign(shopId, { ...design, clinicSpecialtiesList: list });
+    return newService;
+  },
+  updateBookingService: async (shopId: string, serviceId: string, data: any) => {
+    const sid = String(shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(sid);
+    const design = shop?.pageDesign || {};
+    let list = Array.isArray(design.clinicSpecialtiesList) ? [...design.clinicSpecialtiesList] : [];
+    list = list.map(s => s.id === serviceId ? { ...s, ...data } : s);
+    await ApiService.updateShopDesign(sid, { ...design, clinicSpecialtiesList: list });
+    return { id: serviceId, ...data };
+  },
+  deleteBookingService: async (shopId: string, serviceId: string) => {
+    const sid = String(shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(sid);
+    const design = shop?.pageDesign || {};
+    let list = Array.isArray(design.clinicSpecialtiesList) ? [...design.clinicSpecialtiesList] : [];
+    list = list.filter(s => s.id !== serviceId);
+    await ApiService.updateShopDesign(sid, { ...design, clinicSpecialtiesList: list });
+    return { id: serviceId, deleted: true };
+  },
+
+  getBookingActivityData: async (shopId: string, listKey: string) => {
+    try {
+      const shop = await ApiService.getShopBySlugOrId(shopId);
+      const design = shop?.pageDesign || {};
+      return Array.isArray(design[listKey]) ? design[listKey] : [];
+    } catch {
+      return [];
+    }
+  },
+  saveBookingActivityData: async (shopId: string, listKey: string, data: any[]) => {
+    const sid = String(shopId || '').trim();
+    const shop = await ApiService.getShopBySlugOrId(sid);
+    const design = shop?.pageDesign || {};
+    await ApiService.updateShopDesign(sid, { ...design, [listKey]: data });
+    return data;
   },
 
 
@@ -1413,11 +1521,11 @@ export const ApiService = {
       const created = await placeOrderViaBackend(body);
       try {
         cacheDelByPrefix('orders:');
-      } catch {}
+      } catch { }
       try {
         window.dispatchEvent(new Event('orders-updated'));
         dispatchSmartRefresh('orders', { shopId: body.shopId });
-      } catch {}
+      } catch { }
       return created;
     } catch (e) {
       if (!shouldQueueOfflineMutation(e)) throw e;
@@ -1439,7 +1547,7 @@ export const ApiService = {
       try {
         window.dispatchEvent(new Event('orders-updated'));
         dispatchSmartRefresh('orders', { shopId: body.shopId });
-      } catch {}
+      } catch { }
       return {
         ...body,
         id: `local-${Date.now()}`,
@@ -1516,7 +1624,7 @@ export const ApiService = {
       const updated = await updateOrderViaBackend(id, payload);
       try {
         dispatchSmartRefresh('orders');
-      } catch {}
+      } catch { }
       return updated;
     } catch (e) {
       if (!shouldQueueOfflineMutation(e)) throw e;
@@ -1839,4 +1947,137 @@ export const ApiService = {
   rejectMapListing: async (id: string, note?: string) => {
     return await rejectMapListingViaBackend(id, note);
   },
+
+  // Booking Providers and Services (Local Storage Fallback)
+  // تدعم تصفية حسب activityType بحيث كل نشاط له بياناته المستقلة
+  getShopProviders: async (shopId: string, activityType?: string): Promise<any[]> => {
+    try {
+      const key = activityType ? `ray_providers_${activityType}` : 'ray_local_providers';
+      const raw = localStorage.getItem(key);
+      let list = raw ? JSON.parse(raw) : [];
+      if (!raw || list.length === 0) {
+        list = [];
+        localStorage.setItem(key, JSON.stringify(list));
+      }
+      return list.filter((p: any) => String(p.shopId) === String(shopId));
+    } catch {
+      return [];
+    }
+  },
+  addShopProvider: async (provider: any): Promise<any> => {
+    try {
+      const activityType = provider.activityType || 'general';
+      const key = `ray_providers_${activityType}`;
+      const raw = localStorage.getItem(key);
+      const list = raw ? JSON.parse(raw) : [];
+      const newProvider = {
+        id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        active: true,
+        ...provider
+      };
+      list.push(newProvider);
+      localStorage.setItem(key, JSON.stringify(list));
+      return newProvider;
+    } catch (e) {
+      throw e;
+    }
+  },
+  deleteShopProvider: async (id: string, activityType?: string): Promise<boolean> => {
+    try {
+      // البحث في جميع keys إذا لم نعرف النشاط
+      if (activityType) {
+        const key = `ray_providers_${activityType}`;
+        const raw = localStorage.getItem(key);
+        if (!raw) return false;
+        let list = JSON.parse(raw);
+        list = list.filter((p: any) => String(p.id) !== String(id));
+        localStorage.setItem(key, JSON.stringify(list));
+        return true;
+      }
+      // البحث في كل الأنشطة
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('ray_providers_')) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            let list = JSON.parse(raw);
+            const before = list.length;
+            list = list.filter((p: any) => String(p.id) !== String(id));
+            if (list.length < before) {
+              localStorage.setItem(key, JSON.stringify(list));
+              return true;
+            }
+          } catch { }
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
+  getShopServices: async (shopId: string, activityType?: string): Promise<any[]> => {
+    try {
+      const key = activityType ? `ray_services_${activityType}` : 'ray_local_services';
+      const raw = localStorage.getItem(key);
+      let list = raw ? JSON.parse(raw) : [];
+      if (!raw || list.length === 0) {
+        list = [];
+        localStorage.setItem(key, JSON.stringify(list));
+      }
+      return list.filter((s: any) => String(s.shopId) === String(shopId));
+    } catch {
+      return [];
+    }
+  },
+  addShopService: async (service: any): Promise<any> => {
+    try {
+      const activityType = service.activityType || 'general';
+      const key = `ray_services_${activityType}`;
+      const raw = localStorage.getItem(key);
+      const list = raw ? JSON.parse(raw) : [];
+      const newService = {
+        id: `s-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+        ...service
+      };
+      list.push(newService);
+      localStorage.setItem(key, JSON.stringify(list));
+      return newService;
+    } catch (e) {
+      throw e;
+    }
+  },
+  deleteShopService: async (id: string, activityType?: string): Promise<boolean> => {
+    try {
+      if (activityType) {
+        const key = `ray_services_${activityType}`;
+        const raw = localStorage.getItem(key);
+        if (!raw) return false;
+        let list = JSON.parse(raw);
+        list = list.filter((s: any) => String(s.id) !== String(id));
+        localStorage.setItem(key, JSON.stringify(list));
+        return true;
+      }
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('ray_services_')) {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) continue;
+            let list = JSON.parse(raw);
+            const before = list.length;
+            list = list.filter((s: any) => String(s.id) !== String(id));
+            if (list.length < before) {
+              localStorage.setItem(key, JSON.stringify(list));
+              return true;
+            }
+          } catch { }
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  },
 };
+

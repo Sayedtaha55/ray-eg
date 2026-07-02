@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Home } from 'lucide-react';
+import { Home, Users, Calendar, Sparkles, Scissors } from 'lucide-react';
 import ProfileHeader from '@/components/pages/public/ShopProfile/ProfileHeader';
 import TabRenderer from '@/components/pages/public/ShopProfile/TabRenderer';
 import ProfileFooter from '@/components/pages/public/ShopProfile/ProfileFooter';
 import ProductPagePreview from './ProductPagePreview';
 import { coerceBoolean, hexToRgba } from '@/components/pages/public/ShopProfile/utils';
 import { useTranslation } from 'react-i18next';
+import { BookingActivityDefinition } from '../bookings/config';
 
 type Props = {
   page: 'home' | 'products' | 'product' | 'gallery' | 'info';
@@ -20,6 +21,7 @@ type Props = {
   bannerPreview?: string;
   backgroundPreview?: string;
   bannerFile?: File | null;
+  bookingActivityDefinition?: BookingActivityDefinition | null;
 };
 
 const ShopProfilePreview: React.FC<Props> = ({
@@ -35,9 +37,13 @@ const ShopProfilePreview: React.FC<Props> = ({
   bannerPreview,
   backgroundPreview,
   bannerFile,
+  bookingActivityDefinition,
 }) => {
   const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>(() => {
+  // Booking activity tabs type
+  type BookingTab = 'experts' | 'services' | 'chairs' | 'packages' | 'overview';
+  
+  const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info' | BookingTab>(() => {
     if (page === 'gallery') return 'gallery';
     if (page === 'info') return 'info';
     if (page === 'products') return 'products';
@@ -46,6 +52,9 @@ const ShopProfilePreview: React.FC<Props> = ({
     }
     return 'home';
   });
+  
+  // Determine if we're in booking activity mode
+  const isBookingActivityMode = !!bookingActivityDefinition;
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -219,13 +228,75 @@ const ShopProfilePreview: React.FC<Props> = ({
               bannerReady={true}
               isBuilderPreview={true}
               searchQuery={searchQuery}
+              bookingActivityDefinition={bookingActivityDefinition}
               setSearchQuery={setSearchQuery}
             />
           </div>
 
           {/* ─── Middle Section (content + cards) ─── */}
           <div className={`transition-all duration-500 ${focusSection && focusSection !== 'middle' && focusSection !== 'shopping' ? 'opacity-30 scale-[0.98]' : (focusSection === 'middle' || focusSection === 'shopping') ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-2xl' : ''}`}>
-            {activeTab === 'home' && String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
+            {/* Booking Activity Content */}
+            {isBookingActivityMode && bookingActivityDefinition && (
+              <main className="relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10">
+                {/* Experts Tab */}
+                {activeTab === 'experts' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                      <Users size={48} className="mx-auto text-slate-300 mb-4" />
+                      <h3 className="text-xl font-black text-slate-700">{bookingActivityDefinition.primaryTabLabel}</h3>
+                      <p className="text-sm text-slate-500 mt-2">هنا سيتم عرض {bookingActivityDefinition.primaryTabLabel}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Services Tab */}
+                {activeTab === 'services' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                      <Sparkles size={48} className="mx-auto text-slate-300 mb-4" />
+                      <h3 className="text-xl font-black text-slate-700">{bookingActivityDefinition.secondaryTabLabel}</h3>
+                      <p className="text-sm text-slate-500 mt-2">هنا سيتم عرض {bookingActivityDefinition.secondaryTabLabel}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Overview Tab */}
+                {(activeTab as string) === 'overview' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                       <Scissors size={48} className="mx-auto text-slate-300 mb-4" />
+                       <h3 className="text-xl font-black text-slate-700">{bookingActivityDefinition.extraButtons[0]}</h3>
+                       <p className="text-sm text-slate-500 mt-2">هنا سيتم عرض {bookingActivityDefinition.extraButtons[0]}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Chairs/Rooms Tab */}
+                {activeTab === 'chairs' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                       <Scissors size={48} className="mx-auto text-slate-300 mb-4" />
+                       <h3 className="text-xl font-black text-slate-700">{bookingActivityDefinition.extraButtons[1]}</h3>
+                       <p className="text-sm text-slate-500 mt-2">هنا سيتم عرض {bookingActivityDefinition.extraButtons[1]}</p>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Packages Tab */}
+                {activeTab === 'packages' && (
+                  <div className="space-y-6">
+                    <div className="text-center py-12">
+                      <Sparkles size={48} className="mx-auto text-slate-300 mb-4" />
+                      <h3 className="text-xl font-black text-slate-700">{bookingActivityDefinition.extraButtons[2]}</h3>
+                      <p className="text-sm text-slate-500 mt-2">هنا سيتم عرض {bookingActivityDefinition.extraButtons[2]}</p>
+                    </div>
+                  </div>
+                )}
+              </main>
+            )}
+            
+            {/* Regular Home/Products Content */}
+            {!isBookingActivityMode && activeTab === 'home' && String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
               <main className={`relative z-10 max-w-[1400px] mx-auto px-4 md:px-8 py-6 md:py-10 space-y-8 ${
                 (shouldOverlay && !showProfileBanner) 
                   ? (headerType === 'stacked_bold' ? 'pt-[140px] md:pt-[180px]' : 'pt-[88px] md:pt-[120px]') 
@@ -247,10 +318,7 @@ const ShopProfilePreview: React.FC<Props> = ({
                     <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">🚚 {String(currentDesign.homeRightAdTitle || 'شحن مجاني لكافة المحافظات!')}</span>
                     <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">🔥 {String(currentDesign.homeLeftAdTitle || 'خصم 15% على طلبك الأول!')}</span>
                     <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">⭐ {String(currentDesign.homeStoryText || 'عروض حصرية لفترة محدودة!')}</span>
-                    {/* Duplicate */}
-                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">🚚 {String(currentDesign.homeRightAdTitle || 'شحن مجاني لكافة المحافظات!')}</span>
-                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">🔥 {String(currentDesign.homeLeftAdTitle || 'خصم 15% على طلبك الأول!')}</span>
-                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">⭐ {String(currentDesign.homeStoryText || 'عروض حصرية لفترة محدودة!')}</span>
+                    {/* Duplicate removed */}
                   </div>
                 </div>
 
@@ -343,7 +411,7 @@ const ShopProfilePreview: React.FC<Props> = ({
                   : ''
               }`}>
                 <TabRenderer
-                  activeTab={activeTab === 'home' ? 'products' : activeTab}
+                  activeTab={['products','gallery','info'].includes(activeTab as any) ? activeTab as any : 'products'}
                   shop={previewShop}
                   currentDesign={currentDesign}
                   products={products}
@@ -381,7 +449,7 @@ const ShopProfilePreview: React.FC<Props> = ({
           </div>
 
           {/* ─── Footer Section ─── */}
-          {(activeTab !== 'products' || focusSection === 'footer') && (
+          {(!isBookingActivityMode && (activeTab !== 'products' || focusSection === 'footer')) && (
             <div className={`transition-all duration-500 ${focusSection && focusSection !== 'footer' ? 'opacity-30 scale-[0.98]' : focusSection === 'footer' ? 'ring-2 ring-[#00E5FF]/40 ring-offset-2 rounded-t-2xl' : ''}`}>
               <ProfileFooter
                 shop={previewShop}

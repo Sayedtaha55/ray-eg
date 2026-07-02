@@ -3,6 +3,10 @@ import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
 import { useTranslation } from 'react-i18next';
 import { BUSINESS_ACTIVITY_GROUPS, getBusinessActivityById, getBusinessActivityThemePatch, getDefaultActivityForCategory } from '@/utils/businessActivityCatalog';
+import { BOOKING_ACTIVITIES, getBookingActivityById, getDefaultActivity, ACTIVITY_MODULES } from '@/components/pages/business/bookings/config';
+import * as ReactRouterDOM from 'react-router-dom';
+
+const { useLocation } = ReactRouterDOM as any;
 
 type ModuleId = string;
 
@@ -24,10 +28,32 @@ type Props = {
   adminShopId?: string;
 };
 
+const getInitialActivityId = (shop: any) => {
+  const isService = shop?.category === 'SERVICE';
+  if (isService) {
+    return shop?.pageDesign?.bookingActivityType || 'clinic';
+  }
+  const act = getBusinessActivityById(shop?.pageDesign?.businessActivityId) || getDefaultActivityForCategory(shop?.category);
+  return act?.id || '';
+};
+
 const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+
+  const location = useLocation ? useLocation() : { search: '', hash: '' };
+
+  const resolvedActivityId = useMemo(() => {
+    const params = new URLSearchParams(location.search || (location.hash.includes('?') ? location.hash.split('?')[1] : ''));
+    const urlActivity = params.get('activity');
+    if (urlActivity) return urlActivity;
+
+    if (shop?.category === 'SERVICE') {
+      return shop?.pageDesign?.bookingActivityType || 'clinic';
+    }
+    return shop?.pageDesign?.businessActivityId || '';
+  }, [shop, location.search, location.hash]);
 
   const MODULES: ModuleDef[] = useMemo(() => [
     { id: 'overview', label: t('modulesSettings.moduleOverview'), kind: 'core' },
@@ -65,9 +91,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     return activeEnabled;
   }, [activeEnabled]);
 
-  const initialActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
-  const [selectedActivityId, setSelectedActivityId] = useState<string>(initialActivity.id);
-  const selectedActivityBaselineRef = useRef<string>(initialActivity.id);
+  const [selectedActivityId, setSelectedActivityId] = useState<string>(() => getInitialActivityId(shop));
+  const selectedActivityBaselineRef = useRef<string>(getInitialActivityId(shop));
   const [enabledActivityButtons, setEnabledActivityButtons] = useState<Set<string>>(() => new Set(Array.isArray((shop as any)?.pageDesign?.activityEnabledButtons) ? (shop as any).pageDesign.activityEnabledButtons.map((x: any) => String(x || '').trim()).filter(Boolean) : []));
   const [pendingRequestedButtons, setPendingRequestedButtons] = useState<Set<string>>(() => new Set());
   const [enabled, setEnabled] = useState<Set<ModuleId>>(() => new Set(initialEnabled as any));
@@ -118,14 +143,27 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   }, [initialEnabled, fetchMyRequests]);
 
   useEffect(() => {
-    const nextActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
-    setSelectedActivityId(nextActivity.id);
-    selectedActivityBaselineRef.current = nextActivity.id;
+    const isService = (shop as any)?.category === 'SERVICE';
+    let activityId = '';
+    if (isService) {
+      activityId = (shop as any)?.pageDesign?.bookingActivityType || 'clinic';
+    } else {
+      const nextActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
+      activityId = nextActivity?.id || '';
+    }
+    setSelectedActivityId(activityId);
+    selectedActivityBaselineRef.current = activityId;
     const rawButtons = (shop as any)?.pageDesign?.activityEnabledButtons;
     const nextButtons = Array.isArray(rawButtons) ? rawButtons.map((x: any) => String(x || '').trim()).filter(Boolean) : [];
     setEnabledActivityButtons(new Set(nextButtons));
     activityBaselineRef.current = nextButtons.sort();
   }, [shop]);
+
+  useEffect(() => {
+    if (resolvedActivityId) {
+      setSelectedActivityId(resolvedActivityId);
+    }
+  }, [resolvedActivityId]);
 
   const toSortedArray = (s: Set<ModuleId>) => Array.from(s).map(String).sort();
 
@@ -224,7 +262,30 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     [activeEnabled, adminShopId, onSaved, toast],
   );
 
-  const selectedActivity = getBusinessActivityById(selectedActivityId) || getDefaultActivityForCategory((shop as any)?.category);
+  const selectedActivity = useMemo(() => {
+    const isService = shop?.category === 'SERVICE';
+    if (isService) {
+      const bookingAct = getBookingActivityById(selectedActivityId) || getDefaultActivity();
+      const extraMods = ACTIVITY_MODULES[bookingAct.id] || [];
+      const privateButtons = extraMods
+        .filter((mod) => mod.isExtra)
+        .map((mod) => ({ id: mod.id, label: mod.label }));
+      return {
+        id: bookingAct.id,
+        title: bookingAct.title,
+        description: bookingAct.description,
+        privateButtons,
+      };
+    } else {
+      const act = getBusinessActivityById(selectedActivityId) || getDefaultActivityForCategory(shop?.category);
+      return {
+        id: act.id,
+        title: act.title,
+        description: act.description,
+        privateButtons: act.privateButtons || [],
+      };
+    }
+  }, [shop, selectedActivityId]);
 
   const toggleActivityButton = (id: string) => {
     setEnabledActivityButtons((prev) => {
@@ -332,10 +393,16 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       const list = toSortedArray(enabled);
       const activityButtonList = Array.from(enabledActivityButtons).map(String).sort();
       const previousPageDesign = ((shop as any)?.pageDesign && typeof (shop as any).pageDesign === 'object') ? (shop as any).pageDesign : {};
+      
+      const isService = shop?.category === 'SERVICE';
       const nextPageDesign = {
         ...previousPageDesign,
         activityEnabledButtons: activityButtonList,
         activityPrivateButtonLabels: Object.fromEntries((selectedActivity.privateButtons || []).map((button) => [button.id, button.label])),
+        ...(isService 
+          ? { bookingActivityType: selectedActivity.id } 
+          : { businessActivityId: selectedActivity.id }
+        )
       };
 
       if (adminShopId) {
@@ -480,11 +547,11 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
           <>
             <p className="text-xs font-black text-slate-500 mb-4">اختر النشاط الدقيق ثم فعّل الأزرار الخاصة التي تظهر للتاجر بجانب الأزرار العامة.</p>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
-              {BUSINESS_ACTIVITY_GROUPS.map((group) => (
-                <div key={group.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                  <div className="font-black text-slate-900 text-sm mb-2">{group.title}</div>
+              {shop?.category === 'SERVICE' ? (
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 col-span-2">
+                  <div className="font-black text-slate-900 text-sm mb-2">أنشطة الحجوزات والمواعيد</div>
                   <div className="flex flex-wrap gap-2">
-                    {group.activities.map((activity) => {
+                    {BOOKING_ACTIVITIES.map((activity) => {
                       const checked = selectedActivityId === activity.id;
                       return (
                         <button
@@ -494,7 +561,9 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                             setSelectedActivityId(activity.id);
                             setEnabledActivityButtons(new Set());
                           }}
-                          className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'}`}
+                          className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${
+                            checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'
+                          }`}
                         >
                           {activity.title}
                         </button>
@@ -502,7 +571,31 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                     })}
                   </div>
                 </div>
-              ))}
+              ) : (
+                BUSINESS_ACTIVITY_GROUPS.map((group) => (
+                  <div key={group.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                    <div className="font-black text-slate-900 text-sm mb-2">{group.title}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {group.activities.map((activity) => {
+                        const checked = selectedActivityId === activity.id;
+                        return (
+                          <button
+                            key={activity.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedActivityId(activity.id);
+                              setEnabledActivityButtons(new Set());
+                            }}
+                            className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'}`}
+                          >
+                            {activity.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </>
         ) : (

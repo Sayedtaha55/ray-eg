@@ -15,7 +15,7 @@ export class CreateShopDto {
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  name: string;
+  name: string = '';
 
   @IsString()
   @MinLength(2)
@@ -24,7 +24,7 @@ export class CreateShopDto {
   description?: string;
 
   @IsEnum(ShopCategory)
-  category: ShopCategory;
+  category: ShopCategory = ShopCategory.OTHER;
 
   @IsString()
   @MaxLength(80)
@@ -34,7 +34,7 @@ export class CreateShopDto {
   @IsString()
   @MinLength(10)
   @MaxLength(20)
-  phone: string;
+  phone: string = '';
 
   @IsEmail()
   @IsOptional()
@@ -55,12 +55,12 @@ export class CreateShopDto {
   @IsString()
   @MinLength(5)
   @MaxLength(100)
-  governorate: string;
+  governorate: string = '';
 
   @IsString()
   @MinLength(2)
   @MaxLength(100)
-  city: string;
+  city: string = '';
 
   @IsString()
   @MinLength(10)

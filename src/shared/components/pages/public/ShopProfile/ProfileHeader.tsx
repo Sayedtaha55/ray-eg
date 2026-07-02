@@ -2,11 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone, Search, Check
+  Users, Share2, Menu, X, Home, Utensils, Info, ShoppingBag, Eye, Star, Clock, MapPin, Phone, Search, Check, Armchair, Sparkles
 } from 'lucide-react';
 import SmartImage from '@/components/common/ui/SmartImage';
 import NavTab from './NavTab';
 import { coerceBoolean, hexToRgba, isVideoUrl } from './utils';
+import { BookingActivityDefinition } from '../../business/bookings/config';
 
 const MotionDiv = motion.div as any;
 
@@ -30,6 +31,7 @@ interface ProfileHeaderProps {
   isBuilderPreview?: boolean;
   searchQuery?: string;
   setSearchQuery?: (q: string) => void;
+  bookingActivityDefinition?: BookingActivityDefinition | null;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -52,6 +54,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   isBuilderPreview = false,
   searchQuery = '',
   setSearchQuery,
+  bookingActivityDefinition,
 }) => {
   const { t } = useTranslation();
   const bannerRef = useRef<HTMLDivElement | null>(null);
@@ -246,60 +249,116 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     </div>
   );
 
-  const renderDesktopNav = () => (
-    <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
-      {String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
-        <>
-          {showHeaderNavHome && (
+  // Check if we're in booking activity mode
+  const isBookingActivityMode = !!bookingActivityDefinition;
+  
+  const renderDesktopNav = () => {
+    // Booking activity tabs
+    if (isBookingActivityMode && bookingActivityDefinition) {
+      const def = bookingActivityDefinition;
+      return (
+        <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
+          <NavTab 
+            active={activeTab === 'experts'} 
+            onClick={() => setActiveTab('experts')}
+            icon={<Users size={18} />}
+            label={def.primaryTabLabel}
+            design={currentDesign}
+          />
+          <NavTab 
+            active={activeTab === 'services'} 
+            onClick={() => setActiveTab('services')}
+            icon={<Sparkles size={18} />}
+            label={def.secondaryTabLabel}
+            design={currentDesign}
+          />
+          {def.extraButtons[0] && (
             <NavTab 
-              active={activeTab === 'home'} 
-              onClick={() => setActiveTab('home')}
-              icon={<Home size={18} />}
-              label={String(currentDesign.homePageName || 'الرئيسية')}
+              active={activeTab === 'overview'} 
+              onClick={() => setActiveTab('overview')}
+              icon={<Armchair size={18} />}
+              label={def.extraButtons[0]}
               design={currentDesign}
             />
           )}
-          {showHeaderNavHome && (
+          {def.extraButtons[1] && (
+            <NavTab 
+              active={activeTab === 'chairs'} 
+              onClick={() => setActiveTab('chairs')}
+              icon={<Armchair size={18} />}
+              label={def.extraButtons[1]}
+              design={currentDesign}
+            />
+          )}
+          {def.extraButtons[2] && (
+            <NavTab 
+              active={activeTab === 'packages'} 
+              onClick={() => setActiveTab('packages')}
+              icon={<ShoppingBag size={18} />}
+              label={def.extraButtons[2]}
+              design={currentDesign}
+            />
+          )}
+        </nav>
+      );
+    }
+    
+    // Regular shop tabs
+    return (
+      <nav className="hidden md:flex items-center gap-1 flex-row-reverse">
+        {String(currentDesign?.homeLayoutMode || '') === 'banner_ads_story' ? (
+          <>
+            {showHeaderNavHome && (
+              <NavTab 
+                active={activeTab === 'home'} 
+                onClick={() => setActiveTab('home')}
+                icon={<Home size={18} />}
+                label={String(currentDesign.homePageName || 'الرئيسية')}
+                design={currentDesign}
+              />
+            )}
+            {showHeaderNavHome && (
+              <NavTab 
+                active={activeTab === 'products'} 
+                onClick={() => setActiveTab('products')}
+                icon={<ShoppingBag size={18} />}
+                label={String(currentDesign.allProductsPageName || 'جميع المنتجات')}
+                design={currentDesign}
+              />
+            )}
+          </>
+        ) : (
+          showHeaderNavHome && (
             <NavTab 
               active={activeTab === 'products'} 
               onClick={() => setActiveTab('products')}
               icon={<ShoppingBag size={18} />}
-              label={String(currentDesign.allProductsPageName || 'جميع المنتجات')}
+              label={t('shopProfile.productsTab')}
               design={currentDesign}
             />
-          )}
-        </>
-      ) : (
-        showHeaderNavHome && (
+          )
+        )}
+        {showHeaderNavGallery && (
           <NavTab 
-            active={activeTab === 'products'} 
-            onClick={() => setActiveTab('products')}
-            icon={<ShoppingBag size={18} />}
-            label={t('shopProfile.productsTab')}
+            active={activeTab === 'gallery'} 
+            onClick={() => setActiveTab('gallery')}
+            icon={<Utensils size={18} />}
+            label={t('shopProfile.galleryTab')}
             design={currentDesign}
           />
-        )
-      )}
-      {showHeaderNavGallery && (
-        <NavTab 
-          active={activeTab === 'gallery'} 
-          onClick={() => setActiveTab('gallery')}
-          icon={<Utensils size={18} />}
-          label={t('shopProfile.galleryTab')}
-          design={currentDesign}
-        />
-      )}
-      {showHeaderNavInfo && (
-        <NavTab 
-          active={activeTab === 'info'} 
-          onClick={() => setActiveTab('info')}
-          icon={<Info size={18} />}
-          label={t('shopProfile.infoTab')}
-          design={currentDesign}
-        />
-      )}
-    </nav>
-  );
+        )}
+        {showHeaderNavInfo && (
+          <NavTab 
+            active={activeTab === 'info'} 
+            onClick={() => setActiveTab('info')}
+            icon={<Info size={18} />}
+            label={t('shopProfile.infoTab')}
+            design={currentDesign}
+          />
+        )}
+      </nav>
+    );
+  };
 
   const renderActions = () => (
     <div className="flex items-center gap-2 flex-row-reverse">

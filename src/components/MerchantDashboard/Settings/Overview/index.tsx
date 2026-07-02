@@ -1,8 +1,11 @@
 import React from 'react';
-import { CheckCircle, Clock, AlertTriangle, Info } from 'lucide-react';
+import { CheckCircle, Clock, AlertTriangle, Info, Settings as SettingsIcon, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from '@/components/common/LanguageToggle';
+import * as ReactRouterDOM from 'react-router-dom';
+
+const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 
 interface OverviewProps {
   shop: any;
@@ -10,7 +13,16 @@ interface OverviewProps {
 
 const Overview: React.FC<OverviewProps> = ({ shop }) => {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const locale = String(i18n.language || '').toLowerCase().startsWith('ar') ? 'ar-EG' : 'en-US';
+
+  const handleNavigateToTab = (tab: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('settingsTab', tab);
+    navigate(`/business/dashboard?${next.toString()}`);
+  };
+
   const formatEGP = (value: unknown) => {
     const n = typeof value === 'number' ? value : Number(value);
     if (!Number.isFinite(n)) return t('overviewSettings.notAvailable');
@@ -74,14 +86,28 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
       title: t('overviewSettings.updateAccountInfo'),
       description: t('overviewSettings.updateAccountInfoDesc'),
       icon: <Info className="w-5 h-5 text-blue-500" />,
-      onClick: () => {},
+      onClick: () => handleNavigateToTab('account'),
     },
     {
       title: t('overviewSettings.changePassword'),
       description: t('overviewSettings.changePasswordDesc'),
       icon: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
-      onClick: () => {},
+      onClick: () => handleNavigateToTab('security'),
     },
+    ...(shop?.category === 'SERVICE' ? [
+      {
+        title: 'إعدادات الحجوزات والجدول الزمني',
+        description: 'تحديد مواعيد العمل وفترات المواعيد وتأكيد الحجوزات',
+        icon: <SettingsIcon className="w-5 h-5 text-cyan-500" />,
+        onClick: () => handleNavigateToTab('booking_settings'),
+      },
+      {
+        title: 'طرق الدفع والفوترة',
+        description: 'ربط بوابات الدفع واستقبال الأموال إلكترونياً',
+        icon: <CreditCard className="w-5 h-5 text-emerald-500" />,
+        onClick: () => handleNavigateToTab('payments'),
+      }
+    ] : [])
   ];
 
   return (

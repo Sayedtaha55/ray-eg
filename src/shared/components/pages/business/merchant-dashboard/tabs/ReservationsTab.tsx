@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { Reservation } from '@/types';
 import { useTranslation } from 'react-i18next';
 import * as ReactRouterDOM from 'react-router-dom';
-import BookingActivitySelectorPanel from './reservations/BookingActivitySelectorPanel';
-import BookingCoreActionsPanel from './reservations/BookingCoreActionsPanel';
 import BookingLaunchReadinessPanel from './reservations/BookingLaunchReadinessPanel';
 import ReservationCardsList from './reservations/ReservationCardsList';
 import ReservationFilterTabs from './reservations/ReservationFilterTabs';
@@ -25,10 +23,6 @@ export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus 
   const [filter, setFilter] = useState<ReservationFilter>('pending');
 
   const {
-    activitySaveError,
-    activitySaving,
-    defaultBookingRoute,
-    handleSelectActivity,
     readinessItems,
     readinessPercent,
     selectedActivityDefinition,
@@ -49,16 +43,6 @@ export const ReservationsTab: React.FC<Props> = ({ reservations, onUpdateStatus 
         completedLabel={t('business.reservations.completed')}
         rejectedLabel={t('business.reservations.rejected')}
       />
-
-      <div className="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-5 mb-8" dir="rtl">
-        <BookingCoreActionsPanel bookingRoute={defaultBookingRoute} navigate={navigate} />
-        <BookingActivitySelectorPanel
-          activeRoute={defaultBookingRoute}
-          savingActivity={activitySaving}
-          saveError={activitySaveError}
-          onSelectActivity={handleSelectActivity}
-        />
-      </div>
 
       <BookingLaunchReadinessPanel
         activityTitle={selectedActivityDefinition.title}

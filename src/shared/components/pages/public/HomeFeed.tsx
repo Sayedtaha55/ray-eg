@@ -7,7 +7,6 @@ import HomeHero from './home/HomeHero';
 import StorefrontShowcaseSection from './home/StorefrontShowcaseSection';
 
 const OffersSection = lazy(() => import('./home/OffersSection'));
-const DevCategoryCarousel = lazy(() => import('./home/DevCategoryCarousel'));
 
 const HOME_CACHE_KEY = 'ray_home_feed_cache_v1';
 
@@ -60,17 +59,8 @@ const HomeFeed: React.FC = () => {
   const [shopProductsById, setShopProductsById] = useState<Record<string, Product[]>>({});
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreOffers, setHasMoreOffers] = useState(true);
-  const [currentCategoryIndex, setCurrentCategoryIndex] = useState(0);
   const navigate = useNavigate();
   const { playSound } = useCartSound();
-
-  const nextCategory = () => {
-    setCurrentCategoryIndex((prev) => prev + 1);
-  };
-
-  const prevCategory = () => {
-    setCurrentCategoryIndex((prev) => prev - 1);
-  };
 
   const offersLenRef = useRef(0);
   const loadingMoreRef = useRef(false);
@@ -328,16 +318,6 @@ const HomeFeed: React.FC = () => {
     <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-4 md:py-12 relative">
       <HomeHero prefersReducedMotion={prefersReducedMotion} />
 
-      {import.meta.env.DEV && (
-        <Suspense fallback={null}>
-          <DevCategoryCarousel
-            currentCategoryIndex={currentCategoryIndex}
-            setCurrentCategoryIndex={setCurrentCategoryIndex}
-            nextCategory={nextCategory}
-            prevCategory={prevCategory}
-          />
-        </Suspense>
-      )}
 
       <StorefrontShowcaseSection
         shops={shops}
@@ -351,7 +331,7 @@ const HomeFeed: React.FC = () => {
         }}
       />
 
-      <Suspense fallback={<div className="min-h-[55vh]" /> }>
+      <Suspense fallback={<div className="min-h-[55vh]" />}>
         <OffersSection
           loading={loading}
           loadingMore={loadingMore}

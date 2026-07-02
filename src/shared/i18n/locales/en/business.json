@@ -1491,6 +1491,17 @@
     "continuousSupport": "Continuous Support",
     "continuousSupportDesc": "Support team available around the clock"
   },
+  "booking": {
+    "design": {
+      "title": "Design",
+      "subtitle": "Customize colors and appearance of the booking page.",
+      "primaryColor": "Primary Color",
+      "headerBg": "Header Background",
+      "headerTextColor": "Header Text Color",
+      "primaryButton": "Primary Button",
+      "save": "Save Design"
+    }
+  },
   "bookings": {
     "loading": "Loading bookings...",
     "loadFailed": "Failed to load bookings.",

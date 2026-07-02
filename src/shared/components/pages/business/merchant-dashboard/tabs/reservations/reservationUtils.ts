@@ -1,6 +1,6 @@
 import { Reservation } from '@/types';
 import { ReservationFilter } from './types';
-import { getBookingActivityDefinition, getBookingActivityTypeFromParam } from '@/components/pages/business/clinic/bookingActivityConfig';
+import { getBookingActivityDefinition, getBookingActivityTypeFromParam } from '@/components/pages/business/bookings/config';
 
 export const normalizeReservationStatus = (status: any): 'pending' | 'completed' | 'expired' => {
   const s = String(status || '').trim().toUpperCase();

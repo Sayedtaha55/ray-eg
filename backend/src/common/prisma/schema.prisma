@@ -158,6 +158,16 @@ model Shop {
   bookingResources BookingResource[]
   bookings         Booking[]
 
+  activityPackages      ActivityPackage[]
+  activitySubscriptions ActivitySubscription[]
+  activityTickets       ActivityTicket[]
+  activityInsurances    ActivityInsurance[]
+  activityZones         ActivityZone[]
+  activityFees          ActivityFee[]
+  activityPolicies      ActivityPolicy[]
+  activitySeasons       ActivitySeason[]
+  activityLevels        ActivityLevel[]
+
   @@map("shops")
 }
 
@@ -916,3 +926,190 @@ model BookingPayment {
   @@index([status])
   @@map("booking_payments")
 }
+
+model ActivityPackage {
+  id              String   @id @default(cuid())
+  shopId          String   @map("shop_id")
+  name            String
+  price           Float
+  originalPrice   Float?   @map("original_price")
+  durationMinutes Int      @map("duration_minutes")
+  services        Json?    // JSON array of service names
+  isActive        Boolean  @default(true) @map("is_active")
+  activityType    String   @map("activity_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_packages")
+}
+
+model ActivitySubscription {
+  id              String   @id @default(cuid())
+  shopId          String   @map("shop_id")
+  name            String
+  price           Float
+  duration        String   // "شهر", "3 أشهر", "سنة"
+  sessionsPerWeek Int?     @map("sessions_per_week")
+  maxMembers      Int?     @map("max_members")
+  currentMembers  Int      @default(0) @map("current_members")
+  features        Json?    // JSON array
+  isActive        Boolean  @default(true) @map("is_active")
+  activityType    String   @map("activity_type")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  shop            Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_subscriptions")
+}
+
+model ActivityTicket {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  price         Float
+  totalSeats    Int      @map("total_seats")
+  soldSeats     Int      @default(0) @map("sold_seats")
+  eventName     String?  @map("event_name")
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_tickets")
+}
+
+model ActivityInsurance {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  coverage      String
+  pricePerDay   Float    @map("price_per_day")
+  deductible    Float
+  includes      Json?    // JSON array
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_insurance")
+}
+
+model ActivityZone {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  areas         Json?    // JSON array of area names
+  deliveryFee   Float    @default(0) @map("delivery_fee")
+  estimatedTime String?  @map("estimated_time")
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_zones")
+}
+
+model ActivityFee {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  amount        Float
+  type          String   // "fixed", "per_km", "percentage"
+  appliesTo     String?  @map("applies_to")
+  minOrder      Float?   @map("min_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  notes         String?
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_fees")
+}
+
+model ActivityPolicy {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  title         String
+  description   String
+  type          String   // "required", "optional", "info"
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_policies")
+}
+
+model ActivitySeason {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  startDate     DateTime @map("start_date")
+  endDate       DateTime @map("end_date")
+  priceMultiplier Float  @default(1.0) @map("price_multiplier")
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_seasons")
+}
+
+model ActivityLevel {
+  id            String   @id @default(cuid())
+  shopId        String   @map("shop_id")
+  name          String
+  description   String?
+  order         Int      @default(0)
+  isActive      Boolean  @default(true) @map("is_active")
+  activityType  String   @map("activity_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  shop          Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  
+  @@index([shopId])
+  @@index([activityType])
+  @@index([isActive])
+  @@map("activity_levels")
+}
+

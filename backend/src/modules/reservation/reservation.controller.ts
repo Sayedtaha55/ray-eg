@@ -1,8 +1,8 @@
-﻿import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Request, BadRequestException, Inject } from '@nestjs/common';
+﻿import { Controller, Post, Get, Patch, Body, Param, Query, UseGuards, Request, BadRequestException, Inject, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
-import { ReservationService } from '@modules/reservation/reservation.service';
+import { BookingsService } from '@modules/bookings/bookings.service';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
@@ -35,6 +35,22 @@ class CreateReservationDto {
   shopId!: string;
 
   @IsOptional()
+  @IsString()
+  customerId?: string;
+
+  @IsOptional()
+  @IsString()
+  customerName?: string;
+
+  @IsOptional()
+  @IsString()
+  customerPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  customerEmail?: string;
+
+  @IsOptional()
   addons?: any;
 
   @IsOptional()
@@ -49,7 +65,7 @@ class UpdateReservationStatusDto {
 @Controller('reservations')
 export class ReservationController {
   constructor(
-    @Inject(ReservationService) private readonly reservationService: ReservationService,
+    @Inject(BookingsService) private readonly bookingsService: BookingsService,
   ) {}
 
   @Post()
@@ -60,12 +76,15 @@ export class ReservationController {
       throw new BadRequestException('غير مصرح');
     }
 
-    return this.reservationService.createForUser(String(userId), {
+    return this.bookingsService.createForUser(String(userId), {
       itemId: body?.itemId,
       itemName: body?.itemName,
       itemImage: body?.itemImage,
       itemPrice: body?.itemPrice,
       shopId: body?.shopId,
+      customerName: body?.customerName,
+      customerPhone: body?.customerPhone,
+      customerEmail: body?.customerEmail,
       addons: (body as any)?.addons,
       variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
     });
@@ -78,7 +97,7 @@ export class ReservationController {
     if (!userId) {
       throw new BadRequestException('غير مصرح');
     }
-    return this.reservationService.listByUserId(userId, {
+    return this.bookingsService.listByUserId(userId, {
       page: parseOptionalNumber(page),
       limit: parseOptionalNumber(limit),
     });
@@ -97,7 +116,7 @@ export class ReservationController {
       throw new BadRequestException('shopId مطلوب');
     }
 
-    return this.reservationService.listByShop(targetShopId, {
+    return this.bookingsService.listByShop(targetShopId, {
       page: parseOptionalNumber(page),
       limit: parseOptionalNumber(limit),
     });
@@ -107,6 +126,6 @@ export class ReservationController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
   async updateStatus(@Param('id') id: string, @Body() body: UpdateReservationStatusDto, @Request() req) {
-    return this.reservationService.updateStatus(id, body?.status, { role: req.user?.role, shopId: req.user?.shopId });
+    return this.bookingsService.updateStatus(id, body?.status, { role: req.user?.role, shopId: req.user?.shopId });
   }
 }

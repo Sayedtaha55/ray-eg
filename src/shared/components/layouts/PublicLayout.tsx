@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { Search, User, Sparkles, Bell, Heart, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
+import { Search, User, Sparkles, Bell, Heart, Star, ShoppingCart, Menu, X, LogOut, Info, PlusCircle, Home, Facebook, Mail, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { RayDB } from '@/constants';
 import BrandLogo from '@/components/common/BrandLogo';
@@ -242,7 +242,7 @@ const PublicLayout: React.FC = () => {
     const askPermission = () => {
       try {
         if (Notification.permission === 'default') {
-          Notification.requestPermission().catch(() => {});
+          Notification.requestPermission().catch(() => { });
         }
       } catch {
       }
@@ -311,9 +311,9 @@ const PublicLayout: React.FC = () => {
         const subscription = existing
           ? existing
           : await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-            });
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+          });
 
         await ApiService.registerCustomerWebPushSubscription(subscription);
       } catch {
@@ -376,22 +376,20 @@ const PublicLayout: React.FC = () => {
   const showFeedbackWidget = pathname === '/' || pathname === '';
 
   return (
-    <div className="min-h-screen bg-[#FFFFFF] text-[#1A1A1A] selection:bg-[#00E5FF] selection:text-black font-sans">
-      <nav 
-        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-in-out px-3 sm:px-4 md:px-8 ${
-          scrolled ? 'py-2 md:py-4' : 'py-4 md:py-8'
-        }`}
-      >
-        <div 
-          className={`max-w-[1400px] mx-auto h-16 md:h-20 rounded-[1.2rem] md:rounded-[2.5rem] transition-all duration-700 flex items-center justify-between px-3 md:px-10 ${
-            scrolled 
-              ? 'glass shadow-[0_20px_50px_rgba(0,0,0,0.06)] border-white/50' 
-              : 'bg-white/60 border-transparent'
+    <div className="min-h-screen bg-white text-slate-900 selection:bg-[#00E5FF] selection:text-black font-sans">
+      <nav
+        className={`fixed top-0 left-0 right-0 z-[100] transition-all duration-700 ease-in-out px-3 sm:px-4 md:px-8 ${scrolled ? 'py-2 md:py-4' : 'py-4 md:py-8'
           }`}
+      >
+        <div
+          className={`h-16 md:h-20 transition-all duration-700 flex items-center justify-between px-3 sm:px-4 md:px-8 ${scrolled
+            ? 'glass shadow-[0_20px_50px_rgba(0,0,0,0.08)] border-white/50'
+            : 'bg-white/80 border-transparent'
+            }`}
         >
           <Link to="/" className="flex items-center gap-2 md:gap-4">
             <BrandLogo variant="public" iconOnly name="" />
-            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
+            <span className="text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
           </Link>
 
           <div className="hidden lg:flex flex-1 items-center gap-6 max-w-2xl mx-8">
@@ -405,7 +403,7 @@ const PublicLayout: React.FC = () => {
 
           <div className="flex items-center gap-1 sm:gap-2 md:gap-4">
             {!hideCartButton && (
-              <button 
+              <button
                 onClick={() => setCartOpen(true)}
                 className="relative hidden md:flex w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-slate-50 items-center justify-center hover:bg-slate-100 group transition-all"
               >
@@ -431,21 +429,21 @@ const PublicLayout: React.FC = () => {
               </button>
             )}
             <LanguageToggle variant="public" className="hidden sm:flex" />
-            <div className="h-6 md:h-8 w-[1px] bg-slate-100 mx-1 md:mx-2 hidden sm:block" />
+            <div className="h-6 md:h-8 w-[1px] bg-slate-200 mx-1 md:mx-2 hidden sm:block" />
             {user ? (
-              <Link to={user.role === 'merchant' ? '/business/dashboard' : '/profile'} className="flex items-center gap-2 md:gap-3 bg-slate-900 text-white pl-2.5 md:pl-3 pr-1 py-1 rounded-full hover:bg-black transition-all max-w-[9.5rem] sm:max-w-none">
+              <Link to={user.role === 'merchant' ? '/business/dashboard' : '/profile'} className="flex items-center gap-2 md:gap-3 bg-gradient-to-r from-slate-900 to-slate-800 text-white pl-2.5 md:pl-3 pr-1 py-1 rounded-full hover:from-slate-800 hover:to-slate-700 transition-all shadow-lg max-w-[9.5rem] sm:max-w-none">
                 <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-[#00E5FF] text-black font-black flex items-center justify-center text-[10px] md:text-xs">
                   {user.name?.charAt(0) || 'U'}
                 </div>
                 <span className="text-[10px] md:text-xs font-black hidden md:block truncate">{user.role === 'merchant' ? t('public.dashboard') : user.name}</span>
               </Link>
             ) : (
-              <Link to="/login" className="bg-[#1A1A1A] text-white px-4 md:px-8 py-2 md:py-3.5 rounded-lg md:rounded-2xl font-black text-[10px] md:text-sm hover:bg-[#00E5FF] hover:text-black transition-all">
+              <Link to="/login" className="bg-gradient-to-r from-[#1A1A1A] to-slate-900 text-white px-4 md:px-8 py-2 md:py-3.5 rounded-lg md:rounded-2xl font-black text-[10px] md:text-sm hover:from-[#00E5FF] hover:to-cyan-600 hover:text-black transition-all shadow-lg">
                 {t('common.login')}
               </Link>
             )}
 
-            <button 
+            <button
               onClick={() => setMobileMenuOpen(true)}
               className="lg:hidden p-2 text-slate-900"
               type="button"
@@ -461,70 +459,71 @@ const PublicLayout: React.FC = () => {
         <>
           <div onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-md z-[110] animate-fade-in" />
           <div className="fixed right-0 top-0 h-full w-[88%] max-w-sm bg-white z-[120] px-5 pt-6 pb-8 sm:p-8 flex flex-col shadow-2xl overflow-y-auto animate-[slideInFromRight_220ms_ease-out]" dir="rtl" >
-              <div className="flex justify-between items-center mb-8">
-                <span className="text-2xl font-black tracking-tighter uppercase ray-glow float-animation inline-block bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
-                <button type="button" aria-label={t('common.closeMenu')} onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
-              </div>
-              <div className="mb-5 rounded-[1.5rem] bg-slate-50 p-4">
-                <div className="text-xs font-black text-slate-400 mb-2">{t('common.quickNav')}</div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAssistantOpen(true);
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-right text-slate-700 shadow-sm ring-1 ring-slate-100"
-                >
-                  <span className="font-bold text-sm">{t('common.search')}</span>
-                  <Sparkles className="w-4 h-4 text-[#00E5FF] shrink-0" />
-                </button>
-              </div>
-              <nav className="flex flex-col gap-2 flex-1">
-                <MobileNavItem to="/" icon={<Home className="w-5 h-5" />} label={t('common.home')} onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/offers" icon={<Heart className="w-5 h-5" />} label={t('public.offers')} onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/map" icon={<Search className="w-5 h-5" />} label={t('public.map')} onClick={() => setMobileMenuOpen(false)} />
-                <MobileNavItem to="/support" icon={<Info className="w-5 h-5" />} label={t('common.support')} onClick={() => setMobileMenuOpen(false)} />
-                {user ? (
-                  <>
-                    <MobileNavItem
-                      to={String(user?.role || '').toLowerCase() === 'merchant' ? '/business/dashboard' : '/profile'}
-                      icon={<User className="w-5 h-5" />}
-                      label={String(user?.role || '').toLowerCase() === 'merchant' ? t('public.dashboard') : t('common.profile')}
-                      onClick={() => setMobileMenuOpen(false)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        void logout();
-                      }}
-                      className="flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-all text-xl font-black text-red-600 text-right"
-                    >
-                      <span className="text-red-300"><LogOut className="w-5 h-5" /></span> {t('common.logout')}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <MobileNavItem to="/login" icon={<User className="w-5 h-5" />} label={t('public.loginLabel')} onClick={() => setMobileMenuOpen(false)} />
-                    <MobileNavItem to="/signup" icon={<PlusCircle className="w-5 h-5" />} label={t('common.signup')} onClick={() => setMobileMenuOpen(false)} />
-                  </>
-                )}
-              </nav>
-              <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
-                <LanguageToggle variant="public" mode="options" className="w-full justify-center" />
-                <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
-                  <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
-                    <Phone size={16} />
-                  </span>
-                  <span className="font-bold text-sm">01067461059</span>
-                </a>
-              </div>
+            <div className="flex justify-between items-center mb-8">
+              <span className="text-2xl font-black tracking-tighter uppercase bg-gradient-to-r from-[#00E5FF] via-[#BD00FF] to-[#00E5FF] bg-[length:200%_200%] text-transparent bg-clip-text transition-transform duration-300 hover:scale-[1.06]">{t('brand.name')}</span>
+              <button type="button" aria-label={t('common.closeMenu')} onClick={() => setMobileMenuOpen(false)}><X className="w-6 h-6" /></button>
             </div>
+            <div className="mb-5 rounded-[1.5rem] bg-slate-50 p-4">
+              <div className="text-xs font-black text-slate-400 mb-2">{t('common.quickNav')}</div>
+              <button
+                type="button"
+                onClick={() => {
+                  setAssistantOpen(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-right text-slate-700 shadow-sm ring-1 ring-slate-100"
+              >
+                <span className="font-bold text-sm">{t('common.search')}</span>
+                <Sparkles className="w-4 h-4 text-[#00E5FF] shrink-0" />
+              </button>
+            </div>
+            <nav className="flex flex-col gap-2 flex-1">
+              <MobileNavItem to="/" icon={<Home className="w-5 h-5" />} label={t('common.home')} onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavItem to="/offers" icon={<Heart className="w-5 h-5" />} label={t('public.offers')} onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavItem to="/map" icon={<Search className="w-5 h-5" />} label={t('public.map')} onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavItem to="/support" icon={<Info className="w-5 h-5" />} label={t('common.support')} onClick={() => setMobileMenuOpen(false)} />
+              <MobileNavItem to="/reviews" icon={<Star className="w-5 h-5" />} label={t('public.reviews')} onClick={() => setMobileMenuOpen(false)} />
+              {user ? (
+                <>
+                  <MobileNavItem
+                    to={String(user?.role || '').toLowerCase() === 'merchant' ? '/business/dashboard' : '/profile'}
+                    icon={<User className="w-5 h-5" />}
+                    label={String(user?.role || '').toLowerCase() === 'merchant' ? t('public.dashboard') : t('common.profile')}
+                    onClick={() => setMobileMenuOpen(false)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      void logout();
+                    }}
+                    className="flex items-center gap-4 p-4 rounded-2xl hover:bg-red-50 transition-all text-xl font-black text-red-600 text-right"
+                  >
+                    <span className="text-red-300"><LogOut className="w-5 h-5" /></span> {t('common.logout')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <MobileNavItem to="/login" icon={<User className="w-5 h-5" />} label={t('public.loginLabel')} onClick={() => setMobileMenuOpen(false)} />
+                  <MobileNavItem to="/signup" icon={<PlusCircle className="w-5 h-5" />} label={t('common.signup')} onClick={() => setMobileMenuOpen(false)} />
+                </>
+              )}
+            </nav>
+            <div className="mt-6 pt-5 border-t border-slate-100 space-y-3">
+              <LanguageToggle variant="public" mode="options" className="w-full justify-center" />
+              <a href="tel:01067461059" className="flex items-center gap-3 flex-row-reverse text-slate-500 hover:text-slate-900 transition-colors">
+                <span className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center">
+                  <Phone size={16} />
+                </span>
+                <span className="font-bold text-sm">01067461059</span>
+              </a>
+            </div>
+          </div>
         </>
       )}
 
       {/* Bottom Navigation */}
-      <div 
+      <div
         className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 z-50 md:hidden"
         style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 1rem)' }}
       >
@@ -533,7 +532,7 @@ const PublicLayout: React.FC = () => {
             <div className="flex items-stretch justify-between gap-1" dir="rtl">
               <Link
                 to="/"
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname === '/' || pathname === '' ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname === '/' || pathname === '' ? 'bg-gradient-to-t from-slate-900 to-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
               >
                 <Home className="w-5 h-5" />
                 <span className="text-[10px] font-black">{t('common.home')}</span>
@@ -541,7 +540,7 @@ const PublicLayout: React.FC = () => {
 
               <Link
                 to="/profile"
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
+                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all ${pathname.startsWith('/profile') ? 'bg-gradient-to-t from-slate-900 to-slate-800 text-white shadow-lg' : 'text-slate-500 hover:bg-slate-50 hover:text-black'}`}
               >
                 <User className="w-5 h-5" />
                 <span className="text-[10px] font-black">{t('common.profile')}</span>
@@ -549,7 +548,7 @@ const PublicLayout: React.FC = () => {
 
               {!hideCartButton && (
                 <div className="flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-2xl transition-all text-slate-500 hover:bg-slate-50 hover:text-black">
-                  <CartIconWithAnimation 
+                  <CartIconWithAnimation
                     count={cartItems.length}
                     onClick={() => setCartOpen(true)}
                   />
@@ -573,7 +572,7 @@ const PublicLayout: React.FC = () => {
 
       {isCartOpen && (
         <React.Suspense fallback={null}>
-          <CartDrawer 
+          <CartDrawer
             isOpen={isCartOpen}
             onClose={() => setCartOpen(false)}
             items={cartItems}
@@ -601,43 +600,49 @@ const PublicLayout: React.FC = () => {
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[510] w-[92vw] max-w-md animate-[fadeInUp_220ms_ease-out]"
             dir="rtl"
           >
-              <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-6 md:p-8 text-right">
-                <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">{t('public.mustLogin')}</div>
-                <div className="text-slate-500 font-bold text-sm leading-relaxed mb-6">{authPrompt.message}</div>
+            <div className="bg-white rounded-[2rem] shadow-2xl border border-slate-100 p-6 md:p-8 text-right">
+              <div className="text-slate-900 font-black text-2xl tracking-tight mb-2">{t('public.mustLogin')}</div>
+              <div className="text-slate-500 font-bold text-sm leading-relaxed mb-6">{authPrompt.message}</div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <Link
-                    to={`/signup?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
-                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
-                    className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black text-sm flex items-center justify-center"
-                  >
-                    {t('common.signup')}
-                  </Link>
-                  <Link
-                    to="/"
-                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
-                    className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center"
-                  >
-                    {t('common.home')}
-                  </Link>
-                </div>
-
-                <div className="mt-4 text-center">
-                  <Link
-                    to={`/login?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
-                    onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
-                    className="text-slate-500 font-black text-xs hover:text-slate-900 transition-colors"
-                  >
-                    {t('public.haveAccount')}
-                  </Link>
-                </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Link
+                  to={`/signup?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
+                  onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-black text-sm flex items-center justify-center hover:from-slate-800 hover:to-slate-700 transition-all shadow-lg"
+                >
+                  {t('common.signup')}
+                </Link>
+                <Link
+                  to="/"
+                  onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                  className="w-full py-4 rounded-2xl bg-white border border-slate-200 text-slate-900 font-black text-sm flex items-center justify-center hover:bg-slate-50 transition-all"
+                >
+                  {t('common.home')}
+                </Link>
               </div>
+
+              <div className="mt-4 text-center">
+                <Link
+                  to={`/login?returnTo=${encodeURIComponent(authPrompt.returnTo)}`}
+                  onClick={() => setAuthPrompt((p) => ({ ...p, open: false }))}
+                  className="text-slate-500 font-black text-xs hover:text-slate-900 transition-colors"
+                >
+                  {t('public.haveAccount')}
+                </Link>
+              </div>
+            </div>
           </div>
         </>
       )}
 
-      <footer className="bg-[#1A1A1A] text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem]">
-        <div className="max-w-7xl mx-auto px-6">
+      <footer className="bg-gradient-to-b from-slate-900 to-black text-white pt-16 md:pt-32 pb-24 md:pb-12 mt-16 md:mt-32 rounded-t-[2rem] md:rounded-t-[4rem] relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="absolute inset-0 opacity-30">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#00E5FF] rounded-full blur-[128px]" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-[#BD00FF] rounded-full blur-[128px]" />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
           <div className="flex flex-col gap-12 md:gap-16 md:grid md:grid-cols-2">
             <div className="order-2 md:order-1">
               {/* Links Section - First on mobile */}
@@ -676,7 +681,7 @@ const PublicLayout: React.FC = () => {
             <div className="order-1 md:order-2">
               <div className="flex items-center gap-2 mb-6 flex-row-reverse md:justify-end">
                 <BrandLogo variant="business" iconOnly />
-                <span className="text-2xl font-black tracking-tighter uppercase">{t('brand.name')}</span>
+                <span className="text-2xl font-black tracking-tighter uppercase bg-gradient-to-r from-[#00E5FF] to-[#BD00FF] text-transparent bg-clip-text">{t('brand.name')}</span>
               </div>
               <p className="text-slate-400 max-w-sm text-base md:text-xl font-medium mb-6">{t('public.betaNote')}</p>
             </div>

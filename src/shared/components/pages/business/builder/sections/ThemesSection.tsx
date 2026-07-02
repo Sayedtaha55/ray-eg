@@ -32,7 +32,7 @@ const PRESETS: ThemePreset[] = [
   },
   {
     id: 'clinic_elegant_blue', name: 'رعاية الشفاء الكلاسيكية (أزرق)', subtitle: 'ثيم الشفاء الحديث - تصميم طبي كلاسيكي أنيق بالأزرق والرمادي الفاتح بنمط هادئ ومريح', activity: 'BOOKING',
-    patch: { quickTheme: 'clinic_elegant_blue', clinicLayout: 'classic_grid', bookingActivityType: 'clinic_hospital', primaryColor: '#0EA5E9', secondaryColor: '#0369A1', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FFFFFF', productDisplay: 'cards', productsLayout: 'vertical' },
+    patch: { quickTheme: 'clinic_elegant_blue', clinicLayout: 'classic_grid', bookingActivityType: 'salon_barber', primaryColor: '#0EA5E9', secondaryColor: '#0369A1', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FFFFFF', productDisplay: 'cards', productsLayout: 'vertical' },
   },
 
   {
@@ -66,7 +66,7 @@ const PRESETS: ThemePreset[] = [
   },
   {
     id: 'clinic_modern_purple', name: 'النخبة الطبية الفاخرة (بنفسجي)', subtitle: 'ثيم النخبة الفاخر - تصميم عصري متميز بالبنفسجي والوردي واللمسات الزجاجية والتأثيرات التفاعلية', activity: 'BOOKING',
-    patch: { quickTheme: 'clinic_modern_purple', clinicLayout: 'banner_promo_booking', bookingActivityType: 'clinic_hospital', primaryColor: '#8B5CF6', secondaryColor: '#EC4899', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FCF8FF', productDisplay: 'cards', productsLayout: 'vertical' },
+    patch: { quickTheme: 'clinic_modern_purple', clinicLayout: 'banner_promo_booking', bookingActivityType: 'salon_barber', primaryColor: '#8B5CF6', secondaryColor: '#EC4899', headerBackgroundColor: '#FFFFFF', headerTextColor: '#0F172A', footerBackgroundColor: '#FFFFFF', footerTextColor: '#0F172A', pageBackgroundColor: '#FCF8FF', productDisplay: 'cards', productsLayout: 'vertical' },
   },
 ];
 

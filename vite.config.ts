@@ -2,7 +2,6 @@ import path from 'path';
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import viteCompression from 'vite-plugin-compression';
-import { visualizer } from 'rollup-plugin-visualizer';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -26,13 +25,7 @@ export default defineConfig(({ mode }) => {
           threshold: 1024,
           deleteOriginFile: false,
         }),
-        // Bundle visualizer (only in analyze mode)
-        isProd && visualizer({
-          filename: 'dist/stats.html',
-          open: false,
-          gzipSize: true,
-          brotliSize: true,
-        }),
+        // Bundle visualizer disabled (ESM-only package, enable manually if needed)
       ].filter(Boolean),
       resolve: {
         alias: {

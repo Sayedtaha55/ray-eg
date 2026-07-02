@@ -1,4 +1,4 @@
-import { Layout, Palette, Sliders, ShoppingBag, Sparkles, Home, FileText, UserCheck, CalendarClock, HeartPulse } from 'lucide-react';
+import { Layout, Palette, Sliders, ShoppingBag, Sparkles, Home, FileText, Users, Calendar } from 'lucide-react';
 import React from 'react';
 import i18n from '@/i18n';
 
@@ -26,8 +26,8 @@ import {
   HomeExperienceSection,
   CustomPagesSection,
   ClinicDoctorsSection,
-  ClinicBookingSection,
   ClinicServicesSection,
+  ClinicBookingSection,
 } from './sections';
 
 export type BuilderSectionId =
@@ -91,21 +91,21 @@ export const BUILDER_SECTIONS: BuilderSectionConfig[] = [
   },
   {
     id: 'clinicDoctors',
-    title: 'بيانات الأطباء',
-    icon: React.createElement(UserCheck as any, { size: 16, className: 'text-teal-500' }),
+    title: 'الأطباء والكادر',
+    icon: React.createElement(Users as any, { size: 16, className: 'text-indigo-500' }),
     render: ({ config, setConfig, shop }) => React.createElement(ClinicDoctorsSection as any, { config, setConfig, shop }),
-  },
-  {
-    id: 'clinicBooking',
-    title: 'أوقات الحجز المتاحة',
-    icon: React.createElement(CalendarClock as any, { size: 16, className: 'text-violet-500' }),
-    render: ({ config, setConfig }) => React.createElement(ClinicBookingSection as any, { config, setConfig }),
   },
   {
     id: 'clinicServices',
     title: 'التخصصات والخدمات',
-    icon: React.createElement(HeartPulse as any, { size: 16, className: 'text-rose-500' }),
-    render: ({ config, setConfig }) => React.createElement(ClinicServicesSection as any, { config, setConfig }),
+    icon: React.createElement(Sparkles as any, { size: 16, className: 'text-emerald-500' }),
+    render: ({ config, setConfig, shop }) => React.createElement(ClinicServicesSection as any, { config, setConfig, shop }),
+  },
+  {
+    id: 'clinicBooking',
+    title: 'إعدادات ومواعيد الحجز',
+    icon: React.createElement(Calendar as any, { size: 16, className: 'text-rose-500' }),
+    render: ({ config, setConfig, shop }) => React.createElement(ClinicBookingSection as any, { config, setConfig, shop }),
   },
   {
     id: 'homeExperience',

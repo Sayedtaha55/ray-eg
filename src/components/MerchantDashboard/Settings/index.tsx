@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown, Puzzle, LayoutGrid } from 'lucide-react';
+import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown, Puzzle, LayoutGrid, Clock } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { RayDB } from '@/constants';
@@ -17,26 +17,15 @@ import StoreSettings from './StoreSettings';
 import Payments from './Payments';
 import ModulesSettings from './Modules';
 import AppsTab from '@/components/pages/business/merchant-dashboard/tabs/AppsTab';
+import BookingSettings from './BookingSettings';
 
 const { Link, useLocation, useNavigate } = ReactRouterDOM as any;
 
-type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications';
+type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications' | 'booking_settings';
 
 type SaveHandler = () => Promise<boolean>;
 
 type SectionChangesHandlerDetail = { sectionId: string; count: number };
-
-const SETTINGS_TAB_IDS = [
-  { id: 'overview' as const, icon: <Home className="w-5 h-5" /> },
-  { id: 'account' as const, icon: <User className="w-5 h-5" /> },
-  { id: 'security' as const, icon: <Shield className="w-5 h-5" /> },
-  { id: 'store' as const, icon: <Store className="w-5 h-5" /> },
-  { id: 'modules' as const, icon: <Puzzle className="w-5 h-5" /> },
-  { id: 'apps' as const, icon: <LayoutGrid className="w-5 h-5" /> },
-  { id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" /> },
-  { id: 'payments' as const, icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'notifications' as const, icon: <Bell className="w-5 h-5" /> },
-] as const;
 
 interface SettingsProps {
   shop: any;
@@ -338,10 +327,24 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
 
-  const SettingsTabs = SETTINGS_TAB_IDS.map(item => ({
-    ...item,
-    label: t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
-  }));
+  const SettingsTabs = React.useMemo(() => {
+    const list = [
+      { id: 'overview' as const, icon: <Home className="w-5 h-5" /> },
+      { id: 'account' as const, icon: <User className="w-5 h-5" /> },
+      { id: 'security' as const, icon: <Shield className="w-5 h-5" /> },
+      { id: 'store' as const, icon: <Store className="w-5 h-5" /> },
+      ...(shop?.category === 'SERVICE' ? [{ id: 'booking_settings' as const, icon: <Clock className="w-5 h-5" /> }] : []),
+      { id: 'modules' as const, icon: <Puzzle className="w-5 h-5" /> },
+      { id: 'apps' as const, icon: <LayoutGrid className="w-5 h-5" /> },
+      ...(shop?.category !== 'SERVICE' ? [{ id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" /> }] : []),
+      { id: 'payments' as const, icon: <CreditCard className="w-5 h-5" /> },
+      { id: 'notifications' as const, icon: <Bell className="w-5 h-5" /> },
+    ];
+    return list.map(item => ({
+      ...item,
+      label: item.id === 'booking_settings' ? 'إعدادات الحجوزات' : t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
+    }));
+  }, [shop?.category, t]);
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
   const layout = shop?.layoutConfig && typeof shop.layoutConfig === 'object' ? shop.layoutConfig : undefined;
   const serverSoundId = String((layout as any)?.notificationSoundId || '').trim() || 'default';
@@ -645,6 +648,8 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
             </div>
           </div>
         );
+      case 'booking_settings':
+        return <BookingSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       default:
         return <Overview shop={shop} />;
     }
@@ -673,6 +678,9 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                 </div>
                 <div className={cn(String(activeSettingsTab) === 'store' ? 'block' : 'hidden')}>
                   {renderTabContent('store')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'booking_settings' ? 'block' : 'hidden')}>
+                  {renderTabContent('booking_settings')}
                 </div>
                 <div className={cn(String(activeSettingsTab) === 'modules' ? 'block' : 'hidden')}>
                   {renderTabContent('modules')}

@@ -2,16 +2,17 @@ import { Category } from '@/types';
 import { getAllowedTabIdsForCategory } from './activities';
 import { CORE_MERCHANT_MODULES } from './coreModules';
 import i18n from '@/i18n';
+import { getVocabulary } from '../bookings/config';
 
 export type MerchantDashboardTabId =
   | 'overview'
   | 'notifications'
   | 'products'
   | 'reservations'
-  | 'clinicDoctors'
-  | 'clinicServices'
-  | 'clinicRooms'
-  | 'clinicPatients'
+  | 'providers'
+  | 'services'
+  | 'activityRooms'
+  | 'activityPatients'
   | 'invoice'
   | 'sales'
   | 'promotions'
@@ -38,13 +39,13 @@ export const getProductTabLabel = (category?: string): string => {
 
 export const getOverviewTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'SERVICE') return 'نظرة عامة على العيادة';
+  if (cat === 'SERVICE') return 'نظرة عامة';
   return i18n.t('business.dashboardTabs.overview');
 };
 
 export const getReservationsTabLabel = (category?: string): string => {
   const cat = String(category || '').toUpperCase();
-  if (cat === 'SERVICE') return 'حجوزات';
+  if (cat === 'SERVICE') return 'الحجوزات';
   return i18n.t('business.dashboardTabs.reservations');
 };
 
@@ -69,10 +70,11 @@ export const MERCHANT_DASHBOARD_TABS: MerchantDashboardTabDefinition[] = [
   { id: 'products', label: i18n.t('business.dashboardTabs.inventory'), dynamicLabel: getProductTabLabel },
   { id: 'promotions', label: i18n.t('business.dashboardTabs.promotions') },
   { id: 'reservations', label: i18n.t('business.dashboardTabs.reservations'), dynamicLabel: getReservationsTabLabel },
-  { id: 'clinicDoctors', label: 'الأطباء والكادر' },
-  { id: 'clinicServices', label: 'التخصصات والخدمات' },
-  { id: 'clinicRooms', label: 'غرف/عيادات فرعية' },
-  { id: 'clinicPatients', label: 'ملفات المرضى' },
+  // Booking system tabs - these are now dynamic based on activity type
+  { id: 'providers', label: 'مقدمي الخدمة', visibleFor: [Category.SERVICE, Category.HEALTH, Category.FASHION, Category.RETAIL, Category.ELECTRONICS] },
+  { id: 'services', label: 'الخدمات', visibleFor: [Category.SERVICE, Category.HEALTH, Category.FASHION, Category.RETAIL, Category.ELECTRONICS] },
+  { id: 'activityRooms', label: 'الغرف/الوحدات', visibleFor: [Category.SERVICE, Category.HEALTH, Category.FASHION] },
+  { id: 'activityPatients', label: 'الملفات/المرضى', visibleFor: [Category.SERVICE, Category.HEALTH] },
   { id: 'invoice', label: i18n.t('business.dashboardTabs.invoice') },
   { id: 'sales', label: i18n.t('business.dashboardTabs.sales') },
   { id: 'abandonedCart', label: i18n.t('business.dashboardTabs.abandonedCart') },
@@ -149,8 +151,9 @@ export const getMerchantDashboardTabsForShop = (shop?: any) => {
   const enabledSet = (() => {
     const set = new Set<MerchantDashboardTabId>();
     const cat = String(category || '').toUpperCase();
-    
+
     if (cat === 'SERVICE') {
+      set.add('overview');
       set.add('reservations');
       set.add('builder');
       set.add('settings');
@@ -216,4 +219,30 @@ export const resolveMerchantDashboardTabForShop = (requested: any, shop?: any): 
   const known = tabs.find((t) => t.id === req);
   if (!known) return tabs[0]?.id || 'overview';
   return known.id;
+};
+
+export const getTabLabel = (tab: MerchantDashboardTabDefinition, shop?: any): string => {
+  const act = shop?.pageDesign?.bookingActivityType || 'clinic';
+
+  if (tab.id === 'providers') {
+    const vocab = getVocabulary(act);
+    return vocab.providerPlural;
+  }
+  if (tab.id === 'services') {
+    const vocab = getVocabulary(act);
+    return vocab.servicePlural;
+  }
+  if (tab.id === 'activityRooms') {
+    if (act === 'salon_barber') return 'الكراسي والغرف';
+    if (act === 'wellness_spa') return 'غرف الجلسات';
+    if (act === 'hotels_rooms') return 'الغرف والأجنحة';
+    return 'الغرف/الوحدات';
+  }
+  if (tab.id === 'activityPatients') {
+    const vocab = getVocabulary(act);
+    return vocab.customerPlural;
+  }
+
+  const category = shop?.category;
+  return tab.dynamicLabel ? tab.dynamicLabel(category) : tab.label;
 };
