@@ -266,6 +266,15 @@ export class ShopImageMapService {
       },
     });
 
+    try {
+      // PERFORMANCE: Surgical cache invalidation for product lists when an image map is created
+      // This is necessary because getLinkedImageMapProductIds lookups are global/per-shop and not based on map activity.
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
+    } catch {}
+
     return created;
   }
 
@@ -303,6 +312,11 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Surgical cache invalidation for product lists when map activity changes
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +555,11 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Surgical cache invalidation for product lists when hotspots change
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
     } catch {}
 
     return result;
