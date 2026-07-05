@@ -266,6 +266,13 @@ export class ShopImageMapService {
       },
     });
 
+    // PERFORMANCE: Invalidate product lists for this shop and the global list
+    // because some products might now be "linked" to an image map and should be hidden from public feeds.
+    try {
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
+    } catch {}
+
     return created;
   }
 
@@ -303,6 +310,9 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Surgical invalidation of product lists when map activity changes
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +551,9 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Surgical invalidation of product lists when layout changes
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return result;

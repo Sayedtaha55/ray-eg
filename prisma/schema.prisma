@@ -136,6 +136,7 @@ model Shop {
   media                 Media[]
   owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id])
 
+  @@unique([ownerId])
   @@index([category])
   @@index([slug])
   @@index([status])
@@ -1165,7 +1166,7 @@ model AiJob {
   payload         Json
   result          Json?
   error           String?
-  attempts        Int             @default(0) @map("max_attempts")
+  attempts        Int             @default(0) @map("attempts")
   maxAttempts     Int             @default(3) @map("max_attempts")
   startedAt       DateTime?       @map("started_at")
   completedAt     DateTime?       @map("completed_at")
