@@ -201,24 +201,21 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
-      const pid = String((product as any)?.id || '').trim();
-      if (pid && linkedIds.has(pid)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
+    const shopId = String((product as any)?.shopId || '').trim();
+    const pid = String((product as any)?.id || '').trim();
+    const nameKey = this.normalizeProductNameKey((product as any)?.name);
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
-      if (nameKey && labelKeys.has(nameKey)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    // PERFORMANCE: Parallelize visibility checks
+    const [linkedIds, labelKeys] = await Promise.all([
+      this.getLinkedImageMapProductIds(shopId),
+      this.getActiveImageMapHotspotLabelKeys(shopId),
+    ]);
+
+    if (pid && linkedIds.has(pid)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
+    }
+    if (nameKey && labelKeys.has(nameKey)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
     try {
@@ -244,74 +241,79 @@ export class ProductService {
     } catch {
     }
 
-    let products: any[];
-    try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          shopId,
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          images: true,
-          colors: true,
-          sizes: true,
-          addons: true,
-          packOptions: true,
-          menuVariants: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
+    // PERFORMANCE: Parallelize product query with visibility metadata queries
+    const [productsRaw, linkedIds, labelKeys] = await Promise.all([
+      (async () => {
+        try {
+          return await (this.prisma.product as any).findMany({
+            where: {
+              shopId,
+              isActive: true,
+              NOT: [
+                { category: '__IMAGE_MAP__' },
+                { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                { category: '__DUPLICATE__AUTO__' },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
             select: {
+              id: true,
+              name: true,
+              description: true,
+              price: true,
+              stock: true,
+              trackStock: true,
+              category: true,
               unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
-          },
-        },
-        ...(pagination ? pagination : {}),
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
-      throw this.mapDbErrorToBadRequest(e);
-    }
-
-    const deduped = this.dedupeById(products);
-
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
-    const [linkedIds, labelKeys] = await Promise.all([
+              imageUrl: true,
+              images: true,
+              colors: true,
+              sizes: true,
+              addons: true,
+              packOptions: true,
+              menuVariants: true,
+              model3dUrl: true,
+              spinImages: true,
+              isActive: true,
+              shopId: true,
+              furnitureMeta: {
+                select: {
+                  unit: true,
+                  lengthCm: true,
+                  widthCm: true,
+                  heightCm: true,
+                }
+              },
+            },
+            ...(pagination ? pagination : {}),
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
+          throw this.mapDbErrorToBadRequest(e);
+        }
+      })(),
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+
+    const deduped = this.dedupeById(productsRaw);
+
+    // PERFORMANCE: Zero-DB Cache Hit pattern - filter BEFORE caching
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -332,55 +334,57 @@ export class ProductService {
     const pagination = this.getPagination(paging);
     const includeImageMap = Boolean(options?.includeImageMap);
     try {
-      const products = await (this.prisma.product as any).findMany({
-        where: {
-          shopId,
-          ...(includeImageMap
-            ? {
-                NOT: [
-                  { category: '__DUPLICATE__AUTO__' },
-                ],
-              }
-            : {
-                NOT: [
-                  { category: '__IMAGE_MAP__' },
-                  { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-                  { category: '__DUPLICATE__AUTO__' },
-                ],
-              }),
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          packOptions: true,
-          menuVariants: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
-            select: {
-              unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
+      // PERFORMANCE: Parallelize product query with visibility metadata queries
+      const [productsRaw, linkedIds, labelKeys] = await Promise.all([
+        (this.prisma.product as any).findMany({
+          where: {
+            shopId,
+            ...(includeImageMap
+              ? {
+                  NOT: [
+                    { category: '__DUPLICATE__AUTO__' },
+                  ],
+                }
+              : {
+                  NOT: [
+                    { category: '__IMAGE_MAP__' },
+                    { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                    { category: '__DUPLICATE__AUTO__' },
+                  ],
+                }),
           },
-        },
-        ...(pagination ? pagination : {}),
-      });
-      const deduped = this.dedupeById(products);
-      const [linkedIds, labelKeys] = await Promise.all([
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            stock: true,
+            trackStock: true,
+            category: true,
+            unit: true,
+            imageUrl: true,
+            packOptions: true,
+            menuVariants: true,
+            model3dUrl: true,
+            spinImages: true,
+            isActive: true,
+            shopId: true,
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              }
+            },
+          },
+          ...(pagination ? pagination : {}),
+        }),
         this.getLinkedImageMapProductIds(shopId),
         this.getActiveImageMapHotspotLabelKeys(shopId),
       ]);
+
+      const deduped = this.dedupeById(productsRaw);
       if (includeImageMap) {
         return deduped.filter((p: any) => {
           const id = String((p as any)?.id || '').trim();
@@ -415,59 +419,66 @@ export class ProductService {
     } catch {
     }
 
-    let products: any[];
-    try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
+    // PERFORMANCE: Parallelize product query with linked IDs query
+    const [productsRaw, linkedIds] = await Promise.all([
+      (async () => {
+        try {
+          return await (this.prisma.product as any).findMany({
+            where: {
+              isActive: true,
+              NOT: [
+                { category: '__IMAGE_MAP__' },
+                { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+                { category: '__DUPLICATE__AUTO__' },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
             select: {
+              id: true,
+              name: true,
+              price: true,
+              stock: true,
+              trackStock: true,
+              category: true,
               unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
-          },
-        },
-        ...(pagination ? pagination : {}),
-      });
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
-      throw this.mapDbErrorToBadRequest(e);
-    }
+              imageUrl: true,
+              model3dUrl: true,
+              spinImages: true,
+              isActive: true,
+              shopId: true,
+              furnitureMeta: {
+                select: {
+                  unit: true,
+                  lengthCm: true,
+                  widthCm: true,
+                  heightCm: true,
+                }
+              },
+            },
+            ...(pagination ? pagination : {}),
+          });
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
+          throw this.mapDbErrorToBadRequest(e);
+        }
+      })(),
+      this.getLinkedImageMapProductIds(),
+    ]);
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    // PERFORMANCE: Filter BEFORE caching (Zero-DB Cache Hit pattern)
+    const filtered = productsRaw.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
