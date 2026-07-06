@@ -1,0 +1,3 @@
+## 2026-07-06 - [ProductService Query Parallelization & Zero-DB Cache Hit Pattern]
+**Learning:** Sequential `await` calls for independent metadata (like hotspot visibility) during product listing created a significant latency bottleneck and prevented efficient caching. Caching unfiltered data forced subsequent database queries on every "cache hit" to apply visibility filters, defeating the purpose of the cache.
+**Action:** Use `Promise.all` to parallelize the primary data fetch with metadata lookups. Always filter public lists *before* caching (Zero-DB Cache Hit pattern) to ensure cache hits are both fast and correct.
