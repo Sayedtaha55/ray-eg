@@ -98,7 +98,7 @@ model Shop {
   visitors              Int                        @default(0)
   rating                Float                      @default(0)
   isActive              Boolean                    @default(true)
-  ownerId               String?
+  ownerId               String?                    @unique
   createdAt             DateTime                   @default(now())
   updatedAt             DateTime                   @updatedAt
   addons                Json?
@@ -1165,7 +1165,7 @@ model AiJob {
   payload         Json
   result          Json?
   error           String?
-  attempts        Int             @default(0) @map("max_attempts")
+  attempts        Int             @default(0)
   maxAttempts     Int             @default(3) @map("max_attempts")
   startedAt       DateTime?       @map("started_at")
   completedAt     DateTime?       @map("completed_at")
