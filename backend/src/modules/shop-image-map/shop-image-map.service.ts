@@ -266,6 +266,14 @@ export class ShopImageMapService {
       },
     });
 
+    // PERFORMANCE: Surgical cache invalidation for product lists when image maps change
+    try {
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*${sid}*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
+    } catch {}
+
     return created;
   }
 
@@ -301,7 +309,16 @@ export class ShopImageMapService {
         select: { slug: true },
       });
       if (shop?.slug) {
-        await this.redis.invalidateShopCache(sid, shop.slug);
+        await Promise.all([
+          this.redis.invalidateShopCache(sid, shop.slug),
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
+      } else {
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
@@ -539,7 +556,16 @@ export class ShopImageMapService {
         select: { slug: true },
       });
       if (shop?.slug) {
-        await this.redis.invalidateShopCache(sid, shop.slug);
+        await Promise.all([
+          this.redis.invalidateShopCache(sid, shop.slug),
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
+      } else {
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*${sid}*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
