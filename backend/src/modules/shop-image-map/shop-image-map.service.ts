@@ -303,6 +303,10 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Image map changes affect product visibility in lists.
+      // Must invalidate shop-specific product lists and the global active list.
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +545,10 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Layout changes (hotspot additions/removals) change visibility.
+      // Invalidate shop-specific and global product lists to reflect changes.
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return result;
