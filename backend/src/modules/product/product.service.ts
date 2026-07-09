@@ -201,27 +201,26 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
-    try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
-      const pid = String((product as any)?.id || '').trim();
-      if (pid && linkedIds.has(pid)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+    const sid = String((product as any)?.shopId || '').trim();
+
+    // PERFORMANCE: Parallelize hotspot visibility lookups to minimize latency on cache miss
+    const [linkedIds, labelKeys] = await Promise.all([
+      this.getLinkedImageMapProductIds(sid),
+      this.getActiveImageMapHotspotLabelKeys(sid),
+    ]);
+
+    const pid = String((product as any)?.id || '').trim();
+    if (pid && linkedIds.has(pid)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
+    }
+
+    const nameKey = this.normalizeProductNameKey((product as any)?.name);
+    if (nameKey && labelKeys.has(nameKey)) {
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
     try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
-      if (nameKey && labelKeys.has(nameKey)) {
-        throw new NotFoundException('لم يتم العثور على المنتج');
-      }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
-
-    try {
+      // PERFORMANCE: Cache the finalized visible product (Zero-DB Cache Hit pattern)
       await this.redis.cacheProduct(id, product, 300);
     } catch {
     }
@@ -245,49 +244,57 @@ export class ProductService {
     }
 
     let products: any[];
+    let linkedIds: Set<string>;
+    let labelKeys: Set<string>;
+
     try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          shopId,
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          images: true,
-          colors: true,
-          sizes: true,
-          addons: true,
-          packOptions: true,
-          menuVariants: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
-            select: {
-              unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
+      // PERFORMANCE: Parallelize core product fetch and hotspot visibility data to minimize latency
+      [products, linkedIds, labelKeys] = await Promise.all([
+        (this.prisma.product as any).findMany({
+          where: {
+            shopId,
+            isActive: true,
+            NOT: [
+              { category: '__IMAGE_MAP__' },
+              { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+              { category: '__DUPLICATE__AUTO__' },
+            ],
           },
-        },
-        ...(pagination ? pagination : {}),
-      });
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            stock: true,
+            trackStock: true,
+            category: true,
+            unit: true,
+            imageUrl: true,
+            images: true,
+            colors: true,
+            sizes: true,
+            addons: true,
+            packOptions: true,
+            menuVariants: true,
+            model3dUrl: true,
+            spinImages: true,
+            isActive: true,
+            shopId: true,
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              }
+            },
+          },
+          ...(pagination ? pagination : {}),
+        }),
+        this.getLinkedImageMapProductIds(shopId),
+        this.getActiveImageMapHotspotLabelKeys(shopId),
+      ]);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
@@ -296,22 +303,22 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
-    const [linkedIds, labelKeys] = await Promise.all([
-      this.getLinkedImageMapProductIds(shopId),
-      this.getActiveImageMapHotspotLabelKeys(shopId),
-    ]);
-    return deduped.filter((p: any) => {
+    // PERFORMANCE: Filter before caching (Zero-DB Cache Hit pattern)
+    // Ensures correctness (cache hits are already filtered) and speed (0 DB queries on cache hit)
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -416,58 +423,67 @@ export class ProductService {
     }
 
     let products: any[];
+    let linkedIds: Set<string>;
+
     try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
-            select: {
-              unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
+      // PERFORMANCE: Parallelize global product fetch and linked image map IDs to minimize latency
+      [products, linkedIds] = await Promise.all([
+        (this.prisma.product as any).findMany({
+          where: {
+            isActive: true,
+            NOT: [
+              { category: '__IMAGE_MAP__' },
+              { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+              { category: '__DUPLICATE__AUTO__' },
+            ],
           },
-        },
-        ...(pagination ? pagination : {}),
-      });
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            stock: true,
+            trackStock: true,
+            category: true,
+            unit: true,
+            imageUrl: true,
+            model3dUrl: true,
+            spinImages: true,
+            isActive: true,
+            shopId: true,
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              }
+            },
+          },
+          ...(pagination ? pagination : {}),
+        }),
+        this.getLinkedImageMapProductIds(),
+      ]);
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    // PERFORMANCE: Filter before caching (Zero-DB Cache Hit pattern)
+    // Eliminates the need for getLinkedImageMapProductIds calls on cache hits
+    const filtered = products.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
