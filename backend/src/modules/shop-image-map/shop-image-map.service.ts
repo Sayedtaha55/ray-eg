@@ -266,6 +266,15 @@ export class ShopImageMapService {
       },
     });
 
+    try {
+      // PERFORMANCE: Image maps affect product visibility, invalidate list caches
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*${sid}*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
+    } catch {
+    }
+
     return created;
   }
 
@@ -303,6 +312,11 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Image maps affect product visibility, invalidate list caches
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*${sid}*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +555,11 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Image maps affect product visibility, invalidate list caches
+      await Promise.all([
+        this.redis.invalidatePattern(`products:shop:*${sid}*`),
+        this.redis.invalidatePattern('products:all:*'),
+      ]);
     } catch {}
 
     return result;
