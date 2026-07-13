@@ -1,0 +1,3 @@
+## 2026-07-13 - [Parallel I/O and Zero-DB Cache Hits]
+**Learning:** In the `ProductService`, visibility checks (linking to image maps and active hotspot labels) were happening sequentially and *after* cache retrieval. By parallelizing these checks with `Promise.all` and implementing the "Zero-DB Cache Hit" pattern (filtering *before* caching), we significantly reduce latency and eliminate database load on cache hits.
+**Action:** Always filter sensitive or visibility-dependent data before storing it in Redis to ensure subsequent cache hits are truly Zero-DB. Concurrently fetch all independent metadata required for filtering on cache misses.
