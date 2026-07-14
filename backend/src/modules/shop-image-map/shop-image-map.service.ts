@@ -266,6 +266,12 @@ export class ShopImageMapService {
       },
     });
 
+    try {
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
+    } catch {
+    }
+
     return created;
   }
 
@@ -303,6 +309,8 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +549,8 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      await this.redis.invalidatePattern(`products:shop:*${sid}*`);
+      await this.redis.invalidatePattern('products:all:*');
     } catch {}
 
     return result;
