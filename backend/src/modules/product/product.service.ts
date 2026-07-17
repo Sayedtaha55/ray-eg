@@ -18,20 +18,16 @@ export class ProductService {
   private async getActiveImageMapHotspotLabelKeys(shopId?: string) {
     const sid = String(shopId || '').trim();
     if (!sid) return new Set<string>();
-    try {
-      const rows = await (this.prisma as any).shopImageHotspot.findMany({
-        where: { map: { shopId: sid, isActive: true } },
-        select: { label: true },
-      });
-      const keys = new Set<string>();
-      for (const r of Array.isArray(rows) ? rows : []) {
-        const key = this.normalizeProductNameKey((r as any)?.label);
-        if (key) keys.add(key);
-      }
-      return keys;
-    } catch {
-      return new Set<string>();
+    const rows = await (this.prisma as any).shopImageHotspot.findMany({
+      where: { map: { shopId: sid, isActive: true } },
+      select: { label: true },
+    });
+    const keys = new Set<string>();
+    for (const r of Array.isArray(rows) ? rows : []) {
+      const key = this.normalizeProductNameKey((r as any)?.label);
+      if (key) keys.add(key);
     }
+    return keys;
   }
 
   private async tryAcquireProductLock(tx: any, shopId: string, name: string, category?: string) {
@@ -72,23 +68,19 @@ export class ProductService {
   }
 
   private async getLinkedImageMapProductIds(shopId?: string) {
-    try {
-      const where = shopId
-        ? { productId: { not: null }, map: { shopId } }
-        : { productId: { not: null } };
-      const rows = await (this.prisma as any).shopImageHotspot.findMany({
-        where,
-        select: { productId: true },
-      });
-      const ids = new Set<string>();
-      for (const row of Array.isArray(rows) ? rows : []) {
-        const id = String((row as any)?.productId || '').trim();
-        if (id) ids.add(id);
-      }
-      return ids;
-    } catch {
-      return new Set<string>();
+    const where = shopId
+      ? { productId: { not: null }, map: { shopId } }
+      : { productId: { not: null } };
+    const rows = await (this.prisma as any).shopImageHotspot.findMany({
+      where,
+      select: { productId: true },
+    });
+    const ids = new Set<string>();
+    for (const row of Array.isArray(rows) ? rows : []) {
+      const id = String((row as any)?.productId || '').trim();
+      if (id) ids.add(id);
     }
+    return ids;
   }
 
   private dedupeById(items: any[]) {
@@ -201,24 +193,28 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
+    // PERFORMANCE: Parallelize independent visibility checks (linked image map IDs and active hotspot labels)
+    // using Promise.all to minimize latency on cache miss. Wrap inside proper fail-closed error handling.
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const sid = String((product as any)?.shopId || '').trim();
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(sid),
+        this.getActiveImageMapHotspotLabelKeys(sid),
+      ]);
+
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
     } catch (e) {
+      // Fail-closed security posture: propagate or treat unexpected query errors as NotFound to hide items safely
       if (e instanceof NotFoundException) throw e;
+      throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
     try {
@@ -244,50 +240,64 @@ export class ProductService {
     } catch {
     }
 
+    // PERFORMANCE: Implement the "Zero-DB Cache Hit" pattern for listByShop.
+    // On cache miss, fetch products and metadata (linked map product IDs & hotspot labels) concurrently.
+    // Then filter against this metadata BEFORE saving to Redis, so cache hits require zero additional DB query/filtering logic.
     let products: any[];
+    let linkedIds = new Set<string>();
+    let labelKeys = new Set<string>();
+
     try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          shopId,
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          images: true,
-          colors: true,
-          sizes: true,
-          addons: true,
-          packOptions: true,
-          menuVariants: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
-            select: {
-              unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
+      const [dbProducts, dbLinkedIds, dbLabelKeys] = await Promise.all([
+        (this.prisma.product as any).findMany({
+          where: {
+            shopId,
+            isActive: true,
+            NOT: [
+              { category: '__IMAGE_MAP__' },
+              { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+              { category: '__DUPLICATE__AUTO__' },
+            ],
           },
-        },
-        ...(pagination ? pagination : {}),
-      });
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            price: true,
+            stock: true,
+            trackStock: true,
+            category: true,
+            unit: true,
+            imageUrl: true,
+            images: true,
+            colors: true,
+            sizes: true,
+            addons: true,
+            packOptions: true,
+            menuVariants: true,
+            model3dUrl: true,
+            spinImages: true,
+            isActive: true,
+            shopId: true,
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              }
+            },
+          },
+          ...(pagination ? pagination : {}),
+        }),
+        this.getLinkedImageMapProductIds(shopId),
+        this.getActiveImageMapHotspotLabelKeys(shopId),
+      ]);
+
+      products = dbProducts;
+      linkedIds = dbLinkedIds;
+      labelKeys = dbLabelKeys;
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listByShop] Prisma query failed', { shopId, error: e });
@@ -296,22 +306,20 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
-    const [linkedIds, labelKeys] = await Promise.all([
-      this.getLinkedImageMapProductIds(shopId),
-      this.getActiveImageMapHotspotLabelKeys(shopId),
-    ]);
-    return deduped.filter((p: any) => {
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -415,59 +423,71 @@ export class ProductService {
     } catch {
     }
 
+    // PERFORMANCE: Implement "Zero-DB Cache Hit" pattern for listAllActive.
+    // Fetch products and active image map hotspot linked product IDs concurrently.
+    // Filter and cache the finalized list, so subsequent hits require zero database access.
     let products: any[];
+    let linkedIds = new Set<string>();
+
     try {
-      products = await (this.prisma.product as any).findMany({
-        where: {
-          isActive: true,
-          NOT: [
-            { category: '__IMAGE_MAP__' },
-            { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
-            { category: '__DUPLICATE__AUTO__' },
-          ],
-        },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          price: true,
-          stock: true,
-          trackStock: true,
-          category: true,
-          unit: true,
-          imageUrl: true,
-          model3dUrl: true,
-          spinImages: true,
-          isActive: true,
-          shopId: true,
-          furnitureMeta: {
-            select: {
-              unit: true,
-              lengthCm: true,
-              widthCm: true,
-              heightCm: true,
-            }
+      const [dbProducts, dbLinkedIds] = await Promise.all([
+        (this.prisma.product as any).findMany({
+          where: {
+            isActive: true,
+            NOT: [
+              { category: '__IMAGE_MAP__' },
+              { category: { contains: 'IMAGE_MAP', mode: 'insensitive' } },
+              { category: '__DUPLICATE__AUTO__' },
+            ],
           },
-        },
-        ...(pagination ? pagination : {}),
-      });
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            price: true,
+            stock: true,
+            trackStock: true,
+            category: true,
+            unit: true,
+            imageUrl: true,
+            model3dUrl: true,
+            spinImages: true,
+            isActive: true,
+            shopId: true,
+            furnitureMeta: {
+              select: {
+                unit: true,
+                lengthCm: true,
+                widthCm: true,
+                heightCm: true,
+              }
+            },
+          },
+          ...(pagination ? pagination : {}),
+        }),
+        this.getLinkedImageMapProductIds(),
+      ]);
+
+      products = dbProducts;
+      linkedIds = dbLinkedIds;
     } catch (e) {
       // eslint-disable-next-line no-console
       console.error('[ProductService.listAllActive] Prisma query failed', { error: e });
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
-    const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    const filtered = products.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {
