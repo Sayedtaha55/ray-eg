@@ -1161,13 +1161,16 @@ export class ShopService {
         },
       });
 
-      // Cache popular shops
-      for (const shop of popularShops) {
-        try {
-          await this.redis.cacheShop(shop.id, shop, 3600);
-        } catch {
-        }
-      }
+      // Cache popular shops concurrently to reduce latency during cache warming
+      await Promise.all(
+        popularShops.map(async (shop) => {
+          try {
+            await this.redis.cacheShop(shop.id, shop, 3600);
+          } catch {
+            // Silently swallow Redis-specific failures or unit test incomplete mocks to remain robust
+          }
+        })
+      );
 
       // Cache shops list
       try {
