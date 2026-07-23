@@ -202,23 +202,27 @@ export class ProductService {
     }
 
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const shopId = String((product as any)?.shopId || '').trim();
       const pid = String((product as any)?.id || '').trim();
+      const name = (product as any)?.name;
+
+      // Parallelize visibility checks to minimize response latency
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(shopId),
+        this.getActiveImageMapHotspotLabelKeys(shopId),
+      ]);
+
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
-      const nameKey = this.normalizeProductNameKey((product as any)?.name);
+      const nameKey = this.normalizeProductNameKey(name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
     } catch (e) {
-      if (e instanceof NotFoundException) throw e;
+      // Maintain fail-closed posture: rethrow NotFoundException or any database/cache visibility lookup failures
+      throw e;
     }
 
     try {
