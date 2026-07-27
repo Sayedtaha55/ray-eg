@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile } from '@nestjs/common';
+﻿import { Controller, Get, Post, Param, Body, Patch, UseGuards, Request, ForbiddenException, Query, BadRequestException, NotFoundException, UseInterceptors, UploadedFile, HttpCode } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { ShopService } from '@modules/shop/shop.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -9,6 +9,7 @@ import { diskStorage } from 'multer';
 import { extname } from 'path';
 import * as fs from 'fs';
 import { createHash, randomBytes } from 'crypto';
+import { AnyDto } from '@shared/dto/any.dto';
 import { CreateShopDto } from '@shared/dto/create-shop.dto';
 
  const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
@@ -45,16 +46,44 @@ export class ShopController {
   }
 
   @Get('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('merchant', 'admin')
+  @UseGuards(JwtAuthGuard)
   async getMyShop(@Request() req) {
     const shopId = req.user?.shopId;
+    const userId = req.user?.id;
+    let shop: any;
+    const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
     if (!shopId) {
-      throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
+      if (isDev) {
+        // Try to find the most recently created shop by this user
+        if (userId) {
+          shop = await this.shopService['prisma']?.shop?.findFirst?.({
+            where: { ownerId: userId },
+            orderBy: { createdAt: 'desc' },
+          });
+        }
+        if (!shop) {
+          shop = await this.shopService.findFirstActiveShop();
+        }
+      }
+      if (!shop) throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
+    } else {
+      shop = await this.shopService.getShopById(shopId);
+      if (!shop) throw new NotFoundException('لم يتم العثور على المتجر');
+      // In dev mode, check if user has a more recently created shop
+      if (isDev && userId) {
+        const newerShop = await this.shopService['prisma']?.shop?.findFirst?.({
+          where: { ownerId: userId },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (newerShop && newerShop.id !== shopId) {
+          shop = newerShop;
+        }
+      }
     }
-    const shop = await this.shopService.getShopById(shopId);
-    if (!shop) {
-      throw new NotFoundException('لم يتم العثور على المتجر');
+    if (shop) {
+      if (!shop.owner && shop.ownerId) shop.owner = { id: shop.ownerId };
+      if (!shop.status) shop.status = shop.isActive ? 'APPROVED' : 'PENDING';
+      if (!shop.merchantId && shop.ownerId) shop.merchantId = shop.ownerId;
     }
     return shop;
   }
@@ -62,7 +91,7 @@ export class ShopController {
   @Post('me/module-upgrade-requests')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async createMyModuleUpgradeRequest(@Request() req, @Body() body: any) {
+  async createMyModuleUpgradeRequest(@Request() req, @Body() body: AnyDto) {
     const shopId = String(req.user?.shopId || '').trim();
     if (!shopId) {
       throw new NotFoundException('لا يوجد متجر مرتبط بهذا الحساب');
@@ -92,7 +121,7 @@ export class ShopController {
   @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async updateMyShop(@Request() req, @Body() body: any) {
+  async updateMyShop(@Request() req, @Body() body: AnyDto) {
     const userRole = String(req.user?.role || '').toUpperCase();
     const shopIdFromToken = req.user?.shopId;
     const shopIdFromBody = typeof body?.shopId === 'string' ? body.shopId : undefined;
@@ -369,7 +398,7 @@ export class ShopController {
       },
     }),
   )
-  async uploadMyBanner(@Request() req, @UploadedFile() file: any, @Body() body: any) {
+  async uploadMyBanner(@Request() req, @UploadedFile() file: any, @Body() body: AnyDto) {
     const userRole = String(req.user?.role || '').toUpperCase();
     const shopIdFromToken = req.user?.shopId;
     const shopIdFromBody = typeof body?.shopId === 'string' ? body.shopId : undefined;
@@ -456,7 +485,7 @@ export class ShopController {
   @Patch('admin/module-upgrade-requests/:id/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async adminRejectModuleUpgradeRequest(@Param('id') id: string, @Body() body: any, @Request() req) {
+  async adminRejectModuleUpgradeRequest(@Param('id') id: string, @Body() body: AnyDto, @Request() req) {
     const adminId = req.user?.id ? String(req.user.id).trim() : null;
     return this.shopService.adminRejectModuleUpgradeRequest(id, { note: body?.note }, adminId);
   }

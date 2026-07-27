@@ -1,0 +1,21 @@
+#!/bin/sh
+. "$(dirname "$0")/_/husky.sh"
+
+# Prevent committing temporary files
+TEMP_FILES_PATTERN="(tsc_errors|vite_build|backend-out|\.log$|test-proxy|add-activities|fix-activities|update-activities|restore-next\.ps1|q-dev-chat)"
+
+if git diff --cached --name-only | grep -E "$TEMP_FILES_PATTERN"; then
+  echo "❌ Commit rejected: Attempting to commit temporary files"
+  echo "❌ Files matching pattern: $TEMP_FILES_PATTERN"
+  echo "❌ Please remove these files before committing"
+  exit 1
+fi
+
+# Prevent committing .env files (except .env.example)
+if git diff --cached --name-only | grep -E "^\.env$" | grep -v "\.env\.example"; then
+  echo "❌ Commit rejected: Attempting to commit .env file"
+  echo "❌ .env files should be gitignored"
+  exit 1
+fi
+
+echo "✅ Pre-commit checks passed"

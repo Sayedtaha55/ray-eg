@@ -1,0 +1,54 @@
+{
+  "name": "نمّي أعمالك - MNMKNK",
+  "short_name": "نمّي أعمالك",
+  "description": "لوحة تحكم التجار لإدارة المتجر والمنتجات والطلبات والتحليلات",
+  "id": "/business-app",
+  "start_url": "/#/business/dashboard",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "background_color": "#0f172a",
+  "theme_color": "#00E5FF",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["business", "productivity"],
+  "prefer_related_applications": false,
+  "icons": [
+    {
+      "src": "/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "الطلبات",
+      "short_name": "الطلبات",
+      "description": "إدارة الطلبات الجديدة",
+      "url": "/#/business/dashboard?tab=orders",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "المنتجات",
+      "short_name": "المنتجات",
+      "description": "إدارة المنتجات",
+      "url": "/#/business/dashboard?tab=products",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "التحليلات",
+      "short_name": "التحليلات",
+      "description": "تقارير المبيعات",
+      "url": "/#/business/dashboard?tab=analytics",
+      "icons": [{ "src": "/icon-192x192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

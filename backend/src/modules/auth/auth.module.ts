@@ -9,6 +9,8 @@ import { RedisModule } from '@common/redis/redis.module';
 import { EmailModule } from '@modules/email/email.module';
 import { JwtStrategy } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
+import { getJwtSecret } from '@common/security/jwt-secret.util';
+import { AccountLockoutService } from '@common/security/account-lockout.service';
 
  const hasGoogleOAuthConfig =
    Boolean(String(process.env.GOOGLE_CLIENT_ID || '').trim()) &&
@@ -25,14 +27,7 @@ import { GoogleStrategy } from './google.strategy';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
-        secret: (() => {
-          const secret = config.get<string>('JWT_SECRET');
-          const env = String(process.env.NODE_ENV || '').toLowerCase();
-          if (!secret && env === 'production') {
-            throw new Error('JWT_SECRET must be set in production');
-          }
-          return secret || 'dev-fallback-secret-change-in-production';
-        })(),
+        secret: getJwtSecret(config),
         signOptions: {
           expiresIn: (() => {
             const raw = String(config.get<string>('JWT_EXPIRES_IN') || '7d').trim();
@@ -45,7 +40,7 @@ import { GoogleStrategy } from './google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, ...(hasGoogleOAuthConfig ? [GoogleStrategy] : []), ConfigService],
+  providers: [AuthService, JwtStrategy, AccountLockoutService, ...(hasGoogleOAuthConfig ? [GoogleStrategy] : []), ConfigService],
   exports: [AuthService],
 })
 export class AuthModule {}

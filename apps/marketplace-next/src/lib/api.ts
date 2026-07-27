@@ -1,0 +1,46 @@
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  (process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000');
+
+export interface ApiOptions {
+  revalidate?: number;
+  tags?: string[];
+  headers?: Record<string, string>;
+}
+
+async function apiFetch<T>(path: string, options?: ApiOptions & { method?: string; body?: unknown }): Promise<T> {
+  const url = `${BACKEND_URL}${path.startsWith('/api') ? path : `/api/v1${path}`}`;
+  const res = await fetch(url, {
+    method: options?.method || 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+    body: options?.body ? JSON.stringify(options.body) : undefined,
+    next: {
+      revalidate: options?.revalidate ?? 3600,
+      tags: options?.tags,
+    },
+    cache: options?.revalidate === 0 ? 'no-store' : undefined,
+  });
+
+  if (!res.ok) {
+    throw new Error(`API Error: ${res.status} ${res.statusText}`);
+  }
+
+  return res.json();
+}
+
+export const api = {
+  get: <T>(path: string, options?: ApiOptions) => apiFetch<T>(path, options),
+  post: <T>(path: string, body: unknown, options?: ApiOptions) =>
+    apiFetch<T>(path, { ...options, method: 'POST', body }),
+  patch: <T>(path: string, body: unknown, options?: ApiOptions) =>
+    apiFetch<T>(path, { ...options, method: 'PATCH', body }),
+  put: <T>(path: string, body: unknown, options?: ApiOptions) =>
+    apiFetch<T>(path, { ...options, method: 'PUT', body }),
+  delete: <T>(path: string, options?: ApiOptions) =>
+    apiFetch<T>(path, { ...options, method: 'DELETE' }),
+};
+
+export { BACKEND_URL };

@@ -1,13 +1,13 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RedisService.name);
   private client: Redis | null = null;
 
   async onModuleInit() {
-    // eslint-disable-next-line no-console
-    console.log('[RedisService] onModuleInit() start');
+    this.logger.log('onModuleInit() start');
     const redisUrl = String(process.env.REDIS_URL || '').trim();
 
     this.client = redisUrl
@@ -24,26 +24,24 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
         });
 
     this.client.on('connect', () => {
-      console.log('✅ Redis connected successfully');
+      this.logger.log('Redis connected successfully');
     });
 
     this.client.on('error', (err) => {
-      console.warn('⚠️ Redis connection error (cache disabled):', err?.message || err);
+      this.logger.warn(`Redis connection error (cache disabled): ${err?.message || err}`);
     });
 
     try {
       const timeoutMs = 3_000;
-      // eslint-disable-next-line no-console
-      console.log('[RedisService] attempting connect...');
+      this.logger.log('attempting connect...');
       await Promise.race([
         this.client.connect(),
         new Promise((_, reject) => setTimeout(() => reject(new Error(`Redis connect timeout after ${timeoutMs}ms`)), timeoutMs)),
       ]);
 
-      // eslint-disable-next-line no-console
-      console.log('[RedisService] connect attempt finished');
+      this.logger.log('connect attempt finished');
     } catch (err: any) {
-      console.warn('⚠️ Redis is not available. Continuing without cache.');
+      this.logger.warn('Redis is not available. Continuing without cache.');
       try {
         await this.client.disconnect();
       } catch {
@@ -51,8 +49,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
       }
       this.client = null;
 
-      // eslint-disable-next-line no-console
-      console.log('[RedisService] cache disabled (client=null)');
+      this.logger.log('cache disabled (client=null)');
     }
   }
 

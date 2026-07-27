@@ -13,6 +13,10 @@ export class DatabaseTestController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
   async testDatabase() {
+    const env = String(process.env.NODE_ENV || '').toLowerCase();
+    if (env === 'production') {
+      return { status: 'disabled', message: 'Database test endpoint is disabled in production' };
+    }
     try {
       // Test basic database connection
       const result = await this.prisma.$queryRaw`SELECT 1 as test`;

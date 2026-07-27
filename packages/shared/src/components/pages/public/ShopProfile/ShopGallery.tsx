@@ -1,0 +1,307 @@
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ChevronLeft, ChevronRight, Heart, Share2, Eye, Play } from 'lucide-react';
+import { ShopGallery } from '@/types';
+import { useReducedMotion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+
+interface ShopGalleryProps {
+  images: ShopGallery[];
+  shopName: string;
+  primaryColor: string;
+  layout: 'minimal' | 'modern' | 'bold';
+}
+
+const ShopGalleryComponent: React.FC<ShopGalleryProps> = ({ 
+  images, 
+  shopName, 
+  primaryColor, 
+  layout 
+}) => {
+  const { t } = useTranslation();
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [isFavorite, setIsFavorite] = useState(false);
+
+  const prefersReducedMotion = useReducedMotion();
+  const lowEndDevice = useMemo(() => {
+    try {
+      const mem = typeof (navigator as any)?.deviceMemory === 'number' ? Number((navigator as any).deviceMemory) : undefined;
+      const cores = typeof navigator?.hardwareConcurrency === 'number' ? Number(navigator.hardwareConcurrency) : undefined;
+      if (typeof mem === 'number' && mem > 0 && mem <= 4) return true;
+      if (typeof cores === 'number' && cores > 0 && cores <= 4) return true;
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const disableMotion = Boolean(prefersReducedMotion) || lowEndDevice || images.length > 40;
+
+  const isBold = layout === 'bold';
+  const isMinimal = layout === 'minimal';
+
+  const safeSelectedIndex = selectedIndex ?? 0;
+  const selectedImage = selectedIndex !== null ? images[safeSelectedIndex] : null;
+  const selectedIsVideo = Boolean(selectedImage && (selectedImage as any).mediaType === 'VIDEO');
+  const canPlayVideo = !lowEndDevice && !prefersReducedMotion;
+
+  const nextImage = () => {
+    if (selectedIndex !== null && selectedIndex < images.length - 1) {
+      setSelectedIndex(selectedIndex + 1);
+    }
+  };
+
+  const prevImage = () => {
+    if (selectedIndex !== null && selectedIndex > 0) {
+      setSelectedIndex(selectedIndex - 1);
+    }
+  };
+
+  const handleShare = async () => {
+    if (selectedImage) {
+      try {
+        await navigator.clipboard.writeText(selectedImage.imageUrl);
+        // Show toast or notification
+      } catch (e) {}
+    }
+  };
+
+  if (images.length === 0) {
+    return (
+      <div className={`text-center py-16 md:py-24 border-2 border-dashed rounded-[2rem] md:rounded-[3rem] ${
+        isMinimal ? 'border-slate-200 bg-slate-50' : 'border-slate-100 bg-white'
+      }`}>
+        <Eye className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-4 text-slate-300" />
+        <h3 className="text-lg md:text-2xl font-black mb-2 text-slate-400">{t('shopGallery.noImages')}</h3>
+        <p className="text-sm md:text-base text-slate-300">{t('shopGallery.galleryComingSoon')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 md:space-y-8">
+      {/* Gallery Grid */}
+      <div className={`grid gap-3 md:gap-6 ${
+        images.length === 1 ? 'grid-cols-1' :
+        images.length === 2 ? 'grid-cols-2' :
+        images.length === 3 ? 'grid-cols-3' :
+        'grid-cols-2 sm:grid-cols-3 md:grid-cols-4'
+      }`}>
+        {images.map((image, index) => {
+          const Wrapper: any = disableMotion ? 'div' : (motion.div as any);
+          const motionProps = disableMotion ? {} : {
+            initial: { opacity: 0, y: 20 },
+            animate: { opacity: 1, y: 0 },
+            transition: { delay: Math.min(index * 0.04, 0.25) },
+          };
+          return (
+          <Wrapper
+            key={image.id}
+            {...motionProps}
+            onClick={() => setSelectedIndex(index)}
+            className={`relative aspect-square overflow-hidden cursor-pointer group ${
+              isBold ? 'rounded-[1.5rem] md:rounded-[2rem]' : 
+              isMinimal ? 'rounded-lg md:rounded-xl' : 
+              'rounded-xl md:rounded-2xl'
+            } ${disableMotion ? 'shadow-sm' : 'shadow-lg hover:shadow-2xl transition-all duration-300'}`}
+          >
+            {(image as any).mediaType === 'VIDEO' ? (
+              <>
+                <img
+                  src={image.thumbUrl || image.imageUrl}
+                  alt={image.caption || `${shopName} - ${index + 1}`}
+                  className={`w-full h-full object-cover ${disableMotion ? '' : 'group-hover:scale-110 transition-transform duration-500'}`}
+                  loading="lazy"
+                  decoding="async"
+                  onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
+                    <Play size={18} className="text-slate-800 ml-0.5" fill="currentColor" />
+                  </div>
+                </div>
+              </>
+            ) : (
+              <img
+                src={image.thumbUrl || image.imageUrl}
+                alt={image.caption || `${shopName} - ${index + 1}`}
+                className={`w-full h-full object-cover ${disableMotion ? '' : 'group-hover:scale-110 transition-transform duration-500'}`}
+                loading="lazy"
+                decoding="async"
+              />
+            )}
+            
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all duration-300 flex items-center justify-center">
+              <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-90 group-hover:scale-100">
+                <Eye className="w-8 h-8 md:w-12 md:h-12 text-white" />
+              </div>
+            </div>
+
+            {/* Favorite Button */}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsFavorite(!isFavorite);
+              }}
+              className={`absolute top-3 left-3 p-2 bg-white/90 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 shadow-lg`}
+            >
+              <Heart 
+                size={16} 
+                className={isFavorite ? 'text-red-500 fill-current' : 'text-slate-600'} 
+              />
+            </button>
+          </Wrapper>
+          );
+        })}
+      </div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          (() => {
+            const Overlay: any = disableMotion ? 'div' : (motion.div as any);
+            const Card: any = disableMotion ? 'div' : (motion.div as any);
+            const overlayMotionProps = disableMotion ? {} : { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
+            const cardMotionProps = disableMotion ? {} : { initial: { scale: 0.9, opacity: 0 }, animate: { scale: 1, opacity: 1 }, exit: { scale: 0.9, opacity: 0 } };
+            return (
+            <Overlay
+              {...overlayMotionProps}
+              className={`fixed inset-0 z-[300] bg-black/95 ${disableMotion ? '' : 'backdrop-blur-xl'} flex items-center justify-center p-4`}
+              onClick={() => setSelectedIndex(null)}
+            >
+              <Card
+                {...cardMotionProps}
+                className="relative max-w-5xl max-h-[90vh] w-full"
+                onClick={(e: any) => e.stopPropagation()}
+              >
+              {/* Close Button */}
+              <button
+                onClick={() => setSelectedIndex(null)}
+                className="absolute -top-12 right-0 p-3 text-white/80 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+
+              {/* Media */}
+              <div className="relative bg-black rounded-[2rem] overflow-hidden">
+                {selectedIsVideo ? (
+                  canPlayVideo ? (
+                    <video
+                      src={selectedImage.imageUrl}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      controls
+                      playsInline
+                      preload="none"
+                      poster={(selectedImage as any)?.thumbUrl || undefined}
+                    />
+                  ) : (
+                    <img 
+                      src={(selectedImage as any)?.thumbUrl || selectedImage.imageUrl} 
+                      alt={selectedImage.caption || `${shopName} - ${safeSelectedIndex + 1}`}
+                      className="w-full h-auto max-h-[70vh] object-contain"
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  )
+                ) : (
+                  <img 
+                    src={selectedImage.imageUrl} 
+                    alt={selectedImage.caption || `${shopName} - ${safeSelectedIndex + 1}`}
+                    className="w-full h-auto max-h-[70vh] object-contain"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                )}
+
+                {/* Navigation Arrows */}
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={prevImage}
+                      disabled={safeSelectedIndex === 0}
+                      className={`absolute left-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+                    <button
+                      onClick={nextImage}
+                      disabled={safeSelectedIndex === images.length - 1}
+                      className={`absolute right-4 top-1/2 -translate-y-1/2 p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed`}
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Image Info */}
+              <div className="mt-6 text-center text-white">
+                <h3 className="text-xl md:text-2xl font-black mb-2">
+                  {shopName} - {safeSelectedIndex + 1} / {images.length}
+                </h3>
+                {selectedImage.caption && (
+                  <p className="text-white/80 text-sm md:text-base">{selectedImage.caption}</p>
+                )}
+                
+                {/* Actions */}
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={handleShare}
+                    className={`p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all`}
+                  >
+                    <Share2 size={20} />
+                  </button>
+                  <button
+                    onClick={() => setIsFavorite(!isFavorite)}
+                    className={`p-3 bg-white/20 ${disableMotion ? '' : 'backdrop-blur-sm'} rounded-full text-white hover:bg-white/30 transition-all`}
+                  >
+                    <Heart 
+                      size={20} 
+                      className={isFavorite ? 'fill-current' : ''} 
+                    />
+                  </button>
+                </div>
+              </div>
+
+              {/* Thumbnails */}
+              {images.length > 1 && (
+                <div className="flex items-center justify-center gap-2 mt-6 overflow-x-auto no-scrollbar">
+                  {images.map((img, index) => (
+                    <button
+                      key={img.id}
+                      onClick={() => setSelectedIndex(index)}
+                      className={`flex-shrink-0 w-16 h-16 md:w-20 md:h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
+                        index === selectedIndex 
+                          ? 'border-white scale-110' 
+                          : 'border-white/30 opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      <img 
+                        src={img.thumbUrl || img.imageUrl} 
+                        alt={`Thumbnail ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                        decoding="async"
+                        onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0'; }}
+                      />
+                      {(img as any).mediaType === 'VIDEO' && (
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                          <Play size={14} className="text-white" fill="currentColor" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+              </Card>
+            </Overlay>
+            );
+          })()
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default ShopGalleryComponent;

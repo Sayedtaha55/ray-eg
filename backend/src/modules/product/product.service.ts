@@ -1,12 +1,14 @@
-import { Injectable, Inject, ForbiddenException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException, NotFoundException, BadRequestException, Optional } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { RedisService } from '@common/redis/redis.service';
+import { RealtimeService } from '@common/realtime/realtime.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RedisService) private readonly redis: RedisService,
+    @Optional() @Inject(RealtimeService) private readonly realtime?: RealtimeService,
   ) {}
 
   private readonly autoDuplicateCategory = '__DUPLICATE__AUTO__';
@@ -588,6 +590,15 @@ export class ProductService {
       }
     }
 
+    try {
+      this.realtime?.broadcastProductEvent(input.shopId, 'PRODUCT_CREATED', {
+        productId: created.id,
+        product: created,
+      });
+    } catch {
+      // ignore realtime failures
+    }
+
     return created;
   }
 
@@ -1063,6 +1074,15 @@ export class ProductService {
       }
     }
 
+    try {
+      this.realtime?.broadcastProductEvent(existing.shopId, 'PRODUCT_UPDATED', {
+        productId,
+        product: updated,
+      });
+    } catch {
+      // ignore realtime failures
+    }
+
     return updated;
   }
 
@@ -1106,6 +1126,15 @@ export class ProductService {
         await this.redis.invalidateShopCache(shop.id, shop.slug);
       } catch {
       }
+    }
+
+    try {
+      this.realtime?.broadcastProductEvent(existing.shopId, 'PRODUCT_DELETED', {
+        productId,
+        product: deleted,
+      });
+    } catch {
+      // ignore realtime failures
     }
 
     return deleted;

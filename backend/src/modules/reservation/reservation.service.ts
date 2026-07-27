@@ -1,6 +1,7 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { PrismaService } from '@common/prisma/prisma.service';
+import { normalizeBookingStatus, getPagination } from '@common/utils/booking-helpers';
 
 @Injectable()
 export class ReservationService {
@@ -144,23 +145,10 @@ export class ReservationService {
 
   private readonly RESERVATION_EXPIRY_MS = 24 * 60 * 60 * 1000;
 
-  private getPagination(paging?: { page?: number; limit?: number }) {
-    const page = typeof paging?.page === 'number' ? paging.page : undefined;
-    const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
-    if (page == null && limit == null) return null;
-
-    const safeLimitRaw = limit == null ? 20 : limit;
-    const safeLimit = Math.min(Math.max(Math.floor(safeLimitRaw), 1), 100);
-    const safePage = Math.max(Math.floor(page == null ? 1 : page), 1);
-    const skip = (safePage - 1) * safeLimit;
-
-    return { take: safeLimit, skip };
-  }
-
   private normalizeStatus(status?: string) {
-    const s = String(status || '').trim().toUpperCase();
-    if (s === 'COMPLETED' || s === 'COMPLETEDRESERVATION') return 'COMPLETED';
-    if (s === 'CANCELLED' || s === 'CANCELED' || s === 'EXPIRED') return 'CANCELLED';
+    const s = normalizeBookingStatus(status);
+    if (s === 'COMPLETED') return 'COMPLETED';
+    if (s === 'CANCELLED') return 'CANCELLED';
     if (s === 'CONFIRMED') return 'CONFIRMED';
     return 'PENDING';
   }
@@ -450,7 +438,7 @@ export class ReservationService {
 
     await this.expireStaleReservations({ shopId: id });
 
-    const pagination = this.getPagination(paging);
+    const pagination = getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { shopId: id },
       orderBy: { createdAt: 'desc' },
@@ -464,7 +452,7 @@ export class ReservationService {
 
     await this.expireStaleReservations({ customerId: id } as any);
 
-    const pagination = this.getPagination(paging);
+    const pagination = getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { customerId: id } as any,
       orderBy: { createdAt: 'desc' },
@@ -478,7 +466,7 @@ export class ReservationService {
 
     await this.expireStaleReservations({ customerPhone: phone } as any);
 
-    const pagination = this.getPagination(paging);
+    const pagination = getPagination(paging);
     return this.prisma.reservation.findMany({
       where: { customerPhone: phone } as any,
       orderBy: { createdAt: 'desc' },

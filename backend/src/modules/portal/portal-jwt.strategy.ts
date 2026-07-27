@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
 import { PortalAuthService } from './portal-auth.service';
+import { getJwtSecret } from '@common/security/jwt-secret.util';
 
 @Injectable()
 export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') {
@@ -30,14 +31,7 @@ export class PortalJwtStrategy extends PassportStrategy(Strategy, 'portal-jwt') 
         },
       ]),
       ignoreExpiration: false,
-      secretOrKey: (() => {
-        const secret = configService.get<string>('JWT_SECRET');
-        const env = String(process.env.NODE_ENV || '').toLowerCase();
-        if (!secret && env === 'production') {
-          throw new Error('JWT_SECRET must be set in production');
-        }
-        return secret || 'dev-fallback-secret-change-in-production';
-      })(),
+      secretOrKey: getJwtSecret(configService),
     });
   }
 

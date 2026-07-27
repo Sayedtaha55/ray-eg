@@ -12,7 +12,9 @@ const __dirname = path.dirname(__filename);
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
   const backendTarget = String(env.VITE_BACKEND_URL || 'http://127.0.0.1:4000').trim();
+  const isElectronBuild = String(process.env.VITE_ELECTRON || '').trim() === 'true';
   return {
+    base: isElectronBuild ? './' : '/',
     server: {
       port: Number(env.VITE_PORT || env.PORT || 5174),
       host: env.VITE_HOST || '0.0.0.0',
@@ -64,10 +66,9 @@ export default defineConfig(({ mode }) => {
           },
         },
       },
-      VitePWA({
+      ...(isElectronBuild ? [] : [VitePWA({
         registerType: 'autoUpdate',
         manifestFilename: 'manifest.json',
-        filename: 'pwa-sw.js',
         devOptions: { enabled: false },
         includeAssets: [
           'favicon-16x16.png',
@@ -93,7 +94,11 @@ export default defineConfig(({ mode }) => {
             { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
           ],
         },
-      }),
+        // Use custom service worker instead of generated one
+        strategies: 'injectManifest',
+        srcDir: 'public',
+        filename: 'sw.js',
+      })]),
     ],
     resolve: {
       alias: {

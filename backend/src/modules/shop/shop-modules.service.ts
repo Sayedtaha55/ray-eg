@@ -36,23 +36,23 @@ export class ShopModulesService {
     };
 
     // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
-    if (cat === 'RESTAURANT') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
+    if (cat === 'RESTAURANT' || cat === 'SERVICE') {
+      add('reservations', 'sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
       return always;
     }
-    if (cat === 'SERVICE') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos', 'abandonedCart');
-      return always;
-    }
-    if (cat === 'FASHION') {
-      add('sales', 'customers', 'reports', 'pos', 'abandonedCart');
-      return always;
-    }
-    if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
-      add('sales', 'customers', 'reports', 'pos', 'abandonedCart');
+    if (
+      cat === 'FASHION' ||
+      cat === 'RETAIL' ||
+      cat === 'ELECTRONICS' ||
+      cat === 'HEALTH' ||
+      cat === 'FOOD'
+    ) {
+      add('sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
       return always;
     }
 
+    // Default: be permissive for unknown/new categories to support future activities.
+    add('sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
     return always;
   }
 

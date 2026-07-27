@@ -25,13 +25,13 @@ export class KnowledgeBaseService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
   ) {
     this.provider = new GroqProvider({
-      apiKey: this.config.get<string>('GROQ_API_KEY') || this.config.get<string>('OPENAI_API_KEY'),
-      model: this.config.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile',
+      apiKey: process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'ollama',
+      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      baseUrl: process.env.AI_BASE_URL || process.env.OLLAMA_BASE_URL || undefined,
     });
-    this.embeddingModel = this.config.get<string>('EMBEDDING_MODEL') || 'text-embedding-3-small';
+    this.embeddingModel = process.env.EMBEDDING_MODEL || 'text-embedding-3-small';
   }
 
   /**

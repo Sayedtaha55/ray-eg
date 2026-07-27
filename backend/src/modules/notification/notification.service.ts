@@ -1,13 +1,15 @@
-import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, ForbiddenException, Optional } from '@nestjs/common';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { NotificationType, NotificationPriority, NotificationChannel, NotificationData } from '@shared/types/notifications';
 import { WebPushService } from '@shared/services/web-push.service';
+import { RealtimeService } from '@common/realtime/realtime.service';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(WebPushService) private readonly webPushService: WebPushService,
+    @Optional() @Inject(RealtimeService) private readonly realtime?: RealtimeService,
   ) {}
 
   private normalizeWebPushSubscription(raw: any) {
@@ -199,6 +201,14 @@ export class NotificationService {
         });
       }
     } catch {
+    }
+
+    try {
+      if (data?.shopId) {
+        this.realtime?.broadcastNotification(String(data.shopId), notification);
+      }
+    } catch {
+      // ignore realtime failures
     }
 
     return notification;

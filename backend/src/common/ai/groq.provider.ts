@@ -33,59 +33,64 @@ interface GroqResponse {
   created: number;
   model: string;
   choices: GroqChoice[];
-  usage: GroqUsage;
+  usage?: GroqUsage;
 }
 
 export class GroqProvider implements AiProvider {
   name = 'Groq';
   private apiKey: string;
   private model: string;
-  private baseUrl: string = 'https://api.groq.com/openai/v1';
+  private baseUrl: string;
 
   constructor(config: { apiKey: string; model?: string; baseUrl?: string }) {
-    this.apiKey = config.apiKey;
+    this.apiKey = config.apiKey || 'ollama';
     this.model = config.model || 'llama-3.3-70b-versatile';
-    if (config.baseUrl) this.baseUrl = config.baseUrl;
+    this.baseUrl = config.baseUrl || 'https://api.groq.com/openai/v1';
   }
 
   async chat(request: any): Promise<any> {
+    const body: any = {
+      model: this.model,
+      messages: request.messages.map((msg: any) => {
+        const mapped: any = { role: msg.role, content: msg.content || '' };
+        if (msg.role === 'assistant' && msg.toolCalls) {
+          mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
+            },
+          }));
+        }
+        if (msg.role === 'tool' && msg.toolCallId) {
+          mapped.tool_call_id = msg.toolCallId;
+        }
+        return mapped;
+      }),
+      temperature: 0.7,
+      max_tokens: 2000,
+    };
+
+    if (request.tools?.length) {
+      body.tools = request.tools.map((tool: any) => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+      }));
+      body.tool_choice = 'auto';
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: this.model,
-        messages: request.messages.map((msg: any) => {
-          const mapped: any = { role: msg.role, content: msg.content || '' };
-          if (msg.role === 'assistant' && msg.toolCalls) {
-            mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
-              id: tc.id,
-              type: 'function',
-              function: {
-                name: tc.name,
-                arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
-              },
-            }));
-          }
-          if (msg.role === 'tool' && msg.toolCallId) {
-            mapped.tool_call_id = msg.toolCallId;
-          }
-          return mapped;
-        }),
-        tools: request.tools?.map((tool: any) => ({
-          type: 'function',
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters,
-          },
-        })),
-        tool_choice: 'auto',
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {
@@ -110,52 +115,57 @@ export class GroqProvider implements AiProvider {
       content: choice.message.content || '',
       toolCalls,
       usage: {
-        promptTokens: data.usage.prompt_tokens,
-        completionTokens: data.usage.completion_tokens,
-        totalTokens: data.usage.total_tokens,
+        promptTokens: data.usage?.prompt_tokens || 0,
+        completionTokens: data.usage?.completion_tokens || 0,
+        totalTokens: data.usage?.total_tokens || 0,
       },
     };
   }
 
   async chatStream(request: any, onChunk: (chunk: any) => void): Promise<any> {
+    const body: any = {
+      model: this.model,
+      messages: request.messages.map((msg: any) => {
+        const mapped: any = { role: msg.role, content: msg.content || '' };
+        if (msg.role === 'assistant' && msg.toolCalls) {
+          mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
+            id: tc.id,
+            type: 'function',
+            function: {
+              name: tc.name,
+              arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
+            },
+          }));
+        }
+        if (msg.role === 'tool' && msg.toolCallId) {
+          mapped.tool_call_id = msg.toolCallId;
+        }
+        return mapped;
+      }),
+      temperature: 0.7,
+      max_tokens: 2000,
+      stream: true,
+    };
+
+    if (request.tools?.length) {
+      body.tools = request.tools.map((tool: any) => ({
+        type: 'function',
+        function: {
+          name: tool.name,
+          description: tool.description,
+          parameters: tool.parameters,
+        },
+      }));
+      body.tool_choice = 'auto';
+    }
+
     const response = await fetch(`${this.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        model: this.model,
-        messages: request.messages.map((msg: any) => {
-          const mapped: any = { role: msg.role, content: msg.content || '' };
-          if (msg.role === 'assistant' && msg.toolCalls) {
-            mapped.tool_calls = msg.toolCalls.map((tc: any) => ({
-              id: tc.id,
-              type: 'function',
-              function: {
-                name: tc.name,
-                arguments: typeof tc.arguments === 'string' ? tc.arguments : JSON.stringify(tc.arguments),
-              },
-            }));
-          }
-          if (msg.role === 'tool' && msg.toolCallId) {
-            mapped.tool_call_id = msg.toolCallId;
-          }
-          return mapped;
-        }),
-        tools: request.tools?.map((tool: any) => ({
-          type: 'function',
-          function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: tool.parameters,
-          },
-        })),
-        tool_choice: 'auto',
-        temperature: 0.7,
-        max_tokens: 2000,
-        stream: true,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

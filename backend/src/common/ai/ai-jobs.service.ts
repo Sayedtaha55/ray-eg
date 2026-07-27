@@ -37,9 +37,8 @@ export class AiJobsService implements OnModuleInit, OnModuleDestroy {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
   ) {
-    const redisUrl = this.config.get<string>('REDIS_URL');
+    const redisUrl = process.env.REDIS_URL;
     this.redisEnabled = !!redisUrl;
 
     if (this.redisEnabled) {
@@ -73,7 +72,8 @@ export class AiJobsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    if (this.redisEnabled && this.config.get<string>('NODE_ENV') !== 'test') {
+    const nodeEnv = process.env.NODE_ENV;
+    if (this.redisEnabled && nodeEnv !== 'test') {
       try {
         await this.redis?.ping();
         await this.startWorker();

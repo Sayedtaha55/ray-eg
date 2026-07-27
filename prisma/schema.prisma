@@ -98,7 +98,7 @@ model Shop {
   visitors              Int                        @default(0)
   rating                Float                      @default(0)
   isActive              Boolean                    @default(true)
-  ownerId               String?
+  ownerId               String?                    @unique
   createdAt             DateTime                   @default(now())
   updatedAt             DateTime                   @updatedAt
   addons                Json?
@@ -134,7 +134,7 @@ model Shop {
   knowledgeDocuments    KnowledgeDocument[]
   cartEvents            CartEvent[]
   media                 Media[]
-  owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id])
+  owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
   @@index([category])
   @@index([slug])
@@ -214,7 +214,7 @@ model ShopModuleUpgradeRequest {
   reviewedAt        DateTime?                      @map("reviewed_at")
   createdAt         DateTime                       @default(now()) @map("created_at")
   updatedAt         DateTime                       @updatedAt @map("updated_at")
-  shop              Shop                           @relation(fields: [shopId], references: [id])
+  shop              Shop                           @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId])
   @@index([status])
@@ -226,8 +226,8 @@ model ShopFollower {
   shopId    String   @map("shop_id")
   userId    String   @map("user_id")
   createdAt DateTime @default(now()) @map("created_at")
-  shop      Shop     @relation(fields: [shopId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  shop    Shop          @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, userId])
   @@index([shopId])
@@ -262,7 +262,7 @@ model Product {
   orderItems    OrderItem[]
   returnItems   OrderReturnItem[]
   furnitureMeta ProductFurnitureMeta?
-  shop          Shop                  @relation(fields: [shopId], references: [id])
+  shop          Shop                  @relation(fields: [shopId], references: [id], onDelete: Cascade)
   imageHotspots ShopImageHotspot[]
 
   @@index([shopId])
@@ -299,7 +299,7 @@ model ShopImageMap {
   createdAt DateTime           @default(now()) @map("created_at")
   updatedAt DateTime           @updatedAt @map("updated_at")
   hotspots  ShopImageHotspot[]
-  shop      Shop               @relation(fields: [shopId], references: [id])
+  shop      Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
   sections  ShopImageSection[]
 
   @@index([shopId])
@@ -341,8 +341,8 @@ model ShopImageHotspot {
   updatedAt     DateTime          @updatedAt @map("updated_at")
   itemData      Json?             @map("item_data")
   map           ShopImageMap      @relation(fields: [mapId], references: [id], onDelete: Cascade)
-  product       Product?          @relation(fields: [productId], references: [id])
-  section       ShopImageSection? @relation(fields: [sectionId], references: [id])
+  product       Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  section       ShopImageSection? @relation(fields: [sectionId], references: [id], onDelete: Cascade)
 
   @@index([mapId])
   @@index([sectionId])
@@ -365,8 +365,8 @@ model Offer {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   variantPricing Json?    @map("variant_pricing")
-  product        Product? @relation(fields: [productId], references: [id])
-  shop           Shop     @relation(fields: [shopId], references: [id])
+  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId])
   @@index([productId])
@@ -397,15 +397,15 @@ model Order {
   codCollectedAt             DateTime?           @map("cod_collected_at")
   deliveredAt                DateTime?           @map("delivered_at")
   createdAt                  DateTime            @default(now())
-  updatedAt                  DateTime
+  updatedAt                  DateTime            @updatedAt
   source                     String?             @default("customer")
   notifications              Notification[]
   courierOffers              OrderCourierOffer[]
   items                      OrderItem[]
   returns                    OrderReturn[]
-  courier                    User?               @relation("CourierOrders", fields: [courierId], references: [id])
-  shops                      Shop                @relation(fields: [shopId], references: [id])
-  users_orders_userIdTousers User                @relation("orders_userIdTousers", fields: [userId], references: [id])
+  courier                    User?               @relation("CourierOrders", fields: [courierId], references: [id], onDelete: SetNull)
+  shops                      Shop                @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  users_orders_userIdTousers User                @relation("orders_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([shopId, status, createdAt])
   @@index([courierId, status, createdAt])
@@ -424,7 +424,7 @@ model CourierState {
   lastSeenAt  DateTime? @map("last_seen_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("courier_states")
@@ -440,8 +440,8 @@ model OrderCourierOffer {
   respondedAt DateTime?               @map("responded_at")
   createdAt   DateTime                @default(now()) @map("created_at")
   updatedAt   DateTime                @updatedAt @map("updated_at")
-  courier     User                    @relation("CourierOrderOffers", fields: [courierId], references: [id])
-  order       Order                   @relation(fields: [orderId], references: [id])
+  courier     User                    @relation("CourierOrderOffers", fields: [courierId], references: [id], onDelete: Cascade)
+  order       Order                   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@unique([orderId, courierId])
   @@index([courierId, status])
@@ -457,8 +457,8 @@ model OrderItem {
   price            Float
   addons           Json?
   variantSelection Json?             @map("variant_selection")
-  order            Order             @relation(fields: [orderId], references: [id])
-  product          Product           @relation(fields: [productId], references: [id])
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   returnItems      OrderReturnItem[]
 
   @@index([orderId])
@@ -521,8 +521,8 @@ model AccountingInvoice {
   createdAt   DateTime                @default(now()) @map("created_at")
   updatedAt   DateTime                @updatedAt @map("updated_at")
   items       AccountingInvoiceItem[]
-  createdBy   User                    @relation(fields: [createdById], references: [id])
-  shop        Shop                    @relation(fields: [shopId], references: [id])
+  createdBy   User                    @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  shop        Shop                    @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@unique([shopId, sequence])
   @@index([shopId, invoiceDate])
@@ -554,8 +554,8 @@ model Message {
   shopId     String      @map("shop_id")
   isRead     Boolean     @default(false) @map("is_read")
   createdAt  DateTime    @default(now()) @map("created_at")
-  sender     User        @relation(fields: [senderId], references: [id])
-  shop       Shop        @relation(fields: [shopId], references: [id])
+  sender     User        @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId])
   @@index([shopId, createdAt])
@@ -580,9 +580,9 @@ model Notification {
   expiresAt   DateTime? @map("expires_at")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
-  order       Order?    @relation(fields: [orderId], references: [id])
-  shop        Shop?     @relation(fields: [shopId], references: [id])
-  user        User?     @relation(fields: [userId], references: [id])
+  order       Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  shop        Shop?     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user        User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([shopId])
@@ -603,9 +603,7 @@ model NotificationPreference {
   typeSettings Json?    @map("type_settings")
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
-  user         User     @relation(fields: [userId], references: [id])
-
-  @@map("notification_preferences")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model MerchantPushSubscription {
@@ -697,8 +695,8 @@ model Reservation {
   extras           Json?
   variantSelection Json?             @map("variant_selection")
   updatedAt        DateTime          @updatedAt @map("updated_at")
-  customer         User?             @relation(fields: [customerId], references: [id])
-  shop             Shop              @relation(fields: [shopId], references: [id])
+  customer         User?             @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  shop             Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId, status, createdAt])
   @@index([customerPhone, createdAt])
@@ -708,9 +706,26 @@ model Reservation {
   @@map("reservations")
 }
 
+model BookingCategory {
+  id          String         @id @default(cuid())
+  name        String
+  nameAr      String?        @map("name_ar")
+  type        String
+  description String?
+  icon        String?
+  isActive    Boolean        @default(true) @map("is_active")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  services    BookingService[]
+
+  @@index([type, isActive])
+  @@map("booking_categories")
+}
+
 model BookingService {
   id              String            @id @default(cuid())
   shopId          String            @map("shop_id")
+  categoryId      String?           @map("category_id")
   name            String
   nameAr          String?           @map("name_ar")
   activityType    String?           @map("activity_type")
@@ -724,7 +739,8 @@ model BookingService {
   metadata        Json?
   createdAt       DateTime          @default(now()) @map("created_at")
   updatedAt       DateTime          @updatedAt @map("updated_at")
-  shop            Shop              @relation(fields: [shopId], references: [id])
+  shop            Shop              @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  category        BookingCategory?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   resources       BookingResource[]
   slots           BookingSlot[]
   bookings        Booking[]
@@ -732,6 +748,7 @@ model BookingService {
   @@index([shopId, isActive, createdAt])
   @@index([shopId, activityType, isActive])
   @@index([buttonKey])
+  @@index([categoryId])
   @@map("booking_services")
 }
 
@@ -751,8 +768,8 @@ model BookingResource {
   metadata        Json?
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
-  service         BookingService?  @relation(fields: [serviceId], references: [id])
-  shop            Shop             @relation(fields: [shopId], references: [id])
+  service         BookingService?  @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
   slots           BookingSlot[]
   bookings        Booking[]
 
@@ -767,23 +784,27 @@ model BookingSlot {
   shopId          String           @map("shop_id")
   serviceId       String?          @map("service_id")
   resourceId      String?          @map("resource_id")
-  startAt         DateTime         @map("start_at")
-  endAt           DateTime         @map("end_at")
+  date            DateTime?
+  startTime       String?          @map("start_time")
+  endTime         String?          @map("end_time")
+  startAt         DateTime?        @map("start_at")
+  endAt           DateTime?        @map("end_at")
   status          String           @default("AVAILABLE")
   maxCapacity     Int              @default(1) @map("max_capacity")
   currentBookings Int              @default(0) @map("current_bookings")
   metadata        Json?
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
-  service         BookingService?  @relation(fields: [serviceId], references: [id])
-  resource        BookingResource? @relation(fields: [resourceId], references: [id])
-  shop            Shop             @relation(fields: [shopId], references: [id])
+  service         BookingService?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  resource        BookingResource? @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
   bookings        Booking[]
 
   @@index([shopId, startAt])
   @@index([shopId, status, startAt])
   @@index([serviceId, startAt])
   @@index([resourceId, startAt])
+  @@index([shopId, date])
   @@map("booking_slots")
 }
 
@@ -806,6 +827,8 @@ model Booking {
   itemName      String?          @map("item_name")
   itemImage     String?          @map("item_image")
   itemPrice     Float?           @map("item_price")
+  totalAmount   Float?           @map("total_amount")
+  currency      String           @default("EGP")
   participants  Int              @default(1)
   confirmedAt   DateTime?        @map("confirmed_at")
   cancelledAt   DateTime?        @map("cancelled_at")
@@ -814,10 +837,10 @@ model Booking {
   metadata      Json?
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
-  service       BookingService?  @relation(fields: [serviceId], references: [id])
-  slot          BookingSlot?     @relation(fields: [slotId], references: [id])
-  resource      BookingResource? @relation(fields: [resourceId], references: [id])
-  shop          Shop             @relation(fields: [shopId], references: [id])
+  service       BookingService?  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  slot          BookingSlot?     @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  resource      BookingResource? @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  shop          Shop             @relation(fields: [shopId], references: [id], onDelete: Cascade)
   payments      BookingPayment[]
 
   @@index([shopId, createdAt])
@@ -843,7 +866,7 @@ model BookingPayment {
   metadata         Json?
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  booking          Booking  @relation(fields: [bookingId], references: [id])
+  booking          Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 
   @@index([bookingId])
   @@index([status])
@@ -861,9 +884,9 @@ model Feedback {
   userId    String?  @map("user_id")
   shopId    String?  @map("shop_id")
   productId String?  @map("product_id")
-  product   Product? @relation(fields: [productId], references: [id])
-  shop      Shop?    @relation(fields: [shopId], references: [id])
-  user      User?    @relation(fields: [userId], references: [id])
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  shop      Shop?    @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([shopId, createdAt])
   @@index([productId, createdAt])
@@ -884,7 +907,7 @@ model ShopGallery {
   isHero    Boolean   @default(false) @map("is_hero")
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now()) @map("created_at")
-  shop      Shop      @relation(fields: [shopId], references: [id])
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId, isActive, createdAt])
   @@index([shopId, isHero])
@@ -900,7 +923,7 @@ model ShopAnalytics {
   ordersCount    Int      @default(0) @map("orders_count")
   visitorsCount  Int      @default(0) @map("visitors_count")
   followersCount Int      @default(0) @map("followers_count")
-  shop           Shop     @relation(fields: [shopId], references: [id])
+  shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId, date])
   @@index([date])
@@ -921,7 +944,7 @@ model ShopTheme {
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  shop         Shop      @relation(fields: [shopId], references: [id])
+  shop         Shop      @relation(fields: [shopId], references: [id], onDelete: Cascade)
 
   @@index([shopId])
   @@map("shop_themes")
@@ -1165,7 +1188,7 @@ model AiJob {
   payload         Json
   result          Json?
   error           String?
-  attempts        Int             @default(0) @map("max_attempts")
+  attempts        Int             @default(0) @map("attempts")
   maxAttempts     Int             @default(3) @map("max_attempts")
   startedAt       DateTime?       @map("started_at")
   completedAt     DateTime?       @map("completed_at")
@@ -1370,7 +1393,7 @@ model MapListingAnalyticsEvent {
   userAgent String?            @map("user_agent")
   meta      Json?
   createdAt DateTime           @default(now()) @map("created_at")
-  listing MapListing @relation(fields: [listingId], references: [id])
+  listing MapListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
   @@index([listingId])
   @@index([listingId, type])

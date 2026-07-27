@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RealtimeGateway } from './realtime.gateway';
 import { RealtimeService } from './realtime.service';
 import { PrismaModule } from '@common/prisma/prisma.module';
+import { getJwtSecret } from '@common/security/jwt-secret.util';
 
 @Global()
 @Module({
@@ -13,14 +14,7 @@ import { PrismaModule } from '@common/prisma/prisma.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
-        secret: (() => {
-          const secret = config.get<string>('JWT_SECRET');
-          const env = String(process.env.NODE_ENV || '').toLowerCase();
-          if (!secret && env === 'production') {
-            throw new Error('JWT_SECRET must be set in production');
-          }
-          return secret || 'dev-fallback-secret-change-in-production';
-        })(),
+        secret: getJwtSecret(config),
         signOptions: {
           expiresIn: (() => {
             const raw = String(config.get<string>('JWT_EXPIRES_IN') || '7d').trim();

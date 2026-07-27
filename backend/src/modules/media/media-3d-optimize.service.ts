@@ -91,21 +91,31 @@ export class Media3dOptimizeService {
       try {
         const { NodeIO } = await import('@gltf-transform/core');
         const { resample, prune, dedup, quantize } = await import('@gltf-transform/functions');
+        
+        // Try to use advanced compression if available
+        let transforms = [prune(), dedup(), resample(), quantize()];
+        
+        try {
+          const { draco } = await import('@gltf-transform/functions');
+          const { meshopt } = await import('@gltf-transform/functions');
+          const { textureCompress } = await import('@gltf-transform/functions');
+          
+          // Add advanced compression
+          transforms = [
+            ...transforms,
+            draco({ method: 'edgebreaker' }),
+            meshopt({ encoder: 'draco' }),
+            textureCompress({ targetFormat: 'webp', quality: 0.8 }),
+          ];
+          this.logger.log('Using advanced compression (Draco + Meshopt + WebP textures)');
+        } catch (advErr) {
+          this.logger.warn('Advanced compression not available, using baseline');
+        }
 
-        // NOTE:
-        // Draco / Meshopt / texture compression require extra runtime dependencies
-        // (draco3dgltf, meshoptimizer, etc.). We'll keep a safe baseline pipeline
-        // that works without native/binary deps.
         const io = new NodeIO();
         const doc = await io.read(inputPath);
 
-        await doc.transform(
-          prune(),
-          dedup(),
-          resample(),
-          // Quantize with defaults (keeps compatibility with current typings)
-          quantize(),
-        );
+        await doc.transform(...transforms);
 
         const glb = await io.writeBinary(doc);
         await fs.promises.writeFile(outputPath, Buffer.from(glb as any));

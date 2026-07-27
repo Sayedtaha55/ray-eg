@@ -13,12 +13,14 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
+import { getJwtSecret } from '@common/security/jwt-secret.util';
 
 interface AuthenticatedSocket extends Socket {
   data: {
     user?: {
       id: string;
       email: string;
+      name?: string;
       role: string;
       shopId?: string;
     };
@@ -81,7 +83,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       }
 
       // Verify JWT
-      const secret = this.config.get<string>('JWT_SECRET') || 'dev-fallback-secret-change-in-production';
+      const secret = getJwtSecret(this.config);
       let payload: any;
       try {
         payload = this.jwtService.verify(token, { secret });
@@ -115,6 +117,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
         user: {
           id: String(user.id),
           email: String(user.email),
+          name: String((user as any).name || ''),
           role: String((user as any).role || 'customer'),
           shopId: (user as any).shopId ? String((user as any).shopId) : undefined,
         },
@@ -224,6 +227,78 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     client.leave(payload.room);
     client.data.rooms?.delete(payload.room);
     return { success: true, room: payload.room };
+  }
+
+  @SubscribeMessage('typing:start')
+  handleTypingStart(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    payload: { shopId: string; userId?: string }
+  ) {
+    if (!client.data?.user) return;
+    const shopId = payload?.shopId;
+    if (!shopId) return;
+    this.emitToShop(shopId, 'chat:typing', {
+      shopId,
+      userId: payload.userId || client.data.user.id,
+      name: client.data.user.name || '',
+      isTyping: true,
+      timestamp: Date.now(),
+    });
+  }
+
+  @SubscribeMessage('typing:stop')
+  handleTypingStop(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    payload: { shopId: string; userId?: string }
+  ) {
+    if (!client.data?.user) return;
+    const shopId = payload?.shopId;
+    if (!shopId) return;
+    this.emitToShop(shopId, 'chat:typing', {
+      shopId,
+      userId: payload.userId || client.data.user.id,
+      name: client.data.user.name || '',
+      isTyping: false,
+      timestamp: Date.now(),
+    });
+  }
+
+  @SubscribeMessage('presence:join')
+  handlePresenceJoin(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    payload: { shopId: string }
+  ) {
+    if (!client.data?.user) return;
+    const shopId = payload?.shopId;
+    if (!shopId) return;
+    this.emitToShop(shopId, 'presence:update', {
+      shopId,
+      userId: client.data.user.id,
+      name: client.data.user.name || '',
+      role: client.data.user.role || '',
+      online: true,
+      timestamp: Date.now(),
+    });
+    return { success: true };
+  }
+
+  @SubscribeMessage('presence:leave')
+  handlePresenceLeave(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    payload: { shopId: string }
+  ) {
+    if (!client.data?.user) return;
+    const shopId = payload?.shopId;
+    if (!shopId) return;
+    this.emitToShop(shopId, 'presence:update', {
+      shopId,
+      userId: client.data.user.id,
+      name: client.data.user.name || '',
+      role: client.data.user.role || '',
+      online: false,
+      timestamp: Date.now(),
+    });
+    return { success: true };
   }
 
   // ========== Public Methods for Broadcasting ==========

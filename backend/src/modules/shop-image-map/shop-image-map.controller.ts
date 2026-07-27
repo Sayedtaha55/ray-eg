@@ -1,4 +1,5 @@
 ﻿import { Body, Controller, Get, Param, Patch, Post, Request, UseGuards, Inject } from '@nestjs/common';
+import { AnyDto } from '@shared/dto/any.dto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -23,7 +24,7 @@ export class ShopImageMapController {
   @Post(':shopId/image-maps')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async create(@Param('shopId') shopId: string, @Body() body: any, @Request() req: any) {
+  async create(@Param('shopId') shopId: string, @Body() body: AnyDto, @Request() req: any) {
     return this.shopImageMapService.createMap(shopId, body, { role: req.user?.role, shopId: req.user?.shopId });
   }
 
@@ -37,14 +38,14 @@ export class ShopImageMapController {
   @Patch(':shopId/image-maps/:mapId/layout')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async saveLayout(@Param('shopId') shopId: string, @Param('mapId') mapId: string, @Body() body: any, @Request() req: any) {
+  async saveLayout(@Param('shopId') shopId: string, @Param('mapId') mapId: string, @Body() body: AnyDto, @Request() req: any) {
     return this.shopImageMapService.saveLayout(shopId, mapId, body, { role: req.user?.role, shopId: req.user?.shopId });
   }
 
   @Post(':shopId/image-maps/analyze')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('merchant', 'admin')
-  async analyze(@Param('shopId') shopId: string, @Body() body: any, @Request() req: any) {
+  async analyze(@Param('shopId') shopId: string, @Body() body: AnyDto, @Request() req: any) {
     return this.shopImageMapService.analyze(shopId, body, { role: req.user?.role, shopId: req.user?.shopId });
   }
 }

@@ -1,0 +1,37 @@
+{
+  "name": "@ray-eg/shared",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types/index.ts",
+    "./services": "./src/services/index.ts",
+    "./services/api": "./src/services/api/index.ts",
+    "./utils": "./src/utils/index.ts",
+    "./i18n": "./src/i18n/index.ts",
+    "./hooks": "./src/hooks/index.ts",
+    "./components": "./src/components/index.ts",
+    "./dto": "./src/dto/index.ts",
+    "./lib": "./src/lib/index.ts",
+    "./constants": "./src/constants.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^6.26.0",
+    "i18next": "^23.12.0",
+    "react-i18next": "^15.0.0",
+    "lucide-react": "^0.400.0",
+    "axios": "^1.7.0",
+    "zustand": "^4.5.0"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  }
+}

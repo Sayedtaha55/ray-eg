@@ -1,0 +1,135 @@
+import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { Rocket, FileText } from 'lucide-react';
+
+type Props = {
+  config: any;
+  setConfig: React.Dispatch<React.SetStateAction<any>>;
+};
+
+type ProductVisibilityKey = 'productTabs' | 'productShareButton' | 'productQuickSpecs';
+
+const PRODUCT_VISIBILITY_KEYS: ProductVisibilityKey[] = ['productTabs', 'productShareButton', 'productQuickSpecs'];
+
+const ProductPageSection: React.FC<Props> = ({ config, setConfig }) => {
+  const { t } = useTranslation();
+  const current = (config?.elementsVisibility || {}) as Record<string, any>;
+
+  const getValue = (key: ProductVisibilityKey) => {
+    if (current[key] === undefined || current[key] === null) return true;
+    return Boolean(current[key]);
+  };
+
+  const setValue = (key: ProductVisibilityKey, value: boolean) => {
+    const next = { ...current, [key]: value };
+    setConfig({ ...config, elementsVisibility: next });
+  };
+
+  const productPageMode = String(config?.productPageMode || 'standard') as 'standard' | 'landing';
+
+  return (
+    <div className="space-y-6">
+      {/* Page Mode */}
+      <div className="space-y-3">
+        <h3 className="font-black text-sm text-slate-900">نوع صفحة المنتج</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setConfig({ ...config, productPageMode: 'standard' })}
+            className={`p-4 rounded-2xl border-2 text-right transition-all ${productPageMode === 'standard' ? 'border-slate-900 bg-slate-50 shadow-sm' : 'border-slate-100 hover:border-slate-200'}`}
+          >
+            <FileText size={20} className={productPageMode === 'standard' ? 'text-slate-900' : 'text-slate-400'} />
+            <p className="font-black text-sm mt-2 text-slate-900">عادية</p>
+            <p className="text-[10px] font-bold text-slate-400 mt-1">صفحة المنتج الافتراضية</p>
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfig({ ...config, productPageMode: 'landing' })}
+            className={`p-4 rounded-2xl border-2 text-right transition-all ${productPageMode === 'landing' ? 'border-slate-900 bg-slate-50 shadow-sm' : 'border-slate-100 hover:border-slate-200'}`}
+          >
+            <Rocket size={20} className={productPageMode === 'landing' ? 'text-slate-900' : 'text-slate-400'} />
+            <p className="font-black text-sm mt-2 text-slate-900">صفحة هبوط</p>
+            <p className="text-[10px] font-bold text-slate-400 mt-1">تصميم احترافي للإعلانات</p>
+          </button>
+        </div>
+        {productPageMode === 'landing' && (
+          <div className="p-3 rounded-xl bg-amber-50 border border-amber-100">
+            <p className="text-[11px] font-bold text-amber-700 leading-relaxed">
+              صفحة الهبوط بتصميم احترافي زي المواقع الكبيرة - مثالية للإعلانات. رابط صفحة الهبوط لأي منتج: /shop/اسم-المتجر/landing/رقم-المنتج
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="h-px bg-slate-100" />
+
+      {/* Colors & Background */}
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.backgroundColor')}</label>
+            <input
+              type="color"
+              value={String(config.productPageBackgroundColor || '#FFFFFF')}
+              onChange={(e) => setConfig({ ...config, productPageBackgroundColor: e.target.value })}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.textColor')}</label>
+            <input
+              type="color"
+              value={String(config.productPageTextColor || '#0F172A')}
+              onChange={(e) => setConfig({ ...config, productPageTextColor: e.target.value })}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white"
+            />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.priceColor')}</label>
+            <input
+              type="color"
+              value={String(config.productPagePriceColor || '#00E5FF')}
+              onChange={(e) => setConfig({ ...config, productPagePriceColor: e.target.value })}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block text-right">{t('business.builder.productPage.buttonColor')}</label>
+            <input
+              type="color"
+              value={String(config.productPageButtonColor || config.primaryColor || '#00E5FF')}
+              onChange={(e) => setConfig({ ...config, productPageButtonColor: e.target.value })}
+              className="w-full h-10 rounded-xl border border-slate-200 bg-white"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="h-px bg-slate-100" />
+
+      {/* Visibility */}
+      <div className="space-y-3">
+        <h3 className="font-black text-sm text-slate-900">{t('business.builder.productPage.showHide')}</h3>
+        {PRODUCT_VISIBILITY_KEYS.map((key) => (
+          <label
+            key={key}
+            className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-slate-100 bg-white"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="font-black text-xs md:text-sm text-slate-700">{t(`business.builder.productPage.visibility.${key}`)}</span>
+            <input
+              type="checkbox"
+              checked={getValue(key)}
+              onClick={(e) => e.stopPropagation()}
+              onChange={(e) => setValue(key, e.target.checked)}
+            />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default ProductPageSection;

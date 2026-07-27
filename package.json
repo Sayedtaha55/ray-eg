@@ -2,26 +2,31 @@
   "name": "ray-test-marketplace",
   "version": "1.0.1",
   "description": "Hyper-modern multi-vendor marketplace for Egypt.",
-  "main": "index.html",
+  "main": "dist-electron/main.js",
   "scripts": {
     "dev": "npx vite --config vite.config.mts",
+    "dev:marketplace": "vite --config apps/marketplace/vite.config.ts",
+    "dev:dashboard": "vite --config apps/dashboard/vite.config.ts",
+    "dev:all": "concurrently \"npm run dev:marketplace\" \"npm run dev:dashboard\"",
+    "build:marketplace": "vite build --config apps/marketplace/vite.config.ts",
+    "build:dashboard": "vite build --config apps/dashboard/vite.config.ts",
     "backend:dev": "powershell -NoProfile -Command \"Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts\"",
     "backend:build": "tsc -p backend/tsconfig.json",
     "backend:start": "node scripts/railway-backend-start.js",
     "backend:render:start": "prisma generate --schema prisma/schema.prisma && prisma migrate deploy --schema prisma/schema.prisma && tsx --tsconfig backend/tsconfig.json backend/src/core/main.ts",
     "backend:kill": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} } }\"",
-    "backend:dev:stable": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\\\.ts') -or ($_.CommandLine -match 'backend/main\\\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback,map-listing,portal'; $env:MEDIA_DISABLE_CONTROLLER='true'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:ALLOW_DEV_ADMIN_BOOTSTRAP='true'; $env:ALLOW_DEV_MERCHANT_BOOTSTRAP='true'; $env:ALLOW_DEV_COURIER_BOOTSTRAP='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
+    "backend:dev:stable": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\\\.ts') -or ($_.CommandLine -match 'backend/main\\\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback,map-listing,portal'; $env:MEDIA_DISABLE_CONTROLLER='true'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:ALLOW_DEV_ADMIN_BOOTSTRAP='true'; $env:ALLOW_DEV_MERCHANT_BOOTSTRAP='true'; $env:ALLOW_DEV_COURIER_BOOTSTRAP='true'; $env:CSRF_DISABLED='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:minimal": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='none'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:MINIMAL_BOOT='true'; Remove-Item Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:auth": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:auth-media": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,media'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:SHOP_IMPORTS -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:shop-product": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product'; $env:SHOP_IMPORTS='none'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
-    "backend:dev:shop-product-media": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media'; $env:SHOP_IMPORTS='redis,media'; if (-not $env:MEDIA_CONTROLLER_MODE) { $env:MEDIA_CONTROLLER_MODE='presign' }; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
+    "backend:dev:shop-product-media": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media'; $env:SHOP_IMPORTS='redis,media'; if (-not $env:MEDIA_CONTROLLER_MODE) { $env:MEDIA_CONTROLLER_MODE='presign' }; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:CSRF_DISABLED='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:shop-product-media:upload": "powershell -NoProfile -Command \"& { $env:MEDIA_CONTROLLER_MODE='upload'; npm run backend:dev:shop-product-media }\"",
     "backend:dev:shop-product-media:put": "powershell -NoProfile -Command \"& { $env:MEDIA_CONTROLLER_MODE='put'; npm run backend:dev:shop-product-media }\"",
     "backend:dev:shop-product-media:full": "powershell -NoProfile -Command \"& { $env:MEDIA_CONTROLLER_MODE='full'; npm run backend:dev:shop-product-media }\"",
-    "backend:dev:shop-product-media-offer:full": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media,offer'; $env:SHOP_IMPORTS='redis,media'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
-    "backend:dev:unified": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,media,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback,image-map,map-listing,portal'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:SHOP_IMPORTS='redis,media'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
-    "backend:dev:store-editor:full": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media,offer,notification,image-map'; $env:SHOP_IMPORTS='redis,media'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
+    "backend:dev:shop-product-media-offer:full": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media,offer'; $env:SHOP_IMPORTS='redis,media'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:CSRF_DISABLED='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
+    "backend:dev:unified": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,media,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback,image-map,map-listing,portal'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:SHOP_IMPORTS='redis,media'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:CSRF_DISABLED='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
+    "backend:dev:store-editor:full": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='shop,product,media,offer,notification,image-map'; $env:SHOP_IMPORTS='redis,media'; $env:MEDIA_CONTROLLER_MODE='full'; $env:MEDIA_OPT_ENABLE_WORKER='true'; $env:NEST_DISABLE_LOGGER='true'; $env:PRISMA_CONNECT_ON_BOOT='true'; $env:PRISMA_CONNECT_TIMEOUT_MS='5000'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; $env:CSRF_DISABLED='true'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL,Env:MEDIA_DISABLE_CONTROLLER -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:no-media": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='auth,shop,product,gallery,reservation,order,offer,invoice,users,analytics,customers,notification,feedback,map-listing,portal,image-map'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public&connect_timeout=5'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:media:lite": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='media'; $env:MEDIA_CONTROLLER_MODE='lite'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:media:presign": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='media'; $env:MEDIA_CONTROLLER_MODE='presign'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
@@ -35,6 +40,10 @@
     "build": "tsx scripts/compress-public-videos.ts && npx vite build --config vite.config.mts",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
+    "security:scan": "npx tsx --tsconfig backend/tsconfig.json backend/tests/security/static-security-scan.ts",
+    "security:audit": "npx tsx --tsconfig backend/tsconfig.json backend/tests/security/security-audit.ts",
+    "security:audit:local": "npx tsx --tsconfig backend/tsconfig.json backend/tests/security/security-audit.ts --base-url=http://localhost:4000",
+    "security:all": "npm run security:scan && npm run security:audit:local",
     "i18n:audit:dashboard": "node scripts/i18n-audit-dashboard.mjs",
     "i18n:audit:dashboard:strict": "node scripts/i18n-audit-dashboard.mjs --fail-on-missing",
     "backend:check": "node scripts/check-backend.mjs",
@@ -48,9 +57,12 @@
     "backend:dev:fix": "powershell -NoProfile -Command \"$env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts\"",
     "loadtest:k6": "node scripts/load/load-test-node.js",
     "prisma:fix:reservations-updated-at": "node scripts/fix-railway-reservations-updated-at.js",
-    "next:dev": "cd apps/web && npm run dev",
-    "next:build": "cd apps/web && npm run build",
-    "next:start": "cd apps/web && npm run start"
+    "electron:build": "tsc -p electron/tsconfig.json",
+    "electron:build-web": "npx vite build --config vite.electron.config.mts",
+    "electron:dev": "npm run electron:build-web && npm run electron:build && electron .",
+    "electron:pack": "npm run electron:build-web && npm run electron:build && electron-builder --dir",
+    "electron:dist": "npm run electron:build-web && npm run electron:build && electron-builder",
+    "electron:publish": "npm run electron:build-web && npm run electron:build && electron-builder --publish always"
   },
   "keywords": [
     "react",
@@ -62,6 +74,10 @@
   ],
   "author": "Ray Team",
   "license": "MIT",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1013.0",
     "@aws-sdk/s3-request-presigner": "^3.1013.0",
@@ -132,6 +148,7 @@
     "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",
     "recharts": "^3.6.0",
+    "reflect-metadata": "^0.2.2",
     "sharp": "^0.33.5",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
@@ -146,6 +163,7 @@
   },
   "devDependencies": {
     "@nestjs/testing": "^11.1.11",
+    "@tailwindcss/vite": "^4.3.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.7",
@@ -159,6 +177,10 @@
     "@types/react-window": "^1.8.8",
     "@types/supertest": "^6.0.3",
     "@types/web-push": "^3.6.4",
+    "concurrently": "^10.0.4",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
+    "electron-updater": "^6.8.9",
     "jest": "^30.2.0",
     "postcss": "^8.5.6",
     "rollup-plugin-visualizer": "^7.0.1",
@@ -173,5 +195,51 @@
   },
   "optionalDependencies": {
     "handlebars": "^4.7.9"
+  },
+  "build": {
+    "appId": "com.mnmknk.dashboard",
+    "productName": "نمّي أعمالك",
+    "directories": {
+      "output": "release",
+      "buildResources": "build-resources"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "public/**/*",
+      "package.json"
+    ],
+    "npmRebuild": false,
+    "publish": {
+      "provider": "github",
+      "owner": "Sayedtaha55",
+      "repo": "ray-eg"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/brand/logo.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "نمّي أعمالك"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/brand/logo.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/brand/logo.png"
+    }
   }
 }

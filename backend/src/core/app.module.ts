@@ -19,6 +19,7 @@ import { NotificationModule } from '@modules/notification/notification.module';
 import { MediaModule } from '@modules/media/media.module';
 import { CourierModule } from '@modules/courier/courier.module';
 import { FeedbackModule } from '@modules/feedback/feedback.module';
+import { SupportModule } from '@modules/support/support.module';
 import { ShopImageMapModule } from '@modules/shop-image-map/shop-image-map.module';
 import { RealtimeModule } from '@common/realtime/realtime.module';
 import { LoggerModule } from '@common/logger/logger.module';
@@ -32,6 +33,7 @@ import { BookingsModule } from '@modules/bookings/bookings.module';
 import { CartEventModule } from '@modules/cart-event/cart-event.module';
 import { MapListingModule } from '@modules/map-listing/map-listing.module';
 import { PortalModule } from '@modules/portal/portal.module';
+import { TracingModule } from '@common/tracing/tracing.module';
 import { TestController } from './test.controller';
 import { HealthController } from '@modules/health/health.controller';
 import { DatabaseTestController } from './db-test.controller';
@@ -45,7 +47,7 @@ const bootModules = new Set(
     ? bootModulesRaw.split(',').map((s) => s.trim()).filter(Boolean)
     : [],
 );
-const includeAllModules = bootModules.size === 0;
+const includeAllModules = bootModules.size === 0 || bootModules.has('all');
 
 const shouldImportMediaModule = includeAllModules || bootModules.has('media') || bootModules.has('shop');
 const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || nodeEnv === 'development';
@@ -76,11 +78,12 @@ const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || n
     ...(includeAllModules || bootModules.has('courier') ? [CourierModule] : []),
     ...(shouldImportMediaModule ? [MediaModule] : []),
     ...(includeAllModules || bootModules.has('feedback') ? [FeedbackModule] : []),
+    ...(includeAllModules || bootModules.has('support') ? [SupportModule] : []),
     ...(includeAllModules || bootModules.has('image-map') || bootModules.has('shop') ? [ShopImageMapModule] : []),
     ...(includeAllModules || bootModules.has('realtime') ? [RealtimeModule] : []),
     ...(includeAllModules || bootModules.has('chat') ? [ChatModule] : []),
-    // AI module requires AI_ENABLED=true (hidden from production until ready)
- ...(includeAllModules || bootModules.has('ai') ? (process.env.AI_ENABLED === 'true' ? [AiModule] : []) : []),
+    // AI module loads when AI_ENABLED=true regardless of BOOT_MODULES, or when explicitly requested via bootModules
+ ...(process.env.AI_ENABLED === 'true' || includeAllModules || bootModules.has('ai') ? [AiModule] : []),
     ...(shouldImportAppsModule ? [AppsModule] : []),
     ...(includeAllModules || bootModules.has('cart-event') ? [CartEventModule] : []),
     ...(includeAllModules || bootModules.has('search') ? [SearchModule] : []),
@@ -89,10 +92,11 @@ const shouldImportAppsModule = includeAllModules || bootModules.has('apps') || n
     ...(includeAllModules || bootModules.has('map-listing') ? [MapListingModule] : []),
     ...(includeAllModules || bootModules.has('map-listing') || bootModules.has('portal') ? [PortalModule] : []),
     ...(includeAllModules || bootModules.has('bookings') ? [BookingsModule] : []),
+    TracingModule.forRoot(),
   ],
   controllers: minimalBoot
-    ? [HealthController, DatabaseTestController]
-    : [TestController, HealthController, DatabaseTestController],
+    ? [HealthController]
+    : [...(nodeEnv !== 'production' ? [TestController, DatabaseTestController] : []), HealthController],
   providers: [AccountPurgeService],
 })
 export class AppModule {}

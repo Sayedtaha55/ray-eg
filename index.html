@@ -43,10 +43,21 @@
           try {
             var hash = String(window.location.hash || '');
             var isCourier = hash === '#/courier' || hash.indexOf('#/courier/') === 0;
-            var href = isCourier ? '/courier-manifest.json' : '/manifest.json';
+            var isBusiness = hash === '#/business' || hash.indexOf('#/business/') === 0;
+            var href = isCourier ? '/courier-manifest.json' : isBusiness ? '/business-manifest.json' : '/manifest.json';
             var link = document.querySelector('link[rel="manifest"]');
             if (link && String(link.getAttribute('href') || '') !== href) {
               link.setAttribute('href', href);
+            }
+            // Update theme-color meta for business (dark) vs customer (light)
+            var themeMeta = document.querySelector('meta[name="theme-color"]');
+            if (themeMeta) {
+              themeMeta.setAttribute('content', isBusiness ? '#0f172a' : '#00E5FF');
+            }
+            // Update apple-mobile-web-app-title
+            var appleTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+            if (appleTitle) {
+              appleTitle.setAttribute('content', isBusiness ? 'نمّي أعمالك' : isCourier ? 'مندوب' : 'من مكانك');
             }
           } catch (e) {
           }
@@ -67,6 +78,8 @@
     
     <!-- Preconnect for performance -->
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://api.mnmknk.com" crossorigin />
+    <link rel="dns-prefetch" href="https://api.mnmknk.com" />
 
     <!-- Font loading -->
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Alexandria:wght@100..900&display=swap" />

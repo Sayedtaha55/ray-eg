@@ -1,0 +1,57 @@
+export const isVideoUrl = (url: string) => {
+  const raw = String(url || '').trim();
+  if (!raw) return false;
+  // Blob URLs won't have extensions, so we can't detect them here
+  if (raw.startsWith('blob:')) return false;
+  const cleaned = raw.split('#')[0].split('?')[0].toLowerCase();
+  return cleaned.endsWith('.mp4') || cleaned.endsWith('.webm') || cleaned.endsWith('.mov') || cleaned.endsWith('.ogg') || cleaned.endsWith('.ogv') || cleaned.endsWith('.avi') || cleaned.endsWith('.3gp')
+    || /\/video\//.test(raw.toLowerCase())
+    || /content-type=video/i.test(raw);
+};
+
+export const hexToRgba = (hex: string, alpha: number) => {
+  const raw = String(hex || '').replace('#', '').trim();
+  const normalized = raw.length === 3 ? raw.split('').map((c) => `${c}${c}`).join('') : raw;
+  if (normalized.length !== 6) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+export const coerceBoolean = (value: any, fallback: boolean) => {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === 'true') return true;
+    if (v === 'false') return false;
+  }
+  if (typeof value === 'number') return value !== 0;
+  return fallback;
+};
+
+export const coerceNumber = (value: any, fallback: number) => {
+  const n = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(n) ? n : fallback;
+};
+
+export const scopeCss = (css: string, scopeSelector: string) => {
+  const raw = String(css || '');
+  const safe = raw.replace(/<\s*\/\s*style/gi, '');
+  return safe.replace(/([^{}]+)\{/g, (match, selectorGroup) => {
+    const group = String(selectorGroup || '');
+    const trimmed = group.trim();
+    if (!trimmed) return match;
+    if (trimmed.startsWith('@')) return match;
+    if (trimmed === 'from' || trimmed === 'to' || /^\d+%$/.test(trimmed)) return match;
+
+    const prefixed = group
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => (s.includes(scopeSelector) ? s : `${scopeSelector} ${s}`))
+      .join(', ');
+
+    return `${prefixed}{`;
+  });
+};

@@ -1,4 +1,5 @@
 ﻿import { Body, Controller, Get, Post, Patch, Param, UseGuards, Inject, Request, BadRequestException, Query } from '@nestjs/common';
+import { AnyDto } from '@shared/dto/any.dto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -10,7 +11,7 @@ export class UsersController {
 
   @Patch('me')
   @UseGuards(JwtAuthGuard)
-  async updateMe(@Request() req: any, @Body() body: any) {
+  async updateMe(@Request() req: any, @Body() body: AnyDto) {
     const userId = String(req?.user?.id || '').trim();
     if (!userId) throw new BadRequestException('غير مصرح');
     return this.usersService.updateMe(userId, {
@@ -39,7 +40,7 @@ export class UsersController {
   @Post('couriers')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async createCourier(@Body() body: any) {
+  async createCourier(@Body() body: AnyDto) {
     return this.usersService.createCourier({
       email: String(body?.email || ''),
       password: String(body?.password || ''),
@@ -81,7 +82,7 @@ export class UsersController {
   @Patch('couriers/:id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async setCourierStatus(@Param('id') id: string, @Body() body: any) {
+  async setCourierStatus(@Param('id') id: string, @Body() body: AnyDto) {
     const isActive = typeof body?.isActive === 'boolean'
       ? body.isActive
       : String(body?.isActive || '').trim().toLowerCase() === 'true';

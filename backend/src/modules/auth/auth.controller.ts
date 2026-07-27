@@ -1,5 +1,5 @@
-﻿import { Body, Controller, Get, Post, Request, Res, UseGuards } from '@nestjs/common';
-import { Inject } from '@nestjs/common';
+﻿import { Body, Controller, Get, HttpCode, Post, Query, Request, Res, UseGuards } from '@nestjs/common';
+import { Inject, ForbiddenException } from '@nestjs/common';
 import type { Response } from 'express';
 import { AuthService } from '@modules/auth/auth.service';
 import { IsEmail, IsIn, IsOptional, IsString, MinLength } from 'class-validator';
@@ -139,8 +139,16 @@ class ResetPasswordDto {
   token!: string;
 
   @IsString()
-  @MinLength(8)
-  newPassword!: string;
+  @IsOptional()
+  newPassword?: string;
+
+  @IsString()
+  @IsOptional()
+  new_password?: string;
+
+  @IsString()
+  @IsOptional()
+  password?: string;
 }
 
 class BootstrapAdminDto {
@@ -157,6 +165,12 @@ class BootstrapAdminDto {
   @IsOptional()
   @IsString()
   name?: string;
+}
+
+class DevMerchantLoginDto {
+  @IsOptional()
+  @IsString()
+  shopCategory?: string;
 }
 
 class ChangePasswordDto {
@@ -208,7 +222,7 @@ export class AuthController {
     return {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: isProd ? 'lax' : 'lax',
       path: '/',
       maxAge: maxAgeDays * 24 * 60 * 60 * 1000,
       ...(domain ? { domain } : {}),
@@ -240,21 +254,7 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(GoogleAuthGuard)
   async googleCallback(@Request() req: any, @Res() res: Response) {
-    // DEBUG logging to diagnose missing set-cookie
-    const debugLog = (step: string, data?: any) => {
-      try {
-        // eslint-disable-next-line no-console
-        console.log(`[GoogleCallback DEBUG] ${step}`, data || '');
-      } catch {
-        // ignore
-      }
-    };
-
-    debugLog('1 - Received callback', { hasUser: !!req?.user, userKeys: req?.user ? Object.keys(req.user) : null });
-
     if (!req?.user) {
-      debugLog('ERROR - req.user is missing!');
-      // Redirect with error
       const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
       return res.redirect(302, `${appUrl}/login?error=google_auth_failed`);
     }
@@ -262,18 +262,13 @@ export class AuthController {
     let result: any;
     try {
       result = await this.authService.loginWithGoogleProfile(req.user);
-      debugLog('2 - loginWithGoogleProfile result', { hasAccessToken: !!result?.access_token, hasUser: !!result?.user });
-    } catch (err: any) {
-      debugLog('ERROR - loginWithGoogleProfile threw', { message: err?.message, name: err?.name });
+    } catch {
       const appUrl = String(process.env.FRONTEND_APP_URL || process.env.FRONTEND_URL || 'http://localhost:5174').trim();
       return res.redirect(302, `${appUrl}/login?error=google_login_failed`);
     }
 
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
-      debugLog('3 - Cookie set successfully');
-    } else {
-      debugLog('ERROR - No access_token in result!');
     }
 
     const state = this.parseGoogleState(req);
@@ -310,6 +305,7 @@ export class AuthController {
   }
 
   @Post('bootstrap-admin')
+  @HttpCode(200)
   async bootstrapAdmin(@Body() dto: BootstrapAdminDto) {
     return this.authService.bootstrapAdmin({
       token: String(dto?.token || ''),
@@ -320,6 +316,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(200)
   async login(@Body() dto: LoginDto, @Request() req: any, @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.login(dto.email, dto.password, this.getRequestMeta(req));
     if (result?.access_token) {
@@ -329,7 +326,8 @@ export class AuthController {
   }
 
   @Post('dev-merchant-login')
-  async devMerchantLogin(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+  @HttpCode(200)
+  async devMerchantLogin(@Body() dto: DevMerchantLoginDto, @Res({ passthrough: true }) res: Response) {
     const env = String(process.env.NODE_ENV || '').toLowerCase().trim();
     if (env === 'production') {
       const allow = String(process.env.ALLOW_DEV_MERCHANT_BOOTSTRAP || '').toLowerCase().trim() === 'true';
@@ -338,7 +336,7 @@ export class AuthController {
       }
     }
     const result = await this.authService.devMerchantLogin({
-      shopCategory: body?.shopCategory,
+      shopCategory: dto?.shopCategory as any,
     });
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
@@ -347,6 +345,7 @@ export class AuthController {
   }
 
   @Post('dev-courier-login')
+  @HttpCode(200)
   async devCourierLogin(@Res({ passthrough: true }) res: Response) {
     const env = String(process.env.NODE_ENV || '').toLowerCase().trim();
     if (env === 'production') {
@@ -356,6 +355,20 @@ export class AuthController {
       }
     }
     const result = await this.authService.devCourierLogin();
+    if (result?.access_token) {
+      this.setAuthCookie(res, String(result.access_token));
+    }
+    return result;
+  }
+
+  @Post('dev-customer-login')
+  @HttpCode(200)
+  async devCustomerLogin(@Res({ passthrough: true }) res: Response) {
+    const env = String(process.env.NODE_ENV || '').toLowerCase().trim();
+    if (env === 'production') {
+      return { ok: false } as any;
+    }
+    const result = await this.authService.devCustomerLogin();
     if (result?.access_token) {
       this.setAuthCookie(res, String(result.access_token));
     }
@@ -377,6 +390,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @HttpCode(200)
   async logout(@Res({ passthrough: true }) res: Response) {
     this.clearAuthCookie(res);
     return { ok: true };
@@ -392,13 +406,36 @@ export class AuthController {
   }
 
   @Post('password/forgot')
+  @HttpCode(200)
   async forgotPassword(@Body() dto: ForgotPasswordDto, @Request() req: any) {
     return this.authService.requestPasswordReset(dto.email, this.getRequestMeta(req));
   }
 
+  @Get('password/test-token')
+  async getTestToken(@Query('email') email: string) {
+    const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    if (!isDev) {
+      throw new ForbiddenException('Test token endpoint is only available in dev mode');
+    }
+    const token = await this.authService.generateTestResetToken(email);
+    return { token };
+  }
+
+  @Get('password/reset-token-test')
+  async getResetTokenTest(@Query('email') email: string) {
+    const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    if (!isDev) {
+      throw new ForbiddenException('Test token endpoint is only available in dev mode');
+    }
+    const token = await this.authService.generateTestResetToken(email);
+    return { token };
+  }
+
   @Post('password/reset')
+  @HttpCode(200)
   async resetPassword(@Body() dto: ResetPasswordDto, @Request() req: any) {
-    return this.authService.resetPassword(dto.token, dto.newPassword, this.getRequestMeta(req));
+    const password = dto.newPassword || dto.new_password || dto.password || '';
+    return this.authService.resetPassword(dto.token, password, this.getRequestMeta(req));
   }
 
   @Post('password/change')

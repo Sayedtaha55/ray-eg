@@ -1,7 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Inject, Optional } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { LoggerService } from '@common/logger/logger.service';
 import { PrismaService } from '@common/prisma/prisma.service';
 import { RedisService } from '@common/redis/redis.service';
+import { QueueService } from '@modules/queue/queue.service';
 
 @Injectable()
 export class MonitoringService implements OnModuleInit, OnModuleDestroy {
@@ -22,6 +24,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
     @Inject(LoggerService) private readonly logger: LoggerService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(RedisService) private readonly redis: RedisService,
+    @Optional() private readonly queueService?: QueueService,
   ) {}
 
   onModuleInit() {
@@ -206,7 +209,7 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
   // Alerts
   private createAlert(message: string, details: any = {}) {
     const alert = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: randomBytes(9).toString('hex'),
       message,
       details,
       timestamp: new Date().toISOString(),
@@ -281,5 +284,20 @@ export class MonitoringService implements OnModuleInit, OnModuleDestroy {
       data,
       timestamp: new Date().toISOString()
     });
+  }
+
+  async getQueueStatsSafe() {
+    if (!this.queueService) {
+      return { available: false, message: 'Queue service not loaded' };
+    }
+    try {
+      const stats = await this.queueService.getQueueStats();
+      return { available: true, stats };
+    } catch (err) {
+      return {
+        available: false,
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
   }
 }

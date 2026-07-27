@@ -1,4 +1,5 @@
 ﻿import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UseGuards, Inject } from '@nestjs/common';
+import { AnyDto } from '@shared/dto/any.dto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -9,7 +10,7 @@ export class FeedbackController {
   constructor(@Inject(FeedbackService) private readonly feedbackService: FeedbackService) {}
 
   @Post('public')
-  async createPublic(@Body() body: any) {
+  async createPublic(@Body() body: AnyDto) {
     return this.feedbackService.createPublic({
       comment: body?.text ?? body?.comment,
       rating: typeof body?.rating === 'number' ? body.rating : undefined,
@@ -21,7 +22,7 @@ export class FeedbackController {
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('customer', 'merchant', 'admin', 'courier')
-  async createMine(@Request() req, @Body() body: any) {
+  async createMine(@Request() req, @Body() body: AnyDto) {
     const userId = String(req.user?.id || '').trim();
     return this.feedbackService.createForUser(userId, {
       comment: body?.text ?? body?.comment,
@@ -53,7 +54,7 @@ export class FeedbackController {
   @Patch('admin/:id/status')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async updateStatusAdmin(@Param('id') id: string, @Body() body: any) {
+  async updateStatusAdmin(@Param('id') id: string, @Body() body: AnyDto) {
     return this.feedbackService.updateStatusAdmin(id, body?.status);
   }
 

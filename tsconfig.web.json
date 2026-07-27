@@ -2,11 +2,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "App.tsx",
-    "app/**/*",
-    "components/**/*",
     "src/**/*",
-    "services/**/*",
-    "utils/**/*",
     "scripts/**/*",
     "*.ts",
     "*.tsx",

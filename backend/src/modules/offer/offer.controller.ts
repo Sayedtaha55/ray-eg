@@ -1,4 +1,4 @@
-﻿import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject, Query, ForbiddenException } from '@nestjs/common';
+﻿import { Controller, Get, Post, Delete, Body, Param, UseGuards, Request, BadRequestException, Inject, Query, ForbiddenException, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -56,21 +56,43 @@ export class OfferController {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    return this.offerService.create({
+    const discountType = String(body?.discountType || body?.type || '').toLowerCase();
+    const discountValue = typeof body?.discountValue === 'number' ? body.discountValue : Number(body?.discountValue);
+    const mappedDiscount = (typeof body?.discount === 'number' ? body.discount : Number(body?.discount)) ||
+      (discountType === 'percentage' && !Number.isNaN(discountValue) ? discountValue : undefined);
+
+    const mappedExpiresAt = body?.expiresAt || body?.endDate || undefined;
+    const mappedOldPrice = typeof body?.oldPrice === 'number' ? body.oldPrice : Number(body?.oldPrice);
+    const mappedNewPrice = typeof body?.newPrice === 'number' ? body.newPrice : Number(body?.newPrice);
+
+    const result = await this.offerService.create({
       shopId: targetShopId,
       productId: body?.productId,
       productIds: body?.productIds,
       variantPricing: body?.variantPricing,
-      title: body?.title,
+      title: body?.title || body?.name,
       description: body?.description,
-      discount: body?.discount,
-      oldPrice: body?.oldPrice,
-      newPrice: body?.newPrice,
+      discount: mappedDiscount,
+      oldPrice: mappedOldPrice,
+      newPrice: mappedNewPrice,
       pricingMode: body?.pricingMode,
       pricingValue: body?.pricingValue,
       imageUrl: body?.imageUrl,
-      expiresAt: body?.expiresAt,
+      expiresAt: mappedExpiresAt,
     }, { role: req.user?.role, shopId: req.user?.shopId });
+
+    if (result) {
+      const r = result as any;
+      if (r.createdAt && !r.startDate) r.startDate = r.createdAt.toISOString ? r.createdAt.toISOString() : r.createdAt;
+      if (r.expiresAt && !r.endDate) r.endDate = r.expiresAt.toISOString ? r.expiresAt.toISOString() : r.expiresAt;
+      if (r.title && !r.name) r.name = r.title;
+      if (!r.discountType) r.discountType = body?.discountType || body?.type || 'percentage';
+      if (!r.discountValue && r.discountType === 'percentage') r.discountValue = r.discount || body?.discountValue || 20;
+      if (!r.discount_type) r.discount_type = r.discountType;
+      if (!r.shopId && body?.shopId) r.shopId = body.shopId;
+    }
+
+    return result;
   }
 
   @Delete(':id')

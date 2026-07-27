@@ -1,5 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt, { SignOptions } from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const getJwtSecret = () => {
   const secret = String(process.env.JWT_SECRET || '').trim();
@@ -84,9 +85,10 @@ export class SecurityService {
 
   static generateSecureRandom(length: number = 32): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+    const bytes = crypto.randomBytes(length);
     let result = '';
     for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+      result += chars[bytes[i] % chars.length];
     }
     return result;
   }

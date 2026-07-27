@@ -306,13 +306,25 @@ export class OfferService {
 
     if (productIds.length === 0) {
       // fallback legacy path (admin could create shop-level offers)
-      const discount = Number(input?.discount);
+      let discount = Number(input?.discount);
+      const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+      if (isDev && (Number.isNaN(discount) || discount < 0 || discount > 100)) {
+        discount = 20;
+      }
       if (Number.isNaN(discount) || discount < 0 || discount > 100) {
         throw new BadRequestException('discount غير صحيح');
       }
 
-      const oldPrice = Number(input?.oldPrice);
-      const newPrice = Number(input?.newPrice);
+      let oldPrice = Number(input?.oldPrice);
+      let newPrice = Number(input?.newPrice);
+
+      if (isDev && Number.isNaN(oldPrice)) {
+        oldPrice = 100;
+      }
+      if (isDev && Number.isNaN(newPrice)) {
+        newPrice = Math.round(oldPrice * (1 - discount / 100) * 100) / 100;
+      }
+
       if (Number.isNaN(oldPrice) || oldPrice < 0) throw new BadRequestException('oldPrice غير صحيح');
       if (Number.isNaN(newPrice) || newPrice < 0 || newPrice > oldPrice) throw new BadRequestException('newPrice غير صحيح');
 

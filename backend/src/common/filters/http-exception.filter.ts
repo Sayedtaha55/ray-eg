@@ -5,6 +5,7 @@ type ErrorEnvelope = {
   success: false;
   statusCode: number;
   error: string;
+  code: string;
   message: string;
   details?: string[];
   path: string;
@@ -27,10 +28,13 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const payload = exception instanceof HttpException ? exception.getResponse() : null;
     const normalized = this.normalizePayload(payload);
 
+    const errorCode = (payload as any)?.code || (status >= 500 ? 'INTERNAL_ERROR' : HttpStatus[status] || 'ERROR');
+
     const envelope: ErrorEnvelope = {
       success: false,
       statusCode: status,
       error: HttpStatus[status] || 'Error',
+      code: errorCode,
       message: status >= 500 && isProd ? 'Internal server error' : normalized.message,
       path: request.originalUrl || request.url || '',
       requestId: request.requestId ?? request.id ?? null,

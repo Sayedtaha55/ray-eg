@@ -38,9 +38,9 @@ export class MediaOptimizeService {
     return { base: clean.slice(0, lastDot), ext: clean.slice(lastDot + 1) };
   }
 
-  private buildImageVariantKey(originalKey: string, variant: 'opt' | 'md' | 'thumb') {
+  private buildImageVariantKey(originalKey: string, variant: 'opt' | 'md' | 'thumb', format: 'webp' | 'avif' = 'webp') {
     const { base } = this.splitKey(originalKey);
-    return `${base}-${variant}.webp`;
+    return `${base}-${variant}.${format}`;
   }
 
   buildOptimizedKey(originalKey: string) {
@@ -87,45 +87,51 @@ export class MediaOptimizeService {
       const qRaw = String(process.env.MEDIA_IMAGE_WEBP_QUALITY || '62').trim();
       const q = Math.max(30, Math.min(90, Number(qRaw) || 62));
 
-      const optKey = this.buildImageVariantKey(key, 'opt');
-      const mdKey = this.buildImageVariantKey(key, 'md');
-      const thumbKey = this.buildImageVariantKey(key, 'thumb');
+      // Check if AVIF is enabled
+      const enableAvif = String(process.env.MEDIA_IMAGE_AVIF_ENABLED || 'false').toLowerCase() === 'true';
+      const outputFormat = enableAvif ? 'avif' : 'webp';
+
+      const optKey = this.buildImageVariantKey(key, 'opt', outputFormat);
+      const mdKey = this.buildImageVariantKey(key, 'md', outputFormat);
+      const thumbKey = this.buildImageVariantKey(key, 'thumb', outputFormat);
 
       const [optBuf, mdBuf, thumbBuf] = await Promise.all([
         img
           .clone()
           .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: q })
+          [outputFormat]({ quality: q })
           .toBuffer(),
         img
           .clone()
           .resize({ width: 900, height: 900, fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: Math.max(30, q - 2) })
+          [outputFormat]({ quality: Math.max(30, q - 2) })
           .toBuffer(),
         img
           .clone()
           .resize({ width: 320, height: 320, fit: 'cover', withoutEnlargement: true })
-          .webp({ quality: Math.max(28, q - 4) })
+          [outputFormat]({ quality: Math.max(28, q - 4) })
           .toBuffer(),
       ]);
+
+      const contentType = outputFormat === 'avif' ? 'image/avif' : 'image/webp';
 
       const [optRes, mdRes, thumbRes] = await Promise.all([
         this.storage.uploadBufferToKey({
           key: optKey,
           buffer: optBuf,
-          contentType: 'image/webp',
+          contentType,
           cacheControl: 'public, max-age=31536000, immutable',
         }),
         this.storage.uploadBufferToKey({
           key: mdKey,
           buffer: mdBuf,
-          contentType: 'image/webp',
+          contentType,
           cacheControl: 'public, max-age=31536000, immutable',
         }),
         this.storage.uploadBufferToKey({
           key: thumbKey,
           buffer: thumbBuf,
-          contentType: 'image/webp',
+          contentType,
           cacheControl: 'public, max-age=31536000, immutable',
         }),
       ]);
@@ -137,10 +143,11 @@ export class MediaOptimizeService {
         thumbKey: thumbRes.key,
         mediumUrl: mdRes.url,
         mediumKey: mdRes.key,
+        format: outputFormat,
       } as any;
     }
 
-    // Video: keep original file, generate optimized mp4 + thumbnail webp
+    // Video: generate multiple quality variants + thumbnails
     const purpose = this.sanitizeSegment(params?.purpose || 'videos') || 'videos';
     const workDir = path.join(os.tmpdir(), 'ray-eg-media-opt');
     this.compression.ensureDir(workDir);
@@ -153,35 +160,54 @@ export class MediaOptimizeService {
 
     const optimizedKey = this.buildOptimizedKey(key);
     const thumbKey = this.buildThumbKey(key);
+    const mediumKey = this.buildImageVariantKey(key, 'md', 'webp');
+    
     const outputPath = path.join(workDir, `${Date.now()}-${rand}-opt.mp4`);
+    const mediumPath = path.join(workDir, `${Date.now()}-${rand}-md.mp4`);
     const thumbPath = path.join(workDir, `${Date.now()}-${rand}-thumb.webp`);
 
     try {
-      await this.compression.optimizeVideoMp4(inputPath, outputPath);
+      // Generate high quality (1080p)
+      await this.compression.optimizeVideoMp4(inputPath, outputPath, '1080');
+      
+      // Generate medium quality (720p)
+      await this.compression.optimizeVideoMp4(inputPath, mediumPath, '720');
+      
+      // Generate thumbnail
       await this.compression.generateVideoThumbnailWebp(outputPath, thumbPath);
 
-      const [optBuf, thumbBuf] = await Promise.all([
+      const [optBuf, mediumBuf, thumbBuf] = await Promise.all([
         fs.promises.readFile(outputPath),
+        fs.promises.readFile(mediumPath),
         fs.promises.readFile(thumbPath),
       ]);
 
-      const optRes = await this.storage.uploadBufferToKey({
-        key: optimizedKey,
-        buffer: optBuf,
-        contentType: 'video/mp4',
-        cacheControl: 'public, max-age=604800',
-      });
-
-      const thumbRes = await this.storage.uploadBufferToKey({
-        key: thumbKey,
-        buffer: thumbBuf,
-        contentType: 'image/webp',
-        cacheControl: 'public, max-age=31536000, immutable',
-      });
+      const [optRes, mediumRes, thumbRes] = await Promise.all([
+        this.storage.uploadBufferToKey({
+          key: optimizedKey,
+          buffer: optBuf,
+          contentType: 'video/mp4',
+          cacheControl: 'public, max-age=604800',
+        }),
+        this.storage.uploadBufferToKey({
+          key: mediumKey,
+          buffer: mediumBuf,
+          contentType: 'video/mp4',
+          cacheControl: 'public, max-age=604800',
+        }),
+        this.storage.uploadBufferToKey({
+          key: thumbKey,
+          buffer: thumbBuf,
+          contentType: 'image/webp',
+          cacheControl: 'public, max-age=31536000, immutable',
+        }),
+      ]);
 
       return {
         url: optRes.url,
         key: optRes.key,
+        mediumUrl: mediumRes.url,
+        mediumKey: mediumRes.key,
         thumbUrl: thumbRes.url,
         thumbKey: thumbRes.key,
         purpose,
@@ -190,6 +216,7 @@ export class MediaOptimizeService {
       await Promise.all([
         fs.promises.unlink(inputPath).catch(() => undefined),
         fs.promises.unlink(outputPath).catch(() => undefined),
+        fs.promises.unlink(mediumPath).catch(() => undefined),
         fs.promises.unlink(thumbPath).catch(() => undefined),
       ]);
     }

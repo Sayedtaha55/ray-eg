@@ -8,11 +8,25 @@ import {
 } from './routerHelpers';
 
 const PublicLayout = React.lazy(() => import('../shared/components/layouts/PublicLayout'));
-const HomeFeed = React.lazy(() => import('../shared/components/pages/public/HomeFeed'));
+// Legacy homepage kept at ../shared/components/pages/public/HomeFeed.tsx
+const NewHomePage = React.lazy(() => import('../shared/components/pages/public/NewHomePage'));
 const OffersPage = React.lazy(() => import('../shared/components/pages/public/OffersPage'));
 const RestaurantsOffersPage = React.lazy(() => import('../shared/components/pages/public/offers/RestaurantsOffersPage'));
 const FashionOffersPage = React.lazy(() => import('../shared/components/pages/public/offers/FashionOffersPage'));
 const SupermarketOffersPage = React.lazy(() => import('../shared/components/pages/public/offers/SupermarketOffersPage'));
+const CarsActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/CarsActivityPage'));
+const RealEstateActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/RealEstateActivityPage'));
+const AgricultureActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/AgricultureActivityPage'));
+const MedicalActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/MedicalActivityPage'));
+const FactoriesActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/FactoriesActivityPage'));
+const ConstructionActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/ConstructionActivityPage'));
+const TradeActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/TradeActivityPage'));
+const TourismActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/TourismActivityPage'));
+const AnimalActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/AnimalActivityPage'));
+const FishActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/FishActivityPage'));
+const EnergyActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/EnergyActivityPage'));
+const ProfessionalActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/ProfessionalActivityPage'));
+const HomeActivityPage = React.lazy(() => import('../shared/components/pages/public/activities/HomeActivityPage'));
 const MapPage = React.lazy(() => import('../shared/components/pages/public/MapPage'));
 const AddMapListingPage = React.lazy(() => import('../shared/components/pages/public/AddMapListingPage'));
 const MapListingDetailPage = React.lazy(() => import('../shared/components/pages/public/MapListingDetailPage'));
@@ -27,11 +41,15 @@ const TermsPage = React.lazy(() => import('../shared/components/pages/public/Ter
 const PrivacyPage = React.lazy(() => import('../shared/components/pages/public/PrivacyPage'));
 const ContactPage = React.lazy(() => import('../shared/components/pages/public/ContactPage'));
 const SuggestionsPage = React.lazy(() => import('../shared/components/pages/public/SuggestionsPage'));
+const CustomerServicePage = React.lazy(() => import('../shared/components/pages/public/CustomerServicePage'));
 const ReturnPolicyPage = React.lazy(() => import('../shared/components/pages/public/ReturnPolicyPage'));
 const SeoDirectoryPage = React.lazy(() => import('../shared/components/pages/public/SeoDirectoryPage'));
 const ProductPage = React.lazy(() => import('../shared/components/pages/public/ProductPage'));
+const ProductLandingPage = React.lazy(() => import('../shared/components/pages/public/ProductLandingPage'));
 const ShopProfile = React.lazy(() => import('../shared/components/pages/public/ShopProfile'));
+const CustomPageView = React.lazy(() => import('../shared/components/pages/public/ShopProfile/CustomPageView'));
 const CourierIntroPage = React.lazy(() => import('../shared/components/pages/public/CourierIntroPage'));
+const DownloadAppPage = React.lazy(() => import('../shared/components/pages/public/DownloadAppPage'));
 const BlogPage = React.lazy(() => import('../shared/components/pages/public/BlogPage'));
 const BlogPostPage = React.lazy(() => import('../shared/components/pages/public/BlogPostPage'));
 const BusinessLayout = React.lazy(() => import('../shared/components/layouts/BusinessLayout'));
@@ -43,6 +61,7 @@ const MerchantProfilePage = React.lazy(() => import('../shared/components/pages/
 const BusinessPendingApproval = React.lazy(() => import('../shared/components/pages/business/BusinessPendingApproval'));
 const CourierSignupPage = React.lazy(() => import('../shared/components/pages/business/CourierSignupPage'));
 const BuilderPreviewPage = React.lazy(() => import('../shared/components/pages/business/builder/BuilderPreviewPage'));
+const BookingActivityPage = React.lazy(() => import('../shared/components/pages/business/bookings/BookingActivityPage'));
 
 const AdminLayout = React.lazy(() => import('../shared/components/layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../shared/components/pages/admin/AdminDashboard'));
@@ -53,6 +72,7 @@ const AdminUsers = React.lazy(() => import('../shared/components/pages/admin/Adm
 const AdminOrders = React.lazy(() => import('../shared/components/pages/admin/AdminOrders'));
 const AdminDelivery = React.lazy(() => import('../shared/components/pages/admin/AdminDelivery'));
 const AdminFeedback = React.lazy(() => import('../shared/components/pages/admin/AdminFeedback'));
+const AdminCustomerService = React.lazy(() => import('../shared/components/pages/admin/AdminCustomerService'));
 const AdminAnalytics = React.lazy(() => import('../shared/components/pages/admin/AdminAnalytics'));
 const AdminNotifications = React.lazy(() => import('../shared/components/pages/admin/AdminNotifications'));
 const AdminContent = React.lazy(() => import('../shared/components/pages/admin/AdminContent'));
@@ -72,13 +92,26 @@ const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={suspense(<PublicLayout />)}>
-        <Route index element={suspense(<HomeFeed />)} />
+        <Route index element={suspense(<NewHomePage />)} />
         <Route path="shops" element={<Navigate to="/" replace />} />
         <Route path="restaurants" element={<Navigate to="/" replace />} />
         <Route path="offers" element={suspense(<OffersPage />)} />
         <Route path="offers/restaurants" element={suspense(<RestaurantsOffersPage />)} />
         <Route path="offers/fashion" element={suspense(<FashionOffersPage />)} />
         <Route path="offers/supermarket" element={suspense(<SupermarketOffersPage />)} />
+        <Route path="activity/cars" element={suspense(<CarsActivityPage />)} />
+        <Route path="activity/real-estate" element={suspense(<RealEstateActivityPage />)} />
+        <Route path="activity/agriculture" element={suspense(<AgricultureActivityPage />)} />
+        <Route path="activity/medical" element={suspense(<MedicalActivityPage />)} />
+        <Route path="activity/factories" element={suspense(<FactoriesActivityPage />)} />
+        <Route path="activity/construction" element={suspense(<ConstructionActivityPage />)} />
+        <Route path="activity/trade" element={suspense(<TradeActivityPage />)} />
+        <Route path="activity/tourism" element={suspense(<TourismActivityPage />)} />
+        <Route path="activity/animal" element={suspense(<AnimalActivityPage />)} />
+        <Route path="activity/fish" element={suspense(<FishActivityPage />)} />
+        <Route path="activity/energy" element={suspense(<EnergyActivityPage />)} />
+        <Route path="activity/professional" element={suspense(<ProfessionalActivityPage />)} />
+        <Route path="activity/home" element={suspense(<HomeActivityPage />)} />
         <Route path="map" element={suspense(<MapPage />)} />
         <Route path="map/listing/:id" element={suspense(<MapListingDetailPage />)} />
         <Route path="map/add-listing" element={suspense(<AddMapListingPage />)} />
@@ -94,6 +127,7 @@ const AppRoutes: React.FC = () => {
         <Route path="privacy" element={suspense(<PrivacyPage />)} />
         <Route path="contact" element={suspense(<ContactPage />)} />
         <Route path="suggestions" element={suspense(<SuggestionsPage />)} />
+        <Route path="customer-service" element={suspense(<CustomerServicePage />)} />
         <Route path="dalil" element={suspense(<SeoDirectoryPage />)} />
         <Route path="dalil-almahalat" element={<Navigate to="/dalil" replace />} />
         <Route path="dalil-almat3am" element={<Navigate to="/dalil" replace />} />
@@ -101,9 +135,11 @@ const AppRoutes: React.FC = () => {
         <Route path="menmakank" element={<Navigate to="/dalil" replace />} />
         <Route path="mnmknk" element={<Navigate to="/dalil" replace />} />
         <Route path="product/:id" element={suspense(<ProductPage />)} />
+        <Route path="landing/:id" element={suspense(<ProductLandingPage />)} />
         <Route path="blog" element={suspense(<BlogPage />)} />
         <Route path="blog/:slug" element={suspense(<BlogPostPage />)} />
         <Route path="courier" element={suspense(<CourierIntroPage />)} />
+        <Route path="download-app" element={suspense(<DownloadAppPage />)} />
         <Route path="delivery" element={<Navigate to="/courier" replace />} />
       </Route>
 
@@ -112,6 +148,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/shop/:slug" element={suspense(<ShopProfile />)} />
       <Route path="/shop/:slug/image-map" element={<RedirectShopImageMapToShopProfile />} />
       <Route path="/shop/:slug/product/:id" element={suspense(<ProductPage />)} />
+      <Route path="/shop/:slug/landing/:id" element={suspense(<ProductLandingPage />)} />
+      <Route path="/shop/:slug/page/:pageId" element={suspense(<CustomPageView />)} />
       <Route path="/business/:shopId/hero" element={suspense(<BusinessHero />)} />
       <Route path="/business/builder/preview" element={suspense(<BuilderPreviewPage />)} />
       <Route path="/business/pending" element={suspense(<BusinessLayout />)}>
@@ -125,6 +163,7 @@ const AppRoutes: React.FC = () => {
         <Route path="profile" element={suspense(<MerchantProfilePage />)} />
         <Route path="pending" element={suspense(<BusinessPendingApproval />)} />
         <Route path="courier-signup" element={suspense(<CourierSignupPage />)} />
+        <Route path=":activity" element={suspense(<BookingActivityPage />)} />
       </Route>
       <Route path="/admin/gate" element={suspense(<AdminLogin />)} />
       <Route path="/admin" element={suspense(<AdminLayout />)}>
@@ -135,6 +174,7 @@ const AppRoutes: React.FC = () => {
         <Route path="orders" element={suspense(<AdminOrders />)} />
         <Route path="delivery" element={suspense(<AdminDelivery />)} />
         <Route path="feedback" element={suspense(<AdminFeedback />)} />
+        <Route path="customer-service" element={suspense(<AdminCustomerService />)} />
         <Route path="analytics" element={suspense(<AdminAnalytics />)} />
         <Route path="notifications" element={suspense(<AdminNotifications />)} />
         <Route path="content" element={suspense(<AdminContent />)} />

@@ -5,12 +5,7 @@ import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { BookingsService } from '@modules/bookings/bookings.service';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
-
-function parseOptionalNumber(value: any) {
-  if (value == null) return undefined;
-  const n = Number(String(value));
-  return Number.isFinite(n) ? n : undefined;
-}
+import { parseOptionalNumber } from '@common/utils/booking-helpers';
 
 class CreateBookingDto {
   @IsString()

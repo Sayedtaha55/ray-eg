@@ -1,4 +1,5 @@
 ﻿import { Controller, Get, Post, Patch, Body, Query, Param, Request, UseGuards, Inject, BadRequestException } from '@nestjs/common';
+import { AnyDto } from '@shared/dto/any.dto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -15,7 +16,7 @@ export class MapListingController {
   constructor(@Inject(MapListingService) private readonly mapListingService: MapListingService) {}
 
   @Post('public/submit')
-  async publicSubmit(@Body() body: any) {
+  async publicSubmit(@Body() body: AnyDto) {
     const title = String(body?.title || '').trim();
     if (!title) throw new BadRequestException('اسم النشاط مطلوب');
 
@@ -58,7 +59,7 @@ export class MapListingController {
   @Roles('merchant', 'admin')
   async addBranch(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: AnyDto,
     @Request() req?: any,
   ) {
     const lat = Number(body?.latitude);
@@ -101,7 +102,7 @@ export class MapListingController {
   @Roles('admin')
   async approve(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: AnyDto,
     @Request() req?: any,
   ) {
     return this.mapListingService.approve(
@@ -116,7 +117,7 @@ export class MapListingController {
   @Roles('admin')
   async reject(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: AnyDto,
     @Request() req?: any,
   ) {
     return this.mapListingService.reject(
@@ -131,7 +132,7 @@ export class MapListingController {
   @Roles('admin')
   async suspend(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: AnyDto,
     @Request() req?: any,
   ) {
     return this.mapListingService.suspend(

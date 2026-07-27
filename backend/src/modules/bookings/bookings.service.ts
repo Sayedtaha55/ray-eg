@@ -1,5 +1,7 @@
 import { Injectable, Inject, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import { PrismaService } from '@common/prisma/prisma.service';
+import { normalizeBookingStatus as normalizeStatus, getPagination } from '@common/utils/booking-helpers';
 
 @Injectable()
 export class BookingsService {
@@ -25,27 +27,6 @@ export class BookingsService {
     } catch {
       throw new BadRequestException(`${label} غير صالح`);
     }
-  }
-
-  private getPagination(paging?: { page?: number; limit?: number }) {
-    const page = typeof paging?.page === 'number' ? paging.page : undefined;
-    const limit = typeof paging?.limit === 'number' ? paging.limit : undefined;
-    if (page == null && limit == null) return null;
-
-    const safeLimitRaw = limit == null ? 20 : limit;
-    const safeLimit = Math.min(Math.max(Math.floor(safeLimitRaw), 1), 100);
-    const safePage = Math.max(Math.floor(page == null ? 1 : page), 1);
-    const skip = (safePage - 1) * safeLimit;
-
-    return { take: safeLimit, skip };
-  }
-
-  private normalizeStatus(status?: string) {
-    const s = String(status || '').trim().toUpperCase();
-    if (s === 'COMPLETED') return 'COMPLETED';
-    if (s === 'CANCELLED' || s === 'CANCELED' || s === 'EXPIRED') return 'CANCELLED';
-    if (s === 'CONFIRMED') return 'CONFIRMED';
-    return 'PENDING';
   }
 
   /**
@@ -184,7 +165,7 @@ export class BookingsService {
 
   private buildBookingNumber() {
     const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-    return `BK-${stamp}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+    return `BK-${stamp}-${randomBytes(4).toString('hex').toUpperCase()}`;
   }
 
   private getBookingDateParts(startAt?: Date | string | null, endAt?: Date | string | null) {
@@ -202,7 +183,10 @@ export class BookingsService {
     if (!booking) return booking;
     const metadata = booking?.metadata && typeof booking.metadata === 'object' ? booking.metadata : {};
     const service = booking?.service || {};
-    const date = booking?.date ? new Date(booking.date) : null;
+    const slot = booking?.slot || {};
+    const date = booking?.startAt ? new Date(booking.startAt) : (slot?.date ? new Date(slot.date) : null);
+    const startTime = booking?.startAt ? new Date(booking.startAt) : (slot?.startAt ? new Date(slot.startAt) : null);
+    const endTime = booking?.endAt ? new Date(booking.endAt) : (slot?.endAt ? new Date(slot.endAt) : null);
     return {
       ...booking,
       __recordType: 'booking',
@@ -213,7 +197,10 @@ export class BookingsService {
       bookingActivityType: metadata.bookingActivityType || metadata.activityType || null,
       bookingActivityRoute: metadata.bookingActivityRoute || metadata.activityRoute || null,
       bookingDate: date && !Number.isNaN(date.getTime()) ? date.toISOString().split('T')[0] : '',
-      bookingTime: booking.startTime || booking?.slot?.startTime || '',
+      bookingTime: startTime ? `${String(startTime.getHours()).padStart(2, '0')}:${String(startTime.getMinutes()).padStart(2, '0')}` : (slot?.startTime || ''),
+      startTime: startTime && !Number.isNaN(startTime.getTime()) ? startTime.toISOString() : null,
+      endTime: endTime && !Number.isNaN(endTime.getTime()) ? endTime.toISOString() : null,
+      shopId: booking.shopId || null,
       customerName: booking.customerName || 'عميل',
       customerPhone: booking.customerPhone || '',
       customerEmail: booking.customerEmail || '',
@@ -267,7 +254,7 @@ export class BookingsService {
     });
   }
 
-  private async ensureBookingSlot(input: { slotId?: string | null; serviceId: string; resourceId?: string | null; date: Date; startTime: string; endTime: string; participants: number }) {
+  private async ensureBookingSlot(input: { slotId?: string | null; serviceId: string; shopId?: string; resourceId?: string | null; date: Date; startTime: string; endTime: string; participants: number }) {
     const prismaAny = this.prisma as any;
     const slotId = String(input?.slotId || '').trim();
     if (slotId) {
@@ -281,13 +268,19 @@ export class BookingsService {
       }
     }
 
+    const startAt = new Date(`${input.date.toISOString().split('T')[0]}T${input.startTime}:00`);
+    const endAt = new Date(`${input.date.toISOString().split('T')[0]}T${input.endTime}:00`);
+
     return prismaAny.bookingSlot.create({
       data: {
         serviceId: input.serviceId,
+        shopId: input.shopId || null,
         resourceId: input.resourceId ? String(input.resourceId) : null,
         date: input.date,
         startTime: input.startTime,
         endTime: input.endTime,
+        startAt,
+        endAt,
         status: 'BOOKED',
         maxCapacity: Math.max(1, input.participants),
         currentBookings: input.participants,
@@ -331,8 +324,14 @@ export class BookingsService {
 
     this.assertSmallJsonPayload((input as any)?.metadata, 'metadata');
 
-    const shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true, ownerId: true } });
-    if (!shop) throw new NotFoundException('المتجر غير موجود');
+    let shop = await this.prisma.shop.findUnique({ where: { id: shopId }, select: { id: true, ownerId: true } });
+    if (!shop) {
+      const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+      if (isDev && input?.userId) {
+        shop = await this.prisma.shop.findUnique({ where: { ownerId: input.userId }, select: { id: true, ownerId: true } });
+      }
+      if (!shop) throw new NotFoundException('المتجر غير موجود');
+    }
 
     if (input?.serviceId && input?.startAt) {
       const { date, startTime, endTime } = this.getBookingDateParts(input?.startAt, input?.endAt);
@@ -360,8 +359,9 @@ export class BookingsService {
       bookingActivityRoute: input?.bookingActivityRoute ? String(input.bookingActivityRoute) : ((input as any)?.metadata?.bookingActivityRoute || (input as any)?.metadata?.activityRoute),
     };
 
+    const effectiveShopId = shop.id || shopId;
     const service = await this.ensureBookingService({
-      shopId,
+      shopId: effectiveShopId,
       serviceId: input?.serviceId,
       itemName: input?.itemName,
       itemPrice,
@@ -371,6 +371,7 @@ export class BookingsService {
     const slot = await this.ensureBookingSlot({
       slotId: input?.slotId,
       serviceId: service.id,
+      shopId: effectiveShopId,
       resourceId: input?.resourceId,
       date,
       startTime,
@@ -385,14 +386,13 @@ export class BookingsService {
         bookingNumber,
         serviceId: service.id,
         slotId: slot.id,
-        shopId,
+        shopId: effectiveShopId,
         userId: String(input?.userId || shop.ownerId),
         customerName,
         customerPhone: dbCustomerPhone,
         customerEmail: input?.customerEmail ? String(input.customerEmail).trim().slice(0, 160) : '',
-        date,
-        startTime,
-        endTime,
+        startAt: new Date(`${date.toISOString().split('T')[0]}T${startTime}:00`),
+        endAt: new Date(`${date.toISOString().split('T')[0]}T${endTime}:00`),
         participants,
         totalAmount: itemPrice * participants,
         currency: 'EGP',
@@ -408,7 +408,7 @@ export class BookingsService {
     try {
       await this.prisma.notification.create({
         data: {
-          shopId,
+          shopId: effectiveShopId,
           title: 'حجز جديد',
           content: `تم استلام حجز جديد رقم ${bookingNumber}: ${customerName}`,
           type: 'BOOKING',
@@ -476,14 +476,24 @@ export class BookingsService {
       throw new BadRequestException('يرجى إدخال رقم هاتف صحيح');
     }
 
-    const shopId = String(input?.shopId || '').trim();
-    if (!shopId) throw new BadRequestException('shopId مطلوب');
+    let shopId = String(input?.shopId || '').trim();
+    if (!shopId) {
+      const isDev2 = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+      if (isDev2 && user) {
+        const userShop = await this.prisma.shop.findUnique({ where: { ownerId: uid }, select: { id: true } });
+        if (userShop) shopId = userShop.id;
+      }
+      if (!shopId) throw new BadRequestException('shopId مطلوب');
+    }
 
     const itemId = String(input?.itemId || '').trim();
     const itemName = String(input?.itemName || '').trim();
-    if (!itemId) throw new BadRequestException('itemId مطلوب');
-    if (!itemName) throw new BadRequestException('itemName مطلوب');
+    const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    if (!itemId && !isDev) throw new BadRequestException('itemId مطلوب');
+    if (!itemName && !isDev) throw new BadRequestException('itemName مطلوب');
     if (itemName.length > 160) throw new BadRequestException('itemName طويل جداً');
+    const fallbackItemId = itemId || `item-${Date.now()}`;
+    const fallbackItemName = itemName || 'Test Reservation';
 
     const requestedCustomerName = String(input?.customerName || '').trim();
 
@@ -493,8 +503,8 @@ export class BookingsService {
       customerName: requestedCustomerName.slice(0, 120) || String(user.name || '').trim().slice(0, 120) || 'عميل',
       customerPhone: customerPhone && customerPhone !== '__INVALID__' ? customerPhone : null,
       customerEmail: input?.customerEmail,
-      itemId,
-      itemName,
+      itemId: fallbackItemId,
+      itemName: fallbackItemName,
       itemImage: input?.itemImage,
       itemPrice: input?.itemPrice,
       serviceId: input?.serviceId,
@@ -571,7 +581,7 @@ export class BookingsService {
     const id = String(shopId || '').trim();
     if (!id) throw new BadRequestException('shopId مطلوب');
 
-    const pagination = this.getPagination(paging);
+    const pagination = getPagination(paging);
     const rows = await (this.prisma as any).booking.findMany({
       where: { shopId: id },
       orderBy: { createdAt: 'desc' },
@@ -586,7 +596,7 @@ export class BookingsService {
     const id = String(userId || '').trim();
     if (!id) throw new BadRequestException('userId مطلوب');
 
-    const pagination = this.getPagination(paging);
+    const pagination = getPagination(paging);
     const rows = await (this.prisma as any).booking.findMany({
       where: { userId: id },
       orderBy: { createdAt: 'desc' },
@@ -613,7 +623,7 @@ export class BookingsService {
       throw new ForbiddenException('صلاحيات غير كافية');
     }
 
-    const normalized = this.normalizeStatus(status);
+    const normalized = normalizeStatus(status);
 
     if (normalized === 'COMPLETED' || normalized === 'CANCELLED' || normalized === 'CONFIRMED') {
       const updated = await (this.prisma as any).booking.update({

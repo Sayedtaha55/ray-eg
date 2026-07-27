@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 
 export type RequestIdRequest = {
   headers?: Record<string, any>;
@@ -24,9 +24,9 @@ export function requestIdMiddleware(req: RequestIdRequest, res: RequestIdRespons
 
   const id = existing || (() => {
     try {
-      return typeof randomUUID === 'function' ? randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      return typeof randomUUID === 'function' ? randomUUID() : `${Date.now()}-${randomBytes(8).toString('hex')}`;
     } catch {
-      return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      return `${Date.now()}-${randomBytes(8).toString('hex')}`;
     }
   })();
 

@@ -9,6 +9,7 @@ import { ShopSettingsService } from '@modules/shop/shop-settings.service';
 import { ShopPublicQueryService } from '@modules/shop/shop-public-query.service';
 import { ShopMediaService } from '@modules/shop/shop-media.service';
 import { ShopAnalyticsService } from '@modules/shop/shop-analytics.service';
+import { ShopModulesService } from '@modules/shop/shop-modules.service';
 
 const mockRedis = {
   get: jest.fn(),
@@ -57,6 +58,7 @@ const mockShopSettings = { getShopSettings: jest.fn(), updateShopSettings: jest.
 const mockShopPublicQuery = { getShopBySlug: jest.fn() };
 const mockShopMedia = { processShopMedia: jest.fn() };
 const mockShopAnalytics = { getShopAnalytics: jest.fn() };
+const mockShopModules = { getEnabledModules: jest.fn(), updateModules: jest.fn() };
 
 describe('ShopService Performance Tests', () => {
   let service: ShopService;
@@ -74,6 +76,7 @@ describe('ShopService Performance Tests', () => {
         { provide: ShopPublicQueryService, useValue: mockShopPublicQuery },
         { provide: ShopMediaService, useValue: mockShopMedia },
         { provide: ShopAnalyticsService, useValue: mockShopAnalytics },
+        { provide: ShopModulesService, useValue: mockShopModules },
       ],
     }).compile();
 

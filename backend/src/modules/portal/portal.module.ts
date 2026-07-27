@@ -7,6 +7,7 @@ import { PortalAuthService } from './portal-auth.service';
 import { PortalJwtStrategy } from './portal-jwt.strategy';
 import { PortalController } from '@modules/portal/portal.controller';
 import { MapListingService } from '@modules/map-listing/map-listing.service';
+import { getJwtSecret } from '@common/security/jwt-secret.util';
 
 @Module({
   imports: [
@@ -16,14 +17,7 @@ import { MapListingService } from '@modules/map-listing/map-listing.service';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
-        secret: (() => {
-          const secret = config.get<string>('JWT_SECRET');
-          const env = String(process.env.NODE_ENV || '').toLowerCase();
-          if (!secret && env === 'production') {
-            throw new Error('JWT_SECRET must be set in production');
-          }
-          return secret || 'dev-fallback-secret-change-in-production';
-        })(),
+        secret: getJwtSecret(config),
         signOptions: { expiresIn: '7d' },
       }),
     }),

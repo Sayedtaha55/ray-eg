@@ -1,4 +1,6 @@
 import { BadRequestException, Body, Controller, Get, HttpException, Inject, Optional, Post, Put, Query, Request, Res, UseGuards } from '@nestjs/common';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { randomBytes } from 'crypto';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '@modules/auth/guards/roles.guard';
 import { Roles } from '@modules/auth/decorators/roles.decorator';
@@ -18,6 +20,46 @@ const disableGuards = !isProd && String(process.env.MEDIA_DISABLE_GUARDS || '').
 const disableRoles = !isProd && String(process.env.MEDIA_DISABLE_ROLES || '').toLowerCase() === 'true';
 const guards: any[] = disableGuards ? [] : [JwtAuthGuard, RolesGuard];
 const merchantAdminRoles: any[] = disableRoles ? [] : ['merchant', 'admin'];
+
+class MediaCompleteDto {
+  @IsString()
+  key!: string;
+
+  @IsString()
+  mimeType!: string;
+
+  @IsOptional()
+  @IsString()
+  purpose?: string;
+
+  @IsOptional()
+  @IsString()
+  publicUrl?: string;
+
+  @IsOptional()
+  @IsNumber()
+  fileSize?: number;
+
+  @IsOptional()
+  @IsNumber()
+  width?: number;
+
+  @IsOptional()
+  @IsNumber()
+  height?: number;
+
+  @IsOptional()
+  @IsString()
+  linkedType?: string;
+
+  @IsOptional()
+  @IsString()
+  linkedId?: string;
+
+  @IsOptional()
+  @IsString()
+  shopId?: string;
+}
 
 @Controller('media')
 export class MediaController {
@@ -90,7 +132,7 @@ export class MediaController {
           filename: (_req: any, file: any, cb: any) => {
             const ext = path.extname(String(file?.originalname || '')).slice(0, 16);
             const safeExt = ext && /^[a-z0-9.]+$/i.test(ext) ? ext : '';
-            const name = `${Date.now()}-${Math.random().toString(16).slice(2)}${safeExt}`;
+            const name = `${Date.now()}-${randomBytes(8).toString('hex')}${safeExt}`;
             cb(null, name);
           },
         }),
@@ -290,7 +332,7 @@ export class MediaControllerPresignOnly {
   @Post('complete')
   @UseGuards(...guards)
   @Roles(...merchantAdminRoles)
-  async complete(@Request() req, @Body() body: any) {
+  async complete(@Request() req, @Body() body: MediaCompleteDto) {
     const key = String(body?.key || '').trim();
     const mimeType = String(body?.mimeType || '').toLowerCase().trim();
     const purpose = typeof body?.purpose === 'string' ? String(body.purpose).trim() : 'images';
@@ -337,7 +379,7 @@ export class MediaControllerPresignOnly {
       return { jobId: '', state: 'queued', queued: false, mediaId };
     }
 
-    const jobId = `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const jobId = `${Date.now()}_${randomBytes(8).toString('hex')}`;
 
     try {
       await this.mediaOptimizeQueue.enqueue({ jobId, key, mimeType, purpose });
@@ -408,7 +450,7 @@ export class MediaControllerUploadOnly {
         filename: (_req: any, file: any, cb: any) => {
           const ext = path.extname(String(file?.originalname || '')).slice(0, 16);
           const safeExt = ext && /^[a-z0-9.]+$/i.test(ext) ? ext : '';
-          const name = `${Date.now()}-${Math.random().toString(16).slice(2)}${safeExt}`;
+          const name = `${Date.now()}-${randomBytes(8).toString('hex')}${safeExt}`;
           cb(null, name);
         },
       }),

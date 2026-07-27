@@ -167,7 +167,7 @@ export class MediaStorageService implements MediaStorage {
           `Unsupported file type (mimetype=${mimeType || 'empty'} fileName=${String((file as any)?.originalname || '')})`,
         );
       }
-      throw new BadRequestException('Unsupported file type');
+      throw new BadRequestException('نوع الملف غير مدعوم');
     }
 
     const size = Number((file as any)?.size || 0);

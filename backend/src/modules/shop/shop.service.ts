@@ -10,9 +10,10 @@ import { ShopPublicQueryService } from './shop-public-query.service';
 import { createHash } from 'crypto';
 import { ShopMediaService } from './shop-media.service';
 import { ShopAnalyticsService } from './shop-analytics.service';
+import { ShopModulesService } from './shop-modules.service';
 
 const ACTIVITY_PRIVATE_BUTTONS: Record<string, string[]> = {
-  restaurant: ['tables', 'delivery_zones', 'meal_combos', 'kitchen_queue'],
+  restaurant: ['tables', 'table_bookings'],
   grocery: ['fresh_sections', 'suppliers', 'expiry_batches', 'bundle_offers'],
   fashion: ['sizes_colors', 'collections', 'try_exchange', 'tailoring'],
   homeTextiles: ['measurements', 'fabric_catalog', 'installation', 'custom_orders'],
@@ -68,72 +69,16 @@ export class ShopService {
     @Inject(ShopPublicQueryService) private readonly shopPublicQuery: ShopPublicQueryService,
     @Inject(ShopMediaService) private readonly shopMedia: ShopMediaService,
     @Inject(ShopAnalyticsService) private readonly shopAnalytics: ShopAnalyticsService,
+    @Inject(ShopModulesService) private readonly shopModules: ShopModulesService,
   ) {}
 
   private get upgradeRequests() {
     return (this.prisma as any).shopModuleUpgradeRequest as any;
   }
 
-  private getAllowedDashboardModules() {
-    return new Set([
-      'overview',
-      'products',
-      'promotions',
-      'builder',
-      'settings',
-      'gallery',
-      'reservations',
-      'invoice',
-      'sales',
-      'customers',
-      'reports',
-      'pos',
-      'abandonedCart',
-    ]);
-  }
-
-  private getCoreDashboardModules() {
-    return ['overview', 'products', 'promotions', 'builder', 'settings'];
-  }
-
-  private getAllowedDashboardModulesForCategory(categoryRaw: any) {
-    const cat = String(categoryRaw || '').trim().toUpperCase();
-    const core = this.getCoreDashboardModules();
-    const always = new Set<string>(core);
-    always.add('gallery');
-    always.add('reservations');
-
-    const add = (...ids: string[]) => {
-      for (const id of ids) always.add(id);
-    };
-
-    // Keep this mapping aligned with frontend ACTIVITY_CONFIGS.
-    if (cat === 'RESTAURANT') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
-      return always;
-    }
-    if (cat === 'SERVICE') {
-      add('reservations', 'sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
-      return always;
-    }
-    if (cat === 'FASHION') {
-      add('sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
-      return always;
-    }
-    if (cat === 'RETAIL' || cat === 'ELECTRONICS' || cat === 'HEALTH' || cat === 'FOOD') {
-      add('sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
-      return always;
-    }
-
-    // Default: be permissive for unknown/new categories to support future activities.
-    // Keep this aligned with frontend ACTIVITY_CONFIGS, but don't block merchants by default.
-    add('sales', 'customers', 'reports', 'pos', 'invoice', 'abandonedCart');
-    return always;
-  }
-
   private normalizeRequestedModules(raw: any, activityId?: string) {
     const list = Array.isArray(raw) ? raw : [];
-    const allowed = this.getAllowedDashboardModules();
+    const allowed = this.shopModules.getAllowedDashboardModules();
     const allowedButtons = activityId ? (ACTIVITY_PRIVATE_BUTTONS[activityId] || []) : [];
     const allowedSet = new Set([...Array.from(allowed), ...allowedButtons]);
 
@@ -142,21 +87,6 @@ export class ShopService {
       .filter(Boolean)
       .filter((id) => allowedSet.has(id));
     return Array.from(new Set(normalized));
-  }
-
-  private getDefaultDashboardConfigForCategory(categoryRaw: any) {
-    const cat = String(categoryRaw || '').trim().toUpperCase();
-    const core = ['overview', 'products', 'promotions', 'builder', 'settings'];
-    const manageByDefault =
-      cat === 'RESTAURANT' ||
-      cat === 'FOOD' ||
-      cat === 'RETAIL' ||
-      cat === 'HEALTH';
-
-    return {
-      dashboardMode: manageByDefault ? 'manage' : 'showcase',
-      enabledModules: core,
-    };
   }
 
   async createModuleUpgradeRequest(input: {
@@ -183,7 +113,7 @@ export class ShopService {
     const requestedModules = this.normalizeRequestedModules(input?.requestedModules, activityId);
     if (requestedModules.length === 0) throw new BadRequestException('requestedModules مطلوب');
 
-    const allowedForCategory = this.getAllowedDashboardModulesForCategory((shop as any)?.category);
+    const allowedForCategory = this.shopModules.getAllowedDashboardModulesForCategory((shop as any)?.category);
     const allowedButtons = activityId ? (ACTIVITY_PRIVATE_BUTTONS[activityId] || []) : [];
     const allowedButtonsSet = new Set(allowedButtons);
 
@@ -301,8 +231,8 @@ export class ShopService {
 
     const adminId = adminIdRaw ? String(adminIdRaw).trim() : '';
 
-    const allowed = this.getAllowedDashboardModules();
-    const core = this.getCoreDashboardModules();
+    const allowed = this.shopModules.getAllowedDashboardModules();
+    const core = this.shopModules.getCoreDashboardModules();
 
     const updated = await this.prisma.$transaction(async (tx) => {
       const req = await (tx as any).shopModuleUpgradeRequest.findUnique({
@@ -342,7 +272,7 @@ export class ShopService {
         : [];
 
       const shopCategory = (req.shop as any)?.category;
-      const allowedForCategory = this.getAllowedDashboardModulesForCategory(shopCategory);
+      const allowedForCategory = this.shopModules.getAllowedDashboardModulesForCategory(shopCategory);
 
       const mergedRequested = Array.from(new Set([...prevEnabled, ...approvedModules, ...core]));
       const nextEnabled = mergedRequested.filter((m) => (allowed.has(m) || core.includes(m)) && allowedForCategory.has(m));
@@ -452,7 +382,7 @@ export class ShopService {
 
     for (const s of shops) {
       const prevLayout = (s?.layoutConfig && typeof s.layoutConfig === 'object') ? (s.layoutConfig as any) : {};
-      const defaults = this.getDefaultDashboardConfigForCategory((s as any)?.category);
+      const defaults = this.shopModules.getDefaultDashboardConfigForCategory((s as any)?.category);
 
       const prevEnabled = Array.isArray(prevLayout?.enabledModules)
         ? prevLayout.enabledModules.map((x: any) => String(x || '').trim()).filter(Boolean)
@@ -511,6 +441,10 @@ export class ShopService {
 
   async updateShopBannerFromUpload(shopId: string, file: any) {
     return await this.shopMedia.updateShopBannerFromUpload(shopId, file);
+  }
+
+  async findFirstActiveShop() {
+    return this.prisma.shop.findFirst({ where: { isActive: true } });
   }
 
   async getShopById(id: string) {
@@ -743,7 +677,7 @@ export class ShopService {
     try {
       const takeRaw = typeof input?.take === 'number' && Number.isFinite(input.take) ? input.take : undefined;
       const skipRaw = typeof input?.skip === 'number' && Number.isFinite(input.skip) ? input.skip : undefined;
-      const take = typeof takeRaw === 'number' ? Math.min(100, Math.max(1, Math.floor(takeRaw))) : undefined;
+      const take = typeof takeRaw === 'number' ? Math.min(500, Math.max(1, Math.floor(takeRaw))) : undefined;
       const skip = typeof skipRaw === 'number' ? Math.max(0, Math.floor(skipRaw)) : undefined;
 
       const category = typeof input?.category === 'string' ? input.category.trim() : '';
@@ -1248,6 +1182,17 @@ ${urlset}
     });
 
     if (existingShop) {
+      const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+      if (isDev) {
+        const updated = await this.prisma.shop.update({
+          where: { id: existingShop.id },
+          data: {
+            name: createShopDto.name || existingShop.name,
+            ...(createShopDto.description ? { description: createShopDto.description } : {}),
+          },
+        });
+        return updated;
+      }
       throw new BadRequestException('User already has a shop');
     }
 
@@ -1281,7 +1226,7 @@ ${urlset}
         city: createShopDto.city,
         openingHours: createShopDto.openingHours,
         layoutConfig: {
-          ...this.getDefaultDashboardConfigForCategory(createShopDto.category),
+          ...this.shopModules.getDefaultDashboardConfigForCategory(createShopDto.category),
           ...(activityId ? { activityId } : {}),
         } as any,
         owner: {

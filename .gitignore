@@ -11,6 +11,8 @@ coverage/
 build/
 dist/
 dist-backend/
+dist-electron/
+release/
 
 # Next.js
 .next/
@@ -77,3 +79,5 @@ public/videos/
 *.sqlite
 *.db
 
+
+testsprite_tests\tmp\config.json

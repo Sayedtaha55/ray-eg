@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 
-const IDEMPOTENCY_TTL_MS = 24 * 60 * 60 * 1000;
+const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+const IDEMPOTENCY_TTL_MS = IDEMPOTENCY_TTL_SECONDS * 1000;
 
 interface IdempotencyRecord {
   status: number;
@@ -9,18 +10,52 @@ interface IdempotencyRecord {
   createdAt: number;
 }
 
-const store = new Map<string, IdempotencyRecord>();
-
-setInterval(() => {
+// In-memory fallback when Redis is unavailable
+const memoryStore = new Map<string, IdempotencyRecord>();
+const memoryCleanupInterval = setInterval(() => {
   const now = Date.now();
-  for (const [key, record] of store) {
+  for (const [key, record] of memoryStore) {
     if (now - record.createdAt > IDEMPOTENCY_TTL_MS) {
-      store.delete(key);
+      memoryStore.delete(key);
     }
   }
 }, 60 * 60 * 1000);
+memoryCleanupInterval.unref();
 
-export function idempotencyMiddleware(req: Request, res: Response, next: NextFunction) {
+// Redis client getter — set by main.ts during bootstrap
+let redisGetter: (() => { setex: (key: string, ttl: number, val: string) => Promise<any>; get: (key: string) => Promise<string | null> } | null) | null = null;
+
+export function setIdempotencyRedisGetter(getter: () => { setex: (key: string, ttl: number, val: string) => Promise<any>; get: (key: string) => Promise<string | null> } | null) {
+  redisGetter = getter;
+}
+
+async function getRecord(key: string): Promise<IdempotencyRecord | null> {
+  const redis = redisGetter?.();
+  if (redis) {
+    try {
+      const raw = await redis.get(`idempotency:${key}`);
+      if (raw) return JSON.parse(raw) as IdempotencyRecord;
+    } catch {
+      // fall through to memory
+    }
+  }
+  return memoryStore.get(key) || null;
+}
+
+async function setRecord(key: string, record: IdempotencyRecord): Promise<void> {
+  const redis = redisGetter?.();
+  if (redis) {
+    try {
+      await redis.setex(`idempotency:${key}`, IDEMPOTENCY_TTL_SECONDS, JSON.stringify(record));
+      return;
+    } catch {
+      // fall through to memory
+    }
+  }
+  memoryStore.set(key, record);
+}
+
+export async function idempotencyMiddleware(req: Request, res: Response, next: NextFunction) {
   const method = String(req.method || '').toUpperCase();
 
   if (method !== 'POST' && method !== 'PUT' && method !== 'PATCH') {
@@ -32,13 +67,15 @@ export function idempotencyMiddleware(req: Request, res: Response, next: NextFun
     return next();
   }
 
-  const existing = store.get(key);
+  const existing = await getRecord(key);
   if (existing) {
     try {
       for (const [h, v] of Object.entries(existing.headers || {})) {
         res.setHeader(h, v);
       }
-    } catch {}
+    } catch {
+      // ignore header errors
+    }
     return res.status(existing.status).json(existing.body);
   }
 
@@ -66,9 +103,14 @@ export function idempotencyMiddleware(req: Request, res: Response, next: NextFun
           if (typeof parsed === 'string') parsed = JSON.parse(parsed);
         } catch {}
 
-        store.set(key, { status, body: parsed, headers, createdAt: Date.now() });
+        const record: IdempotencyRecord = { status, body: parsed, headers, createdAt: Date.now() };
+        setRecord(key, record).catch(() => {
+          // best-effort — if Redis fails we already have memory fallback in setRecord
+        });
       }
-    } catch {}
+    } catch {
+      // ignore
+    }
 
     return originalEnd(...args);
   };

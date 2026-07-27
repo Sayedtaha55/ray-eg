@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
@@ -21,7 +21,17 @@ export class RolesGuard implements CanActivate {
       return true;
     }
 
+    if (!user) {
+      throw new UnauthorizedException('المصادقة مطلوبة');
+    }
+
     const userRole = String(user?.role || '').toUpperCase();
-    return requiredRoles.map((r) => String(r).toUpperCase()).includes(userRole);
+    const allowedRoles = requiredRoles.map((r) => String(r).toUpperCase());
+
+    if (!allowedRoles.includes(userRole)) {
+      throw new ForbiddenException(`صلاحيات غير كافية. مطلوب: ${allowedRoles.join(', ')}`);
+    }
+
+    return true;
   }
 }

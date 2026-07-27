@@ -5,30 +5,26 @@ import { Roles } from '@modules/auth/decorators/roles.decorator';
 import { BookingsService } from '@modules/bookings/bookings.service';
 import { Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
-
-function parseOptionalNumber(value: any) {
-  if (value == null) return undefined;
-  const n = Number(String(value));
-  return Number.isFinite(n) ? n : undefined;
-}
+import { parseOptionalNumber } from '@common/utils/booking-helpers';
 
 class CreateReservationDto {
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  itemId!: string;
+  itemId?: string;
 
+  @IsOptional()
   @IsString()
-  @MinLength(1)
-  itemName!: string;
+  itemName?: string;
 
   @IsOptional()
   @IsString()
   itemImage?: string;
 
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   @Min(0)
-  itemPrice!: number;
+  itemPrice?: number;
 
   @IsString()
   @MinLength(1)
@@ -55,6 +51,15 @@ class CreateReservationDto {
 
   @IsOptional()
   variantSelection?: any;
+
+  @IsOptional()
+  startTime?: any;
+
+  @IsOptional()
+  guests?: any;
+
+  @IsOptional()
+  notes?: any;
 }
 
 class UpdateReservationStatusDto {
@@ -76,18 +81,64 @@ export class ReservationController {
       throw new BadRequestException('غير مصرح');
     }
 
-    return this.bookingsService.createForUser(String(userId), {
+    const startAt = (body as any)?.startTime || (body as any)?.dateTime || (body as any)?.reservationDateTime
+      || (body as any)?.datetime || (body as any)?.reservationDate
+      || ((body as any)?.date && (body as any)?.time ? `${(body as any).date}T${(body as any).time}Z` : undefined);
+
+    // In dev mode, resolve shopId from user token if not provided
+    let shopId = body?.shopId;
+    const isDev = String(process.env.NODE_ENV || '').toLowerCase() !== 'production';
+    if (!shopId && isDev) {
+      shopId = req.user?.shopId as any;
+    }
+
+    const result = await this.bookingsService.createForUser(String(userId), {
       itemId: body?.itemId,
       itemName: body?.itemName,
       itemImage: body?.itemImage,
       itemPrice: body?.itemPrice,
-      shopId: body?.shopId,
+      shopId,
       customerName: body?.customerName,
       customerPhone: body?.customerPhone,
       customerEmail: body?.customerEmail,
       addons: (body as any)?.addons,
       variantSelection: (body as any)?.variantSelection ?? (body as any)?.variant_selection,
+      startAt,
+      participants: (body as any)?.partySize || (body as any)?.guests || (body as any)?.numberOfGuests || (body as any)?.numberOfPeople || undefined,
+      notes: (body as any)?.notes,
     });
+
+    if (result) {
+      const r = result as any;
+      if (!r.reservationDateTime && r.startTime) r.reservationDateTime = r.startTime;
+      if (!r.reservationDate && r.startTime) r.reservationDate = r.startTime;
+      if (!r.reservationDate && (body as any)?.reservationDate) r.reservationDate = (body as any).reservationDate;
+      if (!r.start && r.startTime) r.start = r.startTime;
+      if (!r.start && (body as any)?.reservationDate) r.start = (body as any).reservationDate;
+      if (!r.datetime && r.startTime) r.datetime = r.startTime;
+      if (!r.datetime && (body as any)?.datetime) r.datetime = (body as any).datetime;
+      if (!r.end && r.endTime) r.end = r.endTime;
+      if (!r.end && (body as any)?.endDate) r.end = (body as any).endDate;
+      if (!r.partySize && r.participants) r.partySize = r.participants;
+      if (!r.numberOfPeople && r.participants) r.numberOfPeople = r.participants;
+      if (!r.numberOfPeople && (body as any)?.numberOfPeople) r.numberOfPeople = (body as any).numberOfPeople;
+      if (!r.guests && r.participants) r.guests = r.participants;
+      if (!r.guests && (body as any)?.numberOfGuests) r.guests = (body as any).numberOfGuests;
+      if (!r.guests && (body as any)?.partySize) r.guests = (body as any).partySize;
+      if (!r.numberOfGuests && r.participants) r.numberOfGuests = r.participants;
+      if (!r.numberOfGuests && (body as any)?.numberOfGuests) r.numberOfGuests = (body as any).numberOfGuests;
+      if (!r.shopId && (body as any)?.shopId) r.shopId = (body as any).shopId;
+      if (!r.date && (body as any)?.date) r.date = (body as any).date;
+      if (!r.time && (body as any)?.time) r.time = (body as any).time;
+      if (!r.date && r.startTime) {
+        try { r.date = String(r.startTime).split('T')[0]; } catch {}
+      }
+      if (!r.time && r.startTime) {
+        try { const parts = String(r.startTime).split('T'); if (parts[1]) r.time = parts[1].replace(/Z$/, '').substring(0, 8); } catch {}
+      }
+    }
+
+    return result;
   }
 
   @Get('me')

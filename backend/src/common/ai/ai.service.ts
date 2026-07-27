@@ -78,15 +78,15 @@ export class AiService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly config: ConfigService,
     private readonly auditService: AiAuditService,
     private readonly knowledgeBase: KnowledgeBaseService,
     private readonly guardrails: AiGuardrailsService,
     private readonly cache: AiCacheService,
   ) {
     this.provider = new GroqProvider({
-      apiKey: String(this.config.get<string>('GROQ_API_KEY') || this.config.get<string>('OPENAI_API_KEY') || ''),
-      model: String(this.config.get<string>('GROQ_MODEL') || 'llama-3.3-70b-versatile'),
+      apiKey: String(process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || 'ollama'),
+      model: String(process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'),
+      baseUrl: process.env.AI_BASE_URL || process.env.OLLAMA_BASE_URL || undefined,
     });
   }
 

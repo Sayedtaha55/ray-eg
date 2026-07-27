@@ -1,10 +1,12 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import * as fs from 'fs';
 import pino, { Logger as PinoLogger } from 'pino';
+import { ElasticsearchTransport } from '@common/logging/elasticsearch-transport';
 
 @Injectable()
-export class LoggerService implements OnModuleInit {
+export class LoggerService implements OnModuleInit, OnModuleDestroy {
   private logger!: PinoLogger;
+  private esTransport: ElasticsearchTransport | null = null;
 
   onModuleInit() {
     const isProd = String(process.env.NODE_ENV || '').toLowerCase() === 'production';
@@ -12,6 +14,9 @@ export class LoggerService implements OnModuleInit {
 
     const enableFileLogs = isProd;
     const writeToFile = String(process.env.LOG_TO_FILE || '').trim().toLowerCase() === 'true';
+
+    const esNode = String(process.env.ELASTICSEARCH_NODE || '').trim();
+    const enableEs = esNode.length > 0;
 
     let destination: any = undefined;
 
@@ -22,6 +27,29 @@ export class LoggerService implements OnModuleInit {
         destination = pino.destination({ dest: `${logDir}/combined.log`, sync: false });
       } catch {
         destination = undefined;
+      }
+    }
+
+    if (enableEs) {
+      try {
+        this.esTransport = new ElasticsearchTransport({
+          node: esNode,
+          indexPrefix: String(process.env.ELASTICSEARCH_INDEX_PREFIX || 'ray-logs').trim(),
+          auth: {
+            username: process.env.ELASTICSEARCH_USERNAME || undefined,
+            password: process.env.ELASTICSEARCH_PASSWORD || undefined,
+          },
+        });
+        if (!destination) {
+          destination = this.esTransport;
+        } else {
+          destination = pino.multistream([
+            { stream: destination },
+            { stream: this.esTransport },
+          ]);
+        }
+      } catch {
+        this.esTransport = null;
       }
     }
 
@@ -44,6 +72,12 @@ export class LoggerService implements OnModuleInit {
       },
       destination,
     );
+  }
+
+  onModuleDestroy() {
+    if (this.esTransport) {
+      try { this.esTransport.close(); } catch {}
+    }
   }
 
   log(message: string, meta?: any) {

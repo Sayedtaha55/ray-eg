@@ -75,9 +75,12 @@ export class RateLimitMiddleware implements NestMiddleware {
   }
 
   private getClientId(req: Request): string {
+    // Use req.ip as primary — Express respects trust proxy setting and parses x-forwarded-for safely.
+    // Only fall back to raw header if req.ip is not available.
+    if (req.ip) return req.ip;
     const forwardedRaw = req.headers['x-forwarded-for'];
     const forwarded = Array.isArray(forwardedRaw) ? forwardedRaw[0] : String(forwardedRaw || '').split(',')[0].trim();
-    return forwarded || req.ip || req.connection.remoteAddress || req.socket.remoteAddress || 'unknown';
+    return forwarded || req.connection?.remoteAddress || req.socket?.remoteAddress || 'unknown';
   }
 
   private cleanup(now: number) {

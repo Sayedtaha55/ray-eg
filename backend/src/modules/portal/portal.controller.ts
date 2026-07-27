@@ -1,6 +1,7 @@
 ﻿import { Controller, Get, Post, Patch, Body, Param, Query, Request, UseGuards, Inject, BadRequestException, ForbiddenException, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { PortalJwtAuthGuard } from './portal-jwt-auth.guard';
+import { AnyDto } from '@shared/dto/any.dto';
 import { PortalAuthService } from './portal-auth.service';
 import { MapListingService } from '@modules/map-listing/map-listing.service';
 import { JwtAuthGuard } from '@modules/auth/guards/jwt-auth.guard';
@@ -22,7 +23,7 @@ export class PortalController {
     return {
       httpOnly: true,
       secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
+      sameSite: 'lax',
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
       ...(domain ? { domain } : {}),
@@ -32,7 +33,7 @@ export class PortalController {
   // ─── OTP Auth ────────────────────────────────────────────────────────────
 
   @Post('auth/otp/request')
-  async requestOtp(@Body() body: any, @Request() req: any) {
+  async requestOtp(@Body() body: AnyDto, @Request() req: any) {
     const phone = String(body?.phone || '').trim();
     const purpose = String(body?.purpose || 'login').trim();
     if (!phone) throw new BadRequestException('رقم الموبايل مطلوب');
@@ -44,7 +45,7 @@ export class PortalController {
   }
 
   @Post('auth/otp/verify')
-  async verifyOtp(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+  async verifyOtp(@Body() body: AnyDto, @Res({ passthrough: true }) res: Response) {
     const phone = String(body?.phone || '').trim();
     const code = String(body?.code || '').trim();
     const purpose = String(body?.purpose || 'login').trim();
@@ -59,7 +60,7 @@ export class PortalController {
   }
 
   @Post('auth/register')
-  async register(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+  async register(@Body() body: AnyDto, @Res({ passthrough: true }) res: Response) {
     const email = String(body?.email || '').trim();
     const password = String(body?.password || '');
     const name = body?.name != null ? String(body.name).trim() : undefined;
@@ -73,7 +74,7 @@ export class PortalController {
   }
 
   @Post('auth/login')
-  async login(@Body() body: any, @Res({ passthrough: true }) res: Response) {
+  async login(@Body() body: AnyDto, @Res({ passthrough: true }) res: Response) {
     const email = String(body?.email || '').trim();
     const password = String(body?.password || '');
 
@@ -95,7 +96,7 @@ export class PortalController {
 
   @Post('auth/change-password')
   @UseGuards(PortalJwtAuthGuard)
-  async changePassword(@Request() req: any, @Body() body: any) {
+  async changePassword(@Request() req: any, @Body() body: AnyDto) {
     const ownerId = String(req?.user?.id || '').trim();
     const currentPassword = String(body?.currentPassword || '');
     const newPassword = String(body?.newPassword || '');
@@ -124,7 +125,7 @@ export class PortalController {
 
   @Patch('me')
   @UseGuards(PortalJwtAuthGuard)
-  async updateMe(@Request() req: any, @Body() body: any) {
+  async updateMe(@Request() req: any, @Body() body: AnyDto) {
     const ownerId = String(req?.user?.id || '').trim();
     return this.prisma.mapListingOwner.update({
       where: { id: ownerId },
@@ -163,7 +164,7 @@ export class PortalController {
 
   @Post('claim')
   @UseGuards(PortalJwtAuthGuard)
-  async claimListing(@Request() req: any, @Body() body: any) {
+  async claimListing(@Request() req: any, @Body() body: AnyDto) {
     const ownerId = String(req?.user?.id || '').trim();
     const listingId = String(body?.listingId || '').trim();
     if (!listingId) throw new BadRequestException('معرف النشاط مطلوب');
@@ -210,7 +211,7 @@ export class PortalController {
 
   @Patch('listings/:id')
   @UseGuards(PortalJwtAuthGuard)
-  async editListing(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async editListing(@Request() req: any, @Param('id') id: string, @Body() body: AnyDto) {
     const ownerId = String(req?.user?.id || '').trim();
     await this.assertOwnerOrManager(ownerId, id);
 
@@ -235,7 +236,7 @@ export class PortalController {
 
   @Post('listings/:id/branches')
   @UseGuards(PortalJwtAuthGuard)
-  async addBranch(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async addBranch(@Request() req: any, @Param('id') id: string, @Body() body: AnyDto) {
     const ownerId = String(req?.user?.id || '').trim();
     await this.assertOwnerOrManager(ownerId, id);
 
@@ -266,7 +267,7 @@ export class PortalController {
     @Request() req: any,
     @Param('id') id: string,
     @Param('branchId') branchId: string,
-    @Body() body: any,
+    @Body() body: AnyDto,
   ) {
     const ownerId = String(req?.user?.id || '').trim();
     await this.assertOwnerOrManager(ownerId, id);
@@ -311,7 +312,7 @@ export class PortalController {
 
   @Post('listings/:id/events')
   @UseGuards(PortalJwtAuthGuard)
-  async trackEvent(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async trackEvent(@Request() req: any, @Param('id') id: string, @Body() body: AnyDto) {
     const type = String(body?.type || '').trim();
     const validTypes = ['LISTING_VIEW', 'WEBSITE_CLICK', 'WHATSAPP_CLICK', 'PHONE_CLICK', 'DIRECTIONS_CLICK'];
     if (!validTypes.includes(type)) throw new BadRequestException('نوع الحدث غير صالح');
@@ -372,7 +373,7 @@ export class PortalController {
   @Post('admin/dev-impersonate')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async devImpersonate(@Body() body: any) {
+  async devImpersonate(@Body() body: AnyDto) {
     const listingId = String(body?.listingId || '').trim();
     const ownerId = String(body?.ownerId || '').trim();
 
@@ -434,7 +435,7 @@ export class PortalController {
   @Post('admin/claims/:id/approve')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async approveClaim(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async approveClaim(@Request() req: any, @Param('id') id: string, @Body() body: AnyDto) {
     const claim = await this.prisma.mapListingClaimRequest.findUnique({ where: { id } });
     if (!claim) throw new BadRequestException('الطلب غير موجود');
     if (claim.status !== 'PENDING') throw new BadRequestException('الطلب مش قائم');
@@ -459,7 +460,7 @@ export class PortalController {
   @Post('admin/claims/:id/reject')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('admin')
-  async rejectClaim(@Request() req: any, @Param('id') id: string, @Body() body: any) {
+  async rejectClaim(@Request() req: any, @Param('id') id: string, @Body() body: AnyDto) {
     const claim = await this.prisma.mapListingClaimRequest.findUnique({ where: { id } });
     if (!claim) throw new BadRequestException('الطلب غير موجود');
     if (claim.status !== 'PENDING') throw new BadRequestException('الطلب مش قائم');
