@@ -85,3 +85,6 @@ testsprite_tests\tmp\config.json
 # Temp files with tokens/data
 temp_*.json
 utputFormat
+
+# Local backup of old Vite/React code
+_archive/

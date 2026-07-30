@@ -1,0 +1,1238 @@
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { Search, ChevronRight, Loader2, Ruler, CheckCircle2, UserPlus, X, Plus, Users, Receipt, RotateCcw, Clock, BarChart3, Tag, CreditCard, Wallet, Banknote } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ApiService } from '@/services/api.service';
+import { RayDB } from '@/constants';
+import { useSmartRefreshListener } from '@/hooks/useSmartRefresh';
+import { useTranslation } from 'react-i18next';
+
+// Sub-components
+import POSCart from '../components/pos/POSCart';
+import POSProductCard from '../components/pos/POSProductCard';
+import POSInvoicesModal from '../components/pos/POSInvoicesModal';
+import POSReturnsModal from '../components/pos/POSReturnsModal';
+import POSShiftModal from '../components/pos/POSShiftModal';
+import POSDailyReportModal from '../components/pos/POSDailyReportModal';
+
+interface CartItem {
+  id: string;
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  addons?: any;
+  variantSelection?: any;
+}
+
+const MotionDiv = motion.div as any;
+
+const POSSystem: React.FC<{ onClose: () => void; shopId: string; shop?: any; onNavigate?: (tab: string) => void }> = ({ onClose, shopId, shop, onNavigate }) => {
+  const { t, i18n } = useTranslation();
+  const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+  const [products, setProducts] = useState<any[]>([]);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [search, setSearch] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [isCustomerCardOpen, setIsCustomerCardOpen] = useState(false);
+  const [receiptTheme, setReceiptTheme] = useState<any>({});
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [configProduct, setConfigProduct] = useState<any | null>(null);
+  const [selectedMenuTypeId, setSelectedMenuTypeId] = useState('');
+  const [selectedMenuSizeId, setSelectedMenuSizeId] = useState('');
+  const [selectedFashionColorValue, setSelectedFashionColorValue] = useState('');
+  const [selectedFashionSize, setSelectedFashionSize] = useState('');
+  const [selectedAddons, setSelectedAddons] = useState<Array<{ optionId: string; variantId: string }>>([]);
+  const [usingOfflineData, setUsingOfflineData] = useState(false);
+
+  // Quick action modals
+  const [showInvoices, setShowInvoices] = useState(false);
+  const [showReturns, setShowReturns] = useState(false);
+  const [showShift, setShowShift] = useState(false);
+  const [showDailyReport, setShowDailyReport] = useState(false);
+
+  // Discount state
+  const [discountType, setDiscountType] = useState<'none' | 'percent' | 'fixed'>('none');
+  const [discountValue, setDiscountValue] = useState(0);
+
+  // Payment method state
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet' | 'credit'>('cash');
+
+  // Customer List Selection States
+  const [isCustomerListOpen, setIsCustomerListOpen] = useState(false);
+  const [savedCustomers, setSavedCustomers] = useState<any[]>([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [customerSearchQuery, setCustomerSearchQuery] = useState('');
+
+  // Audio Synthesizer for Cash Register Success Sound
+  const playCashRegisterSound = () => {
+    try {
+      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioContextClass) return;
+      const ctx = new AudioContextClass();
+      
+      // 1. Play the clink (low metallic pop/click)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(150, ctx.currentTime);
+      osc1.frequency.exponentialRampToValueAtTime(80, ctx.currentTime + 0.08);
+      gain1.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain1.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start();
+      osc1.stop(ctx.currentTime + 0.08);
+
+      // 2. Play the "ding" bell (high frequency chime)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1760, ctx.currentTime + 0.05); // slight delay
+      gain2.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain2.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.06); // quick attack
+      gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); // decay
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(ctx.currentTime + 0.05);
+      osc2.stop(ctx.currentTime + 0.55);
+      
+      // 3. Secondary harmonic bell frequency for metallic ring
+      const osc3 = ctx.createOscillator();
+      const gain3 = ctx.createGain();
+      osc3.type = 'sine';
+      osc3.frequency.setValueAtTime(2200, ctx.currentTime + 0.05);
+      gain3.gain.setValueAtTime(0.0, ctx.currentTime);
+      gain3.gain.linearRampToValueAtTime(0.2, ctx.currentTime + 0.06);
+      gain3.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+      osc3.connect(gain3);
+      gain3.connect(ctx.destination);
+      osc3.start(ctx.currentTime + 0.05);
+      osc3.stop(ctx.currentTime + 0.45);
+    } catch {
+      // browser blocked audio or not supported
+    }
+  };
+
+  const loadCustomers = useCallback(async () => {
+    if (!shopId) return;
+    setIsLoadingCustomers(true);
+    try {
+      const data = await ApiService.getShopCustomers(shopId);
+      const list = Array.isArray(data) ? data : [];
+      setSavedCustomers(list);
+      localStorage.setItem(`pos_customers_${shopId}`, JSON.stringify(list));
+    } catch {
+      try {
+        const cached = JSON.parse(localStorage.getItem(`pos_customers_${shopId}`) || '[]');
+        if (Array.isArray(cached) && cached.length > 0) {
+          setSavedCustomers(cached);
+        }
+      } catch {
+      }
+    } finally {
+      setIsLoadingCustomers(false);
+    }
+  }, [shopId]);
+
+  const handleOpenCustomerList = () => {
+    setIsCustomerListOpen(true);
+    loadCustomers();
+  };
+
+  const isRestaurant = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'RESTAURANT';
+  const isFashion = String(shop?.category || shop?.shopCategory || '').toUpperCase() === 'FASHION';
+  const shopAddonsDef = useMemo(() => {
+    const raw = (shop as any)?.addons;
+    return Array.isArray(raw) ? raw : [];
+  }, [shop]);
+
+  const loadProducts = useCallback(async (opts?: { silent?: boolean }) => {
+    const silent = Boolean(opts?.silent);
+    try {
+      const data = await ApiService.getProducts(shopId);
+      setProducts(data || []);
+      setUsingOfflineData(false);
+      localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(data || []));
+    } catch {
+      let cached: any[] = [];
+      try {
+        cached = JSON.parse(localStorage.getItem(`pos_products_${shopId}`) || '[]');
+      } catch {
+        cached = [];
+      }
+      if (cached.length > 0) {
+        setProducts(cached);
+        setUsingOfflineData(true);
+      } else if (!silent) {
+        setProducts([]);
+        setUsingOfflineData(true);
+      }
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    loadProducts({ silent: false });
+  }, [loadProducts]);
+
+
+  useEffect(() => {
+    if (!shopId) return;
+    try {
+      const raw = localStorage.getItem(`pos_cart_${shopId}`);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) setCart(parsed);
+    } catch {
+    }
+  }, [shopId]);
+
+  useEffect(() => {
+    if (!shopId) return;
+    try {
+      localStorage.setItem(`pos_cart_${shopId}`, JSON.stringify(cart || []));
+    } catch {
+    }
+  }, [shopId, cart]);
+
+  // Smart event-driven refresh - replaces the old timer-based auto-refresh
+  useSmartRefreshListener(['products', 'all'], () => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+    loadProducts({ silent: true });
+  }, { enabled: !!shopId, shopId });
+
+  useEffect(() => {
+    const loadTheme = () => {
+      const raw = RayDB.getReceiptTheme(shopId) as any;
+      setReceiptTheme({
+        ...raw,
+        shopName: raw?.shopName || shop?.name || '',
+        phone: raw?.phone || shop?.phone || '',
+        city: raw?.city || shop?.city || '',
+        address: raw?.address || shop?.addressDetailed || '',
+        logoDataUrl: raw?.logoDataUrl || shop?.logoUrl || '',
+      });
+    };
+    loadTheme();
+
+    window.addEventListener('receipt-theme-update', loadTheme);
+    return () => {
+      window.removeEventListener('receipt-theme-update', loadTheme);
+    };
+  }, [shopId, shop]);
+
+  const effectiveReceiptTheme = useMemo(() => {
+    const raw = receiptTheme || {};
+    return {
+      ...raw,
+      vatRatePercent: Number.isFinite(Number(raw?.vatRatePercent)) ? Math.min(100, Math.max(0, Number(raw.vatRatePercent))) : 0,
+    };
+  }, [receiptTheme]);
+
+  const getProductStock = useCallback((product: any) => {
+    const trackStock = product?.trackStock ?? product?.track_stock ?? true;
+    return trackStock ? (Number.isFinite(product?.stock) ? product.stock : 0) : Infinity;
+  }, []);
+
+  const getProductEffectivePrice = useCallback((product: any) => {
+    const menuVariants = product?.menuVariants ?? product?.menu_variants;
+    if (Array.isArray(menuVariants) && menuVariants.length > 0) {
+      let min = Infinity;
+      menuVariants.forEach(t => {
+        (t?.sizes || []).forEach((s: any) => {
+          const p = Number(s?.price);
+          if (p > 0) min = Math.min(min, p);
+        });
+      });
+      return min === Infinity ? Number(product?.price || 0) : min;
+    }
+    return Number(product?.price || 0);
+  }, []);
+
+  const addToCart = useCallback((product: any, qty: number = 1) => {
+    const stock = getProductStock(product);
+    if (stock <= 0) return;
+
+    const hasVariants = (product?.menuVariants?.length > 0) || (product?.menu_variants?.length > 0) || (isFashion && (product?.colors?.length > 0 || product?.sizes?.length > 0));
+    
+    if (hasVariants || (isRestaurant && shopAddonsDef.length > 0)) {
+      setConfigProduct(product);
+      setSelectedAddons([]);
+      try {
+        const menuVariants = (product?.menuVariants ?? product?.menu_variants) as any[];
+        const firstType = Array.isArray(menuVariants) ? menuVariants[0] : undefined;
+        const firstTypeId = String(firstType?.id || '').trim();
+        const firstSize = Array.isArray(firstType?.sizes) ? firstType.sizes[0] : undefined;
+        const firstSizeId = String(firstSize?.id || '').trim();
+        setSelectedMenuTypeId(firstTypeId);
+        setSelectedMenuSizeId(firstSizeId);
+      } catch {
+        setSelectedMenuTypeId('');
+        setSelectedMenuSizeId('');
+      }
+      if (isFashion) {
+        setSelectedFashionColorValue(Array.isArray(product?.colors) && product.colors.length > 0 ? (product.colors[0]?.value || '') : '');
+        setSelectedFashionSize(Array.isArray(product?.sizes) && product.sizes.length > 0 ? (product.sizes[0]?.label || product.sizes[0]?.name || '') : '');
+      }
+      setIsConfigOpen(true);
+      return;
+    }
+
+    const lineId = product.id;
+    setCart(prev => {
+      const existing = prev.find(i => i.id === lineId);
+      if (existing) {
+        return prev.map(i => i.id === lineId ? { ...i, quantity: Math.min(stock, i.quantity + qty) } : i);
+      }
+      return [...prev, { id: lineId, productId: product.id, name: product.name, price: getProductEffectivePrice(product), quantity: Math.min(stock, qty) }];
+    });
+  }, [getProductStock, getProductEffectivePrice, isFashion, isRestaurant, shopAddonsDef]);
+
+  const updateQuantity = useCallback((id: string, delta: number) => {
+    setCart(prev => prev.map(i => {
+      if (i.id !== id) return i;
+      const product = products.find(p => p.id === i.productId);
+      const stock = getProductStock(product);
+      return { ...i, quantity: Math.min(stock, Math.max(0, i.quantity + delta)) };
+    }).filter(i => i.quantity > 0));
+  }, [products, getProductStock]);
+
+  const removeFromCart = useCallback((id: string) => {
+    setCart(prev => prev.filter(i => i.id !== id));
+  }, []);
+
+  const subtotal = useMemo(() => cart.reduce((sum, i) => sum + i.price * i.quantity, 0), [cart]);
+  const vatRatePct = effectiveReceiptTheme.vatRatePercent;
+
+  const discountAmount = useMemo(() => {
+    if (discountType === 'percent') return subtotal * (Math.min(100, Math.max(0, discountValue)) / 100);
+    if (discountType === 'fixed') return Math.min(subtotal, Math.max(0, discountValue));
+    return 0;
+  }, [discountType, discountValue, subtotal]);
+
+  const taxableAmount = subtotal - discountAmount;
+  const vatAmount = taxableAmount * (vatRatePct / 100);
+  const total = taxableAmount + vatAmount;
+
+  const handlePrintReceipt = useCallback(() => {
+    if (!shopId) return;
+    if (!cart || cart.length === 0) return;
+
+    const escapeHtml = (value: any) => {
+      const s = String(value ?? '');
+      return s
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    };
+
+    const theme = effectiveReceiptTheme || {};
+    const shopName = escapeHtml(String((theme as any)?.shopName || '').trim());
+    const phone = escapeHtml(String((theme as any)?.phone || '').trim());
+    const city = escapeHtml(String((theme as any)?.city || '').trim());
+    const address = escapeHtml(String((theme as any)?.address || '').trim());
+    const footerNote = escapeHtml(String((theme as any)?.footerNote || '').trim());
+    const customerNameEsc = escapeHtml(String(customerName || '').trim());
+    const customerPhoneEsc = escapeHtml(String(customerPhone || '').trim());
+
+    const fmt = (n: any) => {
+      const v = typeof n === 'number' ? n : Number(n);
+      if (!Number.isFinite(v)) return '0.00';
+      return v.toFixed(2);
+    };
+
+    const now = new Date();
+    const dateLabel = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    const linesHtml = cart
+      .map((i) => {
+        const name = escapeHtml(String(i?.name || '').trim());
+        const qty = Number(i?.quantity || 0);
+        const price = Number(i?.price || 0);
+        const lineTotal = qty * price;
+        return `
+          <tr>
+            <td style="padding: 6px 0;">${name}</td>
+            <td style="padding: 6px 0; text-align:left;">${qty}x</td>
+            <td style="padding: 6px 0; text-align:left;">${fmt(lineTotal)}</td>
+          </tr>
+        `;
+      })
+      .join('');
+
+    const receiptTitle = shopName || t('business.posSystem.receipt.titleFallback');
+    const receiptCustomerLabel = t('business.posSystem.receipt.customerLabel');
+    const receiptSubtotal = t('business.posSystem.receipt.subtotal');
+    const receiptVat = t('business.posSystem.receipt.vat', { pct: vatRatePct });
+    const receiptTotal = t('business.posSystem.receipt.total');
+    const receiptEgp = t('business.pos.egp');
+
+    const html = `
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>Receipt</title>
+          <style>
+            @page { margin: 8mm; }
+            body { font-family: Arial, sans-serif; direction: rtl; }
+            .wrap { max-width: 80mm; margin: 0 auto; }
+            h1 { font-size: 16px; margin: 0 0 6px; text-align: center; }
+            .meta { font-size: 11px; color: #111; text-align: center; margin-bottom: 10px; }
+            .sep { border-top: 1px dashed #999; margin: 10px 0; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            .totals { font-size: 12px; }
+            .row { display:flex; justify-content: space-between; gap: 10px; padding: 4px 0; }
+            .foot { font-size: 11px; text-align:center; margin-top: 10px; }
+          </style>
+        </head>
+        <body>
+          <div class="wrap">
+            <h1>${receiptTitle}</h1>
+            <div class="meta">
+              ${phone ? `<div>${phone}</div>` : ''}
+              ${city ? `<div>${city}</div>` : ''}
+              ${address ? `<div>${address}</div>` : ''}
+              ${(customerNameEsc || customerPhoneEsc) ? `<div style="margin-top:6px;"><strong>${receiptCustomerLabel}:</strong> ${customerNameEsc || '-'} ${customerPhoneEsc ? `- ${customerPhoneEsc}` : ''}</div>` : ''}
+              <div>${dateLabel}</div>
+            </div>
+            <div class="sep"></div>
+            <table>
+              <tbody>
+                ${linesHtml}
+              </tbody>
+            </table>
+            <div class="sep"></div>
+            <div class="totals">
+              <div class="row"><span>${receiptSubtotal}</span><span>${receiptEgp} ${fmt(subtotal)}</span></div>
+              ${discountAmount > 0 ? `<div class="row" style="color:#dc2626;"><span>${isArabic ? 'خصم' : 'Discount'}</span><span>- ${receiptEgp} ${fmt(discountAmount)}</span></div>` : ''}
+              ${vatRatePct > 0 ? `<div class="row"><span>${receiptVat}</span><span>${receiptEgp} ${fmt(vatAmount)}</span></div>` : ''}
+              <div class="row" style="font-weight:700;"><span>${receiptTotal}</span><span>${receiptEgp} ${fmt(total)}</span></div>
+              <div class="row" style="font-size:11px;color:#666;margin-top:4px;"><span>${isArabic ? 'الدفع' : 'Payment'}</span><span>${paymentMethod === 'cash' ? (isArabic ? 'كاش' : 'Cash') : paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Card') : paymentMethod === 'wallet' ? (isArabic ? 'محفظة' : 'Wallet') : (isArabic ? 'آجل' : 'Credit')}</span></div>
+            </div>
+            ${footerNote ? `<div class="sep"></div><div class="foot">${footerNote}</div>` : ''}
+          </div>
+        </body>
+      </html>
+    `;
+
+    try {
+      const doPrintInWindow = () => {
+        try {
+          const w = window.open('', '_blank', 'noopener,noreferrer,width=480,height=720');
+          if (!w) return false;
+          w.document.open();
+          w.document.write(html);
+          w.document.close();
+
+          const cleanup = () => {
+            try {
+              w.close();
+            } catch {
+            }
+          };
+
+          w.addEventListener('afterprint', cleanup);
+
+          try {
+            w.focus();
+            w.print();
+          } catch {
+            cleanup();
+            return false;
+          }
+
+          setTimeout(() => cleanup(), 15_000);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+
+      if (doPrintInWindow()) return;
+
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument;
+      if (!doc) return;
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      const cleanup = () => {
+        try {
+          document.body.removeChild(iframe);
+        } catch {
+        }
+      };
+
+      try {
+        (iframe.contentWindow as any)?.addEventListener?.('afterprint', cleanup);
+      } catch {
+      }
+
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch {
+        cleanup();
+      }
+
+      setTimeout(() => cleanup(), 15_000);
+    } catch {
+    }
+  }, [shopId, cart, effectiveReceiptTheme, subtotal, vatAmount, vatRatePct, total, discountAmount, paymentMethod, isArabic]);
+
+  const processPayment = async () => {
+    if (cart.length === 0) return;
+    setIsProcessing(true);
+    try {
+      const trimmedPhone = String(customerPhone || '').trim();
+      const trimmedName = String(customerName || '').trim();
+      if (trimmedPhone) {
+        try {
+          const firstItemName = String(cart?.[0]?.name || '').trim();
+          const savedCust = await ApiService.convertReservationToCustomer({
+            shopId,
+            customerName: trimmedName,
+            customerPhone: trimmedPhone,
+            customerEmail: '',
+            firstPurchaseAmount: total,
+            firstPurchaseItem: firstItemName || 'POS',
+          });
+
+          // Proactively update localStorage cache with the new customer info
+          if (savedCust) {
+            try {
+              const cached = JSON.parse(localStorage.getItem(`pos_customers_${shopId}`) || '[]');
+              const next = Array.isArray(cached) ? cached.filter((c: any) => c.phone !== trimmedPhone) : [];
+              next.unshift(savedCust);
+              localStorage.setItem(`pos_customers_${shopId}`, JSON.stringify(next));
+            } catch {}
+          }
+        } catch {
+        }
+      }
+      const placedOrder: any = await ApiService.placeOrder({
+        shopId,
+        items: cart.map(i => ({ productId: i.productId, quantity: i.quantity, addons: i.addons, variantSelection: i.variantSelection })),
+        total,
+        paymentMethod: paymentMethod === 'cash' ? 'COD' : paymentMethod === 'card' ? 'CARD' : paymentMethod === 'wallet' ? 'WALLET' : 'CREDIT',
+        source: 'pos',
+        notes: discountAmount > 0 ? `discount:${discountType}:${discountAmount}` : undefined,
+      } as any);
+
+      const queuedOffline = Boolean(placedOrder?.__queued);
+
+      if (queuedOffline) {
+        setUsingOfflineData(true);
+        setProducts((prev) => {
+          const next = (Array.isArray(prev) ? prev : []).map((p: any) => {
+          const trackStock = p?.trackStock ?? p?.track_stock ?? true;
+          if (!trackStock) return p;
+          const soldQty = cart
+            .filter((i) => i.productId === p?.id)
+            .reduce((sum, i) => sum + Number(i?.quantity || 0), 0);
+          if (!soldQty) return p;
+          const currentStock = Number.isFinite(Number(p?.stock)) ? Number(p.stock) : 0;
+          return { ...p, stock: Math.max(0, currentStock - soldQty) };
+          });
+          try {
+            localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(next));
+          } catch {
+          }
+          return next;
+        });
+      } else {
+        try {
+          const updated = await ApiService.getProducts(shopId);
+          setProducts(updated || []);
+          setUsingOfflineData(false);
+          localStorage.setItem(`pos_products_${shopId}`, JSON.stringify(updated || []));
+        } catch {
+        }
+      }
+
+      setShowSuccess(true);
+      try {
+        playCashRegisterSound();
+      } catch {
+      }
+      setCart([]);
+      try {
+        localStorage.removeItem(`pos_cart_${shopId}`);
+      } catch {
+      }
+      try {
+        window.dispatchEvent(new Event('orders-updated'));
+      } catch {
+      }
+      setTimeout(() => {
+        setShowSuccess(false);
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      try {
+        // eslint-disable-next-line no-console
+        console.error('[POSSystem] placeOrder failed', err);
+      } catch {
+      }
+      const msg = String(err?.message || '').trim() || t('business.posSystem.placeOrderError');
+      try {
+        window.alert(msg);
+      } catch {
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const filteredProducts = useMemo(() => 
+    products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())),
+    [products, search]
+  );
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-white flex flex-col md:flex-row font-sans text-right overflow-hidden" dir="rtl">
+      <div className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
+        <header className="p-3 md:p-6 bg-white border-b flex items-center gap-2 md:gap-4 flex-wrap">
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl shrink-0"><ChevronRight /></button>
+          <div className="flex-1 relative min-w-[150px]">
+            <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input 
+              type="text" 
+              placeholder={t('business.posSystem.searchPlaceholder')}
+              className="w-full bg-slate-50 border rounded-2xl py-2.5 md:py-3 pr-12 pl-4 outline-none focus:ring-2 focus:ring-[#BD00FF] text-sm md:text-base"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="flex items-center">
+            <button
+              type="button"
+              onClick={() => setIsCustomerCardOpen(true)}
+              className="bg-white border rounded-r-2xl py-3 px-4 w-32 md:w-36 outline-none flex items-center justify-center gap-2 font-black text-sm hover:bg-slate-50 border-l-0"
+              title={t('business.posSystem.customer.addTitle')}
+            >
+              <UserPlus size={18} />
+              {String(customerPhone || '').trim() ? t('business.posSystem.customer.edit') : t('business.posSystem.customer.add')}
+            </button>
+            <button
+              type="button"
+              onClick={handleOpenCustomerList}
+              className="bg-white border rounded-l-2xl py-3 px-3 outline-none flex items-center justify-center hover:bg-slate-50 border-r-0 text-slate-500 hover:text-[#BD00FF]"
+              title={t('business.posSystem.customer.select')}
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+
+          {/* Quick action buttons */}
+          <div className="flex items-center gap-1.5 md:gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigate ? onNavigate('invoices') : setShowInvoices(true)}
+              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+              title={isArabic ? 'الفواتير' : 'Invoices'}
+            >
+              <Receipt size={16} className="md:hidden" />
+              <Receipt size={18} className="hidden md:block" />
+              <span className="hidden md:inline">{isArabic ? 'الفواتير' : 'Invoices'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate ? onNavigate('returns') : setShowReturns(true)}
+              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+              title={isArabic ? 'مرتجع' : 'Return'}
+            >
+              <RotateCcw size={16} className="md:hidden" />
+              <RotateCcw size={18} className="hidden md:block" />
+              <span className="hidden md:inline">{isArabic ? 'مرتجع' : 'Return'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate ? onNavigate('shifts') : setShowShift(true)}
+              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+              title={isArabic ? 'ورديتي' : 'My Shift'}
+            >
+              <Clock size={16} className="md:hidden" />
+              <Clock size={18} className="hidden md:block" />
+              <span className="hidden md:inline">{isArabic ? 'ورديتي' : 'Shift'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onNavigate ? onNavigate('reports') : setShowDailyReport(true)}
+              className="p-2.5 md:p-3 rounded-xl bg-slate-50 border border-slate-100 hover:bg-slate-100 transition-all flex items-center gap-1.5 text-xs font-black text-slate-600"
+              title={isArabic ? 'تقرير اليوم' : 'Daily Report'}
+            >
+              <BarChart3 size={16} className="md:hidden" />
+              <BarChart3 size={18} className="hidden md:block" />
+              <span className="hidden md:inline">{isArabic ? 'تقرير' : 'Report'}</span>
+            </button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-3 pb-[calc(env(safe-area-inset-bottom,0px)+8.5rem)] md:p-4 md:pb-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2 md:gap-4">
+            {filteredProducts.map(p => (
+              <POSProductCard
+                key={p.id}
+                product={p}
+                addToCart={addToCart}
+                showConfigureIcon={
+                  (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0) ||
+                  (isFashion && (p?.sizes?.length > 1 || p?.colors?.length > 0)) ||
+                  (isRestaurant && shopAddonsDef.length > 0)
+                }
+                onConfigure={(prod) => {
+                  setConfigProduct(prod);
+                  setSelectedAddons([]);
+                  try {
+                    const menuVariants = (prod?.menuVariants ?? prod?.menu_variants) as any[];
+                    const firstType = Array.isArray(menuVariants) ? menuVariants[0] : undefined;
+                    const firstTypeId = String(firstType?.id || '').trim();
+                    const firstSize = Array.isArray(firstType?.sizes) ? firstType.sizes[0] : undefined;
+                    const firstSizeId = String(firstSize?.id || '').trim();
+                    setSelectedMenuTypeId(firstTypeId);
+                    setSelectedMenuSizeId(firstSizeId);
+                  } catch {
+                    setSelectedMenuTypeId('');
+                    setSelectedMenuSizeId('');
+                  }
+                  if (isFashion) {
+                    setSelectedFashionColorValue(Array.isArray(prod?.colors) && prod.colors.length > 0 ? (prod.colors[0]?.value || '') : '');
+                    setSelectedFashionSize(Array.isArray(prod?.sizes) && prod.sizes.length > 0 ? (prod.sizes[0]?.label || prod.sizes[0]?.name || '') : '');
+                  }
+                  setIsConfigOpen(true);
+                }}
+                isProductHasMenuVariants={(p) => (p?.menuVariants?.length > 0 || p?.menu_variants?.length > 0)}
+                isProductHasFashionDifferentSizePrices={(p) => isFashion && p?.sizes?.length > 1}
+                getProductEffectivePrice={getProductEffectivePrice}
+                getProductStock={getProductStock}
+                isProductTrackStockEnabled={(p) => p?.trackStock ?? p?.track_stock ?? true}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <POSCart
+        cart={cart}
+        updateQuantity={updateQuantity}
+        removeFromCart={removeFromCart}
+        subtotal={subtotal}
+        vatAmount={vatAmount}
+        total={total}
+        vatRatePct={vatRatePct}
+        isProcessing={isProcessing}
+        processPayment={processPayment}
+        onPrintReceipt={handlePrintReceipt}
+        variant="desktop"
+        discountType={discountType}
+        setDiscountType={setDiscountType}
+        discountValue={discountValue}
+        setDiscountValue={setDiscountValue}
+        discountAmount={discountAmount}
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+      />
+
+      <POSCart
+        cart={cart}
+        updateQuantity={updateQuantity}
+        removeFromCart={removeFromCart}
+        subtotal={subtotal}
+        vatAmount={vatAmount}
+        total={total}
+        vatRatePct={vatRatePct}
+        isProcessing={isProcessing}
+        processPayment={processPayment}
+        onPrintReceipt={handlePrintReceipt}
+        variant="mobile"
+        discountType={discountType}
+        setDiscountType={setDiscountType}
+        discountValue={discountValue}
+        setDiscountValue={setDiscountValue}
+        discountAmount={discountAmount}
+        paymentMethod={paymentMethod}
+        setPaymentMethod={setPaymentMethod}
+      />
+
+      <AnimatePresence>
+        {isConfigOpen && configProduct && (
+          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-black/40 flex items-center justify-center p-4">
+            <MotionDiv initial={{ y: 20 }} animate={{ y: 0 }} className="w-full max-w-md bg-white rounded-[2rem] p-6 max-h-[85vh] overflow-y-auto">
+              <h3 className="text-xl font-black mb-4">{configProduct.name}</h3>
+
+              {(() => {
+                const mv = (configProduct?.menuVariants ?? configProduct?.menu_variants) as any[];
+                const hasMenuVariants = Array.isArray(mv) && mv.length > 0;
+                if (!hasMenuVariants) return null;
+
+                const typeOptions = mv.map((t: any) => ({
+                  id: String(t?.id || '').trim(),
+                  label: String(t?.name || t?.label || '').trim() || t('business.posSystem.defaults.type'),
+                  sizes: Array.isArray(t?.sizes) ? t.sizes : [],
+                })).filter((t: any) => t.id);
+
+                const selectedType = typeOptions.find((t: any) => t.id === String(selectedMenuTypeId || '').trim()) || typeOptions[0];
+                const sizeOptions = Array.isArray(selectedType?.sizes)
+                  ? selectedType.sizes.map((s: any) => ({
+                    id: String(s?.id || '').trim(),
+                    label: String(s?.label || s?.name || '').trim() || t('business.posSystem.defaults.size'),
+                    price: Number(s?.price),
+                  })).filter((s: any) => s.id)
+                  : [];
+
+                const effectiveSizeId = String(selectedMenuSizeId || '').trim() || String(sizeOptions[0]?.id || '').trim();
+                const selectedSize = sizeOptions.find((s: any) => s.id === effectiveSizeId) || sizeOptions[0];
+
+                return (
+                  <div className="space-y-3 mb-5">
+                    <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.chooseSize')}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {typeOptions.map((t: any) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedMenuTypeId(t.id);
+                            const first = Array.isArray(t?.sizes) ? t.sizes[0] : undefined;
+                            setSelectedMenuSizeId(String(first?.id || '').trim());
+                          }}
+                          className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(selectedType?.id) === String(t.id) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'}`}
+                        >
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {sizeOptions.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {sizeOptions.map((s: any) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => setSelectedMenuSizeId(s.id)}
+                            className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(effectiveSizeId) === String(s.id) ? 'bg-[#00E5FF] text-slate-900 border-[#00E5FF]' : 'bg-white text-slate-700 border-slate-200'}`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {selectedSize && Number.isFinite(Number(selectedSize?.price)) ? (
+                      <div className="text-xs font-bold text-slate-500">{t('business.posSystem.config.sizePrice', { egp: t('business.pos.egp'), price: Number(selectedSize.price).toFixed(2) })}</div>
+                    ) : null}
+                  </div>
+                );
+              })()}
+
+              {isFashion ? (
+                <div className="space-y-3 mb-5">
+                  {Array.isArray(configProduct?.colors) && configProduct.colors.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.color')}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {configProduct.colors.map((c: any) => (
+                          <button
+                            key={String(c?.value || c?.id || c?.name)}
+                            type="button"
+                            onClick={() => setSelectedFashionColorValue(String(c?.value || ''))}
+                            className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(selectedFashionColorValue) === String(c?.value) ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-700 border-slate-200'}`}
+                          >
+                            {String(c?.name || c?.label || c?.value || t('business.posSystem.defaults.color'))}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                  {Array.isArray(configProduct?.sizes) && configProduct.sizes.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.size')}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {configProduct.sizes.map((s: any) => (
+                          <button
+                            key={String(s?.label || s?.id || s?.name)}
+                            type="button"
+                            onClick={() => setSelectedFashionSize(String(s?.label || s?.name || ''))}
+                            className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${String(selectedFashionSize) === String(s?.label || s?.name) ? 'bg-[#00E5FF] text-slate-900 border-[#00E5FF]' : 'bg-white text-slate-700 border-slate-200'}`}
+                          >
+                            {String(s?.label || s?.name || t('business.posSystem.defaults.fashionSize'))}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {isRestaurant && shopAddonsDef.length > 0 ? (
+                <div className="space-y-3 mb-5">
+                  <div className="font-black text-sm text-slate-900">{t('business.posSystem.config.addons')}</div>
+                  <div className="space-y-3">
+                    {shopAddonsDef.map((g: any) => {
+                      const groupId = String(g?.id || '').trim();
+                      const groupName = String(g?.name || g?.label || '').trim();
+                      const opts = Array.isArray(g?.options) ? g.options : [];
+                      if (!groupId || opts.length === 0) return null;
+
+                      return (
+                        <div key={groupId} className="p-3 rounded-2xl border border-slate-100 bg-slate-50 space-y-2">
+                          <div className="font-black text-xs text-slate-700 mb-1">{groupName || t('business.posSystem.defaults.group')}</div>
+                          <div className="space-y-2">
+                            {opts.map((opt: any) => {
+                              const optId = String(opt?.id || '').trim();
+                              if (!optId) return null;
+                              const optName = String(opt?.name || opt?.label || opt?.title || '').trim() || optId;
+                              const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                              if (variants.length === 0) return null;
+
+                              const selectedVariantId = selectedAddons.find((x) => String(x?.optionId) === optId)?.variantId;
+
+                              return (
+                                <div key={optId} className="bg-white p-2.5 rounded-xl border border-slate-150 flex flex-col gap-1.5">
+                                  <div className="font-bold text-xs text-slate-800 text-right">{optName}</div>
+                                  <div className="flex flex-wrap gap-1.5 justify-end">
+                                    {variants.map((v: any) => {
+                                      const vid = String(v?.id || '').trim();
+                                      if (!vid) return null;
+                                      const vLabel = String(v?.label || v?.name || '').trim() || vid;
+                                      const vPrice = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                                      const isSelected = String(selectedVariantId || '') === vid;
+
+                                      return (
+                                        <button
+                                          key={vid}
+                                          type="button"
+                                          onClick={() => {
+                                            setSelectedAddons((prev) => {
+                                              const arr = Array.isArray(prev) ? prev : [];
+                                              const next = arr.filter((x) => String(x?.optionId) !== optId);
+                                              if (isSelected) return next;
+                                              return [...next, { optionId: optId, variantId: vid }];
+                                            });
+                                          }}
+                                          className={`px-2.5 py-1.5 rounded-lg border text-[11px] font-black transition-all ${
+                                            isSelected 
+                                              ? 'bg-slate-900 text-white border-slate-900' 
+                                              : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                                          }`}
+                                        >
+                                          {vLabel}{Number.isFinite(vPrice) && vPrice > 0 ? ` (+${vPrice})` : ''}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
+              {(() => {
+                const mv = (configProduct?.menuVariants ?? configProduct?.menu_variants) as any[];
+                const hasMenuVariants = Array.isArray(mv) && mv.length > 0;
+
+                let price = getProductEffectivePrice(configProduct);
+                let variantSelection: any = undefined;
+
+                if (hasMenuVariants) {
+                  const type = mv.find((t: any) => String(t?.id || '').trim() === String(selectedMenuTypeId || '').trim()) || mv[0];
+                  const sizes = Array.isArray(type?.sizes) ? type.sizes : [];
+                  const size = sizes.find((s: any) => String(s?.id || '').trim() === String(selectedMenuSizeId || '').trim()) || sizes[0];
+                  const sizePrice = Number(size?.price);
+                  if (Number.isFinite(sizePrice) && sizePrice > 0) price = sizePrice;
+                  if (type && size) {
+                    variantSelection = {
+                      typeId: String(type?.id || '').trim(),
+                      sizeId: String(size?.id || '').trim(),
+                      menuSizeLabel: String(size?.label || size?.name || '').trim(),
+                    };
+                  }
+                }
+
+                if (isFashion) {
+                  const colorObj = Array.isArray(configProduct?.colors)
+                    ? configProduct.colors.find((c: any) => String(c?.value || '') === String(selectedFashionColorValue || ''))
+                    : undefined;
+                  variantSelection = {
+                    ...(variantSelection || {}),
+                    kind: 'fashion',
+                    colorName: String(colorObj?.name || '').trim(),
+                    colorValue: String(selectedFashionColorValue || ''),
+                    size: String(selectedFashionSize || ''),
+                  };
+                }
+
+                const addonsPrice = (() => {
+                  if (!isRestaurant) return 0;
+                  if (!Array.isArray(shopAddonsDef) || shopAddonsDef.length === 0) return 0;
+                  
+                  const priceMap = new Map<string, number>();
+                  for (const g of shopAddonsDef) {
+                    const opts = Array.isArray(g?.options) ? g.options : [];
+                    for (const opt of opts) {
+                      const optId = String(opt?.id || '').trim();
+                      if (!optId) continue;
+                      const variants = Array.isArray(opt?.variants) ? opt.variants : [];
+                      for (const v of variants) {
+                        const vid = String(v?.id || '').trim();
+                        const p = typeof v?.price === 'number' ? v.price : Number(v?.price || 0);
+                        if (vid && Number.isFinite(p)) {
+                          priceMap.set(`${optId}:${vid}`, p);
+                        }
+                      }
+                    }
+                  }
+                  
+                  return (selectedAddons || []).reduce((sum, a) => {
+                    const key = `${String(a?.optionId).trim()}:${String(a?.variantId).trim()}`;
+                    return sum + (priceMap.get(key) || 0);
+                  }, 0);
+                })();
+
+                const finalPrice = price + addonsPrice;
+
+                return (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const lineId = `${configProduct.id}-${Date.now()}`;
+                      const suffix = (() => {
+                        const parts: string[] = [];
+                        if (variantSelection?.menuSizeLabel) parts.push(String(variantSelection.menuSizeLabel));
+                        if (variantSelection?.size) parts.push(String(variantSelection.size));
+                        if (variantSelection?.colorName) parts.push(String(variantSelection.colorName));
+                        return parts.length ? ` (${parts.join(' - ')})` : '';
+                      })();
+
+                      setCart((prev) => [
+                        ...(Array.isArray(prev) ? prev : []),
+                        {
+                          id: lineId,
+                          productId: configProduct.id,
+                          name: `${configProduct.name}${suffix}`,
+                          price: finalPrice,
+                          quantity: 1,
+                          addons: selectedAddons,
+                          variantSelection,
+                        },
+                      ]);
+
+                      setIsConfigOpen(false);
+                    }}
+                    className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black"
+                  >
+                    {t('business.posSystem.config.addToCart')}
+                  </button>
+                );
+              })()}
+
+              <button
+                type="button"
+                onClick={() => setIsConfigOpen(false)}
+                className="w-full mt-2 py-2 text-slate-400 font-bold"
+              >
+                {t('business.posSystem.cancel')}
+              </button>
+            </MotionDiv>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showSuccess && (
+          <MotionDiv initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/20 backdrop-blur-sm">
+            <div className="bg-white rounded-[3rem] p-12 text-center shadow-2xl">
+              <CheckCircle2 size={64} className="text-green-500 mx-auto mb-4" />
+              <h3 className="text-2xl font-black">{t('business.posSystem.success')}</h3>
+            </div>
+          </MotionDiv>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCustomerCardOpen ? (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setIsCustomerCardOpen(false)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-[2rem] p-5"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <h3 className="text-lg font-black">{t('business.posSystem.customer.title')}</h3>
+                <button type="button" onClick={() => setIsCustomerCardOpen(false)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-slate-500">{t('business.posSystem.customer.nameOptional')}</div>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder={t('business.posSystem.customer.namePlaceholder')}
+                    className="w-full bg-white border rounded-2xl py-3 px-4 outline-none"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <div className="text-xs font-black text-slate-500">{t('business.posSystem.customer.phone')}</div>
+                  <input
+                    type="tel"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="01xxxxxxxxx"
+                    className="w-full bg-white border rounded-2xl py-3 px-4 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 mt-5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCustomerName('');
+                    setCustomerPhone('');
+                    setIsCustomerCardOpen(false);
+                  }}
+                  className="py-3 rounded-2xl bg-slate-50 text-slate-700 font-black"
+                >
+                  {t('business.posSystem.customer.clear')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerCardOpen(false)}
+                  className="py-3 rounded-2xl bg-slate-900 text-white font-black"
+                >
+                  {t('business.posSystem.customer.save')}
+                </button>
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isCustomerListOpen ? (
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[950] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setIsCustomerListOpen(false)}
+          >
+            <MotionDiv
+              initial={{ y: 18, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: 18, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-[2rem] p-5 flex flex-col max-h-[85vh] overflow-hidden"
+              onClick={(e: any) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between mb-4 flex-row-reverse">
+                <h3 className="text-lg font-black">{t('business.posSystem.customer.select')}</h3>
+                <button type="button" onClick={() => setIsCustomerListOpen(false)} className="p-2 rounded-xl hover:bg-slate-100">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="relative mb-4">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="text"
+                  placeholder={t('business.posSystem.customer.searchCustomers')}
+                  className="w-full bg-slate-50 border rounded-xl py-2.5 pr-9 pl-4 outline-none text-sm text-right focus:ring-2 focus:ring-[#BD00FF]"
+                  value={customerSearchQuery}
+                  onChange={(e) => setCustomerSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="flex-1 overflow-y-auto min-h-0 space-y-2 pr-1 select-none">
+                {isLoadingCustomers ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="animate-spin text-slate-400" size={24} />
+                  </div>
+                ) : (() => {
+                  const filtered = savedCustomers.filter((c: any) => {
+                    const q = customerSearchQuery.trim().toLowerCase();
+                    if (!q) return true;
+                    const name = String(c?.name || '').toLowerCase();
+                    const phone = String(c?.phone || '');
+                    return name.includes(q) || phone.includes(q);
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="text-center text-slate-400 py-8 font-bold text-sm">
+                        {t('business.posSystem.customer.noCustomers')}
+                      </div>
+                    );
+                  }
+
+                  return filtered.map((cust: any) => (
+                    <button
+                      key={cust.id}
+                      type="button"
+                      onClick={() => {
+                        setCustomerName(cust.name || '');
+                        setCustomerPhone(cust.phone || '');
+                        setIsCustomerListOpen(false);
+                      }}
+                      className="w-full text-right p-3 rounded-xl border border-slate-100 hover:border-[#BD00FF] bg-slate-50/50 hover:bg-[#BD00FF]/5 transition-all flex flex-col gap-1"
+                    >
+                      <div className="font-black text-sm text-slate-900 flex justify-between flex-row-reverse w-full items-center">
+                        <span>{cust.name || t('customers.unnamed')}</span>
+                        <span className="text-xs font-bold text-slate-400">{cust.phone}</span>
+                      </div>
+                      <div className="flex justify-between flex-row-reverse text-[10px] text-slate-500 font-bold w-full">
+                        <span>{t('business.posSystem.customer.totalSpent')}{t('business.pos.egp')} {Number(cust.totalSpent || 0).toFixed(2)}</span>
+                        <span>{t('business.posSystem.customer.ordersCount')}{cust.orders || 0}</span>
+                      </div>
+                    </button>
+                  ));
+                })()}
+              </div>
+            </MotionDiv>
+          </MotionDiv>
+        ) : null}
+      </AnimatePresence>
+
+      {/* Quick action modals */}
+      <POSInvoicesModal open={showInvoices} onClose={() => setShowInvoices(false)} shopId={shopId} isArabic={isArabic} />
+      <POSReturnsModal open={showReturns} onClose={() => setShowReturns(false)} shopId={shopId} isArabic={isArabic} />
+      <POSShiftModal open={showShift} onClose={() => setShowShift(false)} shopId={shopId} isArabic={isArabic} />
+      <POSDailyReportModal open={showDailyReport} onClose={() => setShowDailyReport(false)} shopId={shopId} isArabic={isArabic} />
+    </div>
+  );
+};
+
+export default POSSystem;

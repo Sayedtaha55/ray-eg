@@ -82,7 +82,7 @@ function isAllowedHash(hash: string): boolean {
 }
 
 function getFrontendEntry(): string {
-  const distPath = path.join(__dirname, '..', 'dist', 'index.html');
+  const distPath = path.join(__dirname, '..', 'apps', 'dashboard', 'dist', 'index.html');
   if (fs.existsSync(distPath)) return distPath;
   return '';
 }
@@ -90,7 +90,7 @@ function getFrontendEntry(): string {
 function getLoadUrl(): string {
   const entry = getFrontendEntry();
   if (entry) return `file://${entry}#/business`;
-  return 'http://localhost:5174/#/business';
+  return 'http://localhost:3000/#/business';
 }
 
 function createWindow() {

@@ -502,9 +502,7 @@ const BookingBookingsPage: React.FC<Props> = ({ activityType, shop, bookings: pr
       {/* ─── Header with booking open/close toggle ─── */}
       <div className="flex items-center justify-between flex-row-reverse">
         <div className="flex items-center gap-3">
-          <CalendarCheck className="w-7 h-7 text-[#00E5FF]" />
           <div>
-            <h2 className="text-xl md:text-2xl font-black text-slate-900">{isEn ? `${vocab.dashboardTitle} Bookings` : `حجوزات ${vocab.dashboardTitle}`}</h2>
             <p className="text-xs text-slate-400 font-bold mt-0.5">{bookings.length} {isEn ? 'total bookings' : 'حجز إجمالاً'}</p>
           </div>
         </div>

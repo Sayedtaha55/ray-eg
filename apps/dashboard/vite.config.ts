@@ -20,7 +20,7 @@ export default defineConfig(({ mode }) => {
   return {
     root: __dirname,
     base: '/',
-    publicDir: path.resolve(rootDir, 'public'),
+    publicDir: path.resolve(__dirname, 'public'),
     server: {
       port: Number(env.VITE_PORT || 3000),
       host: env.VITE_HOST || '0.0.0.0',

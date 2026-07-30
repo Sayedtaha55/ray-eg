@@ -15,6 +15,7 @@ export type MerchantDashboardTabId =
   | 'abandonedCart'
   | 'expenses'
   | 'marketing'
+  | 'apps'
   | 'settings';
 
 export type MerchantDashboardTabDefinition = {

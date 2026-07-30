@@ -119,21 +119,13 @@ const BookingOverviewPage: React.FC<Props> = ({ activityType, shop, bookings: pr
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
         <Loader2 className="animate-spin text-[#00E5FF] w-10 h-10" />
-        <p className="font-bold text-slate-400">{isEn ? `Loading ${vocab.dashboardTitle}...` : `جاري تحميل ${vocab.dashboardTitle}...`}</p>
+        <p className="font-bold text-slate-400">{isEn ? 'Loading...' : 'جاري التحميل...'}</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6 text-right" dir={isEn ? 'ltr' : 'rtl'}>
-      {/* Header */}
-      <div className="bg-gradient-to-l from-cyan-50 to-white p-6 md:p-8 rounded-[2.5rem] border border-cyan-100 shadow-sm">
-        <div className="flex items-center gap-3 mb-2">
-          <CalendarCheck className="w-7 h-7 text-[#00E5FF]" />
-          <h2 className="text-2xl md:text-3xl font-black text-slate-900">{vocab.dashboardTitle}</h2>
-        </div>
-        <p className="text-slate-500 font-bold text-sm">{vocab.dashboardSubtitle}</p>
-      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

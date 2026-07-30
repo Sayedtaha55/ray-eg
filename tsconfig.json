@@ -5,6 +5,7 @@
     "useDefineForClassFields": false,
     "module": "ESNext",
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
 
@@ -27,8 +28,7 @@
       "@ray-eg/shared": ["packages/shared/src/index.ts"],
       "@ray-eg/shared/*": ["packages/shared/src/*"],
       "@/*": ["packages/shared/src/*"],
-      "@core/*": ["src/core/*", "backend/src/core/*"],
-      "@features/*": ["src/features/*"],
+      "@core/*": ["backend/src/core/*"],
       "@shared/*": ["packages/shared/src/*"],
       "@assets/*": ["packages/shared/src/assets/*"],
       "@common/*": ["backend/src/common/*"],

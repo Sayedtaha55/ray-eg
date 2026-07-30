@@ -1,9 +1,259 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Check,
+  RefreshCw,
+  FileText,
+  ShoppingCart,
+  Camera,
+  Users,
+  Megaphone,
+  BarChart3,
+  Palette,
+  Settings,
+  LayoutGrid,
+  Store,
+  Coins,
+  UserCog,
+  Clock,
+  Wallet,
+  Package,
+  Tag,
+  Monitor,
+  Receipt,
+  CreditCard,
+  Download,
+  Trash2,
+  Loader2,
+  Sparkles,
+  ChevronDown,
+  Calendar,
+  ArrowLeftRight,
+  Star,
+  ListChecks,
+  Clipboard,
+  Truck,
+  Scan,
+  QrCode,
+  Bell,
+  TrendingUp,
+  Briefcase,
+  MessageSquare,
+  Ticket,
+  Headphones,
+  ThumbsUp,
+  StickyNote,
+  Phone,
+  Percent,
+  Mail,
+  Smartphone,
+  Gift,
+  CalendarCheck,
+  Building,
+  Stethoscope,
+  CalendarX,
+  AlarmClock,
+  Utensils,
+  ShieldCheck,
+  CalendarOff,
+  CheckSquare,
+  PieChart,
+  LineChart,
+  Eye,
+  MousePointer,
+  Pen,
+  Search,
+  Lightbulb,
+  Brain,
+} from 'lucide-react';
+
+const moduleIcons: Record<string, any> = {
+  overview: LayoutGrid,
+  apps: LayoutGrid,
+  products: Package,
+  promotions: Tag,
+  builder: Monitor,
+  settings: Settings,
+  gallery: Camera,
+  reservations: Clock,
+  invoice: Receipt,
+  pos: ShoppingCart,
+  sales: CreditCard,
+  customers: Users,
+  reports: BarChart3,
+  marketing: Megaphone,
+  expenses: Coins,
+  employees: UserCog,
+  attendance: Clock,
+  payroll: Wallet,
+  orders: CreditCard,
+  quotes: FileText,
+  payments: Wallet,
+  returns: ArrowLeftRight,
+  loyalty: Star,
+  subscriptions: CreditCard,
+  epayment: CreditCard,
+  orderStatus: ListChecks,
+  abandonedCart: ShoppingCart,
+  categories: Tag,
+  variants: ListChecks,
+  warehouses: Package,
+  stocktake: Clipboard,
+  suppliers: Truck,
+  purchaseOrders: FileText,
+  transfers: ArrowLeftRight,
+  barcode: Scan,
+  qrCode: QrCode,
+  stockTracking: Package,
+  lowStockAlerts: Bell,
+  revenue: TrendingUp,
+  profits: Coins,
+  taxes: Receipt,
+  journal: FileText,
+  cashflow: TrendingUp,
+  accounts: Briefcase,
+  wallets: Wallet,
+  financialReports: BarChart3,
+  chats: MessageSquare,
+  tickets: Ticket,
+  complaints: Headphones,
+  reviews: ThumbsUp,
+  notes: StickyNote,
+  followUps: Phone,
+  contactLog: ListChecks,
+  campaigns: Megaphone,
+  coupons: Ticket,
+  discounts: Percent,
+  messages: MessageSquare,
+  emailCampaigns: Mail,
+  pushNotifications: Smartphone,
+  smsCampaigns: Smartphone,
+  loyaltyPrograms: Gift,
+  seasonalOffers: Star,
+  providers: Users,
+  services: ListChecks,
+  appointments: CalendarCheck,
+  calendar: Calendar,
+  rooms: Building,
+  doctors: Stethoscope,
+  bookingConfirm: CalendarCheck,
+  bookingCancel: CalendarX,
+  bookingReminder: AlarmClock,
+  patient_records: FileText,
+  activity_inventory: Package,
+  restaurant_tables: Utensils,
+  permissions: ShieldCheck,
+  checkOut: Clock,
+  leaves: CalendarOff,
+  tasks: CheckSquare,
+  kpi: TrendingUp,
+  charts: PieChart,
+  salesPerformance: LineChart,
+  productPerformance: BarChart3,
+  visitors: Eye,
+  conversions: MousePointer,
+  ai_theme: Palette,
+  ai_pages: FileText,
+  ai_brand: Sparkles,
+  ai_chat: MessageSquare,
+  aiContent: Pen,
+  aiImages: Sparkles,
+  aiSEO: Search,
+  aiAnalysis: BarChart3,
+  aiReplies: MessageSquare,
+  aiSuggestions: Lightbulb,
+  aiPages: Sparkles,
+  aiDataAnalysis: Brain,
+};
+type ModuleGroup = {
+  id: string;
+  label: string;
+  labelAr: string;
+  icon: any;
+  color: string;
+  registryModuleIds: string[];
+};
+
+const MODULE_GROUPS: ModuleGroup[] = [
+  {
+    id: 'sales',
+    label: 'Sales & Orders',
+    labelAr: 'المبيعات والطلبات',
+    icon: CreditCard,
+    color: '#2563EB',
+    registryModuleIds: ['sales'],
+  },
+  {
+    id: 'inventory',
+    label: 'Inventory & Products',
+    labelAr: 'المخزون والمنتجات',
+    icon: Package,
+    color: '#16A34A',
+    registryModuleIds: ['inventory'],
+  },
+  {
+    id: 'finance',
+    label: 'Finance & Invoicing',
+    labelAr: 'المالية والفواتير',
+    icon: Receipt,
+    color: '#7C3AED',
+    registryModuleIds: ['finance'],
+  },
+  {
+    id: 'crm',
+    label: 'Customer Relations',
+    labelAr: 'علاقات العملاء',
+    icon: Users,
+    color: '#DC2626',
+    registryModuleIds: ['crm'],
+  },
+  {
+    id: 'marketing',
+    label: 'Marketing & Promotions',
+    labelAr: 'التسويق والعروض',
+    icon: Megaphone,
+    color: '#EA580C',
+    registryModuleIds: ['marketing'],
+  },
+  {
+    id: 'bookings',
+    label: 'Bookings & Reservations',
+    labelAr: 'الحجوزات والمواعيد',
+    icon: Calendar,
+    color: '#0891B2',
+    registryModuleIds: ['bookings'],
+  },
+  {
+    id: 'hr',
+    label: 'Human Resources',
+    labelAr: 'الموارد البشرية',
+    icon: UserCog,
+    color: '#9333EA',
+    registryModuleIds: ['hr'],
+  },
+  {
+    id: 'analytics',
+    label: 'Analytics & Reports',
+    labelAr: 'التحليلات والتقارير',
+    icon: BarChart3,
+    color: '#059669',
+    registryModuleIds: ['analytics'],
+  },
+  {
+    id: 'ai',
+    label: 'AI Assistant',
+    labelAr: 'مساعد الذكاء الاصطناعي',
+    icon: Sparkles,
+    color: '#BD00FF',
+    registryModuleIds: ['ai'],
+  },
+];
+
+import { MODULE_REGISTRY } from '../../../../config/modules/registry';
 import { useToast } from '@/components/ui/use-toast';
 import { ApiService } from '@/services/api.service';
 import { useTranslation } from 'react-i18next';
 import { BUSINESS_ACTIVITY_GROUPS, getBusinessActivityById, getBusinessActivityThemePatch, getDefaultActivityForCategory } from '@/utils/businessActivityCatalog';
-import { BOOKING_ACTIVITIES, getBookingActivityById, getDefaultActivity, ACTIVITY_MODULES } from '@/components/pages/business/bookings/config';
+import { BOOKING_ACTIVITIES, getBookingActivityById, getDefaultActivity, ACTIVITY_MODULES, isShopBookingActivity } from '@/components/pages/business/bookings/config';
 import * as ReactRouterDOM from 'react-router-dom';
 
 const { useLocation } = ReactRouterDOM as any;
@@ -26,18 +276,19 @@ type Props = {
   shop: any;
   onSaved: () => void;
   adminShopId?: string;
+  defaultExpandedSection?: string;
 };
 
 const getInitialActivityId = (shop: any) => {
-  const isService = shop?.category === 'SERVICE';
-  if (isService) {
+  const isBooking = isShopBookingActivity(shop);
+  if (isBooking) {
     return shop?.pageDesign?.bookingActivityType || 'clinic';
   }
   const act = getBusinessActivityById(shop?.pageDesign?.businessActivityId) || getDefaultActivityForCategory(shop?.category);
   return act?.id || '';
 };
 
-const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
+const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId, defaultExpandedSection }) => {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
@@ -49,7 +300,7 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     const urlActivity = params.get('activity');
     if (urlActivity) return urlActivity;
 
-    if (shop?.category === 'SERVICE') {
+    if (isShopBookingActivity(shop)) {
       return shop?.pageDesign?.bookingActivityType || 'clinic';
     }
     return shop?.pageDesign?.businessActivityId || '';
@@ -61,11 +312,20 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
     { id: 'promotions', label: t('modulesSettings.modulePromotions'), kind: 'core' },
     { id: 'builder', label: t('modulesSettings.moduleBuilder'), kind: 'core' },
     { id: 'settings', label: t('modulesSettings.moduleSettings'), kind: 'core' },
+    { id: 'inventory', label: t('modulesSettings.moduleInventory'), kind: 'optional' },
+    { id: 'sales', label: t('modulesSettings.moduleSales'), kind: 'optional' },
+    { id: 'pos', label: t('modulesSettings.modulePos'), kind: 'optional' },
+    { id: 'finance', label: t('modulesSettings.moduleFinance'), kind: 'optional' },
+    { id: 'crm', label: t('modulesSettings.moduleCRM'), kind: 'optional' },
+    { id: 'marketing', label: t('modulesSettings.moduleMarketing'), kind: 'optional' },
+    { id: 'bookings', label: t('modulesSettings.moduleBookings'), kind: 'optional' },
+    { id: 'hr', label: t('modulesSettings.moduleHR'), kind: 'optional' },
+    { id: 'website', label: t('modulesSettings.moduleWebsite'), kind: 'optional' },
+    { id: 'analytics', label: t('modulesSettings.moduleAnalytics'), kind: 'optional' },
+    { id: 'ai', label: t('modulesSettings.moduleAI'), kind: 'optional' },
     { id: 'gallery', label: t('modulesSettings.moduleGallery'), kind: 'optional' },
     { id: 'reservations', label: t('modulesSettings.moduleReservations'), kind: 'optional' },
     { id: 'invoice', label: t('modulesSettings.moduleInvoice'), kind: 'optional' },
-    { id: 'pos', label: t('modulesSettings.modulePos'), kind: 'optional' },
-    { id: 'sales', label: t('modulesSettings.moduleSales'), kind: 'optional' },
     { id: 'customers', label: t('modulesSettings.moduleCustomers'), kind: 'optional' },
     { id: 'reports', label: t('modulesSettings.moduleReports'), kind: 'optional' },
     { id: 'abandonedCart', label: t('modulesSettings.moduleAbandonedCart'), kind: 'optional' },
@@ -99,6 +359,135 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const [saving, setSaving] = useState(false);
   const [pendingFromAdmin, setPendingFromAdmin] = useState<Set<string>>(new Set());
   const [loadingRequests, setLoadingRequests] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [moduleFeatures, setModuleFeatures] = useState<Record<string, Set<string>>>({});
+  const [expandedFeatureModules, setExpandedFeatureModules] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (defaultExpandedSection) {
+      setExpandedGroups((prev) => {
+        const next = new Set(prev);
+        MODULE_GROUPS.forEach((g) => {
+          if (g.registryModuleIds?.includes(defaultExpandedSection) || g.id === defaultExpandedSection) {
+            next.add(g.id);
+          }
+        });
+        return next;
+      });
+    }
+  }, [defaultExpandedSection]);
+
+  const registryModuleMap = useMemo(() => {
+    const map: Record<string, typeof MODULE_REGISTRY[0]> = {};
+    for (const mod of MODULE_REGISTRY) {
+      map[mod.id] = mod;
+    }
+    return map;
+  }, []);
+
+  const savedFeatures = (shop as any)?.layoutConfig?.enabledFeatures as Record<string, string[]> | undefined;
+
+  useEffect(() => {
+    const initial: Record<string, Set<string>> = {};
+    for (const mod of MODULE_REGISTRY) {
+      const saved = savedFeatures?.[mod.id];
+      if (Array.isArray(saved)) {
+        initial[mod.id] = new Set(saved);
+      } else {
+        initial[mod.id] = new Set(
+          (mod as any).features
+            .filter((f: any) => f.defaultEnabled)
+            .map((f: any) => f.id)
+        );
+      }
+    }
+    setModuleFeatures(initial);
+  }, [savedFeatures]);
+
+  const persistFeatures = useCallback(async (nextFeatures: Record<string, Set<string>>) => {
+    try {
+      const featuresObj: Record<string, string[]> = {};
+      for (const [k, v] of Object.entries(nextFeatures)) {
+        featuresObj[k] = Array.from(v);
+      }
+      const previousLayout = ((shop as any)?.layoutConfig && typeof (shop as any).layoutConfig === 'object') ? (shop as any).layoutConfig : {};
+      await ApiService.updateMyShop({
+        layoutConfig: {
+          ...previousLayout,
+          enabledFeatures: featuresObj,
+        },
+      });
+      // Update local shop reference to avoid re-initialization from stale data
+      if (shop && typeof shop === 'object') {
+        (shop as any).layoutConfig = {
+          ...previousLayout,
+          enabledFeatures: featuresObj,
+        };
+      }
+    } catch (e: any) {
+      toast({
+        title: t('modulesSettings.error'),
+        description: e?.message || t('modulesSettings.saveModulesFailedShort'),
+        variant: 'destructive',
+      });
+    }
+  }, [shop, toast, t]);
+
+  const toggleFeature = (moduleId: string, featureId: string) => {
+    const current = moduleFeatures[moduleId] || new Set<string>();
+    const isCurrentlyEnabled = current.has(featureId);
+
+    if (isCurrentlyEnabled) {
+      // Uninstalling — instant removal
+      setModuleFeatures((prev) => {
+        const next = new Set(prev[moduleId] || new Set<string>());
+        next.delete(featureId);
+        const nextState = { ...prev, [moduleId]: next };
+        persistFeatures(nextState);
+        return nextState;
+      });
+    } else {
+      // Installing — add feature locally and persist, then send module upgrade request
+      setModuleFeatures((prev) => {
+        const next = new Set(prev[moduleId] || new Set<string>());
+        next.add(featureId);
+        const nextState = { ...prev, [moduleId]: next };
+        persistFeatures(nextState);
+        return nextState;
+      });
+      // Send upgrade request for the module (so admin can approve the module if not yet active)
+      (async () => {
+        try {
+          await (ApiService as any).createMyModuleUpgradeRequest?.({
+            requestedModules: [moduleId],
+          });
+          toast({
+            title: t('modulesSettings.requestSent'),
+            description: isArabic ? 'تم تثبيت الميزة وإرسال طلب الترقية للمراجعة' : 'Feature installed and upgrade request sent for review',
+          });
+          await fetchMyRequests();
+        } catch (e: any) {
+          // Feature is already saved locally, just log the upgrade request error
+          if (e?.status !== 400) {
+            toast({
+              title: t('modulesSettings.error'),
+              description: e?.message || t('modulesSettings.saveModulesFailedShort'),
+              variant: 'destructive',
+            });
+          }
+        }
+      })();
+    }
+  };
+
+  const toggleFeatureModule = (moduleId: string) => {
+    setExpandedFeatureModules((prev) => {
+      const next = new Set(prev);
+      if (next.has(moduleId)) next.delete(moduleId);
+      else next.add(moduleId);
+      return next;
+    });
+  };
 
   const fetchMyRequests = useCallback(async () => {
     if (adminShopId) return;
@@ -143,9 +532,9 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   }, [initialEnabled, fetchMyRequests]);
 
   useEffect(() => {
-    const isService = (shop as any)?.category === 'SERVICE';
+    const isBooking = isShopBookingActivity(shop);
     let activityId = '';
-    if (isService) {
+    if (isBooking) {
       activityId = (shop as any)?.pageDesign?.bookingActivityType || 'clinic';
     } else {
       const nextActivity = getBusinessActivityById((shop as any)?.pageDesign?.businessActivityId) || getDefaultActivityForCategory((shop as any)?.category);
@@ -263,8 +652,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   );
 
   const selectedActivity = useMemo(() => {
-    const isService = shop?.category === 'SERVICE';
-    if (isService) {
+    const isBooking = isShopBookingActivity(shop);
+    if (isBooking) {
       const bookingAct = getBookingActivityById(selectedActivityId) || getDefaultActivity();
       const extraMods = ACTIVITY_MODULES[bookingAct.id] || [];
       const privateButtons = extraMods
@@ -394,12 +783,12 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
       const activityButtonList = Array.from(enabledActivityButtons).map(String).sort();
       const previousPageDesign = ((shop as any)?.pageDesign && typeof (shop as any).pageDesign === 'object') ? (shop as any).pageDesign : {};
       
-      const isService = shop?.category === 'SERVICE';
+      const isBooking = isShopBookingActivity(shop);
       const nextPageDesign = {
         ...previousPageDesign,
         activityEnabledButtons: activityButtonList,
         activityPrivateButtonLabels: Object.fromEntries((selectedActivity.privateButtons || []).map((button) => [button.id, button.label])),
-        ...(isService 
+        ...(isBooking 
           ? { bookingActivityType: selectedActivity.id } 
           : { businessActivityId: selectedActivity.id }
         )
@@ -518,38 +907,71 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
   const optionalModules = useMemo(() => MODULES.filter((m) => m.kind === 'optional'), []);
 
   return (
-    <div className={`space-y-6 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
-      <div>
-        <h3 className="text-2xl font-black">{t('modulesSettings.upgrade')}</h3>
-        <p className="text-sm font-black text-slate-500 mt-2">
+    <div className={`space-y-10 ${isArabic ? 'text-right' : 'text-left'}`} dir={isArabic ? 'rtl' : 'ltr'}>
+      {/* ── العنوان والوصف ── */}
+      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-8 text-white shadow-xl">
+        <h3 className="text-3xl font-black">{t('modulesSettings.upgrade')}</h3>
+        <p className="text-sm font-bold text-slate-300 mt-3 leading-relaxed max-w-2xl">
           {t('modulesSettings.upgradeDesc')}
         </p>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-2xl p-5">
-        <div className="font-black text-slate-900 mb-4">{t('modulesSettings.coreModules')}</div>
-        <div className="space-y-2">
-          {coreModules.map((m) => (
-            <div
-              key={m.id}
-              className="w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border border-slate-100 bg-slate-50"
-            >
-              <span className="font-black text-slate-900">{m.label}</span>
-              <span className="text-[10px] font-black text-slate-400">{t('modulesSettings.core')}</span>
-            </div>
-          ))}
+      {/* ── الأقسام الأساسية (Core) ── */}
+      <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6 md:p-8">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center text-slate-400 shadow-sm border border-slate-100">
+            <LayoutGrid size={20} />
+          </div>
+          <div className="font-black text-slate-900 text-lg">{t('modulesSettings.coreModules')}</div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          {coreModules.map((m) => {
+            const Icon = moduleIcons[m.id] || LayoutGrid;
+            return (
+              <div
+                key={m.id}
+                className="flex items-center gap-3 px-5 py-4 rounded-2xl border border-slate-100 bg-white shadow-sm"
+              >
+                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-slate-400">
+                  <Icon size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-black text-slate-900 text-sm truncate">{m.label}</div>
+                  <div className="text-[10px] font-black text-emerald-600">{t('modulesSettings.core')}</div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-2xl p-5">
-        <div className="font-black text-slate-900 mb-2">أزرار النشاط الخاص</div>
-        {adminShopId ? (
-          <>
+      {/* ── أزرار النشاط الخاص (Activity Private Buttons) ── */}
+      <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm">
+        <div className="flex items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-cyan-50 flex items-center justify-center text-cyan-600 shadow-sm border border-cyan-100">
+              <Store size={20} />
+            </div>
+            <div>
+              <div className="font-black text-slate-900 text-lg">أزرار النشاط الخاص</div>
+              <div className="text-xs font-bold text-slate-500 mt-0.5">{selectedActivity.title} — {selectedActivity.description}</div>
+            </div>
+          </div>
+          {!adminShopId && (
+            <div className="text-[11px] font-black text-cyan-700 bg-cyan-50 border border-cyan-100 rounded-full px-4 py-1.5 shadow-sm">نشاطك الحالي</div>
+          )}
+        </div>
+
+        {adminShopId && (
+          <div className="mb-6 p-5 bg-slate-50 rounded-3xl border border-slate-100">
             <p className="text-xs font-black text-slate-500 mb-4">اختر النشاط الدقيق ثم فعّل الأزرار الخاصة التي تظهر للتاجر بجانب الأزرار العامة.</p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {shop?.category === 'SERVICE' ? (
-                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 col-span-2">
-                  <div className="font-black text-slate-900 text-sm mb-2">أنشطة الحجوزات والمواعيد</div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 col-span-2 shadow-sm">
+                  <div className="font-black text-slate-900 text-sm mb-3 flex items-center gap-2">
+                    <Clock size={16} className="text-cyan-500" />
+                    أنشطة الحجوزات والمواعيد
+                  </div>
                   <div className="flex flex-wrap gap-2">
                     {BOOKING_ACTIVITIES.map((activity) => {
                       const checked = selectedActivityId === activity.id;
@@ -561,8 +983,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                             setSelectedActivityId(activity.id);
                             setEnabledActivityButtons(new Set());
                           }}
-                          className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${
-                            checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'
+                          className={`px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${
+                            checked ? 'border-cyan-400 bg-cyan-50 text-slate-900 shadow-sm' : 'border-slate-100 bg-slate-50/50 text-slate-500 hover:border-slate-200'
                           }`}
                         >
                           {activity.title}
@@ -573,8 +995,8 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                 </div>
               ) : (
                 BUSINESS_ACTIVITY_GROUPS.map((group) => (
-                  <div key={group.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                    <div className="font-black text-slate-900 text-sm mb-2">{group.title}</div>
+                  <div key={group.id} className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                    <div className="font-black text-slate-900 text-sm mb-3">{group.title}</div>
                     <div className="flex flex-wrap gap-2">
                       {group.activities.map((activity) => {
                         const checked = selectedActivityId === activity.id;
@@ -586,7 +1008,9 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                               setSelectedActivityId(activity.id);
                               setEnabledActivityButtons(new Set());
                             }}
-                            className={`px-3 py-2 rounded-xl border text-xs font-black transition-all ${checked ? 'border-[#00E5FF] bg-white text-slate-900' : 'border-slate-100 bg-white/70 text-slate-500'}`}
+                            className={`px-4 py-2.5 rounded-xl border text-xs font-black transition-all ${
+                              checked ? 'border-cyan-400 bg-cyan-50 text-slate-900 shadow-sm' : 'border-slate-100 bg-slate-50/50 text-slate-500 hover:border-slate-200'
+                            }`}
                           >
                             {activity.title}
                           </button>
@@ -597,172 +1021,286 @@ const ModulesSettings: React.FC<Props> = ({ shop, onSaved, adminShopId }) => {
                 ))
               )}
             </div>
-          </>
-        ) : (
-          <p className="text-xs font-black text-slate-500 mb-4">تفقد وفعّل الأزرار الخاصة بنشاطك التجاري الحالي لتسهيل إدارة أعمالك.</p>
+          </div>
         )}
 
-        <div className="rounded-3xl bg-slate-50 border border-slate-100 p-4">
-          <div className="flex items-start justify-between gap-3 mb-4">
-            <div>
-              <div className="font-black text-slate-900">{selectedActivity.title}</div>
-              <div className="text-xs font-bold text-slate-500 mt-1">{selectedActivity.description}</div>
-            </div>
-            <div className="text-[11px] font-black text-cyan-700 bg-white border border-cyan-100 rounded-full px-3 py-1">نشاطك الحالي</div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            {selectedActivity.privateButtons.map((button) => {
-              const isActive = enabledActivityButtons.has(button.id);
-              
-              if (adminShopId) {
-                // Admin Mode: Direct toggle
-                return (
-                  <button
-                    key={button.id}
-                    type="button"
-                    onClick={() => toggleActivityButton(button.id)}
-                    className={`w-full flex items-center justify-between gap-4 px-4 py-3 rounded-2xl border transition-all ${isActive ? 'border-[#00E5FF] bg-[#00E5FF]/5' : 'border-slate-100 bg-white'}`}
-                  >
-                    <span className="font-black text-slate-900 text-sm">{button.label}</span>
-                    <span className={`w-6 h-6 rounded-lg border ${isActive ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'}`} />
-                  </button>
-                );
-              }
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {selectedActivity.privateButtons.map((button) => {
+            const isActive = enabledActivityButtons.has(button.id);
+            const isChecked = pendingRequestedButtons.has(button.id);
+            const isPendingApproval = pendingFromAdmin.has(button.id);
+            const Icon = moduleIcons[button.id] || Store;
+            
+            return (
+              <div
+                key={button.id}
+                className={`relative group bg-white rounded-3xl border transition-all duration-300 p-5 flex flex-col gap-4 ${
+                  isActive ? 'border-emerald-200 bg-emerald-50/10 shadow-sm' :
+                  isPendingApproval ? 'border-amber-200 bg-amber-50/50 animate-pulse' :
+                  isChecked ? 'border-cyan-400 bg-cyan-50/40' :
+                  'border-slate-100 hover:border-slate-200 hover:shadow-md'
+                }`}
+              >
+                {isActive && (
+                  <div className="absolute top-4 left-4 rtl:right-4 rtl:left-auto">
+                    <div className="bg-emerald-500 text-white rounded-full p-1 shadow-lg shadow-emerald-100">
+                      <Check size={12} strokeWidth={4} />
+                    </div>
+                  </div>
+                )}
 
-              // Merchant Mode: Upgrade Request & Delete flow
-              const isChecked = pendingRequestedButtons.has(button.id);
-              const isPendingApproval = pendingFromAdmin.has(button.id);
-              
-              return (
-                <div
-                  key={button.id}
-                  className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all ${
-                    isActive ? 'border-[#00E5FF] bg-[#00E5FF]/5' :
-                    isPendingApproval ? 'border-amber-200 bg-amber-50/50 animate-pulse' :
-                    isChecked ? 'border-[#00E5FF] bg-[#00E5FF]/5' :
-                    'border-slate-100 bg-white'
-                  }`}
-                >
-                  {isActive ? (
-                    <>
-                      <div className="flex flex-col text-right">
-                        <span className="font-black text-slate-900 text-sm">{button.label}</span>
-                        <span className="text-[10px] text-emerald-600 font-black mt-1">مفعل</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeActiveActivityButton(button.id)}
-                        disabled={saving}
-                        className="shrink-0 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-black text-xs hover:bg-slate-50 disabled:opacity-60"
-                      >
-                        {t('modulesSettings.delete')}
-                      </button>
-                    </>
-                  ) : isPendingApproval ? (
-                    <>
-                      <div className="flex flex-col text-right">
-                        <span className="font-black text-slate-900 text-sm">{button.label}</span>
-                        <span className="text-[10px] text-amber-600 font-black mt-1">جاري المراجعة من الأدمن</span>
-                      </div>
-                      <span className="shrink-0 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
-                        قيد الانتظار
+                <div className="flex items-center gap-4">
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-sm ${
+                    isActive ? 'bg-emerald-500 text-white' : 'bg-slate-50 text-slate-400'
+                  }`}>
+                    <Icon size={28} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-black text-slate-900 text-base truncate">{button.label}</h4>
+                    {isPendingApproval ? (
+                      <span className="text-[10px] text-amber-600 font-black block mt-0.5 animate-pulse">
+                        {isArabic ? 'جاري المراجعة...' : 'Pending Review...'}
                       </span>
-                    </>
+                    ) : isActive ? (
+                      <span className="text-[10px] text-emerald-600 font-black block mt-0.5">
+                        {isArabic ? 'مفعل ونشط' : 'Active & Enabled'}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-slate-400 font-black block mt-0.5">
+                        {isArabic ? 'زر خاص بنشاطك' : 'Private Activity Button'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-auto flex gap-2 pt-2">
+                  {isPendingApproval ? (
+                    <div className="w-full py-3 rounded-2xl bg-amber-100 text-amber-700 text-xs font-black text-center flex items-center justify-center gap-2 border border-amber-200">
+                      <Clock size={14} />
+                      {isArabic ? 'قيد الانتظار' : 'Pending'}
+                    </div>
+                  ) : isActive ? (
+                    <button
+                      type="button"
+                      onClick={() => removeActiveActivityButton(button.id)}
+                      disabled={saving}
+                      className="w-full py-3 rounded-2xl bg-red-50 text-red-600 text-xs font-black hover:bg-red-100 transition-all flex items-center justify-center gap-2 border border-red-100"
+                    >
+                      {saving ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                      {isArabic ? 'إزالة الزر' : 'Uninstall'}
+                    </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => toggleRequestedButton(button.id)}
-                      className="flex-1 flex items-center justify-between gap-4 text-right"
+                      onClick={() => {
+                        if (adminShopId) {
+                          toggleActivityButton(button.id);
+                        } else {
+                          toggleRequestedButton(button.id);
+                        }
+                      }}
+                      className={`w-full py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2 ${
+                        isChecked || (adminShopId && isActive)
+                          ? 'bg-slate-900 text-white hover:bg-black' 
+                          : 'bg-cyan-500 text-white hover:brightness-110 shadow-lg shadow-cyan-100'
+                      }`}
                     >
-                      <span className="font-black text-slate-900 text-sm">{button.label}</span>
-                      <span
-                        className={`w-6 h-6 rounded-lg border ${
-                          isChecked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'
-                        }`}
-                      />
+                      {(isChecked || (adminShopId && isActive)) ? (
+                        <>
+                          <Check size={14} />
+                          {isArabic ? 'تم الاختيار' : 'Selected'}
+                        </>
+                      ) : (
+                        <>
+                          <Download size={14} />
+                          {isArabic ? 'تثبيت الآن' : 'Install Now'}
+                        </>
+                      )}
                     </button>
                   )}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="bg-white border border-slate-100 rounded-2xl p-5">
-        <div className="font-black text-slate-900 mb-4">{t('modulesSettings.optionalModules')}</div>
-        <div className="space-y-3">
-          {optionalModules.map((m) => {
-            const checked = enabled.has(m.id);
-            const isActive = activeEnabled.includes(m.id);
-            const isPendingApproval = pendingFromAdmin.has(m.id);
-            
-            const disabled =
-              isActive ||
-              isPendingApproval ||
-              ((m.id === 'customers' || m.id === 'reports') && !enabled.has('sales'));
+      {/* ── الأقسام الاختيارية (Optional Modules) ── */}
+      <div className="bg-white border border-slate-100 rounded-[2.5rem] p-6 md:p-8 shadow-sm">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-10 h-10 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 shadow-sm border border-purple-100">
+            <Sparkles size={20} />
+          </div>
+          <div>
+            <div className="font-black text-slate-900 text-lg">{t('modulesSettings.optionalModules')}</div>
+            <p className="text-xs font-bold text-slate-500 mt-0.5">{t('modulesSettings.upgradeDesc')}</p>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {MODULE_GROUPS.map((group) => {
+            const groupRegModules = group.registryModuleIds
+              .map((id) => registryModuleMap[id])
+              .filter(Boolean);
+            if (groupRegModules.length === 0) return null;
+            const isExpanded = expandedGroups.has(group.id);
+            const totalFeatures = groupRegModules.reduce((sum, mod) => sum + mod.features.length, 0);
+            const activeCount = groupRegModules.reduce((sum, mod) => sum + ((moduleFeatures[mod.id] || new Set()).size), 0);
+            const pendingCount = groupRegModules.reduce((sum, mod) =>
+              sum + mod.features.filter((f: any) => pendingFromAdmin.has(`${mod.id}:${f.id}`)).length, 0);
+            const GroupIcon = group.icon;
 
             return (
-              <div
-                key={m.id}
-                className={`w-full flex items-center justify-between gap-4 px-5 py-4 rounded-2xl border transition-all ${
-                  isActive ? 'border-[#00E5FF] bg-[#00E5FF]/5' :
-                  isPendingApproval ? 'border-amber-200 bg-amber-50/50 animate-pulse' :
-                  checked ? 'border-[#00E5FF] bg-[#00E5FF]/5' :
-                  'border-slate-100 bg-slate-50'
-                } ${disabled && !isPendingApproval ? 'opacity-60' : ''}`}
-              >
-                {isPendingApproval ? (
-                  <div className="flex-1 flex items-center justify-between gap-4">
-                    <div className="flex flex-col text-right">
-                      <span className="font-black text-slate-900">{m.label}</span>
-                      <span className="text-[10px] text-amber-600 font-black mt-1">جاري المراجعة من الأدمن</span>
-                    </div>
-                    <span className="shrink-0 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black">
-                      قيد الانتظار
-                    </span>
+              <div key={group.id} className="rounded-[2rem] border border-slate-100 overflow-hidden transition-all bg-white">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExpandedGroups((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(group.id)) next.delete(group.id);
+                      else next.add(group.id);
+                      return next;
+                    });
+                  }}
+                  className="w-full flex items-center gap-4 p-5 hover:bg-slate-50 transition-all"
+                >
+                  <div
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm text-white shrink-0"
+                    style={{ backgroundColor: group.color }}
+                  >
+                    <GroupIcon size={24} />
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => (disabled ? null : toggleOptional(m.id))}
-                    className={`flex-1 flex items-center justify-between gap-4 ${disabled ? 'cursor-not-allowed' : ''}`}
-                  >
-                    <span className="font-black text-slate-900">{m.label}</span>
-                    <span
-                      className={`w-6 h-6 rounded-lg border ${
-                        checked ? 'bg-[#00E5FF] border-[#00E5FF]' : 'bg-white border-slate-200'
-                      }`}
-                    />
-                  </button>
-                )}
+                  <div className="flex-1 min-w-0 text-left rtl:text-right">
+                    <h4 className="font-black text-slate-900 text-base">
+                      {isArabic ? group.labelAr : group.label}
+                    </h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] font-black text-slate-400">
+                        {totalFeatures} {isArabic ? 'ميزة' : 'features'}
+                      </span>
+                      {activeCount > 0 && (
+                        <span className="text-[11px] font-black text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                          {activeCount} {isArabic ? 'مفعل' : 'active'}
+                        </span>
+                      )}
+                      {pendingCount > 0 && (
+                        <span className="text-[11px] font-black text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-2 py-0.5 animate-pulse">
+                          {pendingCount} {isArabic ? 'قيد المراجعة' : 'pending'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={24}
+                    className={`text-slate-400 transition-transform duration-300 shrink-0 ${isExpanded ? 'rotate-180' : ''}`}
+                  />
+                </button>
 
-                {isActive ? (
-                  <button
-                    type="button"
-                    onClick={() => removeActiveModule(m.id)}
-                    disabled={saving}
-                    className="shrink-0 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 font-black text-xs hover:bg-slate-50 disabled:opacity-60"
-                  >
-                    {t('modulesSettings.delete')}
-                  </button>
-                ) : null}
+                {isExpanded && (
+                  <div className="p-4 pt-2 bg-slate-50/50 border-t border-slate-100 space-y-2">
+                    {groupRegModules.flatMap((regMod) => {
+                      return regMod.features.map((feature: any) => {
+                        const featureKey = `${regMod.id}:${feature.id}`;
+                        const featureEnabled = (moduleFeatures[regMod.id] || new Set()).has(feature.id);
+                        const isPending = pendingFromAdmin.has(featureKey);
+                        return (
+                          <div
+                            key={`${regMod.id}-${feature.id}`}
+                            className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                              featureEnabled
+                                ? 'border-emerald-200 bg-emerald-50/50'
+                                : isPending
+                                ? 'border-amber-200 bg-amber-50/50 animate-pulse'
+                                : 'border-slate-100 bg-white'
+                            }`}
+                          >
+                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                              featureEnabled ? 'bg-emerald-100 text-emerald-600' : isPending ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'
+                            }`}>
+                              {featureEnabled ? <Check size={16} strokeWidth={3} /> : isPending ? <Clock size={16} /> : (() => {
+                                const FeatureIcon = moduleIcons[feature.id] || LayoutGrid;
+                                return <FeatureIcon size={16} />;
+                              })()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-black text-slate-900">
+                                {isArabic ? (feature.labelAr || feature.label) : feature.label}
+                              </div>
+                              <div className="text-[10px] text-slate-400 font-bold mt-0.5">
+                                {featureEnabled
+                                  ? (isArabic ? 'مفعّلة' : 'Enabled')
+                                  : isPending
+                                  ? (isArabic ? 'قيد المراجعة' : 'Pending Review')
+                                  : (isArabic ? 'غير مفعّلة' : 'Not enabled')}
+                              </div>
+                            </div>
+                            {isPending ? (
+                              <div className="px-3 py-2 rounded-xl text-[11px] font-black flex items-center gap-1.5 shrink-0 bg-amber-50 text-amber-700 border border-amber-100">
+                                <Clock size={12} />
+                                {isArabic ? 'قيد المراجعة' : 'Pending'}
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => toggleFeature(regMod.id, feature.id)}
+                                className={`px-3 py-2 rounded-xl text-[11px] font-black transition-all flex items-center gap-1.5 shrink-0 ${
+                                  featureEnabled
+                                    ? 'bg-white border border-red-100 text-red-600 hover:bg-red-50'
+                                    : 'bg-cyan-500 text-white hover:brightness-110 shadow-sm shadow-cyan-100'
+                                }`}
+                              >
+                                {featureEnabled ? (
+                                  <>
+                                    <Trash2 size={12} />
+                                    {isArabic ? 'إزالة' : 'Uninstall'}
+                                  </>
+                                ) : (
+                                  <>
+                                    <Download size={12} />
+                                    {isArabic ? 'تثبيت' : 'Install'}
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      });
+                    })}
+                  </div>
+                )}
               </div>
             );
           })}
         </div>
 
-        <div className="mt-4">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => {
-              saveModules().catch(() => {});
-            }}
-            className="w-full py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all disabled:opacity-60"
-          >
-            {saving ? t('modulesSettings.saving') : t('modulesSettings.saveModules')}
-          </button>
+        {/* ── زر الحفظ النهائي ── */}
+        <div className="mt-12 pt-8 border-t border-slate-50">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-50 rounded-[2.5rem] p-6 md:p-8">
+            <div className="text-right">
+              <div className="font-black text-slate-900 text-lg">هل انتهيت من اختيار أقسامك؟</div>
+              <p className="text-xs font-bold text-slate-500 mt-1">سيتم إرسال طلبك للأدمن للمراجعة والتفعيل مباشرة.</p>
+            </div>
+            <button
+              type="button"
+              disabled={saving || (Array.from(pendingRequestedButtons).length === 0 && Array.from(enabled).length === (baselineRef.current?.length || 0))}
+              onClick={() => {
+                saveModules().catch(() => {});
+              }}
+              className="w-full md:w-auto min-w-[280px] py-5 px-8 rounded-[2rem] bg-slate-900 text-white font-black hover:bg-black transition-all shadow-2xl shadow-slate-300 flex items-center justify-center gap-3 disabled:opacity-40 disabled:grayscale disabled:cursor-not-allowed transform active:scale-95"
+            >
+              {saving ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  {t('modulesSettings.saving')}
+                </>
+              ) : (
+                <>
+                  <RefreshCw size={24} />
+                  {isArabic ? 'حفظ وإرسال طلب الترقية' : 'Save & Submit Upgrade Request'}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

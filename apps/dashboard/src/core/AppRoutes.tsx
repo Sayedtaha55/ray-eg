@@ -3,16 +3,15 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { suspense } from './routerHelpers';
 
 const BusinessLayout = React.lazy(() => import('../layouts/BusinessLayout'));
-const BusinessLanding = React.lazy(() => import('../pages/business/BusinessLanding'));
 const BusinessHero = React.lazy(() => import('../pages/business/BusinessHero'));
 const MerchantOnboarding = React.lazy(() => import('../pages/business/MerchantOnboarding'));
+const OnboardingWizard = React.lazy(() => import('../pages/business/OnboardingWizard'));
 const MerchantDashboard = React.lazy(() => import('../pages/business/merchant-dashboard'));
 const MerchantProfilePage = React.lazy(() => import('../pages/business/MerchantProfilePage'));
 const BusinessPendingApproval = React.lazy(() => import('../pages/business/BusinessPendingApproval'));
 const CourierSignupPage = React.lazy(() => import('../pages/business/CourierSignupPage'));
 const BuilderPreviewPage = React.lazy(() => import('../pages/business/builder/BuilderPreviewPage'));
 const BookingActivityPage = React.lazy(() => import('../pages/business/bookings/BookingActivityPage'));
-const LoginPage = React.lazy(() => import('../pages/auth/LoginPage'));
 
 const AdminLayout = React.lazy(() => import('../layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../pages/admin/AdminDashboard'));
@@ -48,9 +47,9 @@ const AppRoutes: React.FC = () => {
         <Route index element={suspense(<BusinessPendingApproval />)} />
       </Route>
       <Route path="/business" element={suspense(<BusinessLayout />)}>
-        <Route index element={suspense(<BusinessLanding />)} />
-        <Route path="login" element={suspense(<LoginPage />)} />
+        <Route index element={<Navigate to="/business/dashboard" replace />} />
         <Route path="onboarding" element={suspense(<MerchantOnboarding />)} />
+        <Route path="setup" element={suspense(<OnboardingWizard />)} />
         <Route path="dashboard" element={suspense(<MerchantDashboard />)} />
         <Route path="profile" element={suspense(<MerchantProfilePage />)} />
         <Route path="pending" element={suspense(<BusinessPendingApproval />)} />

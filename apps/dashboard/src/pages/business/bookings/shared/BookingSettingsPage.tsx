@@ -20,7 +20,7 @@ import Security from '../../../../components/MerchantDashboard/Settings/Security
 import StoreSettings from '../../../../components/MerchantDashboard/Settings/StoreSettings';
 import Payments from '../../../../components/MerchantDashboard/Settings/Payments';
 import ModulesSettings from '../../../../components/MerchantDashboard/Settings/Modules';
-import AppsTab from '@/components/pages/business/merchant-dashboard/tabs/AppsTab';
+import AppsTab from '../../../../modules/shared/pages/AppsTab';
 
 type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'booking_settings' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications';
 
@@ -312,7 +312,7 @@ const BookingSettingsPage: React.FC<Props> = ({ activityType, shop, onSaved, adm
       case 'modules':
         return <ModulesSettings shop={effectiveShop} onSaved={handleSaved} adminShopId={adminShopId} />;
       case 'apps':
-        return <AppsTab />;
+        return <AppsTab shop={effectiveShop} onSaved={handleSaved} adminShopId={adminShopId} />;
       case 'payments':
         return <Payments shop={effectiveShop} onSaved={handleSaved} adminShopId={adminShopId} />;
       case 'notifications':
@@ -324,13 +324,6 @@ const BookingSettingsPage: React.FC<Props> = ({ activityType, shop, onSaved, adm
 
   return (
     <div className="space-y-5 text-right" dir={isEn ? 'ltr' : 'rtl'}>
-      <div className="flex items-center gap-3">
-        <SettingsIcon className="w-7 h-7 text-[#00E5FF]" />
-        <div>
-          <h2 className="text-xl md:text-2xl font-black text-slate-900">{isEn ? `${vocab.dashboardTitle} Settings` : `إعدادات ${vocab.dashboardTitle}`}</h2>
-          <p className="text-xs text-slate-400 font-bold mt-0.5">{isEn ? 'Configure your booking activity' : 'ضبط نشاط الحجوزات'}</p>
-        </div>
-      </div>
 
       <div className="space-y-3">
         {settingsTabs.map(tab => (

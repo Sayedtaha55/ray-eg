@@ -176,17 +176,17 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Upload Section */}
-      <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
-        <h3 className="text-xl md:text-2xl font-black mb-6 flex items-center gap-3">
-          <Camera className="text-[#00E5FF]" />
+      <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 md:p-8">
+        <h3 className="text-xl md:text-2xl font-bold mb-6 flex items-center gap-3">
+          <Camera className="text-cyan-500" />
           {t('business.gallery.title')}
         </h3>
 
         {/* Upload Area */}
         <div
-          className={`relative border-2 border-dashed rounded-2xl p-8 md:p-12 text-center transition-all ${
+          className={`relative border-2 border-dashed rounded-xl p-8 md:p-12 text-center transition-all ${
             dragActive 
-              ? 'border-[#00E5FF] bg-[#00E5FF]/5' 
+              ? 'border-cyan-500 bg-cyan-500/5' 
               : 'border-slate-200 hover:border-slate-300 bg-slate-50'
           }`}
           onDragEnter={handleDrag}
@@ -205,7 +205,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
           
           <div className="space-y-4">
             <div className={`w-16 h-16 md:w-20 md:h-20 mx-auto rounded-full flex items-center justify-center ${
-              dragActive ? 'bg-[#00E5FF] text-white' : 'bg-slate-200 text-slate-400'
+              dragActive ? 'bg-cyan-500 text-white' : 'bg-slate-200 text-slate-400'
             }`}>
               {uploading ? (
                 <div className="w-8 h-8 border-3 border-white border-t-transparent rounded-full animate-spin" />
@@ -215,7 +215,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
             </div>
             
             <div>
-              <h4 className="text-lg md:text-xl font-black mb-2">
+              <h4 className="text-lg md:text-xl font-bold mb-2">
                 {uploading ? t('business.gallery.uploading') : t('business.gallery.dragAndDrop')}
               </h4>
               <p className="text-slate-500 text-sm md:text-base mb-4">
@@ -226,7 +226,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploading}
-                  className="px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-sm hover:bg-black transition-all disabled:opacity-50"
+                  className="px-6 py-3 bg-slate-900 text-white rounded-lg font-semibold text-sm hover:bg-black transition-all disabled:opacity-50"
                 >
                   {t('business.gallery.chooseFiles')}
                 </button>
@@ -234,7 +234,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                 <button
                   onClick={handleAddFromUrl}
                   disabled={uploading}
-                  className="px-6 py-3 border border-slate-200 rounded-xl font-black text-sm hover:bg-slate-50 transition-all disabled:opacity-50"
+                  className="px-6 py-3 border border-slate-200 rounded-lg font-semibold text-sm hover:bg-slate-50 transition-all disabled:opacity-50"
                 >
                   {t('business.gallery.addFromUrl')}
                 </button>
@@ -244,11 +244,11 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
         </div>
 
         {/* Tips */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+        <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
             <div className="text-right">
-              <h4 className="font-black text-sm text-blue-900 mb-1">{t('business.gallery.importantTips')}</h4>
+              <h4 className="font-bold text-sm text-blue-900 mb-1">{t('business.gallery.importantTips')}</h4>
               <ul className="text-xs text-blue-700 space-y-1">
                 <li>• {t('business.gallery.tipResolution')}</li>
                 <li>• {t('business.gallery.tipMaxSize')}</li>
@@ -262,9 +262,9 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
 
       {/* Images Grid */}
       {images.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-6 md:p-8">
+        <div className="bg-white rounded-xl border border-slate-200 p-4 sm:p-6 md:p-8">
           <div className="flex items-center justify-between mb-6">
-            <h4 className="text-lg md:text-xl font-black">
+            <h4 className="text-lg md:text-xl font-bold">
               {t('business.gallery.addedImages', { count: images.length })}
             </h4>
             <div className="text-sm text-slate-500">
@@ -280,7 +280,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative group"
               >
-                <div className="aspect-square rounded-xl overflow-hidden bg-slate-100 border border-slate-200 relative">
+                <div className="aspect-square rounded-lg overflow-hidden bg-slate-100 border border-slate-200 relative">
                   {image.mediaType === 'VIDEO' ? (
                     <>
                       <img 
@@ -305,7 +305,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                 </div>
 
                 {/* Actions Overlay */}
-                <div className="absolute inset-0 bg-black/60 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
+                <div className="absolute inset-0 bg-black/60 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center gap-2">
                   <button
                     onClick={() => {
                       if (image.mediaType === 'VIDEO') {
@@ -352,19 +352,19 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      className="absolute inset-0 bg-white rounded-xl p-3 flex flex-col"
+                      className="absolute inset-0 bg-white rounded-lg p-3 flex flex-col"
                     >
                       <textarea
                         value={caption}
                         onChange={(e) => setCaption(e.target.value)}
                         placeholder={t('business.gallery.captionPlaceholder')}
-                        className="flex-1 p-2 text-xs border border-slate-200 rounded-lg resize-none outline-none focus:border-[#00E5FF]"
+                        className="flex-1 p-2 text-xs border border-slate-200 rounded-lg resize-none outline-none focus:border-cyan-500"
                         dir="rtl"
                       />
                       <div className="flex gap-2 mt-2">
                         <button
                           onClick={() => handleSaveCaption(image.id)}
-                          className="flex-1 py-1.5 bg-[#00E5FF] text-white rounded-lg text-xs font-black"
+                          className="flex-1 py-1.5 bg-cyan-500 text-white rounded-lg text-xs font-semibold"
                         >
                           {t('business.gallery.save')}
                         </button>
@@ -373,7 +373,7 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
                             setEditingImage(null);
                             setCaption('');
                           }}
-                          className="flex-1 py-1.5 bg-slate-200 rounded-lg text-xs font-black"
+                          className="flex-1 py-1.5 bg-slate-200 rounded-lg text-xs font-semibold"
                         >
                           {t('business.gallery.cancel')}
                         </button>
@@ -389,10 +389,10 @@ const GalleryManager: React.FC<GalleryManagerProps> = ({
           {images.length < 200 && (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="mt-6 w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl hover:border-[#00E5FF] hover:bg-[#00E5FF]/5 transition-all flex items-center justify-center gap-3"
+              className="mt-6 w-full py-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-cyan-500 hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-3"
             >
               <Plus size={20} className="text-slate-400" />
-              <span className="font-black text-slate-400">{t('business.gallery.addMoreImages')}</span>
+              <span className="font-semibold text-slate-400">{t('business.gallery.addMoreImages')}</span>
             </button>
           )}
         </div>

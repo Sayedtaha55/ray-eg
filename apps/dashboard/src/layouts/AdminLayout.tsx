@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import BrandLogo from '@/components/common/BrandLogo';
 import { ApiService } from '@/services/api.service';
 import { clearSession, getStoredUser } from '@/services/authStorage';
 import { useTranslation } from 'react-i18next';
@@ -51,7 +50,6 @@ const AdminLayout: React.FC = () => {
       {/* Sidebar */}
       <aside className={`w-80 bg-slate-900 text-white flex flex-col fixed inset-y-0 right-0 z-[110] shadow-2xl transition-transform duration-500 md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="p-10 flex items-center gap-3">
-          <BrandLogo variant="admin" iconOnly />
           <span className="text-2xl font-black tracking-tighter uppercase">MNMKNK <span className="text-[#BD00FF]">ROOT</span></span>
         </div>
 

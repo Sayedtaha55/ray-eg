@@ -1,7 +1,6 @@
 ﻿import React, { lazy, Suspense } from 'react';
 import { Loader2, RefreshCw, Store, Palette, Bell, Menu } from 'lucide-react';
 import { motion } from 'framer-motion';
-import BrandLogo from '@/components/common/BrandLogo';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -25,7 +24,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = (props) => {
   return (
     <header className="md:hidden min-h-20 bg-white/95 backdrop-blur text-slate-900 flex items-center justify-between gap-3 px-4 py-3 sticky top-0 z-[200] border-b border-slate-100">
       <Link to="/" className="flex min-w-0 items-center gap-2.5">
-        <BrandLogo variant="business" iconOnly />
         <span className="truncate text-sm font-black tracking-tight">{t('dashboardHeader.brandTitle')}</span>
       </Link>
 

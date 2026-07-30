@@ -2,35 +2,30 @@
 
 ## Architecture Style
 
-The project follows a Modular Monolith architecture designed to evolve into Microservices when needed.
+The project follows a **Two-App Monorepo** architecture:
+- **Marketplace** (Next.js 15) — public-facing, SEO-optimized
+- **Dashboard** (Vite SPA) — authenticated dashboards (merchant/admin/courier)
+- **Shared Package** (@ray-eg/shared) — components, services, i18n, utils
+- **Backend** (NestJS) — shared API for both apps
+- Designed to evolve into Microservices when needed
 
-Current Architecture
+```
+Marketplace (Next.js)     Dashboard (Vite SPA)
+     Port 5174                 Port 3000
+         \                    /
+          \                  /
+     @ray-eg/shared (packages/shared)
+                   |
+          Backend (NestJS) — Port 4000
+                   |
+          PostgreSQL + Redis + S3
+```
 
-Client
-
-↓
-
-API Gateway (Future)
-
-↓
-
-NestJS Application
-
-↓
-
-Feature Modules
-
-↓
-
-PostgreSQL
-
-Redis
-
-ElasticSearch
-
-S3
-
-BullMQ
+## Key Decisions
+- **Why Next.js for Marketplace?** SSR, sitemaps, robots.txt, structured data, social sharing — all critical for SEO
+- **Why Vite for Dashboard?** SPA is sufficient for authenticated routes, faster dev iteration, Electron-compatible
+- **Why Shared Package?** Avoid code duplication — both apps use same components, services, i18n
+- **Why Monorepo?** Shared backend, shared types, atomic commits across apps
 
 ----------------------------
 

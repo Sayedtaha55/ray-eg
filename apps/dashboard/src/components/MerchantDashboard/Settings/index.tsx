@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown, Puzzle, LayoutGrid, Clock, Share2 } from 'lucide-react';
+import { Settings as SettingsIcon, User, Shield, Store, CreditCard, Home, Bell, FileText, Image as ImageIcon, Loader2, ChevronDown, Puzzle, LayoutGrid, Clock, Share2, Zap, TrendingUp } from 'lucide-react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { RayDB } from '@/constants';
@@ -16,13 +16,14 @@ import Security from './Security';
 import StoreSettings from './StoreSettings';
 import Payments from './Payments';
 import ModulesSettings from './Modules';
-import AppsTab from '@/components/pages/business/merchant-dashboard/tabs/AppsTab';
+import AppsTab from '../../../modules/shared/pages/AppsTab';
 import BookingSettings from './BookingSettings';
 import SocialMediaSettings from './SocialMedia';
+import { isShopBookingActivity } from '@/components/pages/business/bookings/config';
 
 const { Link, useLocation, useNavigate } = ReactRouterDOM as any;
 
-type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications' | 'booking_settings' | 'social_media';
+type SettingsTab = 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps' | 'receipt_theme' | 'payments' | 'notifications' | 'booking_settings' | 'social_media' | 'upgrade';
 
 type SaveHandler = () => Promise<boolean>;
 
@@ -328,25 +329,28 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
 
+  const isBooking = isShopBookingActivity(shop);
+
   const SettingsTabs = React.useMemo(() => {
     const list = [
       { id: 'overview' as const, icon: <Home className="w-5 h-5" /> },
       { id: 'account' as const, icon: <User className="w-5 h-5" /> },
       { id: 'security' as const, icon: <Shield className="w-5 h-5" /> },
       { id: 'store' as const, icon: <Store className="w-5 h-5" /> },
-      ...(shop?.category === 'SERVICE' ? [{ id: 'booking_settings' as const, icon: <Clock className="w-5 h-5" /> }] : []),
+      ...(isBooking ? [{ id: 'booking_settings' as const, icon: <Clock className="w-5 h-5" /> }] : []),
       { id: 'modules' as const, icon: <Puzzle className="w-5 h-5" /> },
       { id: 'apps' as const, icon: <LayoutGrid className="w-5 h-5" /> },
-      ...(shop?.category !== 'SERVICE' ? [{ id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" /> }] : []),
+      ...(!isBooking ? [{ id: 'receipt_theme' as const, icon: <FileText className="w-5 h-5" /> }] : []),
       { id: 'payments' as const, icon: <CreditCard className="w-5 h-5" /> },
       { id: 'social_media' as const, icon: <Share2 className="w-5 h-5" /> },
       { id: 'notifications' as const, icon: <Bell className="w-5 h-5" /> },
+      { id: 'upgrade' as const, icon: <TrendingUp className="w-5 h-5" /> },
     ];
     return list.map(item => ({
       ...item,
-      label: item.id === 'booking_settings' ? (i18n.language?.startsWith('ar') ? 'إعدادات الحجوزات' : 'Booking Settings') : item.id === 'social_media' ? (i18n.language?.startsWith('ar') ? 'السوشيال ميديا' : 'Social Media') : t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
+      label: item.id === 'booking_settings' ? (i18n.language?.startsWith('ar') ? 'إعدادات الحجوزات' : 'Booking Settings') : item.id === 'social_media' ? (i18n.language?.startsWith('ar') ? 'السوشيال ميديا' : 'Social Media') : item.id === 'upgrade' ? (i18n.language?.startsWith('ar') ? 'الترقية والباقات' : 'Upgrade & Plans') : t(`settingsIndex.tab${item.id.charAt(0).toUpperCase() + item.id.slice(1)}`),
     }));
-  }, [shop?.category, t, i18n]);
+  }, [isBooking, t, i18n]);
   const [sounds, setSounds] = useState(RayDB.getNotificationSounds());
   const layout = shop?.layoutConfig && typeof shop.layoutConfig === 'object' ? shop.layoutConfig : undefined;
   const serverSoundId = String((layout as any)?.notificationSoundId || '').trim() || 'default';
@@ -599,7 +603,7 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
       case 'modules':
         return <ModulesSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       case 'apps':
-        return <AppsTab />;
+        return <AppsTab shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       case 'receipt_theme':
         return <ReceiptThemeSettings shop={shop} adminShopId={adminShopId} />;
       case 'payments':
@@ -654,6 +658,8 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
         );
       case 'booking_settings':
         return <BookingSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
+      case 'upgrade':
+        return <ModulesSettings shop={shop} onSaved={onSaved} adminShopId={adminShopId} />;
       default:
         return <Overview shop={shop} />;
     }
@@ -703,6 +709,9 @@ const Settings: React.FC<SettingsProps> = ({ shop, onSaved, adminShopId }) => {
                 </div>
                 <div className={cn(String(activeSettingsTab) === 'notifications' ? 'block' : 'hidden')}>
                   {renderTabContent('notifications')}
+                </div>
+                <div className={cn(String(activeSettingsTab) === 'upgrade' ? 'block' : 'hidden')}>
+                  {renderTabContent('upgrade')}
                 </div>
               </div>
             </div>

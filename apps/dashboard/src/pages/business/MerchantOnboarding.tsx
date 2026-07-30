@@ -35,6 +35,7 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
+  LayoutGrid,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ApiService } from '@/services/api.service';
@@ -59,20 +60,20 @@ type ModuleDef = {
 
 const CORE_MODULES: ModuleDef[] = [
   { id: 'overview', label: '' },
-  { id: 'products', label: '' },
-  { id: 'promotions', label: '' },
-  { id: 'builder', label: '' },
+  { id: 'apps', label: '' },
   { id: 'settings', label: '' },
 ];
 
 const BOOKING_GENERAL_MODULES: ModuleDef[] = [
   { id: 'overview', label: 'نظرة عامة الحجوزات', fixed: true },
-  { id: 'reservations', label: 'حجوزات لوحة الحجوزات', fixed: true },
-  { id: 'builder', label: 'التصميم', fixed: true },
+  { id: 'apps', label: 'التطبيقات', fixed: true },
   { id: 'settings', label: 'إعدادات الحجوزات', fixed: true },
 ];
 
 const OPTIONAL_MODULES: ModuleDef[] = [
+  { id: 'products', label: '' },
+  { id: 'promotions', label: '' },
+  { id: 'builder', label: '' },
   { id: 'gallery', label: '' },
   { id: 'reservations', label: '' },
   { id: 'invoice', label: '' },
@@ -89,6 +90,7 @@ const STORAGE_KEY = 'ray_merchant_onboarding';
 
 const moduleIcons: Record<string, LucideIcon> = {
   overview: LayoutDashboard,
+  apps: LayoutGrid,
   products: Package,
   promotions: Tag,
   builder: Monitor,
@@ -929,6 +931,13 @@ const MerchantOnboarding: React.FC = () => {
             </div>
             <p className="text-xs font-bold text-slate-500 mb-6">{t('business.onboarding.configureModulesHint')}</p>
 
+            <div className="mb-6 rounded-2xl bg-cyan-50 border border-cyan-100 p-4 flex items-start gap-3">
+              <LayoutGrid className="w-5 h-5 text-cyan-600 shrink-0 mt-0.5" />
+              <p className="text-xs font-bold text-cyan-800 leading-relaxed">
+                {t('business.onboarding.installLaterHint', 'يمكنك تركيب أي أزرار إضافية لاحقاً من قسم «التطبيقات» في لوحة التحكم في أي وقت. اختر ما تحتاجه الآن واكمل لاحقاً.')}
+              </p>
+            </div>
+
             {isBookingsActivity ? (
               <div className="space-y-6">
                 <div className="rounded-3xl bg-white border border-slate-100 p-4">
@@ -1394,7 +1403,7 @@ const MerchantOnboarding: React.FC = () => {
                   {t('business.onboarding.buttonsGuideSubtitle')}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[...CORE_MODULES, ...OPTIONAL_MODULES].map((m) => {
+                  {CORE_MODULES.map((m) => {
                     const Icon = moduleIcons[m.id] || Wrench;
                     return (
                       <div key={m.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex gap-3">
@@ -1402,9 +1411,9 @@ const MerchantOnboarding: React.FC = () => {
                           <Icon className="w-5 h-5 text-slate-600" />
                         </div>
                         <div>
-                          <div className="font-black text-slate-900">{t('business.onboarding.modules.' + m.id)}</div>
+                          <div className="font-black text-slate-900">{t('business.onboarding.modules.' + m.id, m.id)}</div>
                           <div className="mt-1 text-xs font-bold text-slate-500 leading-relaxed">
-                            {t('business.onboarding.moduleExplanations.' + m.id)}
+                            {t('business.onboarding.moduleExplanations.' + m.id, '')}
                           </div>
                         </div>
                       </div>

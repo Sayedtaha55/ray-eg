@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  frontend:
-    name: Frontend – typecheck & build
+  marketplace:
+    name: Marketplace (Next.js) – typecheck & build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +22,22 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate --schema prisma/schema.prisma
-      - run: npm run typecheck:web
-      - run: npm run build
+      - run: npm run build:marketplace
+        env:
+          NEXT_PUBLIC_BACKEND_URL: http://localhost:4000
+
+  dashboard:
+    name: Dashboard (Vite) – typecheck & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate --schema prisma/schema.prisma
+      - run: npm run build:dashboard
 
   backend:
     name: Backend – typecheck & build

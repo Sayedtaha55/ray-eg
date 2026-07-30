@@ -46,6 +46,61 @@ import {
 
   Wallet,
 
+  UserCog,
+
+  Clock,
+
+  RotateCcw,
+  Gift,
+  RefreshCw,
+  ClipboardList,
+  FolderTree,
+  Tag,
+  Warehouse,
+  ClipboardCheck,
+  Truck,
+  ArrowLeftRight,
+  Barcode,
+  QrCode,
+  AlertTriangle,
+  DollarSign,
+  Receipt,
+  BookOpen,
+  Banknote,
+  PiggyBank,
+  BarChart,
+  Ticket,
+  Percent,
+  MessageSquare,
+  Mail,
+  PartyPopper,
+  ShieldAlert,
+  Star,
+  NotebookPen,
+  PhoneCall,
+  Phone,
+  CalendarDays,
+  DoorOpen,
+  CheckCircle2,
+  CalendarX,
+  BellRing,
+  Lock,
+  LogIn,
+  Plane,
+  CheckSquare,
+  FileEdit,
+  Layout,
+  Search,
+  Newspaper,
+  Globe,
+  Send,
+  Eye,
+  TrendingDown,
+  Sparkles,
+  Lightbulb,
+  Zap,
+  Bot,
+
 } from 'lucide-react';
 
 import * as ReactRouterDOM from 'react-router-dom';
@@ -66,7 +121,9 @@ import { useTranslation } from 'react-i18next';
 
 // Lazy load components
 
-const POSSystem = lazy(() => import('../POSSystem'));
+const POSSystem = lazy(() => import('../../../modules/sales/pages/POSSystem'));
+
+const POSSection = lazy(() => import('../../../modules/sales/pages/POSSection'));
 
 const PageBuilder = lazy(() => import('../builder/PageBuilder'));
 
@@ -74,43 +131,129 @@ const PageBuilder = lazy(() => import('../builder/PageBuilder'));
 
 const MerchantSettings = lazy(() => import('../../../components/MerchantDashboard/Settings'));
 
-const AddProductModal = lazy(() => import('./modals/AddProductModal'));
+const AddProductModal = lazy(() => import('../../../modules/inventory/components/AddProductModal'));
 
-const CreateOfferModal = lazy(() => import('./modals/CreateOfferModal'));
-
-
-
-const CustomersTab = lazy(() => import('./tabs/CustomersTab'));
-
-const GalleryTab = lazy(() => import('./tabs/GalleryTab'));
-
-const OverviewTab = lazy(() => import('./tabs/OverviewTab'));
-
-const ProductsTab = lazy(() => import('@/components/pages/business/merchant-dashboard/tabs/ProductsTab'));
-
-const PromotionsTab = lazy(() => import('./tabs/PromotionsTab'));
-
-const ReportsTab = lazy(() => import('./tabs/ReportsTab'));
-
-const CashierReportsTab = lazy(() => import('./tabs/CashierReportsTab'));
-
-const ReservationsTab = lazy(() => import('./tabs/ReservationsTab').then(m => ({ default: m.ReservationsTab })));
-
-const RestaurantTablesTab = lazy(() => import('./tabs/RestaurantTablesTab'));
-
-const SalesTab = lazy(() => import('./tabs/SalesTab'));
-
-const InvoiceTab = lazy(() => import('./tabs/InvoiceTab'));
-
-const NotificationsTab = lazy(() => import('./tabs/NotificationsTab'));
-
-const AbandonedCartTab = lazy(() => import('./tabs/AbandonedCartTab'));
-
-const MarketingTab = lazy(() => import('./tabs/MarketingTab'));
-
-const ExpensesTab = lazy(() => import('./tabs/ExpensesTab'));
+const CreateOfferModal = lazy(() => import('../../../modules/marketing/components/CreateOfferModal'));
 
 
+
+const CustomersTab = lazy(() => import('../../../modules/crm/pages/CustomersTab'));
+
+const GalleryTab = lazy(() => import('../../../modules/core/pages/GalleryTab'));
+
+const OverviewTab = lazy(() => import('../../../modules/core/pages/OverviewTab'));
+
+const ProductsTab = lazy(() => import('../../../modules/inventory/pages/ProductsTab'));
+
+const PromotionsTab = lazy(() => import('../../../modules/marketing/pages/PromotionsTab'));
+
+const ReportsTab = lazy(() => import('../../../modules/analytics/pages/ReportsTab'));
+
+const CashierReportsTab = lazy(() => import('../../../modules/analytics/pages/CashierReportsTab'));
+
+const ReservationsTab = lazy(() => import('../../../modules/bookings/pages/ReservationsTab').then(m => ({ default: m.ReservationsTab })));
+
+const RestaurantTablesTab = lazy(() => import('../../../modules/bookings/pages/RestaurantTablesTab'));
+
+const SalesTab = lazy(() => import('../../../modules/sales/pages/SalesTab'));
+
+const SalesReturnsView = lazy(() => import('../../../modules/sales/pages/sales/SalesReturnsView'));
+
+const ChatsTab = lazy(() => import('../../../modules/crm/pages/ChatsTab'));
+
+const AiAssistantPanelLazy = lazy(() => import('../../../modules/ai/pages/AiAssistantPanel'));
+
+const InvoiceTab = lazy(() => import('../../../modules/finance/pages/InvoiceTab'));
+
+const NotificationsTab = lazy(() => import('../../../modules/core/pages/NotificationsTab'));
+
+const AbandonedCartTab = lazy(() => import('../../../modules/sales/pages/AbandonedCartTab'));
+
+const MarketingTab = lazy(() => import('../../../modules/marketing/pages/MarketingTab'));
+
+const ExpensesTab = lazy(() => import('../../../modules/finance/pages/ExpensesTab'));
+
+const EmployeesTab = lazy(() => import('../../../modules/hr/pages/EmployeesTab'));
+
+const AttendanceTab = lazy(() => import('../../../modules/hr/pages/AttendanceTab'));
+
+const PayrollTab = lazy(() => import('../../../modules/hr/pages/PayrollTab'));
+
+const PlaceholderTab = lazy(() => import('../../../modules/shared/pages/PlaceholderTab'));
+
+// Marketing module pages
+const CampaignsPage = lazy(() => import('../../../modules/marketing/pages/campaigns/CampaignsPage'));
+const CouponsPage = lazy(() => import('../../../modules/marketing/pages/coupons/CouponsPage'));
+const DiscountsPage = lazy(() => import('../../../modules/marketing/pages/discounts/DiscountsPage'));
+const MessagesPage = lazy(() => import('../../../modules/marketing/pages/messages/MessagesPage'));
+const EmailCampaignsPage = lazy(() => import('../../../modules/marketing/pages/emailCampaigns/EmailCampaignsPage'));
+const PushNotificationsPage = lazy(() => import('../../../modules/marketing/pages/pushNotifications/PushNotificationsPage'));
+const SmsCampaignsPage = lazy(() => import('../../../modules/marketing/pages/smsCampaigns/SmsCampaignsPage'));
+const LoyaltyProgramsPage = lazy(() => import('../../../modules/marketing/pages/loyaltyPrograms/LoyaltyProgramsPage'));
+const SeasonalOffersPage = lazy(() => import('../../../modules/marketing/pages/seasonalOffers/SeasonalOffersPage'));
+
+// Finance module pages
+const RevenuePage = lazy(() => import('../../../modules/finance/pages/revenue/RevenuePage'));
+const ProfitsPage = lazy(() => import('../../../modules/finance/pages/profits/ProfitsPage'));
+const TaxesPage = lazy(() => import('../../../modules/finance/pages/taxes/TaxesPage'));
+const JournalPage = lazy(() => import('../../../modules/finance/pages/journal/JournalPage'));
+const CashflowPage = lazy(() => import('../../../modules/finance/pages/cashflow/CashflowPage'));
+const AccountsPage = lazy(() => import('../../../modules/finance/pages/accounts/AccountsPage'));
+const WalletsPage = lazy(() => import('../../../modules/finance/pages/wallets/WalletsPage'));
+const FinancialReportsPage = lazy(() => import('../../../modules/finance/pages/financialReports/FinancialReportsPage'));
+
+// Inventory module pages
+const CategoriesPage = lazy(() => import('../../../modules/inventory/pages/categories/CategoriesPage'));
+const VariantsPage = lazy(() => import('../../../modules/inventory/pages/variants/VariantsPage'));
+const WarehousesPage = lazy(() => import('../../../modules/inventory/pages/warehouses/WarehousesPage'));
+const StocktakePage = lazy(() => import('../../../modules/inventory/pages/stocktake/StocktakePage'));
+const SuppliersPage = lazy(() => import('../../../modules/inventory/pages/suppliers/SuppliersPage'));
+const PurchaseOrdersPage = lazy(() => import('../../../modules/inventory/pages/purchaseOrders/PurchaseOrdersPage'));
+const TransfersPage = lazy(() => import('../../../modules/inventory/pages/transfers/TransfersPage'));
+const BarcodePage = lazy(() => import('../../../modules/inventory/pages/barcode/BarcodePage'));
+const QrCodePage = lazy(() => import('../../../modules/inventory/pages/qrCode/QrCodePage'));
+const StockTrackingPage = lazy(() => import('../../../modules/inventory/pages/stockTracking/StockTrackingPage'));
+const LowStockAlertsPage = lazy(() => import('../../../modules/inventory/pages/lowStockAlerts/LowStockAlertsPage'));
+
+// CRM module pages
+const TicketsPage = lazy(() => import('../../../modules/crm/pages/tickets/TicketsPage'));
+const ComplaintsPage = lazy(() => import('../../../modules/crm/pages/complaints/ComplaintsPage'));
+const ReviewsPage = lazy(() => import('../../../modules/crm/pages/reviews/ReviewsPage'));
+const NotesPage = lazy(() => import('../../../modules/crm/pages/notes/NotesPage'));
+const FollowUpsPage = lazy(() => import('../../../modules/crm/pages/followUps/FollowUpsPage'));
+const ContactLogPage = lazy(() => import('../../../modules/crm/pages/contactLog/ContactLogPage'));
+
+// Bookings module pages
+const AppointmentsPage = lazy(() => import('../../../modules/bookings/pages/appointments/AppointmentsPage'));
+const CalendarPage = lazy(() => import('../../../modules/bookings/pages/calendar/CalendarPage'));
+const RoomsPage = lazy(() => import('../../../modules/bookings/pages/rooms/RoomsPage'));
+const DoctorsPage = lazy(() => import('../../../modules/bookings/pages/doctors/DoctorsPage'));
+const BookingConfirmPage = lazy(() => import('../../../modules/bookings/pages/bookingConfirm/BookingConfirmPage'));
+const BookingCancelPage = lazy(() => import('../../../modules/bookings/pages/bookingCancel/BookingCancelPage'));
+const BookingReminderPage = lazy(() => import('../../../modules/bookings/pages/bookingReminder/BookingReminderPage'));
+
+// HR module pages
+const PermissionsPage = lazy(() => import('../../../modules/hr/pages/permissions/PermissionsPage'));
+const CheckOutPage = lazy(() => import('../../../modules/hr/pages/checkOut/CheckOutPage'));
+const LeavesPage = lazy(() => import('../../../modules/hr/pages/leaves/LeavesPage'));
+const TasksPage = lazy(() => import('../../../modules/hr/pages/tasks/TasksPage'));
+
+// Website module pages
+const PagesPage = lazy(() => import('../../../modules/website/pages/pages/PagesPage'));
+const BlogPage = lazy(() => import('../../../modules/website/pages/blog/BlogPage'));
+const SeoPage = lazy(() => import('../../../modules/website/pages/seo/SeoPage'));
+const DomainsPage = lazy(() => import('../../../modules/website/pages/domains/DomainsPage'));
+
+// Analytics module pages
+const AnalyticsOverviewPage = lazy(() => import('../../../modules/analytics/pages/overview/OverviewPage'));
+const SalesReportPage = lazy(() => import('../../../modules/analytics/pages/salesReport/SalesReportPage'));
+const CustomerInsightsPage = lazy(() => import('../../../modules/analytics/pages/customerInsights/CustomerInsightsPage'));
+const TrafficPage = lazy(() => import('../../../modules/analytics/pages/traffic/TrafficPage'));
+
+// AI module pages
+const AiInsightsPage = lazy(() => import('../../../modules/ai/pages/insights/InsightsPage'));
+const AiRecommendationsPage = lazy(() => import('../../../modules/ai/pages/recommendations/RecommendationsPage'));
+const AiAutomationsPage = lazy(() => import('../../../modules/ai/pages/automations/AutomationsPage'));
 
 // Booking shared pages
 
@@ -212,9 +355,9 @@ const ACTIVITY_ROUTE_PAGE_MAP: Record<string, React.FC<{ activityType: any }>> =
 
 
 
-import TabButton from './components/TabButton';
+import TabButton from '../../../modules/shared/components/TabButton';
 
-import AiAssistantPanel from './AiAssistantPanel';
+import AiAssistantPanel from '../../../modules/ai/pages/AiAssistantPanel';
 
 import {
 
@@ -236,6 +379,8 @@ import { getShopActivityVocabulary } from '@/utils/businessActivityVocabulary';
 
 import { applyDevActivityContext } from '@/utils/devActivityContext';
 
+import AppsTab from '../../../modules/shared/pages/AppsTab';
+
 
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
@@ -244,33 +389,122 @@ const MotionDiv = motion.div as any;
 
 const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Promise<unknown>>> = {
 
-  overview: () => import('./tabs/OverviewTab'),
+  overview: () => import('../../../modules/core/pages/OverviewTab'),
 
-  notifications: () => import('./tabs/NotificationsTab'),
+  notifications: () => import('../../../modules/core/pages/NotificationsTab'),
 
-  gallery: () => import('./tabs/GalleryTab'),
+  gallery: () => import('../../../modules/core/pages/GalleryTab'),
 
-  reports: () => import('./tabs/ReportsTab'),
+  reports: () => import('../../../modules/analytics/pages/ReportsTab'),
 
-  expenses: () => import('./tabs/ExpensesTab'),
+  expenses: () => import('../../../modules/finance/pages/ExpensesTab'),
 
-  customers: () => import('./tabs/CustomersTab'),
+  customers: () => import('../../../modules/crm/pages/CustomersTab'),
 
-  products: () => import('./tabs/ProductsTab'),
+  products: () => import('../../../modules/inventory/pages/ProductsTab'),
 
-  promotions: () => import('./tabs/PromotionsTab'),
+  promotions: () => import('../../../modules/marketing/pages/PromotionsTab'),
 
-  reservations: () => import('./tabs/ReservationsTab'),
+  reservations: () => import('../../../modules/bookings/pages/ReservationsTab'),
 
-  restaurantTables: () => import('./tabs/RestaurantTablesTab'),
+  restaurantTables: () => import('../../../modules/bookings/pages/RestaurantTablesTab'),
 
-  invoice: () => import('./tabs/InvoiceTab'),
+  invoice: () => import('../../../modules/finance/pages/InvoiceTab'),
 
-  sales: () => import('./tabs/SalesTab'),
+  sales: () => import('../../../modules/sales/pages/SalesTab'),
+
+  returns: () => import('../../../modules/sales/pages/sales/SalesReturnsView'),
+
+  chats: () => import('../../../modules/crm/pages/ChatsTab'),
+
+  aiContent: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiImages: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiSEO: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiAnalysis: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiReplies: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiSuggestions: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiPages: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiDataAnalysis: () => import('../../../modules/ai/pages/AiAssistantPanel'),
+  aiInsights: () => import('../../../modules/ai/pages/insights/InsightsPage'),
+  aiRecommendations: () => import('../../../modules/ai/pages/recommendations/RecommendationsPage'),
+  aiAutomations: () => import('../../../modules/ai/pages/automations/AutomationsPage'),
+
+  campaigns: () => import('../../../modules/marketing/pages/campaigns/CampaignsPage'),
+  coupons: () => import('../../../modules/marketing/pages/coupons/CouponsPage'),
+  discounts: () => import('../../../modules/marketing/pages/discounts/DiscountsPage'),
+  messages: () => import('../../../modules/marketing/pages/messages/MessagesPage'),
+  emailCampaigns: () => import('../../../modules/marketing/pages/emailCampaigns/EmailCampaignsPage'),
+  pushNotifications: () => import('../../../modules/marketing/pages/pushNotifications/PushNotificationsPage'),
+  smsCampaigns: () => import('../../../modules/marketing/pages/smsCampaigns/SmsCampaignsPage'),
+  loyaltyPrograms: () => import('../../../modules/marketing/pages/loyaltyPrograms/LoyaltyProgramsPage'),
+  seasonalOffers: () => import('../../../modules/marketing/pages/seasonalOffers/SeasonalOffersPage'),
+
+  quotes: () => import('../../../modules/sales/pages/SalesTab'),
+  loyalty: () => import('../../../modules/sales/pages/SalesTab'),
+  subscriptions: () => import('../../../modules/sales/pages/SalesTab'),
+  epayment: () => import('../../../modules/sales/pages/SalesTab'),
+  orderStatus: () => import('../../../modules/sales/pages/SalesTab'),
+
+  categories: () => import('../../../modules/inventory/pages/categories/CategoriesPage'),
+  variants: () => import('../../../modules/inventory/pages/variants/VariantsPage'),
+  warehouses: () => import('../../../modules/inventory/pages/warehouses/WarehousesPage'),
+  stocktake: () => import('../../../modules/inventory/pages/stocktake/StocktakePage'),
+  suppliers: () => import('../../../modules/inventory/pages/suppliers/SuppliersPage'),
+  purchaseOrders: () => import('../../../modules/inventory/pages/purchaseOrders/PurchaseOrdersPage'),
+  transfers: () => import('../../../modules/inventory/pages/transfers/TransfersPage'),
+  barcode: () => import('../../../modules/inventory/pages/barcode/BarcodePage'),
+  qrCode: () => import('../../../modules/inventory/pages/qrCode/QrCodePage'),
+  stockTracking: () => import('../../../modules/inventory/pages/stockTracking/StockTrackingPage'),
+  lowStockAlerts: () => import('../../../modules/inventory/pages/lowStockAlerts/LowStockAlertsPage'),
+
+  revenue: () => import('../../../modules/finance/pages/revenue/RevenuePage'),
+  profits: () => import('../../../modules/finance/pages/profits/ProfitsPage'),
+  taxes: () => import('../../../modules/finance/pages/taxes/TaxesPage'),
+  journal: () => import('../../../modules/finance/pages/journal/JournalPage'),
+  cashflow: () => import('../../../modules/finance/pages/cashflow/CashflowPage'),
+  accounts: () => import('../../../modules/finance/pages/accounts/AccountsPage'),
+  wallets: () => import('../../../modules/finance/pages/wallets/WalletsPage'),
+  financialReports: () => import('../../../modules/finance/pages/financialReports/FinancialReportsPage'),
+
+  tickets: () => import('../../../modules/crm/pages/tickets/TicketsPage'),
+  complaints: () => import('../../../modules/crm/pages/complaints/ComplaintsPage'),
+  reviews: () => import('../../../modules/crm/pages/reviews/ReviewsPage'),
+  notes: () => import('../../../modules/crm/pages/notes/NotesPage'),
+  followUps: () => import('../../../modules/crm/pages/followUps/FollowUpsPage'),
+  contactLog: () => import('../../../modules/crm/pages/contactLog/ContactLogPage'),
+
+  appointments: () => import('../../../modules/bookings/pages/appointments/AppointmentsPage'),
+  calendar: () => import('../../../modules/bookings/pages/calendar/CalendarPage'),
+  rooms: () => import('../../../modules/bookings/pages/rooms/RoomsPage'),
+  doctors: () => import('../../../modules/bookings/pages/doctors/DoctorsPage'),
+  bookingConfirm: () => import('../../../modules/bookings/pages/bookingConfirm/BookingConfirmPage'),
+  bookingCancel: () => import('../../../modules/bookings/pages/bookingCancel/BookingCancelPage'),
+  bookingReminder: () => import('../../../modules/bookings/pages/bookingReminder/BookingReminderPage'),
+
+  permissions: () => import('../../../modules/hr/pages/permissions/PermissionsPage'),
+  checkOut: () => import('../../../modules/hr/pages/checkOut/CheckOutPage'),
+  leaves: () => import('../../../modules/hr/pages/leaves/LeavesPage'),
+  tasks: () => import('../../../modules/hr/pages/tasks/TasksPage'),
+
+  pages: () => import('../../../modules/website/pages/pages/PagesPage'),
+  templates: () => import('../builder/PageBuilder'),
+  seo: () => import('../../../modules/website/pages/seo/SeoPage'),
+  blog: () => import('../../../modules/website/pages/blog/BlogPage'),
+  forms: () => import('../builder/PageBuilder'),
+  media: () => import('../builder/PageBuilder'),
+  domains: () => import('../../../modules/website/pages/domains/DomainsPage'),
+  publishing: () => import('../builder/PageBuilder'),
+
+  kpi: () => import('../../../modules/analytics/pages/overview/OverviewPage'),
+  charts: () => import('../../../modules/analytics/pages/ReportsTab'),
+  salesPerformance: () => import('../../../modules/analytics/pages/salesReport/SalesReportPage'),
+  productPerformance: () => import('../../../modules/analytics/pages/ReportsTab'),
+  visitors: () => import('../../../modules/analytics/pages/traffic/TrafficPage'),
+  conversions: () => import('../../../modules/analytics/pages/customerInsights/CustomerInsightsPage'),
 
   builder: () => import('../builder/PageBuilder'),
 
-  pos: () => import('../POSSystem'),
+  pos: () => import('../../../modules/sales/pages/POSSection'),
 
   providers: () => import('../bookings/shared/BookingProvidersPage'),
 
@@ -282,7 +516,13 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
 
   activityInventory: () => import('../bookings/activity/ActivityInventoryPage'),
 
-  marketing: () => import('./tabs/MarketingTab'),
+  marketing: () => import('../../../modules/marketing/pages/MarketingTab'),
+
+  employees: () => import('../../../modules/hr/pages/EmployeesTab'),
+
+  attendance: () => import('../../../modules/hr/pages/AttendanceTab'),
+
+  payroll: () => import('../../../modules/hr/pages/PayrollTab'),
 
 };
 
@@ -292,7 +532,7 @@ type TabType = MerchantDashboardTabId;
 
 
 
-const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
+const ICON_BY_TAB_ID: Partial<Record<MerchantDashboardTabId, React.ReactNode>> = {
 
   overview: <TrendingUp size={18} />,
 
@@ -318,7 +558,159 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
 
   builder: <Palette size={18} />,
 
-  settings: <Settings size={18} />,
+  returns: <RotateCcw size={18} />,
+
+  quotes: <FileText size={18} />,
+
+  payments: <CreditCard size={18} />,
+
+  loyalty: <Gift size={18} />,
+
+  subscriptions: <RefreshCw size={18} />,
+
+  epayment: <Smartphone size={18} />,
+
+  orderStatus: <ClipboardList size={18} />,
+
+  categories: <FolderTree size={18} />,
+
+  variants: <Tag size={18} />,
+
+  warehouses: <Warehouse size={18} />,
+
+  stocktake: <ClipboardCheck size={18} />,
+
+  suppliers: <Truck size={18} />,
+
+  purchaseOrders: <ShoppingCart size={18} />,
+
+  transfers: <ArrowLeftRight size={18} />,
+
+  barcode: <Barcode size={18} />,
+
+  qrCode: <QrCode size={18} />,
+
+  stockTracking: <TrendingUp size={18} />,
+
+  lowStockAlerts: <AlertTriangle size={18} />,
+
+  revenue: <DollarSign size={18} />,
+
+  taxes: <Receipt size={18} />,
+
+  journal: <BookOpen size={18} />,
+
+  cashflow: <Banknote size={18} />,
+
+  accounts: <PiggyBank size={18} />,
+
+  wallets: <Wallet size={18} />,
+
+  financialReports: <BarChart size={18} />,
+
+  campaigns: <Megaphone size={18} />,
+
+  coupons: <Ticket size={18} />,
+
+  discounts: <Percent size={18} />,
+
+  messages: <MessageSquare size={18} />,
+
+  emailCampaigns: <Mail size={18} />,
+
+  pushNotifications: <Smartphone size={18} />,
+
+  smsCampaigns: <MessageSquare size={18} />,
+
+  loyaltyPrograms: <Gift size={18} />,
+
+  seasonalOffers: <PartyPopper size={18} />,
+
+  chats: <MessageSquare size={18} />,
+
+  tickets: <Ticket size={18} />,
+
+  complaints: <ShieldAlert size={18} />,
+
+  reviews: <Star size={18} />,
+
+  notes: <NotebookPen size={18} />,
+
+  followUps: <PhoneCall size={18} />,
+
+  contactLog: <Phone size={18} />,
+
+  appointments: <CalendarCheck size={18} />,
+
+  calendar: <CalendarDays size={18} />,
+
+  rooms: <DoorOpen size={18} />,
+
+  doctors: <Stethoscope size={18} />,
+
+  bookingConfirm: <CheckCircle2 size={18} />,
+
+  bookingCancel: <CalendarX size={18} />,
+
+  bookingReminder: <BellRing size={18} />,
+
+  permissions: <Lock size={18} />,
+
+  checkOut: <LogIn size={18} />,
+
+  leaves: <Plane size={18} />,
+
+  tasks: <CheckSquare size={18} />,
+
+  pages: <FileEdit size={18} />,
+
+  templates: <Layout size={18} />,
+
+  seo: <Search size={18} />,
+
+  blog: <Newspaper size={18} />,
+
+  forms: <ClipboardList size={18} />,
+
+  media: <Camera size={18} />,
+
+  domains: <Globe size={18} />,
+
+  publishing: <Send size={18} />,
+
+  kpi: <TrendingUp size={18} />,
+
+  charts: <BarChart3 size={18} />,
+
+  salesPerformance: <TrendingUp size={18} />,
+
+  productPerformance: <Package size={18} />,
+
+  visitors: <Eye size={18} />,
+
+  conversions: <TrendingDown size={18} />,
+
+  aiContent: <Sparkles size={18} />,
+
+  aiImages: <Sparkles size={18} />,
+
+  aiSEO: <Search size={18} />,
+
+  aiAnalysis: <BarChart3 size={18} />,
+
+  aiReplies: <MessageSquare size={18} />,
+
+  aiSuggestions: <Lightbulb size={18} />,
+
+  aiPages: <FileEdit size={18} />,
+
+  aiDataAnalysis: <BarChart3 size={18} />,
+
+  aiInsights: <Lightbulb size={18} />,
+
+  aiRecommendations: <Zap size={18} />,
+
+  aiAutomations: <Bot size={18} />,
 
   pos: <Smartphone size={18} />,
 
@@ -337,6 +729,12 @@ const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
   expenses: <Wallet size={18} />,
 
   marketing: <Megaphone size={18} />,
+
+  employees: <UserCog size={18} />,
+
+  attendance: <Clock size={18} />,
+
+  payroll: <Wallet size={18} />,
 
 };
 
@@ -565,6 +963,14 @@ const MerchantDashboardPage: React.FC = () => {
       next.delete('activityRoute');
 
       setActiveTab('activityPatients' as any);
+
+    } else if (route.startsWith('activity/inventory')) {
+
+      next.set('tab', 'activityInventory');
+
+      next.delete('activityRoute');
+
+      setActiveTab('activityInventory' as any);
 
     } else if (route.startsWith('activity/')) {
 
@@ -1446,6 +1852,10 @@ const MerchantDashboardPage: React.FC = () => {
 
                 return <BookingSettingsPage activityType={activityType} shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
 
+              case 'apps':
+
+                return <AppsTab shop={currentShop} onSaved={() => refreshShopAndActiveTab(true)} adminShopId={adminTargetShopId} />;
+
               case 'reservations':
 
                 return <BookingBookingsPage activityType={activityType} shop={currentShop} bookings={reservations as any} />;
@@ -1473,6 +1883,10 @@ const MerchantDashboardPage: React.FC = () => {
               case 'activityInventory':
 
                 return <ActivityInventoryPage activityType={activityType} />;
+
+              case 'restaurantTables':
+
+                return <RestaurantTablesTab shop={currentShop} onSaved={() => refreshShopAndActiveTab(true)} />;
 
               case 'notifications':
 
@@ -1520,7 +1934,7 @@ const MerchantDashboardPage: React.FC = () => {
 
               case 'sales':
 
-                return <SalesTab sales={sales} posEnabled={hasPosTab} shop={currentShop} />;
+                return <SalesTab sales={sales} shop={currentShop} />;
 
               case 'abandonedCart':
 
@@ -1532,7 +1946,104 @@ const MerchantDashboardPage: React.FC = () => {
 
               case 'pos':
 
-                return <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />;
+                return <POSSection shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />;
+
+              case 'employees':
+
+                return <EmployeesTab shopId={currentShop.id} shop={currentShop} />;
+
+              case 'attendance':
+
+                return <AttendanceTab shopId={currentShop.id} shop={currentShop} />;
+
+              case 'payroll':
+
+                return <PayrollTab shopId={currentShop.id} shop={currentShop} />;
+
+              // Sub-module tabs (same as non-booking switch)
+              case 'quotes': return <SalesTab sales={sales} shop={currentShop} />;
+              case 'payments': return <PlaceholderTab tabId="payments" title={isArabic ? 'المدفوعات' : 'Payments'} />;
+              case 'returns': return (
+                <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+                  <SalesReturnsView sales={sales} />
+                </div>
+              );
+              case 'loyalty': return <SalesTab sales={sales} shop={currentShop} />;
+              case 'subscriptions': return <SalesTab sales={sales} shop={currentShop} />;
+              case 'epayment': return <SalesTab sales={sales} shop={currentShop} />;
+              case 'orderStatus': return <SalesTab sales={sales} shop={currentShop} />;
+              case 'categories': return <CategoriesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'variants': return <VariantsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'warehouses': return <WarehousesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'stocktake': return <StocktakePage shopId={currentShop.id} shop={currentShop} />;
+              case 'suppliers': return <SuppliersPage shopId={currentShop.id} shop={currentShop} />;
+              case 'purchaseOrders': return <PurchaseOrdersPage shopId={currentShop.id} shop={currentShop} />;
+              case 'transfers': return <TransfersPage shopId={currentShop.id} shop={currentShop} />;
+              case 'barcode': return <BarcodePage shopId={currentShop.id} shop={currentShop} />;
+              case 'qrCode': return <QrCodePage shopId={currentShop.id} shop={currentShop} />;
+              case 'stockTracking': return <StockTrackingPage shopId={currentShop.id} shop={currentShop} />;
+              case 'lowStockAlerts': return <LowStockAlertsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'revenue': return <RevenuePage shopId={currentShop.id} shop={currentShop} />;
+              case 'profits': return <ProfitsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'taxes': return <TaxesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'journal': return <JournalPage shopId={currentShop.id} shop={currentShop} />;
+              case 'cashflow': return <CashflowPage shopId={currentShop.id} shop={currentShop} />;
+              case 'accounts': return <AccountsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'wallets': return <WalletsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'financialReports': return <FinancialReportsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'campaigns': return <CampaignsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'coupons': return <CouponsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'discounts': return <DiscountsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'messages': return <MessagesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'emailCampaigns': return <EmailCampaignsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'pushNotifications': return <PushNotificationsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'smsCampaigns': return <SmsCampaignsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'loyaltyPrograms': return <LoyaltyProgramsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'seasonalOffers': return <SeasonalOffersPage shopId={currentShop.id} shop={currentShop} />;
+              case 'chats': return <ChatsTab shopId={currentShop.id} />;
+              case 'tickets': return <TicketsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'complaints': return <ComplaintsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'reviews': return <ReviewsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'notes': return <NotesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'followUps': return <FollowUpsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'contactLog': return <ContactLogPage shopId={currentShop.id} shop={currentShop} />;
+              case 'appointments': return <AppointmentsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'calendar': return <CalendarPage shopId={currentShop.id} shop={currentShop} />;
+              case 'rooms': return <RoomsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'doctors': return <DoctorsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'bookingConfirm': return <BookingConfirmPage shopId={currentShop.id} shop={currentShop} />;
+              case 'bookingCancel': return <BookingCancelPage shopId={currentShop.id} shop={currentShop} />;
+              case 'bookingReminder': return <BookingReminderPage shopId={currentShop.id} shop={currentShop} />;
+              case 'permissions': return <PermissionsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'checkOut': return <CheckOutPage shopId={currentShop.id} shop={currentShop} />;
+              case 'leaves': return <LeavesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'tasks': return <TasksPage shopId={currentShop.id} shop={currentShop} />;
+              case 'pages': return <PagesPage shopId={currentShop.id} shop={currentShop} />;
+              case 'templates': return <PageBuilder onClose={() => setTab('overview')} integrated forceBookingMode bookingActivityType={activityType} />;
+              case 'seo': return <SeoPage shopId={currentShop.id} shop={currentShop} />;
+              case 'blog': return <BlogPage shopId={currentShop.id} shop={currentShop} />;
+              case 'forms': return <PageBuilder onClose={() => setTab('overview')} integrated forceBookingMode bookingActivityType={activityType} />;
+              case 'media': return <PageBuilder onClose={() => setTab('overview')} integrated forceBookingMode bookingActivityType={activityType} />;
+              case 'domains': return <DomainsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'publishing': return <PageBuilder onClose={() => setTab('overview')} integrated forceBookingMode bookingActivityType={activityType} />;
+              case 'kpi': return <AnalyticsOverviewPage shopId={currentShop.id} shop={currentShop} />;
+              case 'charts': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+              case 'salesPerformance': return <SalesReportPage shopId={currentShop.id} shop={currentShop} />;
+              case 'productPerformance': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+              case 'visitors': return <TrafficPage shopId={currentShop.id} shop={currentShop} />;
+              case 'conversions': return <CustomerInsightsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'aiContent':
+              case 'aiImages':
+              case 'aiSEO':
+              case 'aiAnalysis':
+              case 'aiReplies':
+              case 'aiSuggestions':
+              case 'aiPages':
+              case 'aiDataAnalysis':
+                return <AiAssistantPanelLazy shopId={currentShop.id} shop={currentShop} currentPage={effectiveTab} onActionExecuted={() => refreshShopAndActiveTab(true)} />;
+              case 'aiInsights': return <AiInsightsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'aiRecommendations': return <AiRecommendationsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'aiAutomations': return <AiAutomationsPage shopId={currentShop.id} shop={currentShop} />;
 
               default:
 
@@ -1652,7 +2163,7 @@ const MerchantDashboardPage: React.FC = () => {
 
             case 'sales':
 
-              return <SalesTab sales={sales} posEnabled={hasPosTab} shop={currentShop} />;
+              return <SalesTab sales={sales} shop={currentShop} />;
 
             case 'abandonedCart':
 
@@ -1683,6 +2194,115 @@ const MerchantDashboardPage: React.FC = () => {
             case 'settings':
 
               return <MerchantSettings shop={currentShop} onSaved={refreshShopAndActiveTab as any} adminShopId={adminTargetShopId} />;
+
+            case 'apps':
+
+              return <AppsTab shop={currentShop} onSaved={() => refreshShopAndActiveTab(true)} adminShopId={adminTargetShopId} />;
+
+            case 'builder':
+
+              return <PageBuilder onClose={() => setTab('overview')} integrated />;
+
+            case 'pos':
+
+              return <POSSection shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />;
+
+            case 'employees':
+
+              return <EmployeesTab shopId={currentShop.id} shop={currentShop} />;
+
+            case 'attendance':
+
+              return <AttendanceTab shopId={currentShop.id} shop={currentShop} />;
+
+            case 'payroll':
+
+              return <PayrollTab shopId={currentShop.id} shop={currentShop} />;
+
+            // Placeholder tabs for new sub-modules
+            case 'quotes': return <SalesTab sales={sales} shop={currentShop} />;
+            case 'payments': return <PlaceholderTab tabId="payments" title={isArabic ? 'المدفوعات' : 'Payments'} />;
+            case 'returns': return (
+              <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
+                <SalesReturnsView sales={sales} />
+              </div>
+            );
+            case 'loyalty': return <SalesTab sales={sales} shop={currentShop} />;
+            case 'subscriptions': return <SalesTab sales={sales} shop={currentShop} />;
+            case 'epayment': return <SalesTab sales={sales} shop={currentShop} />;
+            case 'orderStatus': return <SalesTab sales={sales} shop={currentShop} />;
+            case 'categories': return <CategoriesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'variants': return <VariantsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'warehouses': return <WarehousesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'stocktake': return <StocktakePage shopId={currentShop.id} shop={currentShop} />;
+            case 'suppliers': return <SuppliersPage shopId={currentShop.id} shop={currentShop} />;
+            case 'purchaseOrders': return <PurchaseOrdersPage shopId={currentShop.id} shop={currentShop} />;
+            case 'transfers': return <TransfersPage shopId={currentShop.id} shop={currentShop} />;
+            case 'barcode': return <BarcodePage shopId={currentShop.id} shop={currentShop} />;
+            case 'qrCode': return <QrCodePage shopId={currentShop.id} shop={currentShop} />;
+            case 'stockTracking': return <StockTrackingPage shopId={currentShop.id} shop={currentShop} />;
+            case 'lowStockAlerts': return <LowStockAlertsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'revenue': return <RevenuePage shopId={currentShop.id} shop={currentShop} />;
+            case 'profits': return <ProfitsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'taxes': return <TaxesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'journal': return <JournalPage shopId={currentShop.id} shop={currentShop} />;
+            case 'cashflow': return <CashflowPage shopId={currentShop.id} shop={currentShop} />;
+            case 'accounts': return <AccountsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'wallets': return <WalletsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'financialReports': return <FinancialReportsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'campaigns': return <CampaignsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'coupons': return <CouponsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'discounts': return <DiscountsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'messages': return <MessagesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'emailCampaigns': return <EmailCampaignsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'pushNotifications': return <PushNotificationsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'smsCampaigns': return <SmsCampaignsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'loyaltyPrograms': return <LoyaltyProgramsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'seasonalOffers': return <SeasonalOffersPage shopId={currentShop.id} shop={currentShop} />;
+            case 'chats': return <ChatsTab shopId={currentShop.id} />;
+            case 'tickets': return <TicketsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'complaints': return <ComplaintsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'reviews': return <ReviewsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'notes': return <NotesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'followUps': return <FollowUpsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'contactLog': return <ContactLogPage shopId={currentShop.id} shop={currentShop} />;
+            case 'appointments': return <AppointmentsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'calendar': return <CalendarPage shopId={currentShop.id} shop={currentShop} />;
+            case 'rooms': return <RoomsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'doctors': return <DoctorsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'bookingConfirm': return <BookingConfirmPage shopId={currentShop.id} shop={currentShop} />;
+            case 'bookingCancel': return <BookingCancelPage shopId={currentShop.id} shop={currentShop} />;
+            case 'bookingReminder': return <BookingReminderPage shopId={currentShop.id} shop={currentShop} />;
+            case 'permissions': return <PermissionsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'checkOut': return <CheckOutPage shopId={currentShop.id} shop={currentShop} />;
+            case 'leaves': return <LeavesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'tasks': return <TasksPage shopId={currentShop.id} shop={currentShop} />;
+            case 'pages': return <PagesPage shopId={currentShop.id} shop={currentShop} />;
+            case 'templates': return <PageBuilder onClose={() => setTab('overview')} integrated />;
+            case 'seo': return <SeoPage shopId={currentShop.id} shop={currentShop} />;
+            case 'blog': return <BlogPage shopId={currentShop.id} shop={currentShop} />;
+            case 'forms': return <PageBuilder onClose={() => setTab('overview')} integrated />;
+            case 'media': return <PageBuilder onClose={() => setTab('overview')} integrated />;
+            case 'domains': return <DomainsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'publishing': return <PageBuilder onClose={() => setTab('overview')} integrated />;
+            case 'kpi': return <AnalyticsOverviewPage shopId={currentShop.id} shop={currentShop} />;
+            case 'charts': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+            case 'salesPerformance': return <SalesReportPage shopId={currentShop.id} shop={currentShop} />;
+            case 'productPerformance': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+            case 'visitors': return <TrafficPage shopId={currentShop.id} shop={currentShop} />;
+            case 'conversions': return <CustomerInsightsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'aiContent':
+            case 'aiImages':
+            case 'aiSEO':
+            case 'aiAnalysis':
+            case 'aiReplies':
+            case 'aiSuggestions':
+            case 'aiPages':
+            case 'aiDataAnalysis':
+              return <AiAssistantPanelLazy shopId={currentShop.id} shop={currentShop} currentPage={effectiveTab} onActionExecuted={() => refreshShopAndActiveTab(true)} />;
+            case 'aiInsights': return <AiInsightsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'aiRecommendations': return <AiRecommendationsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'aiAutomations': return <AiAutomationsPage shopId={currentShop.id} shop={currentShop} />;
 
             default:
 
@@ -1846,13 +2466,6 @@ const MerchantDashboardPage: React.FC = () => {
 
 
 
-      <div className="flex flex-col gap-1">
-
-        <h1 className="text-2xl md:text-3xl font-black text-slate-900">{activityVocab.dashboardTitle}</h1>
-
-        <p className="text-sm md:text-base text-slate-500 font-medium">{activityVocab.dashboardSubtitle}</p>
-
-      </div>
 
 
 
@@ -1878,7 +2491,7 @@ const MerchantDashboardPage: React.FC = () => {
 
                 {effectiveTab === 'pos' ? (
 
-                  <POSSystem shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
+                  <POSSection shopId={currentShop.id} shop={currentShop} onClose={() => setTab('overview')} />
 
                 ) : effectiveTab === 'builder' ? (
 

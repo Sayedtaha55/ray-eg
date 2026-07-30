@@ -281,6 +281,10 @@ export const getAllowedTabIdsForCategory = (category?: Category): Set<MerchantDa
   }
 
   set.add('reservations');
+  set.add('employees');
+  set.add('attendance');
+  set.add('payroll');
+  set.add('returns');
 
   for (const t of tabs) {
     set.add(t.id);

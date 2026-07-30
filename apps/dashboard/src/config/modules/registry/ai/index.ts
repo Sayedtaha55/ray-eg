@@ -1,0 +1,71 @@
+import { Sparkles } from 'lucide-react';
+import type { ModuleDef } from '../../types';
+
+export const aiModule: ModuleDef = {
+  id: 'ai',
+  name: 'AI Assistant',
+  nameKey: 'modules.ai.name',
+  nameAr: 'مساعد الذكاء الاصطناعي',
+  description: 'AI-powered theme generation, page design, brand identity, and intelligent insights.',
+  descriptionKey: 'modules.ai.description',
+  descriptionAr: 'توليد الثيم بالذكاء الاصطناعي، تصميم الصفحات، هوية العلامة، ورؤى ذكية.',
+  icon: Sparkles,
+  category: 'intelligence',
+  color: '#BD00FF',
+  dependencies: ['core', 'website'],
+  features: [
+    { id: 'ai_theme', label: 'AI Theme Generator', labelAr: 'مولد الثيم', defaultEnabled: true },
+    { id: 'ai_pages', label: 'AI Page Schema Generator', labelAr: 'مولد صفحات AI', defaultEnabled: true },
+    { id: 'ai_brand', label: 'AI Brand Identity', labelAr: 'هوية العلامة', defaultEnabled: true },
+    { id: 'ai_chat', label: 'AI Design Chat Assistant', labelAr: 'مساعد التصميم', defaultEnabled: true },
+    { id: 'aiContent', label: 'AI Content Writer', labelAr: 'كتابة المحتوى', defaultEnabled: false },
+    { id: 'aiImages', label: 'AI Image Generator', labelAr: 'إنشاء الصور', defaultEnabled: false },
+    { id: 'aiSEO', label: 'AI SEO Optimizer', labelAr: 'تحسين SEO', defaultEnabled: false },
+    { id: 'aiAnalysis', label: 'AI Activity Analysis', labelAr: 'تحليل النشاط', defaultEnabled: false },
+    { id: 'aiReplies', label: 'AI Auto Replies', labelAr: 'الردود التلقائية', defaultEnabled: false },
+    { id: 'aiSuggestions', label: 'AI Suggestions', labelAr: 'الاقتراحات', defaultEnabled: false },
+    { id: 'aiPages', label: 'AI Page Builder', labelAr: 'إنشاء الصفحات', defaultEnabled: false },
+    { id: 'aiDataAnalysis', label: 'AI Data Analysis', labelAr: 'تحليل البيانات', defaultEnabled: false },
+  ],
+  pages: [
+    { id: 'ai_builder', label: 'AI Builder', route: '/business/dashboard?tab=builder&builderTab=ai', tabId: 'builder', existing: true },
+    { id: 'aiContent', label: 'AI Content', route: '/business/dashboard?tab=aiContent', tabId: 'aiContent' },
+    { id: 'aiImages', label: 'AI Images', route: '/business/dashboard?tab=aiImages', tabId: 'aiImages' },
+    { id: 'aiSEO', label: 'AI SEO', route: '/business/dashboard?tab=aiSEO', tabId: 'aiSEO' },
+    { id: 'aiAnalysis', label: 'AI Analysis', route: '/business/dashboard?tab=aiAnalysis', tabId: 'aiAnalysis' },
+    { id: 'aiReplies', label: 'AI Replies', route: '/business/dashboard?tab=aiReplies', tabId: 'aiReplies' },
+    { id: 'aiSuggestions', label: 'AI Suggestions', route: '/business/dashboard?tab=aiSuggestions', tabId: 'aiSuggestions' },
+    { id: 'aiPages', label: 'AI Pages', route: '/business/dashboard?tab=aiPages', tabId: 'aiPages' },
+    { id: 'aiDataAnalysis', label: 'AI Data Analysis', route: '/business/dashboard?tab=aiDataAnalysis', tabId: 'aiDataAnalysis' },
+  ],
+  navigation: [
+    {
+      id: 'ai',
+      title: 'AI Assistant',
+      titleKey: 'dashboard.sections.ai',
+      order: 80,
+      items: [
+        { id: 'aiContent', label: 'AI Content', labelKey: 'business.dashboardTabs.aiContent', route: '/business/dashboard?tab=aiContent', tabId: 'aiContent', icon: 'PenLine', order: 0 },
+        { id: 'aiImages', label: 'AI Images', labelKey: 'business.dashboardTabs.aiImages', route: '/business/dashboard?tab=aiImages', tabId: 'aiImages', icon: 'Sparkles', order: 1 },
+        { id: 'aiSEO', label: 'AI SEO', labelKey: 'business.dashboardTabs.aiSEO', route: '/business/dashboard?tab=aiSEO', tabId: 'aiSEO', icon: 'Search', order: 2 },
+        { id: 'aiAnalysis', label: 'AI Analysis', labelKey: 'business.dashboardTabs.aiAnalysis', route: '/business/dashboard?tab=aiAnalysis', tabId: 'aiAnalysis', icon: 'BarChart3', order: 3 },
+        { id: 'aiReplies', label: 'AI Replies', labelKey: 'business.dashboardTabs.aiReplies', route: '/business/dashboard?tab=aiReplies', tabId: 'aiReplies', icon: 'MessageSquare', order: 4 },
+        { id: 'aiSuggestions', label: 'AI Suggestions', labelKey: 'business.dashboardTabs.aiSuggestions', route: '/business/dashboard?tab=aiSuggestions', tabId: 'aiSuggestions', icon: 'Lightbulb', order: 5 },
+        { id: 'aiPages', label: 'AI Pages', labelKey: 'business.dashboardTabs.aiPages', route: '/business/dashboard?tab=aiPages', tabId: 'aiPages', icon: 'Sparkles', order: 6 },
+        { id: 'aiDataAnalysis', label: 'AI Data Analysis', labelKey: 'business.dashboardTabs.aiDataAnalysis', route: '/business/dashboard?tab=aiDataAnalysis', tabId: 'aiDataAnalysis', icon: 'Brain', order: 7 },
+      ],
+    },
+  ],
+  dashboardWidgets: [
+    { id: 'ai_suggestions', label: 'AI Suggestions', labelKey: 'modules.ai.widgetSuggestions', component: 'AISuggestions', order: 18, size: 'medium' },
+  ],
+  permissions: [
+    { id: 'ai.use', label: 'Use AI Features' },
+  ],
+  settingsSections: [
+    { id: 'ai', label: 'AI Settings', labelKey: 'dashboard.settings.ai' },
+  ],
+  defaultEnabled: false,
+  optional: true,
+  estimatedSetupMinutes: 2,
+};

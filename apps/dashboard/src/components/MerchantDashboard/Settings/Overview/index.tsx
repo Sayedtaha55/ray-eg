@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTranslation } from 'react-i18next';
 import LanguageToggle from '@/components/common/LanguageToggle';
 import * as ReactRouterDOM from 'react-router-dom';
+import { isShopBookingActivity } from '../../../../pages/business/bookings/config';
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
 
@@ -94,7 +95,7 @@ const Overview: React.FC<OverviewProps> = ({ shop }) => {
       icon: <AlertTriangle className="w-5 h-5 text-yellow-500" />,
       onClick: () => handleNavigateToTab('security'),
     },
-    ...(shop?.category === 'SERVICE' ? [
+    ...(isShopBookingActivity(shop) ? [
       {
         title: 'إعدادات الحجوزات والجدول الزمني',
         description: 'تحديد مواعيد العمل وفترات المواعيد وتأكيد الحجوزات',

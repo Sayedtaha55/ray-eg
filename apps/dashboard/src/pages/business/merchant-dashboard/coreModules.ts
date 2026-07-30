@@ -6,6 +6,7 @@ export const CORE_MERCHANT_MODULES = [
   'expenses',
   'marketing',
   'builder',
+  'apps',
   'settings',
 ] as const;
 

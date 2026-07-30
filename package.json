@@ -4,12 +4,13 @@
   "description": "Hyper-modern multi-vendor marketplace for Egypt.",
   "main": "dist-electron/main.js",
   "scripts": {
-    "dev": "npx vite --config vite.config.mts",
     "dev:marketplace": "cd apps/marketplace-next && npm run dev",
     "dev:dashboard": "cd apps/dashboard && npm run dev",
-    "dev:all": "concurrently \"npm run backend:dev:stable\" \"npm run dev:marketplace\" \"npm run dev:dashboard\"",
+    "dev:business": "cd apps/business && npm run dev",
+    "dev:all": "concurrently \"npm run backend:dev:stable\" \"npm run dev:marketplace\" \"npm run dev:dashboard\" \"npm run dev:business\"",
     "build:marketplace": "cd apps/marketplace-next && npm run build",
     "build:dashboard": "cd apps/dashboard && npm run build",
+    "build:business": "cd apps/business && npm run build",
     "backend:dev": "powershell -NoProfile -Command \"Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts\"",
     "backend:build": "tsc -p backend/tsconfig.json",
     "backend:start": "node scripts/railway-backend-start.js",
@@ -32,12 +33,10 @@
     "backend:dev:media:presign": "powershell -NoProfile -Command \"& { $procs = Get-CimInstance Win32_Process -Filter \\\"Name='node.exe'\\\"; $targets = $procs | Where-Object { ($_.CommandLine -match 'tsx') -and (($_.CommandLine -match 'backend\\\\main\\.ts') -or ($_.CommandLine -match 'backend/src/core/main\\.ts')) }; foreach ($p in $targets) { try { Stop-Process -Id $p.ProcessId -Force -ErrorAction SilentlyContinue } catch {} }; $env:BOOT_MODULES='media'; $env:MEDIA_CONTROLLER_MODE='presign'; $env:SHOP_IMPORTS='none'; $env:ADMIN_BOOTSTRAP_TOKEN='admin1234'; Remove-Item Env:MINIMAL_BOOT,Env:PORT,Env:DATABASE_URL -ErrorAction SilentlyContinue; $env:PORT='4000'; $env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts }\"",
     "backend:dev:clean": "npm run backend:kill && npm run backend:dev:stable",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "typecheck:web": "tsc -p tsconfig.web.json --noEmit",
     "backend:typecheck": "tsc -p backend/tsconfig.json --noEmit",
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
-    "build": "tsx scripts/compress-public-videos.ts && npx vite build --config vite.config.mts",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "security:scan": "npx tsx --tsconfig backend/tsconfig.json backend/tests/security/static-security-scan.ts",
@@ -49,16 +48,13 @@
     "backend:check": "node scripts/check-backend.mjs",
     "backend:smoke:addons": "node scripts/smoke-shop-addons.mjs",
     "backend:smoke:checkout": "node scripts/smoke-checkout.mjs",
-    "checks": "npm run backend:typecheck && npm run backend:build && npm run typecheck:web && npm run test",
-    "preview": "npx vite preview",
-    "start": "npm run dev",
+    "checks": "npm run backend:typecheck && npm run backend:build && npm run test",
     "postinstall": "prisma generate --schema prisma/schema.prisma",
-    "vercel-build": "npm run backend:build && npm run build",
     "backend:dev:fix": "powershell -NoProfile -Command \"$env:DATABASE_URL='postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?schema=public'; npx --yes tsx watch --tsconfig backend/tsconfig.json backend/src/core/main.ts\"",
     "loadtest:k6": "node scripts/load/load-test-node.js",
     "prisma:fix:reservations-updated-at": "node scripts/fix-railway-reservations-updated-at.js",
     "electron:build": "tsc -p electron/tsconfig.json",
-    "electron:build-web": "npx vite build --config vite.electron.config.mts",
+    "electron:build-web": "cd apps/dashboard && npm run build",
     "electron:dev": "npm run electron:build-web && npm run electron:build && electron .",
     "electron:pack": "npm run electron:build-web && npm run electron:build && electron-builder --dir",
     "electron:dist": "npm run electron:build-web && npm run electron:build && electron-builder",
@@ -206,7 +202,7 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
-      "public/**/*",
+      "apps/dashboard/dist/**/*",
       "package.json"
     ],
     "npmRebuild": false,
@@ -219,7 +215,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/brand/logo.png"
+      "icon": "apps/business/public/brand/logo.png"
     },
     "nsis": {
       "oneClick": false,
@@ -233,13 +229,13 @@
       "target": [
         "dmg"
       ],
-      "icon": "public/brand/logo.png"
+      "icon": "apps/business/public/brand/logo.png"
     },
     "linux": {
       "target": [
         "AppImage"
       ],
-      "icon": "public/brand/logo.png"
+      "icon": "apps/business/public/brand/logo.png"
     }
   }
 }

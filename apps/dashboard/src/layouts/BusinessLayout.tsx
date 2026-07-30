@@ -1,21 +1,24 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks, Activity, Scissors, Ticket, Car, Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon, ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper, ShieldCheck, MapPin, CalendarHeart, Map as MapIcon, Coins, UserSquare, Building, Stethoscope } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks, Activity, Scissors, Ticket, Car, Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon, ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper, ShieldCheck, MapPin, CalendarHeart, Map as MapIcon, Coins, UserSquare, Building, Stethoscope, UserCog, Wallet, Plus, RotateCcw, FolderTree, Tag, Warehouse, ClipboardCheck as ClipCheck, Truck, ShoppingCart as Cart, ArrowLeftRight, Barcode, QrCode, TrendingUp, AlertTriangle, DollarSign, Calculator, BookOpen, Receipt, Banknote, PiggyBank, BarChart, Percent, Gift, Mail, Smartphone, MessageSquare as Msg, Star, NotebookPen, PhoneCall, Phone, CalendarClock, CalendarX, BellRing, Lock, LogIn, FileOutput, Plane, CheckSquare, FileEdit, Globe, Search, Newspaper, Send, Server, TrendingDown, Zap, Lightbulb, Bot } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
 import { clearSession, getStoredUser, persistSession } from '@/services/authStorage';
 import { RayDB } from '@/constants';
 import { useToast } from '@/components/common/feedback/Toaster';
-import BrandLogo from '@/components/common/BrandLogo';
 import LanguageToggle from '@/components/common/LanguageToggle';
 import { Category } from '@/types';
 import {
   MerchantDashboardTabId,
+  MERCHANT_DASHBOARD_TABS,
   getMerchantDashboardTabsForShop,
   getTabLabel,
 } from '../pages/business/merchant-dashboard/dashboardTabs';
-import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, SHARED_DASHBOARD_BUTTONS, BOOKING_ACTIVITIES, ACTIVITY_MODULES } from '../pages/business/bookings/config';
+import { useModuleConfig } from '../hooks/useModuleConfig';
+import { MODULE_MAP } from '../config/modules';
+import type { ModuleId } from '../config/modules';
+import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, SHARED_DASHBOARD_BUTTONS, BOOKING_ACTIVITIES, ACTIVITY_MODULES, isShopBookingActivity } from '../pages/business/bookings/config';
 import type { BookingActivityType } from '../pages/business/bookings/config';
 
 // Sub-components
@@ -63,6 +66,7 @@ const BusinessLayout: React.FC = () => {
   const isProfilePage = location.pathname.includes('/profile');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
   const [isNotifOpen, setNotifOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -105,8 +109,8 @@ const BusinessLayout: React.FC = () => {
   const [shopForModules, setShopForModules] = useState<any>(null);
   const [isMobile, setIsMobile] = useState(false);
   const activityParam = useMemo(() => {
-    return searchParams.get('activity') || shopForModules?.pageDesign?.bookingActivityType || 'clinic';
-  }, [searchParams, shopForModules?.pageDesign?.bookingActivityType]);
+    return searchParams.get('activity') || shopForModules?.pageDesign?.bookingActivityType || (isShopBookingActivity(shopForModules) ? 'clinic' : 'clinic');
+  }, [searchParams, shopForModules?.pageDesign?.bookingActivityType, shopForModules]);
   const pathParts = useMemo(() => String(location.pathname || '').split('/').filter(Boolean), [location.pathname]);
 
   const currentBookingActivity = useMemo(() => {
@@ -220,7 +224,7 @@ const BusinessLayout: React.FC = () => {
     }
   }, []);
 
-  const ICON_BY_TAB_ID: Record<MerchantDashboardTabId, React.ReactNode> = {
+  const ICON_BY_TAB_ID: Partial<Record<MerchantDashboardTabId, React.ReactNode>> = {
     overview: <LayoutDashboard size={20} />,
     notifications: <Bell size={20} />,
     sales: <CreditCard size={20} />,
@@ -239,10 +243,102 @@ const BusinessLayout: React.FC = () => {
     reports: <BarChart3 size={20} />,
     builder: <Palette size={20} />,
     settings: <Settings size={20} />,
+    apps: <LayoutGrid size={20} />,
     abandonedCart: <ShoppingCart size={20} />,
     pos: <Store size={20} />,
     expenses: <Coins size={20} />,
     marketing: <Megaphone size={20} />,
+    employees: <UserCog size={20} />,
+    attendance: <Clock size={20} />,
+    payroll: <Wallet size={20} />,
+    returns: <RotateCcw size={20} />,
+    // Sales sub-tabs
+    quotes: <FileText size={20} />,
+    payments: <CreditCard size={20} />,
+    loyalty: <Gift size={20} />,
+    subscriptions: <RefreshCw size={20} />,
+    epayment: <Smartphone size={20} />,
+    orderStatus: <ClipboardList size={20} />,
+    // Inventory sub-tabs
+    categories: <FolderTree size={20} />,
+    variants: <Tag size={20} />,
+    warehouses: <Warehouse size={20} />,
+    stocktake: <ClipCheck size={20} />,
+    suppliers: <Truck size={20} />,
+    purchaseOrders: <Cart size={20} />,
+    transfers: <ArrowLeftRight size={20} />,
+    barcode: <Barcode size={20} />,
+    qrCode: <QrCode size={20} />,
+    stockTracking: <TrendingUp size={20} />,
+    lowStockAlerts: <AlertTriangle size={20} />,
+    // Finance sub-tabs
+    revenue: <DollarSign size={20} />,
+    profits: <Calculator size={20} />,
+    taxes: <Receipt size={20} />,
+    journal: <BookOpen size={20} />,
+    cashflow: <Banknote size={20} />,
+    accounts: <PiggyBank size={20} />,
+    wallets: <Wallet size={20} />,
+    financialReports: <BarChart size={20} />,
+    // Marketing sub-tabs
+    campaigns: <Megaphone size={20} />,
+    coupons: <Ticket size={20} />,
+    discounts: <Percent size={20} />,
+    messages: <MessageSquare size={20} />,
+    emailCampaigns: <Mail size={20} />,
+    pushNotifications: <Smartphone size={20} />,
+    smsCampaigns: <Msg size={20} />,
+    loyaltyPrograms: <Gift size={20} />,
+    seasonalOffers: <PartyPopper size={20} />,
+    // CRM sub-tabs
+    chats: <MessageSquare size={20} />,
+    tickets: <Ticket size={20} />,
+    complaints: <ShieldAlert size={20} />,
+    reviews: <Star size={20} />,
+    notes: <NotebookPen size={20} />,
+    followUps: <PhoneCall size={20} />,
+    contactLog: <Phone size={20} />,
+    // Bookings sub-tabs
+    appointments: <CalendarCheck size={20} />,
+    calendar: <CalendarDays size={20} />,
+    rooms: <DoorOpen size={20} />,
+    doctors: <Stethoscope size={20} />,
+    bookingConfirm: <CheckCircle2 size={20} />,
+    bookingCancel: <CalendarX size={20} />,
+    bookingReminder: <BellRing size={20} />,
+    // HR sub-tabs
+    permissions: <Lock size={20} />,
+    checkOut: <LogIn size={20} />,
+    leaves: <Plane size={20} />,
+    tasks: <CheckSquare size={20} />,
+    // Website sub-tabs
+    pages: <FileEdit size={20} />,
+    templates: <Layout size={20} />,
+    seo: <Search size={20} />,
+    blog: <Newspaper size={20} />,
+    forms: <ClipboardList size={20} />,
+    media: <Camera size={20} />,
+    domains: <Globe size={20} />,
+    publishing: <Send size={20} />,
+    // Analytics sub-tabs
+    kpi: <TrendingUp size={20} />,
+    charts: <BarChart3 size={20} />,
+    salesPerformance: <TrendingUp size={20} />,
+    productPerformance: <Package size={20} />,
+    visitors: <Eye size={20} />,
+    conversions: <TrendingDown size={20} />,
+    // AI sub-tabs
+    aiContent: <Sparkles size={20} />,
+    aiImages: <Sparkles size={20} />,
+    aiSEO: <Search size={20} />,
+    aiAnalysis: <BarChart3 size={20} />,
+    aiReplies: <MessageSquare size={20} />,
+    aiSuggestions: <Lightbulb size={20} />,
+    aiPages: <FileEdit size={20} />,
+    aiDataAnalysis: <BarChart3 size={20} />,
+    aiInsights: <Lightbulb size={20} />,
+    aiRecommendations: <Zap size={20} />,
+    aiAutomations: <Bot size={20} />,
   };
 
   const buildDashboardUrl = useCallback((tab?: string) => {
@@ -325,6 +421,42 @@ const BusinessLayout: React.FC = () => {
     setSidebarOpen(false);
   }, []);
 
+  const toggleSection = useCallback((title: string) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+  }, []);
+
+  const moduleConfig = useModuleConfig(shopForModules);
+
+  const MODULE_ICON_MAP: Record<string, React.ReactNode> = {
+    LayoutDashboard: <LayoutDashboard size={20} />,
+    ShoppingCart: <ShoppingCart size={20} />,
+    Package: <Package size={20} />,
+    Receipt: <FileText size={20} />,
+    Users: <Users size={20} />,
+    Megaphone: <Megaphone size={20} />,
+    Calendar: <Calendar size={20} />,
+    UserCog: <UserCog size={20} />,
+    Monitor: <Layout size={20} />,
+    BarChart3: <BarChart3 size={20} />,
+    Sparkles: <Sparkles size={20} />,
+    Bell: <Bell size={20} />,
+    Settings: <Settings size={20} />,
+    CreditCard: <CreditCard size={20} />,
+    FileText: <FileText size={20} />,
+    Store: <Store size={20} />,
+    Wallet: <Wallet size={20} />,
+    Palette: <Palette size={20} />,
+    Camera: <Camera size={20} />,
+    Clock: <Clock size={20} />,
+    Coins: <Coins size={20} />,
+    ListChecks: <ListChecks size={20} />,
+  };
+
   const visibleMainTabs = useMemo(
     () => getMerchantDashboardTabsForShop(shopForModules || { category: shopCategory })
       .map((t) => ({
@@ -345,46 +477,67 @@ const BusinessLayout: React.FC = () => {
   const desktopSidebarHeaderOffsetClassRtl = isDesktopSidebarCollapsed ? 'md:right-24' : 'md:right-80';
 
   const sidebarNavSections = useMemo(() => {
+    // Use ALL tabs from MERCHANT_DASHBOARD_TABS (bypass module gating) so all sections are visible
+    const allTabs = MERCHANT_DASHBOARD_TABS.map((t) => ({
+      ...t,
+      icon: ICON_BY_TAB_ID[t.id],
+      label: getTabLabel(t, shopForModules || { category: shopCategory }),
+    }));
     const byId = new Map();
-    for (const tab of visibleMainTabs) byId.set(String(tab.id), tab);
+    for (const tab of allTabs) byId.set(String(tab.id), tab);
 
     const pick = (...ids: MerchantDashboardTabId[]) =>
       ids.map((id) => byId.get(String(id))).filter(Boolean);
 
     const sections = [];
 
-    const dashboardItems = pick('overview');
+    const dashboardItems = pick('overview', 'notifications');
     if (dashboardItems.length > 0) {
       sections.push({ title: t('dashboard.sections.dashboard'), items: dashboardItems });
     }
 
-    const bookingItems = pick('providers', 'services', 'activityRooms', 'activityPatients');
-    if (bookingItems.length > 0) {
-      sections.push({ title: 'إدارة نشاط الحجوزات', items: bookingItems });
+    const salesItems = pick('sales', 'abandonedCart', 'quotes', 'payments', 'loyalty', 'subscriptions', 'pos', 'epayment', 'orderStatus');
+    // Attach 'returns' as a child of 'sales' for nested sidebar display
+    const returnsTab = byId.get('returns');
+    if (returnsTab && salesItems.length > 0) {
+      salesItems[0] = { ...salesItems[0], children: [returnsTab] };
     }
+    sections.push({ title: isArabic ? 'المبيعات' : 'Sales', moduleId: 'sales', items: salesItems });
 
-    const operationsItems = pick('products', 'pos', 'reservations', 'invoice');
-    if (operationsItems.length > 0) {
-      sections.push({ title: t('dashboard.sections.operations'), items: operationsItems });
-    }
+    const inventoryItems = pick('products', 'categories', 'variants', 'warehouses', 'stocktake', 'suppliers', 'purchaseOrders', 'transfers', 'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts');
+    sections.push({ title: isArabic ? 'المخزون' : 'Inventory', moduleId: 'inventory', items: inventoryItems });
 
-    const salesItems = pick('sales', 'abandonedCart');
-    if (salesItems.length > 0) {
-      sections.push({ title: t('dashboard.sections.sales'), items: salesItems });
-    }
+    const financeItems = pick('invoice', 'expenses', 'revenue', 'profits', 'taxes', 'journal', 'cashflow', 'accounts', 'wallets', 'financialReports');
+    sections.push({ title: isArabic ? 'المالية' : 'Finance', moduleId: 'finance', items: financeItems });
 
-    const growthItems = pick('promotions', 'customers', 'reports', 'gallery');
-    if (growthItems.length > 0) {
-      sections.push({ title: t('dashboard.sections.growth'), items: growthItems });
-    }
+    const marketingItems = pick('promotions', 'marketing', 'campaigns', 'coupons', 'discounts', 'messages', 'emailCampaigns', 'pushNotifications', 'smsCampaigns', 'loyaltyPrograms', 'seasonalOffers');
+    sections.push({ title: isArabic ? 'التسويق' : 'Marketing', moduleId: 'marketing', items: marketingItems });
 
-    const setupItems = pick('builder', 'settings');
+    const crmItems = pick('customers', 'chats', 'tickets', 'complaints', 'reviews', 'notes', 'followUps', 'contactLog');
+    sections.push({ title: isArabic ? 'خدمة العملاء' : 'Customer Service', moduleId: 'crm', items: crmItems });
+
+    const bookingItems = pick('reservations', 'providers', 'services', 'activityRooms', 'activityPatients', 'activityInventory', 'restaurantTables', 'appointments', 'calendar', 'rooms', 'doctors', 'bookingConfirm', 'bookingCancel', 'bookingReminder');
+    sections.push({ title: isArabic ? 'إدارة نشاط الحجوزات' : 'Booking Management', moduleId: 'bookings', items: bookingItems });
+
+    const hrItems = pick('employees', 'permissions', 'attendance', 'checkOut', 'payroll', 'leaves', 'tasks');
+    sections.push({ title: isArabic ? 'الموارد البشرية' : 'Human Resources', moduleId: 'hr', items: hrItems });
+
+    const websiteItems = pick('builder', 'gallery', 'pages', 'templates', 'seo', 'blog', 'forms', 'media', 'domains', 'publishing');
+    sections.push({ title: isArabic ? 'الموقع الإلكتروني' : 'Website', items: websiteItems });
+
+    const analyticsItems = pick('reports', 'kpi', 'charts', 'salesPerformance', 'productPerformance', 'visitors', 'conversions');
+    sections.push({ title: isArabic ? 'التحليلات' : 'Analytics', moduleId: 'analytics', items: analyticsItems });
+
+    const aiItems = pick('aiContent', 'aiImages', 'aiSEO', 'aiAnalysis', 'aiReplies', 'aiSuggestions', 'aiPages', 'aiDataAnalysis', 'aiInsights', 'aiRecommendations', 'aiAutomations');
+    sections.push({ title: isArabic ? 'الذكاء الاصطناعي' : 'AI Assistant', moduleId: 'ai', items: aiItems });
+
+    const setupItems = pick('settings');
     if (setupItems.length > 0) {
-      sections.push({ title: t('dashboard.sections.setup'), items: setupItems });
+      sections.push({ title: isArabic ? 'الإعدادات' : 'Settings', items: setupItems });
     }
 
-    return sections.filter((s) => Array.isArray(s.items) && s.items.length > 0);
-  }, [visibleMainTabs]);
+    return sections;
+  }, [shopForModules, shopCategory, t]);
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -826,7 +979,6 @@ const BusinessLayout: React.FC = () => {
     const headerContent = (
       <>
         <Link to="/" className={`flex items-center gap-2 md:gap-3 transition-colors ${headerTextCls}`}>
-          <BrandLogo variant="business" iconOnly />
           <span className="text-lg md:text-2xl font-black tracking-tighter uppercase">{t('brand.nameBusiness')}</span>
         </Link>
         <div className="flex items-center gap-3 md:gap-4">
@@ -834,7 +986,7 @@ const BusinessLayout: React.FC = () => {
             <a href="#about" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>{t('common.aboutUs')}</a>
           )}
           <Link to="/business/login" className={`text-xs md:text-sm font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl transition-all ${borderBtnCls}`}>{t('business.merchantLogin')}</Link>
-          <Link to="/business/onboarding" className={`px-5 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-lg ${ctaBtnCls}`}>{t('business.startFree')}</Link>
+          <Link to="/business/setup" className={`px-5 md:px-6 py-2 md:py-2.5 rounded-xl font-black text-xs md:text-sm transition-all shadow-lg ${ctaBtnCls}`}>{t('business.startFree')}</Link>
         </div>
       </>
     );
@@ -908,7 +1060,6 @@ const BusinessLayout: React.FC = () => {
         {!isBuilderTab ? (
           <div className={`${isDesktopSidebarCollapsed ? 'p-4' : 'p-10'} flex items-center justify-between gap-3`}>
             <Link to="/" className="flex items-center gap-3 min-w-0">
-              <BrandLogo variant="business" iconOnly />
               {!isDesktopSidebarCollapsed && (
                 <span className="text-2xl font-black tracking-tighter uppercase truncate">{t('brand.nameBusiness')}</span>
               )}
@@ -954,7 +1105,7 @@ const BusinessLayout: React.FC = () => {
                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Page Builder</div>
               </div>
             ) : (
-              <BrandLogo variant="business" iconOnly />
+              <span className="text-lg font-black tracking-tighter uppercase">{t('brand.nameBusiness')}</span>
             )}
             <div className="flex items-center gap-3">
               <button
@@ -989,32 +1140,66 @@ const BusinessLayout: React.FC = () => {
           {!isSettingsTab && !isBuilderTab ? (
             <div className="space-y-6">
               {/* ── الأقسام الرئيسية ── */}
-              {sidebarNavSections.map((section) => (
+              {sidebarNavSections.map((section) => {
+                const isCollapsed = collapsedSections.has(section.title);
+                return (
                 <div key={section.title} className="space-y-2">
                   {!isDesktopSidebarCollapsed && (
-                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
-                      {section.title}
+                    <button
+                      onClick={() => toggleSection(section.title)}
+                      className="w-full flex items-center justify-between px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 hover:text-slate-600 transition-colors text-right"
+                    >
+                      <span>{section.title}</span>
+                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
+                    </button>
+                  )}
+                  {!isCollapsed && (
+                    <div className="space-y-2">
+                      {section.items.map((t: any) => (
+                        <React.Fragment key={t.id}>
+                          <NavItem
+                            to={t.route ? t.route : buildUrlForTab(t.id)}
+                            onClick={handleNavItemClick}
+                            icon={t.icon}
+                            showIcon={isDesktopSidebarCollapsed}
+                            hideLabel={isDesktopSidebarCollapsed}
+                            label={t.label}
+                            active={isTabActive(t.tabId || t.id)}
+                          />
+                          {t.children && !isDesktopSidebarCollapsed && (
+                            <div className="space-y-1 mr-4 ml-0 rtl:mr-4 rtl:ml-0 border-r border-slate-200 pr-2">
+                              {t.children.map((child: any) => (
+                                <NavItem
+                                  key={child.id}
+                                  to={child.route ? child.route : buildUrlForTab(child.id)}
+                                  onClick={handleNavItemClick}
+                                  icon={child.icon}
+                                  showIcon={false}
+                                  label={child.label}
+                                  active={isTabActive(child.tabId || child.id)}
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </React.Fragment>
+                      ))}
+                      {section.moduleId && !isDesktopSidebarCollapsed && (
+                        <button
+                          onClick={() => navigate(`/business/dashboard?tab=apps&section=${section.moduleId}`)}
+                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-2xl border border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-all text-xs font-bold"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>{isArabic ? 'إضافة' : 'Add'}</span>
+                        </button>
+                      )}
                     </div>
                   )}
-                  <div className="space-y-2">
-                    {section.items.map((t: any) => (
-                      <NavItem
-                        key={t.id}
-                        to={buildUrlForTab(t.id)}
-                        onClick={handleNavItemClick}
-                        icon={t.icon}
-                        showIcon={isDesktopSidebarCollapsed}
-                        hideLabel={isDesktopSidebarCollapsed}
-                        label={t.label}
-                        active={isTabActive(t.id)}
-                      />
-                    ))}
-                  </div>
                 </div>
-              ))}
+                );
+              })}
 
               {/* ── أزرار النشاط الديناميكية ── */}
-              {(searchParams.get('activity') || shopCategory === 'SERVICE' || shopForModules?.category === 'SERVICE') && (() => {
+              {(searchParams.get('activity') || isShopBookingActivity(shopForModules)) && (() => {
                 const actType = activityParam as BookingActivityType;
                 const modules = ACTIVITY_MODULES[actType] || [];
                 if (modules.length === 0) return null;
@@ -1031,10 +1216,15 @@ const BusinessLayout: React.FC = () => {
                 return (
                   <div className="space-y-2">
                     {!isDesktopSidebarCollapsed && (
-                      <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-emerald-500 text-right">
-                        {actDef.title}
-                      </div>
+                      <button
+                        onClick={() => toggleSection(`activity-${actType}`)}
+                        className="w-full flex items-center justify-between px-2 text-[10px] font-black tracking-[0.22em] uppercase text-emerald-500 hover:text-emerald-600 transition-colors text-right"
+                      >
+                        <span>{actDef.title}</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${collapsedSections.has(`activity-${actType}`) ? '' : 'rotate-180'}`} />
+                      </button>
                     )}
+                    {!collapsedSections.has(`activity-${actType}`) && (
                     <div className="space-y-2">
                       {modules.map((mod: any) => {
                         const IconComp = modIconMap[mod.icon] || HelpCircle;
@@ -1056,6 +1246,7 @@ const BusinessLayout: React.FC = () => {
                         );
                       })}
                     </div>
+                    )}
                   </div>
                 );
               })()}
@@ -1076,6 +1267,7 @@ const BusinessLayout: React.FC = () => {
                     {(shopForModules?.category === 'SERVICE' || shopCategory === 'SERVICE') && (
                       <NavItem to={buildSettingsUrl('booking_settings')} onClick={handleNavItemClick} icon={<Clock size={20} />} showIcon={false} label="إعدادات الحجوزات" active={String(settingsTab) === 'booking_settings'} />
                     )}
+                    <NavItem to={buildDashboardUrl('apps')} onClick={handleNavItemClick} icon={<LayoutGrid size={20} />} showIcon={false} label={isArabic ? 'التطبيقات' : 'Apps'} active={isTabActive('apps')} />
                   </div>
                 </div>
 
@@ -1084,8 +1276,6 @@ const BusinessLayout: React.FC = () => {
                     {t('dashboard.settings.billingAndAlerts')}
                   </div>
                   <div className="space-y-2">
-                    <NavItem to={buildSettingsUrl('modules')} onClick={handleNavItemClick} icon={<RefreshCw size={20} />} showIcon={false} label={t('dashboard.settings.upgrade')} active={String(settingsTab) === 'modules'} />
-                    <NavItem to={buildSettingsUrl('apps')} onClick={handleNavItemClick} icon={<LayoutGrid size={20} />} showIcon={false} label={t('dashboard.settings.apps')} active={String(settingsTab) === 'apps'} />
                     {(shopForModules?.category !== 'SERVICE' && shopCategory !== 'SERVICE') && (
                       <NavItem to={buildSettingsUrl('receipt_theme')} onClick={handleNavItemClick} icon={<FileText size={20} />} showIcon={false} label={t('dashboard.settings.receiptTheme')} active={String(settingsTab) === 'receipt_theme'} />
                     )}
