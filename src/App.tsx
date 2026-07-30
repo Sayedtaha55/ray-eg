@@ -5,11 +5,11 @@ import {
   getStoredMerchantContext,
   getStoredUser,
   startAuthSync,
-} from './shared/services/authStorage';
-import RouteSeoManager from './shared/components/seo/RouteSeoManager';
+} from '@/services/authStorage';
+import RouteSeoManager from '@/components/seo/RouteSeoManager';
 import AppRoutes from './core/AppRoutes';
 import { shouldWarmupRoutes, warmupRouteChunks } from './core/routeWarmup';
-import { getDeferredDelay } from './shared/utils/performanceProfile';
+import { getDeferredDelay } from '@/utils/performanceProfile';
 
 const ScrollToTop = () => {
   const { pathname } = useLocation();

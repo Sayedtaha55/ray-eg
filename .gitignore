@@ -81,3 +81,7 @@ public/videos/
 
 
 testsprite_tests\tmp\config.json
+
+# Temp files with tokens/data
+temp_*.json
+utputFormat

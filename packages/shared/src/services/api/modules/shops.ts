@@ -222,3 +222,38 @@ export async function addShopGalleryImageFileViaBackend(shopId: string, image: {
 export async function deleteShopGalleryImageViaBackend(imageId: string) {
   return backendDelete(`/api/v1/gallery/${imageId}`);
 }
+
+// ─── Cashier Shifts ───
+
+export async function openShiftViaBackend(payload: { shopId?: string; openingAmount?: number }) {
+  return await backendPost<any>('/api/v1/shops/me/shifts/open', payload);
+}
+
+export async function closeShiftViaBackend(shiftId: string, payload: { closingAmount?: number; note?: string }) {
+  return await backendPatch<any>(`/api/v1/shops/me/shifts/${encodeURIComponent(shiftId)}/close`, payload);
+}
+
+export async function getMyActiveShiftViaBackend(shopId?: string) {
+  const qs = shopId ? `?shopId=${encodeURIComponent(shopId)}` : '';
+  return await backendGet<any>(`/api/v1/shops/me/shifts/active${qs}`);
+}
+
+export async function listShiftsViaBackend(params?: { shopId?: string; status?: string; from?: string; to?: string; take?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.shopId) qs.set('shopId', String(params.shopId));
+  if (params?.status) qs.set('status', String(params.status));
+  if (params?.from) qs.set('from', String(params.from));
+  if (params?.to) qs.set('to', String(params.to));
+  if (params?.take) qs.set('take', String(params.take));
+  const s = qs.toString();
+  return await backendGet<any[]>(`/api/v1/shops/me/shifts${s ? `?${s}` : ''}`);
+}
+
+export async function getShiftSummaryViaBackend(params?: { shopId?: string; from?: string; to?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.shopId) qs.set('shopId', String(params.shopId));
+  if (params?.from) qs.set('from', String(params.from));
+  if (params?.to) qs.set('to', String(params.to));
+  const s = qs.toString();
+  return await backendGet<any>(`/api/v1/shops/me/shifts/summary/overview${s ? `?${s}` : ''}`);
+}

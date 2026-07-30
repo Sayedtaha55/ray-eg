@@ -93,7 +93,7 @@ export default async function ProductPage({ params }: Props) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-xs font-bold text-slate-400 mb-6">
+      <nav className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-6">
         <Link href="/" className="hover:text-brand-cyan transition-colors">الرئيسية</Link>
         <span>/</span>
         {shop && (
@@ -107,7 +107,7 @@ export default async function ProductPage({ params }: Props) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
         {/* Image */}
-        <div className="relative aspect-square rounded-4xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-100 dark:border-slate-800">
+        <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
           <Image
             src={product.imageUrl || product.images?.[0] || '/placeholder-product.png'}
             alt={product.name}
@@ -117,7 +117,7 @@ export default async function ProductPage({ params }: Props) {
             className="object-cover"
           />
           {hasDiscount && (
-            <div className="absolute top-4 right-4 px-3 py-1.5 bg-red-500 rounded-xl text-sm font-black text-white shadow-lg">
+            <div className="absolute top-4 right-4 px-3 py-1.5 bg-red-500 rounded-lg text-sm font-semibold text-white shadow-lg">
               خصم {discountPercent}%
             </div>
           )}
@@ -127,20 +127,20 @@ export default async function ProductPage({ params }: Props) {
         <div className="flex flex-col">
           {shop && (
             <Link href={`/shop/${shop.slug}`} className="flex items-center gap-2 mb-4 group">
-              <div className="w-10 h-10 rounded-2xl bg-brand-black flex items-center justify-center overflow-hidden">
+              <div className="w-10 h-10 rounded-lg bg-brand-black flex items-center justify-center overflow-hidden">
                 {shop.logo ? (
                   <Image src={shop.logo} alt={shop.name} width={40} height={40} className="object-cover" />
                 ) : (
                   <Store className="w-5 h-5 text-brand-cyan" />
                 )}
               </div>
-              <span className="font-black text-sm text-slate-700 dark:text-slate-300 group-hover:text-brand-cyan transition-colors">
+              <span className="font-semibold text-sm text-slate-700 dark:text-slate-300 group-hover:text-brand-cyan transition-colors">
                 {shop.name}
               </span>
             </Link>
           )}
 
-          <h1 className="text-2xl md:text-4xl font-black tracking-tight mb-3">{product.name}</h1>
+          <h1 className="text-2xl md:text-4xl font-bold tracking-tight mb-3">{product.name}</h1>
 
           {product.rating != null && product.rating > 0 && (
             <div className="flex items-center gap-2 mb-4">
@@ -152,18 +152,18 @@ export default async function ProductPage({ params }: Props) {
                   />
                 ))}
               </div>
-              <span className="text-sm font-bold text-slate-500">{product.rating!.toFixed(1)}</span>
+              <span className="text-sm font-semibold text-slate-500">{product.rating!.toFixed(1)}</span>
             </div>
           )}
 
           {/* Price */}
           {product.price != null && (
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white">
+              <span className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
                 {formatPrice(product.price, product.currency)}
               </span>
               {hasDiscount && (
-                <span className="text-lg text-slate-400 line-through font-bold">
+                <span className="text-lg text-slate-500 line-through font-semibold">
                   {formatPrice(product.oldPrice!, product.currency)}
                 </span>
               )}
@@ -173,7 +173,7 @@ export default async function ProductPage({ params }: Props) {
           {/* Description */}
           {product.description && (
             <div className="prose prose-sm dark:prose-invert max-w-none mb-6">
-              <p className="text-slate-600 dark:text-slate-400 font-bold leading-relaxed whitespace-pre-wrap">
+              <p className="text-slate-600 dark:text-slate-400 font-semibold leading-relaxed whitespace-pre-wrap">
                 {product.description}
               </p>
             </div>
@@ -183,7 +183,7 @@ export default async function ProductPage({ params }: Props) {
           {product.tags && product.tags.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-6">
               {product.tags.map((tag) => (
-                <span key={tag} className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-400">
+                <span key={tag} className="px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs font-semibold text-slate-600 dark:text-slate-400">
                   <Tag className="w-3 h-3 inline ml-1" />
                   {tag}
                 </span>
@@ -194,12 +194,12 @@ export default async function ProductPage({ params }: Props) {
           {/* Availability */}
           <div className="mb-6">
             {product.isAvailable !== false ? (
-              <span className="flex items-center gap-2 text-green-500 font-bold text-sm">
+              <span className="flex items-center gap-2 text-green-500 font-semibold text-sm">
                 <CheckCircle className="w-5 h-5" />
                 متوفر الآن
               </span>
             ) : (
-              <span className="flex items-center gap-2 text-red-500 font-bold text-sm">
+              <span className="flex items-center gap-2 text-red-500 font-semibold text-sm">
                 غير متوفر حالياً
               </span>
             )}
@@ -212,7 +212,7 @@ export default async function ProductPage({ params }: Props) {
                 href={`https://wa.me/${shop.whatsapp}?text=استفسار عن ${encodeURIComponent(product.name)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-2xl bg-green-500 text-white font-black hover:bg-green-600 transition-all shadow-lg"
+                className="flex-1 flex items-center justify-center gap-2 py-4 rounded-lg bg-green-500 text-white font-semibold hover:bg-green-600 transition-all shadow-lg"
               >
                 <MessageCircle className="w-5 h-5" />
                 اطلب عبر واتساب
@@ -221,7 +221,7 @@ export default async function ProductPage({ params }: Props) {
             {shop?.phone && (
               <a
                 href={`tel:${shop.phone}`}
-                className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-cyan/10 transition-all"
+                className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-cyan/10 transition-all"
                 aria-label="اتصل"
               >
                 <Phone className="w-5 h-5" />
@@ -230,7 +230,7 @@ export default async function ProductPage({ params }: Props) {
             <ShareButton
               path={`/product/${product.id}`}
               title={product.name}
-              className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-purple/10 transition-all"
+              className="w-14 h-14 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-purple/10 transition-all"
               iconClassName="w-5 h-5"
             />
           </div>

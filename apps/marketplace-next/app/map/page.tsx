@@ -209,40 +209,40 @@ export default function MapPage() {
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-6 md:py-10" dir="rtl">
       <div className="flex items-start justify-between gap-6 mb-6 md:mb-10">
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tighter">الخريطة</h1>
-          <p className="text-slate-400 font-bold mt-2">اكتشف المتاجر والأنشطة القريبة منك</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">الخريطة</h1>
+          <p className="text-slate-500 font-semibold mt-2">اكتشف المتاجر والأنشطة القريبة منك</p>
         </div>
         <button
           onClick={() => router.push('/')}
-          className="px-5 py-3 bg-slate-100 dark:bg-slate-800 rounded-2xl font-black text-xs md:text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          className="px-5 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-semibold text-xs md:text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
         >
           العودة
         </button>
       </div>
 
-      <div className="relative rounded-[2rem] overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+      <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
         <div className="w-full h-[70vh] md:h-[78vh]">
           <div ref={mapContainerRef} className="w-full h-full" />
         </div>
 
         <div className="absolute top-4 right-4 left-4 md:left-auto md:w-[420px] z-[2500] pointer-events-auto">
-          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-100 dark:border-slate-800 rounded-[2rem] p-4 md:p-5 space-y-3 pointer-events-auto relative">
+          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur border border-slate-200 dark:border-slate-800 rounded-2xl p-4 md:p-5 space-y-3 pointer-events-auto relative">
             {locationError && (
-              <p className="text-red-500 text-xs font-bold text-center">{locationError}</p>
+              <p className="text-red-500 text-xs font-semibold text-center">{locationError}</p>
             )}
 
             <button
               onClick={handleLocateMe}
               disabled={locating}
-              className="w-full py-4 bg-brand-black text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-slate-800 transition-all"
+              className="w-full py-4 bg-brand-black text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 hover:bg-slate-800 transition-all"
               style={{ touchAction: 'manipulation' }}
             >
               {locating ? <Loader2 className="animate-spin w-4 h-4" /> : <><MapPin className="w-4 h-4" /> حدد موقعي</>}
             </button>
 
-            <div className="text-xs font-black text-slate-500 text-center">
+            <div className="text-xs font-semibold text-slate-500 text-center">
               {loading ? (
-                <span className="inline-block w-40 h-4 skeleton rounded-xl" />
+                <span className="inline-block w-40 h-4 skeleton rounded-lg" />
               ) : (
                 `عدد الأماكن الظاهرة: ${pins.length}`
               )}

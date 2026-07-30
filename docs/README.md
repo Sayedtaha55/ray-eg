@@ -21,18 +21,35 @@
 - **دفعات إلكترونية:** تكامل مع بوابات الدفع المصرية والدولية
 
 ### 🛠 التقنيات المستخدمة:
-- **Frontend:** React 19, TypeScript, Tailwind CSS, Vite
-- **Animation:** Framer Motion
-- **State Management:** Redux Toolkit, React Query
-- **AI Engine:** Google Generative AI (Gemini SDK)
-- **Icons:** Lucide React
-- **Backend:** NestJS + Prisma
-- **Database:** Prisma (PostgreSQL افتراضياً، مع schema SQLite legacy داخل `backend/prisma/schema.prisma`)
+
+**المعمارية:** Monorepo بتطبيقين منفصلين + حزمة مشتركة
+
+**التطبيق الأول — Marketplace (Next.js):**
+- Next.js 15 (App Router) مع SSR لتحسين SEO
+- React 19, TypeScript, Tailwind CSS
+- Framer Motion, Lucide React
+- يعمل على البورت `5174` — المسار: `apps/marketplace-next/`
+
+**التطبيق الثاني — Dashboard (Vite SPA):**
+- React 19, TypeScript, Vite
+- Tailwind CSS, Framer Motion, Recharts
+- يعمل على البورت `3000` — المسار: `apps/dashboard/`
+- Electron لتوزيعه كتطبيق سطح مكتب
+
+**الحزمة المشتركة — @ray-eg/shared:**
+- المسار: `packages/shared/`
+- مكونات (160+)، خدمات، i18n (ar/en)، أدوات، أنواع
+- يستوردها كلا التطبيقين
+
+**الـ Backend والـ Database:**
+- **Backend:** NestJS + Prisma (يعمل على البورت `4000`)
+- **Database:** PostgreSQL (افتراضياً) مع schema SQLite legacy
 - **Cache:** Redis
 - **Authentication:** JWT with refresh tokens
 - **File Storage:** AWS S3 / Local storage
 - **Email:** SendGrid
-- **Deployment:** Vercel (Frontend), Railway (Backend)
+- **AI Engine:** Google Generative AI (Gemini SDK)
+- **Deployment:** Vercel (Marketplace), Railway (Backend), Vercel/Netlify (Dashboard)
 
 ### 📊 نماذج الأعمال المدعومة:
 - **متاجر إلكترونية:** منتجات متنوعة مع إدارة المخزون
@@ -61,18 +78,35 @@
 - **Electronic Payments:** Integration with Egyptian and international payment gateways
 
 ### 🛠 Tech Stack:
-- **Frontend:** React 19, TypeScript, Tailwind CSS, Vite
-- **Animation:** Framer Motion
-- **State Management:** Redux Toolkit, React Query
-- **AI Engine:** Google Generative AI (Gemini API)
-- **Icons:** Lucide React
-- **Backend:** NestJS + Prisma
-- **Database:** Prisma (PostgreSQL by default, with a legacy SQLite schema in `backend/prisma/schema.prisma`)
+
+**Architecture:** Monorepo with two separate apps + shared package
+
+**App 1 — Marketplace (Next.js):**
+- Next.js 15 (App Router) with SSR for SEO
+- React 19, TypeScript, Tailwind CSS
+- Framer Motion, Lucide React
+- Port `5174` — Path: `apps/marketplace-next/`
+
+**App 2 — Dashboard (Vite SPA):**
+- React 19, TypeScript, Vite
+- Tailwind CSS, Framer Motion, Recharts
+- Port `3000` — Path: `apps/dashboard/`
+- Electron for desktop distribution
+
+**Shared Package — @ray-eg/shared:**
+- Path: `packages/shared/`
+- Components (160+), services, i18n (ar/en), utils, types
+- Imported by both apps
+
+**Backend & Database:**
+- **Backend:** NestJS + Prisma (port `4000`)
+- **Database:** PostgreSQL (default) with legacy SQLite schema
 - **Cache:** Redis
 - **Authentication:** JWT with refresh tokens
 - **File Storage:** AWS S3 / Local storage
 - **Email:** SendGrid
-- **Deployment:** Vercel (Frontend), Railway (Backend)
+- **AI Engine:** Google Generative AI (Gemini API)
+- **Deployment:** Vercel (Marketplace), Railway (Backend), Vercel/Netlify (Dashboard)
 
 ### 📊 Supported Business Models:
 - **E-commerce Stores:** Various products with inventory management

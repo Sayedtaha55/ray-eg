@@ -62,6 +62,11 @@ import {
   updateShopStatusViaBackend,
   upgradeDashboardConfigViaBackend,
   uploadMyShopBannerViaBackend,
+  openShiftViaBackend,
+  closeShiftViaBackend,
+  getMyActiveShiftViaBackend,
+  listShiftsViaBackend,
+  getShiftSummaryViaBackend,
 } from './api/modules/shops';
 import {
   createOfferViaBackend,
@@ -204,7 +209,7 @@ import {
   type BuilderChatResponse,
   type VisualEditResponse,
 } from './api/modules/ai';
-import type { StylePreset } from '@/types/pageSchema';
+import type { StylePreset } from '../types/pageSchema';
 import {
   addMyFavoriteViaBackend,
   getMyFavoritesViaBackend,
@@ -1100,6 +1105,24 @@ export const ApiService = {
   adminRejectModuleUpgradeRequest: async (id: string, payload?: { note?: string | null }) => {
     return await adminRejectModuleUpgradeRequestViaBackend(id, payload);
   },
+
+  // ─── Cashier Shifts ───
+  openShift: async (payload: { shopId?: string; openingAmount?: number }) => {
+    return await openShiftViaBackend(payload);
+  },
+  closeShift: async (shiftId: string, payload: { closingAmount?: number; note?: string }) => {
+    return await closeShiftViaBackend(shiftId, payload);
+  },
+  getMyActiveShift: async (shopId?: string) => {
+    return await getMyActiveShiftViaBackend(shopId);
+  },
+  listShifts: async (params?: { shopId?: string; status?: string; from?: string; to?: string; take?: number }) => {
+    return await listShiftsViaBackend(params);
+  },
+  getShiftSummary: async (params?: { shopId?: string; from?: string; to?: string }) => {
+    return await getShiftSummaryViaBackend(params);
+  },
+
   followShop: async (shopId: string) => {
     return await followShopViaBackend(shopId);
   },
@@ -2231,6 +2254,37 @@ export const ApiService = {
       return list[idx];
     } catch {
       return null;
+    }
+  },
+
+  // HR Module
+  getEmployees: async (shopId: string): Promise<any[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/employees`);
+    } catch {
+      return [];
+    }
+  },
+
+  getAttendance: async (shopId: string): Promise<any[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/attendance`);
+    } catch {
+      return [];
+    }
+  },
+
+  getPayroll: async (shopId: string): Promise<any[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/payroll`);
+    } catch {
+      return [];
     }
   },
 };

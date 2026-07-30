@@ -127,10 +127,10 @@ export default async function ShopPage({ params }: Props) {
 
       {/* Shop Header */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 -mt-20 md:-mt-24 relative z-10">
-        <div className="rounded-4xl shadow-xl border border-slate-100 dark:border-slate-800 p-6 md:p-8" style={{ backgroundColor: headerBg, color: headerText }}>
+        <div className="rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 md:p-8" style={{ backgroundColor: headerBg, color: headerText }}>
           <div className="flex flex-col md:flex-row items-start gap-6">
             {/* Logo */}
-            <div className="w-24 h-24 md:w-32 md:h-32 rounded-4xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg" style={{ backgroundColor: primaryColor + '22' }}>
+            <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg" style={{ backgroundColor: primaryColor + '22' }}>
               {logoUrl ? (
                 <Image src={logoUrl} alt={shop.name} width={128} height={128} className="object-cover w-full h-full" />
               ) : (
@@ -141,7 +141,7 @@ export default async function ShopPage({ params }: Props) {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-2xl md:text-4xl font-black tracking-tight" style={{ color: headerText }}>
+                <h1 className="text-2xl md:text-4xl font-bold tracking-tight" style={{ color: headerText }}>
                   {shop.name}
                 </h1>
                 {shop.isVerified && (
@@ -152,12 +152,12 @@ export default async function ShopPage({ params }: Props) {
               </div>
 
               {shop.bio && (
-                <p className="font-bold text-sm md:text-base mb-4 max-w-2xl" style={{ color: headerText, opacity: 0.7 }}>
+                <p className="font-semibold text-sm md:text-base mb-4 max-w-2xl" style={{ color: headerText, opacity: 0.7 }}>
                   {shop.bio}
                 </p>
               )}
 
-              <div className="flex flex-wrap items-center gap-4 text-sm font-bold" style={{ color: headerText, opacity: 0.6 }}>
+              <div className="flex flex-wrap items-center gap-4 text-sm font-semibold" style={{ color: headerText, opacity: 0.6 }}>
                 {shop.city && (
                   <span className="flex items-center gap-1.5">
                     <MapPin className="w-4 h-4" style={{ color: primaryColor }} />
@@ -185,7 +185,7 @@ export default async function ShopPage({ params }: Props) {
               {shop.phone && (
                 <a
                   href={`tel:${shop.phone}`}
-                  className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-cyan/10 transition-all"
+                  className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-cyan/10 transition-all"
                   aria-label="اتصل"
                 >
                   <Phone className="w-5 h-5 text-slate-700 dark:text-slate-300" />
@@ -196,7 +196,7 @@ export default async function ShopPage({ params }: Props) {
                   href={`https://wa.me/${shop.whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-11 h-11 rounded-2xl bg-green-500/10 flex items-center justify-center hover:bg-green-500/20 transition-all"
+                  className="w-11 h-11 rounded-lg bg-green-500/10 flex items-center justify-center hover:bg-green-500/20 transition-all"
                   aria-label="واتساب"
                 >
                   <MessageCircle className="w-5 h-5 text-green-500" />
@@ -205,7 +205,7 @@ export default async function ShopPage({ params }: Props) {
               <ShareButton
                 path={`/shop/${shop.slug}`}
                 title={shop.name}
-                className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-purple/10 transition-all"
+                className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-brand-purple/10 transition-all"
                 iconClassName="w-5 h-5 text-slate-700 dark:text-slate-300"
               />
             </div>
@@ -216,11 +216,11 @@ export default async function ShopPage({ params }: Props) {
       {/* Products */}
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16" style={{ backgroundColor: bgColor }}>
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl md:text-3xl font-black tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">
             المنتجات
-            {products.length > 0 && <span className="text-slate-400 text-lg mr-2">({products.length})</span>}
+            {products.length > 0 && <span className="text-slate-500 text-lg mr-2">({products.length})</span>}
           </h2>
-          <Link href="/dalil" className="flex items-center gap-2 font-black text-sm hover:gap-3 transition-all" style={{ color: primaryColor }}>
+          <Link href="/dalil" className="flex items-center gap-2 font-semibold text-sm hover:gap-3 transition-all" style={{ color: primaryColor }}>
             العودة
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -235,7 +235,7 @@ export default async function ShopPage({ params }: Props) {
         ) : (
           <div className="text-center py-20">
             <Store className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-            <p className="text-slate-400 font-black text-lg">لا توجد منتجات حالياً</p>
+            <p className="text-slate-500 font-semibold text-lg">لا توجد منتجات حالياً</p>
           </div>
         )}
       </div>

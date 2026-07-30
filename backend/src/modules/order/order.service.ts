@@ -5,6 +5,7 @@ import { RedisService } from '@common/redis/redis.service';
 import { NotificationService } from '@modules/notification/notification.service';
 import { RealtimeService } from '@common/realtime/realtime.service';
 import { NotificationPriority, NotificationType } from '@shared/types/notifications';
+import { ShiftService } from '@modules/shop/shift.service';
 
 @Injectable()
 export class OrderService {
@@ -14,6 +15,7 @@ export class OrderService {
     @Inject(CourierDispatchService) private readonly courierDispatch: CourierDispatchService,
     @Inject(NotificationService) private readonly notificationService: NotificationService,
     @Optional() @Inject(RealtimeService) private readonly realtime?: RealtimeService,
+    @Optional() @Inject(ShiftService) private readonly shiftService?: ShiftService,
   ) {}
 
   private mapDbErrorToBadRequest(e: any) {
@@ -1395,6 +1397,21 @@ export class OrderService {
       });
     } catch {
       // ignore realtime failures
+    }
+
+    // Update cashier shift sales if this was a POS order
+    if (source === 'pos' && this.shiftService && created) {
+      try {
+        const activeShift = await (this.prisma as any).cashierShift?.findFirst({
+          where: { shopId, userId, status: 'OPEN' },
+          orderBy: { openedAt: 'desc' },
+        });
+        if (activeShift?.id) {
+          await this.shiftService.updateShiftSales(activeShift.id, Number((created as any)?.total || 0));
+        }
+      } catch {
+        // shift update is best-effort, don't fail the order
+      }
     }
 
     return created;

@@ -254,68 +254,80 @@ npm run prisma:validate
 
 ## 3.4 تشغيل الخدمات (Running Services)
 
-### 3.4.1 تشغيل الواجهة الخلفية (Backend)
+> **ملاحظة مهمة:** المشروع مقسم إلى تطبيقين منفصلين. كل تطبيق له مجلده الخاص وأوامره الخاصة.
 
-**1. التشغيل العادي:**
+### 3.4.1 تشغيل الواجهة الخلفية (Backend) — Port 4000
+
+**1. التشغيل العادي (مستقر):**
 ```bash
-npm run backend:dev
+npm run backend:dev:stable
 ```
 **النتيجة:** Backend يعمل على `http://localhost:4000`
 
-**2. التشغيل مع Debugging:**
+**2. تشغيل بموديولات محددة:**
 ```bash
-npm run backend:dev:debug
+npm run backend:dev:auth          # Auth فقط
+npm run backend:dev:shop-product  # Shop + Product
+npm run backend:dev:unified       # جميع الموديولات
 ```
 
-**3. التشغيل مع Watch Mode:**
+**3. التحقق من عمل Backend:**
 ```bash
-npm run backend:dev:watch
-```
-
-**4. التحقق من عمل Backend:**
-```bash
-# اختبار health endpoint
 curl http://localhost:4000/health
-
-# اختبار API endpoint
 curl http://localhost:4000/api/v1/auth/session
 ```
 
-### 3.4.2 تشغيل الواجهة الأمامية (Frontend)
+### 3.4.2 تشغيل Marketplace (Next.js) — Port 5174
 
-**1. التشغيل العادي:**
 ```bash
+cd apps/marketplace-next
 npm run dev
 ```
-**النتيجة:** Frontend يعمل على `http://localhost:5174`
+**النتيجة:** Marketplace يعمل على `http://localhost:5174`
 
-**2. التشغيل مع HTTPS:**
+- Next.js App Router مع SSR لتحسين SEO
+- API proxy تلقائي إلى Backend عبر `next.config.mjs` rewrites
+- `NEXT_PUBLIC_BACKEND_URL` لتحديد عنوان الـ Backend
+
+### 3.4.3 تشغيل Dashboard (Vite SPA) — Port 3000
+
 ```bash
-npm run dev:https
+cd apps/dashboard
+npm run dev
+```
+**النتيجة:** Dashboard يعمل على `http://localhost:3000`
+
+- Vite SPA مع proxy إلى Backend
+- `@` alias يشير إلى `packages/shared/src`
+- يدعم HTTPS تلقائياً إذا وجد `certs/localhost.pem`
+
+### 3.4.4 التشغيل المتزامن (Concurrent Development)
+
+**تشغيل الخدمات الثلاث معاً:**
+```bash
+# Terminal 1: Backend
+npm run backend:dev:stable
+
+# Terminal 2: Marketplace (Next.js)
+cd apps/marketplace-next && npm run dev
+
+# Terminal 3: Dashboard (Vite)
+cd apps/dashboard && npm run dev
 ```
 
-**3. التحقق من عمل Frontend:**
+**باستخدام Docker Compose:**
 ```bash
-# افتح المتصفح على
-http://localhost:5174
-```
-
-### 3.4.3 التشغيل المتزامن (Concurrent Development)
-
-**1. تشغيل الخدمتين معاً:**
-```bash
-# في نافذة واحدة
-npm run dev:concurrent
-
-# أو باستخدام concurrently
-npm run dev:all
-```
-
-**2. باستخدام Docker Compose:**
-```bash
-# تشغيل جميع الخدمات مع Docker
 docker-compose -f docker-compose.dev.yml up
 ```
+
+### 3.4.5 جدول البورتات (Port Reference)
+
+| الخدمة          | البورت | المسار                    | الأمر                        |
+|-----------------|--------|---------------------------|------------------------------|
+| Backend (NestJS)| 4000   | `backend/`                | `npm run backend:dev:stable` |
+| Marketplace     | 5174   | `apps/marketplace-next/`  | `npm run dev` (من داخل المجلد) |
+| Dashboard       | 3000   | `apps/dashboard/`         | `npm run dev` (من داخل المجلد) |
+| Electron        | —      | `electron/`               | `npm run electron:dev`       |
 
 ## 3.5 أوضاع التشغيل المتقدمة (Advanced Boot Modes)
 
@@ -633,19 +645,20 @@ npm run loadtest:k6
 ## 3.11 النصائح والحيل (Tips & Tricks)
 
 ### 3.11.1 Development Tips
-- استخدم `npm run dev:concurrent` لتشغيل الخدمتين معاً
-- استخدم `MINIMAL_BOOT=true` للتطوير السريع
+- استخدم `npm run backend:dev:stable` لتشغيل Backend مستقر
+- استخدم `cd apps/marketplace-next && npm run dev` لتشغيل Marketplace
+- استخدم `cd apps/dashboard && npm run dev` لتشغيل Dashboard
+- استخدم `MINIMAL_BOOT=true` للتطوير السريع للـ Backend
 - استخدم `BOOT_MODULES` لتشغيل موديولات محددة
 - استخدم `npm run prisma:studio` لعرض قاعدة البيانات
+- **لا تستخدم** `npm run dev` من الـ root — استخدم أوامر كل تطبيق من مجلده
 
 ### 3.11.2 Performance Tips
-- استخدم `npm run build:analyze` لتحليل حجم البناء
 - استخدم `npm run typecheck` للكشف عن الأخطاء مبكراً
 - استخدم `npm run lint:fix` لإصلاح أخطاء الكود تلقائياً
 - استخدم `npm run test:watch` لاختبار مستمر
 
 ### 3.11.3 Debugging Tips
 - استخدم `console.log` مع `DEBUG=true` للـ logging المفصل
-- استخدم `npm run backend:dev:debug` للـ debugging المتقدم
 - استخدم `npm run prisma:studio` لتصحيح أخطاء قاعدة البيانات
 - استخدم browser DevTools لتصحيح أخطاء الواجهة الأمامية

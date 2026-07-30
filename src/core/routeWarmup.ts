@@ -1,9 +1,7 @@
-import { isMobileViewportLike } from '../shared/utils/performanceProfile';
+import { isMobileViewportLike } from '@/utils/performanceProfile';
 
 const warmupLoaders = [
-  () => import('../shared/components/pages/public/MapPage'),
-  () => import('../shared/components/pages/public/ShopProfile'),
-  () => import('../shared/components/pages/public/ProductPage'),
+  () => import('@/components/pages/public/ShopProfile'),
 ];
 
 export const warmupRouteChunks = () => {

@@ -1,5 +1,5 @@
-
 {
+  "$comment": "This vercel.json is for the LEGACY Vite SPA. The Next.js marketplace (apps/marketplace-next) is deployed separately and auto-detected by Vercel.",
   "version": 2,
   "rewrites": [
     {

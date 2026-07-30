@@ -41,6 +41,7 @@ model User {
   userMeasurements            UserMeasurement[]
   shop                        Shop?                      @relation("ShopOwner")
   reviewedMapListings         MapListing[]               @relation("MapListingReviewedByAdmin")
+  cashierShifts               CashierShift[]
 
   @@index([role, isActive, createdAt])
   @@index([isActive, createdAt])
@@ -129,6 +130,7 @@ model Shop {
   gallery               ShopGallery[]
   imageMaps             ShopImageMap[]
   moduleUpgradeRequests ShopModuleUpgradeRequest[]
+  cashierShifts         CashierShift[]
   themeSettings         ShopTheme[]
   aiAuditLogs           AiAuditLog[]
   knowledgeDocuments    KnowledgeDocument[]
@@ -219,6 +221,36 @@ model ShopModuleUpgradeRequest {
   @@index([shopId])
   @@index([status])
   @@map("shop_module_upgrade_requests")
+}
+
+model CashierShift {
+  id              String          @id @default(cuid())
+  shopId          String          @map("shop_id")
+  userId          String          @map("user_id")
+  status          ShiftStatus     @default(OPEN)
+  openingAmount   Float           @default(0) @map("opening_amount")
+  closingAmount   Float?          @map("closing_amount")
+  expectedAmount  Float?          @map("expected_amount")
+  difference      Float?          @map("difference")
+  ordersCount     Int             @default(0) @map("orders_count")
+  totalSales      Float           @default(0) @map("total_sales")
+  note            String?
+  openedAt        DateTime        @default(now()) @map("opened_at")
+  closedAt        DateTime?       @map("closed_at")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  shop            Shop            @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([shopId, status])
+  @@index([userId, status])
+  @@index([shopId, openedAt])
+  @@map("cashier_shifts")
+}
+
+enum ShiftStatus {
+  OPEN
+  CLOSED
 }
 
 model ShopFollower {
@@ -989,6 +1021,7 @@ enum UserRole {
   MERCHANT
   ADMIN
   COURIER
+  CASHIER
 }
 
 enum ShopCategory {

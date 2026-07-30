@@ -20,12 +20,12 @@ export default async function OffersPage() {
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-14 h-14 bg-brand-cyan/10 rounded-3xl flex items-center justify-center">
+        <div className="w-14 h-14 bg-brand-cyan/10 rounded-xl flex items-center justify-center">
           <Tag className="w-7 h-7 text-brand-cyan" />
         </div>
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight">العروض</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm md:text-base mt-1">أحدث الخصومات والعروض من المتاجر</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">العروض</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">أحدث الخصومات والعروض من المتاجر</p>
         </div>
       </div>
 

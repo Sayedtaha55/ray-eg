@@ -26,11 +26,11 @@
     "paths": {
       "@ray-eg/shared": ["packages/shared/src/index.ts"],
       "@ray-eg/shared/*": ["packages/shared/src/*"],
-      "@/*": ["packages/shared/src/*", "src/shared/*"],
+      "@/*": ["packages/shared/src/*"],
       "@core/*": ["src/core/*", "backend/src/core/*"],
-      "@features/*": ["src/features/*", "apps/marketplace/src/features/*"],
-      "@shared/*": ["packages/shared/src/*", "src/shared/*", "backend/src/shared/*"],
-      "@assets/*": ["packages/shared/src/assets/*", "src/assets/*"],
+      "@features/*": ["src/features/*"],
+      "@shared/*": ["packages/shared/src/*"],
+      "@assets/*": ["packages/shared/src/assets/*"],
       "@common/*": ["backend/src/common/*"],
       "@modules/*": ["backend/src/modules/*"]
     },

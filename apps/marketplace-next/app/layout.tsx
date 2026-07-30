@@ -4,6 +4,7 @@ import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { MobileFooter } from '@/components/MobileFooter';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { siteConfig } from '@/lib/config';
 
@@ -74,8 +75,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <ScrollProgress />
           <Navbar />
-          <main className="min-h-screen pt-16 md:pt-20">{children}</main>
+          <main className="min-h-screen pt-16 md:pt-20 pb-16 lg:pb-0">{children}</main>
           <Footer />
+          <MobileFooter />
         </AppProvider>
       </body>
     </html>

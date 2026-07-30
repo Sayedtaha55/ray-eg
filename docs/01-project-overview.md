@@ -199,14 +199,34 @@
 ## 1.6 اللمحة التقنية (Technical Overview)
 
 ### 1.6.1 الواجهة الأمامية (Frontend Stack)
-- **React 19** مع أحدث الميزات (Concurrent Features, Server Components)
-- **TypeScript** للكود الآمن والقابل للصيانة
-- **Vite** كـ build tool سريع ومحسن
-- **Tailwind CSS** للتصميم السريع والمتجاوب
-- **Framer Motion** للرسوم المتحركة السلسة
-- **Lucide React** للأيقونات الحديثة
-- **React Query** لإدارة حالة الخادم
-- **React Router** للتوجيه المتقدم
+
+المشروع مقسم إلى **تطبيقين منفصلين** يشاركان نفس الـ Backend وحزمة مشتركة:
+
+**التطبيق الأول — Marketplace (Next.js 15):**
+- **Next.js 15** (App Router) مع Server-Side Rendering لتحسين SEO
+- **React 19** مع أحدث الميزات
+- **TypeScript** للكود الآمن
+- **Tailwind CSS** للتصميم
+- **Framer Motion** للرسوم المتحركة
+- **Lucide React** للأيقونات
+- يعمل على البورت `5174`
+- المسار: `apps/marketplace-next/`
+
+**التطبيق الثاني — Dashboard (Vite SPA):**
+- **React 19** + **TypeScript**
+- **Vite** كـ build tool سريع
+- **Tailwind CSS** للتصميم
+- **Framer Motion** للرسوم المتحركة
+- **Recharts** للرسوم البيانية
+- **React Router** للتوجيه
+- يعمل على البورت `3000`
+- المسار: `apps/dashboard/`
+- **Electron** لتوزيعه كتطبيق سطح مكتب
+
+**الحزمة المشتركة — @ray-eg/shared:**
+- **المسار:** `packages/shared/`
+- تحتوي على: المكونات (160+)، الخدمات (API client, auth)، i18n (ar/en)، الأدوات، الأنواع، الـ hooks
+- يستوردها كلا التطبيقين عبر alias `@`
 
 ### 1.6.2 الواجهة الخلفية (Backend Stack)
 - **NestJS** كإطار عمل Node.js متقدم
@@ -237,7 +257,7 @@
 ## 1.7 حدود المشروع الحالية والقيود (Current Limitations)
 
 ### 1.7.1 القيود التقنية
-- **Monolithic Frontend:** جميع الواجهات في مشروع واحد
+- **Legacy Vite App:** تطبيق Vite القديم في `src/` مهمل — المكونات نُقلت إلى `packages/shared/`
 - **Limited Scalability:** بعض المكونات تحتاج إعادة هيكلة للنمو الكبير
 - **Legacy Schema:** وجود مسارات SQLite قديمة تتطلب حذراً
 - **Single Database:** لا يوجد توزيع قواعد بيانات بعد

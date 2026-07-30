@@ -29,6 +29,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/suggestions`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${baseUrl}/login`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
     { url: `${baseUrl}/signup`, lastModified: now, changeFrequency: 'monthly', priority: 0.3 },
+    // Builder pages
+    { url: `${baseUrl}/builder`, lastModified: now, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${baseUrl}/builder/templates`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/builder/themes`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
   ];
 
   const activityPages: MetadataRoute.Sitemap = activities.map((a) => ({

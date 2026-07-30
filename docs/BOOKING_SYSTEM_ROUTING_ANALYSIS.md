@@ -13,8 +13,7 @@ The application had a confusing routing structure where booking functionality wa
 This caused:
 - Navigation confusion for users
 - Inconsistent routing patterns
-- Redundant code paths
-- Difficulty in maintaining booking-related features
+- Redundaiculty in maintaining booking-related features
 
 ## Analysis Findings
 
@@ -26,7 +25,8 @@ This caused:
 - Main dashboard is at `/business/dashboard`
 
 **BusinessLayout.tsx Issues Found:**
-- Line 61: `location.pathname.includes('/business/bookings')` in isDashboard check
+- Line 6nt code paths
+- Diff1: `location.pathname.includes('/business/bookings')` in isDashboard check
 - Line 91: `'bookings'` included in bookingActivities array
 - Lines 126-131: `isBookingSettingsTab` check for `/business/bookings` path
 

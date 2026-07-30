@@ -10,10 +10,18 @@ export interface ApiOptions {
 
 async function apiFetch<T>(path: string, options?: ApiOptions & { method?: string; body?: unknown }): Promise<T> {
   const url = `${BACKEND_URL}${path.startsWith('/api') ? path : `/api/v1${path}`}`;
+  
+  // Get token from localStorage for client-side requests
+  let token: string | null = null;
+  if (typeof window !== 'undefined') {
+    token = localStorage.getItem('token');
+  }
+  
   const res = await fetch(url, {
     method: options?.method || 'GET',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options?.headers,
     },
     body: options?.body ? JSON.stringify(options.body) : undefined,

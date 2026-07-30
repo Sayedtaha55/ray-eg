@@ -31,20 +31,20 @@ export default async function DalilPage() {
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(dalilLd) }} />
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-14 h-14 bg-brand-purple/10 rounded-3xl flex items-center justify-center">
+        <div className="w-14 h-14 bg-brand-purple/10 rounded-xl flex items-center justify-center">
           <Store className="w-7 h-7 text-brand-purple" />
         </div>
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight">دليل المتاجر</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm md:text-base mt-1">استكشف جميع المتاجر المسجلة</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">دليل المتاجر</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">استكشف جميع المتاجر المسجلة</p>
         </div>
       </div>
 
       {/* Activities quick links */}
       <div className="flex flex-wrap gap-2 mb-8">
-        <Link href="/dalil" className="px-4 py-2 rounded-xl text-xs font-black bg-brand-black text-white">الكل</Link>
+        <Link href="/dalil" className="px-4 py-2 rounded-lg text-xs font-semibold bg-brand-black text-white">الكل</Link>
         {activities.map((a) => (
-          <Link key={a.id} href={`/activity/${a.id}`} className="px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
+          <Link key={a.id} href={`/activity/${a.id}`} className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
             {a.icon} {a.label.ar}
           </Link>
         ))}

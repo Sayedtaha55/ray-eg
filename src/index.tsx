@@ -2,10 +2,10 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
-import './shared/i18n';
-import ErrorBoundary from './shared/components/common/feedback/ErrorBoundary';
-import { ToastProvider } from './shared/components/common/feedback/Toaster';
-import { syncService } from './shared/lib/sync-service';
+import '@/i18n';
+import ErrorBoundary from '@/components/common/feedback/ErrorBoundary';
+import { ToastProvider } from '@/components/common/feedback/Toaster';
+import { syncService } from '@/lib/sync-service';
 
 // Service Worker Registration
 if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {

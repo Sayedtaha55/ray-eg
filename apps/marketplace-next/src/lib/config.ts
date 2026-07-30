@@ -18,6 +18,7 @@ export const siteConfig = {
 export const navLinks = [
   { href: '/', label: { ar: 'الرئيسية', en: 'Home' } },
   { href: '/dalil', label: { ar: 'الدليل', en: 'Directory' } },
+  { href: '/builder', label: { ar: 'منشئ المواقع', en: 'Website Builder' } },
   { href: '/offers', label: { ar: 'العروض', en: 'Offers' } },
   { href: '/map', label: { ar: 'الخريطة', en: 'Map' } },
   { href: '/blog', label: { ar: 'المدونة', en: 'Blog' } },

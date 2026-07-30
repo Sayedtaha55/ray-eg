@@ -3,6 +3,7 @@
   "include": [
     "App.tsx",
     "src/**/*",
+    "packages/shared/src/**/*",
     "scripts/**/*",
     "*.ts",
     "*.tsx",
@@ -12,6 +13,7 @@
     "backend/**/*",
     "dist/**/*",
     "node_modules/**/*",
-    "uploads/**/*"
+    "uploads/**/*",
+    "apps/**/*"
   ]
 }

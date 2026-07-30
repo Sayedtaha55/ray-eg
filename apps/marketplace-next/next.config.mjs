@@ -1,12 +1,8 @@
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
-  outputFileTracingRoot: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'),
   images: {
     formats: ['image/avif', 'image/webp'],
     remotePatterns: [

@@ -35,18 +35,18 @@ export default async function ActivityPage({ params }: Props) {
 
   return (
     <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-12 md:py-16">
-      <Link href="/" className="flex items-center gap-2 text-brand-cyan font-black text-sm mb-6 hover:gap-3 transition-all">
+      <Link href="/" className="flex items-center gap-2 text-brand-cyan font-semibold text-sm mb-6 hover:gap-3 transition-all">
         <ArrowLeft className="w-4 h-4" />
         العودة للرئيسية
       </Link>
 
       <div className="flex items-center gap-4 mb-10">
-        <div className="w-16 h-16 bg-brand-cyan/10 rounded-4xl flex items-center justify-center text-3xl">
+        <div className="w-16 h-16 bg-brand-cyan/10 rounded-xl flex items-center justify-center text-3xl">
           {config?.icon || '📦'}
         </div>
         <div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tight">{config?.label.ar || 'نشاط'}</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-bold text-sm md:text-base mt-1">متاجر في قطاع {config?.label.ar}</p>
+          <h1 className="text-3xl md:text-5xl font-bold tracking-tight">{config?.label.ar || 'نشاط'}</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-semibold text-sm md:text-base mt-1">متاجر في قطاع {config?.label.ar}</p>
         </div>
       </div>
 
@@ -57,8 +57,8 @@ export default async function ActivityPage({ params }: Props) {
       ) : (
         <div className="text-center py-20">
           <Store className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
-          <p className="text-slate-400 font-black text-lg">لا توجد متاجر في هذا القطاع حالياً</p>
-          <Link href="/dalil" className="inline-flex items-center gap-2 mt-4 text-brand-cyan font-black text-sm hover:underline">
+          <p className="text-slate-500 font-semibold text-lg">لا توجد متاجر في هذا القطاع حالياً</p>
+          <Link href="/dalil" className="inline-flex items-center gap-2 mt-4 text-brand-cyan font-semibold text-sm hover:underline">
             تصفح كل المتاجر
           </Link>
         </div>

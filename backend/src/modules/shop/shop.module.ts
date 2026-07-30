@@ -19,6 +19,8 @@ import { ShopMediaService } from './shop-media.service';
 import { ShopSettingsService } from './shop-settings.service';
 import { ShopPublicQueryService } from './shop-public-query.service';
 import { ShopAnalyticsService } from './shop-analytics.service';
+import { ShiftService } from './shift.service';
+import { ShiftController } from './shift.controller';
 
 const shopImportsRaw = String(process.env.SHOP_IMPORTS || '').trim().toLowerCase();
 const shopImports = new Set(
@@ -39,7 +41,7 @@ const isShopImportsOverride = shopImportsRaw.length > 0;
     forwardRef(() => AuthModule),
     ...(includeAllShopImports || shopImports.has('monitoring') ? [MonitoringModule] : []),
   ],
-  controllers: [ShopController],
+  controllers: [ShopController, ShiftController],
   providers: [
     ShopService,
     ShopModulesService,
@@ -49,6 +51,7 @@ const isShopImportsOverride = shopImportsRaw.length > 0;
     ShopSettingsService,
     ShopPublicQueryService,
     ShopAnalyticsService,
+    ShiftService,
     ...(!includeAllShopImports && isShopImportsOverride && !shopImports.has('monitoring')
       ? [
           {
@@ -123,6 +126,6 @@ const isShopImportsOverride = shopImportsRaw.length > 0;
         ]
       : []),
   ],
-  exports: [ShopService],
+  exports: [ShopService, ShiftService],
 })
 export class ShopModule {}
