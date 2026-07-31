@@ -12,6 +12,7 @@ const BusinessPendingApproval = React.lazy(() => import('../pages/business/Busin
 const CourierSignupPage = React.lazy(() => import('../pages/business/CourierSignupPage'));
 const BuilderPreviewPage = React.lazy(() => import('../pages/business/builder/BuilderPreviewPage'));
 const BookingActivityPage = React.lazy(() => import('../pages/business/bookings/BookingActivityPage'));
+const LoginPage = React.lazy(() => import('../pages/auth/LoginPage'));
 
 const AdminLayout = React.lazy(() => import('../layouts/AdminLayout'));
 const AdminDashboard = React.lazy(() => import('../pages/admin/AdminDashboard'));
@@ -47,7 +48,8 @@ const AppRoutes: React.FC = () => {
         <Route index element={suspense(<BusinessPendingApproval />)} />
       </Route>
       <Route path="/business" element={suspense(<BusinessLayout />)}>
-        <Route index element={<Navigate to="/business/dashboard" replace />} />
+        <Route index element={<Navigate to="/business/login" replace />} />
+        <Route path="login" element={suspense(<LoginPage />)} />
         <Route path="onboarding" element={suspense(<MerchantOnboarding />)} />
         <Route path="setup" element={suspense(<OnboardingWizard />)} />
         <Route path="dashboard" element={suspense(<MerchantDashboard />)} />
@@ -83,7 +85,8 @@ const AppRoutes: React.FC = () => {
       </Route>
       <Route path="/courier/orders" element={suspense(<CourierOrders />)} />
       <Route path="/404" element={suspense(<Page404 />)} />
-      <Route path="*" element={<Navigate to="/business" replace />} />
+      <Route path="/" element={<Navigate to="/business/login" replace />} />
+      <Route path="*" element={<Navigate to="/business/login" replace />} />
     </Routes>
   );
 };
