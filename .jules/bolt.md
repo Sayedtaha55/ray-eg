@@ -1,0 +1,3 @@
+## 2026-06-01 - Zero-DB Cache Hits for Product Listings
+**Learning:** In the `ProductService`, product listings were caching raw database results and applying visibility filters (linked image map hotspots) *after* retrieving from cache. This caused cache hits to still require 1-2 extra database queries to fetch hotspot metadata, negating much of the caching benefit. Additionally, parallelizing the primary product query with metadata lookups on cache misses significantly reduces latency.
+**Action:** Always apply visibility and permission filters *before* caching objects in Redis, and use `Promise.all` to parallelize independent database lookups during cache-miss paths.
