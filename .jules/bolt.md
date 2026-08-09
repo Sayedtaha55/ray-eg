@@ -1,0 +1,3 @@
+## 2026-07-19 - [Parallelizing Database Queries in Sitemap and Product Lookup Hot-paths]
+**Learning:** Sequential await operations in hot-paths (such as `generateSitemap` where we fetch shops and products independently, or `getById` where we retrieve image map metadata and label keys) are a significant latency bottleneck. Running these queries concurrently with `Promise.all` yields major speed boosts.
+**Action:** Always identify independent, non-dependent database or cache lookups within the same function scope and group them into `Promise.all` while ensuring proper error handling (fail-closed posture) is preserved.

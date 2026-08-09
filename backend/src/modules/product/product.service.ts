@@ -203,24 +203,28 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
+    // Parallelize independent visibility metadata lookups using Promise.all
+    // to minimize request latency and maintain a fail-closed posture.
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim()),
+        this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim()),
+      ]);
+
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
     } catch (e) {
       if (e instanceof NotFoundException) throw e;
+      // Fail-closed security posture: if metadata retrieval fails, propagate the error
+      // to avoid exposing potentially hidden products.
+      throw e;
     }
 
     try {

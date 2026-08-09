@@ -15,15 +15,17 @@ export class ShopSitemapService {
       { loc: `${baseUrl}/about`, changefreq: 'monthly', priority: '0.5' },
     ];
 
-    const shops = await this.prisma.shop.findMany({
-      where: { status: 'APPROVED' as any },
-      select: { slug: true, updatedAt: true },
-    });
-
-    const products = await this.prisma.product.findMany({
-      where: { isActive: true },
-      select: { id: true, updatedAt: true },
-    });
+    // Parallelize shops and products queries to speed up sitemap generation
+    const [shops, products] = await Promise.all([
+      this.prisma.shop.findMany({
+        where: { status: 'APPROVED' as any },
+        select: { slug: true, updatedAt: true },
+      }),
+      this.prisma.product.findMany({
+        where: { isActive: true },
+        select: { id: true, updatedAt: true },
+      }),
+    ]);
 
     const shopUrls = shops.map((shop) => ({
       loc: `${baseUrl}/shops/${shop.slug}`,
