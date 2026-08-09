@@ -138,6 +138,7 @@ model Shop {
   media                 Media[]
   owner                 User?                      @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: SetNull)
 
+  @@unique([ownerId])
   @@index([category])
   @@index([slug])
   @@index([status])
