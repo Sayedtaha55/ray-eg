@@ -303,6 +303,8 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Broadly invalidate product lists to ensure hotspots visibility changes are reflected.
+      await this.redis.invalidatePattern('products:*');
     } catch {}
 
     return (this.prisma as any).shopImageMap.findUnique({
@@ -541,6 +543,8 @@ export class ShopImageMapService {
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
       }
+      // PERFORMANCE: Broadly invalidate product lists to ensure hotspots visibility changes are reflected.
+      await this.redis.invalidatePattern('products:*');
     } catch {}
 
     return result;
