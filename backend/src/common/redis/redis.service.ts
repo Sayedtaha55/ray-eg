@@ -204,6 +204,15 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.del(`product:${productId}`);
   }
 
+  async invalidateShopProductLists(shopId: string): Promise<void> {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    await Promise.all([
+      this.invalidatePattern(`products:shop:*${sid}*`),
+      this.invalidatePattern('products:all:*'),
+    ]);
+  }
+
   // Analytics and monitoring
   async incrementCounter(key: string, amount = 1): Promise<number> {
     if (!this.client) return 0;
