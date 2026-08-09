@@ -203,23 +203,24 @@ export class ProductService {
       throw new NotFoundException('لم يتم العثور على المنتج');
     }
 
+    // PERFORMANCE: Parallelize visibility checks to reduce latency on cache miss
     try {
-      const linkedIds = await this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim());
+      const [linkedIds, labelKeys] = await Promise.all([
+        this.getLinkedImageMapProductIds(String((product as any)?.shopId || '').trim()),
+        this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim()),
+      ]);
+
       const pid = String((product as any)?.id || '').trim();
       if (pid && linkedIds.has(pid)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
-    } catch (e) {
-      if (e instanceof NotFoundException) throw e;
-    }
 
-    try {
-      const labelKeys = await this.getActiveImageMapHotspotLabelKeys(String((product as any)?.shopId || '').trim());
       const nameKey = this.normalizeProductNameKey((product as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) {
         throw new NotFoundException('لم يتم العثور على المنتج');
       }
     } catch (e) {
+      // Re-throw NotFoundException, but swallow other errors to maintain fail-open behavior
       if (e instanceof NotFoundException) throw e;
     }
 
@@ -298,22 +299,28 @@ export class ProductService {
 
     const deduped = this.dedupeById(products);
 
-    try {
-      await this.redis.set(cacheKey, deduped, 600);
-    } catch {
-    }
-
+    // PERFORMANCE: Zero-DB Cache Hit pattern. Filter products BEFORE caching.
+    // This ensures subsequent cache hits return already-filtered results,
+    // eliminating hotspot-related DB queries on every request.
     const [linkedIds, labelKeys] = await Promise.all([
       this.getLinkedImageMapProductIds(shopId),
       this.getActiveImageMapHotspotLabelKeys(shopId),
     ]);
-    return deduped.filter((p: any) => {
+
+    const filtered = deduped.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       const nameKey = this.normalizeProductNameKey((p as any)?.name);
       if (nameKey && labelKeys.has(nameKey)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 600);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async listByShopForManage(
@@ -459,17 +466,20 @@ export class ProductService {
       throw this.mapDbErrorToBadRequest(e);
     }
 
-    try {
-      await this.redis.set(cacheKey, products, 60);
-    } catch {
-    }
-
+    // PERFORMANCE: Zero-DB Cache Hit pattern. Filter image-map linked products BEFORE caching.
     const linkedIds = await this.getLinkedImageMapProductIds();
-    return products.filter((p: any) => {
+    const filtered = products.filter((p: any) => {
       const id = String((p as any)?.id || '').trim();
       if (id && linkedIds.has(id)) return false;
       return true;
     });
+
+    try {
+      await this.redis.set(cacheKey, filtered, 60);
+    } catch {
+    }
+
+    return filtered;
   }
 
   async create(input: {

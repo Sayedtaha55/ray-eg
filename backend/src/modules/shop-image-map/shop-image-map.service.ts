@@ -302,6 +302,12 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Image map activation affects product visibility for this shop and the global list.
+        // Scoped invalidation prevents cache stampedes for unrelated shops.
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
@@ -540,6 +546,12 @@ export class ShopImageMapService {
       });
       if (shop?.slug) {
         await this.redis.invalidateShopCache(sid, shop.slug);
+        // PERFORMANCE: Layout changes (hotspot updates) affect product visibility for this shop and the global list.
+        // Scoped invalidation prevents cache stampedes for unrelated shops.
+        await Promise.all([
+          this.redis.invalidatePattern(`products:shop:*"shopId":"${sid}"*`),
+          this.redis.invalidatePattern('products:all:*'),
+        ]);
       }
     } catch {}
 
