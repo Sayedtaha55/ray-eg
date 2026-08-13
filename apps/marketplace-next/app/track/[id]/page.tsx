@@ -7,7 +7,7 @@ import {
   Package, Truck, CheckCircle, Clock, MapPin, Store, Phone, ArrowLeft,
   Loader2, XCircle, AlertCircle,
 } from 'lucide-react';
-import { BACKEND_URL } from '@/lib/api';
+import { jsonRequest } from '@/lib/api';
 import { formatPrice, formatDate } from '@/lib/utils';
 
 interface OrderItem {
@@ -76,13 +76,8 @@ export default function TrackOrderPage() {
     (async () => {
       setLoading(true);
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
-        const headers: Record<string, string> = {};
-        if (token) headers['Authorization'] = `Bearer ${token}`;
-        const res = await fetch(`${BACKEND_URL}/api/v1/orders/${orderId}`, { headers });
-        if (!res.ok) throw new Error('لم يتم العثور على الطلب');
-        const data = await res.json();
-        setOrder(data?.data ?? data);
+        const data = await jsonRequest<OrderData>(`/orders/${orderId}`);
+        setOrder(data);
       } catch (err: any) {
         setError(err?.message || 'فشل تحميل الطلب');
       } finally {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Loader2, Truck, Users, UserPlus, Search, Check, X, Eye, Phone, Mail,
@@ -21,7 +21,7 @@ const fmtDate = (value: any) => {
   return d.toLocaleString('ar-EG');
 };
 
-export default function AdminDeliveryPage() {
+function AdminDeliveryContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
@@ -526,5 +526,13 @@ export default function AdminDeliveryPage() {
         )}
       </AdminModal>
     </div>
+  );
+}
+
+export default function AdminDeliveryPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <AdminDeliveryContent />
+    </Suspense>
   );
 }

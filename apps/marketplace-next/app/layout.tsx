@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from 'next';
-import { Alexandria } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
 import { CartProvider } from '@/lib/cart';
@@ -10,15 +9,6 @@ import { Footer } from '@/components/Footer';
 import { MobileFooter } from '@/components/MobileFooter';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { siteConfig } from '@/lib/config';
-
-const alexandria = Alexandria({
-  subsets: ['arabic', 'latin'],
-  variable: '--font-alexandria',
-  display: 'swap',
-  weight: ['400', '600', '800'],
-  preload: true,
-  adjustFontFallback: true,
-});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -73,13 +63,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
         <link rel="dns-prefetch" href="http://localhost:4000" />
       </head>
-      <body className={alexandria.variable} suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <AppProvider>
           <CartProvider>
             <WishlistProvider>

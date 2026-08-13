@@ -121,6 +121,7 @@ export interface SeasonalOffer {
   bannerColor: string;
   shopName?: string;
   shopSlug?: string;
+  status?: 'active' | 'inactive' | 'expired' | string;
 }
 
 export async function getSeasonalOffers(): Promise<SeasonalOffer[]> {

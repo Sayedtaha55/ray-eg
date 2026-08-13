@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, ShoppingBag, MapPin, CreditCard, Loader2, CheckCircle, Store, Truck, Banknote } from 'lucide-react';
 import { useCart } from '@/lib/cart';
-import { api } from '@/lib/api';
 import { formatPrice } from '@/lib/utils';
-import { BACKEND_URL } from '@/lib/api';
+import { getStoredAuthToken, jsonRequest } from '@/lib/api';
 import { LocationPicker } from '@/components/LocationPicker';
 import { playOrderNotifSound } from '@/lib/sounds';
 
@@ -29,10 +28,6 @@ export default function CheckoutPage() {
 
   const shopGroups = itemsByShop();
 
-  const getToken = () => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('token');
-  };
 
   const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,18 +36,18 @@ export default function CheckoutPage() {
     setError('');
 
     try {
-      const token = getToken();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+      if (!getStoredAuthToken()) {
+        router.push('/login?returnTo=/checkout');
+        return;
+      }
 
       const orders: any[] = [];
       const shopEntries = Object.entries(shopGroups);
 
       for (const [shopId, shopItems] of shopEntries) {
         const shopTotal = shopItems.reduce((s, i) => s + i.price * i.quantity, 0);
-        const res = await fetch(`${BACKEND_URL}/api/v1/orders`, {
+        const order = await jsonRequest<any>('/orders', {
           method: 'POST',
-          headers,
           body: JSON.stringify({
             shopId,
             items: shopItems.map((i) => ({
@@ -68,14 +63,11 @@ export default function CheckoutPage() {
             total: shopTotal,
             source: 'marketplace',
           }),
+        }).catch((err) => {
+          throw new Error(err?.message || `فشل إنشاء الطلب من ${shopItems[0]?.shopName}`);
         });
 
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData?.message || `فشل إنشاء الطلب من ${shopItems[0]?.shopName}`);
-        }
-        const data = await res.json();
-        orders.push(data?.data ?? data);
+        orders.push(order);
       }
 
       clearCart();

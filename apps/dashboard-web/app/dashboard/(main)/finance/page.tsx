@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { Suspense, useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { FileText, Search, Loader2, Plus, Edit, Trash2, Eye, Download, Upload, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, MoreVertical, DollarSign, Calendar, Clock, User, CheckCircle2, XCircle, AlertTriangle, Printer, Mail, Send, Save, ArrowRight, FileDown } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
@@ -44,7 +44,7 @@ type Invoice = {
   updatedAt: string;
 };
 
-export default function FinancePage() {
+function FinanceContent() {
   const searchParams = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1473,5 +1473,13 @@ export default function FinancePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FinancePage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <FinanceContent />
+    </Suspense>
   );
 }
