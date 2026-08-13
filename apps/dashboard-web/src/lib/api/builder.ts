@@ -1,16 +1,9 @@
 import { UnifiedBuilderConfig } from '@/types/builder';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
-
-interface ApiResponse<T> {
-  success?: boolean;
-  message?: string;
-  data?: T;
-}
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('ray_token');
+  return localStorage.getItem('ray_token') || localStorage.getItem('token');
 }
 
 /**
@@ -19,7 +12,7 @@ function getToken(): string | null {
  */
 export async function getBuilderConfig(shopId: string): Promise<UnifiedBuilderConfig> {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/api/v1/builder/${shopId}/config`, {
+  const response = await fetch(`/api/v1/builder/${shopId}/config`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -46,7 +39,7 @@ export async function updateBuilderConfig(
   config: Partial<UnifiedBuilderConfig>
 ): Promise<UnifiedBuilderConfig> {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/api/v1/builder/${shopId}/config`, {
+  const response = await fetch(`/api/v1/builder/${shopId}/config`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -70,7 +63,7 @@ export async function updateBuilderConfig(
  */
 export async function publishBuilderConfig(shopId: string): Promise<{ success: boolean; message: string }> {
   const token = getToken();
-  const response = await fetch(`${API_BASE_URL}/api/v1/builder/${shopId}/publish`, {
+  const response = await fetch(`/api/v1/builder/${shopId}/publish`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

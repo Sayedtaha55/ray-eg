@@ -19,7 +19,7 @@ type SeasonalOffer = {
   categories: string[];
   startDate: string;
   endDate: string;
-  status: 'scheduled' | 'active' | 'expired' | 'draft';
+  status: 'scheduled' | 'active' | 'paused' | 'ended' | 'expired' | 'draft';
   bannerColor: string;
   usageCount: number;
   revenue: number;
@@ -87,7 +87,7 @@ export default function SeasonalOffersPage() {
         categories: Array.isArray(o.categories) ? o.categories : [],
         startDate: o.startDate || new Date().toISOString(),
         endDate: o.endDate || '',
-        status: o.status || 'draft',
+        status: (o.status === 'ended' ? 'expired' : o.status) || 'draft',
         bannerColor: o.bannerColor || '#00E5FF',
         usageCount: Number(o.usageCount ?? 0),
         revenue: Number(o.revenue ?? 0),

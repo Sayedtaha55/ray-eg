@@ -55,7 +55,7 @@ func (r *Repository) ListByShop(ctx context.Context, shopID, status, occasion st
 	}
 	if status != "" {
 		filters += fmt.Sprintf(" AND so.status = $%d", idx)
-		args = append(args, strings.ToUpper(status))
+		args = append(args, strings.ToLower(status))
 		idx++
 	}
 	if occasion != "" {
@@ -171,7 +171,7 @@ func (r *Repository) Update(ctx context.Context, id string, req UpdateSeasonalOf
 	}
 	if req.Status != nil {
 		setParts = append(setParts, fmt.Sprintf("status = $%d", idx))
-		args = append(args, strings.ToUpper(*req.Status))
+		args = append(args, normalizeStatus(*req.Status))
 		idx++
 	}
 
@@ -242,4 +242,12 @@ func nullStringPtr(s sql.NullString) *string {
 		return nil
 	}
 	return &s.String
+}
+
+func normalizeStatus(status string) string {
+	status = strings.ToLower(strings.TrimSpace(status))
+	if status == "expired" {
+		return "ended"
+	}
+	return status
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Heart, Loader2 } from 'lucide-react';
-import { BACKEND_URL } from '@/lib/api';
+import { apiPath, getStoredAuthToken } from '@/lib/api';
 
 export function FollowButton({ shopId, shopSlug }: { shopId: string; shopSlug: string }) {
   const [following, setFollowing] = useState(false);
@@ -12,9 +12,9 @@ export function FollowButton({ shopId, shopSlug }: { shopId: string; shopSlug: s
   useEffect(() => {
     (async () => {
       try {
-        const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+        const token = getStoredAuthToken();
         if (!token) { setChecking(false); return; }
-        const res = await fetch(`${BACKEND_URL}/api/v1/shops/${shopId}/follow-status`, {
+        const res = await fetch(apiPath(`/shops/${shopId}/follow-status`), {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
@@ -27,14 +27,14 @@ export function FollowButton({ shopId, shopSlug }: { shopId: string; shopSlug: s
   }, [shopId]);
 
   const toggleFollow = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = getStoredAuthToken();
     if (!token) {
       window.location.href = '/login?returnTo=/shop/' + shopSlug;
       return;
     }
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1/shops/${shopId}/follow`, {
+      const res = await fetch(apiPath(`/shops/${shopId}/follow`), {
         method: following ? 'DELETE' : 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
