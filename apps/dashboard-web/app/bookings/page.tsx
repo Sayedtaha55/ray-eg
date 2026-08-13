@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { Suspense, useEffect, useState, useCallback, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   CalendarCheck, Clock, Phone, UserCheck, XCircle, Calendar,
@@ -50,7 +50,7 @@ const TABS: { id: TabId; label: string; icon: any }[] = [
   { id: 'settings', label: 'الإعدادات', icon: SettingsIcon },
 ];
 
-export default function BookingsDashboardPage() {
+function BookingsDashboardContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const tabParam = (searchParams.get('tab') || 'overview') as TabId;
@@ -485,5 +485,13 @@ function StatCard({ icon: Icon, label, value, sublabel, color }: {
       <p className="text-2xl sm:text-3xl font-bold text-slate-900">{value}</p>
       <p className="text-xs text-slate-500 font-semibold mt-1">{sublabel}</p>
     </div>
+  );
+}
+
+export default function BookingsDashboardPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <BookingsDashboardContent />
+    </Suspense>
   );
 }

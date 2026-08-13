@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Search, Loader2, Store, X } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
-import { BACKEND_URL } from '@/lib/api';
+import { jsonRequest } from '@/lib/api';
 import type { Product } from '@/lib/services';
 
-export default function SearchPage() {
+function SearchContent() {
   const params = useSearchParams();
   const router = useRouter();
   const initialQuery = params.get('q') || '';
@@ -30,13 +30,8 @@ export default function SearchPage() {
     setLoading(true);
     setSearched(true);
     try {
-      const res = await fetch(
-        `${BACKEND_URL}/api/v1/search/products?q=${encodeURIComponent(trimmed)}&limit=48`,
-        { next: { revalidate: 60 } }
-      );
-      if (!res.ok) throw new Error('search failed');
-      const data = await res.json();
-      setResults(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
+      const data = await jsonRequest<any>(`/search/products?q=${encodeURIComponent(trimmed)}&limit=48`);
+      setResults(Array.isArray(data) ? data : (data?.items ?? []));
     } catch {
       setResults([]);
     } finally {
@@ -121,5 +116,13 @@ export default function SearchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <SearchContent />
+    </Suspense>
   );
 }

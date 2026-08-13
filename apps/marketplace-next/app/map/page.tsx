@@ -3,7 +3,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, MapPin } from 'lucide-react';
-import { BACKEND_URL } from '@/lib/api';
+import { apiPath } from '@/lib/api';
 import { buildShopMarkerHtml, buildListingMarkerHtml, escapeHtml } from '@/lib/mapUtils';
 
 interface MapPinItem {
@@ -41,7 +41,7 @@ export default function MapPage() {
       if (coords?.lng != null) params.set('lng', String(coords.lng));
       params.set('radiusKm', '50');
       const qs = params.toString();
-      const res = await fetch(`${BACKEND_URL}/api/v1/map/pins${qs ? `?${qs}` : ''}`);
+      const res = await fetch(`${apiPath('/map/pins')}${qs ? `?${qs}` : ''}`);
       if (res.ok) {
         const data = await res.json();
         setPins(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
@@ -67,7 +67,6 @@ export default function MapPage() {
 
     (async () => {
       try {
-        // @ts-expect-error leaflet CSS has no type declarations
         await import('leaflet/dist/leaflet.css');
         const L = (await import('leaflet')).default;
         if (cancelled) return;

@@ -7,7 +7,7 @@ import {
   Bell, Package, Store, Tag, Heart, CheckCircle, Clock,
   Loader2, ArrowLeft, Trash2,
 } from 'lucide-react';
-import { BACKEND_URL } from '@/lib/api';
+import { getStoredAuthToken, jsonRequest } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
 interface Notification {
@@ -43,43 +43,30 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     (async () => {
-      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+      const token = getStoredAuthToken();
       if (!token) {
         router.push('/login?returnTo=/notifications');
         return;
       }
       try {
-        const res = await fetch(`${BACKEND_URL}/api/v1/notifications/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setNotifications(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
-        }
+        const data = await jsonRequest<any>('/notifications/me');
+        setNotifications(Array.isArray(data) ? data : (data?.items ?? []));
       } catch {}
       setLoading(false);
     })();
   }, [router]);
 
   const markAsRead = async (id: string) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
     try {
-      await fetch(`${BACKEND_URL}/api/v1/notifications/me/${id}/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await jsonRequest(`/notifications/me/${id}/read`, { method: 'PATCH' });
     } catch {}
   };
 
   const markAllRead = async () => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     try {
-      await fetch(`${BACKEND_URL}/api/v1/notifications/me/read`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await jsonRequest('/notifications/me/read', { method: 'PATCH' });
     } catch {}
   };
 

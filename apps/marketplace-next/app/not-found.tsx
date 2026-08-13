@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 
-export default function NotFound() {
+function NotFoundContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const reason = String(searchParams?.get('reason') || '').trim().toLowerCase();
@@ -95,5 +96,13 @@ export default function NotFound() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function NotFound() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-sm font-bold text-slate-500">جاري التحميل...</div>}>
+      <NotFoundContent />
+    </Suspense>
   );
 }
