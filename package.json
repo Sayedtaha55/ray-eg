@@ -6,6 +6,7 @@
   "scripts": {
     "dev:marketplace": "cd apps/marketplace-next && npm run dev",
     "dev:dashboard": "cd apps/dashboard && npm run dev",
+    "dev:dashboard-web": "cd apps/dashboard-web && npm run dev",
     "dev:business": "cd apps/business && npm run dev",
     "dev:all": "concurrently \"npm run backend:dev:stable\" \"npm run dev:marketplace\" \"npm run dev:dashboard\" \"npm run dev:business\"",
     "build:marketplace": "cd apps/marketplace-next && npm run build",
@@ -37,6 +38,7 @@
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:push": "prisma db push --schema prisma/schema.prisma",
     "prisma:migrate:deploy": "prisma migrate deploy --schema prisma/schema.prisma",
+    "prisma:seed:apps": "npx tsx --tsconfig backend/tsconfig.json backend/prisma/seed-apps.ts",
     "test": "jest --passWithNoTests",
     "test:watch": "jest --watch",
     "security:scan": "npx tsx --tsconfig backend/tsconfig.json backend/tests/security/static-security-scan.ts",

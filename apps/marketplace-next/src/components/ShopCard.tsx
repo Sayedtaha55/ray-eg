@@ -10,14 +10,15 @@ export function ShopCard({ shop }: { shop: Shop }) {
   return (
     <Link
       href={`/shop/${shop.slug}`}
-      className="group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-brand-cyan/20 hover:shadow-brand transition-all duration-300"
+      className="card-contain group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-brand-cyan/20 hover:shadow-brand transition-all duration-300"
     >
       {/* Cover */}
       <div className="relative aspect-[4/3] overflow-hidden bg-slate-100 dark:bg-slate-800">
         <Image
           src={coverImage}
-          alt={shop.name}
+          alt={shop.name || 'متجر'}
           fill
+          loading="lazy"
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -38,7 +39,7 @@ export function ShopCard({ shop }: { shop: Shop }) {
         <div className="flex items-start gap-3 mb-2">
           <div className="w-10 h-10 rounded-lg bg-brand-black flex items-center justify-center flex-shrink-0 overflow-hidden">
             {shop.logo ? (
-              <Image src={shop.logo} alt={shop.name} width={40} height={40} className="object-cover" />
+              <Image src={shop.logo} alt={shop.name || 'متجر'} width={40} height={40} className="object-cover" />
             ) : (
               <Store className="w-5 h-5 text-brand-cyan" />
             )}

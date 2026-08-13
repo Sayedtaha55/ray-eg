@@ -1,0 +1,8 @@
+-- This file should be regenerated from the current Prisma schema before the
+-- first sqlc code generation. Use the helper script in scripts/generate-schema.sql
+-- or run the following command when a local database is available:
+--
+--   pg_dump --schema-only --no-owner --no-privileges -f sqlc/schema.sql <DATABASE_URL>
+--
+-- For Phase 0 no tables are defined here. Domain queries will be added in
+-- subsequent phases.

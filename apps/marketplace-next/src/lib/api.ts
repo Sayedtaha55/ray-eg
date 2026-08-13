@@ -33,7 +33,12 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
   });
 
   if (!res.ok) {
-    throw new Error(`API Error: ${res.status} ${res.statusText}`);
+    let message = `API Error: ${res.status} ${res.statusText}`;
+    try {
+      const body = await res.json();
+      message = body?.message || body?.error || body?.data?.error || message;
+    } catch {}
+    throw new Error(message);
   }
 
   return res.json();

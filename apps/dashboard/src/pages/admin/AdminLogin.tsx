@@ -1,12 +1,13 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin, Eye, EyeOff, Utensils, ShoppingBag, Layout, Type, Scissors, LayoutGrid, Armchair, Moon, DoorOpen, Package, Sparkles, Building2, Wrench, Map as MapIcon, MapPin as MapPinIcon, Camera, Ticket, ClipboardList, CalendarHeart, ShieldAlert as ShieldAlertIcon, FileText, Home, HelpCircle, ChevronDown } from 'lucide-react';
+import { ShieldAlert, Loader2, KeyRound, ArrowRight, Store, MapPin, Eye, EyeOff, Utensils, ShoppingBag, Layout, Type, Scissors, LayoutGrid, Armchair, Moon, DoorOpen, Package, Sparkles, Building2, Wrench, Map as MapIcon, MapPin as MapPinIcon, Camera, Ticket, ClipboardList, CalendarHeart, ShieldAlert as ShieldAlertIcon, FileText, Home, HelpCircle, ChevronDown, Calendar, Activity, Hotel, Car, Dumbbell, GraduationCap, Users } from 'lucide-react';
 import { ApiService } from '@/services/api.service';
 import * as ReactRouterDOM from 'react-router-dom';
 import { persistSession } from '@/services/authStorage';
 import { useTranslation } from 'react-i18next';
 import { BUSINESS_ACTIVITY_GROUPS } from '@/utils/businessActivityCatalog';
 import { Category } from '@/types';
+import { BOOKING_ACTIVITIES, type BookingActivityType } from '@/components/pages/business/bookings/config';
 
 const { useNavigate, useLocation } = ReactRouterDOM as any;
 const MotionDiv = motion.div as any;
@@ -30,6 +31,7 @@ const AdminLogin: React.FC = () => {
   const [bootstrapName, setBootstrapName] = useState('Admin');
   const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const [isDevActivityMenuOpen, setIsDevActivityMenuOpen] = useState(false);
+  const [isDevBookingMenuOpen, setIsDevBookingMenuOpen] = useState(false);
   const [expandedDevGroup, setExpandedDevGroup] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showBootstrapToken, setShowBootstrapToken] = useState(false);
@@ -105,6 +107,21 @@ const AdminLogin: React.FC = () => {
 
   const getDevActivityGroupIcon = (id: string) => DEV_ACTIVITY_GROUP_ICON_MAP[id] || Store;
   const getDevActivityIcon = (id: string) => DEV_ACTIVITY_ICON_MAP[id] || Package;
+
+  const BOOKING_ACTIVITY_ICONS: Record<string, React.ComponentType<any>> = {
+    clinic: Activity,
+    salon_barber: Scissors,
+    wellness_spa: Sparkles,
+    chalets_resorts: Home,
+    hotels_rooms: Hotel,
+    restaurants_tables: Utensils,
+    events_venues: Ticket,
+    vehicle_rental: Car,
+    sports_trainers: Dumbbell,
+    education_courses: GraduationCap,
+    maintenance_services: Wrench,
+    general_appointments: Calendar,
+  };
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,6 +213,16 @@ const AdminLogin: React.FC = () => {
     } catch {
     }
     handleDevMerchantLoginWithCategory(String(category || '').toUpperCase());
+  }, [handleDevMerchantLoginWithCategory]);
+
+  const handleDevBookingSelect = useCallback((activityType: BookingActivityType) => {
+    setIsDevBookingMenuOpen(false);
+    try {
+      localStorage.setItem('ray_dev_booking_activity_type', activityType);
+      localStorage.setItem('ray_dev_activity_id', activityType);
+    } catch {
+    }
+    handleDevMerchantLoginWithCategory('SERVICE');
   }, [handleDevMerchantLoginWithCategory]);
 
   const handleDevCourierLogin = async () => {
@@ -357,6 +384,50 @@ const AdminLogin: React.FC = () => {
                                 </div>
                               )}
                             </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="relative">
+                <button
+                  type="button"
+                  disabled={loading}
+                  onClick={() => setIsDevBookingMenuOpen((v) => !v)}
+                  className="w-full py-4 bg-slate-800 text-white/80 rounded-[2rem] font-black text-sm hover:text-white hover:bg-slate-700 transition-all flex items-center justify-center gap-3"
+                >
+                  <Calendar size={18} />
+                  دخول مطور حجوزات
+                </button>
+
+                {isDevBookingMenuOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setIsDevBookingMenuOpen(false)} />
+                    <div className="absolute z-50 left-0 right-0 mt-3 bg-slate-900 border border-white/10 rounded-[2rem] overflow-hidden shadow-2xl max-h-[70vh]">
+                      <div className="px-6 pt-3 pb-2 sticky top-0 bg-slate-900">
+                        <div className="text-[10px] font-black text-emerald-200 uppercase tracking-[0.25em]">أنشطة الحجوزات</div>
+                        <p className="text-[9px] font-bold text-slate-500 mt-1">اختر نشاط الحجز للدخول كتاجر</p>
+                      </div>
+                      <div className="overflow-y-auto">
+                        {BOOKING_ACTIVITIES.map((activity) => {
+                          const IconComp = BOOKING_ACTIVITY_ICONS[activity.id] || Calendar;
+                          return (
+                            <button
+                              key={activity.id}
+                              type="button"
+                              disabled={loading}
+                              onClick={() => handleDevBookingSelect(activity.id)}
+                              className="w-full py-3 px-6 text-right flex items-center gap-3 border-b border-white/5 hover:bg-slate-800 transition-all"
+                            >
+                              <IconComp className="w-4 h-4 text-slate-400 shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <span className="text-xs font-black text-white block">{activity.title}</span>
+                                <span className="text-[9px] font-bold text-slate-500 block truncate">{activity.description}</span>
+                              </div>
+                            </button>
                           );
                         })}
                       </div>

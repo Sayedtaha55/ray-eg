@@ -44,7 +44,7 @@ export default function MapPage() {
       const res = await fetch(`${BACKEND_URL}/api/v1/map/pins${qs ? `?${qs}` : ''}`);
       if (res.ok) {
         const data = await res.json();
-        setPins(Array.isArray(data) ? data : (data?.items ?? []));
+        setPins(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
       } else {
         setPins([]);
       }

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { CalendarOff, Plus, Search, X, Calendar, Check, X as XIcon, Clock } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CalendarOff, Plus, Search, X, Calendar, Check, X as XIcon, Clock, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiService } from '@/services/api.service';
 
 type Props = { shopId: string; shop?: any };
 
@@ -24,11 +25,54 @@ const LeavesPage: React.FC<Props> = ({ shopId, shop }) => {
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [leaves, setLeaves] = useState<Leave[]>([
-    { id: '1', employeeName: 'Ahmed', type: 'annual', startDate: '2026-08-01', endDate: '2026-08-07', days: 7, reason: isArabic ? 'إجازة صيفية' : 'Summer vacation', status: 'approved' },
-    { id: '2', employeeName: 'Sara', type: 'sick', startDate: '2026-07-30', endDate: '2026-07-31', days: 2, reason: isArabic ? 'وعكة صحية' : 'Illness', status: 'pending' },
-    { id: '3', employeeName: 'Omar', type: 'emergency', startDate: '2026-07-28', endDate: '2026-07-28', days: 1, reason: isArabic ? 'ظرف طارئ' : 'Family emergency', status: 'approved' },
-  ]);
+  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ApiService.getLeaves(sid);
+      setLeaves(
+        (Array.isArray(data) ? data : []).map((l: any) => ({
+          id: String(l.id || ''),
+          employeeName: String(l.employeeName || l.employee_name || ''),
+          type: (String(l.type || 'annual') as Leave['type']),
+          startDate: String(l.startDate || l.start_date || ''),
+          endDate: String(l.endDate || l.end_date || ''),
+          days: Number(l.days || 0),
+          reason: String(l.reason || ''),
+          status: (String(l.status || 'pending') as Leave['status']),
+        })),
+      );
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load leaves');
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const approveLeave = async (id: string) => {
+    try {
+      await ApiService.updateLeaveStatus(shopId, id, 'approved');
+      setLeaves((prev) => prev.map((l) => (l.id === id ? { ...l, status: 'approved' } : l)));
+    } catch (e: any) {
+      setError(e?.message || 'Failed to approve leave');
+    }
+  };
+  const rejectLeave = async (id: string) => {
+    try {
+      await ApiService.updateLeaveStatus(shopId, id, 'rejected');
+      setLeaves((prev) => prev.map((l) => (l.id === id ? { ...l, status: 'rejected' } : l)));
+    } catch (e: any) {
+      setError(e?.message || 'Failed to reject leave');
+    }
+  };
 
   const filtered = leaves.filter(l => l.employeeName.toLowerCase().includes(search.toLowerCase()));
 
@@ -38,6 +82,17 @@ const LeavesPage: React.FC<Props> = ({ shopId, shop }) => {
         <div><h3 className="text-xl sm:text-2xl md:text-3xl font-black">{isArabic ? 'الإجازات' : 'Leaves'}</h3><p className="mt-1 text-xs sm:text-sm font-bold text-slate-400">{isArabic ? 'إدارة إجازات الموظفين' : 'Manage employee leaves'}</p></div>
         <button onClick={() => setShowModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"><Plus size={18} /> {isArabic ? 'طلب إجازة' : 'Request Leave'}</button>
       </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-4 mb-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold">
+          <AlertTriangle size={16} /> {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
@@ -75,8 +130,8 @@ const LeavesPage: React.FC<Props> = ({ shopId, shop }) => {
               <div className="flex items-center gap-2">
                 {l.status === 'pending' && (
                   <>
-                    <button className="p-1.5 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"><Check size={16} /></button>
-                    <button className="p-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"><XIcon size={16} /></button>
+                    <button onClick={() => approveLeave(l.id)} className="p-1.5 rounded-lg bg-green-100 text-green-600 hover:bg-green-200 transition-colors"><Check size={16} /></button>
+                    <button onClick={() => rejectLeave(l.id)} className="p-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"><XIcon size={16} /></button>
                   </>
                 )}
                 <span className={`px-2 py-1 rounded-lg text-xs font-bold ${st.bg} ${st.color}`}>{isArabic ? st.ar : st.en}</span>

@@ -1,6 +1,8 @@
 import { bootstrapSessionFromBackend } from '../authStorage';
 import { getBearerToken, usesHttpOnlyCookies } from './tokenService';
 import { BackendRequestError, fetchWithTimeout, toBackendUrl } from './httpClient';
+import { addToSyncQueue } from '../lib/offline-db';
+import { retryManager } from '../lib/retry-manager';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
@@ -180,6 +182,20 @@ export async function backendFetch<T>(
   const hasBody = method !== 'GET' && method !== 'DELETE';
   const maxAttempts = method === 'GET' || method === 'DELETE' ? 1 : 3;
   let lastTransientError: any = null;
+
+  // Check if offline - if so, queue mutations and return
+  if (!retryManager.isOnline()) {
+    const isMutation = !['GET', 'DELETE', 'HEAD', 'OPTIONS'].includes(method as string);
+    if (isMutation) {
+      // Add to sync queue for later
+      await addToSyncQueue(path, method, body);
+      // Return success immediately for offline mutations
+      return { success: true, offline: true, message: 'تم حفظ الطلب للمزامنة عند توفر الإنترنت' } as any;
+    }
+    // For GET requests when offline, we could try to serve from cache
+    // For now, just throw an error
+    throw new BackendRequestError('أنت غير متصل بالإنترنت. سيتم تحميل البيانات عند الاتصال.', { path, status: 0 });
+  }
 
   if (isBackendTemporarilyDown()) throw new BackendRequestError('تعذر إتمام العملية الآن. حاول لاحقًا.', { path });
   if (isPathPrefixDisabled(path)) throw new BackendRequestError('Endpoint غير متاح', { status: 404, path });

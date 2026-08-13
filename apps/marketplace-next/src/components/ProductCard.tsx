@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { Star, Tag } from 'lucide-react';
 import type { Product } from '@/lib/services';
 import { formatPrice } from '@/lib/utils';
+import { AddToCartButton } from './AddToCartButton';
+import { WishlistButton } from './WishlistButton';
 
 export function ProductCard({ product }: { product: Product }) {
   const image = product.imageUrl || product.images?.[0] || '/placeholder-product.png';
@@ -14,14 +16,15 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/product/${product.id}`}
-      className="group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-brand-purple/20 hover:shadow-brand transition-all duration-300"
+      className="card-contain group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 hover:border-brand-purple/20 hover:shadow-brand transition-all duration-300"
     >
       {/* Image */}
       <div className="relative aspect-square overflow-hidden bg-slate-100 dark:bg-slate-800">
         <Image
           src={image}
-          alt={product.name}
+          alt={product.name || 'منتج'}
           fill
+          loading="lazy"
           sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -35,6 +38,9 @@ export function ProductCard({ product }: { product: Product }) {
             <span className="text-white font-semibold text-sm">غير متوفر</span>
           </div>
         )}
+        <div className="absolute top-3 left-3 z-10">
+          <WishlistButton product={product} size="sm" />
+        </div>
       </div>
 
       {/* Info */}
@@ -64,6 +70,9 @@ export function ProductCard({ product }: { product: Product }) {
               {product.rating.toFixed(1)}
             </span>
           )}
+        </div>
+        <div className="mt-3">
+          <AddToCartButton product={product} size="sm" />
         </div>
       </div>
     </Link>

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { BarChart3, Download, Calendar, TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { BarChart3, Download, Calendar, TrendingUp, TrendingDown, DollarSign, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiService } from '@/services/api.service';
 
 type Props = { shopId: string; shop?: any };
 
@@ -8,20 +9,52 @@ const SalesReportPage: React.FC<Props> = ({ shopId, shop }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('monthly');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const monthlyData = [
-    { period: isArabic ? 'يناير' : 'Jan', sales: 32000, orders: 890, avg: 36 },
-    { period: isArabic ? 'فبراير' : 'Feb', sales: 38000, orders: 1020, avg: 37 },
-    { period: isArabic ? 'مارس' : 'Mar', sales: 35000, orders: 950, avg: 37 },
-    { period: isArabic ? 'أبريل' : 'Apr', sales: 42000, orders: 1150, avg: 36.5 },
-    { period: isArabic ? 'مايو' : 'May', sales: 45000, orders: 1240, avg: 36.3 },
-    { period: isArabic ? 'يونيو' : 'Jun', sales: 41000, orders: 1100, avg: 37.3 },
-    { period: isArabic ? 'يوليو' : 'Jul', sales: 45200, orders: 1240, avg: 36.5 },
-  ];
+  const [monthlyData, setMonthlyData] = useState([
+    { period: isArabic ? 'يناير' : 'Jan', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'فبراير' : 'Feb', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'مارس' : 'Mar', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'أبريل' : 'Apr', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'مايو' : 'May', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'يونيو' : 'Jun', sales: 0, orders: 0, avg: 0 },
+    { period: isArabic ? 'يوليو' : 'Jul', sales: 0, orders: 0, avg: 0 },
+  ]);
 
-  const maxSales = Math.max(...monthlyData.map(d => d.sales));
+  useEffect(() => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res: any = await ApiService.getSalesReport(sid, { period: '30d' });
+        if (cancelled || !res) return;
+        const data = res.data ?? res;
+        if (Array.isArray(data?.trend) && data.trend.length) {
+          setMonthlyData(
+            data.trend.slice(-7).map((p: any) => ({
+              period: String(p.date || '').slice(5) || p.date,
+              sales: Number(p.revenue || 0),
+              orders: Number(p.orders || 0),
+              avg: p.orders > 0 ? Number(p.revenue || 0) / Number(p.orders) : 0,
+            })),
+          );
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load sales report');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shopId]);
+
+  const maxSales = Math.max(...monthlyData.map(d => d.sales), 1);
   const totalSales = monthlyData.reduce((s, d) => s + d.sales, 0);
-  const totalOrders = monthlyData.reduce((s, d) => s + d.orders, 0);
+  const totalOrders = monthlyData.reduce((s, d) => s + d.orders, 0) || 1;
 
   return (
     <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
@@ -36,6 +69,17 @@ const SalesReportPage: React.FC<Props> = ({ shopId, shop }) => {
           <button className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-colors"><Download size={14} /> {isArabic ? 'تصدير' : 'Export'}</button>
         </div>
       </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-4 mb-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold">
+          <AlertTriangle size={16} /> {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[

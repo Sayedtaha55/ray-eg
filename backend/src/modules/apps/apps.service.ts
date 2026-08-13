@@ -18,6 +18,14 @@ export class AppsService {
     await this.prisma.app.createMany({
       data: [
         {
+          key: 'image-editor',
+          name: 'محرر الصور',
+          description: 'محرر صور احترافي لتعديل صور المنتجات والشعارات مع فلاتر وتأثيرات متقدمة.',
+          version: '1.0.0',
+          permissions: ['products', 'shop'] as any,
+          hooks: [] as any,
+        },
+        {
           key: 'voice-ordering',
           name: 'Voice Ordering',
           description: 'Enable voice-based ordering and AI assistant flows.',
@@ -68,6 +76,7 @@ export class AppsService {
       select: {
         id: true,
         shopId: true,
+        appId: true,
         status: true,
         isActive: true,
         settings: true,

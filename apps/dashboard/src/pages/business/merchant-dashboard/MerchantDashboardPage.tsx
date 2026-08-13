@@ -249,6 +249,8 @@ const AnalyticsOverviewPage = lazy(() => import('../../../modules/analytics/page
 const SalesReportPage = lazy(() => import('../../../modules/analytics/pages/salesReport/SalesReportPage'));
 const CustomerInsightsPage = lazy(() => import('../../../modules/analytics/pages/customerInsights/CustomerInsightsPage'));
 const TrafficPage = lazy(() => import('../../../modules/analytics/pages/traffic/TrafficPage'));
+const ConversionsPage = lazy(() => import('../../../modules/analytics/pages/conversions/ConversionsPage'));
+const ProductPerformancePage = lazy(() => import('../../../modules/analytics/pages/productPerformance/ProductPerformancePage'));
 
 // AI module pages
 const AiInsightsPage = lazy(() => import('../../../modules/ai/pages/insights/InsightsPage'));
@@ -381,6 +383,8 @@ import { applyDevActivityContext } from '@/utils/devActivityContext';
 
 import AppsTab from '../../../modules/shared/pages/AppsTab';
 
+import { renderTab } from '../../../config/tabs';
+
 
 
 const { useSearchParams, useNavigate } = ReactRouterDOM as any;
@@ -498,9 +502,9 @@ const DASHBOARD_TAB_PRELOADERS: Partial<Record<MerchantDashboardTabId, () => Pro
   kpi: () => import('../../../modules/analytics/pages/overview/OverviewPage'),
   charts: () => import('../../../modules/analytics/pages/ReportsTab'),
   salesPerformance: () => import('../../../modules/analytics/pages/salesReport/SalesReportPage'),
-  productPerformance: () => import('../../../modules/analytics/pages/ReportsTab'),
+  productPerformance: () => import('../../../modules/analytics/pages/productPerformance/ProductPerformancePage'),
   visitors: () => import('../../../modules/analytics/pages/traffic/TrafficPage'),
-  conversions: () => import('../../../modules/analytics/pages/customerInsights/CustomerInsightsPage'),
+  conversions: () => import('../../../modules/analytics/pages/conversions/ConversionsPage'),
 
   builder: () => import('../builder/PageBuilder'),
 
@@ -1394,7 +1398,7 @@ const MerchantDashboardPage: React.FC = () => {
 
         setReservations(list as any);
 
-      } else if (tab === 'sales') {
+      } else if (tab === 'sales' || tab === 'quotes' || tab === 'loyalty' || tab === 'subscriptions' || tab === 'epayment' || tab === 'orderStatus' || tab === 'returns' || tab === 'abandonedCart') {
 
         const list = await ApiService.getAllOrders({ shopId, from: salesFrom.toISOString(), to: now.toISOString() });
 
@@ -2029,9 +2033,9 @@ const MerchantDashboardPage: React.FC = () => {
               case 'kpi': return <AnalyticsOverviewPage shopId={currentShop.id} shop={currentShop} />;
               case 'charts': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
               case 'salesPerformance': return <SalesReportPage shopId={currentShop.id} shop={currentShop} />;
-              case 'productPerformance': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+              case 'productPerformance': return <ProductPerformancePage shopId={currentShop.id} shop={currentShop} />;
               case 'visitors': return <TrafficPage shopId={currentShop.id} shop={currentShop} />;
-              case 'conversions': return <CustomerInsightsPage shopId={currentShop.id} shop={currentShop} />;
+              case 'conversions': return <ConversionsPage shopId={currentShop.id} shop={currentShop} />;
               case 'aiContent':
               case 'aiImages':
               case 'aiSEO':
@@ -2046,6 +2050,24 @@ const MerchantDashboardPage: React.FC = () => {
               case 'aiAutomations': return <AiAutomationsPage shopId={currentShop.id} shop={currentShop} />;
 
               default:
+
+                // Try the tab registry for non-booking-specific tabs
+
+                const bookingRegistryResult = renderTab(effectiveTab, {
+
+                  shopId: currentShop.id,
+
+                  shop: currentShop,
+
+                  sales,
+
+                  reservations: reservations as any,
+
+                  isArabic,
+
+                });
+
+                if (bookingRegistryResult) return bookingRegistryResult;
 
                 return <BookingOverviewPage activityType={activityType} shop={currentShop} bookings={reservations as any} onNavigate={handleNavigate} />;
 
@@ -2288,9 +2310,9 @@ const MerchantDashboardPage: React.FC = () => {
             case 'kpi': return <AnalyticsOverviewPage shopId={currentShop.id} shop={currentShop} />;
             case 'charts': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
             case 'salesPerformance': return <SalesReportPage shopId={currentShop.id} shop={currentShop} />;
-            case 'productPerformance': return <ReportsTab analytics={analytics} sales={sales} reservations={reservations as any} posEnabled={hasPosTab} onOpenCashierReports={() => setShowCashierReports(true)} shop={currentShop} />;
+            case 'productPerformance': return <ProductPerformancePage shopId={currentShop.id} shop={currentShop} />;
             case 'visitors': return <TrafficPage shopId={currentShop.id} shop={currentShop} />;
-            case 'conversions': return <CustomerInsightsPage shopId={currentShop.id} shop={currentShop} />;
+            case 'conversions': return <ConversionsPage shopId={currentShop.id} shop={currentShop} />;
             case 'aiContent':
             case 'aiImages':
             case 'aiSEO':
@@ -2305,6 +2327,24 @@ const MerchantDashboardPage: React.FC = () => {
             case 'aiAutomations': return <AiAutomationsPage shopId={currentShop.id} shop={currentShop} />;
 
             default:
+
+              // Try the tab registry first
+
+              const registryResult = renderTab(effectiveTab, {
+
+                shopId: currentShop.id,
+
+                shop: currentShop,
+
+                sales,
+
+                reservations: reservations as any,
+
+                isArabic,
+
+              });
+
+              if (registryResult) return registryResult;
 
               return (
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { CheckSquare, Plus, Search, X, Calendar, Flag, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { CheckSquare, Plus, Search, X, Calendar, Flag, CheckCircle2, Clock, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiService } from '@/services/api.service';
 
 type Props = { shopId: string; shop?: any };
 
@@ -23,11 +24,48 @@ const TasksPage: React.FC<Props> = ({ shopId, shop }) => {
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
-  const [tasks, setTasks] = useState<Task[]>([
-    { id: '1', title: isArabic ? 'تحديث المخزون' : 'Update inventory', assignee: 'Ahmed', priority: 'high', status: 'inProgress', dueDate: '2026-07-30', description: isArabic ? 'تحديث جميع المنتجات' : 'Update all products' },
-    { id: '2', title: isArabic ? 'تقرير المبيعات' : 'Sales report', assignee: 'Sara', priority: 'medium', status: 'todo', dueDate: '2026-08-01', description: isArabic ? 'تقرير شهر يوليو' : 'July report' },
-    { id: '3', title: isArabic ? 'تنظيم المخزن' : 'Organize warehouse', assignee: 'Omar', priority: 'low', status: 'done', dueDate: '2026-07-25', description: '' },
-  ]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ApiService.getTasks(sid);
+      setTasks(
+        (Array.isArray(data) ? data : []).map((tk: any) => ({
+          id: String(tk.id || ''),
+          title: String(tk.title || ''),
+          assignee: String(tk.assignee || ''),
+          priority: (String(tk.priority || 'medium') as Task['priority']),
+          status: (String(tk.status || 'todo') as Task['status']),
+          dueDate: String(tk.dueDate || tk.due_date || ''),
+          description: String(tk.description || ''),
+        })),
+      );
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const cycleStatus = async (id: string) => {
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    const next = task.status === 'todo' ? 'inProgress' : task.status === 'inProgress' ? 'done' : 'todo';
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, status: next } : t)));
+    try {
+      await ApiService.updateTask(shopId, id, { status: next });
+    } catch (e: any) {
+      setError(e?.message || 'Failed to update task');
+    }
+  };
 
   const filtered = tasks.filter(tk => tk.title.toLowerCase().includes(search.toLowerCase()) || tk.assignee.toLowerCase().includes(search.toLowerCase()));
 
@@ -37,6 +75,17 @@ const TasksPage: React.FC<Props> = ({ shopId, shop }) => {
         <div><h3 className="text-xl sm:text-2xl md:text-3xl font-black">{isArabic ? 'المهام' : 'Tasks'}</h3><p className="mt-1 text-xs sm:text-sm font-bold text-slate-400">{isArabic ? 'إدارة مهام الموظفين' : 'Manage employee tasks'}</p></div>
         <button onClick={() => setShowModal(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"><Plus size={18} /> {isArabic ? 'مهمة جديدة' : 'New Task'}</button>
       </div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-4 mb-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold">
+          <AlertTriangle size={16} /> {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[

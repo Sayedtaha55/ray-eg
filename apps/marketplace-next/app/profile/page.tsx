@@ -44,11 +44,11 @@ export default function ProfilePage() {
 
   const fetchUserData = async () => {
     try {
-      const userData = await api.get('/auth/session');
-      setUser((userData as any)?.user || userData);
+      const userData = await api.get('/auth/me');
+      setUser((userData as any)?.user ?? (userData as any)?.data?.user ?? userData);
       
-      const ordersData = await api.get('/orders/me');
-      setOrders((ordersData || []) as Order[]);
+      const ordersData = await api.get('/orders/customer/me');
+      setOrders(((ordersData as any)?.data ?? ordersData ?? []) as Order[]);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
     } finally {
@@ -218,6 +218,9 @@ export default function ProfilePage() {
                         <div className="text-lg font-bold text-slate-900 dark:text-white">
                           {order.total} ج.م
                         </div>
+                        <Link href={`/track/${order.id}`} className="text-xs font-bold text-brand-cyan hover:underline mt-1 inline-block">
+                          تتبع الطلب
+                        </Link>
                       </div>
                     </div>
                   ))}

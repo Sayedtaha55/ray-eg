@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowLeft, Search, MapPin, Tag, Store, Star, TrendingUp, Sparkles, Zap, ShieldCheck, Globe, ShoppingBag, Heart } from 'lucide-react';
-import { getShops } from '@/lib/services';
+import { getShops, getOffers, getSeasonalOffers } from '@/lib/services';
 import { activities, siteConfig } from '@/lib/config';
 import { ShopCard } from '@/components/ShopCard';
 import { ProductCard } from '@/components/ProductCard';
@@ -17,9 +17,15 @@ export const metadata: Metadata = {
 export const revalidate = 300;
 
 export default async function HomePage() {
-  const shops = await getShops(100);
+  const [shops, offers, seasonalOffers] = await Promise.all([
+    getShops(24),
+    getOffers(),
+    getSeasonalOffers(),
+  ]);
   const featuredShops = shops.slice(0, 8);
   const trendingShops = shops.slice(8, 16);
+  const featuredOffers = offers.slice(0, 8);
+  const activeSeasonal = seasonalOffers.filter(s => s.status === 'active' || new Date(s.endDate) >= new Date()).slice(0, 3);
 
   const websiteJsonLd = {
     '@context': 'https://schema.org',
@@ -219,6 +225,78 @@ export default async function HomePage() {
           )}
         </div>
       </section>
+
+      {/* Seasonal Offers Banners */}
+      {activeSeasonal.length > 0 && (
+        <section className="py-16 bg-white dark:bg-brand-black">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+            <div className="flex items-end justify-between mb-8">
+              <div className="text-right">
+                <div className="flex items-center gap-2 mb-3 justify-end">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-400">عروض موسمية</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl font-bold tracking-tight">عروض خاصة لا تفوتها</h2>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+              {activeSeasonal.map((offer) => (
+                <Link
+                  key={offer.id}
+                  href="/offers"
+                  className="group relative overflow-hidden rounded-2xl p-6 md:p-8 min-h-[160px] flex flex-col justify-between hover:scale-[1.02] transition-transform"
+                  style={{ backgroundColor: offer.bannerColor || '#1A1A1A' }}
+                >
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute top-0 right-0 w-40 h-40 bg-white rounded-full blur-3xl" />
+                  </div>
+                  <div className="relative z-10">
+                    <span className="inline-block px-3 py-1 bg-white/20 rounded-full text-white text-xs font-bold mb-3">
+                      {offer.occasion}
+                    </span>
+                    <h3 className="text-white font-black text-xl md:text-2xl mb-2">{offer.name}</h3>
+                    {offer.description && <p className="text-white/70 text-sm font-semibold line-clamp-2">{offer.description}</p>}
+                  </div>
+                  <div className="relative z-10 flex items-center justify-between mt-4">
+                    <span className="text-white font-black text-2xl">
+                      {offer.discountType === 'percentage' ? `${offer.discountValue}%` : `${offer.discountValue} ج.م`}
+                    </span>
+                    <span className="text-white/60 text-xs font-semibold">
+                      حتى {new Date(offer.endDate).toLocaleDateString('ar-EG')}
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Featured Offers Section */}
+      {featuredOffers.length > 0 && (
+        <section className="py-24 bg-slate-50 dark:bg-slate-950/50">
+          <div className="max-w-[1400px] mx-auto px-4 md:px-6">
+            <div className="flex items-end justify-between mb-12">
+              <div className="text-right">
+                <div className="flex items-center gap-2 mb-3 justify-end">
+                  <Tag className="w-5 h-5 text-amber-400" />
+                  <span className="text-xs font-semibold text-amber-400">خصومات حصرية</span>
+                </div>
+                <h2 className="text-4xl md:text-6xl font-bold tracking-tight">أحدث العروض</h2>
+              </div>
+              <Link href="/offers" className="group flex items-center gap-3 text-amber-400 font-semibold text-sm">
+                <span className="border-b-2 border-amber-400/0 group-hover:border-amber-400 transition-all">عرض جميع العروض</span>
+                <ArrowLeft className="w-4 h-4 rotate-180 transition-transform group-hover:translate-x-2" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+              {featuredOffers.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* CTA For Merchants */}
       <section className="py-32 bg-brand-black relative overflow-hidden">

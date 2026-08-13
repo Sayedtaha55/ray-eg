@@ -14,13 +14,14 @@ model User {
   phone                       String?                    @unique
   password                    String
   role                        UserRole                   @default(CUSTOMER)
-  shopId                      String?
-  isActive                    Boolean                    @default(true)
-  lastLogin                   DateTime?
+  shopId                      String?                    @map("shop_id")
+  isActive                    Boolean                    @default(true) @map("is_active")
+  lastLogin                   DateTime?                  @map("last_login")
+  tfaSecret                   String?                    @map("tfa_secret")
   emailVerifiedAt             DateTime?                  @map("email_verified_at")
   emailVerificationSentAt     DateTime?                  @map("email_verification_sent_at")
-  createdAt                   DateTime                   @default(now())
-  updatedAt                   DateTime                   @updatedAt
+  createdAt                   DateTime                   @default(now()) @map("created_at")
+  updatedAt                   DateTime                   @updatedAt @map("updated_at")
   deactivatedAt               DateTime?                  @map("deactivated_at")
   scheduledPurgeAt            DateTime?                  @map("scheduled_purge_at")
   accountingInvoices          AccountingInvoice[]
@@ -95,13 +96,14 @@ model Shop {
   customColors          Json?                      @map("custom_colors")
   customFonts           Json?                      @map("custom_fonts")
   layoutConfig          Json?                      @map("layout_config")
+  builderConfig         Json?                      @map("builder_config")
   followers             Int                        @default(0)
   visitors              Int                        @default(0)
   rating                Float                      @default(0)
-  isActive              Boolean                    @default(true)
-  ownerId               String?                    @unique
-  createdAt             DateTime                   @default(now())
-  updatedAt             DateTime                   @updatedAt
+  isActive              Boolean                    @default(true) @map("is_active")
+  ownerId               String?                    @unique @map("owner_id")
+  createdAt             DateTime                   @default(now()) @map("created_at")
+  updatedAt             DateTime                   @updatedAt @map("updated_at")
   addons                Json?
   publicDisabled        Boolean                    @default(false) @map("public_disabled")
   deliveryDisabled      Boolean                    @default(false) @map("delivery_disabled")
@@ -275,10 +277,10 @@ model Product {
   stock         Int                   @default(0)
   category      String                @default("عام")
   imageUrl      String?               @map("image_url")
-  isActive      Boolean               @default(true)
-  shopId        String
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  isActive      Boolean               @default(true) @map("is_active")
+  shopId        String                @map("shop_id")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
   addons        Json?
   menuVariants  Json?                 @map("menu_variants")
   colors        Json?
@@ -391,11 +393,11 @@ model Offer {
   newPrice       Float    @map("new_price")
   imageUrl       String?  @map("image_url")
   expiresAt      DateTime @map("expires_at")
-  isActive       Boolean  @default(true)
+  isActive       Boolean  @default(true) @map("is_active")
   productId      String?  @map("product_id")
-  shopId         String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  shopId         String   @map("shop_id")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
   variantPricing Json?    @map("variant_pricing")
   product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   shop           Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
@@ -422,14 +424,14 @@ model Order {
   deliveryLng                Float?              @map("delivery_lng")
   deliveryNote               String?             @map("delivery_note")
   customerNote               String?             @map("customer_note")
-  userId                     String
-  shopId                     String
+  userId                     String              @map("user_id")
+  shopId                     String              @map("shop_id")
   courierId                  String?             @map("courier_id")
   handedToCourierAt           DateTime?           @map("handed_to_courier_at")
   codCollectedAt             DateTime?           @map("cod_collected_at")
   deliveredAt                DateTime?           @map("delivered_at")
-  createdAt                  DateTime            @default(now())
-  updatedAt                  DateTime            @updatedAt
+  createdAt                  DateTime            @default(now()) @map("created_at")
+  updatedAt                  DateTime            @updatedAt @map("updated_at")
   source                     String?             @default("customer")
   notifications              Notification[]
   courierOffers              OrderCourierOffer[]
@@ -1449,3 +1451,586 @@ model PortalOtpCode {
   @@index([expiresAt])
   @@map("portal_otp_codes")
 }
+
+// ============================================================================
+// UNIFIED BUILDER SYSTEM - NEW SCHEMA
+// ============================================================================
+
+// Activity Type Enum
+enum ActivityType {
+  COMMERCIAL
+  RESERVATIONS
+  HYBRID
+}
+
+// Commercial Activity Model
+model CommercialActivity {
+  id              String        @id @default(cuid())
+  userId          String        @map("user_id")
+  activityName    String        @map("activity_name")
+  activityType    ActivityType  @default(COMMERCIAL)
+  
+  // Business Information
+  businessName    String        @map("business_name")
+  businessType    String        @map("business_type")
+  industry        String?
+  description     String?
+  
+  // Builder Configuration
+  builderConfig   Json          @default("{}") @map("builder_config")
+  themeConfig     Json          @default("{}") @map("theme_config")
+  
+  // Status
+  status          String        @default("draft")
+  isPublished     Boolean       @default(false) @map("is_published")
+  
+  // SEO
+  seoConfig       Json          @default("{}") @map("seo_config")
+  
+  // Integrations
+  integrations    Json          @default("{}")
+  
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  publishedAt     DateTime?     @map("published_at")
+  
+  // Relations
+  products        ProductNew[]
+  categories      Category[]
+  
+  @@index([userId])
+  @@index([activityType])
+  @@index([status])
+  @@map("commercial_activities")
+}
+
+
+// Reservation Activity Model
+model ReservationActivity {
+  id              String        @id @default(cuid())
+  userId          String        @map("user_id")
+  activityName    String        @map("activity_name")
+  activityType    ActivityType  @default(RESERVATIONS)
+  
+  // Business Information
+  businessName    String        @map("business_name")
+  businessType    String        @map("business_type")
+  industry        String?
+  description     String?
+  
+  // Builder Configuration
+  builderConfig   Json          @default("{}") @map("builder_config")
+  themeConfig     Json          @default("{}") @map("theme_config")
+  
+  // Booking Configuration
+  bookingConfig   Json          @default("{}") @map("booking_config")
+  
+  // Status
+  status          String        @default("draft")
+  isPublished     Boolean       @default(false) @map("is_published")
+  
+  // SEO
+  seoConfig       Json          @default("{}") @map("seo_config")
+  
+  // Integrations
+  integrations    Json          @default("{}")
+  
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  publishedAt     DateTime?     @map("published_at")
+  
+  // Relations
+  services        Service[]
+  serviceProviders ServiceProvider[]
+  bookingSlots    BookingSlotNew[]
+  bookings        BookingNew[]
+  
+  @@index([userId])
+  @@index([businessType])
+  @@index([status])
+  @@map("reservation_activities")
+}
+
+
+// Product Model (Enhanced)
+model ProductNew {
+  id                      String    @id @default(cuid())
+  commercialActivityId    String    @map("commercial_activity_id")
+  
+  // Product Information
+  name                    String
+  slug                    String    @unique
+  description             String?
+  shortDescription        String?   @map("short_description")
+  
+  // Pricing
+  price                   Decimal   @db.Decimal(10, 2)
+  comparePrice            Decimal?  @map("compare_price") @db.Decimal(10, 2)
+  costPrice               Decimal?  @map("cost_price") @db.Decimal(10, 2)
+  
+  // Inventory
+  sku                     String?   @unique
+  barcode                 String?
+  trackInventory          Boolean   @default(true) @map("track_inventory")
+  inventoryQuantity       Int       @default(0) @map("inventory_quantity")
+  lowStockThreshold       Int       @default(10) @map("low_stock_threshold")
+  
+  // Images
+  images                  Json      @default("[]")
+  featuredImage           String?   @map("featured_image")
+  
+  // Categories
+  categoryId              String?   @map("category_id")
+  tags                    Json      @default("[]")
+  
+  // SEO
+  metaTitle               String?   @map("meta_title")
+  metaDescription         String?   @map("meta_description")
+  
+  // Status
+  status                  String    @default("active")
+  isFeatured              Boolean   @default(false) @map("is_featured")
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  commercialActivity      CommercialActivity @relation(fields: [commercialActivityId], references: [id], onDelete: Cascade)
+  category                Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  
+  @@index([commercialActivityId])
+  @@index([categoryId])
+  @@index([status])
+  @@index([slug])
+  @@map("products_new")
+}
+
+
+// Category Model (Enhanced)
+model Category {
+  id                      String    @id @default(cuid())
+  commercialActivityId    String    @map("commercial_activity_id")
+  
+  // Category Information
+  name                    String
+  slug                    String    @unique
+  description             String?
+  
+  // Display
+  icon                    String?
+  image                   String?
+  color                   String?
+  
+  // Settings
+  displayOrder            Int       @default(0) @map("display_order")
+  isActive                Boolean   @default(true) @map("is_active")
+  
+  // SEO
+  metaTitle               String?   @map("meta_title")
+  metaDescription         String?   @map("meta_description")
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  commercialActivity      CommercialActivity @relation(fields: [commercialActivityId], references: [id], onDelete: Cascade)
+  products                ProductNew[]
+  
+  @@index([commercialActivityId])
+  @@index([slug])
+  @@map("categories")
+}
+
+
+// Service Model (Enhanced)
+model Service {
+  id                      String    @id @default(cuid())
+  reservationActivityId   String    @map("reservation_activity_id")
+  
+  // Service Information
+  name                    String
+  slug                    String    @unique
+  description             String?
+  shortDescription        String?   @map("short_description")
+  
+  // Pricing
+  price                   Decimal   @db.Decimal(10, 2)
+  duration                Int       // in minutes
+  comparePrice            Decimal?  @map("compare_price") @db.Decimal(10, 2)
+  
+  // Images
+  images                  Json      @default("[]")
+  featuredImage           String?   @map("featured_image")
+  
+  // Categories
+  categoryId              String?   @map("category_id")
+  tags                    Json      @default("[]")
+  
+  // Booking Settings
+  requiresDeposit         Boolean   @default(false) @map("requires_deposit")
+  depositAmount           Decimal?  @map("deposit_amount") @db.Decimal(10, 2)
+  advanceBookingHours     Int       @default(0) @map("advance_booking_hours")
+  cancellationHours       Int       @default(24) @map("cancellation_hours")
+  
+  // SEO
+  metaTitle               String?   @map("meta_title")
+  metaDescription         String?   @map("meta_description")
+  
+  // Status
+  status                  String    @default("active")
+  isFeatured              Boolean   @default(false) @map("is_featured")
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  reservationActivity     ReservationActivity @relation(fields: [reservationActivityId], references: [id], onDelete: Cascade)
+  
+  @@index([reservationActivityId])
+  @@index([status])
+  @@index([slug])
+  @@map("services_new")
+}
+
+
+// Service Provider Model
+model ServiceProvider {
+  id                      String    @id @default(cuid())
+  reservationActivityId   String    @map("reservation_activity_id")
+  
+  // Provider Information
+  name                    String
+  title                   String?
+  bio                     String?
+  
+  // Images
+  avatar                  String?
+  images                  Json      @default("[]")
+  
+  // Contact Information
+  email                   String?
+  phone                   String?
+  
+  // Specializations
+  specializations         Json      @default("[]")
+  
+  // Working Hours
+  workingHours            Json      @default("{}")
+  
+  // Ratings
+  rating                  Decimal   @default(0) @db.Decimal(3, 2)
+  reviewCount             Int       @default(0) @map("review_count")
+  
+  // Status
+  status                  String    @default("active")
+  isFeatured              Boolean   @default(false) @map("is_featured")
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  reservationActivity     ReservationActivity @relation(fields: [reservationActivityId], references: [id], onDelete: Cascade)
+  bookingSlots            BookingSlotNew[]
+  
+  @@index([reservationActivityId])
+  @@index([status])
+  @@map("service_providers")
+}
+
+
+// Booking Slot Model (Enhanced)
+model BookingSlotNew {
+  id                      String    @id @default(cuid())
+  reservationActivityId   String    @map("reservation_activity_id")
+  serviceId               String?   @map("service_id")
+  providerId              String?   @map("provider_id")
+  
+  // Slot Information
+  startTime               DateTime  @map("start_time")
+  endTime                 DateTime  @map("end_time")
+  duration                Int
+  
+  // Capacity
+  capacity                Int       @default(1)
+  bookedCount             Int       @default(0) @map("booked_count")
+  
+  // Status
+  status                  String    @default("available")
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  reservationActivity     ReservationActivity @relation(fields: [reservationActivityId], references: [id], onDelete: Cascade)
+  provider                ServiceProvider? @relation(fields: [providerId], references: [id], onDelete: SetNull)
+  
+  @@index([reservationActivityId])
+  @@index([serviceId])
+  @@index([providerId])
+  @@index([startTime])
+  @@index([status])
+  @@map("booking_slots_new")
+}
+
+
+// Booking Model (Enhanced)
+model BookingNew {
+  id                      String    @id @default(cuid())
+  reservationActivityId   String    @map("reservation_activity_id")
+  serviceId               String?   @map("service_id")
+  providerId              String?   @map("provider_id")
+  slotId                  String?   @map("slot_id")
+  
+  // Customer Information
+  customerName            String    @map("customer_name")
+  customerEmail           String    @map("customer_email")
+  customerPhone           String?   @map("customer_phone")
+  
+  // Booking Information
+  bookingDate             DateTime  @map("booking_date")
+  status                  String    @default("pending")
+  
+  // Payment
+  totalAmount             Decimal   @map("total_amount") @db.Decimal(10, 2)
+  depositAmount           Decimal?  @map("deposit_amount") @db.Decimal(10, 2)
+  paymentStatus           String    @default("pending") @map("payment_status")
+  
+  // Notes
+  notes                   String?
+  
+  // Timestamps
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  
+  // Relations
+  reservationActivity     ReservationActivity @relation(fields: [reservationActivityId], references: [id], onDelete: Cascade)
+  
+  @@index([reservationActivityId])
+  @@index([serviceId])
+  @@index([providerId])
+  @@index([customerEmail])
+  @@index([status])
+  @@index([bookingDate])
+  @@map("bookings_new")
+}
+
+
+// Builder Template Model
+model BuilderTemplate {
+  id              String    @id @default(cuid())
+  
+  // Template Information
+  name            String
+  slug            String    @unique
+  description     String?
+  
+  // Type
+  templateType    String    @map("template_type") // commercial, reservations
+  businessType    String?   @map("business_type")
+  
+  // Configuration
+  templateConfig  Json      @default("{}") @map("template_config")
+  themeConfig     Json      @default("{}") @map("theme_config")
+  
+  // Images
+  previewImage    String?   @map("preview_image")
+  screenshots     Json      @default("[]")
+  
+  // Categories
+  category        String?
+  tags            Json      @default("[]")
+  
+  // Popularity
+  usageCount      Int       @default(0) @map("usage_count")
+  rating          Decimal   @default(0) @db.Decimal(3, 2)
+  
+  // Status
+  status          String    @default("active")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  isPremium       Boolean   @default(false) @map("is_premium")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([templateType])
+  @@index([businessType])
+  @@index([category])
+  @@index([status])
+  @@map("builder_templates")
+}
+
+
+// Builder Theme Model
+model BuilderTheme {
+  id              String    @id @default(cuid())
+  
+  // Theme Information
+  name            String
+  slug            String    @unique
+  description     String?
+  
+  // Type
+  themeType       String    @map("theme_type") // commercial, reservations
+  businessType    String?   @map("business_type")
+  
+  // Configuration
+  themeConfig     Json      @default("{}") @map("theme_config")
+  colorPalette    Json      @default("{}") @map("color_palette")
+  typographyConfig Json     @default("{}") @map("typography_config")
+  
+  // Images
+  previewImage    String?   @map("preview_image")
+  screenshots     Json      @default("[]")
+  
+  // Categories
+  category        String?
+  tags            Json      @default("[]")
+  
+  // Popularity
+  usageCount      Int       @default(0) @map("usage_count")
+  rating          Decimal   @default(0) @db.Decimal(3, 2)
+  
+  // Status
+  status          String    @default("active")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  isPremium       Boolean   @default(false) @map("is_premium")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([themeType])
+  @@index([businessType])
+  @@index([category])
+  @@index([status])
+  @@map("builder_themes")
+}
+
+
+// AI Suggestions Model
+model AiSuggestion {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  activityId      String?   @map("activity_id")
+  activityType    String?   @map("activity_type")
+  
+  // Suggestion Information
+  suggestionType  String    @map("suggestion_type") // design, content, seo, layout
+  suggestionData  Json      @default("{}") @map("suggestion_data")
+  
+  // Status
+  status          String    @default("pending")
+  isAccepted      Boolean?  @map("is_accepted")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@index([activityId])
+  @@index([suggestionType])
+  @@index([status])
+  @@map("ai_suggestions")
+}
+
+
+// AI Generated Content Model
+model AiGeneratedContent {
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  activityId      String?   @map("activity_id")
+  
+  // Content Information
+  contentType     String    @map("content_type") // product_description, service_description, marketing_copy
+  contentData     Json      @default("{}") @map("content_data")
+  
+  // Generation Information
+  prompt          String?
+  modelUsed       String?   @map("model_used")
+  parameters      Json      @default("{}")
+  
+  // Status
+  status          String    @default("draft")
+  isPublished     Boolean   @default(false) @map("is_published")
+  
+  // Timestamps
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  
+  @@index([userId])
+  @@index([activityId])
+  @@index([contentType])
+  @@index([status])
+  @@map("ai_generated_content")
+}
+
+
+// Page Analytics Model
+model PageAnalytics {
+  id              String    @id @default(cuid())
+  activityId      String    @map("activity_id")
+  activityType    String    @map("activity_type")
+  
+  // Page Information
+  pagePath        String    @map("page_path")
+  pageTitle       String?   @map("page_title")
+  
+  // Visitor Statistics
+  visitors        Int       @default(0)
+  pageViews       Int       @default(0) @map("page_views")
+  uniqueVisitors  Int       @default(0) @map("unique_visitors")
+  
+  // Conversion Rates
+  conversionRate  Decimal?  @default(0) @map("conversion_rate") @db.Decimal(5, 2)
+  bounceRate      Decimal?  @default(0) @map("bounce_rate") @db.Decimal(5, 2)
+  
+  // Time
+  avgTimeOnPage   Int       @default(0) @map("avg_time_on_page")
+  
+  // Timestamps
+  date            DateTime  @db.Date
+  createdAt       DateTime  @default(now()) @map("created_at")
+  
+  @@index([activityId])
+  @@index([activityType])
+  @@index([date])
+  @@unique([activityId, pagePath, date])
+  @@map("page_analytics")
+}
+
+
+// Performance Analytics Model
+model PerformanceAnalytics {
+  id                      String    @id @default(cuid())
+  activityId              String    @map("activity_id")
+  activityType            String    @map("activity_type")
+  
+  // Performance Metrics
+  loadTime                Decimal?  @default(0) @map("load_time") @db.Decimal(10, 2)
+  firstContentfulPaint    Decimal?  @default(0) @map("first_contentful_paint") @db.Decimal(10, 2)
+  largestContentfulPaint Decimal?  @default(0) @map("largest_contentful_paint") @db.Decimal(10, 2)
+  cumulativeLayoutShift   Decimal?  @default(0) @map("cumulative_layout_shift") @db.Decimal(10, 2)
+  firstInputDelay         Decimal?  @default(0) @map("first_input_delay") @db.Decimal(10, 2)
+  
+  // Overall Score
+  performanceScore        Int       @default(0) @map("performance_score")
+  
+  // Timestamps
+  date                    DateTime  @db.Date
+  createdAt               DateTime  @default(now()) @map("created_at")
+  
+  @@index([activityId])
+  @@index([activityType])
+  @@index([date])
+  @@unique([activityId, date])
+  @@map("performance_analytics")
+}
+

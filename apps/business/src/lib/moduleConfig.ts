@@ -1,11 +1,12 @@
 import {
   LayoutDashboard, ShoppingCart, Package, Receipt, Users, Megaphone,
   Calendar, UserCog, BarChart3, Sparkles, Monitor, LucideIcon,
+  ClipboardList, UserCircle,
 } from 'lucide-react';
 
 export type ModuleId =
-  | 'core' | 'sales' | 'inventory' | 'finance' | 'crm' | 'marketing'
-  | 'bookings' | 'hr' | 'website' | 'analytics' | 'ai'
+  | 'core' | 'sales' | 'pos' | 'inventory' | 'finance' | 'crm' | 'customers'
+  | 'marketing' | 'bookings' | 'hr' | 'website' | 'analytics' | 'ai'
   | string;
 
 export type FeatureDef = {
@@ -79,8 +80,8 @@ const salesModule: ModuleDef = {
   id: 'sales',
   name: 'Sales & Orders',
   nameAr: 'المبيعات والطلبات',
-  description: 'Manage orders, POS checkout, abandoned carts, and sales transactions.',
-  descriptionAr: 'إدارة الطلبات، نقاط البيع، السلات المتروكة، ومعاملات البيع.',
+  description: 'Manage orders, abandoned carts, and sales transactions.',
+  descriptionAr: 'إدارة الطلبات، السلات المتروكة، ومعاملات البيع.',
   icon: ShoppingCart,
   color: '#2563EB',
   dependencies: ['core'],
@@ -93,14 +94,12 @@ const salesModule: ModuleDef = {
     { id: 'returns', label: 'Returns', labelAr: 'المرتجعات', defaultEnabled: false },
     { id: 'loyalty', label: 'Loyalty Points', labelAr: 'نقاط الولاء', defaultEnabled: false },
     { id: 'subscriptions', label: 'Subscriptions', labelAr: 'الاشتراكات', defaultEnabled: false },
-    { id: 'pos', label: 'Quick Sales (POS)', labelAr: 'المبيعات السريعة (POS)', defaultEnabled: false },
     { id: 'epayment', label: 'E-Payment', labelAr: 'الدفع الإلكتروني', defaultEnabled: false },
     { id: 'orderStatus', label: 'Order Status', labelAr: 'حالات الطلب', defaultEnabled: true },
     { id: 'abandonedCart', label: 'Abandoned Cart', labelAr: 'السلة المتروكة', defaultEnabled: true },
   ],
   pages: [
     { id: 'sales', label: 'Orders', route: '/business/dashboard?tab=sales', tabId: 'sales', existing: true },
-    { id: 'pos', label: 'POS System', route: '/business/dashboard?tab=pos', tabId: 'pos', existing: true },
     { id: 'abandoned_cart', label: 'Abandoned Cart', route: '/business/dashboard?tab=abandonedCart', tabId: 'abandonedCart', existing: true },
     { id: 'quotes', label: 'Quotes', route: '/business/dashboard?tab=quotes', tabId: 'quotes' },
     { id: 'payments', label: 'Payments', route: '/business/dashboard?tab=payments', tabId: 'payments' },
@@ -267,6 +266,60 @@ const marketingModule: ModuleDef = {
   defaultEnabled: true,
   optional: true,
   estimatedSetupMinutes: 5,
+};
+
+const posModule: ModuleDef = {
+  id: 'pos',
+  name: 'POS / Cashier',
+  nameAr: 'الكاشير',
+  description: 'Point of sale checkout, invoices, shifts, and cashier reports.',
+  descriptionAr: 'نقطة البيع، الفواتير، الورديات، وتقارير الكاشير.',
+  icon: ShoppingCart,
+  color: '#7C3AED',
+  dependencies: ['core', 'sales'],
+  features: [
+    { id: 'posCheckout', label: 'Cashier Checkout', labelAr: 'الكاشير', defaultEnabled: true },
+    { id: 'posInvoices', label: 'POS Invoices', labelAr: 'فواتير الكاشير', defaultEnabled: true },
+    { id: 'posReturns', label: 'POS Returns', labelAr: 'مرتجعات الكاشير', defaultEnabled: false },
+    { id: 'posWebsiteReturns', label: 'Website Returns', labelAr: 'مرتجعات الموقع', defaultEnabled: false },
+    { id: 'posShifts', label: 'Shifts', labelAr: 'الورديات', defaultEnabled: true },
+    { id: 'posReports', label: 'POS Reports', labelAr: 'تقارير الكاشير', defaultEnabled: false },
+  ],
+  pages: [
+    { id: 'posCheckout', label: 'Cashier', route: '/business/dashboard?tab=pos', tabId: 'pos', existing: true },
+    { id: 'posInvoices', label: 'POS Invoices', route: '/business/dashboard?tab=posInvoices', tabId: 'posInvoices' },
+    { id: 'posReturns', label: 'POS Returns', route: '/business/dashboard?tab=posReturns', tabId: 'posReturns' },
+    { id: 'posWebsiteReturns', label: 'Website Returns', route: '/business/dashboard?tab=posWebsiteReturns', tabId: 'posWebsiteReturns' },
+    { id: 'posShifts', label: 'Shifts', route: '/business/dashboard?tab=posShifts', tabId: 'posShifts' },
+    { id: 'posReports', label: 'POS Reports', route: '/business/dashboard?tab=posReports', tabId: 'posReports' },
+  ],
+  defaultEnabled: true,
+  optional: true,
+  estimatedSetupMinutes: 3,
+};
+
+const customersModule: ModuleDef = {
+  id: 'customers',
+  name: 'Customers',
+  nameAr: 'العملاء',
+  description: 'Customer profiles, segments, tags, and customer management.',
+  descriptionAr: 'ملفات العملاء، الشرائح، الوسوم، وإدارة العملاء.',
+  icon: UserCircle,
+  color: '#DB2777',
+  dependencies: ['core'],
+  features: [
+    { id: 'customers', label: 'Customers', labelAr: 'العملاء', defaultEnabled: true },
+    { id: 'customerSegments', label: 'Segments', labelAr: 'الشرائح', defaultEnabled: false },
+    { id: 'customerTags', label: 'Tags', labelAr: 'الوسوم', defaultEnabled: false },
+  ],
+  pages: [
+    { id: 'customers', label: 'Customers', route: '/business/dashboard?tab=customers', tabId: 'customers', existing: true },
+    { id: 'customerSegments', label: 'Segments', route: '/business/dashboard?tab=customerSegments', tabId: 'customerSegments' },
+    { id: 'customerTags', label: 'Tags', route: '/business/dashboard?tab=customerTags', tabId: 'customerTags' },
+  ],
+  defaultEnabled: true,
+  optional: true,
+  estimatedSetupMinutes: 2,
 };
 
 const bookingsModule: ModuleDef = {
@@ -456,7 +509,7 @@ const aiModule: ModuleDef = {
 };
 
 export const MODULE_DEFINITIONS: ModuleDef[] = [
-  coreModule, salesModule, inventoryModule, financeModule, crmModule,
+  coreModule, salesModule, posModule, inventoryModule, financeModule, crmModule, customersModule,
   marketingModule, bookingsModule, hrModule, websiteModule, analyticsModule, aiModule,
 ];
 
@@ -580,13 +633,41 @@ export function computeSystemSummary(enabledModuleIds: ModuleId[]): SystemSummar
   };
 }
 
+const BOOKING_ACTIVITIES = new Set([
+  'bookings', 'clinic', 'dentalClinic', 'vetClinic', 'salon', 'spa',
+  'gym', 'yogaStudio', 'sportsCenter', 'hotel', 'travelAgency',
+  'drivingSchool', 'musicSchool', 'tutoringCenter', 'photographyStudio',
+]);
+
+export function getActivityDefaultModules(activityId: string): ModuleId[] {
+  if (BOOKING_ACTIVITIES.has(activityId)) {
+    return ['core', 'sales', 'pos', 'customers', 'website', 'marketing'];
+  }
+  return MODULE_DEFINITIONS.filter((m) => m.defaultEnabled && m.id !== 'bookings').map((m) => m.id);
+}
+
+export function getActivityDefaultFeatures(activityId: string): Record<string, string[]> {
+  const defaults: Record<string, string[]> = {};
+  const enabledIds = getActivityDefaultModules(activityId);
+  const enabledSet = new Set(enabledIds);
+  MODULE_DEFINITIONS.forEach((mod) => {
+    if (enabledSet.has(mod.id)) {
+      defaults[mod.id] = mod.features
+        .filter((f) => f.defaultEnabled !== false)
+        .map((f) => f.id);
+    } else {
+      defaults[mod.id] = [];
+    }
+  });
+  return defaults;
+}
+
 export const PAGE_LABEL_AR: Record<string, string> = {
   'Overview': 'نظرة عامة',
   'Notifications': 'الإشعارات',
   'Settings': 'الإعدادات',
   'Profile': 'الملف الشخصي',
   'Orders': 'الطلبات',
-  'POS System': 'نظام نقطة البيع',
   'Abandoned Cart': 'السلة المتروكة',
   'Products': 'المنتجات',
   'Invoices': 'الفواتير',
@@ -676,4 +757,10 @@ export const PAGE_LABEL_AR: Record<string, string> = {
   'AI Suggestions': 'اقتراحات AI',
   'AI Pages': 'صفحات AI',
   'AI Data Analysis': 'تحليل بيانات AI',
+  'Cashier': 'الكاشير',
+  'POS Invoices': 'فواتير الكاشير',
+  'POS Returns': 'مرتجعات الكاشير',
+  'Website Returns': 'مرتجعات الموقع',
+  'Shifts': 'الورديات',
+  'POS Reports': 'تقارير الكاشير',
 };

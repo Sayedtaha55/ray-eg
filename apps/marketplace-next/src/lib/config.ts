@@ -12,13 +12,12 @@ export const siteConfig = {
   keywords: ['تسويق', 'متاجر', 'منتجات', 'عروض', 'من مكانك', 'MNMKNK', 'مصر', 'تجارة الكترونية'],
   dashboardUrl:
     process.env.NEXT_PUBLIC_DASHBOARD_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://dashboard.mnmknk.com' : 'https://localhost:3000'),
+    (process.env.NODE_ENV === 'production' ? 'https://dashboard.mnmknk.com' : 'https://localhost:3010'),
 };
 
 export const navLinks = [
   { href: '/', label: { ar: 'الرئيسية', en: 'Home' } },
   { href: '/dalil', label: { ar: 'الدليل', en: 'Directory' } },
-  { href: '/builder', label: { ar: 'منشئ المواقع', en: 'Website Builder' } },
   { href: '/offers', label: { ar: 'العروض', en: 'Offers' } },
   { href: '/map', label: { ar: 'الخريطة', en: 'Map' } },
   { href: '/blog', label: { ar: 'المدونة', en: 'Blog' } },

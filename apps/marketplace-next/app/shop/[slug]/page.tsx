@@ -5,8 +5,12 @@ import { notFound } from 'next/navigation';
 import { MapPin, Phone, Star, Store, Globe, MessageCircle, ArrowLeft } from 'lucide-react';
 import { getShopBySlug, getProducts, getShops, type Shop } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
+import { ShopProducts } from '@/components/ShopProducts';
 import ShareButton from '@/components/ShareButton';
+import { FollowButton } from '@/components/FollowButton';
+import { ReviewsSection } from '@/components/ReviewsSection';
 import { siteConfig } from '@/lib/config';
+import ShopRenderer from '@/components/ShopRenderer';
 
 export const revalidate = 300;
 
@@ -104,6 +108,40 @@ export default async function ShopPage({ params }: Props) {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+
+      {/* If the shop has a builder config, render with the unified builder layout
+          (same as the live preview in dashboard-web). Otherwise fall back to the
+          legacy hardcoded layout below. */}
+      {shop.builderConfig ? (
+        <ShopRenderer shop={shop} products={products} />
+      ) : (
+        <LegacyShopLayout shop={shop} products={products} design={design} primaryColor={primaryColor} bgColor={bgColor} />
+      )}
+    </>
+  );
+}
+
+function LegacyShopLayout({
+  shop,
+  products,
+  design,
+  primaryColor,
+  bgColor,
+}: {
+  shop: Shop;
+  products: Awaited<ReturnType<typeof getProducts>>;
+  design: Record<string, any>;
+  primaryColor: string;
+  bgColor: string;
+}) {
+  const headerBg = design.headerBackgroundColor || '#FFFFFF';
+  const headerText = design.headerTextColor || '#0F172A';
+  const bannerUrl = design.bannerUrl || shop.coverImage || shop.banner;
+  const bannerIsVideo = design.bannerIsVideo || false;
+  const logoUrl = design.logoUrl || shop.logo;
+
+  return (
+    <>
       {/* Cover Banner */}
       <div className="relative h-48 md:h-72 lg:h-80 bg-brand-black overflow-hidden" style={{ backgroundColor: bgColor }}>
         {bannerUrl ? (
@@ -112,7 +150,7 @@ export default async function ShopPage({ params }: Props) {
           ) : (
             <Image
               src={bannerUrl}
-              alt={shop.name}
+              alt={shop.name || 'متجر'}
               fill
               priority
               sizes="100vw"
@@ -132,7 +170,7 @@ export default async function ShopPage({ params }: Props) {
             {/* Logo */}
             <div className="w-24 h-24 md:w-32 md:h-32 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0 shadow-lg" style={{ backgroundColor: primaryColor + '22' }}>
               {logoUrl ? (
-                <Image src={logoUrl} alt={shop.name} width={128} height={128} className="object-cover w-full h-full" />
+                <Image src={logoUrl} alt={shop.name || 'متجر'} width={128} height={128} className="object-cover w-full h-full" />
               ) : (
                 <Store className="w-10 h-10" style={{ color: primaryColor }} />
               )}
@@ -182,6 +220,7 @@ export default async function ShopPage({ params }: Props) {
 
             {/* Actions */}
             <div className="flex gap-2 flex-shrink-0">
+              <FollowButton shopId={shop.id} shopSlug={shop.slug} />
               {shop.phone && (
                 <a
                   href={`tel:${shop.phone}`}
@@ -227,11 +266,7 @@ export default async function ShopPage({ params }: Props) {
         </div>
 
         {products.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <ShopProducts products={products} primaryColor={primaryColor} />
         ) : (
           <div className="text-center py-20">
             <Store className="w-16 h-16 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
@@ -239,6 +274,12 @@ export default async function ShopPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* Shop Reviews */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 pb-12 md:pb-16">
+        <ReviewsSection type="shop" targetId={shop.id} />
+      </div>
     </>
   );
 }
+

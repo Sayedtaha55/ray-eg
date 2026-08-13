@@ -5,6 +5,7 @@
     "useDefineForClassFields": false,
     "module": "ESNext",
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
 

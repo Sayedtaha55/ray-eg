@@ -12,6 +12,7 @@
     "declaration": true,
     "noEmit": true,
     "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "allowImportingTsExtensions": true,
     "paths": {
       "@ray-eg/shared": ["./src/index.ts"],

@@ -4,10 +4,13 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Menu, X, Sun, Moon, Globe, Store, LogIn, User } from 'lucide-react';
+import { Menu, X, Sun, Moon, Globe, Store, LogIn, User, ShoppingBag, Bell, Heart } from 'lucide-react';
 import { useApp } from './AppProvider';
+import { useCart } from '@/lib/cart';
+import { useWishlist } from '@/lib/wishlist';
 import { SearchBar } from './SearchBar';
 import { siteConfig, navLinks } from '@/lib/config';
+import { BACKEND_URL } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
@@ -16,6 +19,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { totalItems, setCartOpen } = useCart();
+  const { count: wishlistCount } = useWishlist();
+  const [unreadNotifs, setUnreadNotifs] = useState(0);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -30,6 +36,13 @@ export function Navbar() {
   useEffect(() => {
     const token = localStorage.getItem('token');
     setIsLoggedIn(!!token);
+    if (token) {
+      fetch(`${BACKEND_URL}/api/v1/notifications/me/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.ok ? r.json() : null).then(d => setUnreadNotifs(d?.unread_count || d?.count || 0)).catch(() => {});
+    } else {
+      setUnreadNotifs(0);
+    }
   }, [pathname]);
 
   const isActive = (href: string) =>
@@ -87,6 +100,47 @@ export function Navbar() {
 
           {/* Actions */}
           <div className="flex items-center gap-2 md:gap-3">
+            {/* Cart */}
+            <button
+              onClick={() => setCartOpen(true)}
+              className="relative w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5 transition-all"
+              aria-label="السلة"
+            >
+              <ShoppingBag className="w-4 h-4 md:w-5 md:h-5" />
+              {totalItems > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-brand-cyan text-white text-[10px] font-bold flex items-center justify-center">
+                  {totalItems > 9 ? '9+' : totalItems}
+                </span>
+              )}
+            </button>
+            {/* Wishlist */}
+            <Link
+              href="/wishlist"
+              className="relative hidden md:flex w-9 h-9 md:w-10 md:h-10 rounded-lg items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5 transition-all"
+              aria-label="المفضلة"
+            >
+              <Heart className="w-4 h-4 md:w-5 md:h-5" />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {wishlistCount > 9 ? '9+' : wishlistCount}
+                </span>
+              )}
+            </Link>
+            {/* Notifications */}
+            {isLoggedIn && (
+              <Link
+                href="/notifications"
+                className="relative hidden md:flex w-9 h-9 md:w-10 md:h-10 rounded-lg items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5 transition-all"
+                aria-label="الإشعارات"
+              >
+                <Bell className="w-4 h-4 md:w-5 md:h-5" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </span>
+                )}
+              </Link>
+            )}
             <button
               onClick={() => setLang(lang === 'ar' ? 'en' : 'ar')}
               className="w-9 h-9 md:w-10 md:h-10 rounded-lg flex items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5 transition-all"
@@ -165,6 +219,22 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
+                <Link href="/wishlist" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
+                  <Heart className="w-5 h-5" />
+                  {lang === 'ar' ? 'المفضلة' : 'Wishlist'}
+                  {wishlistCount > 0 && (
+                    <span className="mr-auto w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">{wishlistCount}</span>
+                  )}
+                </Link>
+                {isLoggedIn && (
+                  <Link href="/notifications" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
+                    <Bell className="w-5 h-5" />
+                    {lang === 'ar' ? 'الإشعارات' : 'Notifications'}
+                    {unreadNotifs > 0 && (
+                      <span className="mr-auto w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">{unreadNotifs}</span>
+                    )}
+                  </Link>
+                )}
                 {isLoggedIn ? (
                   <Link href="/profile" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
                     <User className="w-5 h-5" />

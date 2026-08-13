@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks, Activity, Scissors, Ticket, Car, Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon, ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper, ShieldCheck, MapPin, CalendarHeart, Map as MapIcon, Coins, UserSquare, Building, Stethoscope, UserCog, Wallet, Plus, RotateCcw, FolderTree, Tag, Warehouse, ClipboardCheck as ClipCheck, Truck, ShoppingCart as Cart, ArrowLeftRight, Barcode, QrCode, TrendingUp, AlertTriangle, DollarSign, Calculator, BookOpen, Receipt, Banknote, PiggyBank, BarChart, Percent, Gift, Mail, Smartphone, MessageSquare as Msg, Star, NotebookPen, PhoneCall, Phone, CalendarClock, CalendarX, BellRing, Lock, LogIn, FileOutput, Plane, CheckSquare, FileEdit, Globe, Search, Newspaper, Send, Server, TrendingDown, Zap, Lightbulb, Bot } from 'lucide-react';
+import { LayoutDashboard, Store, CreditCard, BarChart3, Settings, Bell, LogOut, ChevronRight, HelpCircle, Menu, X, Clock, CheckCircle2, UserPlus, ShoppingBag, ShoppingCart, Calendar, Camera, Users, Megaphone, Palette, User, Shield, FileText, Sliders, Type, Layout, ChevronDown, RefreshCw, ChevronLeft, LayoutGrid, ArrowUp, ArrowDown, Package, Sparkles, Home, CalendarCheck, ClipboardList, ListChecks, Activity, Scissors, Ticket, Car, Dumbbell, GraduationCap, Wrench, Hotel, Utensils, Eye, DoorOpen, Armchair, Building2, CalendarDays, ShieldAlert, Moon, ClipboardCheck, UtensilsCrossed, MessageSquare, PartyPopper, ShieldCheck, MapPin, CalendarHeart, Map as MapIcon, Coins, UserSquare, Building, Stethoscope, UserCog, Wallet, Plus, RotateCcw, FolderTree, Tag, Warehouse, ClipboardCheck as ClipCheck, Truck, ShoppingCart as Cart, ArrowLeftRight, Barcode, QrCode, TrendingUp, AlertTriangle, DollarSign, Calculator, BookOpen, Receipt, Banknote, PiggyBank, BarChart, Percent, Gift, Mail, Smartphone, MessageSquare as Msg, Star, NotebookPen, PhoneCall, Phone, CalendarClock, CalendarX, BellRing, Lock, LogIn, FileOutput, Plane, CheckSquare, FileEdit, Globe, Search, Newspaper, Send, Server, TrendingDown, Zap, Lightbulb, Bot, ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ApiService } from '@/services/api.service';
@@ -11,13 +11,13 @@ import LanguageToggle from '@/components/common/LanguageToggle';
 import { Category } from '@/types';
 import {
   MerchantDashboardTabId,
-  MERCHANT_DASHBOARD_TABS,
   getMerchantDashboardTabsForShop,
   getTabLabel,
 } from '../pages/business/merchant-dashboard/dashboardTabs';
 import { useModuleConfig } from '../hooks/useModuleConfig';
 import { MODULE_MAP } from '../config/modules';
 import type { ModuleId } from '../config/modules';
+import { buildSidebarSections } from '../config/sidebar/sidebarSections';
 import { getBookingActivityDefinition, getBookingActivityExtraPageId, getBookingActivityTypeFromPath, getBookingRouteFromActivityType, BOOKING_SETTINGS_PAGE_BUTTONS, SHARED_DASHBOARD_BUTTONS, BOOKING_ACTIVITIES, ACTIVITY_MODULES, isShopBookingActivity } from '../pages/business/bookings/config';
 import type { BookingActivityType } from '../pages/business/bookings/config';
 
@@ -90,6 +90,8 @@ const BusinessLayout: React.FC = () => {
   const builderTabRaw = new URLSearchParams(location.search).get('builderTab') || '';
   const isSettingsTab = activeTab === 'settings';
   const isBuilderTab = activeTab === 'builder';
+  const activeSection = new URLSearchParams(location.search).get('section') || '';
+  const isSectionView = Boolean(activeSection) && !isSettingsTab && !isBuilderTab;
   const bookingActivities = useMemo(() => [
     'clinic',
     'salon',
@@ -354,6 +356,21 @@ const BusinessLayout: React.FC = () => {
     if (tab !== 'builder') {
       params.delete('builderTab');
     }
+    if (tab !== 'apps') {
+      params.delete('section');
+    }
+    params.delete('bookingModule');
+    params.delete('activity');
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search]);
+
+  const buildSectionUrl = useCallback((moduleId: string) => {
+    const params = new URLSearchParams(location.search);
+    params.set('tab', 'apps');
+    params.set('section', moduleId);
+    params.delete('settingsTab');
+    params.delete('builderTab');
     params.delete('bookingModule');
     params.delete('activity');
     const qs = params.toString();
@@ -409,8 +426,17 @@ const BusinessLayout: React.FC = () => {
   const buildUrlForTab = useCallback((id: MerchantDashboardTabId) => {
     if (id === 'builder') return buildBuilderIndexUrl();
     if (id === 'settings') return buildSettingsUrl('overview');
-    return buildDashboardUrl(id);
-  }, [buildBuilderIndexUrl, buildSettingsUrl, buildDashboardUrl]);
+    const params = new URLSearchParams(location.search);
+    params.set('tab', id);
+    if (String(id) !== 'apps') {
+      params.delete('settingsTab');
+      params.delete('builderTab');
+    }
+    params.delete('bookingModule');
+    params.delete('activity');
+    const qs = params.toString();
+    return `/business/dashboard${qs ? `?${qs}` : ''}`;
+  }, [location.search, buildBuilderIndexUrl, buildSettingsUrl]);
 
   const isTabActive = useCallback((id: MerchantDashboardTabId) => {
     if (isProfilePage) return false;
@@ -477,67 +503,14 @@ const BusinessLayout: React.FC = () => {
   const desktopSidebarHeaderOffsetClassRtl = isDesktopSidebarCollapsed ? 'md:right-24' : 'md:right-80';
 
   const sidebarNavSections = useMemo(() => {
-    // Use ALL tabs from MERCHANT_DASHBOARD_TABS (bypass module gating) so all sections are visible
-    const allTabs = MERCHANT_DASHBOARD_TABS.map((t) => ({
-      ...t,
-      icon: ICON_BY_TAB_ID[t.id],
-      label: getTabLabel(t, shopForModules || { category: shopCategory }),
-    }));
-    const byId = new Map();
-    for (const tab of allTabs) byId.set(String(tab.id), tab);
-
-    const pick = (...ids: MerchantDashboardTabId[]) =>
-      ids.map((id) => byId.get(String(id))).filter(Boolean);
-
-    const sections = [];
-
-    const dashboardItems = pick('overview', 'notifications');
-    if (dashboardItems.length > 0) {
-      sections.push({ title: t('dashboard.sections.dashboard'), items: dashboardItems });
-    }
-
-    const salesItems = pick('sales', 'abandonedCart', 'quotes', 'payments', 'loyalty', 'subscriptions', 'pos', 'epayment', 'orderStatus');
-    // Attach 'returns' as a child of 'sales' for nested sidebar display
-    const returnsTab = byId.get('returns');
-    if (returnsTab && salesItems.length > 0) {
-      salesItems[0] = { ...salesItems[0], children: [returnsTab] };
-    }
-    sections.push({ title: isArabic ? 'المبيعات' : 'Sales', moduleId: 'sales', items: salesItems });
-
-    const inventoryItems = pick('products', 'categories', 'variants', 'warehouses', 'stocktake', 'suppliers', 'purchaseOrders', 'transfers', 'barcode', 'qrCode', 'stockTracking', 'lowStockAlerts');
-    sections.push({ title: isArabic ? 'المخزون' : 'Inventory', moduleId: 'inventory', items: inventoryItems });
-
-    const financeItems = pick('invoice', 'expenses', 'revenue', 'profits', 'taxes', 'journal', 'cashflow', 'accounts', 'wallets', 'financialReports');
-    sections.push({ title: isArabic ? 'المالية' : 'Finance', moduleId: 'finance', items: financeItems });
-
-    const marketingItems = pick('promotions', 'marketing', 'campaigns', 'coupons', 'discounts', 'messages', 'emailCampaigns', 'pushNotifications', 'smsCampaigns', 'loyaltyPrograms', 'seasonalOffers');
-    sections.push({ title: isArabic ? 'التسويق' : 'Marketing', moduleId: 'marketing', items: marketingItems });
-
-    const crmItems = pick('customers', 'chats', 'tickets', 'complaints', 'reviews', 'notes', 'followUps', 'contactLog');
-    sections.push({ title: isArabic ? 'خدمة العملاء' : 'Customer Service', moduleId: 'crm', items: crmItems });
-
-    const bookingItems = pick('reservations', 'providers', 'services', 'activityRooms', 'activityPatients', 'activityInventory', 'restaurantTables', 'appointments', 'calendar', 'rooms', 'doctors', 'bookingConfirm', 'bookingCancel', 'bookingReminder');
-    sections.push({ title: isArabic ? 'إدارة نشاط الحجوزات' : 'Booking Management', moduleId: 'bookings', items: bookingItems });
-
-    const hrItems = pick('employees', 'permissions', 'attendance', 'checkOut', 'payroll', 'leaves', 'tasks');
-    sections.push({ title: isArabic ? 'الموارد البشرية' : 'Human Resources', moduleId: 'hr', items: hrItems });
-
-    const websiteItems = pick('builder', 'gallery', 'pages', 'templates', 'seo', 'blog', 'forms', 'media', 'domains', 'publishing');
-    sections.push({ title: isArabic ? 'الموقع الإلكتروني' : 'Website', items: websiteItems });
-
-    const analyticsItems = pick('reports', 'kpi', 'charts', 'salesPerformance', 'productPerformance', 'visitors', 'conversions');
-    sections.push({ title: isArabic ? 'التحليلات' : 'Analytics', moduleId: 'analytics', items: analyticsItems });
-
-    const aiItems = pick('aiContent', 'aiImages', 'aiSEO', 'aiAnalysis', 'aiReplies', 'aiSuggestions', 'aiPages', 'aiDataAnalysis', 'aiInsights', 'aiRecommendations', 'aiAutomations');
-    sections.push({ title: isArabic ? 'الذكاء الاصطناعي' : 'AI Assistant', moduleId: 'ai', items: aiItems });
-
-    const setupItems = pick('settings');
-    if (setupItems.length > 0) {
-      sections.push({ title: isArabic ? 'الإعدادات' : 'Settings', items: setupItems });
-    }
-
-    return sections;
-  }, [shopForModules, shopCategory, t]);
+    return buildSidebarSections({
+      isArabic,
+      shopForModules,
+      shopCategory: shopCategory || '',
+      t,
+      iconByTabId: ICON_BY_TAB_ID,
+    });
+  }, [isArabic, shopForModules, shopCategory, t]);
 
   const normalizeNotif = (n: any) => {
     const id = n?.id != null ? String(n.id) : '';
@@ -1138,23 +1111,17 @@ const BusinessLayout: React.FC = () => {
 
         <nav className="flex-1 px-6 py-4 overflow-y-auto no-scrollbar min-h-0">
           {!isSettingsTab && !isBuilderTab ? (
-            <div className="space-y-6">
-              {/* ── الأقسام الرئيسية ── */}
-              {sidebarNavSections.map((section) => {
-                const isCollapsed = collapsedSections.has(section.title);
-                return (
-                <div key={section.title} className="space-y-2">
-                  {!isDesktopSidebarCollapsed && (
-                    <button
-                      onClick={() => toggleSection(section.title)}
-                      className="w-full flex items-center justify-between px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 hover:text-slate-600 transition-colors text-right"
-                    >
-                      <span>{section.title}</span>
-                      <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`} />
-                    </button>
-                  )}
-                  {!isCollapsed && (
+            isSectionView ? (() => {
+              const section = sidebarNavSections.find((s) => s.moduleId === activeSection);
+              if (!section) return null;
+              return (
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                      {section.title}
+                    </div>
                     <div className="space-y-2">
+                      <NavItem to={buildDashboardUrl('overview')} onClick={handleNavItemClick} icon={<LayoutDashboard size={20} />} showIcon={false} label={t('dashboard.backToDashboard')} active={false} />
                       {section.items.map((t: any) => (
                         <React.Fragment key={t.id}>
                           <NavItem
@@ -1183,23 +1150,82 @@ const BusinessLayout: React.FC = () => {
                           )}
                         </React.Fragment>
                       ))}
-                      {section.moduleId && !isDesktopSidebarCollapsed && (
+                    </div>
+                  </div>
+                </div>
+              );
+            })() : (
+            <div className="space-y-6">
+              {/* ── الأقسام الرئيسية ── */}
+              {sidebarNavSections.map((section) => {
+                const hasModule = Boolean(section.moduleId);
+                if (hasModule) {
+                  return (
+                    <div key={section.title} className="space-y-2">
+                      <div className="relative flex items-center justify-between px-4 py-3 rounded-2xl transition-all duration-300 group border bg-white text-slate-600 border-transparent hover:border-slate-100 hover:bg-slate-50 hover:text-slate-900">
                         <button
-                          onClick={() => navigate(`/business/dashboard?tab=apps&section=${section.moduleId}`)}
-                          className="w-full flex items-center justify-center gap-1.5 py-2 rounded-2xl border border-dashed border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-all text-xs font-bold"
+                          onClick={() => navigate(buildSectionUrl(section.moduleId!))}
+                          className="flex items-center gap-3 flex-row-reverse flex-1"
                         >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>{isArabic ? 'إضافة' : 'Add'}</span>
+                          <span className="font-black text-sm leading-none">{section.title}</span>
                         </button>
-                      )}
+                        <a
+                          href={`${window.location.origin}${window.location.pathname}#/business/dashboard?tab=apps&section=${section.moduleId}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-slate-300 hover:text-slate-600 transition-colors"
+                          title={isArabic ? 'فتح في تاب جديد' : 'Open in new tab'}
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                <div key={section.title} className="space-y-2">
+                  {!isDesktopSidebarCollapsed && (
+                    <div className="px-2 text-[10px] font-black tracking-[0.22em] uppercase text-slate-400 text-right">
+                      {section.title}
                     </div>
                   )}
+                  <div className="space-y-2">
+                    {section.items.map((t: any) => (
+                      <React.Fragment key={t.id}>
+                        <NavItem
+                          to={t.route ? t.route : buildUrlForTab(t.id)}
+                          onClick={handleNavItemClick}
+                          icon={t.icon}
+                          showIcon={isDesktopSidebarCollapsed}
+                          hideLabel={isDesktopSidebarCollapsed}
+                          label={t.label}
+                          active={isTabActive(t.tabId || t.id)}
+                        />
+                        {t.children && !isDesktopSidebarCollapsed && (
+                          <div className="space-y-1 mr-4 ml-0 rtl:mr-4 rtl:ml-0 border-r border-slate-200 pr-2">
+                            {t.children.map((child: any) => (
+                              <NavItem
+                                key={child.id}
+                                to={child.route ? child.route : buildUrlForTab(child.id)}
+                                onClick={handleNavItemClick}
+                                icon={child.icon}
+                                showIcon={false}
+                                label={child.label}
+                                active={isTabActive(child.tabId || child.id)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </div>
                 </div>
                 );
               })}
 
               {/* ── أزرار النشاط الديناميكية ── */}
-              {(searchParams.get('activity') || isShopBookingActivity(shopForModules)) && (() => {
+              {!isSectionView && (searchParams.get('activity') || isShopBookingActivity(shopForModules)) && (() => {
                 const actType = activityParam as BookingActivityType;
                 const modules = ACTIVITY_MODULES[actType] || [];
                 if (modules.length === 0) return null;
@@ -1251,6 +1277,7 @@ const BusinessLayout: React.FC = () => {
                 );
               })()}
             </div>
+            )
           ) : isSettingsTab ? (
             <>
               <div className="space-y-6">

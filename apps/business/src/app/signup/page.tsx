@@ -14,9 +14,12 @@ import {
 import {
   MODULE_DEFINITIONS, MODULE_MAP, OPTIONAL_MODULES,
   toggleModule, resolveDependencies, computeSystemSummary,
+  getActivityDefaultModules, getActivityDefaultFeatures,
   PAGE_LABEL_AR, type ModuleId,
 } from '@/lib/moduleConfig';
 import SystemSummary from '@/components/SystemSummary';
+
+const SIGNUP_MODULES = OPTIONAL_MODULES.filter((m) => m.id !== 'bookings');
 
 const MotionDiv = motion.div as any;
 
@@ -24,7 +27,27 @@ type Step = 'activity' | 'specialty' | 'modules' | 'data';
 
 const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : 'https://api.mnmknk.com');
+
+const FormField = ({ id, label, value, onChange, type = 'text', required, icon: Icon, placeholder, multiline }: {
+  id: string; label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean;
+  icon?: React.ComponentType<{ className?: string }>; placeholder?: string; multiline?: boolean;
+}) => (
+  <div className="space-y-2">
+    <label htmlFor={id} className="text-xs font-black text-slate-600 uppercase tracking-widest mr-4 flex items-center gap-2">
+      {Icon && <Icon className="w-4 h-4 text-cyan-600" />}
+      <span className="text-slate-800">{label}</span>
+      {required && <span className="text-red-500">*</span>}
+    </label>
+    {multiline ? (
+      <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
+        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none resize-none" />
+    ) : (
+      <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
+        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none" />
+    )}
+  </div>
+);
 
 function SignupContent() {
   const router = useRouter();
@@ -77,14 +100,9 @@ function SignupContent() {
 
   const applyActivity = (a: ActivityWithGroup) => {
     setActivityId(a.id);
-    const initialModules = MODULE_DEFINITIONS.filter((m) => m.defaultEnabled).map((m) => m.id);
+    const initialModules = getActivityDefaultModules(a.id);
     setEnabledModuleIds(initialModules);
-    const initialFeatures: Record<string, string[]> = {};
-    MODULE_DEFINITIONS.forEach((mod) => {
-      initialFeatures[mod.id] = mod.features
-        .filter((f) => f.defaultEnabled !== false)
-        .map((f) => f.id);
-    });
+    const initialFeatures = getActivityDefaultFeatures(a.id);
     setModuleFeatures(initialFeatures);
     setExpandedModuleId(null);
     setSelectedSpecialties(new Set());
@@ -176,31 +194,23 @@ function SignupContent() {
     setLoading(true);
     setError('');
     try {
-      const payload: any = {
-        ...formData,
-        role: 'merchant',
-        category: selectedActivity.category,
-        activityId: selectedActivity.id,
-        enabledModules: Array.from(resolveDependencies(enabledModuleIds)),
-        specialties: Array.from(selectedSpecialties),
-        moduleConfig: {
-          enabledModules: Array.from(resolveDependencies(enabledModuleIds)),
-          moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
-            resolveDependencies(enabledModuleIds).includes(m.id),
-          ).map((m) => ({
-            moduleId: m.id,
-            features: m.features.map((f) => ({
-              id: f.id,
-              label: f.label,
-              enabled: (moduleFeatures[m.id] || []).includes(f.id),
-            })),
-          })),
-        },
+      // Step 1: Create user
+      // Normalize Egyptian phone to E.164 format (+20...)
+      const rawPhone = formData.phone.trim().replace(/\s+/g, '');
+      const e164Phone = rawPhone.startsWith('+') ? rawPhone
+        : rawPhone.startsWith('0') ? '+2' + rawPhone
+        : '+20' + rawPhone;
+      const userPayload: any = {
+        email: formData.email,
+        password: formData.password,
+        name: formData.name,
+        phone: e164Phone,
+        role: 'MERCHANT',
       };
       const res = await fetch(`${API_URL}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify(userPayload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'حدث خطأ أثناء التسجيل');
@@ -208,11 +218,56 @@ function SignupContent() {
         router.push('/pending');
         return;
       }
-      localStorage.setItem('ray_session', JSON.stringify({
-        user: data.user,
-        accessToken: data.session?.access_token,
-      }));
-      router.push(returnTo || '/business/dashboard');
+
+      // Step 2: Create shop with module config
+      const shopPayload: any = {
+        name: formData.shopName,
+        category: selectedActivity.category,
+        phone: formData.shopPhone || formData.phone,
+        email: formData.shopEmail || formData.email,
+        description: formData.shopDescription,
+        addressDetailed: formData.addressDetailed,
+        governorate: formData.governorate,
+        city: formData.city,
+        openingHours: formData.openingHours,
+        activityId: selectedActivity.id,
+        enabledModules: Array.from(resolveDependencies(enabledModuleIds)),
+        specialties: Array.from(selectedSpecialties),
+        moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
+          resolveDependencies(enabledModuleIds).includes(m.id),
+        ).map((m) => ({
+          moduleId: m.id,
+          features: m.features.map((f) => ({
+            id: f.id,
+            label: f.label,
+            enabled: (moduleFeatures[m.id] || []).includes(f.id),
+          })),
+        })),
+      };
+
+      const accessToken = data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
+      const user = data?.user || data?.data?.user;
+
+      const shopRes = await fetch(`${API_URL}/api/v1/shops`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {}),
+        },
+        body: JSON.stringify(shopPayload),
+      });
+      const shopData = await shopRes.json();
+      if (!shopRes.ok) {
+        console.error('Shop creation failed:', shopData);
+      }
+
+      // Pass token via URL so dashboard-web can bootstrap the session
+      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
+      const params = new URLSearchParams();
+      if (accessToken) params.set('token', accessToken);
+      if (user) params.set('user', JSON.stringify(user));
+      const dest = returnTo || `${dashboardUrl}/auth/callback?${params.toString()}`;
+      window.location.href = dest;
     } catch (err: any) {
       setError(err.message || 'حدث خطأ أثناء التسجيل');
     } finally {
@@ -297,7 +352,7 @@ function SignupContent() {
       <button
         type="button"
         onClick={() => applyActivity(activity)}
-        className={`relative text-right p-5 rounded-[2rem] border transition-all hover:shadow-xl ${active ? 'border-cyan-400 bg-cyan-50/40 shadow-cyan-100/50 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+        className={`relative text-right p-4 rounded-2xl border transition-all hover:shadow-xl ${active ? 'border-cyan-400 bg-cyan-50/40 shadow-cyan-100/50 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200'}`}
       >
         {active && <span className="absolute top-4 left-4"><CheckCircle2 className="w-5 h-5 text-cyan-600" /></span>}
         {isPopular && !active && (
@@ -305,13 +360,13 @@ function SignupContent() {
             <Sparkles className="w-3 h-3" /> شائع
           </span>
         )}
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-lg font-black shadow-md`}>
+        <div className="flex items-center gap-2 mb-3">
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-base font-black shadow-md`}>
             {getActivityLabel(activity).charAt(0)}
           </div>
-          <div className="text-[11px] font-black text-slate-400">{activity.groupTitle}</div>
+          <div className="text-[10px] font-black text-slate-400">{activity.groupTitle}</div>
         </div>
-        <div className="font-black text-lg text-slate-900 mb-1">{getActivityLabel(activity)}</div>
+        <div className="font-black text-base text-slate-900 mb-1">{getActivityLabel(activity)}</div>
         <p className="text-xs font-bold text-slate-500 leading-5 line-clamp-2">{activity.description}</p>
       </button>
     );
@@ -336,7 +391,7 @@ function SignupContent() {
             <Sparkles className="w-4 h-4 text-amber-500" />
             <span className="text-sm font-black text-slate-900">الأكثر اختياراً</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
             {['restaurant', 'grocery', 'fashion', 'carShowroom', 'realEstate', 'bookings'].map((id) => {
               const activity = ACTIVITIES.find((a) => a.id === id);
               if (!activity) return null;
@@ -375,7 +430,7 @@ function SignupContent() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
                 </div>
               </div>
@@ -443,179 +498,157 @@ function SignupContent() {
     return (
       <div className="space-y-6">
         <div className="text-center mb-4">
-          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2">تكوين الوحدات</div>
+          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2">تطبيقات نظامك</div>
           <p className="text-slate-500 font-bold text-sm">
-            وحدات موصى بها لـ: {selectedActivity ? getActivityLabel(selectedActivity) : ''}
+            تطبيقات موصى بها لـ: {selectedActivity ? getActivityLabel(selectedActivity) : ''}
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-3">
-            {dependencyError && (
-              <div className={`flex items-start gap-3 p-4 rounded-xl border text-xs font-bold mb-3 ${
-                dependencyError.startsWith('لا يمكن') || dependencyError.includes('أساسية')
-                  ? 'bg-amber-50 border-amber-200 text-amber-800'
-                  : 'bg-sky-50 border-sky-200 text-sky-700'
-              }`}>
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>{dependencyError}</span>
-              </div>
-            )}
+        {dependencyError && (
+          <div className={`flex items-start gap-3 p-4 rounded-xl border text-xs font-bold ${
+            dependencyError.startsWith('لا يمكن') || dependencyError.includes('أساسية')
+              ? 'bg-amber-50 border-amber-200 text-amber-800'
+              : 'bg-sky-50 border-sky-200 text-sky-700'
+          }`}>
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{dependencyError}</span>
+          </div>
+        )}
 
-            {OPTIONAL_MODULES.map((mod) => {
-              const isEnabled = enabledModuleIds.includes(mod.id);
-              const isExpanded = expandedModuleId === mod.id;
-              const IconComp = mod.icon;
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+          {SIGNUP_MODULES.map((mod) => {
+            const isEnabled = enabledModuleIds.includes(mod.id);
+            const isExpanded = expandedModuleId === mod.id;
+            const IconComp = mod.icon;
+            const enabledFeatureCount = (moduleFeatures[mod.id] || []).length;
 
-              return (
-                <div
-                  key={mod.id}
-                  className={`rounded-2xl border-2 transition-all overflow-hidden ${
-                    isEnabled
-                      ? 'border-slate-200 bg-white'
-                      : 'border-slate-100 bg-white/50'
-                  }`}
+            return (
+              <div
+                key={mod.id}
+                className={`rounded-2xl border-2 transition-all overflow-hidden ${
+                  isExpanded ? 'col-span-2 sm:col-span-3 lg:col-span-4' : ''
+                } ${isEnabled ? 'border-slate-200 bg-white' : 'border-slate-100 bg-white/50'}`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
+                  className="w-full p-4 flex flex-col items-center text-center group"
                 >
-                  <div className="p-4 flex items-start gap-4">
-                    <button
-                      onClick={() => handleToggleModule(mod.id)}
-                      className={`relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 transition-all cursor-pointer ${
-                        isEnabled ? 'text-white' : 'bg-slate-50 text-slate-300 hover:bg-slate-100'
+                  <div className="relative mb-3">
+                    <div
+                      className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
+                        isEnabled ? 'text-white shadow-lg' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100'
                       }`}
                       style={isEnabled ? { backgroundColor: mod.color } : {}}
                     >
-                      <IconComp className="w-6 h-6" />
-                      {isEnabled && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center" style={{ borderColor: mod.color }}>
-                          <Check className="w-2.5 h-2.5" style={{ color: mod.color }} />
-                        </div>
-                      )}
-                    </button>
-
-                    <div
-                      className="flex-1 min-w-0 cursor-pointer"
-                      onClick={() => handleToggleModule(mod.id)}
-                    >
-                      <div className="flex items-center gap-2 flex-wrap mb-1">
-                        <h3 className={`font-black text-sm ${isEnabled ? 'text-slate-900' : 'text-slate-500'}`}>
-                          {mod.nameAr || mod.name}
-                        </h3>
+                      <IconComp className="w-7 h-7" />
+                    </div>
+                    {isEnabled && (
+                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center shadow-sm" style={{ borderColor: mod.color }}>
+                        <Check className="w-3 h-3" style={{ color: mod.color }} />
                       </div>
-                      <p className={`text-xs font-bold leading-relaxed mb-2 ${isEnabled ? 'text-slate-400' : 'text-slate-300'}`}>
-                        {mod.descriptionAr || mod.description}
-                      </p>
+                    )}
+                  </div>
+                  <div className={`font-black text-sm mb-1 ${isEnabled ? 'text-slate-900' : 'text-slate-500'}`}>
+                    {mod.nameAr || mod.name}
+                  </div>
+                  <p className={`text-[10px] font-bold leading-4 line-clamp-2 ${isEnabled ? 'text-slate-400' : 'text-slate-300'}`}>
+                    {mod.descriptionAr || mod.description}
+                  </p>
+                  {isEnabled && (
+                    <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-emerald-600">
+                      <Check className="w-3 h-3" />
+                      <span>{enabledFeatureCount} ميزة مفعّلة</span>
+                    </div>
+                  )}
+                  {!isEnabled && mod.dependencies.length > 0 && (
+                    <div className="mt-2 text-[9px] font-bold text-slate-300">
+                      يحتاج: {mod.dependencies.map((dep) => MODULE_MAP[dep]?.nameAr || MODULE_MAP[dep]?.name).join('، ')}
+                    </div>
+                  )}
+                </button>
 
-                      {mod.dependencies.length > 0 && (
-                        <div className="flex items-center gap-1.5 mt-2 text-[10px] text-slate-300 font-bold">
-                          <span>يعتمد على:</span>
-                          {mod.dependencies.map((dep) => {
-                            const depMod = MODULE_MAP[dep];
-                            return depMod ? (
-                              <span key={dep} className={`px-1.5 py-0.5 rounded ${enabledModuleIds.includes(dep) ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400'}`}>
-                                {depMod.nameAr || depMod.name}
-                              </span>
-                            ) : null;
+                <AnimatePresence>
+                  {isExpanded && (
+                    <MotionDiv
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 border-t border-slate-50 pt-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                            دليل الميزات
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleToggleModule(mod.id)}
+                            className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
+                              isEnabled
+                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                : 'bg-slate-900 text-white hover:bg-black'
+                            }`}
+                          >
+                            {isEnabled ? 'مفعّل ✓' : 'تفعيل التطبيق'}
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                          {mod.features.map((feature) => {
+                            const featureEnabled = (moduleFeatures[mod.id] || []).includes(feature.id);
+                            return (
+                              <button
+                                key={feature.id}
+                                type="button"
+                                onClick={() => handleToggleFeature(mod.id, feature.id)}
+                                className={`flex items-center gap-2 p-2 rounded-lg transition-all text-right ${
+                                  featureEnabled ? 'bg-emerald-50 text-emerald-900' : 'bg-slate-50 text-slate-400'
+                                }`}
+                              >
+                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
+                                  featureEnabled ? 'bg-emerald-100' : 'bg-slate-100'
+                                }`}>
+                                  {featureEnabled && <Check className="w-2.5 h-2.5 text-emerald-600" />}
+                                </div>
+                                <span className="text-[11px] font-bold">
+                                  {feature.labelAr || feature.label}
+                                </span>
+                              </button>
+                            );
                           })}
                         </div>
-                      )}
-                    </div>
 
-                    <button
-                      onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
-                      className="p-2 rounded-lg hover:bg-slate-50 transition-all shrink-0"
-                    >
-                      <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
-                    </button>
-                  </div>
+                        {mod.pages.length > 0 && (
+                          <>
+                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 mt-4">
+                              صفحات التطبيق
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {mod.pages.map((page) => (
+                                <span key={page.id} className="px-2.5 py-1 rounded-lg bg-slate-50 text-[11px] font-bold text-slate-500">
+                                  {PAGE_LABEL_AR[page.label] || page.label}
+                                </span>
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </MotionDiv>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+        </div>
 
-                  <AnimatePresence>
-                    {isExpanded && (
-                      <MotionDiv
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="px-4 pb-4 border-t border-slate-50 pt-3">
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2">
-                            الميزات
-                          </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            {mod.features.map((feature) => {
-                              const featureEnabled = (moduleFeatures[mod.id] || []).includes(feature.id);
-                              return (
-                                <button
-                                  key={feature.id}
-                                  type="button"
-                                  onClick={() => handleToggleFeature(mod.id, feature.id)}
-                                  className={`flex items-center gap-2 p-2 rounded-lg transition-all text-right ${
-                                    featureEnabled ? 'bg-emerald-50 text-emerald-900' : 'bg-slate-50 text-slate-400'
-                                  }`}
-                                >
-                                  <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                    featureEnabled ? 'bg-emerald-100' : 'bg-slate-100'
-                                  }`}>
-                                    {featureEnabled && <Check className="w-2.5 h-2.5 text-emerald-600" />}
-                                  </div>
-                                  <span className="text-xs font-bold">
-                                    {feature.labelAr || feature.label}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {mod.pages.length > 0 && (
-                            <>
-                              <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 mt-4">
-                                الصفحات
-                              </div>
-                              <div className="flex flex-wrap gap-2">
-                                {mod.pages.map((page) => (
-                                  <span key={page.id} className="px-2.5 py-1 rounded-lg bg-slate-50 text-[11px] font-bold text-slate-500">
-                                    {PAGE_LABEL_AR[page.label] || page.label}
-                                  </span>
-                                ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </MotionDiv>
-                    )}
-                  </AnimatePresence>
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="lg:sticky lg:top-24 self-start">
-            <SystemSummary enabledModuleIds={enabledModuleIds} />
-          </div>
+        <div className="lg:sticky lg:top-24 self-start">
+          <SystemSummary enabledModuleIds={enabledModuleIds} />
         </div>
       </div>
     );
   };
 
-  const FormField = ({ id, label, value, onChange, type = 'text', required, icon: Icon, placeholder, multiline }: {
-    id: string; label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean;
-    icon?: React.ComponentType<{ className?: string }>; placeholder?: string; multiline?: boolean;
-  }) => (
-    <div className="space-y-2">
-      <label htmlFor={id} className="text-xs font-black text-slate-600 uppercase tracking-widest mr-4 flex items-center gap-2">
-        {Icon && <Icon className="w-4 h-4 text-cyan-600" />}
-        <span className="text-slate-800">{label}</span>
-        {required && <span className="text-red-500">*</span>}
-      </label>
-      {multiline ? (
-        <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
-          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none resize-none" />
-      ) : (
-        <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
-          className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none" />
-      )}
-    </div>
-  );
 
   const renderDataStep = () => (
     <div className="space-y-6 max-w-3xl mx-auto">
@@ -705,7 +738,7 @@ function SignupContent() {
   return (
     <div className="min-h-screen bg-slate-50/60" dir="rtl">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-10 md:py-16">
-        <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-5xl mx-auto">
+        <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '80rem' }}>
           <div className="flex items-center justify-between mb-6">
             <button type="button" onClick={goHome} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-black text-sm transition-colors">
               <Home className="w-4 h-4" /> العودة للرئيسية
@@ -752,28 +785,6 @@ function SignupContent() {
 
             {renderSummary()}
 
-            {step === 'activity' && (
-              <div className="mt-8 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6">
-                <div className="font-black text-lg text-slate-900 mb-2">شرح الوحدات</div>
-                <div className="text-xs font-black text-slate-500 mb-5">الهدف إن كل وحدة يكون معناها واضح من دلوقتي — خصوصًا الفرق بين الحجوزات والطلبات/المبيعات.</div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {MODULE_DEFINITIONS.map((m) => {
-                    const Icon = m.icon;
-                    return (
-                      <div key={m.id} className="bg-white border border-slate-100 rounded-2xl p-4 flex gap-3">
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${m.color}15` }}>
-                          <Icon className="w-5 h-5" style={{ color: m.color }} />
-                        </div>
-                        <div>
-                          <div className="font-black text-slate-900">{m.nameAr || m.name}</div>
-                          <div className="text-[11px] font-bold text-slate-400 mt-0.5">{m.descriptionAr || m.description}</div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
         </MotionDiv>
       </div>

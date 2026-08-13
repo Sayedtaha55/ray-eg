@@ -30,8 +30,9 @@ export default function LoginPage() {
           setError('');
           setLoading(true);
           try {
-            const res = await api.post<{ accessToken?: string; token?: string }>('/auth/login', { email, password });
-            const token = res.accessToken || res.token;
+            const res = await api.post<any>('/auth/login', { email, password });
+            const data = res?.data || res;
+            const token = data?.token?.accessToken || data?.accessToken || data?.token || res?.accessToken || res?.token;
             if (token) {
               localStorage.setItem('token', token);
               router.push('/profile');

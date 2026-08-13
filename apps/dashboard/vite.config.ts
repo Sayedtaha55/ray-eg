@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
     base: '/',
     publicDir: path.resolve(__dirname, 'public'),
     server: {
-      port: Number(env.VITE_PORT || 3000),
+      port: Number(env.VITE_PORT || 3010),
       host: env.VITE_HOST || '0.0.0.0',
       https: useHttps ? { cert: certPath, key: keyPath } : undefined,
       proxy: {

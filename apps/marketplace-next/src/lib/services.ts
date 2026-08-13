@@ -25,6 +25,7 @@ export interface Shop {
   coverImage?: string;
   productCount?: number;
   pageDesign?: Record<string, any>;
+  builderConfig?: Record<string, any>;
 }
 
 export interface Product {
@@ -61,7 +62,7 @@ export interface BlogPost {
 export async function getShops(take = 100): Promise<Shop[]> {
   try {
     const data = await api.get<any>(`/shops?take=${take}`, { revalidate: 300, tags: ['shops'] });
-    return Array.isArray(data) ? data : (data?.items ?? []);
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];
   }
@@ -69,7 +70,8 @@ export async function getShops(take = 100): Promise<Shop[]> {
 
 export async function getShopBySlug(slug: string): Promise<Shop | null> {
   try {
-    return await api.get<Shop>(`/shops/${slug}`, { revalidate: 300, tags: [`shop:${slug}`] });
+    const data = await api.get<any>(`/shops/${slug}`, { revalidate: 300, tags: [`shop:${slug}`] });
+    return data?.data ?? data;
   } catch {
     return null;
   }
@@ -81,7 +83,7 @@ export async function getProducts(shopId: string, limit = 12): Promise<Product[]
       revalidate: 300,
       tags: [`products:${shopId}`],
     });
-    return Array.isArray(data) ? data : (data?.items ?? []);
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];
   }
@@ -89,7 +91,8 @@ export async function getProducts(shopId: string, limit = 12): Promise<Product[]
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    return await api.get<Product>(`/products/${id}`, { revalidate: 300, tags: [`product:${id}`] });
+    const data = await api.get<any>(`/products/${id}`, { revalidate: 300, tags: [`product:${id}`] });
+    return data?.data ?? data;
   } catch {
     return null;
   }
@@ -99,7 +102,31 @@ export async function getOffers(category?: string): Promise<Product[]> {
   try {
     const path = category ? `/offers?category=${category}` : '/offers';
     const data = await api.get<any>(path, { revalidate: 300, tags: ['offers'] });
-    return Array.isArray(data) ? data : (data?.items ?? []);
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
+  } catch {
+    return [];
+  }
+}
+
+export interface SeasonalOffer {
+  id: string;
+  name: string;
+  description?: string;
+  occasion: string;
+  discountType: 'percentage' | 'fixed';
+  discountValue: number;
+  categories: string[];
+  startDate: string;
+  endDate: string;
+  bannerColor: string;
+  shopName?: string;
+  shopSlug?: string;
+}
+
+export async function getSeasonalOffers(): Promise<SeasonalOffer[]> {
+  try {
+    const data = await api.get<any>('/marketing/seasonal-offers/public', { revalidate: 300, tags: ['seasonal-offers'] });
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];
   }
@@ -108,7 +135,7 @@ export async function getOffers(category?: string): Promise<Product[]> {
 export async function getBlogPosts(): Promise<BlogPost[]> {
   try {
     const data = await api.get<any>('/blog', { revalidate: 3600, tags: ['blog'] });
-    return Array.isArray(data) ? data : (data?.items ?? []);
+    return Array.isArray(data) ? data : (data?.data ?? data?.items ?? []);
   } catch {
     return [];
   }
@@ -116,7 +143,8 @@ export async function getBlogPosts(): Promise<BlogPost[]> {
 
 export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   try {
-    return await api.get<BlogPost>(`/blog/${slug}`, { revalidate: 3600, tags: [`blog:${slug}`] });
+    const data = await api.get<any>(`/blog/${slug}`, { revalidate: 3600, tags: [`blog:${slug}`] });
+    return data?.data ?? data;
   } catch {
     return null;
   }

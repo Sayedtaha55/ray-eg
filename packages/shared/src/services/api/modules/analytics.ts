@@ -46,3 +46,48 @@ export async function getPendingShopsViaBackend() {
   const shops = await backendGet<any[]>('/api/v1/shops/admin/list?status=PENDING');
   return shops.map(normalizeShopFromBackend);
 }
+
+// ---------------------------------------------------------------------------
+// Shop analytics report pages (backed by Go backend)
+// ---------------------------------------------------------------------------
+
+export type AnalyticsReportParams = {
+  period?: '7d' | '30d' | '90d';
+  timeRange?: string;
+  startDate?: string;
+  endDate?: string;
+};
+
+function buildReportQuery(params?: AnalyticsReportParams): string {
+  const qs = new URLSearchParams();
+  if (params?.period) qs.set('period', params.period);
+  if (params?.timeRange) qs.set('time_range', params.timeRange);
+  if (params?.startDate) qs.set('start_date', params.startDate);
+  if (params?.endDate) qs.set('end_date', params.endDate);
+  const s = qs.toString();
+  return s ? `?${s}` : '';
+}
+
+export async function getConversionsAnalyticsViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/conversions${buildReportQuery(params)}`);
+}
+
+export async function getProductPerformanceReportViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/product-performance${buildReportQuery(params)}`);
+}
+
+export async function getAnalyticsOverviewViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/overview${buildReportQuery(params)}`);
+}
+
+export async function getSalesReportViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/sales-report${buildReportQuery(params)}`);
+}
+
+export async function getTrafficAnalyticsViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/traffic${buildReportQuery(params)}`);
+}
+
+export async function getCustomerInsightsViaBackend(shopId: string, params?: AnalyticsReportParams) {
+  return await backendGet<any>(`/api/v1/analytics/shop/${encodeURIComponent(shopId)}/customer-insights${buildReportQuery(params)}`);
+}

@@ -1,6 +1,5 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 
 import ar from './locales/ar';
 import en from './locales/en';
@@ -16,8 +15,11 @@ function applyDirection(lang: string) {
   }
 }
 
+const savedLang = typeof localStorage !== 'undefined'
+  ? localStorage.getItem(LANGUAGE_KEY) || 'ar'
+  : 'ar';
+
 i18n
-  .use(LanguageDetector)
   .use(initReactI18next)
   .init({
     resources: {
@@ -25,16 +27,9 @@ i18n
       en: { translation: en },
     },
     fallbackLng: 'ar',
-    lng: typeof localStorage !== 'undefined'
-      ? localStorage.getItem(LANGUAGE_KEY) || 'ar'
-      : 'ar',
+    lng: savedLang,
     interpolation: {
       escapeValue: false,
-    },
-    detection: {
-      order: ['localStorage', 'navigator'],
-      lookupLocalStorage: LANGUAGE_KEY,
-      caches: ['localStorage'],
     },
   });
 

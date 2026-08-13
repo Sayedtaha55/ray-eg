@@ -79,6 +79,18 @@ public/videos/
 *.sqlite
 *.db
 
+# Go backend
+gobackend/bin/
+gobackend/*.exe
+gobackend/vendor/
+gobackend/go.work
+gobackend/go.work.sum
+
+# Go test artifacts
+*.test
+*.out
+coverage/
+
 
 testsprite_tests\tmp\config.json
 

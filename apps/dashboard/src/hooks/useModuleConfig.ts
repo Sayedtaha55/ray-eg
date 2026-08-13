@@ -23,8 +23,44 @@ const CATEGORY_TO_TYPE_MAP: Record<string, string> = {
   OTHER: 'other',
 };
 
+export function getShopModuleFeatures(shop: any): Record<string, string[]> | null {
+  if (!shop) return null;
+
+  const configsToTry = [
+    shop?.builderConfig,
+    shop,
+    shop?.pageDesign?.moduleConfig,
+    shop?.pageDesign
+  ];
+
+  for (const cfg of configsToTry) {
+    if (cfg?.moduleFeatures && Array.isArray(cfg.moduleFeatures)) {
+      const featureMap: Record<string, string[]> = {};
+      for (const mod of cfg.moduleFeatures) {
+        if (mod.moduleId && Array.isArray(mod.features)) {
+          featureMap[mod.moduleId] = mod.features
+            .filter((f: any) => f.enabled)
+            .map((f: any) => f.id);
+        }
+      }
+      return featureMap;
+    }
+  }
+
+  return null;
+}
+
 export function getShopModuleIds(shop: any): ModuleId[] {
   if (!shop) return DEFAULT_ENABLED_MODULES;
+
+  // Check new backend storage location: builder_config.enabledModules
+  const builderConfig = (shop as any)?.builderConfig;
+  if (builderConfig?.enabledModules && Array.isArray(builderConfig.enabledModules)) {
+    const ids = builderConfig.enabledModules
+      .map((m: any) => String(m).trim())
+      .filter(Boolean) as ModuleId[];
+    return resolveDependencies(ids);
+  }
 
   const enabledModules = (shop as any)?.enabledModules;
   if (Array.isArray(enabledModules) && enabledModules.length > 0) {
@@ -82,7 +118,9 @@ export interface ModuleConfigResult {
 export function useModuleConfig(shop: any): ModuleConfigResult {
   return useMemo(() => {
     const moduleIds = getShopModuleIds(shop);
+    const moduleFeatures = getShopModuleFeatures(shop);
     const isModuleDriven = Boolean(
+      (shop as any)?.builderConfig?.enabledModules ||
       (shop as any)?.enabledModules ||
       (shop as any)?.pageDesign?.moduleConfig?.enabledModules ||
       (shop as any)?.pageDesign?.enabledModules,
@@ -90,9 +128,9 @@ export function useModuleConfig(shop: any): ModuleConfigResult {
 
     return {
       moduleIds,
-      navigationSections: getNavigationSections(moduleIds),
+      navigationSections: getNavigationSections(moduleIds, moduleFeatures),
       dashboardWidgets: getDashboardWidgets(moduleIds),
-      enabledTabIds: getEnabledTabIds(moduleIds),
+      enabledTabIds: getEnabledTabIds(moduleIds, moduleFeatures),
       settingsSections: getSettingsSections(moduleIds),
       isModuleDriven,
     };

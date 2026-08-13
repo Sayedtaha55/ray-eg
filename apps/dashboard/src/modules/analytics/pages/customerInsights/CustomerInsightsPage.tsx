@@ -1,46 +1,103 @@
-import React from 'react';
-import { Users, UserPlus, UserCheck, Heart, MapPin, Clock, TrendingUp } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Users, UserPlus, UserCheck, Heart, MapPin, Clock, TrendingUp, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiService } from '@/services/api.service';
 
 type Props = { shopId: string; shop?: any };
 
 const CustomerInsightsPage: React.FC<Props> = ({ shopId, shop }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const segments = [
-    { label: isArabic ? 'عملاء جدد' : 'New Customers', value: 234, percentage: 27, color: 'bg-blue-500' },
-    { label: isArabic ? 'عملاء عائدون' : 'Returning', value: 412, percentage: 48, color: 'bg-green-500' },
-    { label: isArabic ? 'عملاء VIP' : 'VIP', value: 86, percentage: 10, color: 'bg-amber-500' },
-    { label: isArabic ? 'غير نشطين' : 'Inactive', value: 124, percentage: 15, color: 'bg-slate-400' },
-  ];
+  const [segments, setSegments] = useState([
+    { label: isArabic ? 'عملاء جدد' : 'New Customers', value: 0, percentage: 0, color: 'bg-blue-500' },
+    { label: isArabic ? 'عملاء عائدون' : 'Returning', value: 0, percentage: 0, color: 'bg-green-500' },
+    { label: isArabic ? 'عملاء VIP' : 'VIP', value: 0, percentage: 0, color: 'bg-amber-500' },
+    { label: isArabic ? 'غير نشطين' : 'Inactive', value: 0, percentage: 0, color: 'bg-slate-400' },
+  ]);
+  const [demographics] = useState([
+    { age: '18-24', count: 0, percentage: 0 },
+    { age: '25-34', count: 0, percentage: 0 },
+    { age: '35-44', count: 0, percentage: 0 },
+    { age: '45-54', count: 0, percentage: 0 },
+    { age: '55+', count: 0, percentage: 0 },
+  ]);
+  const [topLocations] = useState([
+    { city: isArabic ? 'القاهرة' : 'Cairo', customers: 0, percentage: 0 },
+    { city: isArabic ? 'الإسكندرية' : 'Alexandria', customers: 0, percentage: 0 },
+    { city: isArabic ? 'الجيزة' : 'Giza', customers: 0, percentage: 0 },
+    { city: isArabic ? 'المنصورة' : 'Mansoura', customers: 0, percentage: 0 },
+    { city: isArabic ? 'أخرى' : 'Other', customers: 0, percentage: 0 },
+  ]);
+  const [totalCustomers, setTotalCustomers] = useState('0');
+  const [newCustomers, setNewCustomers] = useState('0');
+  const [retention, setRetention] = useState('0%');
 
-  const demographics = [
-    { age: '18-24', count: 180, percentage: 21 },
-    { age: '25-34', count: 340, percentage: 40 },
-    { age: '35-44', count: 210, percentage: 25 },
-    { age: '45-54', count: 90, percentage: 10 },
-    { age: '55+', count: 36, percentage: 4 },
-  ];
-
-  const topLocations = [
-    { city: isArabic ? 'القاهرة' : 'Cairo', customers: 320, percentage: 37 },
-    { city: isArabic ? 'الإسكندرية' : 'Alexandria', customers: 180, percentage: 21 },
-    { city: isArabic ? 'الجيزة' : 'Giza', customers: 150, percentage: 17 },
-    { city: isArabic ? 'المنصورة' : 'Mansoura', customers: 90, percentage: 10 },
-    { city: isArabic ? 'أخرى' : 'Other', customers: 116, percentage: 15 },
-  ];
+  useEffect(() => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const res: any = await ApiService.getCustomerInsights(sid, { period: '30d' });
+        if (cancelled || !res) return;
+        const data = res.data ?? res;
+        const total = Number(data?.total_customers ?? data?.totalCustomers ?? 0);
+        const newC = Number(data?.new_customers ?? data?.newCustomers ?? 0);
+        const ret = Number(data?.returning_customers ?? data?.returningCustomers ?? 0);
+        setTotalCustomers(String(total));
+        setNewCustomers(String(newC));
+        setRetention(total > 0 ? `${Math.round((ret / total) * 100)}%` : '0%');
+        if (Array.isArray(data?.segments)) {
+          const colorMap: Record<string, string> = {
+            New: 'bg-blue-500',
+            Returning: 'bg-green-500',
+            VIP: 'bg-amber-500',
+            Inactive: 'bg-slate-400',
+          };
+          setSegments(
+            data.segments.map((s: any) => ({
+              label: isArabic ? (s.segment_ar || s.segmentAr || s.segment) : s.segment,
+              value: Number(s.count || 0),
+              percentage: Number(s.percentage || 0),
+              color: colorMap[s.segment] || 'bg-slate-400',
+            })),
+          );
+        }
+      } catch (e: any) {
+        if (!cancelled) setError(e?.message || 'Failed to load customer insights');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [shopId, isArabic]);
 
   return (
     <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
       <div className="mb-6"><h3 className="text-xl sm:text-2xl md:text-3xl font-black">{isArabic ? 'رؤى العملاء' : 'Customer Insights'}</h3><p className="mt-1 text-xs sm:text-sm font-bold text-slate-400">{isArabic ? 'تحليل سلوك العملاء' : 'Customer behavior analysis'}</p></div>
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-4 mb-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold">
+          <AlertTriangle size={16} /> {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: isArabic ? 'إجمالي العملاء' : 'Total Customers', value: '856', color: 'bg-blue-50 text-blue-600', icon: <Users size={20} /> },
-          { label: isArabic ? 'عملاء جدد' : 'New This Month', value: '234', color: 'bg-green-50 text-green-600', icon: <UserPlus size={20} /> },
-          { label: isArabic ? 'عملاء نشطون' : 'Active', value: '732', color: 'bg-purple-50 text-purple-600', icon: <UserCheck size={20} /> },
-          { label: isArabic ? 'معدل الاحتفاظ' : 'Retention Rate', value: '85%', color: 'bg-amber-50 text-amber-600', icon: <Heart size={20} /> },
+          { label: isArabic ? 'إجمالي العملاء' : 'Total Customers', value: Number(totalCustomers).toLocaleString(), color: 'bg-blue-50 text-blue-600', icon: <Users size={20} /> },
+          { label: isArabic ? 'عملاء جدد' : 'New This Month', value: Number(newCustomers).toLocaleString(), color: 'bg-green-50 text-green-600', icon: <UserPlus size={20} /> },
+          { label: isArabic ? 'عملاء نشطون' : 'Active', value: Number(totalCustomers).toLocaleString(), color: 'bg-purple-50 text-purple-600', icon: <UserCheck size={20} /> },
+          { label: isArabic ? 'معدل الاحتفاظ' : 'Retention Rate', value: retention, color: 'bg-amber-50 text-amber-600', icon: <Heart size={20} /> },
         ].map((s, i) => (
           <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100">
             <div className={`p-2 rounded-xl ${s.color}`}>{s.icon}</div>

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "node ../../node_modules/vite/bin/vite.js --config vite.config.ts --port 3000",
-    "dev:dashboard": "node ../../node_modules/vite/bin/vite.js --config vite.config.ts --port 3000",
+    "dev": "node ../../node_modules/vite/bin/vite.js --config vite.config.ts --port 3010",
+    "dev:dashboard": "node ../../node_modules/vite/bin/vite.js --config vite.config.ts --port 3010",
     "build": "node ../../node_modules/vite/bin/vite.js build --config vite.config.ts",
     "preview": "node ../../node_modules/vite/bin/vite.js preview",
     "typecheck": "tsc --noEmit"

@@ -90,7 +90,7 @@ function getFrontendEntry(): string {
 function getLoadUrl(): string {
   const entry = getFrontendEntry();
   if (entry) return `file://${entry}#/business`;
-  return 'http://localhost:3000/#/business';
+  return 'http://localhost:3010/#/business';
 }
 
 function createWindow() {

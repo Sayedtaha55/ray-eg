@@ -27,7 +27,7 @@ const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20
   </svg>
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : 'https://api.mnmknk.com');
 
 function LoginContent() {
   const router = useRouter();
@@ -56,8 +56,8 @@ function LoginContent() {
     if (nextCount >= 5) {
       adminTapState.current.count = 0;
       adminTapState.current.lastAt = 0;
-      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://dashboard.mnmknk.com';
-      window.location.href = `${dashboardUrl}/#/admin/gate`;
+      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
+      window.location.href = `${dashboardUrl}/admin/gate`;
     }
   };
 
@@ -91,16 +91,17 @@ function LoginContent() {
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data?.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
+      if (!res.ok) throw new Error(data?.message || data?.error || 'فشل تسجيل الدخول، تأكد من بياناتك');
 
-      localStorage.setItem('ray_session', JSON.stringify({
-        user: data.user,
-        accessToken: data.session?.access_token,
-      }));
+      const accessToken = data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token || data?.accessToken;
+      const user = data?.user || data?.data?.user;
 
-      const role = String(data.user?.role || '').toLowerCase();
-      const target = returnTo || (role === 'admin' ? '/admin/dashboard' : '/business/dashboard');
-      router.push(target);
+      const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'http://localhost:3000';
+      const params = new URLSearchParams();
+      if (accessToken) params.set('token', accessToken);
+      if (user) params.set('user', JSON.stringify(user));
+      const dest = returnTo || `${dashboardUrl}/auth/callback?${params.toString()}`;
+      window.location.href = dest;
     } catch (err: any) {
       setError(err.message || 'فشل تسجيل الدخول، تأكد من بياناتك');
     } finally {

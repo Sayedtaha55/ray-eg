@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { Clock, Search, Calendar, LogIn, LogOut, Timer } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Clock, Search, Calendar, LogIn, LogOut, Timer, Loader2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ApiService } from '@/services/api.service';
 
 type Props = { shopId: string; shop?: any };
 
@@ -16,17 +17,53 @@ const CheckOutPage: React.FC<Props> = ({ shopId, shop }) => {
   const { t, i18n } = useTranslation();
   const isArabic = String(i18n.language || '').toLowerCase().startsWith('ar');
   const [search, setSearch] = useState('');
-  const [records, setRecords] = useState<AttendanceRecord[]>([
-    { id: '1', employeeName: 'Ahmed', checkIn: '09:00', checkOut: '17:00', date: '2026-07-28', hours: '8h', status: 'present' },
-    { id: '2', employeeName: 'Sara', checkIn: '09:15', checkOut: '17:30', date: '2026-07-28', hours: '8.25h', status: 'late' },
-    { id: '3', employeeName: 'Omar', checkIn: '---', checkOut: '---', date: '2026-07-28', hours: '0h', status: 'absent' },
-  ]);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await ApiService.getCheckOuts(sid);
+      setRecords(
+        (Array.isArray(data) ? data : []).map((r: any) => ({
+          id: String(r.id || ''),
+          employeeName: String(r.employeeName || r.employee_name || ''),
+          checkIn: String(r.checkIn || r.check_in || '---'),
+          checkOut: String(r.checkOut || r.check_out || '---'),
+          date: String(r.date || ''),
+          hours: String(r.hours || '0h'),
+          status: (String(r.status || 'present') as AttendanceRecord['status']),
+        })),
+      );
+    } catch (e: any) {
+      setError(e?.message || 'Failed to load checkouts');
+    } finally {
+      setLoading(false);
+    }
+  }, [shopId]);
+
+  useEffect(() => { load(); }, [load]);
 
   const filtered = records.filter(r => r.employeeName.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="bg-white p-4 sm:p-6 md:p-12 rounded-[2rem] md:rounded-[3.5rem] border border-slate-100 shadow-sm">
       <div className="mb-6"><h3 className="text-xl sm:text-2xl md:text-3xl font-black">{isArabic ? 'الحضور والانصراف' : 'Check-in / Check-out'}</h3><p className="mt-1 text-xs sm:text-sm font-bold text-slate-400">{isArabic ? 'سجل حضور وانصراف الموظفين' : 'Employee attendance and check-out records'}</p></div>
+
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-slate-300" />
+        </div>
+      )}
+      {error && !loading && (
+        <div className="flex items-center gap-2 p-4 mb-4 rounded-2xl bg-red-50 text-red-600 text-sm font-bold">
+          <AlertTriangle size={16} /> {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[

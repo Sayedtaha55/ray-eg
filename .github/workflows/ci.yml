@@ -72,3 +72,21 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 14
+
+  gobackend:
+    name: Go Backend – build, vet & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./gobackend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23'
+          cache-dependency-path: gobackend/go.sum
+      - run: go mod download
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go build -o /tmp/ray-api ./cmd/api
+      - run: go build -o /tmp/ray-worker ./cmd/worker

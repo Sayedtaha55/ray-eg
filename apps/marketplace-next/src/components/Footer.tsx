@@ -100,6 +100,7 @@ export function Footer() {
                     { label: ar ? 'الدليل التجاري' : 'Business Directory', href: '/dalil' },
                     { label: ar ? 'الخريطة التفاعلية' : 'Interactive Map', href: '/map' },
                     { label: ar ? 'أحدث العروض' : 'Latest Offers', href: '/offers' },
+                    { label: ar ? 'المفضلة' : 'Wishlist', href: '/wishlist' },
                     { label: ar ? 'المدونة' : 'Our Blog', href: '/blog' },
                     { label: ar ? 'عن المنصة' : 'About Us', href: '/about' }
                   ].map((link, i) => (

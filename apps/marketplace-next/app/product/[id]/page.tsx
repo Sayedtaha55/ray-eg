@@ -3,10 +3,13 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Star, Store, Tag, ArrowLeft, MessageCircle, Phone, CheckCircle } from 'lucide-react';
-import { getProductById, getShopBySlug } from '@/lib/services';
+import { getProductById, getProducts, getShopBySlug } from '@/lib/services';
 import { formatPrice, truncate } from '@/lib/utils';
 import { siteConfig } from '@/lib/config';
 import ShareButton from '@/components/ShareButton';
+import { AddToCartButton } from '@/components/AddToCartButton';
+import { ReviewsSection } from '@/components/ReviewsSection';
+import { ProductCard } from '@/components/ProductCard';
 
 export const revalidate = 300;
 
@@ -53,6 +56,14 @@ export default async function ProductPage({ params }: Props) {
     ? Math.round(((product.oldPrice! - (product.price || 0)) / product.oldPrice!) * 100)
     : 0;
 
+  let relatedProducts: any[] = [];
+  if (product.shopId) {
+    try {
+      const shopProducts = await getProducts(product.shopId, 12);
+      relatedProducts = shopProducts.filter((p) => p.id !== product.id).slice(0, 4);
+    } catch {}
+  }
+
   const jsonLd: Record<string, any> = {
     '@context': 'https://schema.org',
     '@type': 'Product',
@@ -88,8 +99,18 @@ export default async function ProductPage({ params }: Props) {
     ],
   };
 
+  // Apply builder config product page styling if available.
+  const builderConfig = (shop?.builderConfig || shop?.pageDesign || {}) as Record<string, any>;
+  const pageBg = builderConfig.productPageBackgroundColor || builderConfig.pageBackgroundColor || undefined;
+  const pageText = builderConfig.productPageTextColor || undefined;
+  const priceColor = builderConfig.productPagePriceColor || builderConfig.primaryColor || undefined;
+  const buttonColor = builderConfig.productPageButtonColor || builderConfig.primaryColor || undefined;
+
   return (
-    <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-12">
+    <div
+      className="max-w-[1400px] mx-auto px-4 md:px-6 py-8 md:py-12"
+      style={{ backgroundColor: pageBg, color: pageText }}
+    >
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       {/* Breadcrumb */}
@@ -110,7 +131,7 @@ export default async function ProductPage({ params }: Props) {
         <div className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-800">
           <Image
             src={product.imageUrl || product.images?.[0] || '/placeholder-product.png'}
-            alt={product.name}
+            alt={product.name || 'منتج'}
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 50vw"
@@ -129,7 +150,7 @@ export default async function ProductPage({ params }: Props) {
             <Link href={`/shop/${shop.slug}`} className="flex items-center gap-2 mb-4 group">
               <div className="w-10 h-10 rounded-lg bg-brand-black flex items-center justify-center overflow-hidden">
                 {shop.logo ? (
-                  <Image src={shop.logo} alt={shop.name} width={40} height={40} className="object-cover" />
+                  <Image src={shop.logo} alt={shop.name || 'متجر'} width={40} height={40} className="object-cover" />
                 ) : (
                   <Store className="w-5 h-5 text-brand-cyan" />
                 )}
@@ -159,7 +180,7 @@ export default async function ProductPage({ params }: Props) {
           {/* Price */}
           {product.price != null && (
             <div className="flex items-center gap-3 mb-6">
-              <span className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
+              <span className="text-3xl md:text-4xl font-bold" style={{ color: priceColor }}>
                 {formatPrice(product.price, product.currency)}
               </span>
               {hasDiscount && (
@@ -206,7 +227,10 @@ export default async function ProductPage({ params }: Props) {
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 mt-auto">
+          <div className="flex flex-wrap gap-3 mt-auto">
+            {product.isAvailable !== false && (
+              <AddToCartButton product={product} size="lg" color={buttonColor} />
+            )}
             {shop?.whatsapp && (
               <a
                 href={`https://wa.me/${shop.whatsapp}?text=استفسار عن ${encodeURIComponent(product.name)}`}
@@ -236,6 +260,31 @@ export default async function ProductPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Reviews */}
+      <div className="mt-12 md:mt-16">
+        <ReviewsSection type="product" targetId={product.id} />
+      </div>
+
+      {/* Related Products */}
+      {relatedProducts.length > 0 && (
+        <div className="mt-12 md:mt-16">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl md:text-2xl font-bold">منتجات ذات صلة</h2>
+            {shop && (
+              <Link href={`/shop/${shop.slug}`} className="text-sm font-bold text-brand-cyan hover:underline flex items-center gap-1">
+                عرض الكل
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            )}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+            {relatedProducts.map((rp) => (
+              <ProductCard key={rp.id} product={rp} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

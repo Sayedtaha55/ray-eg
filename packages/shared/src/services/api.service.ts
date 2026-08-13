@@ -125,11 +125,48 @@ import {
   updateMyProfileViaBackend,
 } from './api/modules/users';
 import {
+  getAnalyticsOverviewViaBackend,
+  getConversionsAnalyticsViaBackend,
+  getCustomerInsightsViaBackend,
   getPendingShopsViaBackend,
+  getProductPerformanceReportViaBackend,
+  getSalesReportViaBackend,
   getSystemActivityViaBackend,
   getSystemAnalyticsTimeseriesViaBackendWithFallback,
   getSystemAnalyticsViaBackendWithFallback,
+  getTrafficAnalyticsViaBackend,
+  type AnalyticsReportParams,
 } from './api/modules/analytics';
+import {
+  createHREmployeeViaBackend,
+  createHRLeaveViaBackend,
+  createHRPayrollViaBackend,
+  createHRRoleViaBackend,
+  createHRTaskViaBackend,
+  deleteHREmployeeViaBackend,
+  deleteHRRoleViaBackend,
+  deleteHRTaskViaBackend,
+  getHRAttendanceViaBackend,
+  getHRCheckOutsViaBackend,
+  getHREmployeesViaBackend,
+  getHRLeavesViaBackend,
+  getHRPayrollViaBackend,
+  getHRRolesViaBackend,
+  getHRTasksViaBackend,
+  getHRAccessLogsViaBackend,
+  updateHREmployeeViaBackend,
+  updateHRLeaveStatusViaBackend,
+  updateHRRoleViaBackend,
+  updateHRTaskViaBackend,
+  type HRRole,
+  type HREmployee,
+  type HRLeave,
+  type HRTask,
+  type HRAttendanceRecord,
+  type HRPayrollRecord,
+  type HRCheckOutRecord,
+  type HRAccessLog,
+} from './api/modules/hr';
 import {
   convertReservationToCustomerViaBackendWithFallback,
   getShopCustomersViaBackendWithFallback,
@@ -1737,6 +1774,25 @@ export const ApiService = {
   getShopAnalytics: async (shopId: string, opts?: { from?: string; to?: string }) => {
     return await getShopAnalyticsViaBackend(shopId, opts);
   },
+  // Shop analytics report pages (backed by Go backend)
+  getConversionsAnalytics: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getConversionsAnalyticsViaBackend(shopId, params);
+  },
+  getProductPerformanceReport: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getProductPerformanceReportViaBackend(shopId, params);
+  },
+  getAnalyticsOverview: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getAnalyticsOverviewViaBackend(shopId, params);
+  },
+  getSalesReport: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getSalesReportViaBackend(shopId, params);
+  },
+  getTrafficAnalytics: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getTrafficAnalyticsViaBackend(shopId, params);
+  },
+  getCustomerInsights: async (shopId: string, params?: AnalyticsReportParams) => {
+    return await getCustomerInsightsViaBackend(shopId, params);
+  },
   getShopGallery: async (shopId: string) => {
     const sid = String(shopId || '').trim();
     if (!sid) throw new Error('Missing shopId');
@@ -2258,31 +2314,120 @@ export const ApiService = {
   },
 
   // HR Module
-  getEmployees: async (shopId: string): Promise<any[]> => {
+  getEmployees: async (shopId: string): Promise<HREmployee[]> => {
     const sid = String(shopId || '').trim();
     if (!sid) return [];
     try {
-      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/employees`);
+      return await getHREmployeesViaBackend(sid);
+    } catch {
+      return [];
+    }
+  },
+  createEmployee: async (shopId: string, body: Partial<HREmployee> & { name: string }) => {
+    return await createHREmployeeViaBackend(shopId, body);
+  },
+  updateEmployee: async (shopId: string, employeeId: string, body: Partial<HREmployee>) => {
+    return await updateHREmployeeViaBackend(shopId, employeeId, body);
+  },
+  deleteEmployee: async (shopId: string, employeeId: string) => {
+    return await deleteHREmployeeViaBackend(shopId, employeeId);
+  },
+
+  getAttendance: async (shopId: string): Promise<HRAttendanceRecord[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await getHRAttendanceViaBackend(sid);
     } catch {
       return [];
     }
   },
 
-  getAttendance: async (shopId: string): Promise<any[]> => {
+  getPayroll: async (shopId: string): Promise<HRPayrollRecord[]> => {
     const sid = String(shopId || '').trim();
     if (!sid) return [];
     try {
-      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/attendance`);
+      return await getHRPayrollViaBackend(sid);
+    } catch {
+      return [];
+    }
+  },
+  createPayroll: async (shopId: string, body: Partial<HRPayrollRecord> & { amount: number }) => {
+    return await createHRPayrollViaBackend(shopId, body);
+  },
+
+  // HR Roles & Permissions
+  getHRRoles: async (shopId: string): Promise<HRRole[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await getHRRolesViaBackend(sid);
+    } catch {
+      return [];
+    }
+  },
+  createHRRole: async (shopId: string, body: Partial<HRRole> & { name: string }) => {
+    return await createHRRoleViaBackend(shopId, body);
+  },
+  updateHRRole: async (shopId: string, roleId: string, body: Partial<HRRole>) => {
+    return await updateHRRoleViaBackend(shopId, roleId, body);
+  },
+  deleteHRRole: async (shopId: string, roleId: string) => {
+    return await deleteHRRoleViaBackend(shopId, roleId);
+  },
+  getHRAccessLogs: async (shopId: string, limit = 50): Promise<HRAccessLog[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await getHRAccessLogsViaBackend(sid, limit);
     } catch {
       return [];
     }
   },
 
-  getPayroll: async (shopId: string): Promise<any[]> => {
+  // HR Leaves
+  getLeaves: async (shopId: string): Promise<HRLeave[]> => {
     const sid = String(shopId || '').trim();
     if (!sid) return [];
     try {
-      return await backendGet<any[]>(`/api/v1/shops/${encodeURIComponent(sid)}/payroll`);
+      return await getHRLeavesViaBackend(sid);
+    } catch {
+      return [];
+    }
+  },
+  createLeave: async (shopId: string, body: Partial<HRLeave> & { employeeName: string; startDate: string; endDate: string }) => {
+    return await createHRLeaveViaBackend(shopId, body);
+  },
+  updateLeaveStatus: async (shopId: string, leaveId: string, status: 'pending' | 'approved' | 'rejected') => {
+    return await updateHRLeaveStatusViaBackend(shopId, leaveId, status);
+  },
+
+  // HR Tasks
+  getTasks: async (shopId: string): Promise<HRTask[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await getHRTasksViaBackend(sid);
+    } catch {
+      return [];
+    }
+  },
+  createTask: async (shopId: string, body: Partial<HRTask> & { title: string }) => {
+    return await createHRTaskViaBackend(shopId, body);
+  },
+  updateTask: async (shopId: string, taskId: string, body: Partial<HRTask>) => {
+    return await updateHRTaskViaBackend(shopId, taskId, body);
+  },
+  deleteTask: async (shopId: string, taskId: string) => {
+    return await deleteHRTaskViaBackend(shopId, taskId);
+  },
+
+  // HR CheckOuts
+  getCheckOuts: async (shopId: string): Promise<HRCheckOutRecord[]> => {
+    const sid = String(shopId || '').trim();
+    if (!sid) return [];
+    try {
+      return await getHRCheckOutsViaBackend(sid);
     } catch {
       return [];
     }

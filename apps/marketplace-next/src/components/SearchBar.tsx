@@ -39,11 +39,11 @@ export function SearchBar() {
       setLoading(true);
       try {
         const [shopsRes, productsRes] = await Promise.all([
-          api.get<any>(`/shops?q=${encodeURIComponent(query)}&take=5`, { revalidate: 0 }).catch((): any => []),
-          api.get<any>(`/products?q=${encodeURIComponent(query)}&take=5`, { revalidate: 0 }).catch((): any => []),
+          api.get<any>(`/search/shops?q=${encodeURIComponent(query)}&limit=5`, { revalidate: 0 }).catch((): any => ({ data: [] })),
+          api.get<any>(`/search/products?q=${encodeURIComponent(query)}&limit=5`, { revalidate: 0 }).catch((): any => ({ data: [] })),
         ]);
-        const shopsList: any[] = Array.isArray(shopsRes) ? shopsRes : (shopsRes?.items ?? []);
-        const productsList: any[] = Array.isArray(productsRes) ? productsRes : (productsRes?.items ?? []);
+        const shopsList: any[] = Array.isArray(shopsRes) ? shopsRes : (shopsRes?.data ?? shopsRes?.items ?? []);
+        const productsList: any[] = Array.isArray(productsRes) ? productsRes : (productsRes?.data ?? productsRes?.items ?? []);
         const shopResults: SearchResult[] = shopsList.map((s: any) => ({
           type: 'shop' as const,
           id: s.id,
@@ -131,6 +131,12 @@ export function SearchBar() {
                   </span>
                 </button>
               ))}
+              <button
+                onClick={() => { router.push(`/search?q=${encodeURIComponent(query)}`); setOpen(false); setQuery(''); setResults([]); }}
+                className="w-full p-3 text-center text-sm font-bold text-brand-cyan hover:bg-brand-cyan/5 transition-colors border-t border-slate-100 dark:border-slate-800"
+              >
+                عرض كل النتائج
+              </button>
             </div>
           )}
         </div>

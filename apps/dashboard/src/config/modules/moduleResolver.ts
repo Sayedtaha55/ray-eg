@@ -143,7 +143,7 @@ export function computeSystemSummary(enabledModuleIds: ModuleId[]): SystemSummar
   };
 }
 
-export function getNavigationSections(enabledModuleIds: ModuleId[]) {
+export function getNavigationSections(enabledModuleIds: ModuleId[], moduleFeatures?: Record<string, string[]> | null) {
   const resolved = resolveDependencies(enabledModuleIds);
   const sections: Array<{
     id: string;
@@ -156,13 +156,25 @@ export function getNavigationSections(enabledModuleIds: ModuleId[]) {
   for (const id of resolved) {
     const mod = MODULE_MAP[id];
     if (!mod) continue;
+
+    const enabledFeatures = moduleFeatures ? moduleFeatures[id] : null;
+
     for (const navSection of mod.navigation) {
-      sections.push({
-        id: navSection.id,
-        title: navSection.title,
-        titleKey: navSection.titleKey,
-        order: navSection.order ?? 100,
-        items: navSection.items.map((item) => ({
+      const items = navSection.items.filter((item) => {
+        const isFeature = mod.features.some((f) => f.id === item.id);
+        if (isFeature && enabledFeatures != null) {
+          return enabledFeatures.includes(item.id);
+        }
+        return true;
+      });
+
+      if (items.length > 0) {
+        sections.push({
+          id: navSection.id,
+          title: navSection.title,
+          titleKey: navSection.titleKey,
+          order: navSection.order ?? 100,
+        items: items.map((item) => ({
           id: item.id,
           label: item.label,
           labelKey: item.labelKey,
@@ -173,6 +185,7 @@ export function getNavigationSections(enabledModuleIds: ModuleId[]) {
         })),
       });
     }
+  }
   }
 
   return sections.sort((a, b) => a.order - b.order);
@@ -209,14 +222,26 @@ export function getDashboardWidgets(enabledModuleIds: ModuleId[]) {
   return widgets.sort((a, b) => a.order - b.order);
 }
 
-export function getEnabledTabIds(enabledModuleIds: ModuleId[]): string[] {
+export function getEnabledTabIds(enabledModuleIds: ModuleId[], moduleFeatures?: Record<string, string[]> | null): string[] {
   const resolved = resolveDependencies(enabledModuleIds);
   const tabIds = new Set<string>();
   for (const id of resolved) {
     const mod = MODULE_MAP[id];
     if (!mod) continue;
+
+    const enabledFeatures = moduleFeatures ? moduleFeatures[id] : null;
+
     for (const page of mod.pages) {
-      if (page.tabId) tabIds.add(page.tabId);
+      if (page.tabId) {
+        const isFeature = mod.features.some((f) => f.id === page.id);
+        if (isFeature && enabledFeatures != null) {
+          if (enabledFeatures.includes(page.id)) {
+            tabIds.add(page.tabId);
+          }
+        } else {
+          tabIds.add(page.tabId);
+        }
+      }
     }
   }
   return Array.from(tabIds);

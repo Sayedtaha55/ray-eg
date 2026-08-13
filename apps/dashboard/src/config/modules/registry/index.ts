@@ -1,5 +1,6 @@
 import { coreModule } from './core';
 import { salesModule } from './sales';
+import { posModule } from './pos';
 import { inventoryModule } from './inventory';
 import { financeModule } from './finance';
 import { crmModule } from './crm';
@@ -12,6 +13,7 @@ import { aiModule } from './ai';
 export const MODULE_REGISTRY = [
   coreModule,
   salesModule,
+  posModule,
   inventoryModule,
   financeModule,
   crmModule,
