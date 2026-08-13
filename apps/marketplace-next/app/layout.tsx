@@ -9,6 +9,7 @@ import { Footer } from '@/components/Footer';
 import { MobileFooter } from '@/components/MobileFooter';
 import { ScrollProgress } from '@/components/ScrollProgress';
 import { siteConfig } from '@/lib/config';
+import { backendOrigin } from '@/lib/api';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -65,7 +66,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
-        <link rel="dns-prefetch" href="http://localhost:4000" />
+        <link rel="dns-prefetch" href={backendOrigin()} />
       </head>
       <body suppressHydrationWarning>
         <AppProvider>

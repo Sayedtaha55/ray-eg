@@ -35,3 +35,80 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 		t.Fatalf("expected default redis host localhost, got %s", cfg.Redis.Host)
 	}
 }
+
+func TestLoadRejectsInvalidFrontendURL(t *testing.T) {
+	_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	_ = os.Setenv("FRONTEND_APP_URL", "localhost:5174")
+	_ = os.Setenv("JWT_SECRET", "dev-secret-32-chars-long-minimum")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid FRONTEND_APP_URL")
+	}
+}
+
+func TestLoadRejectsInvalidCORSOrigin(t *testing.T) {
+	_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	_ = os.Setenv("FRONTEND_APP_URL", "http://localhost:5174")
+	_ = os.Setenv("JWT_SECRET", "dev-secret-32-chars-long-minimum")
+	_ = os.Setenv("CORS_ORIGIN", "http://localhost:5174,not-a-url")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid CORS_ORIGIN")
+	}
+}
+
+func setMinimalValidEnv(t *testing.T) {
+	t.Helper()
+	_ = os.Setenv("DATABASE_URL", "postgres://localhost/test")
+	_ = os.Setenv("FRONTEND_APP_URL", "http://localhost:5174")
+	_ = os.Setenv("JWT_SECRET", "dev-secret-32-chars-long-minimum")
+}
+
+func TestLoadRejectsInvalidPort(t *testing.T) {
+	setMinimalValidEnv(t)
+	_ = os.Setenv("PORT", "70000")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid PORT")
+	}
+}
+
+func TestLoadRejectsInvalidDatabasePool(t *testing.T) {
+	setMinimalValidEnv(t)
+	_ = os.Setenv("DB_MAX_OPEN_CONNS", "5")
+	_ = os.Setenv("DB_MAX_IDLE_CONNS", "10")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error when idle DB connections exceed open connections")
+	}
+}
+
+func TestLoadRejectsInvalidRateLimit(t *testing.T) {
+	setMinimalValidEnv(t)
+	_ = os.Setenv("AUTH_RATE_LIMIT_MAX", "0")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid AUTH_RATE_LIMIT_MAX")
+	}
+}
+
+func TestLoadRejectsInvalidCompressionDimensions(t *testing.T) {
+	setMinimalValidEnv(t)
+	_ = os.Setenv("COMPRESSION_MAX_WIDTH", "0")
+	defer os.Clearenv()
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("expected validation error for invalid compression width")
+	}
+}

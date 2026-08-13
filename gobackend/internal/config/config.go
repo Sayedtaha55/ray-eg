@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -195,6 +196,78 @@ func loadDotEnv() {
 }
 
 func (c *Config) validate() error {
+	if c.App.Port < 1 || c.App.Port > 65535 {
+		return fmt.Errorf("PORT must be between 1 and 65535")
+	}
+	if c.DB.MaxOpenConns < 1 {
+		return fmt.Errorf("DB_MAX_OPEN_CONNS must be greater than 0")
+	}
+	if c.DB.MaxIdleConns < 0 {
+		return fmt.Errorf("DB_MAX_IDLE_CONNS cannot be negative")
+	}
+	if c.DB.MaxIdleConns > c.DB.MaxOpenConns {
+		return fmt.Errorf("DB_MAX_IDLE_CONNS cannot exceed DB_MAX_OPEN_CONNS")
+	}
+	if err := validatePositiveDuration("DB_CONN_MAX_LIFETIME", c.DB.ConnMaxLifetime); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("DB_CONN_MAX_IDLE_TIME", c.DB.ConnMaxIdleTime); err != nil {
+		return err
+	}
+	if c.Redis.Port < 1 || c.Redis.Port > 65535 {
+		return fmt.Errorf("REDIS_PORT must be between 1 and 65535")
+	}
+	if err := validatePositiveDuration("REDIS_DIAL_TIMEOUT", c.Redis.DialTimeout); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("HTTP_READ_TIMEOUT", c.HTTP.ReadTimeout); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("HTTP_WRITE_TIMEOUT", c.HTTP.WriteTimeout); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("HTTP_IDLE_TIMEOUT", c.HTTP.IdleTimeout); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("HTTP_SHUTDOWN_TIMEOUT", c.HTTP.ShutdownTimeout); err != nil {
+		return err
+	}
+	if c.RateLimit.GlobalMax < 1 {
+		return fmt.Errorf("GLOBAL_RATE_LIMIT_MAX must be greater than 0")
+	}
+	if c.RateLimit.AuthMax < 1 {
+		return fmt.Errorf("AUTH_RATE_LIMIT_MAX must be greater than 0")
+	}
+	if err := validatePositiveDuration("GLOBAL_RATE_LIMIT_WINDOW", c.RateLimit.GlobalWindow); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("AUTH_RATE_LIMIT_WINDOW", c.RateLimit.AuthWindow); err != nil {
+		return err
+	}
+	if err := validatePositiveDuration("AUTH_RATE_LIMIT_LOCKOUT_MAX", c.RateLimit.AuthLockoutMax); err != nil {
+		return err
+	}
+	if c.S3.MaxUploadSizeMB < 1 {
+		return fmt.Errorf("MEDIA_MAX_UPLOAD_MB must be greater than 0")
+	}
+	if c.Compression.MaxWidth < 1 || c.Compression.MaxHeight < 1 {
+		return fmt.Errorf("COMPRESSION_MAX_WIDTH and COMPRESSION_MAX_HEIGHT must be greater than 0")
+	}
+
+	if err := validateHTTPURL("FRONTEND_APP_URL", c.App.FrontendURL); err != nil {
+		return err
+	}
+
+	for _, origin := range c.Security.CORSOrigins {
+		origin = strings.TrimSpace(origin)
+		if origin == "" || origin == "*" {
+			continue
+		}
+		if err := validateHTTPURL("CORS_ORIGIN", origin); err != nil {
+			return err
+		}
+	}
+
 	if c.App.Env == "production" {
 		if len(c.Auth.JWTSecret) < 32 {
 			return errors.New("JWT_SECRET must be at least 32 characters in production")
@@ -228,6 +301,24 @@ func containsWildcard(origins []string) bool {
 		}
 	}
 	return false
+}
+
+func validatePositiveDuration(name string, value time.Duration) error {
+	if value <= 0 {
+		return fmt.Errorf("%s must be greater than 0", name)
+	}
+	return nil
+}
+
+func validateHTTPURL(name, raw string) error {
+	parsed, err := url.ParseRequestURI(strings.TrimSpace(raw))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return fmt.Errorf("%s must be a valid absolute URL", name)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("%s must use http or https", name)
+	}
+	return nil
 }
 
 // IsProduction returns true when running in production mode.

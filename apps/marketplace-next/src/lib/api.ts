@@ -1,7 +1,54 @@
-const BACKEND_URL =
-  process.env.NEXT_PUBLIC_BACKEND_URL ||
-  process.env.BACKEND_URL ||
-  (process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000');
+const DEFAULT_BACKEND_URL = process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000';
+const DEFAULT_API_TIMEOUT_MS = 15_000;
+
+const BACKEND_URL = normalizeBaseUrl(process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || DEFAULT_BACKEND_URL);
+const API_TIMEOUT_MS = parsePositiveInteger(process.env.NEXT_PUBLIC_API_TIMEOUT_MS, DEFAULT_API_TIMEOUT_MS);
+
+function normalizeBaseUrl(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+  if (!value) return fallback;
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function mergeSignals(timeoutSignal: AbortSignal, requestSignal?: AbortSignal): AbortSignal {
+  if (!requestSignal) return timeoutSignal;
+
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+
+  if (timeoutSignal.aborted || requestSignal.aborted) {
+    controller.abort();
+    return controller.signal;
+  }
+
+  timeoutSignal.addEventListener('abort', abort, { once: true });
+  requestSignal.addEventListener('abort', abort, { once: true });
+
+  return controller.signal;
+}
+
+async function fetchWithTimeout(input: RequestInfo | URL, init: RequestInit = {}): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: mergeSignals(controller.signal, init.signal ?? undefined),
+    });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`API request timed out after ${API_TIMEOUT_MS}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export function apiPath(path: string): string {
   return path.startsWith('/api') ? path : `/api/v1${path}`;
@@ -9,6 +56,10 @@ export function apiPath(path: string): string {
 
 export function backendApiUrl(path: string): string {
   return `${BACKEND_URL}${apiPath(path)}`;
+}
+
+export function backendOrigin(): string {
+  return new URL(BACKEND_URL).origin;
 }
 
 export function getStoredAuthToken(): string | null {
@@ -39,7 +90,7 @@ export async function jsonRequest<T>(path: string, init: RequestInit = {}): Prom
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(apiPath(path), {
+  const res = await fetchWithTimeout(apiPath(path), {
     ...init,
     headers,
     credentials: init.credentials ?? 'include',
@@ -56,17 +107,17 @@ export interface ApiOptions {
   revalidate?: number;
   tags?: string[];
   headers?: Record<string, string>;
+  signal?: AbortSignal;
 }
 
 async function apiFetch<T>(path: string, options?: ApiOptions & { method?: string; body?: unknown }): Promise<T> {
   const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
-  
-  // Get token from localStorage for client-side requests
+
   let token: string | null = null;
   if (typeof window !== 'undefined') {
     token = getStoredAuthToken();
   }
-  
+
   const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
   const headers = new Headers(options?.headers);
   if (!isFormData && !headers.has('Content-Type')) {
@@ -76,7 +127,7 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: options?.method || 'GET',
     headers,
     body: options?.body ? (isFormData ? options.body as BodyInit : JSON.stringify(options.body)) : undefined,
@@ -85,6 +136,7 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
       tags: options?.tags,
     },
     cache: options?.revalidate === 0 ? 'no-store' : undefined,
+    signal: options?.signal,
   });
 
   if (!res.ok) {
@@ -111,4 +163,4 @@ export const api = {
     apiFetch<T>(path, { ...options, method: 'DELETE' }),
 };
 
-export { BACKEND_URL };
+export { BACKEND_URL, API_TIMEOUT_MS };
