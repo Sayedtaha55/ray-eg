@@ -150,3 +150,49 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
     return null;
   }
 }
+
+export interface ImageMapAnalyzeRequest {
+  imageUrl: string;
+  language?: string;
+  width?: number;
+  height?: number;
+  hint?: string;
+}
+
+export interface ImageMapAnalyzeSection {
+  id: string;
+  name: string;
+  description: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  sortOrder: number;
+}
+
+export interface ImageMapAnalyzeHotspot {
+  id: string;
+  sectionId: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  shape: 'rectangle' | 'circle' | string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface ImageMapAnalyzeResponse {
+  imageUrl: string;
+  mode: string;
+  sections: ImageMapAnalyzeSection[];
+  hotspots: ImageMapAnalyzeHotspot[];
+  suggestions: string[];
+}
+
+export async function analyzeShopImageMap(
+  shopId: string,
+  payload: ImageMapAnalyzeRequest,
+): Promise<ImageMapAnalyzeResponse> {
+  return api.post<ImageMapAnalyzeResponse>(`/shops/${shopId}/image-maps/analyze`, payload, { revalidate: 0 });
+}
