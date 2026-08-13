@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { LogIn, Mail, Lock, ArrowLeft, Loader2, AlertCircle } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, storeAuthToken } from '@/lib/api';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function LoginPage() {
             const data = res?.data || res;
             const token = data?.token?.accessToken || data?.accessToken || data?.token || res?.accessToken || res?.token;
             if (token) {
-              localStorage.setItem('token', token);
+              storeAuthToken(token);
               router.push('/profile');
             } else {
               setError('استجابة غير صحيحة من الخادم');

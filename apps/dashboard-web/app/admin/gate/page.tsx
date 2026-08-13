@@ -154,7 +154,10 @@ export default function AdminGatePage() {
     const token = data?.access_token || data?.accessToken || data?.token || data?.session?.access_token;
     if (user && user.id) {
       localStorage.setItem('ray_user', JSON.stringify(user));
-      if (token) localStorage.setItem('ray_token', token);
+      if (token) {
+        localStorage.setItem('ray_token', token);
+        localStorage.setItem('token', token);
+      }
     }
     return user;
   };

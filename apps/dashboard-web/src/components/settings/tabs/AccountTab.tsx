@@ -123,6 +123,7 @@ export default function AccountTab({ shop, onSaved }: AccountTabProps) {
       await apiRequest('/auth/deactivate', { method: 'POST' });
       localStorage.removeItem('ray_user');
       localStorage.removeItem('ray_token');
+      localStorage.removeItem('token');
       toast({ title: 'تم حذف الحساب', description: 'تم تعطيل حسابك بنجاح' });
       window.location.href = '/login';
     } catch (error: any) {

@@ -29,16 +29,37 @@ const AuthContext = createContext<AuthContextType>({
 
 const USER_KEY = 'ray_user';
 const TOKEN_KEY = 'ray_token';
+const LEGACY_TOKEN_KEY = 'token';
+
+function getStoredToken(): string {
+  if (typeof window === 'undefined') return '';
+  return localStorage.getItem(TOKEN_KEY) || localStorage.getItem(LEGACY_TOKEN_KEY) || '';
+}
+
+function storeToken(token: string) {
+  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(LEGACY_TOKEN_KEY, token);
+}
+
+function clearStoredToken() {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
+}
 
 async function apiRequest(path: string, options: RequestInit = {}) {
-  const token = typeof window !== 'undefined' ? localStorage.getItem(TOKEN_KEY) : '';
+  const token = getStoredToken();
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers = new Headers(options.headers);
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const res = await fetch(`/api/v1${path}`, {
     ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
+    headers,
     credentials: 'include',
   });
   const data = await res.json().catch(() => null);
@@ -71,9 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
-          ...(typeof window !== 'undefined' && localStorage.getItem(TOKEN_KEY)
-            ? { Authorization: `Bearer ${localStorage.getItem(TOKEN_KEY)}` }
-            : {}),
+          ...(getStoredToken() ? { Authorization: `Bearer ${getStoredToken()}` } : {}),
         },
         signal: controller.signal,
       });
@@ -109,7 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       localStorage.setItem(USER_KEY, JSON.stringify(user));
       if (token) {
-        localStorage.setItem(TOKEN_KEY, token);
+        storeToken(token);
       }
     }
     return data;
@@ -118,7 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem(USER_KEY);
-    localStorage.removeItem(TOKEN_KEY);
+    clearStoredToken();
     apiRequest('/auth/logout', { method: 'POST' }).catch(() => {});
   }, []);
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Star, Loader2, MessageSquare, Send, User } from 'lucide-react';
-import { BACKEND_URL } from '@/lib/api';
+import { apiPath, getStoredAuthToken } from '@/lib/api';
 import { formatDate } from '@/lib/utils';
 
 interface Review {
@@ -34,7 +34,7 @@ export function ReviewsSection({ type, targetId }: ReviewsSectionProps) {
   const loadReviews = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1${endpoint}`);
+      const res = await fetch(apiPath(endpoint));
       if (res.ok) {
         const data = await res.json();
         setReviews(Array.isArray(data) ? data : (data?.data ?? data?.items ?? []));
@@ -54,7 +54,7 @@ export function ReviewsSection({ type, targetId }: ReviewsSectionProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token = getStoredAuthToken();
     if (!token) {
       setError('يجب تسجيل الدخول أولاً');
       return;
@@ -62,7 +62,7 @@ export function ReviewsSection({ type, targetId }: ReviewsSectionProps) {
     setSubmitting(true);
     setError('');
     try {
-      const res = await fetch(`${BACKEND_URL}/api/v1${endpoint}`, {
+      const res = await fetch(apiPath(endpoint), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -16,7 +16,7 @@ import {
   XCircle,
   ChevronRight
 } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, clearStoredAuthToken, getStoredAuthToken } from '@/lib/api';
 
 interface Order {
   id: string;
@@ -33,7 +33,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getStoredAuthToken();
     if (!token) {
       router.push('/login');
       return;
@@ -47,7 +47,7 @@ export default function ProfilePage() {
       const userData = await api.get('/auth/me');
       setUser((userData as any)?.user ?? (userData as any)?.data?.user ?? userData);
       
-      const ordersData = await api.get('/orders/customer/me');
+      const ordersData = await api.get('/orders/me');
       setOrders(((ordersData as any)?.data ?? ordersData ?? []) as Order[]);
     } catch (error) {
       console.error('Failed to fetch user data:', error);
@@ -57,7 +57,7 @@ export default function ProfilePage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    clearStoredAuthToken();
     router.push('/');
   };
 

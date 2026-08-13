@@ -108,7 +108,9 @@ func (s *Service) Create(ctx context.Context, req CreateSeasonalOfferRequest, ac
 	}
 
 	status := "scheduled"
-	if now.After(startDate) && now.Before(endDate) {
+	if now.After(endDate) {
+		status = "ended"
+	} else if (now.Equal(startDate) || now.After(startDate)) && now.Before(endDate) {
 		status = "active"
 	}
 

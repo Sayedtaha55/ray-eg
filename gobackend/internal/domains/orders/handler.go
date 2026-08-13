@@ -26,7 +26,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 
 	g.Post("/", middleware.RequireAuth(h.cfg), h.Create)
 	g.Get("/", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleMerchant), string(auth.RoleAdmin)), h.List)
-	g.Get("/me", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleMerchant)), h.ListMine)
+	g.Get("/me", middleware.RequireAuth(h.cfg), h.ListMine)
 	g.Get("/admin", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleAdmin)), h.ListAdmin)
 	g.Get("/courier/me", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleCourier)), h.ListCourier)
 	g.Get("/customer/me", middleware.RequireAuth(h.cfg), h.ListCustomerOrders)
@@ -126,6 +126,15 @@ func (h *Handler) ListMine(c *fiber.Ctx) error {
 	if !ok {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
+	if user.Role == string(auth.RoleCustomer) || user.ShopID == "" {
+		page, limit := ParsePageLimit(c.Query("page"), c.Query("limit"))
+		orders, err := h.service.ListCustomerOrders(c.UserContext(), user.ID, page, limit)
+		if err != nil {
+			return err
+		}
+		return c.JSON(fiber.Map{"success": true, "data": orders})
+	}
+
 	req := parseOrderListRequest(c)
 	orders, err := h.service.ListMerchantMine(c.UserContext(), user.ShopID, user.Role, req)
 	if err != nil {

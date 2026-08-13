@@ -13,18 +13,35 @@ export function backendApiUrl(path: string): string {
 
 export function getStoredAuthToken(): string | null {
   if (typeof window === 'undefined') return null;
-  return localStorage.getItem('token') || localStorage.getItem('ray_token');
+  return localStorage.getItem('ray_token') || localStorage.getItem('token');
+}
+
+export function storeAuthToken(token: string) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('ray_token', token);
+  localStorage.setItem('token', token);
+}
+
+export function clearStoredAuthToken() {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('ray_token');
+  localStorage.removeItem('token');
 }
 
 export async function jsonRequest<T>(path: string, init: RequestInit = {}): Promise<T> {
   const token = getStoredAuthToken();
+  const isFormData = typeof FormData !== 'undefined' && init.body instanceof FormData;
+  const headers = new Headers(init.headers);
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const res = await fetch(apiPath(path), {
     ...init,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...init.headers,
-    },
+    headers,
     credentials: init.credentials ?? 'include',
   });
 
@@ -42,7 +59,7 @@ export interface ApiOptions {
 }
 
 async function apiFetch<T>(path: string, options?: ApiOptions & { method?: string; body?: unknown }): Promise<T> {
-  const url = backendApiUrl(path);
+  const url = typeof window === 'undefined' ? backendApiUrl(path) : apiPath(path);
   
   // Get token from localStorage for client-side requests
   let token: string | null = null;
@@ -50,14 +67,19 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
     token = getStoredAuthToken();
   }
   
+  const isFormData = typeof FormData !== 'undefined' && options?.body instanceof FormData;
+  const headers = new Headers(options?.headers);
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
   const res = await fetch(url, {
     method: options?.method || 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options?.headers,
-    },
-    body: options?.body ? JSON.stringify(options.body) : undefined,
+    headers,
+    body: options?.body ? (isFormData ? options.body as BodyInit : JSON.stringify(options.body)) : undefined,
     next: {
       revalidate: options?.revalidate ?? 3600,
       tags: options?.tags,

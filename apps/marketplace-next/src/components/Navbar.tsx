@@ -10,7 +10,7 @@ import { useCart } from '@/lib/cart';
 import { useWishlist } from '@/lib/wishlist';
 import { SearchBar } from './SearchBar';
 import { siteConfig, navLinks } from '@/lib/config';
-import { BACKEND_URL } from '@/lib/api';
+import { apiPath, getStoredAuthToken } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
 export function Navbar() {
@@ -34,10 +34,10 @@ export function Navbar() {
   }, [pathname]);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = getStoredAuthToken();
     setIsLoggedIn(!!token);
     if (token) {
-      fetch(`${BACKEND_URL}/api/v1/notifications/me/unread-count`, {
+      fetch(apiPath('/notifications/me/unread-count'), {
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.ok ? r.json() : null).then(d => setUnreadNotifs(d?.unread_count || d?.count || 0)).catch(() => {});
     } else {
