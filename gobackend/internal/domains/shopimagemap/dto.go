@@ -52,33 +52,63 @@ type CreateMapRequest struct {
 
 // SaveLayoutRequest is the payload for saving a map layout.
 type SaveLayoutRequest struct {
-	ImageURL  string         `json:"imageUrl,omitempty"`
-	Layout    map[string]any `json:"layout"`
+	ImageURL string         `json:"imageUrl,omitempty"`
+	Layout   map[string]any `json:"layout"`
 }
 
-// AnalyzeRequest is the payload for AI analysis.
+// AnalyzeRequest is the payload for layout analysis.
 type AnalyzeRequest struct {
 	ImageURL string `json:"imageUrl" validate:"required"`
 	Language string `json:"language,omitempty"`
+	Width    int    `json:"width,omitempty"`
+	Height   int    `json:"height,omitempty"`
+	Hint     string `json:"hint,omitempty"`
 }
 
 // ImageMapResponse is the serialized image map response.
 type ImageMapResponse struct {
-	ID        string          `json:"id"`
-	ShopID    string          `json:"shopId"`
-	Name      string          `json:"name"`
-	ImageURL  string          `json:"imageUrl,omitempty"`
-	IsActive  bool            `json:"isActive"`
-	Layout    map[string]any  `json:"layout"`
-	Sections  []ImageSection  `json:"sections,omitempty"`
-	Hotspots  []ImageHotspot  `json:"hotspots,omitempty"`
-	CreatedAt time.Time       `json:"createdAt"`
-	UpdatedAt time.Time       `json:"updatedAt"`
+	ID        string         `json:"id"`
+	ShopID    string         `json:"shopId"`
+	Name      string         `json:"name"`
+	ImageURL  string         `json:"imageUrl,omitempty"`
+	IsActive  bool           `json:"isActive"`
+	Layout    map[string]any `json:"layout"`
+	Sections  []ImageSection `json:"sections,omitempty"`
+	Hotspots  []ImageHotspot `json:"hotspots,omitempty"`
+	CreatedAt time.Time      `json:"createdAt"`
+	UpdatedAt time.Time      `json:"updatedAt"`
 }
 
-// AnalyzeResponse is the AI analysis response.
+// AnalyzeSection is a suggested visual section for a shop image map.
+type AnalyzeSection struct {
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description string  `json:"description"`
+	X           float64 `json:"x"`
+	Y           float64 `json:"y"`
+	Width       float64 `json:"width"`
+	Height      float64 `json:"height"`
+	SortOrder   int     `json:"sortOrder"`
+}
+
+// AnalyzeHotspot is a suggested clickable area for a shop image map.
+type AnalyzeHotspot struct {
+	ID        string         `json:"id"`
+	SectionID string         `json:"sectionId"`
+	Label     string         `json:"label"`
+	X         float64        `json:"x"`
+	Y         float64        `json:"y"`
+	Width     float64        `json:"width"`
+	Height    float64        `json:"height"`
+	Shape     string         `json:"shape"`
+	Metadata  map[string]any `json:"metadata"`
+}
+
+// AnalyzeResponse is the deterministic layout analysis response.
 type AnalyzeResponse struct {
-	ImageURL string         `json:"imageUrl"`
-	Sections []map[string]any `json:"sections"`
-	Hotspots []map[string]any `json:"hotspots"`
+	ImageURL    string           `json:"imageUrl"`
+	Mode        string           `json:"mode"`
+	Sections    []AnalyzeSection `json:"sections"`
+	Hotspots    []AnalyzeHotspot `json:"hotspots"`
+	Suggestions []string         `json:"suggestions"`
 }

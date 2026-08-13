@@ -1,10 +1,45 @@
-const BACKEND_URL =
+const RAW_BACKEND_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL ||
   process.env.BACKEND_URL ||
   (process.env.NODE_ENV === 'production' ? 'https://api.mnmknk.com' : 'http://localhost:4000');
 
+const BACKEND_URL = RAW_BACKEND_URL.replace(/\/+$/, '');
+
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+  details?: unknown;
+
+  constructor(message: string, status: number, code?: string, details?: unknown) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
 export function apiPath(path: string): string {
-  return path.startsWith('/api') ? path : `/api/v1${path}`;
+  const normalized = path.startsWith('/') ? path : `/${path}`;
+  return normalized.startsWith('/api') ? normalized : `/api/v1${normalized}`;
+}
+
+function extractErrorMessage(body: unknown, fallback: string): { message: string; code?: string; details?: unknown } {
+  if (!body || typeof body !== 'object') return { message: fallback };
+
+  const record = body as Record<string, unknown>;
+  const data = record.data && typeof record.data === 'object' ? record.data as Record<string, unknown> : undefined;
+  const message =
+    (typeof record.message === 'string' && record.message) ||
+    (typeof record.error === 'string' && record.error) ||
+    (typeof data?.error === 'string' && data.error) ||
+    fallback;
+  const code =
+    (typeof record.code === 'string' && record.code) ||
+    (typeof data?.code === 'string' && data.code) ||
+    undefined;
+
+  return { message, code, details: record.details ?? data?.details };
 }
 
 export function backendApiUrl(path: string): string {
@@ -47,7 +82,9 @@ export async function jsonRequest<T>(path: string, init: RequestInit = {}): Prom
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `API Error: ${res.status} ${res.statusText}`);
+    const fallback = `API Error: ${res.status} ${res.statusText}`;
+    const error = extractErrorMessage(data, fallback);
+    throw new ApiError(error.message, res.status, error.code, error.details);
   }
   return data?.data !== undefined ? data.data : data;
 }
@@ -91,9 +128,12 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
     let message = `API Error: ${res.status} ${res.statusText}`;
     try {
       const body = await res.json();
-      message = body?.message || body?.error || body?.data?.error || message;
-    } catch {}
-    throw new Error(message);
+      const error = extractErrorMessage(body, message);
+      throw new ApiError(error.message, res.status, error.code, error.details);
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+    }
+    throw new ApiError(message, res.status);
   }
 
   return res.json();

@@ -1,4 +1,4 @@
-﻿package app
+package app
 
 import (
 	"context"
@@ -57,6 +57,7 @@ import (
 
 // App ties together the Fiber HTTP server, dependencies, and middleware.
 type App struct {
+	StartedAt             time.Time
 	Config                *config.Config
 	Fiber                 *fiber.App
 	DB                    *db.Pool
@@ -377,6 +378,7 @@ func New(cfg *config.Config) (*App, error) {
 	f := fiber.New(appCfg)
 
 	a := &App{
+		StartedAt:             time.Now().UTC(),
 		Config:                cfg,
 		Fiber:                 f,
 		DB:                    pool,
@@ -622,14 +624,54 @@ func (a *App) registerRoutes() {
 		a.portalHandler.RegisterRoutes(api)
 	}
 
-	// Placeholder route until domain modules are migrated.
-	api.Get("/status", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"success": true,
-			"message": "Ray Go backend is running",
-			"version": a.Config.App.Version,
-			"env":     a.Config.App.Env,
-		})
+	api.Get("/status", a.statusHandler)
+}
+
+func (a *App) statusHandler(c *fiber.Ctx) error {
+	modules := fiber.Map{
+		"analytics":      a.analyticsHandler != nil,
+		"apps":           a.appsHandler != nil,
+		"auth":           a.authHandler != nil,
+		"bookings":       a.bookingsHandler != nil,
+		"cartEvents":     a.cartEventHandler != nil,
+		"chat":           a.chatHandler != nil,
+		"courier":        a.courierHandler != nil,
+		"customers":      a.customersHandler != nil,
+		"feedback":       a.feedbackHandler != nil,
+		"gallery":        a.galleryHandler != nil,
+		"hr":             a.hrHandler != nil,
+		"invoice":        a.invoiceHandler != nil,
+		"map":            a.mapHandler != nil,
+		"media":          a.mediaHandler != nil,
+		"measurement":    a.measurementHandler != nil,
+		"notification":   a.notificationHandler != nil,
+		"offers":         a.offersHandler != nil,
+		"orders":         a.ordersHandler != nil,
+		"portal":         a.portalHandler != nil,
+		"products":       a.productsHandler != nil,
+		"reservation":    a.reservationHandler != nil,
+		"reviews":        a.reviewsHandler != nil,
+		"search":         a.searchHandler != nil,
+		"seasonalOffers": a.seasonalOffersHandler != nil,
+		"shopBuilder":    a.builderHandler != nil,
+		"shopImageMap":   a.shopImageMapHandler != nil,
+		"shops":          a.shopsHandler != nil,
+		"support":        a.supportHandler != nil,
+		"users":          a.usersHandler != nil,
+	}
+
+	return c.JSON(fiber.Map{
+		"success":       true,
+		"message":       "Ray Go backend is running",
+		"version":       a.Config.App.Version,
+		"env":           a.Config.App.Env,
+		"uptimeSeconds": int64(time.Since(a.StartedAt).Seconds()),
+		"dependencies": fiber.Map{
+			"database": a.DB != nil,
+			"redis":    a.Redis != nil,
+			"jobs":     a.Jobs != nil,
+		},
+		"modules": modules,
 	})
 }
 

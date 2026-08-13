@@ -3,6 +3,7 @@ package shopimagemap
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/compression"
@@ -144,19 +145,97 @@ func (s *Service) SaveLayout(ctx context.Context, shopID, mapID string, req Save
 	return &resp, nil
 }
 
-// Analyze performs AI analysis on an image (placeholder — returns empty result).
+// Analyze returns a deterministic first-pass layout for image maps.
+// It intentionally avoids pretending to run AI when no vision provider is wired;
+// the frontend can still render useful editable suggestions immediately.
 func (s *Service) Analyze(ctx context.Context, shopID string, req AnalyzeRequest, actorRole, actorShopID string) (*AnalyzeResponse, error) {
 	if !isAdmin(actorRole) && actorShopID != shopID {
 		return nil, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
-	if strings.TrimSpace(req.ImageURL) == "" {
+	imageURL := strings.TrimSpace(req.ImageURL)
+	if imageURL == "" {
 		return nil, errors.Validation("imageUrl_required", "imageUrl مطلوب")
 	}
+
+	mode := analysisMode(req)
+	sections := suggestedSections(mode)
+	hotspots := suggestedHotspots(mode, sections)
+
 	return &AnalyzeResponse{
-		ImageURL: req.ImageURL,
-		Sections: []map[string]any{},
-		Hotspots: []map[string]any{},
+		ImageURL: imageURL,
+		Mode:     mode,
+		Sections: sections,
+		Hotspots: hotspots,
+		Suggestions: []string{
+			"راجع أماكن النقاط بعد تحميل الصورة الحقيقية واضبطها بالسحب قبل النشر.",
+			"اربط كل نقطة بمنتج أو قسم حتى تظهر تجربة شراء مباشرة للعميل.",
+			"استخدم صور WebP مضغوطة للموبايل وحافظ على العناصر المهمة بعيداً عن حواف الصورة.",
+		},
 	}, nil
+}
+
+func analysisMode(req AnalyzeRequest) string {
+	hint := strings.ToLower(strings.TrimSpace(req.Hint + " " + req.ImageURL))
+	switch {
+	case strings.Contains(hint, "restaurant"), strings.Contains(hint, "food"), strings.Contains(hint, "menu"), strings.Contains(hint, "مطعم"), strings.Contains(hint, "اكل"), strings.Contains(hint, "أكل"):
+		return "restaurant"
+	case strings.Contains(hint, "fashion"), strings.Contains(hint, "clothes"), strings.Contains(hint, "ملابس"), strings.Contains(hint, "موضة"):
+		return "fashion"
+	case strings.Contains(hint, "furniture"), strings.Contains(hint, "home"), strings.Contains(hint, "اثاث"), strings.Contains(hint, "أثاث"):
+		return "furniture"
+	default:
+		if req.Width > req.Height && req.Height > 0 {
+			return "showcase"
+		}
+		return "catalog"
+	}
+}
+
+func suggestedSections(mode string) []AnalyzeSection {
+	labels := map[string][]string{
+		"restaurant": {"العروض الرئيسية", "الأطباق الأكثر طلباً", "المشروبات والإضافات"},
+		"fashion":    {"الإطلالة الرئيسية", "المنتجات المميزة", "الإكسسوارات"},
+		"furniture":  {"الغرفة الرئيسية", "قطع الأثاث", "تفاصيل وخامات"},
+		"showcase":   {"البانر الرئيسي", "العناصر البارزة", "دعوة لاتخاذ إجراء"},
+		"catalog":    {"الجزء العلوي", "منتصف الصورة", "الجزء السفلي"},
+	}
+	names := labels[mode]
+	sections := make([]AnalyzeSection, 0, len(names))
+	for i, name := range names {
+		sections = append(sections, AnalyzeSection{
+			ID:          fmt.Sprintf("suggested-section-%d", i+1),
+			Name:        name,
+			Description: "اقتراح مبدئي قابل للتعديل من لوحة التحكم",
+			X:           0,
+			Y:           float64(i) * 33.33,
+			Width:       100,
+			Height:      33.33,
+			SortOrder:   i,
+		})
+	}
+	return sections
+}
+
+func suggestedHotspots(mode string, sections []AnalyzeSection) []AnalyzeHotspot {
+	hotspots := make([]AnalyzeHotspot, 0, len(sections))
+	for i, section := range sections {
+		hotspots = append(hotspots, AnalyzeHotspot{
+			ID:        fmt.Sprintf("suggested-hotspot-%d", i+1),
+			SectionID: section.ID,
+			Label:     section.Name,
+			X:         12 + float64(i*24),
+			Y:         section.Y + 8,
+			Width:     24,
+			Height:    16,
+			Shape:     "rectangle",
+			Metadata: map[string]any{
+				"source":     "deterministic-layout-analysis",
+				"confidence": 0.55,
+				"mode":       mode,
+			},
+		})
+	}
+	return hotspots
 }
 
 func (s *Service) shapeMapWithRelations(ctx context.Context, m ImageMap) *ImageMapResponse {
