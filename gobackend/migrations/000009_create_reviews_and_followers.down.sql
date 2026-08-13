@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS shop_followers;
-DROP TABLE IF EXISTS reviews;

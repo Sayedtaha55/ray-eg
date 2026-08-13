@@ -1,2 +1,0 @@
-DROP TABLE IF EXISTS shop_apps;
-DROP TABLE IF EXISTS apps;
