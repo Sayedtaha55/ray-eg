@@ -42,6 +42,7 @@ type Shop struct {
 	Slug              string             `json:"slug"`
 	Description       *string            `json:"description,omitempty"`
 	Category          ShopCategory       `json:"category"`
+	Activity          *string            `json:"activity,omitempty"`
 	Governorate       string             `json:"governorate"`
 	City              string             `json:"city"`
 	Address           *string            `json:"address,omitempty"`
@@ -100,6 +101,7 @@ type CreateShopRequest struct {
 	Governorate     string   `json:"governorate" validate:"required"`
 	City            string   `json:"city" validate:"required"`
 	OpeningHours    string   `json:"openingHours,omitempty"`
+	Activity        string   `json:"activity,omitempty"`
 	ActivityID      string   `json:"activityId,omitempty"`
 	EnabledModules  []string `json:"enabledModules,omitempty"`
 	Specialties     []string `json:"specialties,omitempty"`
@@ -111,6 +113,7 @@ type UpdateShopRequest struct {
 	Name             *string  `json:"name,omitempty"`
 	Description      *string  `json:"description,omitempty"`
 	Category         *string  `json:"category,omitempty"`
+	Activity         *string  `json:"activity,omitempty"`
 	Governorate      *string  `json:"governorate,omitempty"`
 	City             *string  `json:"city,omitempty"`
 	AddressDetailed  *string  `json:"addressDetailed,omitempty"`

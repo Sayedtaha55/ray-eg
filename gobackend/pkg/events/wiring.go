@@ -1,14 +1,13 @@
-// Package wiring shows how to connect domains via the event bus at startup.
+// Package events provides cross-domain event wiring.
 // Call Wire() from internal/app/app.go after all services are initialized.
-package wiring
+package events
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/Sayedtaha55/ray-eg/gobackend/pkg/domain/erp"
 	"github.com/Sayedtaha55/ray-eg/gobackend/pkg/domain/cart"
-	"github.com/Sayedtaha55/ray-eg/gobackend/pkg/events"
+	"github.com/Sayedtaha55/ray-eg/gobackend/pkg/domain/erp"
 	"go.uber.org/zap"
 )
 
@@ -20,9 +19,8 @@ type CheckoutPayload struct {
 
 // Wire subscribes ERP handlers to cart/storefront events.
 // Add new subscriptions here as domains grow — no changes to domain packages.
-func Wire(bus *events.Bus, inv erp.InventoryService, log *zap.Logger) {
-	// When cart checks out → deduct stock in ERP inventory.
-	bus.Subscribe(events.TopicCartCheckedOut, func(ctx context.Context, e events.Event) {
+func Wire(bus *Bus, inv erp.InventoryService, log *zap.Logger) {
+	bus.Subscribe(TopicCartCheckedOut, func(ctx context.Context, e Event) {
 		payload, ok := e.Payload.(CheckoutPayload)
 		if !ok {
 			log.Error("invalid payload for cart.checked_out")
@@ -43,7 +41,6 @@ func Wire(bus *events.Bus, inv erp.InventoryService, log *zap.Logger) {
 				zap.String("order_id", payload.Result.OrderID.String()),
 				zap.Error(err),
 			)
-			// TODO: publish TopicStockDeductionFailed → trigger compensating transaction
 		} else {
 			log.Info("stock deducted",
 				zap.String("order_id", payload.Result.OrderID.String()),

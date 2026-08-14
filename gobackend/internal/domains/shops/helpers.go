@@ -45,6 +45,9 @@ func parseUpdateFields(body map[string]any) (map[string]any, error) {
 	if v, ok := getString(body, "description"); ok {
 		fields["description"] = nullIfEmpty(strings.TrimSpace(v))
 	}
+	if v, ok := getString(body, "activity"); ok {
+		fields["activity"] = nullIfEmpty(strings.TrimSpace(v))
+	}
 	if v, ok := getString(body, "category"); ok {
 		cat := ShopCategory(strings.ToUpper(strings.TrimSpace(v)))
 		switch cat {

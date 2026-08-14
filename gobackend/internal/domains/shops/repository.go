@@ -63,7 +63,7 @@ func (r *Repository) SlugExists(ctx context.Context, slug string) (bool, error) 
 func (r *Repository) Create(ctx context.Context, s *Shop) (*Shop, error) {
 	query := `
 		INSERT INTO shops (
-			id, name, slug, description, category, governorate, city, address,
+			id, name, slug, description, category, activity, governorate, city, address,
 			address_detailed, display_address, map_label, latitude, longitude,
 			location_source, location_accuracy, phone, email, opening_hours,
 			logo_url, banner_url, status, page_design, theme, custom_colors,
@@ -71,11 +71,11 @@ func (r *Repository) Create(ctx context.Context, s *Shop) (*Shop, error) {
 			delivery_disabled, created_at, updated_at
 		) VALUES (
 			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
-			$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26,
-			true, $27, false, false, NOW(), NOW()
+			$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
+			true, $28, false, false, NOW(), NOW()
 		) RETURNING ` + shopColumns
 	row := r.pool.QueryRow(ctx, query,
-		s.Name, s.Slug, s.Description, s.Category, s.Governorate, s.City, s.Address,
+		s.Name, s.Slug, s.Description, s.Category, s.Activity, s.Governorate, s.City, s.Address,
 		s.AddressDetailed, s.DisplayAddress, s.MapLabel, s.Latitude, s.Longitude,
 		s.LocationSource, s.LocationAccuracy, s.Phone, s.Email, s.OpeningHours,
 		s.LogoURL, s.BannerURL, s.Status, s.PageDesign, s.Theme, s.CustomColors,
@@ -244,7 +244,7 @@ func (r *Repository) SetOwnerActive(ctx context.Context, ownerID, shopID string)
 }
 
 const shopColumns = `
-	s.id, s.name, s.slug, s.description, s.category, s.governorate, s.city, s.address,
+	s.id, s.name, s.slug, s.description, s.category, s.activity, s.governorate, s.city, s.address,
 	s.address_detailed, s.display_address, s.map_label, s.latitude, s.longitude,
 	s.location_source, s.location_accuracy, s.location_updated_at, s.phone, s.email,
 	s.opening_hours, s.logo_url, s.banner_url, s.status, s.page_design, s.builder_config, s.theme,
@@ -265,8 +265,9 @@ func scanShop(row pgx.Row) (*Shop, error) {
 	var ownerID, ownerName, ownerEmail sql.NullString
 	var ownerIDVal sql.NullString
 
+	var activity sql.NullString
 	err := row.Scan(
-		&s.ID, &s.Name, &s.Slug, &desc, &s.Category, &s.Governorate, &s.City, &address,
+		&s.ID, &s.Name, &s.Slug, &desc, &s.Category, &activity, &s.Governorate, &s.City, &address,
 		&addrDetailed, &displayAddr, &mapLabel, &lat, &lng, &locationSrc, &locAcc,
 		&locUpdated, &phone, &email, &opening, &logo, &banner, &s.Status, &s.PageDesign,
 		&s.BuilderConfig, &theme, &s.CustomColors, &s.CustomFonts, &s.LayoutConfig, &s.Followers,
@@ -281,6 +282,7 @@ func scanShop(row pgx.Row) (*Shop, error) {
 		return nil, errors.Internal("scan_shop_failed", err)
 	}
 
+	s.Activity = nullStringPtr(activity)
 	s.Description = nullStringPtr(desc)
 	s.Address = nullStringPtr(address)
 	s.AddressDetailed = nullStringPtr(addrDetailed)

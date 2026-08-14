@@ -71,6 +71,7 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 		Slug:            slug,
 		Description:     strPtr(req.Description),
 		Category:        ShopCategory(req.Category),
+		Activity:        strPtr(req.Activity),
 		Governorate:     req.Governorate,
 		City:            req.City,
 		Address:         strPtr(req.Address),
