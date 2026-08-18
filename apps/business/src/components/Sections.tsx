@@ -18,10 +18,34 @@ const marqueeItems = [
 ];
 
 const themeShowcase = [
-  { image: '/images/themes/theme-retail.jpg', tag: 'الأكثر طلباً', title: 'ثيم "متجر التجزئة"', desc: 'مثالي لعرض المنتجات بشبكة أنيقة وفلاتر سريعة' },
-  { image: '/images/themes/theme-restaurant.jpg', tag: 'جديد', title: 'ثيم "المطاعم والكافيهات"', desc: 'قوائم طعام تفاعلية وحجز طاولات مدمج' },
-  { image: '/images/themes/theme-services.jpg', tag: 'مميز', title: 'ثيم "الخدمات الاحترافية"', desc: 'صفحات حجز مواعيد وعرض أعمال أنيق' },
-  { image: '/images/themes/theme-fashion.jpg', tag: 'الأكثر تقييماً', title: 'ثيم "الأزياء والموضة"', desc: 'تجربة تسوق بصرية غنية بالحركة والتفاصيل' },
+  {
+    tag: 'الأكثر طلباً',
+    title: 'ثيم "متجر التجزئة"',
+    desc: 'مثالي لعرض المنتجات بشبكة أنيقة وفلاتر سريعة',
+    primary: '#0369A1', secondary: '#1E293B', header: '#F8FAFC', footer: '#E2E8F0',
+    accent: '#0EA5E9', mode: 'list',
+  },
+  {
+    tag: 'جديد',
+    title: 'ثيم "المطاعم والكافيهات"',
+    desc: 'قوائم طعام تفاعلية وحجز طاولات مدمج',
+    primary: '#C2410C', secondary: '#7C2D12', header: '#FFF7ED', footer: '#431407',
+    accent: '#F97316', mode: 'cards',
+  },
+  {
+    tag: 'مميز',
+    title: 'ثيم "الخدمات الاحترافية"',
+    desc: 'صفحات حجز مواعيد وعرض أعمال أنيق',
+    primary: '#0EA5E9', secondary: '#0369A1', header: '#FFFFFF', footer: '#FFFFFF',
+    accent: '#38BDF8', mode: 'booking',
+  },
+  {
+    tag: 'الأكثر تقييماً',
+    title: 'ثيم "الأزياء والموضة"',
+    desc: 'تجربة تسوق بصرية غنية بالحركة والتفاصيل',
+    primary: '#BE185D', secondary: '#831843', header: '#FDF2F8', footer: '#500724',
+    accent: '#EC4899', mode: 'fashion',
+  },
 ];
 
 const features = [
@@ -84,33 +108,100 @@ export function ThemeShowcase() {
               delay={i * 90}
               className="group relative rounded-3xl border border-slate-200 bg-white overflow-hidden flex-shrink-0 w-[85vw] sm:w-[45vw] md:w-[400px] snap-start shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
             >
-              <div className="relative aspect-[16/10] bl-img-zoom bg-slate-100">
-                <img
-                  src={theme.image}
-                  alt={theme.title}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = 'none';
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
-                    if (fallback) fallback.style.display = 'flex';
-                  }}
-                />
-                <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                  <ImageIcon className="w-10 h-10 text-slate-300" />
+              {/* CSS Theme Mockup */}
+              <div className="relative aspect-[16/10] overflow-hidden" style={{ background: theme.header }}>
+
+                {/* Navbar */}
+                <div className="absolute top-0 inset-x-0 h-7 flex items-center px-3 gap-1.5 z-10" style={{ background: theme.header, borderBottom: `1px solid ${theme.primary}20` }}>
+                  <div className="w-3.5 h-3.5 rounded-sm" style={{ background: theme.primary }} />
+                  <div className="h-1.5 w-12 rounded-full" style={{ background: theme.secondary + '35' }} />
+                  <div className="flex-1" />
+                  <div className="h-1.5 w-7 rounded-full" style={{ background: theme.secondary + '30' }} />
+                  <div className="h-1.5 w-7 rounded-full" style={{ background: theme.secondary + '30' }} />
+                  <div className="h-4 w-10 rounded-md" style={{ background: theme.primary }} />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-transparent to-transparent" />
-                <span className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-cyan-500 text-white text-xs font-black">
+
+                {/* Hero */}
+                <div className="absolute top-7 inset-x-0 h-[72px] flex items-center px-4 gap-3" style={{ background: `linear-gradient(135deg, ${theme.secondary}ee, ${theme.primary}cc)` }}>
+                  <div className="flex-1 space-y-1.5">
+                    <div className="h-2.5 w-24 rounded-full bg-white/85" />
+                    <div className="h-1.5 w-16 rounded-full bg-white/50" />
+                    <div className="h-4 w-14 rounded-lg mt-0.5" style={{ background: theme.accent }} />
+                  </div>
+                  {theme.mode === 'fashion' && (
+                    <div className="w-14 h-14 rounded-xl bg-white/20 flex-shrink-0" />
+                  )}
+                  {theme.mode === 'booking' && (
+                    <div className="w-20 h-12 rounded-xl bg-white/15 flex-shrink-0 p-1.5 space-y-1">
+                      <div className="h-1.5 w-full rounded bg-white/50" />
+                      <div className="h-1.5 w-3/4 rounded bg-white/30" />
+                      <div className="h-3 w-full rounded" style={{ background: theme.accent }} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Content area */}
+                <div className="absolute inset-x-0 px-3 pt-2" style={{ top: '79px', bottom: '18px', background: theme.header }}>
+                  {theme.mode === 'list' ? (
+                    <div className="space-y-1.5">
+                      {[0,1,2].map(j => (
+                        <div key={j} className="flex items-center gap-2 p-1.5 rounded-lg" style={{ background: theme.secondary + '08', border: `1px solid ${theme.secondary}12` }}>
+                          <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary}35, ${theme.accent}35)` }} />
+                          <div className="flex-1 space-y-1">
+                            <div className="h-1.5 w-20 rounded-full" style={{ background: theme.secondary + '45' }} />
+                            <div className="h-1.5 w-12 rounded-full" style={{ background: theme.primary + '55' }} />
+                          </div>
+                          <div className="h-4 w-9 rounded-md" style={{ background: theme.primary }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : theme.mode === 'booking' ? (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {[0,1,2,3].map(j => (
+                        <div key={j} className="p-2 rounded-xl" style={{ background: theme.primary + '0f', border: `1px solid ${theme.primary}22` }}>
+                          <div className="h-1.5 w-full rounded-full mb-1" style={{ background: theme.primary + '40' }} />
+                          <div className="h-1.5 w-3/4 rounded-full mb-2" style={{ background: theme.secondary + '30' }} />
+                          <div className="h-4 w-full rounded-md" style={{ background: theme.primary }} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {[0,1,2,3,4,5].map(j => (
+                        <div key={j} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.secondary}12` }}>
+                          <div className="aspect-square" style={{ background: `linear-gradient(135deg, ${theme.primary}22, ${theme.accent}22)` }} />
+                          <div className="px-1 py-0.5" style={{ background: theme.header }}>
+                            <div className="h-1.5 w-full rounded-full" style={{ background: theme.secondary + '35' }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer strip */}
+                <div className="absolute bottom-0 inset-x-0 h-[18px]" style={{ background: theme.footer }} />
+
+                {/* Tag badge */}
+                <span className="absolute top-9 left-3 px-2 py-0.5 rounded-full text-white text-[10px] font-black shadow-md" style={{ background: theme.accent }}>
                   {theme.tag}
                 </span>
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 text-white font-bold text-sm">
+
+                {/* Hover overlay */}
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: theme.secondary + 'CC' }}>
+                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white font-bold text-sm" style={{ color: theme.secondary }}>
                     <Eye className="w-4 h-4" />
                     معاينة الثيم
                   </span>
                 </div>
               </div>
+
               <div className="p-5 md:p-6">
+                <div className="flex gap-1.5 mb-3">
+                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.primary }} />
+                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.accent }} />
+                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.footer }} />
+                </div>
                 <h3 className="text-slate-900 font-bold text-lg mb-1.5">{theme.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{theme.desc}</p>
               </div>

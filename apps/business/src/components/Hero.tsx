@@ -6,6 +6,7 @@ import {
   Smartphone, ChevronDown,
 } from 'lucide-react';
 import { useScrollProgress } from '@/lib/hooks';
+import BannerBackground from '@/components/BannerBackground';
 
 export default function Hero() {
   const { ref, progress } = useScrollProgress();
@@ -13,23 +14,13 @@ export default function Hero() {
   return (
     <section ref={ref} className="relative bg-slate-950" style={{ height: '150vh' }}>
       <div className="sticky top-0 h-[100svh] overflow-hidden flex items-center justify-center">
-        {/* Background video */}
-        <video
-          className="absolute inset-0 w-full h-full object-cover"
-          poster="/videos/business-hero-poster.webp"
-          autoPlay
-          muted
-          loop
-          playsInline
-        >
-          <source src="/videos/business-hero.mp4" type="video/mp4" />
-          <source src="/videos/business-hero.webm" type="video/webm" />
-        </video>
+        {/* Background video with fade in/out */}
+        <BannerBackground gradientColor="#020617" fadeDuration={0.5} />
 
-        {/* Gradient overlay */}
+        {/* Scroll-based overlay */}
         <div
-          className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/30 to-slate-950/70 transition-opacity duration-300"
-          style={{ opacity: Math.max(0, 1 - progress * 1.5) }}
+          className="absolute inset-0 bg-slate-950 transition-opacity duration-300 pointer-events-none z-[1]"
+          style={{ opacity: Math.max(0, progress * 0.7) }}
         />
 
         {/* Text content */}

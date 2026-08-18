@@ -11,6 +11,7 @@ import {
   LayoutDashboard, Settings, ChevronDown, Sparkles,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
+import FooterVideoBackground from '@/components/FooterVideoBackground';
 
 const industries = [
   { icon: Utensils, label: 'مطاعم' },
@@ -512,48 +513,55 @@ export function MapSection() {
 }
 
 export function FinalCta() {
-  return (
-    <section className="relative z-20 bg-slate-900 py-20 md:py-32 overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60vw] h-[60vw] rounded-full bg-gradient-radial from-cyan-500/10 via-violet-500/5 to-transparent blur-[80px]" />
-      </div>
-      <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center relative">
-        <RevealSection>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-bold mb-6">
-            <Sparkles className="w-4 h-4" />
-            جاهز تبدأ؟
-          </div>
-          <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight mb-6 leading-tight">
-            ابدأ رحلتك التجارية اليوم
-          </h2>
-          <p className="text-white/60 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
-            انضم لآلاف التجار الذين يثقون في منصتنا لبناء متاجرهم وتنمية أعمالهم
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link
-              href="/signup"
-              className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-cyan-500 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-cyan-500/30 hover:shadow-2xl hover:shadow-cyan-500/50 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-            >
-              ابدأ مجاناً الآن
-              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/login"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/15 transition-all duration-300 cursor-pointer"
-            >
-              تسجيل الدخول
-            </Link>
-          </div>
-        </RevealSection>
-      </div>
-    </section>
-  );
+  return null;
 }
 
 export function Footer() {
   return (
-    <footer className="relative z-20 bg-slate-900 border-t border-white/5 pt-16 pb-8">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6">
+    <footer className="relative z-20">
+      <FooterVideoBackground
+        videoIndex={0}
+        overlayClassName="bg-slate-950/50"
+        className="pt-20 md:pt-32 pb-8"
+      >
+        {/* ── CTA ── */}
+        <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center pb-20 md:pb-28">
+          <RevealSection>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-sm font-bold mb-6 backdrop-blur-sm">
+              <Sparkles className="w-4 h-4" />
+              جاهز تبدأ؟
+            </div>
+            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight mb-6 leading-tight drop-shadow-lg">
+              ابدأ رحلتك التجارية اليوم
+            </h2>
+            <p className="text-white/75 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+              انضم لآلاف التجار الذين يثقون في منصتنا لبناء متاجرهم وتنمية أعمالهم
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/signup"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-cyan-500 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              >
+                ابدأ مجاناً الآن
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/login"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/25 transition-all duration-300 cursor-pointer"
+              >
+                تسجيل الدخول
+              </Link>
+            </div>
+          </RevealSection>
+        </div>
+
+        {/* فاصل */}
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
+          <div className="border-t border-white/10 mb-12" />
+        </div>
+
+        {/* ── Footer links ── */}
+        <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
@@ -636,7 +644,8 @@ export function Footer() {
             </span>
           </div>
         </div>
-      </div>
+        </div>
+      </FooterVideoBackground>
     </footer>
   );
 }

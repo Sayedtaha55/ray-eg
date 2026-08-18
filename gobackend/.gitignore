@@ -25,6 +25,7 @@ go.work.sum
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # IDE
 .vscode/
