@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, Sync } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { syncService } from '@/lib/sync-service';
 import { retryManager } from '@/lib/retry-manager';
 
@@ -81,12 +81,12 @@ export const OfflineIndicator: React.FC = () => {
         <div className="bg-amber-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 text-sm">
           {isSyncing ? (
             <>
-              <Sync className="w-4 h-4 animate-spin" />
+              <RefreshCw className="w-4 h-4 animate-spin" />
               <span>جاري المزامنة ({pendingCount})</span>
             </>
           ) : (
             <>
-              <Sync className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" />
               <span>{pendingCount} طلب في انتظار المزامنة</span>
             </>
           )}

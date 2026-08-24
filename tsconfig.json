@@ -27,13 +27,10 @@
       "@ray-eg/shared": ["packages/shared/src/index.ts"],
       "@ray-eg/shared/*": ["packages/shared/src/*"],
       "@/*": ["packages/shared/src/*"],
-      "@core/*": ["backend/src/core/*"],
       "@shared/*": ["packages/shared/src/*"],
-      "@assets/*": ["packages/shared/src/assets/*"],
-      "@common/*": ["backend/src/common/*"],
-      "@modules/*": ["backend/src/modules/*"]
+      "@assets/*": ["packages/shared/src/assets/*"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
-}
+  },
+  "exclude": ["_archive", "node_modules", "dist", ".next", "gobackend", "saas-backend", "prisma"]

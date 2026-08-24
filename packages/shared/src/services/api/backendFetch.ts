@@ -1,8 +1,8 @@
 import { bootstrapSessionFromBackend } from '../authStorage';
 import { getBearerToken, usesHttpOnlyCookies } from './tokenService';
 import { BackendRequestError, fetchWithTimeout, toBackendUrl } from './httpClient';
-import { addToSyncQueue } from '../lib/offline-db';
-import { retryManager } from '../lib/retry-manager';
+import { addToSyncQueue } from '../../lib/offline-db';
+import { retryManager } from '../../lib/retry-manager';
 
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 

@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ray-eg/shared": "*",
+    "@ray-eg/shared": "file:../../packages/shared",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.0",
     "i18next": "^23.15.0",

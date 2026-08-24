@@ -1,0 +1,7 @@
+{
+  "buildCommand": "cd apps/dashboard-web && npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "outputDirectory": "apps/dashboard-web/.next"
+}

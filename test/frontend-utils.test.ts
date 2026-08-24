@@ -14,7 +14,7 @@ describe('RetryManager', () => {
   beforeEach(async () => {
     jest.resetModules();
     jest.clearAllMocks();
-    const mod = await import('../src/shared/lib/retry-manager');
+    const mod = await import('../packages/shared/src/lib/retry-manager');
     retryManager = mod.retryManager;
     fetchWithRetry = mod.fetchWithRetry;
   });
@@ -79,7 +79,7 @@ describe('RetryManager', () => {
 
 describe('optimisticUpdate', () => {
   it('should return result on successful API call', async () => {
-    const { optimisticUpdate } = await import('../src/shared/lib/retry-manager');
+    const { optimisticUpdate } = await import('../packages/shared/src/lib/retry-manager');
 
     const apiCall = jest.fn().mockResolvedValue({ id: '1', name: 'Updated' });
     const rollback = jest.fn();
@@ -95,7 +95,7 @@ describe('optimisticUpdate', () => {
   });
 
   it('should call rollback on API failure', async () => {
-    const { optimisticUpdate } = await import('../src/shared/lib/retry-manager');
+    const { optimisticUpdate } = await import('../packages/shared/src/lib/retry-manager');
 
     const apiCall = jest.fn().mockRejectedValue(new Error('API failed'));
     const rollback = jest.fn();

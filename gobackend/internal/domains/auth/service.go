@@ -476,7 +476,7 @@ func (s *Service) UseRecoveryCode(ctx context.Context, userID, code string) (boo
 	// if err := s.repo.ConsumeRecoveryCode(ctx, userID, code); err != nil {
 	// 	return false, err
 	// }
-	return true, nil
+	// return true, nil
 }
 
 // BootstrapAdmin initializes the first admin user.
