@@ -20,7 +20,8 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    const rawBackendUrl = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+    const backendUrl = rawBackendUrl.trim().replace(/^\uFEFF/, '').replace(/\r|\n/g, '').replace(/\/$/, '');
     console.log('Backend URL configured:', backendUrl);
     return [
       { source: '/api/:path*', destination: `${backendUrl}/api/:path*` },
