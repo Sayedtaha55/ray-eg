@@ -124,11 +124,11 @@ export function Footer() {
                 </h3>
                 <nav className="flex flex-col gap-4 items-end">
                   {[
-                    { label: ar ? 'سجل كتاجر' : 'Register as Merchant', href: `${siteConfig.dashboardUrl}/#/signup` },
-                    { label: ar ? 'بناء موقعك' : 'Website Builder', href: '/builder' },
-                    { label: ar ? 'نظام الـ POS' : 'POS System', href: '/pos' },
+                    { label: ar ? 'سجل كتاجر' : 'Register as Merchant', href: `${siteConfig.businessUrl}/signup` },
+                    { label: ar ? 'بناء موقعك' : 'Website Builder', href: `${siteConfig.businessUrl}/builder` },
+                    { label: ar ? 'نظام الـ POS' : 'POS System', href: `${siteConfig.dashboardUrl}/login` },
                     { label: ar ? 'كن مندوب توصيل' : 'Be a Courier', href: '/courier' },
-                    { label: ar ? 'حلول الشركات' : 'Enterprise Solutions', href: '/business' }
+                    { label: ar ? 'حلول الشركات' : 'Enterprise Solutions', href: siteConfig.businessUrl }
                   ].map((link, i) => (
                     <Link 
                       key={i} 

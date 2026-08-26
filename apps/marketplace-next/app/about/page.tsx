@@ -163,7 +163,7 @@ export default function AboutPage() {
               ابدأ رحلتك معنا اليوم واكتشف كيف يمكن لـ من مكانك أن يغير قواعد اللعبة لعملك.
            </p>
            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href={`${siteConfig.dashboardUrl}/#/signup`} className="w-full sm:w-auto px-10 py-5 bg-brand-gradient rounded-xl font-semibold text-lg hover:shadow-glow-cyan transition-all">
+              <a href={`${siteConfig.businessUrl}/signup`} className="w-full sm:w-auto px-10 py-5 bg-brand-gradient rounded-xl font-semibold text-lg hover:shadow-glow-cyan transition-all">
                  ابدأ الآن مجاناً
               </a>
               <a href="/contact" className="w-full sm:w-auto px-10 py-5 bg-white/5 border border-white/10 rounded-xl font-semibold text-lg hover:bg-white/10 transition-all">

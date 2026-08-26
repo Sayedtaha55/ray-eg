@@ -315,20 +315,20 @@ export default async function HomePage() {
             انضم لآلاف التجار الذين وثقوا في من مكانك لتوسيع أعمالهم. نوفر لك أدوات التسويق والبيع والذكاء الاصطناعي في لوحة تحكم واحدة.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link
-              href={`${siteConfig.dashboardUrl}/#/signup`}
+            <a
+              href={`${siteConfig.businessUrl}/signup`}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 rounded-xl bg-brand-gradient text-white font-semibold text-lg hover:shadow-glow-cyan transition-all hover:scale-105 active:scale-95"
             >
               <Store className="w-6 h-6" />
               سجل نشاطك الآن
-            </Link>
-            <Link
-              href="/business"
+            </a>
+            <a
+              href={siteConfig.businessUrl}
               className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-10 py-5 rounded-xl bg-white/5 border border-white/10 text-white font-semibold text-lg hover:bg-white/10 transition-all"
             >
               <Zap className="w-5 h-5 text-brand-cyan" />
               اكتشف حلول الأعمال
-            </Link>
+            </a>
           </div>
         </div>
       </section>

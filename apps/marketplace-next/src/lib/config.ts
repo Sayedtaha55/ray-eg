@@ -10,9 +10,10 @@ export const siteConfig = {
   defaultLocale: 'ar',
   themeColor: '#1A1A1A',
   keywords: ['تسويق', 'متاجر', 'منتجات', 'عروض', 'من مكانك', 'MNMKNK', 'مصر', 'تجارة الكترونية'],
+  businessUrl:
+    process.env.NEXT_PUBLIC_BUSINESS_URL || 'https://business-blond-psi.vercel.app',
   dashboardUrl:
-    process.env.NEXT_PUBLIC_DASHBOARD_URL ||
-    (process.env.NODE_ENV === 'production' ? 'https://dashboard.mnmknk.com' : 'https://localhost:3010'),
+    process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://dashboard-web-three-kappa.vercel.app',
 };
 
 export const navLinks = [

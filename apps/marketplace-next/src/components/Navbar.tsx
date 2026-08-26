@@ -173,7 +173,7 @@ export function Navbar() {
               </Link>
             )}
             <a
-              href={`${siteConfig.dashboardUrl}/#/business/dashboard`}
+              href={siteConfig.businessUrl}
               className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-gradient text-white font-semibold text-xs hover:shadow-glow-cyan transition-all"
             >
               <Store className="w-4 h-4" />
@@ -246,7 +246,7 @@ export function Navbar() {
                     {lang === 'ar' ? 'تسجيل الدخول' : 'Login'}
                   </Link>
                 )}
-                <a href={`${siteConfig.dashboardUrl}/#/business/dashboard`} className="flex items-center gap-3 p-4 rounded-lg bg-brand-gradient text-white font-semibold">
+                <a href={siteConfig.businessUrl} className="flex items-center gap-3 p-4 rounded-lg bg-brand-gradient text-white font-semibold">
                   <Store className="w-5 h-5" />
                   {lang === 'ar' ? 'للأعمال' : 'Business'}
                 </a>

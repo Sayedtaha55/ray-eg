@@ -169,7 +169,7 @@ export default function BlogPage() {
                لا تكتفِ بالقراءة فقط، حول المعرفة إلى واقع وابدأ مشروعك الخاص مع "من مكانك".
             </p>
             <div className="flex justify-center">
-               <a href={`${siteConfig.dashboardUrl}/#/signup`} className="px-12 py-5 bg-brand-gradient text-white rounded-2xl font-black text-lg hover:shadow-glow-cyan transition-all">
+               <a href={`${siteConfig.businessUrl}/signup`} className="px-12 py-5 bg-brand-gradient text-white rounded-2xl font-black text-lg hover:shadow-glow-cyan transition-all">
                   ابدأ متجرك الآن
                </a>
             </div>
