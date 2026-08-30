@@ -6,6 +6,7 @@ import {
   TrendingUp, Package,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
+import { fetchAdminOrders } from '@/lib/api/orders';
 import { useToast } from '@/components/settings/ToastProvider';
 
 const asCleanText = (v: any) => {
@@ -122,8 +123,8 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const data = await apiRequest('/orders');
-        setOrders(Array.isArray(data) ? data : []);
+        const { orders } = await fetchAdminOrders({ limit: 200 });
+        setOrders(Array.isArray(orders) ? orders : []);
       } catch { setOrders([]); }
       finally { setLoading(false); }
     };

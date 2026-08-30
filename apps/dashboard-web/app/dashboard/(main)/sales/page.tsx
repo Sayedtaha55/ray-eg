@@ -11,6 +11,7 @@ import {
   ChefHat, PackageCheck, TrendingUp, Repeat, Ban,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
+import { fetchMyOrders } from '@/lib/api/orders';
 import {
   formatOrderItemsSummary,
   getDeliveryAddress,
@@ -286,9 +287,8 @@ export default function SalesPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await apiRequest('/orders/me');
-      const list = Array.isArray(data) ? data : (data?.orders || data?.data || []);
-      setOrders(Array.isArray(list) ? list : []);
+      const { orders } = await fetchMyOrders({ limit: 200 });
+      setOrders(Array.isArray(orders) ? orders : []);
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل الطلبات');
     } finally {
