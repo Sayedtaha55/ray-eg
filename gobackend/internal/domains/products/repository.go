@@ -33,46 +33,176 @@ func (r *Repository) FindByIDWithInactive(ctx context.Context, id string) (*Prod
 	return r.FindByID(ctx, id)
 }
 
-// ListByShop returns active products for a shop, excluding image-map and duplicate categories.
-func (r *Repository) ListByShop(ctx context.Context, shopID string, limit, offset int) ([]Product, error) {
-	filters := "p.shop_id = $1 AND p.is_active = true AND " + excludeHiddenCategoriesSQL
-	query := selectProduct + " WHERE " + filters + " ORDER BY p.created_at DESC LIMIT $2 OFFSET $3"
-	rows, err := r.pool.Query(ctx, query, shopID, limit, offset)
-	if err != nil {
-		return nil, errors.Internal("list_products_failed", err)
-	}
-	defer rows.Close()
-	return scanProducts(rows)
+
+// listOptions combines shop-scoped + filter + paging params.
+type listOptions struct {
+	ShopID    string
+	Active    bool
+	Offset    int
+	Limit     int
+	Filter    ProductFilter
+	CountOnly bool
 }
 
-// ListAllActive returns all active products, excluding hidden categories.
-func (r *Repository) ListAllActive(ctx context.Context, limit, offset int) ([]Product, error) {
-	filters := "p.is_active = true AND " + excludeHiddenCategoriesSQL
-	query := selectProduct + " WHERE " + filters + " ORDER BY p.created_at DESC LIMIT $1 OFFSET $2"
-	rows, err := r.pool.Query(ctx, query, limit, offset)
-	if err != nil {
-		return nil, errors.Internal("list_products_failed", err)
-	}
-	defer rows.Close()
-	return scanProducts(rows)
-}
+// buildWhere constructs the WHERE clause and args for product listing,
+// shared between List and Count to guarantee consistent filtering.
+func buildWhere(opts listOptions) (string, []any) {
+	var clauses []string
+	var args []any
+	i := 1
 
-// ListByShopForManage returns products for a shop including inactive ones.
-func (r *Repository) ListByShopForManage(ctx context.Context, shopID string, limit, offset int, includeImageMap bool) ([]Product, error) {
-	filters := "p.shop_id = $1"
-	args := []any{shopID, limit, offset}
-	if !includeImageMap {
-		filters += " AND " + excludeHiddenCategoriesSQL
+	if opts.ShopID != "" {
+		clauses = append(clauses, fmt.Sprintf("p.shop_id = $%d", i))
+		args = append(args, opts.ShopID)
+		i++
+	}
+	if opts.Active {
+		clauses = append(clauses, fmt.Sprintf("p.is_active = $%d", i))
+		args = append(args, true)
+		i++
+	}
+
+	f := opts.Filter
+	if f.IncludeImageMap {
+		if f.Category != "" {
+			clauses = append(clauses, fmt.Sprintf("p.category = $%d", i))
+			args = append(args, f.Category)
+			i++
+		} else {
+			clauses = append(clauses, "p.category != '__DUPLICATE__AUTO__'")
+		}
 	} else {
-		filters += " AND p.category != '__DUPLICATE__AUTO__'"
+		clauses = append(clauses, "("+excludeHiddenCategoriesSQL+")")
+		if f.Category != "" {
+			clauses = append(clauses, fmt.Sprintf("p.category = $%d", i))
+			args = append(args, f.Category)
+			i++
+		}
 	}
-	query := selectProduct + " WHERE " + filters + " ORDER BY p.created_at DESC LIMIT $2 OFFSET $3"
+
+	if f.MinPrice > 0 {
+		clauses = append(clauses, fmt.Sprintf("p.price >= $%d", i))
+		args = append(args, f.MinPrice)
+		i++
+	}
+	if f.MaxPrice > 0 {
+		clauses = append(clauses, fmt.Sprintf("p.price <= $%d", i))
+		args = append(args, f.MaxPrice)
+		i++
+	}
+
+	if strings.TrimSpace(f.Search) != "" {
+		clauses = append(clauses, fmt.Sprintf("(p.name ILIKE $%d OR p.description ILIKE $%d)", i, i+1))
+		pat := "%" + strings.TrimSpace(f.Search) + "%"
+		args = append(args, pat, pat)
+		i += 2
+	}
+
+	if len(clauses) == 0 {
+		return "", args
+	}
+	return strings.Join(clauses, " AND "), args
+}
+
+func orderBySQL(sort string) string {
+	switch sort {
+	case "price_asc":
+		return "p.price ASC NULLS LAST"
+	case "price_desc":
+		return "p.price DESC NULLS LAST"
+	case "name":
+		return "p.name ASC"
+	case "oldest":
+		return "p.created_at ASC"
+	default:
+		return "p.created_at DESC"
+	}
+}
+
+// ListByShop returns active products for a shop, honoring search/filter/sort.
+func (r *Repository) ListByShop(ctx context.Context, shopID string, limit, offset int, f ProductFilter) ([]Product, error) {
+	opts := listOptions{ShopID: shopID, Active: true, Limit: limit, Offset: offset, Filter: f}
+	where, args := buildWhere(opts)
+	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, limit, offset)
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Internal("list_products_failed", err)
+	}
+		defer rows.Close()
+	return scanProducts(rows)
+}
+
+// CountByShop returns the total matching count for ListByShop.
+func (r *Repository) CountByShop(ctx context.Context, shopID string, f ProductFilter) (int64, error) {
+	opts := listOptions{ShopID: shopID, Active: true, Filter: f}
+	where, args := buildWhere(opts)
+	query := "SELECT COUNT(*) FROM products p WHERE " + where
+	var total int64
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, errors.Internal("count_products_failed", err)
+	}
+	return total, nil
+}
+
+// ListAllActive returns all active products across shops, honoring search/filter/sort.
+func (r *Repository) ListAllActive(ctx context.Context, limit, offset int, f ProductFilter) ([]Product, error) {
+	opts := listOptions{Active: true, Limit: limit, Offset: offset, Filter: f}
+	where, args := buildWhere(opts)
+	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, limit, offset)
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Internal("list_products_failed", err)
+	}
+	defer rows.Close()
+	return scanProducts(rows)
+}
+
+// CountAllActive returns the total matching count for ListAllActive.
+func (r *Repository) CountAllActive(ctx context.Context, f ProductFilter) (int64, error) {
+	opts := listOptions{Active: true, Filter: f}
+	where, args := buildWhere(opts)
+	query := "SELECT COUNT(*) FROM products p WHERE " + where
+	var total int64
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, errors.Internal("count_products_failed", err)
+	}
+	return total, nil
+}
+
+// ListByShopForManage returns products for a shop including inactive ones, honoring filter/sort.
+func (r *Repository) ListByShopForManage(ctx context.Context, shopID string, limit, offset int, includeImageMap bool, f ProductFilter) ([]Product, error) {
+	f.IncludeImageMap = includeImageMap
+	opts := listOptions{ShopID: shopID, Limit: limit, Offset: offset, Filter: f}
+	where, args := buildWhere(opts)
+	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+	args = append(args, limit, offset)
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Internal("list_products_manage_failed", err)
 	}
 	defer rows.Close()
 	return scanProducts(rows)
+}
+
+// CountByShopForManage returns the total matching count for ListByShopForManage.
+func (r *Repository) CountByShopForManage(ctx context.Context, shopID string, includeImageMap bool, f ProductFilter) (int64, error) {
+	f.IncludeImageMap = includeImageMap
+	opts := listOptions{ShopID: shopID, Filter: f}
+	where, args := buildWhere(opts)
+	query := "SELECT COUNT(*) FROM products p WHERE " + where
+	var total int64
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, errors.Internal("count_products_failed", err)
+	}
+	return total, nil
 }
 
 // Create inserts a product with an optional furniture meta row.

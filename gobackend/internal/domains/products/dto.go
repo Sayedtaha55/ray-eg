@@ -82,18 +82,30 @@ type UpdateProductRequest struct {
 	FurnitureMeta *FurnitureMeta `json:"furnitureMeta,omitempty"`
 }
 
+// ProductFilter carries optional search/filter/sort parameters.
+type ProductFilter struct {
+	Search          string  `query:"search"`
+	Category        string  `query:"category"`
+	MinPrice        float64 `query:"minPrice"`
+	MaxPrice        float64 `query:"maxPrice"`
+	Sort            string  `query:"sort"` // newest | price_asc | price_desc | name | oldest
+	IncludeImageMap bool   `query:"includeImageMap"`
+}
+
 // ProductListRequest is the query for listing products.
 type ProductListRequest struct {
-	ShopID string `query:"shopId"`
-	Page   int    `query:"page"`
-	Limit  int    `query:"limit"`
+	ShopID  string `query:"shopId"`
+	Page    int    `query:"page"`
+	Limit   int    `query:"limit"`
+	Filter  ProductFilter
 }
 
 // ManageProductListRequest is the query for management listings.
 type ManageProductListRequest struct {
-	Page            int  `query:"page"`
-	Limit           int  `query:"limit"`
-	IncludeImageMap bool `query:"includeImageMap"`
+	Page            int    `query:"page"`
+	Limit           int    `query:"limit"`
+	IncludeImageMap bool   `query:"includeImageMap"`
+	Filter          ProductFilter
 }
 
 // FurnitureMetaInput mirrors the accepted JSON payload.

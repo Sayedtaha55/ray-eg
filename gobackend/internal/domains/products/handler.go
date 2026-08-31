@@ -7,6 +7,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/pagination"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/validate"
 	"github.com/gofiber/fiber/v2"
 )
@@ -39,16 +40,17 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 func (h *Handler) List(c *fiber.Ctx) error {
 	req := parseProductListRequest(c)
 	var products []Product
+	var meta pagination.Meta
 	var err error
 	if req.ShopID != "" {
-		products, err = h.service.ListByShop(c.UserContext(), req)
+		products, meta, err = h.service.ListByShop(c.UserContext(), req)
 	} else {
-		products, err = h.service.ListAllActive(c.UserContext(), req)
+		products, meta, err = h.service.ListAllActive(c.UserContext(), req)
 	}
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": products})
+	return c.JSON(fiber.Map{"success": true, "data": products, "meta": meta})
 }
 
 func (h *Handler) GetByID(c *fiber.Ctx) error {
@@ -70,11 +72,11 @@ func (h *Handler) ListManage(c *fiber.Ctx) error {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
 	req := parseManageListRequest(c)
-	products, err := h.service.ListByShopForManage(c.UserContext(), shopID, user.ShopID, user.Role, req)
+	products, meta, err := h.service.ListByShopForManage(c.UserContext(), shopID, user.ShopID, user.Role, req)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": products})
+	return c.JSON(fiber.Map{"success": true, "data": products, "meta": meta})
 }
 
 func (h *Handler) Create(c *fiber.Ctx) error {
@@ -149,6 +151,7 @@ func (h *Handler) Delete(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{"success": true, "message": "تم حذف المنتج"})
 }
 
+// parseProductListRequest parses the query params for listing products.
 func parseProductListRequest(c *fiber.Ctx) ProductListRequest {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
@@ -156,6 +159,21 @@ func parseProductListRequest(c *fiber.Ctx) ProductListRequest {
 		ShopID: c.Query("shopId"),
 		Page:   page,
 		Limit:  limit,
+		Filter: parseProductFilter(c),
+	}
+}
+
+// parseProductFilter extracts search/filter/sort from query params.
+func parseProductFilter(c *fiber.Ctx) ProductFilter {
+	minPrice, _ := strconv.ParseFloat(c.Query("minPrice", ""), 64)
+	maxPrice, _ := strconv.ParseFloat(c.Query("maxPrice", ""), 64)
+	return ProductFilter{
+		Search:          c.Query("search"),
+		Category:        c.Query("category"),
+		MinPrice:        minPrice,
+		MaxPrice:        maxPrice,
+		Sort:            c.Query("sort"),
+		IncludeImageMap: c.Query("includeImageMap") == "true",
 	}
 }
 
@@ -167,6 +185,7 @@ func parseManageListRequest(c *fiber.Ctx) ManageProductListRequest {
 		Page:            page,
 		Limit:           limit,
 		IncludeImageMap: include == "true",
+		Filter:          parseProductFilter(c),
 	}
 }
 

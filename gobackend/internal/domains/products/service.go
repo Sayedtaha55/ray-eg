@@ -7,6 +7,7 @@ import (
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/compression"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/pagination"
 )
 
 // Service implements the Products domain business logic.
@@ -39,40 +40,59 @@ func (s *Service) GetByID(ctx context.Context, id string) (*Product, error) {
 }
 
 // ListByShop lists active products for a public shop.
-func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Product, error) {
+func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
 	shopID := strings.TrimSpace(req.ShopID)
 	if shopID == "" {
-		return nil, errors.Validation("shopId_required", "shopId مطلوب")
+		return nil, pagination.Meta{}, errors.Validation("shopId_required", "shopId مطلوب")
 	}
 	limit, offset := normalizePaging(req.Page, req.Limit)
-	products, err := s.repo.ListByShop(ctx, shopID, limit, offset)
+	req.Filter.Sort = normalizeSort(req.Filter.Sort)
+	total, err := s.repo.CountByShop(ctx, shopID, req.Filter)
 	if err != nil {
-		return nil, err
+		return nil, pagination.Meta{}, err
 	}
-	return filterHidden(products), nil
+	products, err := s.repo.ListByShop(ctx, shopID, limit, offset, req.Filter)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return products, pagination.NewMeta(total, req.Page, limit), nil
 }
 
 // ListAllActive lists all active public products.
-func (s *Service) ListAllActive(ctx context.Context, req ProductListRequest) ([]Product, error) {
+func (s *Service) ListAllActive(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
 	limit, offset := normalizePaging(req.Page, req.Limit)
-	products, err := s.repo.ListAllActive(ctx, limit, offset)
+	req.Filter.Sort = normalizeSort(req.Filter.Sort)
+	total, err := s.repo.CountAllActive(ctx, req.Filter)
 	if err != nil {
-		return nil, err
+		return nil, pagination.Meta{}, err
 	}
-	return filterHidden(products), nil
+	products, err := s.repo.ListAllActive(ctx, limit, offset, req.Filter)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return products, pagination.NewMeta(total, req.Page, limit), nil
 }
 
 // ListByShopForManage lists products for a merchant/admin dashboard.
-func (s *Service) ListByShopForManage(ctx context.Context, shopID string, actorShopID, actorRole string, req ManageProductListRequest) ([]Product, error) {
+func (s *Service) ListByShopForManage(ctx context.Context, shopID string, actorShopID, actorRole string, req ManageProductListRequest) ([]Product, pagination.Meta, error) {
 	shopID = strings.TrimSpace(shopID)
 	if shopID == "" {
-		return nil, errors.Validation("shopId_required", "shopId مطلوب")
+		return nil, pagination.Meta{}, errors.Validation("shopId_required", "shopId مطلوب")
 	}
 	if !isAdmin(actorRole) && actorShopID != shopID {
-		return nil, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
+		return nil, pagination.Meta{}, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
 	limit, offset := normalizePaging(req.Page, req.Limit)
-	return s.repo.ListByShopForManage(ctx, shopID, limit, offset, req.IncludeImageMap)
+	req.Filter.Sort = normalizeSort(req.Filter.Sort)
+	total, err := s.repo.CountByShopForManage(ctx, shopID, req.IncludeImageMap, req.Filter)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	products, err := s.repo.ListByShopForManage(ctx, shopID, limit, offset, req.IncludeImageMap, req.Filter)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return products, pagination.NewMeta(total, req.Page, limit), nil
 }
 
 // Create creates a product for the authenticated merchant's shop.
@@ -268,6 +288,15 @@ func normalizePaging(page, limit int) (int, int) {
 	return limit, offset
 }
 
+func normalizeSort(sort string) string {
+	switch sort {
+	case "price_asc", "price_desc", "name", "oldest":
+		return sort
+	default:
+		return "newest"
+	}
+}
+
 func isAdmin(role string) bool {
 	return strings.EqualFold(role, "ADMIN")
 }
@@ -285,6 +314,13 @@ func filterHidden(products []Product) []Product {
 		}
 	}
 	return out
+}
+
+func nullStringPtr(s sql.NullString) *string {
+	if !s.Valid || s.String == "" {
+		return nil
+	}
+	return &s.String
 }
 
 func nullIfEmpty(s string) any {
