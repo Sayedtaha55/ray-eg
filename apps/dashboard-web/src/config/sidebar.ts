@@ -198,8 +198,9 @@ export const sidebarSections: SidebarSection[] = [
     titleAr: 'الموقع الإلكتروني',
     moduleId: 'website',
     icon: Globe,
+    mainHref: '/dashboard/website',
     items: [
-      { id: 'my-site', label: 'My Site', labelAr: 'موقعي', icon: Globe, href: '/dashboard/website' },
+      { id: 'website', label: 'Website', labelAr: 'الموقع الإلكتروني', icon: Globe, href: '/dashboard/website' },
     ],
   },
   {

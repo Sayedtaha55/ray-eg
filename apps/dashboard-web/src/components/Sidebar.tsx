@@ -188,6 +188,41 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
           const SectionIcon = section.icon;
           const hasModule = Boolean(section.moduleId);
 
+          // If a module section only has 1 item (e.g. Website -> /dashboard/website), show it directly as a link!
+          if (!isSectionView && hasModule && section.items.length === 1) {
+            const singleItem = section.items[0];
+            const ItemIcon = SectionIcon || singleItem.icon;
+            const active = isActive(singleItem.href);
+            return (
+              <div key={section.id} className="px-3 mb-1">
+                <Link
+                  href={singleItem.href}
+                  onClick={() => { if (onClose) onClose(); }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
+                    active
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  {ItemIcon && (
+                    <ItemIcon
+                      size={18}
+                      className={`shrink-0 ${active ? 'text-[#00E5FF]' : 'text-slate-400'}`}
+                    />
+                  )}
+                  {!collapsed && (
+                    <span className="text-xs font-bold flex-1 text-right">
+                      {section.titleAr}
+                    </span>
+                  )}
+                  {active && !collapsed && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-[#00E5FF]" />
+                  )}
+                </Link>
+              </div>
+            );
+          }
+
           if (!isSectionView && hasModule) {
             // Show section title only — click to expand (and navigate if mainHref is set)
             const handleSectionClick = () => {
