@@ -1,1230 +1,531 @@
-# 4) دليل الواجهة الخلفية الشامل (NestJS Backend)
+# 4) دليل الواجهة الخلفية الشامل (Go + Fiber)
+
+> الباكند Go 1.25 + Fiber v2.52.5، والموديول `github.com/Sayedtaha55/ray-eg/gobackend`. لا NestJS ولا Prisma ولا SQLite — أي ذكر قديم لـ `main.ts` / `app.module.ts` / `@nestjs/*` / ValidationPipe / Guards / `schema.prisma` محذوف.
 
 ## 4.1 نقطة الدخول الرئيسية (Main Entry Point)
 
-### 4.1.1 ملف `backend/main.ts`
-**المسؤوليات الأساسية:**
-```typescript
-// تهيئة وتشغيل خادم NestJS
-async function bootstrap() {
-  // 1. تحميل إعدادات البيئة
-  const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn', 'debug', 'log', 'verbose'],
-  });
+### 4.1.1 ملف `gobackend/cmd/api/main.go`
+**المسؤوليات الأساسية (بالترتيب):**
+```go
+// 1. تحميل الإعداد من البيئة عبر internal/config (ملف .env مدعوم محليًا)
+cfg, err := config.Load()
 
-  // 2. إعداد CORS ديناميكي
-  app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:5174'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  });
+// 2. بناء التطبيق عبر app.New (يجمّع الـ 29 دومين + الميدلوير + المراقبة)
+app := app.New(cfg)
 
-  // 3. تفعيل Security Headers
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https:"],
-      },
-    },
-  }));
-
-  // 4. تفعيل Trust Proxy للـ load balancers
-  app.use(helmet());
-  app.set('trust proxy', 1);
-
-  // 5. إعداد Rate Limiting
-  app.use(
-    rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 دقيقة
-      max: 100, // حد 100 طلب لكل IP
-      message: 'Too many requests from this IP',
-    }),
-  );
-
-  // 6. تفعيل ValidationPipe عالمي
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
-
-  // 7. إعداد Global Exception Filter
-  app.useGlobalFilters(new AllExceptionsFilter());
-
-  // 8. تفعيل Static File Serving
-  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
-
-  // 9. بدء الخادم
-  const port = process.env.PORT || 4000;
-  await app.listen(port);
-  
-  // 10. Graceful Shutdown
-  process.on('SIGTERM', () => app.close());
-  process.on('SIGINT', () => app.close());
-}
+// 3. الاستماع على HOST:PORT
+log.Fatal(app.Listen(cfg.Addr()))
 ```
 
-### 4.1.2 متغيرات البيئة الهامة
+- الدخول الوحيد: `gobackend/cmd/api/main.go`.
+- يحمّل `internal/config` ثم `app.New` ثم `Listen` — لا يوجد `NestFactory.create` ولا `bootstrap()` ولا `ValidationPipe` عام.
+- التشغيل:
+```bash
+cd gobackend
+go run ./cmd/api
+# أو من الجذر:
+npm run go:backend:dev
+```
+
+### 4.1.2 متغيرات البيئة الهامة (عبر `internal/config/config.go`)
 ```bash
 # إعدادات الخادم الأساسية
 PORT=4000
-NODE_ENV=development
-BACKEND_PORT=4000
+HOST=0.0.0.0
+APP_ENV=development
 
-# الأمان
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
-REFRESH_TOKEN_SECRET="your-refresh-secret"
+# قاعدة البيانات (PostgreSQL فقط)
+DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
+DB_MIGRATE_ON_BOOT=true
 
-# قاعدة البيانات
-DATABASE_URL="postgresql://user:pass@localhost:5432/ray_eg"
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=6379
+
+# الأمان (JWT HS256 — iss=ray-backend-go)
+JWT_SECRET="your-32-plus-character-super-secret-jwt-key-here"
 
 # CORS و Frontend
 CORS_ORIGIN="http://localhost:5174,http://localhost:3000"
-FRONTEND_URL="http://localhost:5174"
 FRONTEND_APP_URL="http://localhost:5174"
 
-# التشغيل المرن
-MINIMAL_BOOT=false
-BOOT_MODULES="auth,shop,product,order,payment,courier"
-
-# التخزين
-MEDIA_STORAGE_MODE="local"
-UPLOAD_DIR="./uploads"
-MAX_FILE_SIZE="10485760" # 10MB
-
-# Redis (اختياري)
-REDIS_URL="redis://localhost:6379"
-
-# الخدمات الخارجية
-GEMINI_API_KEY="your-gemini-api-key"
-GOOGLE_CLIENT_ID="your-google-oauth-client-id"
-GOOGLE_CLIENT_SECRET="your-google-oauth-secret"
-
-# البريد الإلكتروني
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
+# مسارات التطوير فقط
+ALLOW_DEV_MERCHANT_BOOTSTRAP=true
+ALLOW_DEV_COURIER_BOOTSTRAP=true
+ALLOW_DEV_CUSTOMER_BOOTSTRAP=true
 ```
 
-## 4.2 تركيب التطبيق (Application Structure)
+- `JWT_SECRET` يجب أن يكون 32+ حرف.
+- `ALLOW_DEV_*_BOOTSTRAP` للتطوير فقط (تُفعِّل `dev-*-login`).
+- الفرونت يتصل بالباك عبر rewrite `/api/:path*` → `http://localhost:4000` (انظر `apps/dashboard-web/next.config.mjs`).
 
-### 4.2.1 ملف `backend/app.module.ts`
-**نظام الموديولات الديناميكي:**
-```typescript
-@Module({
-  imports: [
-    // Core Modules (دائماً مشغلة)
-    ConfigModule.forRoot({
-      isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
-    }),
-    PrismaModule,
-    HealthModule,
+## 4.2 الإعداد (Config Package)
 
-    // Dynamic Modules (حسب البيئة)
-    ...(process.env.MINIMAL_BOOT === 'true' 
-      ? [AuthModule] 
-      : getDynamicModules()),
+### 4.2.1 ملف `gobackend/internal/config/config.go`
+**المسؤوليات:**
+```go
+// Config — الهيكل المركزي للإعداد
+type Config struct {
+    Port   string // PORT=4000
+    Host   string // HOST=0.0.0.0
+    AppEnv string // APP_ENV=development
 
-    // Shared Modules
-    CommonModule,
-    UtilsModule,
-  ],
-  controllers: [AppController],
-  providers: [AppService],
-})
-export class AppModule {}
+    DatabaseURL     string // DATABASE_URL (postgres فقط)
+    MigrateOnBoot   bool   // DB_MIGRATE_ON_BOOT=true
 
-function getDynamicModules() {
-  const modules = process.env.BOOT_MODULES?.split(',') || [
-    'auth', 'shop', 'product', 'order', 'payment', 'courier', 'analytics'
-  ];
-  
-  const moduleMap = {
-    auth: AuthModule,
-    shop: ShopModule,
-    product: ProductModule,
-    order: OrderModule,
-    payment: PaymentModule,
-    courier: CourierModule,
-    analytics: AnalyticsModule,
-    notification: NotificationModule,
-    feedback: FeedbackModule,
-    media: MediaModule,
-  };
-  
-  return modules
-    .filter(module => moduleMap[module.trim()])
-    .map(module => moduleMap[module.trim()]);
+    RedisHost string // REDIS_HOST
+    RedisPort string // REDIS_PORT
+
+    JWTSecret      string // JWT_SECRET (32+ حرف)
+    FrontendAppURL string // FRONTEND_APP_URL
+    CORSOrigin     string // CORS_ORIGIN (قائمة مفصولة بفواصل)
+
+    AllowDevMerchantBootstrap bool // ALLOW_DEV_*_BOOTSTRAP
+    AllowDevCourierBootstrap  bool
+    AllowDevCustomerBootstrap bool
+}
+
+// Load يقرأ البيئة + ملف .env (محليًا) ويفشل مبكرًا عند القيم الناقصة
+func Load() (*Config, error) { /* ... */ }
+```
+
+- لا يوجد `ConfigModule.forRoot` — الإعداد هيكل Go عادي يُمرَّر لـ `app.New`.
+- أي مفتاح ناقص (مثل `JWT_SECRET` قصير أو `DATABASE_URL` فارغ) يسبب فشلًا صريحًا عند الإقلاع.
+
+### 4.2.2 البناء والفحص
+```bash
+cd gobackend
+make build   # بناء الثنائية
+make test    # الاختبارات
+make vet     # الفحص الاستاتيكي
+```
+
+## 4.3 تركيب التطبيق (Application Wiring)
+
+### 4.3.1 ملف `gobackend/internal/app/app.go`
+**يجمع 29 دومين تحت `/api/v1`:**
+```
+analytics, apps, auth, bookings, cartevent, chat, courier, customers,
+feedback, gallery, hr, invoice, mapdomain, measurement, media,
+notification, offers, orders, portal, products, reservation, reviews,
+search, seasonaloffers, shopimagemap, shops, support, users
+```
+
+**بالإضافة إلى المراقبة:**
+```
+GET /monitoring/live
+GET /monitoring/ready
+GET /monitoring/health
+GET /metrics
+GET /api/v1/status
+```
+
+**نمط التسجيل (مثال):**
+```go
+// app.go — نمط عام
+func New(cfg *config.Config) *fiber.App {
+    app := fiber.New(fiber.Config{
+        ErrorHandler: unifiedErrorHandler, // صيغة {success:false, error, message, fields?}
+    })
+
+    applyMiddleware(app, cfg)          // بالترتيب الموثق في 4.4
+    v1 := app.Group("/api/v1")         // كل الدومينات تحتها
+
+    auth.Register(v1, deps)            // كل دومين يسجل مساراته
+    shops.Register(v1, deps)
+    products.Register(v1, deps)
+    // ... بقية الـ 29 دومين
+
+    app.Get("/monitoring/live", liveHandler)
+    app.Get("/monitoring/ready", readyHandler)
+    app.Get("/monitoring/health", healthHandler)
+    app.Get("/metrics", metricsHandler)
+    v1.Get("/status", statusHandler)
+
+    return app
 }
 ```
 
-### 4.2.2 هيكل الموديولات (Module Structure)
-**كل موديول يحتوي على:**
+### 4.3.2 هيكل الدومين (Domain Structure)
+**كل دومين حزمة Go مستقلة:**
 ```
-modules/
+internal/
+├── app/
+│   └── app.go              # التجميع + الميدلوير + المراقبة
+├── config/
+│   └── config.go           # الإعداد من البيئة
 ├── auth/
-│   ├── auth.module.ts          # Module definition
-│   ├── auth.controller.ts     # HTTP endpoints
-│   ├── auth.service.ts        # Business logic
-│   ├── dto/                   # Data Transfer Objects
-│   │   ├── signup.dto.ts
-│   │   ├── login.dto.ts
-│   │   └── reset-password.dto.ts
-│   ├── guards/                # Route guards
-│   │   ├── jwt-auth.guard.ts
-│   │   └── roles.guard.ts
-│   ├── strategies/            # Authentication strategies
-│   │   ├── jwt.strategy.ts
-│   │   └── google.strategy.ts
-│   ├── interfaces/            # TypeScript interfaces
-│   │   └── auth.interface.ts
-│   └── entities/              # Database entities
-│       └── user.entity.ts
+│   ├── handler.go          # مسارات POST signup|login|logout|refresh|me + dev-*-login
+│   ├── service.go          # منطق JWT HS256 (iss=ray-backend-go)
+│   └── repository.go       # استعلامات pgx/v5 اليدوية
+├── shops/
+│   ├── handler.go          # GET /api/v1/shops/me (يتطلب MERCHANT أو ADMIN)
+│   ├── service.go
+│   └── repository.go
+├── products/
+├── orders/
+└── ... (بقية الدومينات بنفس النمط)
 ```
 
-## 4.3 الموديولات الأساسية (Core Modules)
+- لا Controllers/Providers/Decorators — كل دومين: `handler + service + repository`.
+- لا DTO classes ولا class-validator — التحقق يدوي/بمكتبات Go خفيفة داخل الـ handler/service.
 
-### 4.3.1 موديول المصادقة (Auth Module)
+## 4.4 الميدلوير (Middleware — بالترتيب)
 
-#### الميزات الرئيسية:
-```typescript
-// Authentication Features
-- Email/Password Authentication
-- Google OAuth 2.0 Integration
-- JWT Token Management
-- Refresh Token Rotation
-- Password Reset Flow
-- Account Verification
-- Multi-factor Authentication (MFA)
-- Session Management
-- Role-based Authorization
-- Admin Bootstrap System
+### 4.4.1 الترتيب الرسمي
+```
+1.  Recovery
+2.  RequestID
+3.  Logger
+4.  compress
+5.  SecurityHeaders
+6.  CORS
+7.  SlowDown
+8.  CircuitBreaker
+9.  RateLimiter
+10. AdminIPAllowlist
+11. Idempotency
+12. CSRF
+13. Auth rate limit
+14. Metrics
 ```
 
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('auth')
-export class AuthController {
-  // Registration
-  @Post('signup')
-  async signup(@Body() signupDto: SignupDto) {}
+- الترتيب ملزم: أي تغيير يعيد تقييم الأمان (CORS قبل الـ limiter، والمصادقة الخاصة قبل المقاييس).
+- `CORS` يُبنى من `CORS_ORIGIN` (قائمة مفصولة بفواصل).
+- `Auth rate limit` حدود أشد على مسارات `auth` الحساسة (login/signup/refresh).
 
-  @Post('courier-signup')
-  async courierSignup(@Body() courierSignupDto: CourierSignupDto) {}
+### 4.4.2 مثال تطبيقي (نمط)
+```go
+// الترتيب مهم — لا تعيد ترتيبه دون مراجعة أمنية
+app.Use(recover.New())        // 1. Recovery
+app.Use(requestid.New())      // 2. RequestID
+app.Use(logger.New())         // 3. Logger
+app.Use(compress.New())       // 4. compress
+app.Use(securityHeaders())    // 5. SecurityHeaders
+app.Use(cors.New(cors.Config{ // 6. CORS
+    AllowOrigins: cfg.CORSOrigin,
+}))
+app.Use(slowDown())           // 7. SlowDown
+app.Use(circuitBreaker())     // 8. CircuitBreaker
+app.Use(rateLimiter())        // 9. RateLimiter
+app.Use(adminIPAllowlist())   // 10. AdminIPAllowlist
+app.Use(idempotency())        // 11. Idempotency
+app.Use(csrf())               // 12. CSRF
+app.Use(authRateLimit())      // 13. Auth rate limit
+app.Use(metricsMiddleware())  // 14. Metrics
+```
 
-  // Authentication
-  @Post('login')
-  async login(@Body() loginDto: LoginDto) {}
+## 4.5 صيغة الأخطاء الموحدة (Error Format)
 
-  @Post('logout')
-  async logout(@Req() req: Request) {}
+### 4.5.1 الصيغة الوحيدة
+```json
+// خطأ
+{
+  "success": false,
+  "error": "insufficient_role",
+  "message": "Merchant or admin role required",
+  "fields": { "required": ["MERCHANT", "ADMIN"] }
+}
 
-  // OAuth
-  @Get('google')
-  @UseGuards(AuthGuard('google'))
-  async googleAuth() {}
-
-  @Get('google/callback')
-  @UseGuards(AuthGuard('google'))
-  async googleCallback(@Req() req: Request) {}
-
-  // Admin Management
-  @Post('bootstrap-admin')
-  async bootstrapAdmin(@Body() bootstrapDto: BootstrapAdminDto) {}
-
-  // Password Management
-  @Post('password/forgot')
-  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {}
-
-  @Post('password/reset')
-  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {}
-
-  @Post('password/change')
-  @UseGuards(JwtAuthGuard)
-  async changePassword(@Req() req: Request, @Body() changePasswordDto: ChangePasswordDto) {}
-
-  // Session Management
-  @Get('session')
-  @UseGuards(JwtAuthGuard)
-  async getSession(@Req() req: Request) {}
-
-  @Post('deactivate')
-  @UseGuards(JwtAuthGuard)
-  async deactivateAccount(@Req() req: Request) {}
+// نجاح
+{
+  "success": true,
+  "data": {}
 }
 ```
 
-#### الـ DTOs الرئيسية:
-```typescript
-// signup.dto.ts
-export class SignupDto {
-  @IsEmail()
-  email: string;
-
-  @IsString()
-  @MinLength(8)
-  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, {
-    message: 'Password must contain uppercase, lowercase, number and special character'
-  })
-  password: string;
-
-  @IsString()
-  @MinLength(2)
-  fullName: string;
-
-  @IsString()
-  @MinLength(2)
-  @MaxLength(20)
-  phone: string;
-
-  @IsEnum(['CUSTOMER', 'MERCHANT', 'COURIER'])
-  role: UserRole;
-
-  // Legacy fields for compatibility
-  @IsOptional()
-  @IsString()
-  storeType?: string;
-
-  @IsOptional()
-  @IsString()
-  storePhone?: string;
-
-  @IsOptional()
-  @IsString()
-  workingHours?: string;
-
-  @IsOptional()
-  @IsString()
-  address?: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-}
-```
-
-### 4.3.2 موديول المتاجر (Shop Module)
-
-#### الميزات الرئيسية:
-```typescript
-// Shop Management Features
-- Shop Creation & Customization
-- Shop Profile Management
-- Category Management
-- Shop Analytics
-- Shop Settings
-- Module Upgrade Requests
-- Shop Design Customization
-- Shop Image Maps
-- Shop Visits Tracking
-- Shop Following System
-```
-
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('shops')
-export class ShopController {
-  // Shop Management
-  @Post('/')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT', 'ADMIN')
-  async createShop(@Req() req: Request, @Body() createShopDto: CreateShopDto) {}
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async getMyShop(@Req() req: Request) {}
-
-  @Patch('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async updateMyShop(@Req() req: Request, @Body() updateShopDto: UpdateShopDto) {}
-
-  // Shop Media
-  @Post('me/banner')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async uploadShopBanner(@Req() req: Request, @UploadedFile() file: Express.Multer.File) {}
-
-  // Module Upgrades
-  @Post('me/module-upgrade-requests')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async requestModuleUpgrade(@Req() req: Request, @Body() requestDto: ModuleUpgradeRequestDto) {}
-
-  // Public Shop Access
-  @Get('/')
-  async getPublicShops(@Query() query: GetShopsDto) {}
-
-  @Get(':slug')
-  async getShopBySlug(@Param('slug') slug: string) {}
-
-  @Get(':id')
-  async getShopById(@Param('id') id: string) {}
-
-  // Shop Analytics
-  @Get(':id/analytics')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT', 'ADMIN')
-  async getShopAnalytics(@Param('id') id: string) {}
-
-  // Shop Interactions
-  @Post(':id/visit')
-  async visitShop(@Param('id') id: string, @Req() req: Request) {}
-
-  @Post(':id/follow')
-  @UseGuards(JwtAuthGuard)
-  async followShop(@Param('id') id: string, @Req() req: Request) {}
-
-  // Admin Management
-  @Get('admin/list')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async getAdminShops(@Query() query: AdminGetShopsDto) {}
-
-  @Patch('admin/:id/status')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async updateShopStatus(@Param('id') id: string, @Body() updateStatusDto: UpdateShopStatusDto) {}
-}
-```
-
-### 4.3.3 موديول المنتجات (Product Module)
-
-#### الميزات الرئيسية:
-```typescript
-// Product Management Features
-- Product Creation & Management
-- Inventory Tracking
-- Product Variants
-- Product Categories & Tags
-- Product Images & Media
-- Product Search & Filtering
-- Bulk Operations
-- Product Analytics
-- Product Reviews & Ratings
-- Stock Management
-```
-
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('products')
-export class ProductController {
-  // Public Product Access
-  @Get('/')
-  async getProducts(@Query() query: GetProductsDto) {}
-
-  @Get(':id')
-  async getProductById(@Param('id') id: string) {}
-
-  // Product Management
-  @Post('/')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async createProduct(@Req() req: Request, @Body() createProductDto: CreateProductDto) {}
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT', 'ADMIN')
-  async updateProduct(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {}
-
-  @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT', 'ADMIN')
-  async deleteProduct(@Param('id') id: string) {}
-
-  // Inventory Management
-  @Patch(':id/stock')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async updateProductStock(@Param('id') id: string, @Body() updateStockDto: UpdateStockDto) {}
-
-  // Shop Product Management
-  @Get('manage/by-shop/:shopId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async getShopProducts(@Param('shopId') shopId: string, @Query() query: GetShopProductsDto) {}
-
-  // Bulk Operations
-  @Post('manage/by-shop/:shopId/import-drafts')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT')
-  async importProductDrafts(@Param('shopId') shopId: string, @Body() importDto: ImportProductsDto) {}
-}
-```
-
-### 4.3.4 موديول الطلبات (Order Module)
-
-#### الميزات الرئيسية:
-```typescript
-// Order Management Features
-- Order Creation & Processing
-- Order Status Tracking
-- Order Management
-- Order Analytics
-- Order Returns & Refunds
-- Order Notifications
-- Order History
-- Order Filtering & Search
-- Order Export
-- Order Automation
-```
-
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('orders')
-export class OrderController {
-  // Order Management
-  @Post('/')
-  @UseGuards(JwtAuthGuard)
-  async createOrder(@Req() req: Request, @Body() createOrderDto: CreateOrderDto) {}
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  async getMyOrders(@Req() req: Request, @Query() query: GetOrdersDto) {}
-
-  @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  async getOrderById(@Param('id') id: string, @Req() req: Request) {}
-
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async updateOrder(@Param('id') id: string, @Body() updateOrderDto: OrderUpdateDto) {}
-
-  // Courier Management
-  @Patch(':id/assign-courier')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN', 'MERCHANT')
-  async assignCourier(@Param('id') id: string, @Body() assignCourierDto: AssignCourierDto) {}
-
-  @Patch(':id/courier')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async updateCourierStatus(@Param('id') id: string, @Body() updateStatusDto: CourierUpdateDto) {}
-
-  // Order Returns
-  @Get(':id/returns')
-  @UseGuards(JwtAuthGuard)
-  async getOrderReturns(@Param('id') id: string) {}
-
-  @Post(':id/returns')
-  @UseGuards(JwtAuthGuard)
-  async createOrderReturn(@Param('id') id: string, @Body() returnDto: CreateOrderReturnDto) {}
-
-  // Admin Management
-  @Get('admin')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async getAdminOrders(@Query() query: AdminGetOrdersDto) {}
-
-  @Get('courier/me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async getMyCourierOrders(@Req() req: Request, @Query() query: GetCourierOrdersDto) {}
-}
-```
-
-### 4.3.5 موديول الدفع (Payment Module)
-
-#### الميزات الرئيسية:
-```typescript
-// Payment Processing Features
-- Payment Gateway Integration
-- Payment Processing
-- Invoice Generation
-- Payment History
-- Refund Processing
-- Payment Analytics
-- Payment Methods Management
-- Payment Security
-- Payment Notifications
-- Payment Reconciliation
-```
-
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('payments')
-export class PaymentController {
-  // Payment Processing
-  @Post('process')
-  @UseGuards(JwtAuthGuard)
-  async processPayment(@Req() req: Request, @Body() paymentDto: ProcessPaymentDto) {}
-
-  @Post('verify')
-  @UseGuards(JwtAuthGuard)
-  async verifyPayment(@Req() req: Request, @Body() verifyDto: VerifyPaymentDto) {}
-
-  // Invoice Management
-  @Get('invoices/me')
-  @UseGuards(JwtAuthGuard)
-  async getMyInvoices(@Req() req: Request, @Query() query: GetInvoicesDto) {}
-
-  @Get('invoices/summary/me')
-  @UseGuards(JwtAuthGuard)
-  async getMyInvoiceSummary(@Req() req: Request) {}
-
-  @Post('invoices')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('MERCHANT', 'ADMIN')
-  async createInvoice(@Body() createInvoiceDto: CreateInvoiceDto) {}
-
-  // Admin Management
-  @Get('invoices')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async getAdminInvoices(@Query() query: AdminGetInvoicesDto) {}
-
-  @Get('invoices/summary')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('ADMIN')
-  async getInvoiceSummary(@Query() query: InvoiceSummaryDto) {}
-}
-```
-
-### 4.3.6 موديول الكابتنات (Courier Module)
-
-#### الميزات الرئيسية:
-```typescript
-// Courier Management Features
-- Courier Registration
-- Courier Status Management
-- Order Assignment
-- Location Tracking
-- Route Optimization
-- Courier Analytics
-- Courier Performance
-- Courier Payments
-- Courier Ratings
-- Courier Communication
-```
-
-#### الـ Endpoints الرئيسية:
-```typescript
-@Controller('courier')
-export class CourierController {
-  // Courier Status
-  @Get('state')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async getCourierState(@Req() req: Request) {}
-
-  @Patch('state')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async updateCourierState(@Req() req: Request, @Body() updateStateDto: UpdateCourierStateDto) {}
-
-  // Order Management
-  @Get('offers')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async getDeliveryOffers(@Req() req: Request, @Query() query: GetDeliveryOffersDto) {}
-
-  @Post('offers/:id/accept')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async acceptDeliveryOffer(@Param('id') id: string, @Req() req: Request) {}
-
-  @Post('offers/:id/reject')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('COURIER')
-  async rejectDeliveryOffer(@Param('id') id: string, @Req() req: Request, @Body() rejectDto: RejectOfferDto) {}
-}
-```
-
-## 4.4 الأنماط الأمنية (Security Patterns)
-
-### 4.4.1 Authentication Guards
-```typescript
-// jwt-auth.guard.ts
-@Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
-  canActivate(context: ExecutionContext) {
-    return super.canActivate(context);
-  }
-
-  handleRequest(err, user, info) {
-    if (err || !user) {
-      throw err || new UnauthorizedException('Invalid or expired token');
+### 4.5.2 المعالج المركزي (نمط)
+```go
+// unifiedErrorHandler — كل الأخطاء تمر من هنا
+func unifiedErrorHandler(c *fiber.Ctx, err error) error {
+    code := fiber.StatusInternalServerError
+    errCode := "internal_error"
+    message := "Internal server error"
+
+    var e *fiber.Error
+    if errors.As(err, &e) {
+        code = e.Code
+        message = e.Message
     }
-    return user;
-  }
-}
-
-// roles.guard.ts
-@Injectable()
-export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
-
-  canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.getAllAndOverride<UserRole[]>('roles', [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (!requiredRoles) {
-      return true;
+    if appErr, ok := AsAppError(err); ok {
+        errCode = appErr.Code // مثال: insufficient_role
+        message = appErr.Message
     }
 
-    const { user } = context.switchToHttp().getRequest();
-    return requiredRoles.some((role) => user.role?.includes(role));
-  }
+    resp := fiber.Map{
+        "success": false,
+        "error":   errCode,
+        "message": message,
+    }
+    if appErr != nil && appErr.Fields != nil {
+        resp["fields"] = appErr.Fields
+    }
+    return c.Status(code).JSON(resp)
 }
 ```
 
-### 4.4.2 Rate Limiting Configuration
-```typescript
-// app.module.ts - Rate Limiting Setup
-app.use(
-  rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 دقيقة
-    max: 100, // حد 100 طلب لكل IP
-    message: {
-      error: 'Too many requests',
-      message: 'Please try again later',
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-  }),
-);
+- لا توجد `AllExceptionsFilter` ولا `{statusCode, path, timestamp, stack}`.
+- رموز شائعة: `unauthorized`, `insufficient_role`, `forbidden`, `not_found`, `validation_error`, `conflict`, `rate_limited`, `internal_error`.
 
-// Specialized rate limiting for sensitive endpoints
-app.use(
-  '/api/v1/auth/login',
-  rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5, // 5 محاولات دخول فقط
-    skipSuccessfulRequests: true,
-  }),
-);
+## 4.6 المصادقة والأدوار (Auth)
 
-app.use(
-  '/api/v1/auth/signup',
-  rateLimit({
-    windowMs: 60 * 60 * 1000, // ساعة
-    max: 3, // 3 تسجيلات فقط في الساعة
-  }),
-);
+### 4.6.1 JWT HS256
+- الخوارزمية: HS256، والمُصدِر: `iss=ray-backend-go`.
+- التوقيع: `JWT_SECRET` (32+ حرف).
+- الأدوار: `CUSTOMER/MERCHANT/ADMIN/COURIER/CASHIER`.
+
+### 4.6.2 أهم المسارات
+```
+POST /api/v1/auth/signup
+POST /api/v1/auth/login
+POST /api/v1/auth/logout
+POST /api/v1/auth/refresh
+GET  /api/v1/auth/me
+
+# تطوير فقط (خلف ALLOW_DEV_*_BOOTSTRAP):
+POST /api/v1/auth/dev-merchant-login
+POST /api/v1/auth/dev-courier-login
+POST /api/v1/auth/dev-customer-login
 ```
 
-### 4.4.3 Input Validation
-```typescript
-// Global ValidationPipe Configuration
-app.useGlobalPipes(
-  new ValidationPipe({
-    whitelist: true, // يزيل الخصائص غير المسموح بها
-    forbidNonWhitelisted: true, // يرفض الطلبات بخصائص غير مصرح بها
-    transform: true, // يحول الـ payload تلقائياً
-    transformOptions: {
-      enableImplicitConversion: true,
-    },
-    exceptionFactory: (errors) => {
-      const formattedErrors = errors.map(error => ({
-        field: error.property,
-        message: Object.values(error.constraints).join(', '),
-      }));
-      return new BadRequestException(formattedErrors);
-    },
-  }),
-);
-```
-
-### 4.4.4 Error Handling
-```typescript
-// all-exceptions.filter.ts
-@Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
-  catch(exception: unknown, host: ArgumentsHost) {
-    const ctx = host.switchToHttp();
-    const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<Request>();
-
-    let status = HttpStatus.INTERNAL_SERVER_ERROR;
-    let message = 'Internal server error';
-    let details = null;
-
-    if (exception instanceof HttpException) {
-      status = exception.getStatus();
-      const exceptionResponse = exception.getResponse();
-      
-      if (typeof exceptionResponse === 'string') {
-        message = exceptionResponse;
-      } else if (typeof exceptionResponse === 'object') {
-        message = (exceptionResponse as any).message || message;
-        details = (exceptionResponse as any).details || null;
-      }
-    } else if (exception instanceof PrismaClientKnownRequestError) {
-      // Handle Prisma errors
-      switch (exception.code) {
-        case 'P2002':
-          status = HttpStatus.CONFLICT;
-          message = 'Resource already exists';
-          break;
-        case 'P2025':
-          status = HttpStatus.NOT_FOUND;
-          message = 'Resource not found';
-          break;
-        default:
-          status = HttpStatus.BAD_REQUEST;
-          message = 'Database operation failed';
-      }
-    }
-
-    const errorResponse = {
-      statusCode: status,
-      timestamp: new Date().toISOString(),
-      path: request.url,
-      method: request.method,
-      message,
-      ...(details && { details }),
-      ...(process.env.NODE_ENV === 'development' && { 
-        stack: exception instanceof Error ? exception.stack : null 
-      }),
-    };
-
-    response.status(status).json(errorResponse);
-  }
-}
-```
-
-## 4.5 إدارة قاعدة البيانات (Database Management)
-
-### 4.5.1 Prisma Configuration
-```typescript
-// prisma.service.ts
-@Injectable()
-export class PrismaService extends PrismaClient {
-  async onModuleInit() {
-    await this.$connect();
-  }
-
-  async onModuleDestroy() {
-    await this.$disconnect();
-  }
-
-  // Custom methods for common operations
-  async softDelete(model: string, where: any) {
-    return this[model].update({
-      where,
-      data: { deletedAt: new Date() },
-    });
-  }
-
-  async findWithPagination(model: string, params: any) {
-    const { page = 1, limit = 10, ...rest } = params;
-    const skip = (page - 1) * limit;
-    
-    const [data, total] = await Promise.all([
-      this[model].findMany({
-        ...rest,
-        skip,
-        take: limit,
-      }),
-      this[model].count({ where: rest.where }),
-    ]);
-
-    return {
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-      },
-    };
-  }
-}
-```
-
-### 4.5.2 Database Transactions
-```typescript
-// Transaction example in service
-async createOrderWithItems(createOrderDto: CreateOrderDto) {
-  return await this.prisma.$transaction(async (tx) => {
-    // 1. Create order
-    const order = await tx.order.create({
-      data: {
-        userId: createOrderDto.userId,
-        shopId: createOrderDto.shopId,
-        totalAmount: createOrderDto.totalAmount,
-        status: OrderStatus.PENDING,
-      },
-    });
-
-    // 2. Create order items
-    const orderItems = await Promise.all(
-      createOrderDto.items.map(item =>
-        tx.orderItem.create({
-          data: {
-            orderId: order.id,
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-          },
-        })
-      )
-    );
-
-    // 3. Update product stock
-    await Promise.all(
-      createOrderDto.items.map(item =>
-        tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: {
-              decrement: item.quantity,
-            },
-          },
-        })
-      )
-    );
-
-    return { order, orderItems };
-  });
-}
-```
-
-## 4.6 نظام الإشعارات (Notification System)
-
-### 4.6.1 Notification Service
-```typescript
-// notification.service.ts
-@Injectable()
-export class NotificationService {
-  constructor(
-    private emailService: EmailService,
-    private smsService: SmsService,
-    private pushNotificationService: PushNotificationService,
-  ) {}
-
-  async sendNotification(notificationDto: SendNotificationDto) {
-    const { userId, type, title, message, channels = ['in_app'] } = notificationDto;
-
-    const promises = [];
-
-    // In-app notification
-    if (channels.includes('in_app')) {
-      promises.push(this.createInAppNotification(userId, type, title, message));
-    }
-
-    // Email notification
-    if (channels.includes('email')) {
-      promises.push(this.emailService.sendEmail(userId, title, message));
-    }
-
-    // SMS notification
-    if (channels.includes('sms')) {
-      promises.push(this.smsService.sendSms(userId, message));
-    }
-
-    // Push notification
-    if (channels.includes('push')) {
-      promises.push(this.pushNotificationService.sendPush(userId, title, message));
-    }
-
-    await Promise.allSettled(promises);
-  }
-
-  private async createInAppNotification(userId: string, type: string, title: string, message: string) {
-    return this.prisma.notification.create({
-      data: {
-        userId,
-        type,
-        title,
-        message,
-        isRead: false,
-      },
-    });
-  }
-}
-```
-
-## 4.7 نظام الملفات والوسائط (Media Management)
-
-### 4.7.1 File Upload Service
-```typescript
-// media.service.ts
-@Injectable()
-export class MediaService {
-  constructor(
-    @Inject('AWS_S3') private readonly s3: S3,
-  ) {}
-
-  async uploadFile(file: Express.Multer.File, folder: string = 'general') {
-    const key = `${folder}/${Date.now()}-${file.originalname}`;
-    
-    const uploadResult = await this.s3.upload({
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: key,
-      Body: file.buffer,
-      ContentType: file.mimetype,
-      ACL: 'public-read',
-    }).promise();
-
-    // Generate thumbnails for images
-    if (file.mimetype.startsWith('image/')) {
-      await this.generateThumbnails(uploadResult.Location, key);
-    }
-
-    return {
-      url: uploadResult.Location,
-      key,
-      size: file.size,
-      mimetype: file.mimetype,
-    };
-  }
-
-  async generatePresignedUrl(key: string, contentType: string) {
-    return this.s3.getSignedUrl('putObject', {
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: key,
-      ContentType: contentType,
-      Expires: 60 * 5, // 5 minutes
-    });
-  }
-
-  private async generateThumbnails(imageUrl: string, key: string) {
-    // Implementation for generating thumbnails
-    // This would use image processing libraries like Sharp
-  }
-}
-```
-
-## 4.8 نظام التحليلات (Analytics System)
-
-### 4.8.1 Analytics Service
-```typescript
-// analytics.service.ts
-@Injectable()
-export class AnalyticsService {
-  async getShopAnalytics(shopId: string, period: AnalyticsPeriod) {
-    const startDate = this.getStartDate(period);
-    const endDate = new Date();
-
-    const [
-      totalOrders,
-      totalRevenue,
-      uniqueVisitors,
-      topProducts,
-      dailyStats,
-    ] = await Promise.all([
-      this.prisma.order.count({
-        where: {
-          shopId,
-          createdAt: { gte: startDate, lte: endDate },
-        },
-      }),
-      this.prisma.order.aggregate({
-        where: {
-          shopId,
-          createdAt: { gte: startDate, lte: endDate },
-        },
-        _sum: { totalAmount: true },
-      }),
-      this.prisma.shopVisit.count({
-        where: {
-          shopId,
-          visitedAt: { gte: startDate, lte: endDate },
-        },
-      }),
-      this.getTopProducts(shopId, startDate, endDate),
-      this.getDailyStats(shopId, startDate, endDate),
-    ]);
-
-    return {
-      period,
-      totalOrders,
-      totalRevenue: totalRevenue._sum.totalAmount || 0,
-      uniqueVisitors,
-      topProducts,
-      dailyStats,
-    };
-  }
-
-  private async getTopProducts(shopId: string, startDate: Date, endDate: Date) {
-    return this.prisma.orderItem.groupBy({
-      by: ['productId'],
-      where: {
-        order: {
-          shopId,
-          createdAt: { gte: startDate, lte: endDate },
-        },
-      },
-      _sum: { quantity: true },
-      orderBy: {
-        _sum: { quantity: 'desc' },
-      },
-      take: 10,
-    });
-  }
-
-  private getStartDate(period: AnalyticsPeriod): Date {
-    const now = new Date();
-    switch (period) {
-      case 'TODAY':
-        return new Date(now.setHours(0, 0, 0, 0));
-      case 'WEEK':
-        return new Date(now.setDate(now.getDate() - 7));
-      case 'MONTH':
-        return new Date(now.setMonth(now.getMonth() - 1));
-      case 'YEAR':
-        return new Date(now.setFullYear(now.getFullYear() - 1));
-      default:
-        return new Date(now.setDate(now.getDate() - 30));
-    }
-  }
-}
-```
-
-## 4.9 نظام التخزين المؤقت (Caching System)
-
-### 4.9.1 Redis Cache Service
-```typescript
-// cache.service.ts
-@Injectable()
-export class CacheService {
-  constructor(@Inject('REDIS') private redis: Redis) {}
-
-  async get<T>(key: string): Promise<T | null> {
-    const value = await this.redis.get(key);
-    return value ? JSON.parse(value) : null;
-  }
-
-  async set(key: string, value: any, ttl: number = 3600): Promise<void> {
-    await this.redis.setex(key, ttl, JSON.stringify(value));
-  }
-
-  async del(key: string): Promise<void> {
-    await this.redis.del(key);
-  }
-
-  async invalidatePattern(pattern: string): Promise<void> {
-    const keys = await this.redis.keys(pattern);
-    if (keys.length > 0) {
-      await this.redis.del(...keys);
-    }
-  }
-
-  // Cache decorator for methods
-  cache(ttl: number = 3600, keyGenerator?: (...args: any[]) => string) {
-    return (target: any, propertyName: string, descriptor: PropertyDescriptor) => {
-      const method = descriptor.value;
-
-      descriptor.value = async function (...args: any[]) {
-        const cacheKey = keyGenerator ? keyGenerator(...args) : `${target.constructor.name}:${propertyName}:${JSON.stringify(args)}`;
-        
-        // Try to get from cache
-        const cached = await this.cacheService.get(cacheKey);
-        if (cached !== null) {
-          return cached;
+**مثال فحص الدور (نمط):**
+```go
+// GET /api/v1/shops/me — يتطلب MERCHANT أو ADMIN
+func RequireRoles(roles ...string) fiber.Handler {
+    return func(c *fiber.Ctx) error {
+        role := c.Locals("role").(string)
+        for _, r := range roles {
+            if role == r {
+                return c.Next()
+            }
         }
-
-        // Execute method and cache result
-        const result = await method.apply(this, args);
-        await this.cacheService.set(cacheKey, result, ttl);
-        
-        return result;
-      };
-    };
-  }
+        return c.Status(403).JSON(fiber.Map{
+            "success": false,
+            "error":   "insufficient_role",
+            "message": "Merchant or admin role required",
+        })
+    }
 }
 ```
 
-## 4.10 أفضل الممارسات (Best Practices)
-
-### 4.10.1 Code Organization
-```typescript
-// 1. Use DTOs for all input validation
-// 2. Use interfaces for type definitions
-// 3. Use guards for authentication and authorization
-// 4. Use interceptors for cross-cutting concerns
-// 5. Use filters for error handling
-// 6. Use pipes for data transformation
-// 7. Use modules for feature organization
-// 8. Use services for business logic
-// 9. Use repositories for data access
-// 10. Use dependency injection for loose coupling
+**مثال متجر التاجر:**
+```bash
+curl http://localhost:4000/api/v1/shops/me \
+  -H "Authorization: Bearer <jwt_token>"
+# بدون دور MERCHANT/ADMIN → {success:false, error:"insufficient_role", ...}
 ```
 
-### 4.10.2 Performance Optimization
-```typescript
-// 1. Use database indexes for frequently queried fields
-// 2. Use pagination for large datasets
-// 3. Use caching for frequently accessed data
-// 4. Use lazy loading for relationships
-// 5. Use connection pooling for database connections
-// 6. Use compression for API responses
-// 7. Use CDN for static assets
-// 8. Use background jobs for long-running tasks
-// 9. Use queue systems for async processing
-// 10. Use monitoring for performance tracking
+### 4.6.3 ملاحظة عن Guards المحذوفة
+- لا يوجد `JwtAuthGuard` ولا `RolesGuard` ولا `@Roles()` ولا Passport strategies — المقابل ميدلوير Fiber + `c.Locals("role")` كما أعلاه.
+
+## 4.7 الدومينات الأساسية (Core Domains)
+
+### 4.7.1 المصادقة (auth)
+- signup/login/logout/refresh/me + مسارات `dev-*-login` (تطوير فقط).
+- إصدار JWT (HS256, iss=ray-backend-go) والتحقق منه في ميدلوير.
+
+### 4.7.2 المتاجر (shops)
+- `GET /api/v1/shops/me` (MERCHANT أو ADMIN وإلا `insufficient_role`).
+- إنشاء/تحديث المتجر، القوائم العامة، الزيارات/المتابعة، إدارة الأدمن.
+
+### 4.7.3 المنتجات (products)
+- قوائم عامة + إدارة التاجر (إنشاء/تحديث/حذف/مخزون/استيراد مسودات).
+
+### 4.7.4 الطلبات (orders)
+- إنشاء/استعلام/تحديث + تعيين كابتن + حالات الكابتن + إرجاع + إدارة أدمن.
+
+### 4.7.5 الفواتير (invoice)
+- فواتيري/ملخصي + كل الفواتير (ADMIN) + إنشاء/تحديث.
+
+### 4.7.6 الكابتنات (courier)
+- الحالة (state) + عروض التوصيل (قبول/رفض).
+
+### 4.7.7 التحليلات (analytics)
+- تحليلات النظام + سلاسل زمنية + نشاط (راجع خريطة API).
+
+### 4.7.8 الإشعارات (notification)
+- إشعاراتي/غير المقروء + إشعارات المتجر.
+
+### 4.7.9 الوسائط (media/gallery)
+- presign/upload/complete + معرض المتجر.
+
+> التفاصيل الكاملة للمسارات في `docs/08-api-map.md`. المرجع النهائي `internal/app/app.go` + حزمة كل دومين.
+
+## 4.8 قاعدة البيانات (PostgreSQL + pgx/v5)
+
+### 4.8.1 المبادئ
+- PostgreSQL فقط — لا Prisma ولا SQLite.
+- الهجرات SQL مرقمة في `gobackend/migrations/` (حتى `000049_*`) عبر golang-migrate، وتُطبَّق عند `DB_MIGRATE_ON_BOOT=true`.
+- نوع `UserRole` هو enum (`CUSTOMER, MERCHANT, ADMIN, COURIER` + `CASHIER` عند الحاجة).
+- كود المستودعات بـ pgx/v5 يدويًا؛ `sqlc.yaml` اختياري فقط.
+
+### 4.8.2 مثال مستودع (نمط)
+```go
+type Repository struct{ db *pgxpool.Pool }
+
+func (r *Repository) GetByID(ctx context.Context, id string) (*Shop, error) {
+    const q = `SELECT id, name, slug, owner_id, is_active, created_at FROM shops WHERE id = $1;`
+    var s Shop
+    err := r.db.QueryRow(ctx, q, id).Scan(&s.ID, &s.Name, &s.Slug, &s.OwnerID, &s.IsActive, &s.CreatedAt)
+    if err != nil {
+        return nil, err
+    }
+    return &s, nil
+}
 ```
 
-### 4.10.3 Security Best Practices
-```typescript
-// 1. Always validate and sanitize input
-// 2. Use parameterized queries to prevent SQL injection
-// 3. Use HTTPS for all communications
-// 4. Implement rate limiting for API endpoints
-// 5. Use strong password policies
-// 6. Implement proper session management
-// 7. Use environment variables for sensitive data
-// 8. Implement proper error handling without exposing sensitive information
-// 9. Use CORS properly to prevent cross-origin attacks
-// 10. Regularly update dependencies for security patches
+### 4.8.3 Transactions (نمط)
+```go
+tx, err := pool.Begin(ctx)
+if err != nil {
+    return err
+}
+defer tx.Rollback(ctx)
+// 1. إنشاء الطلب — 2. عناصره — 3. خصم المخزون — 4. tx.Commit(ctx)
 ```
 
-## 4.11 نصائح التطوير (Development Tips)
+- التفاصيل الكاملة في `docs/06-database-guide.md`.
 
-### 4.11.1 Debugging
-```typescript
-// 1. Use structured logging with Winston
-// 2. Use environment-specific logging levels
-// 3. Use request tracing for debugging complex flows
-// 4. Use database query logging for performance analysis
-// 5. Use API documentation with Swagger/OpenAPI
-// 6. Use health checks for monitoring
-// 7. Use metrics collection for performance tracking
-// 8. Use error tracking services like Sentry
-// 9. Use proper exception handling
-// 10. Use meaningful error messages
+## 4.9 نظام الإشعارات (Notification System)
+
+### 4.9.1 المبدأ
+- قنوات: in-app (+ email/sms/push حسب الإعداد).
+- الإرسال عبر service الدومين `notification` مع أفضل جهد (best-effort) للقنوات الثانوية.
+
+### 4.9.2 النمط (Go)
+```go
+// Send — in-app أولًا ثم القنوات الاختيارية
+func (s *Service) Send(ctx context.Context, in SendInput) error {
+    if err := s.repo.Create(ctx, in); err != nil {
+        return err
+    }
+    // قنوات إضافية حسب in.Channels — فشلها لا يفشل الأساسية
+    s.sendEmailBestEffort(ctx, in)
+    s.sendSMSBestEffort(ctx, in)
+    s.sendPushBestEffort(ctx, in)
+    return nil
+}
 ```
 
-### 4.11.2 Testing
-```typescript
-// 1. Write unit tests for all services
-// 2. Write integration tests for API endpoints
-// 3. Write e2e tests for critical user flows
-// 4. Use test databases for testing
-// 5. Mock external dependencies
-// 6. Use test fixtures for consistent test data
-// 7. Test error scenarios
-// 8. Test edge cases
-// 9. Test performance under load
-// 10. Use continuous integration for automated testing
+## 4.10 نظام الملفات والوسائط (Media Management)
+
+### 4.10.1 التدفق
+```
+1. POST /api/v1/media/presign → رابط رفع مباشر
+2. PUT/POST /api/v1/media/upload → الرفع
+3. POST /api/v1/media/complete → الإتمام والتسجيل
 ```
 
-### 4.11.3 Deployment
-```typescript
-// 1. Use environment variables for configuration
-// 2. Use Docker for containerization
-// 3. Use CI/CD pipelines for automated deployment
-// 4. Use health checks for load balancers
-// 5. Use graceful shutdown for zero-downtime deployments
-// 6. Use database migrations for schema changes
-// 7. Use backup strategies for data protection
-// 8. Use monitoring for production issues
-// 9. Use logging for troubleshooting
-// 10. Use scaling strategies for high availability
+### 4.10.2 النمط (Go)
+```go
+// upload — يتحقق من النوع والحجم ثم يخزن ويسجل
+func (h *Handler) Upload(c *fiber.Ctx) error {
+    file, err := c.FormFile("file")
+    if err != nil {
+        return validationError("file", "File is required")
+    }
+    // تحقق من الحجم والنوع → خزّن → سجّل في DB → أعد {success:true, data:{url, key, size}}
+    return c.JSON(fiber.Map{"success": true, "data": saved})
+}
+```
+
+## 4.11 نظام التخزين المؤقت (Caching — Redis)
+
+### 4.11.1 الإعداد
+- عبر `REDIS_HOST` / `REDIS_PORT` (افتراضيًا `localhost:6379` من `docker-compose.yml`).
+- الاستخدام: كاش القوائم العامة، الجلسات، الـ rate limiting، الـ idempotency.
+
+### 4.11.2 النمط (Go)
+```go
+// get-or-set بسيط
+func Cached(key string, ttl time.Duration, load func() (any, error)) (any, error) {
+    if v, ok := redisGet(key); ok {
+        return v, nil
+    }
+    v, err := load()
+    if err != nil {
+        return nil, err
+    }
+    redisSet(key, v, ttl)
+    return v, nil
+}
+```
+
+## 4.12 أفضل الممارسات (Best Practices)
+
+### 4.12.1 تنظيم الكود
+```go
+// 1. كل دومين حزمة مستقلة: handler + service + repository
+// 2. التحقق من المدخلات في الـ handler/service (لا ValidationPipe)
+// 3. التفويض عبر ميدلوير الأدوار (لا Guards/Decorators)
+// 4. الأخطاء عبر المعالج الموحد {success:false, error, message, fields?}
+// 5. الوصول للبيانات pgx/v5 يدويًا (لا Prisma Client)
+// 6. التسجيل/التجميع المركزي في internal/app/app.go فقط
+// 7. الإعداد عبر internal/config فقط (لا ConfigModule)
+// 8. الهجرات SQL مرقمة فقط (لا migrate dev/deploy)
+// 9. لا SQLite ولا Prisma في أي بيئة
+// 10. المراقبة /monitoring/* + /metrics + /api/v1/status دائمًا
+```
+
+### 4.12.2 تحسين الأداء
+```go
+// 1. indexes للأعمدة كثيرة الاستعلام (انظر 06-database-guide)
+// 2. pagination لكل القوائم (LIMIT/OFFSET)
+// 3. كاش Redis للقوائم العامة
+// 4. pool بحجم مناسب (MaxConns)
+// 5. ضغط الاستجابات (compress middleware)
+// 6. مهام طويلة خارج مسار الطلب (background jobs)
+```
+
+### 4.12.3 الأمان
+```go
+// 1. تحقق دائمًا من المدخلات (النوع/الطول/النطاق)
+// 2. استعلامات مُعامَلة ($1, $2) — لا تجميع SQL نصيًا
+// 3. JWT HS256 صادر واحد iss=ray-backend-go + JWT_SECRET بطول 32+
+// 4. معدل الطلبات (RateLimiter + SlowDown + Auth rate limit)
+// 5. CORS من CORS_ORIGIN فقط
+// 6. مسارات dev-*-login خلف ALLOW_DEV_*_BOOTSTRAP فقط
+// 7. متغيرات حساسة من البيئة فقط (لا أسرار في الكود)
+// 8. صيغة أخطاء موحدة لا تسرب تفاصيل داخلية
+```
+
+## 4.13 نصائح التطوير (Development Tips)
+
+### 4.13.1 Debugging
+```go
+// 1. ابدأ من /monitoring/health و /monitoring/ready عند أي عطل
+// 2. سجلات Fiber (Logger) مع APP_ENV=development
+// 3. تحقق من DATABASE_URL (منفذ 5433) و REDIS_HOST/PORT قبل اتهام الكود
+// 4. تحقق من ترتيب الميدلوير (4.4) عند أعطال CORS/auth/rate-limit
+// 5. استخدم RequestID لتتبع الطلب عبر السجلات
+// 6. تحقق من تسجيل الدومين في app.go عند 404 لمسار جديد
+// 7. تحقق من الدور عند insufficient_role (مثال shops/me)
+// 8. راقب /metrics للمقاييس
+```
+
+### 4.13.2 Testing
+```bash
+cd gobackend
+make test    # كل الاختبارات
+make vet     # فحص استاتيكي
+go test ./internal/auth/...   # دومين محدد
+```
+
+```go
+// 1. اختبارات وحدة لكل service
+// 2. اختبارات تكامل للـ handlers (Fiber Test)
+// 3. اختبارات e2e للمسارات الحرجة (auth → shops/me → orders)
+// 4. قواعد بيانات اختبار منفصلة (لا تختبر على ray_marketplace)
+// 5. غطِّ حالات insufficient_role و validation_error
+```
+
+### 4.13.3 Deployment
+```go
+// 1. الإعداد من البيئة فقط (PORT/HOST/DATABASE_URL/JWT_SECRET/...)
+// 2. DB_MIGRATE_ON_BOOT=true لتطبيق الهجرات عند الإقلاع
+// 3. لا تُفعِّل ALLOW_DEV_*_BOOTSTRAP في الإنتاج أبدًا
+// 4. فحوصات الحِمل على /monitoring/live و /monitoring/ready
+// 5. إيقاف هادئ (graceful shutdown) عند SIGTERM/SIGINT
+// 6. نسخ احتياطي لـ PostgreSQL (pg_dump) قبل أي ترقية
+// 7. راقب /metrics باستمرار
 ```

@@ -1,5 +1,7 @@
 # ERP Modular Monolith — Architecture Guide
 
+> بيئة التشغيل الحالية: الباك الوحيد هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، والتشغيل عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/` (marketplace-next, dashboard-web, business)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. التوصيل الحالي: 29 موديول تحت `/api/v1` عبر `internal/app/app.go` — الاستثناءات المعروفة: `pos` و`dashboard` و`productcategories` لها handlers لكنها غير موصولة، و`finance` (service+repo فقط) بلا handler.
+
 ## Folder Structure
 
 ```

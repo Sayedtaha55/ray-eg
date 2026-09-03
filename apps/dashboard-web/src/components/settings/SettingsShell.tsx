@@ -21,12 +21,11 @@ import ReceiptThemeTab from './tabs/ReceiptThemeTab';
 import PaymentsTab from './tabs/PaymentsTab';
 import SocialMediaTab from './tabs/SocialMediaTab';
 import NotificationsTab from './tabs/NotificationsTab';
-import UpgradeTab from './tabs/UpgradeTab';
 
 type SettingsTab =
   | 'overview' | 'account' | 'security' | 'store' | 'modules' | 'apps'
   | 'receipt_theme' | 'payments' | 'notifications' | 'booking_settings'
-  | 'social_media' | 'upgrade';
+  | 'social_media';
 
 type SaveHandler = () => Promise<boolean>;
 
@@ -60,7 +59,6 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
       { id: 'payments', icon: <CreditCard className="w-5 h-5" />, label: 'المدفوعات' },
       { id: 'social_media', icon: <Share2 className="w-5 h-5" />, label: 'السوشيال ميديا' },
       { id: 'notifications', icon: <Bell className="w-5 h-5" />, label: 'الإشعارات' },
-      { id: 'upgrade', icon: <TrendingUp className="w-5 h-5" />, label: 'الترقية والباقات' },
     ];
     return list;
   }, [isBooking]);
@@ -159,7 +157,6 @@ export default function SettingsShell({ shop, onSaved }: SettingsShellProps) {
       case 'payments': return <PaymentsTab shop={shop} onSaved={onSaved} />;
       case 'social_media': return <SocialMediaTab shop={shop} onSaved={onSaved} />;
       case 'notifications': return <NotificationsTab shop={shop} />;
-      case 'upgrade': return <UpgradeTab shop={shop} onSaved={onSaved} />;
       default: return <OverviewTab shop={shop} />;
     }
   };

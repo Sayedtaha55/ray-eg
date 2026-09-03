@@ -1,5 +1,7 @@
 # Media Optimization Report
 
+> تحديث السياق: الباك الوحيد الحالي هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24)، ومنطق الميديا الحالي في `gobackend/internal/domains/media/` (تشغيل الباك عبر `go run ./cmd/api` داخل `gobackend/`)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. الإشارات أدناه إلى `backend/src/modules/media/...` هي مراجع تاريخية لستاك NestJS المتقاعد ومعادلها الحالي في `gobackend/internal/domains/media/`.
+
 ## تاريخ التنفيذ
 13 يوليو 2026
 
@@ -111,7 +113,7 @@ import { LazyImage, LazyVideo, ResponsiveImage } from '@/shared/components/commo
 ---
 
 ### 3. Backend AVIF Support ✅
-**الملف:** `backend/src/modules/media/media-optimize.service.ts`
+**المعادل الحالي:** `gobackend/internal/domains/media/` (المرجع التاريخي: `backend/src/modules/media/media-optimize.service.ts` في ستاك NestJS المتقاعد)
 
 #### التحسينات:
 - **AVIF Format:** دعم AVIF output format
@@ -127,7 +129,7 @@ import { LazyImage, LazyVideo, ResponsiveImage } from '@/shared/components/commo
 ---
 
 ### 4. Enhanced Video Processing ✅
-**الملف:** `backend/src/modules/media/media-optimize.service.ts`
+**المعادل الحالي:** `gobackend/internal/domains/media/` (المرجع التاريخي: `backend/src/modules/media/media-optimize.service.ts` في ستاك NestJS المتقاعد)
 
 #### التحسينات:
 - **Multiple Quality Variants:**
@@ -146,7 +148,7 @@ import { LazyImage, LazyVideo, ResponsiveImage } from '@/shared/components/commo
 ---
 
 ### 5. Advanced 3D Model Processing ✅
-**الملف:** `backend/src/modules/media/media-3d-optimize.service.ts`
+**المعادل الحالي:** `gobackend/internal/domains/media/` (المرجع التاريخي: `backend/src/modules/media/media-3d-optimize.service.ts` في ستاك NestJS المتقاعد)
 
 #### التحسينات:
 - **Draco Compression:** Geometry compression
@@ -302,8 +304,8 @@ await upload(formData);
 2. **src/shared/components/common/LazyMedia.tsx** - Lazy loading components
 
 ### الملفات المعدلة (2)
-1. **backend/src/modules/media/media-optimize.service.ts** - AVIF support, multiple video variants
-2. **backend/src/modules/media/media-3d-optimize.service.ts** - Advanced compression
+1. **gobackend/internal/domains/media/** - AVIF support, multiple video variants (المرجع التاريخي: **backend/src/modules/media/media-optimize.service.ts** في ستاك NestJS المتقاعد)
+2. **gobackend/internal/domains/media/** - Advanced compression (المرجع التاريخي: **backend/src/modules/media/media-3d-optimize.service.ts** في ستاك NestJS المتقاعد)
 
 ---
 

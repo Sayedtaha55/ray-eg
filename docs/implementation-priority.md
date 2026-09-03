@@ -1,19 +1,21 @@
 # خطة التنفيذ الأولوية لمشروع Ray
 
+> السياق الحالي: الباك الوحيد هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيل الباك عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`.
+
 ## 🎯 المرحلة الأولى (1-3 أشهر) - الأساس القوي
 
 ### 1. تحسينات الأداء الفورية
 - [x] تحسين صفحات الجمهور: Pagination/Lazy loading للصور وتقليل الـ payload
 - [ ] إضافة Redis caching layer (اختياري حسب حجم الترافيك)
-- [ ] تحسين قاعدة البيانات بالفهرسة (مهم عند الانتقال لـ Postgres)
+- [ ] تحسين قاعدة البيانات بالفهرسة (PostgreSQL على `localhost:5433`، والهجرات في `gobackend/migrations/`)
 - [ ] إضافة CDN للصور والملفات الثابتة (Production)
 - [ ] تفعيل GZIP/Brotli compression (Production)
 
 ### 2. تحسينات الأمان
 - [x] إضافة Rate Limiting (مع استثناء OPTIONS لتفادي مشاكل CORS)
-- [x] تفعيل Security Headers (Helmet)
+- [x] تفعيل Security Headers (Fiber middleware في `gobackend/internal/platform/middleware/`)
 - [ ] تحسين JWT token handling (refresh/rotation إن لزم)
-- [x] إضافة Input validation (ValidationPipe + class-validator)
+- [x] إضافة Input validation (Go validator على مستوى الـ handlers في `gobackend/internal/domains/`)
 
 ### 3. تحسينات الموبايل
 - [x] تفعيل PWA
@@ -68,12 +70,11 @@
 ## 📊 التقنيات المطلوبة لكل مرحلة
 
 ### المرحلة الأولى - Dependencies
+
+> ملاحظة: الباك الحالي Go/Fiber في `gobackend/` — ما يخص الباك من ضغط وأمان وتقييد معدل مُنفذ كـ Fiber middleware في `gobackend/internal/platform/middleware/` (بما فيه الضغط عبر `compress` وSecurity Headers)، وليس بحزم Node. الحزم أدناه للفرونت فقط (PWA/workbox):
+
 ```json
 {
-  "compression": "^1.7.4",
-  "helmet": "^7.1.0",
-  "rate-limiter-flexible": "^4.0.0",
-  "express-validator": "^7.0.0",
   "workbox-webpack-plugin": "^7.0.0"
 }
 ```
@@ -105,13 +106,13 @@
 ## 🏗️ البنية التحتية المطلوبة
 
 ### 1. Hosting & Deployment
-- **Current**: Vercel (Frontend) + Railway (Backend)
+- **Current**: Vercel (Frontend) + Go/Fiber backend (`gobackend/`, تشغيله عبر `go run ./cmd/api` داخل `gobackend/`)
 - **Phase 1**: Add Cloudflare CDN
 - **Phase 2**: AWS S3 for file storage
 - **Phase 3**: Kubernetes cluster
 
 ### 2. Database Scaling
-- **Current**: PostgreSQL single instance
+- **Current**: PostgreSQL single instance (تطويرًا على `localhost:5433`، والهجرات في `gobackend/migrations/`)
 - **Phase 1**: Read replicas + Connection pooling
 - **Phase 2**: Database sharding
 - **Phase 3**: Multi-region deployment

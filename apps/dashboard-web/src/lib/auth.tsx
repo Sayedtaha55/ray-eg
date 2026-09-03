@@ -123,7 +123,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: data?.name,
       role: data?.role,
     };
-    const token = data?.access_token || data?.accessToken || data?.token || data?.session?.access_token;
+    const token =
+      data?.token?.accessToken ||
+      data?.access_token ||
+      data?.accessToken ||
+      (typeof data?.token === 'string' ? data.token : null) ||
+      data?.session?.access_token;
     if (user && user.id) {
       setUser(user);
       localStorage.setItem(USER_KEY, JSON.stringify(user));

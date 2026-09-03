@@ -22,34 +22,34 @@
 
 ### 🛠 التقنيات المستخدمة:
 
-**المعمارية:** Monorepo بتطبيقين منفصلين + حزمة مشتركة
+**المعمارية:** Monorepo بثلاثة تطبيقات Next.js + باك إند Go واحد
 
-**التطبيق الأول — Marketplace (Next.js):**
-- Next.js 15 (App Router) مع SSR لتحسين SEO
-- React 19, TypeScript, Tailwind CSS
-- Framer Motion, Lucide React
-- يعمل على البورت `5174` — المسار: `apps/marketplace-next/`
+**التطبيق الأول — marketplace-next (المتجر):**
+- Next.js (App Router) مع SSR لتحسين SEO
+- React, TypeScript, Tailwind CSS
+- المسار: `apps/marketplace-next/`
 
-**التطبيق الثاني — Dashboard (Vite SPA):**
-- React 19, TypeScript, Vite
-- Tailwind CSS, Framer Motion, Recharts
-- يعمل على البورت `3000` — المسار: `apps/dashboard/`
-- Electron لتوزيعه كتطبيق سطح مكتب
+**التطبيق الثاني — dashboard-web (لوحة التحكم):**
+- Next.js + TypeScript + Tailwind CSS
+- المسار: `apps/dashboard-web/`
 
-**الحزمة المشتركة — @ray-eg/shared:**
-- المسار: `packages/shared/`
-- مكونات (160+)، خدمات، i18n (ar/en)، أدوات، أنواع
-- يستوردها كلا التطبيقين
+**التطبيق الثالث — business (بوابة التجار):**
+- Next.js + TypeScript + Tailwind CSS
+- المسار: `apps/business/`
+
+**الربط بالباك إند (ينطبق على التطبيقات الثلاثة):**
+- كل تطبيق يعمل rewrite للمسار `/api/:path*` إلى `BACKEND_URL` (الافتراضي `http://localhost:4000`) — انظر `apps/*/next.config.mjs`
+- المصادقة في المتصفح: `localStorage` (`ray_user` / `ray_token` / `token`) + كوكي `ray_session`
+- الدخول التجريبي للتطوير عبر صفحة `/admin/gate` (تظهر فقط خارج الإنتاج)
 
 **الـ Backend والـ Database:**
-- **Backend:** NestJS + Prisma (يعمل على البورت `4000`)
-- **Database:** PostgreSQL (افتراضياً) مع schema SQLite legacy
-- **Cache:** Redis
-- **Authentication:** JWT with refresh tokens
-- **File Storage:** AWS S3 / Local storage
-- **Email:** SendGrid
-- **AI Engine:** Google Generative AI (Gemini SDK)
-- **Deployment:** Vercel (Marketplace), Railway (Backend), Vercel/Netlify (Dashboard)
+- **Backend:** Go 1.25 + Fiber v2.52.5 في `gobackend/` (الموديول `github.com/Sayedtaha55/ray-eg/gobackend`)
+- نقطة الدخول `gobackend/cmd/api/main.go` والتجميع `gobackend/internal/app/app.go`
+- **29 موديول دومين** تحت `/api/v1` + المراقبة (`/monitoring/live` و`/monitoring/ready` و`/metrics` و`/api/v1/status`)
+- **Database:** PostgreSQL 15 عبر Docker على `localhost:5433` — الهجرات SQL بـ golang-migrate في `gobackend/migrations/` وتُطبق عند الإقلاع (`DB_MIGRATE_ON_BOOT`)
+- **Cache:** Redis 7 على `localhost:6379` (كاش + جلسات + تحديد معدل + مهام asynq الخلفية في `gobackend/cmd/worker`)
+- **Authentication:** JWT بالأدوار `CUSTOMER`/`MERCHANT`/`ADMIN`/`COURIER`/`CASHIER` (أحرف كبيرة)
+- **ملاحظة:** باك NestJS القديم حُذف بتاريخ 2026-08-24 وبقي فقط في `_archive/` — لا Prisma ولا SQLite
 
 ### 📊 نماذج الأعمال المدعومة:
 - **متاجر إلكترونية:** منتجات متنوعة مع إدارة المخزون
@@ -79,34 +79,34 @@
 
 ### 🛠 Tech Stack:
 
-**Architecture:** Monorepo with two separate apps + shared package
+**Architecture:** Monorepo with three Next.js apps + one Go backend
 
-**App 1 — Marketplace (Next.js):**
-- Next.js 15 (App Router) with SSR for SEO
-- React 19, TypeScript, Tailwind CSS
-- Framer Motion, Lucide React
-- Port `5174` — Path: `apps/marketplace-next/`
+**App 1 — marketplace-next (Store):**
+- Next.js (App Router) with SSR for SEO
+- React, TypeScript, Tailwind CSS
+- Path: `apps/marketplace-next/`
 
-**App 2 — Dashboard (Vite SPA):**
-- React 19, TypeScript, Vite
-- Tailwind CSS, Framer Motion, Recharts
-- Port `3000` — Path: `apps/dashboard/`
-- Electron for desktop distribution
+**App 2 — dashboard-web (Control panel):**
+- Next.js + TypeScript + Tailwind CSS
+- Path: `apps/dashboard-web/`
 
-**Shared Package — @ray-eg/shared:**
-- Path: `packages/shared/`
-- Components (160+), services, i18n (ar/en), utils, types
-- Imported by both apps
+**App 3 — business (Merchant portal):**
+- Next.js + TypeScript + Tailwind CSS
+- Path: `apps/business/`
+
+**Backend binding (applies to all three apps):**
+- Each app rewrites `/api/:path*` to `BACKEND_URL` (default `http://localhost:4000`) — see `apps/*/next.config.mjs`
+- Browser auth: `localStorage` (`ray_user` / `ray_token` / `token`) + `ray_session` cookie
+- Dev demo login via `/admin/gate` (visible only outside production)
 
 **Backend & Database:**
-- **Backend:** NestJS + Prisma (port `4000`)
-- **Database:** PostgreSQL (default) with legacy SQLite schema
-- **Cache:** Redis
-- **Authentication:** JWT with refresh tokens
-- **File Storage:** AWS S3 / Local storage
-- **Email:** SendGrid
-- **AI Engine:** Google Generative AI (Gemini API)
-- **Deployment:** Vercel (Marketplace), Railway (Backend), Vercel/Netlify (Dashboard)
+- **Backend:** Go 1.25 + Fiber v2.52.5 in `gobackend/` (module `github.com/Sayedtaha55/ray-eg/gobackend`)
+- Entry point `gobackend/cmd/api/main.go`, assembly in `gobackend/internal/app/app.go`
+- **29 domain modules** under `/api/v1` + monitoring (`/monitoring/live`, `/monitoring/ready`, `/metrics`, `/api/v1/status`)
+- **Database:** PostgreSQL 15 via Docker on `localhost:5433` — SQL migrations with golang-migrate in `gobackend/migrations/`, applied at boot (`DB_MIGRATE_ON_BOOT`)
+- **Cache:** Redis 7 on `localhost:6379` (cache + sessions + rate limiting + asynq background jobs in `gobackend/cmd/worker`)
+- **Authentication:** JWT with roles `CUSTOMER`/`MERCHANT`/`ADMIN`/`COURIER`/`CASHIER` (uppercase)
+- **Note:** the old NestJS backend was deleted on 2026-08-24 and lives only in `_archive/` — no Prisma, no SQLite
 
 ### 📊 Supported Business Models:
 - **E-commerce Stores:** Various products with inventory management
@@ -121,18 +121,18 @@
 
 ## 📚 Comprehensive Project Documentation
 
-A detailed, AI-friendly Arabic documentation set is available under [`docs/`](./docs/README.md), with structured references for:
+A detailed, AI-friendly Arabic documentation set is available under [`docs/`](./01-project-overview.md), with structured references for:
 
 ### 📖 Documentation Structure:
-1. **[01-project-overview.md](./docs/01-project-overview.md)** - نظرة عامة شاملة على المشروع
-2. **[02-architecture.md](./docs/02-architecture.md)** - المعمارية الفنية والتقنية
-3. **[03-setup-and-run.md](./docs/03-setup-and-run.md)** - إعداد وتشغيل المشروع محلياً
-4. **[04-backend-guide.md](./docs/04-backend-guide.md)** - دليل شامل للواجهة الخلفية
-5. **[05-frontend-guide.md](./docs/05-frontend-guide.md)** - دليل شامل للواجهة الأمامية
-6. **[06-database-guide.md](./docs/06-database-guide.md)** - دليل قاعدة البيانات و Prisma
-7. **[07-deployment-operations.md](./docs/07-deployment-operations.md)** - النشر والتشغيل الإنتاجي
-8. **[08-api-map.md](./docs/08-api-map.md)** - خريطة الـ API والوحدات
-9. **[09-troubleshooting.md](./docs/09-troubleshooting.md)** - استكشاف الأعطال وإصلاحها
+1. **[01-project-overview.md](./01-project-overview.md)** - نظرة عامة شاملة على المشروع
+2. **[02-architecture.md](./02-architecture.md)** - المعمارية الفنية والتقنية
+3. **[03-setup-and-run.md](./03-setup-and-run.md)** - إعداد وتشغيل المشروع محلياً
+4. **[04-backend-guide.md](./04-backend-guide.md)** - دليل شامل للواجهة الخلفية
+5. **[05-frontend-guide.md](./05-frontend-guide.md)** - دليل شامل للواجهة الأمامية
+6. **[06-database-guide.md](./06-database-guide.md)** - دليل قاعدة البيانات و Prisma
+7. **[07-deployment-operations.md](./07-deployment-operations.md)** - النشر والتشغيل الإنتاجي
+8. **[08-api-map.md](./08-api-map.md)** - خريطة الـ API والوحدات
+9. **[09-troubleshooting.md](./09-troubleshooting.md)** - استكشاف الأعطال وإصلاحها
 
 ### 🎯 Key Documentation Features:
 - **AI-Friendly:** Designed for AI model comprehension
@@ -146,71 +146,47 @@ A detailed, AI-friendly Arabic documentation set is available under [`docs/`](./
 ## 🛠 How to run locally / كيف تشغل المشروع محلياً
 
 ### 📋 Prerequisites / المتطلبات الأساسية:
-- Node.js 20+ 
-- PostgreSQL (recommended) or SQLite
-- Redis (for caching)
+- Go 1.25+
+- Node.js 20+
+- Docker (لتشغيل PostgreSQL 15 و Redis 7)
 - Git
 
-### 1️⃣ Installation / التثبيت:
+### 1️⃣ Services / الخدمات:
 ```bash
-# Clone the repository
-git clone https://github.com/your-org/ray-eg.git
-cd ray-eg
+# PostgreSQL 15 على localhost:5433 (يوزر ray_user)
+# Redis 7 على localhost:6379
+# راجع gobackend/docker-compose.yml وملف gobackend/.env.example
+```
 
-# Install dependencies
-npm install
+سلسلة الاتصال:
+```
+postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
 ```
 
 ### 2️⃣ Environment Variables / متغيرات البيئة:
 ```bash
-# Copy environment template
-cp .env.example .env.local
+# Backend (Go) — راجع gobackend/.env.example
+# DB_MIGRATE_ON_BOOT=true  (لتطبيق هجرات golang-migrate عند الإقلاع)
 
-# Important variables to configure:
-# - JWT_SECRET (minimum 32 characters)
-# - DATABASE_URL (PostgreSQL or SQLite)
-# - GEMINI_API_KEY (for AI features)
-# - REDIS_URL (for caching)
-# - CORS_ORIGIN (frontend URLs)
-# - MEDIA_STORAGE_MODE (local or s3)
+# Frontend (تطبيقات apps/* الثلاثة)
+BACKEND_URL=http://localhost:4000
+NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
 ```
 
-### 3️⃣ Database Setup / إعداد قاعدة البيانات:
+### 3️⃣ Start Backend / تشغيل الواجهة الخلفية:
+- نقطة الدخول: `gobackend/cmd/api/main.go` (التجميع في `gobackend/internal/app/app.go`)
+- الهجرات من `gobackend/migrations/` تُطبق تلقائياً عند الإقلاع عندما تكون `DB_MIGRATE_ON_BOOT` مفعّلة
+- عامل المهام الخلفية: `gobackend/cmd/worker` (asynq + Redis)
+
+### 4️⃣ Start Frontend / تشغيل الواجهة الأمامية:
+- التطبيقات الثلاثة في `apps/`: `marketplace-next` (المتجر)، `dashboard-web` (لوحة التحكم)، `business` (بوابة التجار)
+- كل تطبيق يحوّل `/api/:path*` إلى `BACKEND_URL` عبر `apps/*/next.config.mjs` — كود المتصفح ينادي مسارات `/api/...` نسبية فقط
+
+### 5️⃣ Verify Installation / التحقق من التثبيت:
 ```bash
-# Generate Prisma client
-npm run prisma:generate
-
-# Push schema to database
-npm run prisma:push
-
-# Seed initial data (optional)
-npm run prisma:seed
-```
-
-### 4️⃣ Start Backend / تشغيل الواجهة الخلفية:
-```bash
-# Start development server
-npm run backend:dev
-
-# Backend will be available at http://localhost:4000
-# Health check: http://localhost:4000/api/v1/health
-```
-
-### 5️⃣ Start Frontend / تشغيل الواجهة الأمامية:
-```bash
-# Start development server
-npm run dev
-
-# Frontend will be available at http://localhost:5174
-```
-
-### 6️⃣ Verify Installation / التحقق من التثبيت:
-```bash
-# Check backend health
-curl http://localhost:4000/api/v1/health
-
-# Open frontend in browser
-# Navigate to http://localhost:5174
+# Backend status and health
+curl http://localhost:4000/api/v1/status
+curl http://localhost:4000/monitoring/live
 ```
 
 ---
@@ -220,64 +196,36 @@ curl http://localhost:4000/api/v1/health
 ### 📁 Project Structure / هيكل المشروع:
 ```
 ray-eg/
-├── src/                    # Frontend source
-│   ├── components/        # React components
-│   ├── pages/            # Page components
-│   ├── hooks/            # Custom hooks
-│   ├── services/         # API services
-│   ├── store/            # Redux store
-│   └── utils/            # Utility functions
-├── backend/               # Backend source
-│   ├── src/              # NestJS source
-│   ├── prisma/           # Database schema
-│   └── test/             # Backend tests
-├── docs/                  # Documentation
-├── public/                # Static assets
-└── scripts/               # Build and deployment scripts
-```
-
-### 🔧 Development Commands / أوامر التطوير:
-```bash
-# Frontend commands
-npm run dev              # Start frontend dev server
-npm run build            # Build for production
-npm run preview          # Preview production build
-npm run test             # Run frontend tests
-npm run lint             # Lint frontend code
-
-# Backend commands
-npm run backend:dev      # Start backend dev server
-npm run backend:build    # Build backend for production
-npm run backend:start    # Start backend production
-npm run test:e2e         # Run backend tests
-
-# Database commands
-npm run prisma:generate  # Generate Prisma client
-npm run prisma:push      # Push schema to database
-npm run prisma:studio    # Open Prisma Studio
-npm run prisma:seed      # Seed database
-
-# Testing commands
-npm run test             # Run all tests
-npm run test:watch       # Run tests in watch mode
-npm run test:coverage    # Generate coverage report
+├── apps/                   # Frontend apps (Next.js)
+│   ├── marketplace-next/  # المتجر
+│   ├── dashboard-web/     # لوحة التحكم
+│   └── business/          # بوابة التجار
+├── gobackend/              # Backend الوحيد (Go 1.25 + Fiber v2.52.5)
+│   ├── cmd/api/main.go    # نقطة الدخول
+│   ├── cmd/worker/        # عامل المهام الخلفية (asynq)
+│   ├── internal/app/      # تجميع التطبيق
+│   ├── internal/modules/  # موديولات الدومين الـ 29
+│   └── migrations/        # هجرات SQL (golang-migrate)
+├── _archive/               # كود NestJS القديم (مرجع فقط — لا يُستخدم)
+├── docs/                   # Documentation
+└── scripts/                # Build and deployment scripts
 ```
 
 ### 🎨 Frontend Development / تطوير الواجهة الأمامية:
 - **Component Architecture:** Atomic Design pattern
 - **State Management:** Redux Toolkit + React Query
-- **Routing:** React Router v6 with lazy loading
+- **Routing:** Next.js App Router with lazy loading
+- **Backend Binding:** Relative `/api/...` calls, rewritten to `BACKEND_URL` via `apps/*/next.config.mjs`
+- **Browser Auth:** `localStorage` (`ray_user` / `ray_token` / `token`) + `ray_session` cookie — dev demo login at `/admin/gate` (non-production only)
 - **Styling:** Tailwind CSS with custom theme
 - **Forms:** React Hook Form with validation
-- **Testing:** React Testing Library + Jest
 
 ### 🔧 Backend Development / تطوير الواجهة الخلفية:
-- **Framework:** NestJS with TypeScript
-- **Database:** Prisma ORM with PostgreSQL
-- **Authentication:** JWT with refresh tokens
-- **Validation:** Class-validator with DTOs
-- **Testing:** Jest with Supertest
-- **Documentation:** Swagger/OpenAPI
+- **Framework:** Go 1.25 + Fiber v2.52.5
+- **Database:** PostgreSQL 15 + golang-migrate SQL migrations (no Prisma, no SQLite)
+- **Authentication:** JWT with uppercase roles (`CUSTOMER`/`MERCHANT`/`ADMIN`/`COURIER`/`CASHIER`)
+- **Background Jobs:** asynq worker in `gobackend/cmd/worker` (Redis 7)
+- **Monitoring:** `/monitoring/live`, `/monitoring/ready`, `/metrics`, `/api/v1/status`
 
 ---
 
@@ -285,21 +233,9 @@ npm run test:coverage    # Generate coverage report
 
 ### ⚡ Performance Optimizations / تحسينات الأداء:
 - **Frontend:** Code splitting, lazy loading, image optimization
-- **Backend:** Database indexing, query optimization, caching
+- **Backend:** Database indexing, query optimization, Redis caching
 - **Database:** Connection pooling, read replicas
 - **Network:** CDN, compression, HTTP/2
-
-### 📈 Load Testing / اختبار الحمل:
-```bash
-# Run baseline load test
-npm run loadtest:k6
-
-# Custom load test
-npm run loadtest:k6:custom
-
-# Stress test
-npm run loadtest:k6:stress
-```
 
 ### 🔄 Scaling Strategy / استراتيجية التوسع:
 - **Horizontal Scaling:** Load balancers + multiple instances
@@ -312,18 +248,18 @@ npm run loadtest:k6:stress
 ## 🚀 Deployment / النشر
 
 ### 🌐 Production Deployment / النشر الإنتاجي:
-- **Frontend:** Vercel (recommended) or Netlify
-- **Backend:** Railway (recommended) or AWS ECS
-- **Database:** Managed PostgreSQL (Railway, AWS RDS, Neon)
-- **Cache:** Managed Redis (Railway, AWS ElastiCache)
+- **Frontend:** تطبيقات Next.js الثلاثة (Marketplace / Dashboard / Business)
+- **Backend:** ثنائية Go من `gobackend/` (API + worker)
+- **Database:** Managed PostgreSQL 15
+- **Cache:** Managed Redis 7
 - **Storage:** AWS S3 or similar
 
 ### 📋 Deployment Checklist / قائمة التحقق للنشر:
 - [ ] Environment variables configured
-- [ ] Database migrations applied
+- [ ] Database migrations applied (`gobackend/migrations/`)
 - [ ] SSL certificates installed
-- [ ] Health checks configured
-- [ ] Monitoring set up
+- [ ] Health checks configured (`/monitoring/live`, `/monitoring/ready`)
+- [ ] Monitoring set up (`/metrics`)
 - [ ] Backup strategy implemented
 - [ ] Load testing completed
 - [ ] Security audit performed
@@ -334,33 +270,26 @@ npm run loadtest:k6:stress
 
 ### 🌍 Environment Variables / متغيرات البيئة:
 ```bash
-# Core Application
-NODE_ENV=development
+# Backend (Go 1.25 + Fiber) — راجع gobackend/.env.example
 PORT=4000
-BACKEND_PORT=4000
 
-# Database
-DATABASE_URL="postgresql://user:pass@localhost:5432/ray_eg"
-DIRECT_URL="postgresql://user:pass@localhost:5432/ray_eg"
+# Database — PostgreSQL 15 على localhost:5433
+DATABASE_URL="postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable"
+DB_MIGRATE_ON_BOOT=true
 
-# Security
+# Security — JWT بأدوار كبيرة: CUSTOMER/MERCHANT/ADMIN/COURIER/CASHIER
 JWT_SECRET="your-super-secure-jwt-secret"
-REFRESH_TOKEN_SECRET="your-refresh-token-secret"
 BCRYPT_ROUNDS=12
 
-# Frontend
-FRONTEND_URL="http://localhost:5174"
-CORS_ORIGIN="http://localhost:5174"
+# Frontend — عنوان الباك إند الذي يستخدمه الـ rewrite في apps/*/next.config.mjs
+BACKEND_URL="http://localhost:4000"
+NEXT_PUBLIC_BACKEND_URL="http://localhost:4000"
+
+# Cache — Redis 7 على localhost:6379
+REDIS_URL="redis://localhost:6379"
 
 # AI Services
 GEMINI_API_KEY="your-gemini-api-key"
-
-# Cache
-REDIS_URL="redis://localhost:6379"
-
-# Storage
-MEDIA_STORAGE_MODE="local"
-UPLOAD_DIR="./uploads"
 
 # Email
 SMTP_HOST="smtp.sendgrid.net"
@@ -370,10 +299,10 @@ SMTP_PASS="your-sendgrid-api-key"
 ```
 
 ### 🔐 Security Configuration / إعدادات الأمان:
-- **Authentication:** JWT with refresh tokens
+- **Authentication:** JWT with refresh tokens (uppercase roles)
 - **Authorization:** Role-based access control (RBAC)
 - **Input Validation:** Comprehensive input validation
-- **Rate Limiting:** API rate limiting
+- **Rate Limiting:** API rate limiting (Redis-backed)
 - **CORS:** Proper CORS configuration
 - **HTTPS:** SSL/TLS encryption
 
@@ -388,30 +317,13 @@ SMTP_PASS="your-sendgrid-api-key"
 - **Performance Tests:** Load and stress testing
 - **Security Tests:** Vulnerability scanning
 
-### 🧪 Testing Commands / أوامر الاختبار:
-```bash
-# Run all tests
-npm run test
-
-# Run specific test suites
-npm run test:unit
-npm run test:integration
-npm run test:e2e
-
-# Generate coverage report
-npm run test:coverage
-
-# Run tests in watch mode
-npm run test:watch
-```
-
 ---
 
 ## 📊 Monitoring & Analytics / المراقبة والتحليلات
 
 ### 📈 Application Monitoring / مراقبة التطبيق:
-- **Health Checks:** Application and service health
-- **Performance Metrics:** Response times, error rates
+- **Health Checks:** `/monitoring/live` و`/monitoring/ready` و`/api/v1/status`
+- **Performance Metrics:** `/metrics` — response times, error rates
 - **Business Metrics:** User activity, conversion rates
 - **System Metrics:** CPU, memory, disk usage
 
@@ -433,7 +345,8 @@ npm run test:watch
 5. Submit a pull request
 
 ### 📝 Code Standards / معايير الكود:
-- **TypeScript:** Strict mode enabled
+- **TypeScript:** Strict mode enabled (frontend)
+- **Go:** gofmt + vet clean (backend)
 - **ESLint:** Configured with recommended rules
 - **Prettier:** Code formatting
 - **Husky:** Git hooks for quality checks

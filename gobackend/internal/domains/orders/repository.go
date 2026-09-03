@@ -103,6 +103,68 @@ func (r *Repository) ListByUserID(ctx context.Context, userID string, limit, off
 	return r.scanOrders(ctx, rows)
 }
 
+// countOrders returns the total count of orders matching the provided filters.
+// It centralizes the WHERE logic so counts always match list queries.
+func (r *Repository) countOrders(ctx context.Context, where string, args []any) (int64, error) {
+	query := "SELECT COUNT(*) FROM orders o WHERE " + where
+	var total int64
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&total)
+	if err != nil {
+		return 0, errors.Internal("count_orders_failed", err)
+	}
+	return total, nil
+}
+
+// CountByShop returns the total count of orders for a shop within an optional date range.
+func (r *Repository) CountByShop(ctx context.Context, shopID string, from, to *time.Time) (int64, error) {
+	filters := "o.shop_id = $1"
+	args := []any{shopID}
+	idx := 2
+	if from != nil {
+		filters += fmt.Sprintf(" AND o.created_at >= $%d", idx)
+		args = append(args, *from)
+		idx++
+	}
+	if to != nil {
+		filters += fmt.Sprintf(" AND o.created_at <= $%d", idx)
+		args = append(args, *to)
+		idx++
+	}
+	return r.countOrders(ctx, filters, args)
+}
+
+// CountAllAdmin returns the total count of orders across all shops with optional filters.
+func (r *Repository) CountAllAdmin(ctx context.Context, shopID string, from, to *time.Time) (int64, error) {
+	filters := "1=1"
+	args := []any{}
+	idx := 1
+	if shopID != "" {
+		filters += fmt.Sprintf(" AND o.shop_id = $%d", idx)
+		args = append(args, shopID)
+		idx++
+	}
+	if from != nil {
+		filters += fmt.Sprintf(" AND o.created_at >= $%d", idx)
+		args = append(args, *from)
+		idx++
+	}
+	if to != nil {
+		filters += fmt.Sprintf(" AND o.created_at <= $%d", idx)
+		args = append(args, *to)
+		idx++
+	}
+	return r.countOrders(ctx, filters, args)
+}
+
+// CountByCourier returns the total count of orders assigned to a courier.
+func (r *Repository) CountByCourier(ctx context.Context, courierID string) (int64, error) {
+	return r.countOrders(ctx, "o.courier_id = $1", []any{courierID})
+}
+
+// CountByUserID returns the total count of orders placed by a customer.
+func (r *Repository) CountByUserID(ctx context.Context, userID string) (int64, error) {
+	return r.countOrders(ctx, "o.user_id = $1", []any{userID})
+}
 // CreateOrder inserts an order and its items in a transaction, optionally decrementing stock.
 func (r *Repository) CreateOrder(ctx context.Context, order *Order, decrementStock bool) (*Order, error) {
 	tx, err := r.pool.Begin(ctx)

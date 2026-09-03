@@ -33,7 +33,6 @@ func (r *Repository) FindByIDWithInactive(ctx context.Context, id string) (*Prod
 	return r.FindByID(ctx, id)
 }
 
-
 // listOptions combines shop-scoped + filter + paging params.
 type listOptions struct {
 	ShopID    string
@@ -57,9 +56,7 @@ func buildWhere(opts listOptions) (string, []any) {
 		i++
 	}
 	if opts.Active {
-		clauses = append(clauses, fmt.Sprintf("p.is_active = $%d", i))
-		args = append(args, true)
-		i++
+		clauses = append(clauses, "p.is_active = true")
 	}
 
 	f := opts.Filter
@@ -92,10 +89,10 @@ func buildWhere(opts listOptions) (string, []any) {
 	}
 
 	if strings.TrimSpace(f.Search) != "" {
-		clauses = append(clauses, fmt.Sprintf("(p.name ILIKE $%d OR p.description ILIKE $%d)", i, i+1))
+		clauses = append(clauses, fmt.Sprintf("(p.name ILIKE $%d OR p.description ILIKE $%d)", i, i))
 		pat := "%" + strings.TrimSpace(f.Search) + "%"
-		args = append(args, pat, pat)
-		i += 2
+		args = append(args, pat)
+		i++
 	}
 
 	if len(clauses) == 0 {
@@ -107,15 +104,15 @@ func buildWhere(opts listOptions) (string, []any) {
 func orderBySQL(sort string) string {
 	switch sort {
 	case "price_asc":
-		return "p.price ASC NULLS LAST"
+		return "ORDER BY p.price ASC NULLS LAST"
 	case "price_desc":
-		return "p.price DESC NULLS LAST"
+		return "ORDER BY p.price DESC NULLS LAST"
 	case "name":
-		return "p.name ASC"
+		return "ORDER BY p.name ASC"
 	case "oldest":
-		return "p.created_at ASC"
+		return "ORDER BY p.created_at ASC"
 	default:
-		return "p.created_at DESC"
+		return "ORDER BY p.created_at DESC"
 	}
 }
 
@@ -123,14 +120,14 @@ func orderBySQL(sort string) string {
 func (r *Repository) ListByShop(ctx context.Context, shopID string, limit, offset int, f ProductFilter) ([]Product, error) {
 	opts := listOptions{ShopID: shopID, Active: true, Limit: limit, Offset: offset, Filter: f}
 	where, args := buildWhere(opts)
-	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+	query := selectProduct + " WHERE " + where + " " + orderBySQL(f.Sort) +
 		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 	args = append(args, limit, offset)
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, errors.Internal("list_products_failed", err)
 	}
-		defer rows.Close()
+	defer rows.Close()
 	return scanProducts(rows)
 }
 
@@ -151,7 +148,7 @@ func (r *Repository) CountByShop(ctx context.Context, shopID string, f ProductFi
 func (r *Repository) ListAllActive(ctx context.Context, limit, offset int, f ProductFilter) ([]Product, error) {
 	opts := listOptions{Active: true, Limit: limit, Offset: offset, Filter: f}
 	where, args := buildWhere(opts)
-	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+	query := selectProduct + " WHERE " + where + " " + orderBySQL(f.Sort) +
 		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 	args = append(args, limit, offset)
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -180,7 +177,7 @@ func (r *Repository) ListByShopForManage(ctx context.Context, shopID string, lim
 	f.IncludeImageMap = includeImageMap
 	opts := listOptions{ShopID: shopID, Limit: limit, Offset: offset, Filter: f}
 	where, args := buildWhere(opts)
-	query := selectProduct + " WHERE " + where + " ORDER BY " + orderBySQL(f.Sort) +
+	query := selectProduct + " WHERE " + where + " " + orderBySQL(f.Sort) +
 		fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 	args = append(args, limit, offset)
 	rows, err := r.pool.Query(ctx, query, args...)

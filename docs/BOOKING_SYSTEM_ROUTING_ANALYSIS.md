@@ -1,5 +1,7 @@
 # Booking System Routing Analysis
 
+> ⚠️ أرشيف تاريخي: يصف إصلاحات على باك NestJS المتقاعد (حُذف 2026-08-24). المرجع الحالي هو `gobackend/` (Go/Fiber).
+
 ## Executive Summary
 
 This document analyzes the booking system routing confusion in the Ray application and documents the fixes implemented to consolidate all booking functionality under the main merchant dashboard.

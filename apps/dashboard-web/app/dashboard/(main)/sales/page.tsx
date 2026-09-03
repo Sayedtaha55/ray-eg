@@ -288,7 +288,7 @@ export default function SalesPage() {
     setError('');
     try {
       const { orders } = await fetchMyOrders({ limit: 200 });
-      setOrders(Array.isArray(orders) ? orders : []);
+      setOrders((Array.isArray(orders) ? orders : []) as Order[]);
     } catch (err: any) {
       setError(err?.message || 'فشل تحميل الطلبات');
     } finally {

@@ -13,8 +13,26 @@ type Shop = {
   id?: string;
   name?: string;
   layoutConfig?: {
-    enabledModules?: Array<{ id?: string; moduleId?: string; key?: string } | string>;
+    enabledFeatures?: Record<string, string[]>;
   };
+};
+
+const DEFAULT_FEATURES: Record<string, string[]> = {
+  sales: ['orders'],
+  inventory: ['products'],
+  finance: ['invoice'],
+  crm: ['customers'],
+  pos: ['posCheckout'],
+};
+
+const FEATURE_ALIASES: Record<string, string> = {
+  sales: 'orders',
+  addProduct: 'products',
+  'my-site': 'website',
+};
+
+const MODULE_ALIASES: Record<string, string> = {
+  customers: 'crm',
 };
 
 export default function Sidebar({ onClose }: { onClose?: () => void }) {
@@ -26,6 +44,16 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const [shop, setShop] = useState<Shop | null>(null);
 
   useEffect(() => {
+    const handleModulesChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ enabledFeatures?: Record<string, string[]> }>).detail;
+      if (detail?.enabledFeatures) {
+        setShop((current) => ({
+          ...(current || {}),
+          layoutConfig: { ...(current?.layoutConfig || {}), enabledFeatures: detail.enabledFeatures },
+        }));
+      }
+    };
+    window.addEventListener('merchant-modules-changed', handleModulesChanged);
     let cancelled = false;
     (async () => {
       try {
@@ -36,20 +64,18 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
         if (!cancelled) setShop(null);
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+      window.removeEventListener('merchant-modules-changed', handleModulesChanged);
+    };
   }, []);
 
-  const enabledModules = useMemo(() => {
-    const DEFAULT_MODULES = ['sales', 'inventory', 'crm', 'finance', 'marketing', 'bookings', 'reservations'];
-    if (!shop?.layoutConfig) return new Set<string>(DEFAULT_MODULES);
-    const raw = shop.layoutConfig?.enabledModules;
-    if (!Array.isArray(raw)) return new Set<string>(DEFAULT_MODULES);
-    const set = new Set(
-      raw.map((x: any) => String(x?.id ?? x?.moduleId ?? x?.key ?? x ?? '').trim().toLowerCase()).filter(Boolean)
-    );
-    if (set.has('reservations')) set.add('bookings');
-    if (set.has('bookings')) set.add('reservations');
-    return set;
+  const enabledFeatures = useMemo(() => {
+    const saved = shop?.layoutConfig?.enabledFeatures;
+    const source = saved && typeof saved === 'object' ? saved : DEFAULT_FEATURES;
+    return Object.fromEntries(Object.entries(source).map(([moduleId, features]) => [
+      moduleId.toLowerCase(), new Set((Array.isArray(features) ? features : []).map((feature) => String(feature).toLowerCase())),
+    ])) as Record<string, Set<string>>;
   }, [shop]);
 
   const handleLogout = () => {
@@ -59,16 +85,26 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const isSectionView = activeSection !== null;
   const visibleSections: SidebarSection[] = useMemo(() => {
-    const filtered = sidebarSections.filter((section) => {
+    const filtered = sidebarSections.map((section) => {
       // Always show dashboard and settings
-      if (section.id === 'dashboard' || section.id === 'settings') return true;
-      // For module-based sections, check if module is enabled
+      if (section.id === 'dashboard' || section.id === 'settings') return section;
+      if (!section.moduleId) return section;
+
+      const moduleId = (MODULE_ALIASES[section.moduleId.toLowerCase()] || section.moduleId).toLowerCase();
+      const activeFeatures = enabledFeatures[moduleId] || new Set<string>();
+      const items = section.items.filter((item) => {
+        const featureId = (FEATURE_ALIASES[item.id] || item.id).toLowerCase();
+        return activeFeatures.has(featureId);
+      });
+      if (items.length === 0) return null;
+      return { ...section, items };
+    }).filter((section): section is SidebarSection => Boolean(section)).filter((section) => {
       if (section.moduleId) {
         const mod = section.moduleId.toLowerCase();
         if (mod === 'bookings' || mod === 'reservations') {
-          return enabledModules.has('bookings') || enabledModules.has('reservations');
+          return (enabledFeatures.bookings?.size || 0) > 0 || (enabledFeatures.reservations?.size || 0) > 0;
         }
-        return enabledModules.has(mod);
+        return section.items.length > 0;
       }
       return true;
     });
@@ -76,7 +112,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
     return isSectionView
       ? filtered.filter((s) => s.id === activeSection)
       : filtered;
-  }, [isSectionView, activeSection, enabledModules]);
+  }, [isSectionView, activeSection, enabledFeatures]);
 
   const isActive = (href: string) => {
     // For settings page, check if the tab parameter matches

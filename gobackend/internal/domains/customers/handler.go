@@ -30,6 +30,9 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	customers.Get("/", middleware.RequireAuth(h.config), h.ListCustomers)
 	customers.Get("/:id", middleware.RequireAuth(h.config), h.GetCustomerByID)
 	customers.Get("/:id/stats", middleware.RequireAuth(h.config), h.GetCustomerStats)
+
+	// Dashboard CRM routes (segments & tags) under /shops/:shopId/...
+	h.RegisterSegmentsTagsRoutes(app)
 }
 
 // ListCustomers handles listing all customers

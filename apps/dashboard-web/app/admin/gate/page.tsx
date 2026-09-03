@@ -151,7 +151,8 @@ export default function AdminGatePage() {
 
   const persistDevSession = (data: any) => {
     const user = data?.user || data?.data?.user || { id: data?.id, email: data?.email, name: data?.name, role: data?.role };
-    const token = data?.access_token || data?.accessToken || data?.token || data?.session?.access_token;
+    const rawToken = data?.access_token || data?.accessToken || data?.data?.token?.accessToken || data?.data?.token?.access_token || data?.data?.accessToken || data?.data?.access_token || data?.token || data?.session?.access_token;
+    const token = typeof rawToken === 'string' ? rawToken : rawToken?.accessToken || rawToken?.access_token;
     if (user && user.id) {
       localStorage.setItem('ray_user', JSON.stringify(user));
       if (token) {

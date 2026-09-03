@@ -9,37 +9,41 @@
 - **Processor:** Modern multi-core processor (Intel i5/AMD Ryzen 5 أو أحدث)
 
 **Software Requirements:**
-- **Node.js:** الإصدار 18.x LTS أو 20.x LTS (موصى به 20.x)
+- **Go:** الإصدار 1.25 (للباكند `gobackend/`)
+- **Node.js:** الإصدار 18.x LTS أو 20.x LTS (للواجهات الأمامية وسكربتات الجذر)
 - **npm:** الإصدار 9.x أو أحدث (يأتي مع Node.js)
 - **Git:** للتحكم في الإصدارات
+- **Docker + Docker Compose:** لتشغيل PostgreSQL وRedis محليًا
 - **VS Code:** محرر الأكواد الموصى به (مع extensions المذكورة لاحقاً)
 
 ### 3.1.2 قواعد البيانات (Database Requirements)
-**PostgreSQL (Production-like Development):**
+**PostgreSQL (قاعدة البيانات الوحيدة — لا Prisma ولا SQLite):**
 - **Version:** PostgreSQL 14+ أو 15+
 - **Tools:** pgAdmin 4 أو DBeaver للإدارة
-- **Connection:** Local أو Docker-based PostgreSQL
+- **Connection:** عبر Docker Compose من داخل `gobackend/`
+- **المنفذ المحلي:** `5433:5432` (حسب `gobackend/docker-compose.yml`)
+- **Connection string الافتراضي:**
+```bash
+DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
+```
 
-**SQLite (Quick Development):**
-- **Version:** SQLite 3.35+ (مدمج مع Node.js)
-- **Tools:** DB Browser for SQLite
-- **Use Case:** التطوير السريع والاختبار
-
-**Redis (Optional but Recommended):**
+**Redis:**
 - **Version:** Redis 6.x أو 7.x
-- **Use Case:** Caching, sessions, background jobs
-- **Installation:** Docker أو native installation
+- **Use Case:** Caching, sessions, rate limiting, idempotency
+- **المنفذ المحلي:** `6379:6379` (حسب `gobackend/docker-compose.yml`)
+- **الإعداد عبر:** `REDIS_HOST` / `REDIS_PORT`
+
+> لا يوجد SQLite في المشروع. أي ذكر قديم لـ `file:./dev.db` أو `schema-sqlite.prisma` محذوف وغير مدعوم.
 
 ### 3.1.3 الأدوات المساعدة (Development Tools)
 **Recommended VS Code Extensions:**
 ```json
 {
   "recommendations": [
+    "golang.go",
     "bradlc.vscode-tailwindcss",
     "esbenp.prettier-vscode",
     "dbaeumer.vscode-eslint",
-    "ms-vscode.vscode-typescript-next",
-    "prisma.prisma",
     "ms-vscode.vscode-json",
     "formulahendry.auto-rename-tag",
     "christian-kohler.path-intellisense",
@@ -51,7 +55,6 @@
 **Browser Tools:**
 - **Chrome DevTools:** للـ debugging والـ performance analysis
 - **React Developer Tools:** لتطوير React
-- **Redux DevTools:** (إذا تم استخدام Redux)
 
 ## 3.2 الإعداد الأولي للمشروع (Initial Setup)
 
@@ -63,218 +66,141 @@ git clone https://github.com/Sayedtaha55/ray-eg.git
 cd ray-eg
 ```
 
-**2. تثبيت الاعتماديات:**
+**2. تثبيت اعتماديات الباكند (Go):**
 ```bash
-# تثبيت جميع الاعتماديات للواجهة الأمامية والخلفية
-npm install
-
-# أو إذا واجهت مشاكل، استخدم:
-npm ci --force
+cd gobackend
+go mod download
+go version  # يجب أن يكون 1.25
 ```
 
-**3. التحقق من التثبيت:**
+**3. تثبيت اعتماديات الواجهات (Node — عند الحاجة):**
 ```bash
-# التحقق من إصدارات Node.js و npm
-node --version  # يجب أن يكون 18.x أو 20.x
-npm --version   # يجب أن يكون 9.x أو أحدث
+# من جذر المشروع
+npm install
+```
 
-# التحقق من الاعتماديات المثبتة
-npm list --depth=0
+**4. التحقق من التثبيت:**
+```bash
+go version
+docker --version
+docker compose version
+node --version
+npm --version
 ```
 
 ### 3.2.2 إعداد البيئة (Environment Setup)
 
-**1. إنشاء ملفات البيئة:**
-```bash
-# نسخ ملف المثال
-cp .env.example .env
+**1. ملف البيئة للباكند:**
+الباكند يقرأ الإعداد من متغيرات البيئة عبر `gobackend/internal/config/config.go`، وملف `.env` مدعوم محليًا.
 
-# إنشاء ملفات البيئة المحلية (إذا لم تكن موجودة)
-touch .env.local
-```
-
-**2. إعدادات البيئة الأساسية:**
 ```bash
-# .env file - المتغيرات الأساسية
-NODE_ENV=development
+# gobackend/.env — مثال للتطوير المحلي
 PORT=4000
-BACKEND_PORT=4000
-
-# قاعدة البيانات
-DATABASE_URL="postgresql://username:password@localhost:5432/ray_eg_dev"
-# أو لـ SQLite:
-# DATABASE_URL="file:./dev.db"
-
-# المصادقة
-JWT_SECRET="your-super-secret-jwt-key-here"
-JWT_EXPIRES_IN="7d"
-REFRESH_TOKEN_SECRET="your-refresh-token-secret"
-
-# الواجهة الأمامية
-VITE_BACKEND_URL="http://localhost:4000"
-VITE_API_BASE_URL="http://localhost:4000/api/v1"
-FRONTEND_URL="http://localhost:5174"
+HOST=0.0.0.0
+APP_ENV=development
+DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
+REDIS_HOST=localhost
+REDIS_PORT=6379
+JWT_SECRET="your-32-plus-character-super-secret-jwt-key-here"
 FRONTEND_APP_URL="http://localhost:5174"
-
-# CORS
 CORS_ORIGIN="http://localhost:5174,http://localhost:3000"
-
-# Redis (اختياري)
-REDIS_URL="redis://localhost:6379"
-
-# خدمات خارجية
-GEMINI_API_KEY="your-gemini-api-key"
-GOOGLE_CLIENT_ID="your-google-oauth-client-id"
-GOOGLE_CLIENT_SECRET="your-google-oauth-client-secret"
-
-# التخزين
-MEDIA_STORAGE_MODE="local" # أو "s3"
-UPLOAD_DIR="./uploads"
-MAX_FILE_SIZE="10485760" # 10MB
-
-# البريد الإلكتروني (اختياري)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
+DB_MIGRATE_ON_BOOT=true
+ALLOW_DEV_MERCHANT_BOOTSTRAP=true
+ALLOW_DEV_COURIER_BOOTSTRAP=true
+ALLOW_DEV_CUSTOMER_BOOTSTRAP=true
 ```
 
-**3. إعدادات البيئة المحلية (.env.local):**
-```bash
-# .env.local - متغيرات محلية (لا ترفع للـ git)
-NODE_ENV=development
-DEBUG=true
-LOG_LEVEL="debug"
+**2. أهم المتغيرات:**
+| المتغير | القيمة الافتراضية / المثال | الوصف |
+|---|---|---|
+| `PORT` | `4000` | منفذ Fiber |
+| `HOST` | `0.0.0.0` | عنوان الاستماع |
+| `APP_ENV` | `development` | بيئة التشغيل |
+| `DATABASE_URL` | `postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable` | اتصال PostgreSQL |
+| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | اتصال Redis |
+| `JWT_SECRET` | (32+ حرف) | توقيع JWT HS256 |
+| `FRONTEND_APP_URL` | رابط الواجهة | يستخدم في الروابط والـ CORS |
+| `CORS_ORIGIN` | قائمة مفصولة بفواصل | المصادر المسموحة |
+| `DB_MIGRATE_ON_BOOT` | `true` | تطبيق الهجرات عند الإقلاع |
+| `ALLOW_DEV_*_BOOTSTRAP` | (للتطوير فقط) | تفعيل مسارات `dev-*-login` |
 
-# بيانات التطوير المحلية
-DEV_ADMIN_EMAIL="admin@ray-eg.com"
-DEV_ADMIN_PASSWORD="admin123"
-
-# إعدادات التطوير
-MINIMAL_BOOT=false
-BOOT_MODULES="auth,shop,product,order"
-```
+> متغيرات `ALLOW_DEV_*_BOOTSTRAP` للتطوير فقط ولا تُفعَّل في الإنتاج.
 
 ## 3.3 إعداد قاعدة البيانات (Database Setup)
 
-### 3.3.1 PostgreSQL Setup
+### 3.3.1 PostgreSQL + Redis عبر Docker
 
-**1. تثبيت PostgreSQL:**
+**1. تشغيل الاعتماديات (من داخل `gobackend/`):**
 ```bash
-# Ubuntu/Debian
-sudo apt update
-sudo apt install postgresql postgresql-contrib
-
-# macOS (باستخدام Homebrew)
-brew install postgresql
-brew services start postgresql
-
-# Windows
-# تحميل وتثبيت من postgresql.org
+cd gobackend
+docker compose up -d postgres redis
 ```
 
-**2. إنشاء قاعدة البيانات:**
-```bash
-# الدخول لـ PostgreSQL
-sudo -u postgres psql
+هذا يستخدم `gobackend/docker-compose.yml`:
+- بوستجريس: `5433:5432`
+- رديس: `6379:6379`
 
-# إنشاء المستخدم وقاعدة البيانات
-CREATE USER ray_eg_user WITH PASSWORD 'your_password';
-CREATE DATABASE ray_eg_dev OWNER ray_eg_user;
-GRANT ALL PRIVILEGES ON DATABASE ray_eg_dev TO ray_eg_user;
-\q
+**2. التحقق من الحاويات:**
+```bash
+docker compose ps
+docker compose logs postgres
+docker compose logs redis
 ```
 
 **3. التحقق من الاتصال:**
 ```bash
-# اختبار الاتصال بقاعدة البيانات
-psql -h localhost -U ray_eg_user -d ray_eg_dev
-```
+# PostgreSQL
+psql "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" -c "SELECT 1;"
 
-### 3.3.2 SQLite Setup (Quick Start)
-
-**1. لا حاجة للتثبيت (مدمج):**
-```bash
-# SQLite جاهز مع Node.js
-# فقط تأكد من DATABASE_URL في .env
-DATABASE_URL="file:./dev.db"
-```
-
-### 3.3.3 Redis Setup (Optional)
-
-**1. تثبيت Redis:**
-```bash
-# Ubuntu/Debian
-sudo apt install redis-server
-
-# macOS
-brew install redis
-brew services start redis
-
-# Windows
-# تحميل من redis.io أو استخدام Docker
-docker run -d -p 6379:6379 redis:latest
-```
-
-**2. التحقق من Redis:**
-```bash
-redis-cli ping
+# Redis
+redis-cli -p 6379 ping
 # يجب أن تعود بـ "PONG"
 ```
 
-### 3.3.4 إعداد Prisma
+### 3.3.2 الهجرات (Migrations)
+- الهجرات ملفات SQL مرقمة في `gobackend/migrations/` (حتى `000049_*`).
+- تُطبَّق عبر golang-migrate.
+- عند `DB_MIGRATE_ON_BOOT=true` تُطبَّق تلقائيًا عند إقلاع الباكند.
+- التفاصيل الكاملة في `docs/06-database-guide.md`.
 
-**1. توليد Prisma Client:**
-```bash
-npm run prisma:generate
-```
-
-**2. مزامنة قاعدة البيانات:**
-```bash
-# للتطوير (يحذف البيانات)
-npm run prisma:push
-
-# للإنتاج (يحافظ على البيانات)
-npm run prisma:migrate:deploy
-```
-
-**3. ملء البيانات الأولية (Seeding):**
-```bash
-npm run prisma:seed
-```
-
-**4. التحقق من قاعدة البيانات:**
-```bash
-# عرض قاعدة البيانات
-npm run prisma:studio
-
-# التحقق من الـ schema
-npm run prisma:validate
-```
+### 3.3.3 لا Prisma ولا SQLite
+- لا يوجد `prisma generate` / `prisma studio` / `prisma client` / `schema.prisma`.
+- لا يوجد `file:./dev.db`.
+- كود المستودعات مكتوب يدويًا بـ pgx/v5 (مع `sqlc.yaml` اختياري).
 
 ## 3.4 تشغيل الخدمات (Running Services)
 
-> **ملاحظة مهمة:** المشروع مقسم إلى تطبيقين منفصلين. كل تطبيق له مجلده الخاص وأوامره الخاصة.
+> **ملاحظة مهمة:** الباكند Go واحد (`gobackend/`) يخدم كل الواجهات. الفرونت يتصل به عبر rewrite (انظر 3.4.4).
 
-### 3.4.1 تشغيل الواجهة الخلفية (Backend) — Port 4000
+### 3.4.1 تشغيل الواجهة الخلفية (Backend Go/Fiber) — Port 4000
 
-**1. التشغيل العادي (مستقر):**
+**1. التشغيل المباشر:**
 ```bash
-npm run backend:dev:stable
+cd gobackend
+go run ./cmd/api
 ```
-**النتيجة:** Backend يعمل على `http://localhost:4000`
+نقطة الدخول `gobackend/cmd/api/main.go` (تحمّل `internal/config` ثم `app.New` ثم `Listen`).
 
-**2. تشغيل بموديولات محددة:**
+**2. عبر سكربت الجذر:**
 ```bash
-npm run backend:dev:auth          # Auth فقط
-npm run backend:dev:shop-product  # Shop + Product
-npm run backend:dev:unified       # جميع الموديولات
+npm run go:backend:dev
 ```
 
-**3. التحقق من عمل Backend:**
+**3. البناء والفحص داخل `gobackend/`:**
 ```bash
-curl http://localhost:4000/health
-curl http://localhost:4000/api/v1/auth/session
+cd gobackend
+make build
+make test
+make vet
+```
+
+**4. التحقق من عمل Backend:**
+```bash
+curl http://localhost:4000/monitoring/health
+curl http://localhost:4000/monitoring/ready
+curl http://localhost:4000/monitoring/live
+curl http://localhost:4000/api/v1/status
+curl http://localhost:4000/metrics
 ```
 
 ### 3.4.2 تشغيل Marketplace (Next.js) — Port 5174
@@ -285,10 +211,6 @@ npm run dev
 ```
 **النتيجة:** Marketplace يعمل على `http://localhost:5174`
 
-- Next.js App Router مع SSR لتحسين SEO
-- API proxy تلقائي إلى Backend عبر `next.config.mjs` rewrites
-- `NEXT_PUBLIC_BACKEND_URL` لتحديد عنوان الـ Backend
-
 ### 3.4.3 تشغيل Dashboard (Vite SPA) — Port 3000
 
 ```bash
@@ -297,106 +219,92 @@ npm run dev
 ```
 **النتيجة:** Dashboard يعمل على `http://localhost:3000`
 
-- Vite SPA مع proxy إلى Backend
-- `@` alias يشير إلى `packages/shared/src`
-- يدعم HTTPS تلقائياً إذا وجد `certs/localhost.pem`
+### 3.4.4 اتصال الفرونت بالباك (Rewrite)
+الفرونت يتصل بالباك عبر rewrite:
+```
+/api/:path* → http://localhost:4000
+```
+انظر `apps/dashboard-web/next.config.mjs`.
 
-### 3.4.4 التشغيل المتزامن (Concurrent Development)
+أي أن طلب `GET /api/v1/shops/me` من الفرونت يُحوَّل تلقائيًا إلى `http://localhost:4000/api/v1/shops/me`.
 
-**تشغيل الخدمات الثلاث معاً:**
+### 3.4.5 التشغيل المتزامن (Concurrent Development)
+
 ```bash
-# Terminal 1: Backend
-npm run backend:dev:stable
+# Terminal 1: الاعتماديات
+cd gobackend
+docker compose up -d postgres redis
 
-# Terminal 2: Marketplace (Next.js)
+# Terminal 2: Backend
+cd gobackend
+go run ./cmd/api
+# أو من الجذر: npm run go:backend:dev
+
+# Terminal 3: Marketplace
 cd apps/marketplace-next && npm run dev
 
-# Terminal 3: Dashboard (Vite)
+# Terminal 4: Dashboard
 cd apps/dashboard && npm run dev
 ```
 
-**باستخدام Docker Compose:**
+### 3.4.6 جدول البورتات (Port Reference)
+
+| الخدمة | البورت | المسار | الأمر |
+|---|---|---|---|
+| Backend (Go/Fiber) | 4000 | `gobackend/` | `go run ./cmd/api` أو `npm run go:backend:dev` |
+| PostgreSQL | 5433 (مضيف) → 5432 (حاوية) | `gobackend/docker-compose.yml` | `docker compose up -d postgres` |
+| Redis | 6379 | `gobackend/docker-compose.yml` | `docker compose up -d redis` |
+| Marketplace | 5174 | `apps/marketplace-next/` | `npm run dev` (من داخل المجلد) |
+| Dashboard | 3000 | `apps/dashboard/` | `npm run dev` (من داخل المجلد) |
+| Electron | — | `electron/` | `npm run electron:dev` |
+
+## 3.5 أوضاع التشغيل (Boot Modes)
+
+### 3.5.1 الإقلاع القياسي
 ```bash
-docker-compose -f docker-compose.dev.yml up
+cd gobackend
+DB_MIGRATE_ON_BOOT=true go run ./cmd/api
 ```
+- تُطبَّق الهجرات تلقائيًا.
+- تُجمَّع كل الدومينات الـ 29 تحت `/api/v1` (انظر `docs/04-backend-guide.md`).
 
-### 3.4.5 جدول البورتات (Port Reference)
-
-| الخدمة          | البورت | المسار                    | الأمر                        |
-|-----------------|--------|---------------------------|------------------------------|
-| Backend (NestJS)| 4000   | `backend/`                | `npm run backend:dev:stable` |
-| Marketplace     | 5174   | `apps/marketplace-next/`  | `npm run dev` (من داخل المجلد) |
-| Dashboard       | 3000   | `apps/dashboard/`         | `npm run dev` (من داخل المجلد) |
-| Electron        | —      | `electron/`               | `npm run electron:dev`       |
-
-## 3.5 أوضاع التشغيل المتقدمة (Advanced Boot Modes)
-
-### 3.5.1 Minimal Boot Mode
+### 3.5.2 وضع التطوير مع مسارات dev-login
 ```bash
-# تشغيل الحد الأدنى من الموديولات
-MINIMAL_BOOT=true npm run backend:dev
-
-# أو باستخدام السكربت المخصص
-npm run backend:dev:minimal
+ALLOW_DEV_MERCHANT_BOOTSTRAP=true ALLOW_DEV_COURIER_BOOTSTRAP=true ALLOW_DEV_CUSTOMER_BOOTSTRAP=true go run ./cmd/api
 ```
-**الموديولات المشغلة:**
-- Health checks
-- Basic authentication
-- Core utilities
+يُفعِّل:
+- `POST /api/v1/auth/dev-merchant-login`
+- `POST /api/v1/auth/dev-courier-login`
+- `POST /api/v1/auth/dev-customer-login`
 
-### 3.5.2 Feature-Specific Boot
-```bash
-# تشغيل موديولات محددة
-BOOT_MODULES=auth,shop,product npm run backend:dev
+> للتطوير فقط. لا تُفعَّل في الإنتاج.
 
-# أو باستخدام السكربتات المخصصة
-npm run backend:dev:auth          # Auth فقط
-npm run backend:dev:shop-product  # Shop + Product
-npm run backend:dev:full          # جميع الموديولات
-```
-
-### 3.5.3 Development Scripts
-```bash
-# سكربتات التطوير المتاحة
-npm run backend:dev:stable    # إعدادات تطوير مستقرة
-npm run backend:dev:debug     # مع debugging إضافي
-npm run backend:dev:verbose   # مع logging مفصل
-npm run backend:dev:watch     # مع file watching
-```
+### 3.5.3 ملاحظة عن الأوضاع القديمة
+- لا يوجد `MINIMAL_BOOT` ولا `BOOT_MODULES` ولا `backend:dev:auth` ولا `backend:dev:shop-product`.
+- الباكند Go يُقلع كاملًا دائمًا (كل الدومينات الـ 29 + المراقبة).
 
 ## 3.6 الأوامر والفحوصات الهامة (Essential Commands)
 
-### 3.6.1 Type Checking
+### 3.6.1 فحص الباكند (Go)
 ```bash
-# فحص TypeScript للواجهة الأمامية
-npm run typecheck
-
-# فحص TypeScript للواجهة الخلفية
-npm run backend:typecheck
-
-# فحص شامل للنظام بأكمله
-npm run typecheck:all
+cd gobackend
+make vet
+go vet ./...
+gofmt -l .
 ```
 
 ### 3.6.2 Testing
 ```bash
-# تشغيل جميع الاختبارات
-npm run test
+cd gobackend
+make test
+go test ./...
 
-# اختبارات الواجهة الأمامية
+# اختبارات الواجهات (حسب كل تطبيق)
 npm run test:frontend
-
-# اختبارات الواجهة الخلفية
-npm run test:backend
-
-# اختبارات e2e
 npm run test:e2e
-
-# اختبارات التغطية
-npm run test:coverage
 ```
 
-### 3.6.3 Code Quality
+### 3.6.3 Code Quality (Frontend)
 ```bash
 # فحص ESLint
 npm run lint
@@ -413,39 +321,31 @@ npm run format:write
 
 ### 3.6.4 Build Commands
 ```bash
+# بناء الباكند
+cd gobackend
+make build
+
 # بناء الواجهة الأمامية
 npm run build
 
-# بناء الواجهة الخلفية
-npm run backend:build
-
 # بناء للإنتاج
 npm run build:production
-
-# تحليل حجم البناء
-npm run build:analyze
 ```
 
-### 3.6.5 Database Commands
+### 3.6.5 Database Commands (بدون Prisma)
 ```bash
-# توليد Prisma client
-npm run prisma:generate
+# تشغيل الاعتماديات
+cd gobackend
+docker compose up -d postgres redis
 
-# مزامنة قاعدة البيانات
-npm run prisma:push
+# الهجرات تُطبَّق تلقائيًا عند الإقلاع عند DB_MIGRATE_ON_BOOT=true
+go run ./cmd/api
 
-# إنشاء migration جديد
-npm run prisma:migrate:dev
-
-# تطبيق migrations
-npm run prisma:migrate:deploy
-
-# عرض قاعدة البيانات
-npm run prisma:studio
-
-# إعادة تعيين قاعدة البيانات
-npm run prisma:reset
+# فحص ملفات الهجرات
+ls migrations/ | tail -20
 ```
+
+> لا تستخدم: `prisma generate` / `prisma:push` / `prisma studio` / `prisma migrate` — كلها محذوفة.
 
 ## 3.7 سير العمل اليومي (Daily Workflow)
 
@@ -454,39 +354,39 @@ npm run prisma:reset
 # 1. تحديث الكود
 git pull origin main
 
-# 2. تحديث الاعتماديات
-npm install
+# 2. تشغيل الاعتماديات
+cd gobackend
+docker compose up -d postgres redis
 
-# 3. تحديث قاعدة البيانات
-npm run prisma:generate
-npm run prisma:push
+# 3. تحديث اعتماديات Go
+go mod download
 
-# 4. تشغيل الخدمات
-npm run dev:concurrent
+# 4. تشغيل الباكند
+go run ./cmd/api
 ```
 
 ### 3.7.2 أثناء التطوير
 ```bash
-# 1. فحص الأنواع
-npm run typecheck
+# 1. فحص Go
+make vet
 
 # 2. تشغيل الاختبارات
-npm run test
+make test
 
-# 3. فحص الكود
+# 3. فحص الفرونت
 npm run lint
-
-# 4. تنسيق الكود
-npm run format:write
+npm run typecheck
 ```
 
 ### 3.7.3 نهاية اليوم
 ```bash
-# 1. إجراء اختبارات شاملة
-npm run checks
+# 1. فحص شامل للباكند
+cd gobackend
+make vet
+make test
 
-# 2. بناء المشروع
-npm run build
+# 2. بناء الباكند
+make build
 
 # 3. commit التغييرات
 git add .
@@ -499,94 +399,80 @@ git push origin main
 ## 3.8 حل المشاكل الشائعة (Common Issues)
 
 ### 3.8.1 مشاكل التثبيت
-**Problem:** `npm install` يفشل
+**Problem:** `go mod download` يفشل
 ```bash
-# الحل 1: مسح cache
-npm cache clean --force
+# الحل 1: تنظيف كاش الموديولات
+go clean -modcache
 
-# الحل 2: حذف node_modules وإعادة التثبيت
-rm -rf node_modules package-lock.json
-npm install
-
-# الحل 3: استخدام npm ci
-npm ci --force
+# الحل 2: إعادة التحميل
+go mod download
+go mod tidy
 ```
 
-**Problem:** أخطاء في Prisma
+**Problem:** `npm install` يفشل (للفرونت)
 ```bash
-# الحل: إعادة توليد client
-npx prisma generate
-npm run prisma:generate
+npm cache clean --force
+rm -rf node_modules package-lock.json
+npm install
 ```
 
 ### 3.8.2 مشاكل قاعدة البيانات
 **Problem:** فشل الاتصال بقاعدة البيانات
 ```bash
-# التحقق من PostgreSQL
-sudo systemctl status postgresql
+# التحقق من الحاويات
+cd gobackend
+docker compose ps
 
-# التحقق من الاتصال
-psql -h localhost -U username -d database_name
+# إعادة تشغيل postgres
+docker compose restart postgres
 
-# إعادة تشغيل PostgreSQL
-sudo systemctl restart postgresql
+# التحقق من DATABASE_URL
+echo $DATABASE_URL
+# يجب أن تكون: postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
 ```
 
-**Problem:** Schema mismatch
-```bash
-# إعادة مزامنة قاعدة البيانات
-npm run prisma:push --force-reset
-```
+**Problem:** المنفذ 5432 مشغول بنسخة محلية
+- المشروع يستخدم `5433` على المضيف عمدًا لتفادي التعارض. لا تغيّره إلى `5432` إلا إذا أوقفت النسخة المحلية.
 
 ### 3.8.3 مشاكل التشغيل
-**Problem:** Port conflicts
+**Problem:** Port conflicts (4000)
 ```bash
-# البحث عن العمليات التي تستخدم الـ ports
-netstat -tulpn | grep :4000
-netstat -tulpn | grep :5174
+# البحث عن العمليات التي تستخدم الـ ports (Windows PowerShell)
+netstat -ano | findstr :4000
 
-# قتل العمليات
-sudo kill -9 <PID>
-
-# أو تغيير الـ ports في .env
+# أو تغيير الـ PORT في .env
 PORT=4001
-VITE_PORT=5175
 ```
 
 **Problem:** CORS errors
 ```bash
-# التحقق من إعدادات CORS في .env
+# التحقق من إعدادات CORS في .env (gobackend)
 CORS_ORIGIN="http://localhost:5174,http://localhost:3000"
-
-# التأكد من تطابق الـ URLs
-FRONTEND_URL="http://localhost:5174"
-VITE_BACKEND_URL="http://localhost:4000"
+FRONTEND_APP_URL="http://localhost:5174"
 ```
+
+**Problem:** `JWT_SECRET` قصير
+- يجب أن يكون 32+ حرف. راجع `internal/config/config.go` لرسالة الخطأ.
 
 ## 3.9 أدوات التطوير المتقدمة (Advanced Development Tools)
 
 ### 3.9.1 Docker Development
 ```bash
-# بناء Docker images
-docker build -t ray-eg-frontend .
-docker build -t ray-eg-backend -f Dockerfile.dev .
+cd gobackend
+# تشغيل الاعتماديات فقط (الوضع المدعوم)
+docker compose up -d postgres redis
 
-# تشغيل مع Docker Compose
-docker-compose -f docker-compose.dev.yml up
-
-# إيقاف Docker Compose
-docker-compose -f docker-compose.dev.yml down
+# إيقاف
+docker compose down
 ```
 
-### 3.9.2 Performance Monitoring
+### 3.9.2 المراقبة المحلية
 ```bash
-# تثبيت أدوات المراقبة
-npm install -g clinic
-
-# مراقبة الأداء
-clinic doctor -- node dist/backend/main.js
-clinic bubbleprof -- node dist/backend/main.js
-clinic flame -- node dist/backend/main.js
+curl http://localhost:4000/monitoring/live
+curl http://localhost:4000/monitoring/ready
+curl http://localhost:4000/monitoring/health
+curl http://localhost:4000/metrics
+curl http://localhost:4000/api/v1/status
 ```
 
 ### 3.9.3 Load Testing
@@ -596,69 +482,63 @@ npm install -g k6
 
 # تشغيل load test
 k6 run scripts/load-test.js
-
-# أو باستخدام السكربت المدمج
-npm run loadtest:k6
 ```
 
 ## 3.10 التحقق من النجاح (Success Checklist)
 
 ### 3.10.1 Installation Checklist
-- [ ] Node.js 18+ أو 20+ مثبت
-- [ ] npm 9+ مثبت
-- [ ] PostgreSQL أو Redis جاهز (اختياري)
+- [ ] Go 1.25 مثبت (`go version`)
+- [ ] Docker + Compose يعملان
+- [ ] Node.js 18+ أو 20+ مثبت (للفرونت)
 - [ ] المشروع مستنسخ بنجاح
-- [ ] الاعتماديات مثبتة بدون أخطاء
-- [ ] ملفات البيئة معدلة بشكل صحيح
+- [ ] `go mod download` نجح داخل `gobackend/`
+- [ ] ملف `.env` (gobackend) معد بشكل صحيح
 
 ### 3.10.2 Database Checklist
-- [ ] قاعدة البيانات متصلة و تعمل
-- [ ] Prisma client تم توليده بنجاح
-- [ ] Database schema تم مزامنته
-- [ ] البيانات الأولية تم إضافتها (seed data)
-- [ ] Prisma studio يعمل و يعرض البيانات
+- [ ] حاويتا postgres وredis تعملان (`docker compose ps`)
+- [ ] `DATABASE_URL` صحيح (منفذ 5433)
+- [ ] الهجرات طُبقت (`DB_MIGRATE_ON_BOOT=true` ولا أخطاء عند الإقلاع)
+- [ ] لا توجد أي إشارة لـ Prisma أو SQLite
 
 ### 3.10.3 Backend Checklist
 - [ ] Backend يعمل على البورت الصحيح (4000)
-- [ ] Health endpoint يعمل (`/health`)
+- [ ] `/monitoring/live` و`/monitoring/ready` و`/monitoring/health` تعمل
+- [ ] `/metrics` و`/api/v1/status` تستجيب
 - [ ] API endpoints تستجيب (`/api/v1/*`)
-- [ ] Authentication تعمل
+- [ ] Authentication تعمل (signup/login/me)
 - [ ] لا توجد أخطاء في الـ console
-- [ ] Database queries تعمل بنجاح
+- [ ] صيغة الأخطاء موحدة `{success:false, error, message, fields?}`
 
 ### 3.10.4 Frontend Checklist
-- [ ] Frontend يعمل على البورت الصحيح (5174)
+- [ ] Frontend يعمل على البورت الصحيح (5174 / 3000)
 - [ ] الصفحة الرئيسية تعرض بشكل صحيح
 - [ ] Routing يعمل بين الصفحات
-- [ ] API calls تعمل بدون أخطاء CORS
-- [ ] Components تعرض بشكل صحيح
+- [ ] API calls تعمل عبر rewrite `/api/:path*` → `http://localhost:4000` بدون أخطاء CORS
 - [ ] لا توجد أخطاء في browser console
 
 ### 3.10.5 Integration Checklist
-- [ ] Frontend يتصل بـ Backend بنجاح
-- [ ] Authentication flow يعمل بالكامل
+- [ ] Frontend يتصل بـ Backend بنجاح عبر الـ rewrite
+- [ ] Authentication flow يعمل بالكامل (JWT HS256)
 - [ ] Data flow بين الواجهتين يعمل
-- [ ] Real-time updates تعمل (WebSocket)
-- [ ] Error handling يعمل بشكل صحيح
+- [ ] Error handling يعمل بشكل صحيح (صيغة موحدة)
 - [ ] Performance مقبولة للتطوير
 
 ## 3.11 النصائح والحيل (Tips & Tricks)
 
 ### 3.11.1 Development Tips
-- استخدم `npm run backend:dev:stable` لتشغيل Backend مستقر
-- استخدم `cd apps/marketplace-next && npm run dev` لتشغيل Marketplace
-- استخدم `cd apps/dashboard && npm run dev` لتشغيل Dashboard
-- استخدم `MINIMAL_BOOT=true` للتطوير السريع للـ Backend
-- استخدم `BOOT_MODULES` لتشغيل موديولات محددة
-- استخدم `npm run prisma:studio` لعرض قاعدة البيانات
-- **لا تستخدم** `npm run dev` من الـ root — استخدم أوامر كل تطبيق من مجلده
+- استخدم `cd gobackend && go run ./cmd/api` لتشغيل Backend
+- أو استخدم `npm run go:backend:dev` من الجذر
+- استخدم `docker compose up -d postgres redis` من داخل `gobackend/` قبل الإقلاع
+- استخدم `make build` / `make test` / `make vet` داخل `gobackend/`
+- راجع `apps/dashboard-web/next.config.mjs` لفهم الـ rewrite
+- **لا تستخدم** أوامر NestJS القديمة (`backend:dev:stable`, `backend:dev:auth`...) — محذوفة
+- **لا تستخدم** أوامر Prisma (`prisma:generate`, `prisma:studio`...) — محذوفة
 
 ### 3.11.2 Performance Tips
-- استخدم `npm run typecheck` للكشف عن الأخطاء مبكراً
-- استخدم `npm run lint:fix` لإصلاح أخطاء الكود تلقائياً
-- استخدم `npm run test:watch` لاختبار مستمر
+- استخدم `make vet` للكشف عن الأخطاء مبكراً
+- استخدم Redis للكاش (عبر `REDIS_HOST`/`REDIS_PORT`)
 
 ### 3.11.3 Debugging Tips
-- استخدم `console.log` مع `DEBUG=true` للـ logging المفصل
-- استخدم `npm run prisma:studio` لتصحيح أخطاء قاعدة البيانات
-- استخدم browser DevTools لتصحيح أخطاء الواجهة الأمامية
+- افحص `/monitoring/health` أولًا عند أي عطل
+- افحص سجلات Fiber (Logger middleware) مع `APP_ENV=development`
+- افحص اتصال PostgreSQL (منفذ 5433) وRedis (منفذ 6379) قبل اتهام الكود

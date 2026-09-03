@@ -9,6 +9,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/logger"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/pagination"
 	"go.uber.org/zap"
 )
 
@@ -180,48 +181,88 @@ func (s *Service) GetByID(ctx context.Context, id, actorID, actorShopID, actorRo
 }
 
 // ListByShop returns orders for a shop.
-func (s *Service) ListByShop(ctx context.Context, shopID string, actorShopID, actorRole string, req OrderListRequest) ([]Order, error) {
+func (s *Service) ListByShop(ctx context.Context, shopID string, actorShopID, actorRole string, req OrderListRequest) ([]Order, pagination.Meta, error) {
 	if shopID == "" {
-		return nil, errors.Validation("shopId_required", "shopId مطلوب")
+		return nil, pagination.Meta{}, errors.Validation("shopId_required", "shopId مطلوب")
 	}
 	if !isAdmin(actorRole) && actorShopID != shopID {
-		return nil, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
+		return nil, pagination.Meta{}, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
-	limit, offset := normalizeOrderPaging(req.Page, req.Limit)
-	return s.repo.ListByShop(ctx, shopID, req.From, req.To, limit, offset)
+	page, limit, offset := normalizeOrderPaging(req.Page, req.Limit)
+	orders, err := s.repo.ListByShop(ctx, shopID, req.From, req.To, limit, offset)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	total, err := s.repo.CountByShop(ctx, shopID, req.From, req.To)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return orders, pagination.NewMeta(total, page, limit), nil
 }
 
 // ListMerchantMine returns orders for the merchant's own shop.
-func (s *Service) ListMerchantMine(ctx context.Context, actorShopID, actorRole string, req OrderListRequest) ([]Order, error) {
+func (s *Service) ListMerchantMine(ctx context.Context, actorShopID, actorRole string, req OrderListRequest) ([]Order, pagination.Meta, error) {
 	if actorShopID == "" {
-		return nil, errors.Validation("shopId_required", "shopId غير متوفر")
+		return nil, pagination.Meta{}, errors.Validation("shopId_required", "shopId غير متوفر")
 	}
-	limit, offset := normalizeOrderPaging(req.Page, req.Limit)
-	return s.repo.ListByShop(ctx, actorShopID, req.From, req.To, limit, offset)
+	page, limit, offset := normalizeOrderPaging(req.Page, req.Limit)
+	orders, err := s.repo.ListByShop(ctx, actorShopID, req.From, req.To, limit, offset)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	total, err := s.repo.CountByShop(ctx, actorShopID, req.From, req.To)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return orders, pagination.NewMeta(total, page, limit), nil
 }
 
 // ListAllAdmin returns all orders for admin.
-func (s *Service) ListAllAdmin(ctx context.Context, req OrderListRequest) ([]Order, error) {
-	limit, offset := normalizeOrderPaging(req.Page, req.Limit)
-	return s.repo.ListAllAdmin(ctx, req.ShopID, req.From, req.To, limit, offset)
+func (s *Service) ListAllAdmin(ctx context.Context, req OrderListRequest) ([]Order, pagination.Meta, error) {
+	page, limit, offset := normalizeOrderPaging(req.Page, req.Limit)
+	orders, err := s.repo.ListAllAdmin(ctx, req.ShopID, req.From, req.To, limit, offset)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	total, err := s.repo.CountAllAdmin(ctx, req.ShopID, req.From, req.To)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return orders, pagination.NewMeta(total, page, limit), nil
 }
 
 // ListMyCourierOrders returns orders assigned to the authenticated courier.
-func (s *Service) ListMyCourierOrders(ctx context.Context, courierID string, req CourierOrderListRequest) ([]Order, error) {
+func (s *Service) ListMyCourierOrders(ctx context.Context, courierID string, req CourierOrderListRequest) ([]Order, pagination.Meta, error) {
 	if courierID == "" {
-		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
+		return nil, pagination.Meta{}, errors.Unauthorized("unauthenticated", "غير مصرح")
 	}
-	limit, offset := normalizeOrderPaging(req.Page, req.Limit)
-	return s.repo.ListByCourier(ctx, courierID, limit, offset)
+	page, limit, offset := normalizeOrderPaging(req.Page, req.Limit)
+	orders, err := s.repo.ListByCourier(ctx, courierID, limit, offset)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	total, err := s.repo.CountByCourier(ctx, courierID)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return orders, pagination.NewMeta(total, page, limit), nil
 }
 
 // ListCustomerOrders returns orders placed by a customer.
-func (s *Service) ListCustomerOrders(ctx context.Context, userID string, page, limit int) ([]Order, error) {
+func (s *Service) ListCustomerOrders(ctx context.Context, userID string, page, limit int) ([]Order, pagination.Meta, error) {
 	if userID == "" {
-		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
+		return nil, pagination.Meta{}, errors.Unauthorized("unauthenticated", "غير مصرح")
 	}
-	l, offset := normalizeOrderPaging(page, limit)
-	return s.repo.ListByUserID(ctx, userID, l, offset)
+	p, l, offset := normalizeOrderPaging(page, limit)
+	orders, err := s.repo.ListByUserID(ctx, userID, l, offset)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	total, err := s.repo.CountByUserID(ctx, userID)
+	if err != nil {
+		return nil, pagination.Meta{}, err
+	}
+	return orders, pagination.NewMeta(total, p, l), nil
 }
 
 // UpdateOrder updates order status and metadata for merchant/admin.
@@ -359,7 +400,7 @@ func isAdmin(role string) bool {
 	return strings.EqualFold(role, "ADMIN")
 }
 
-func normalizeOrderPaging(page, limit int) (int, int) {
+func normalizeOrderPaging(page, limit int) (normalizedPage, normalizedLimit, offset int) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -369,8 +410,8 @@ func normalizeOrderPaging(page, limit int) (int, int) {
 	if page < 1 {
 		page = 1
 	}
-	offset := (page - 1) * limit
-	return limit, offset
+	offset = (page - 1) * limit
+	return page, limit, offset
 }
 
 // parseOrderDate parses an optional date string.

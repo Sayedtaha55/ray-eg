@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
@@ -36,6 +37,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g := r.Group("/auth")
 	g.Post("/signup", h.Signup)
 	g.Post("/login", h.Login)
+	g.Post("/logout", h.Logout)
 	g.Post("/refresh", h.Refresh)
 	g.Post("/password/forgot", h.RequestPasswordReset)
 	g.Post("/password/reset", h.ResetPassword)
@@ -61,6 +63,24 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Post("/2fa/disable", middleware.RequireAuth(h.appCfg), h.Disable2FA)
 	g.Post("/2fa/verify", middleware.RequireAuth(h.appCfg), h.Verify2FA)
 	g.Get("/me", middleware.RequireAuth(h.appCfg), h.Me)
+}
+
+func (h *Handler) Logout(c *fiber.Ctx) error {
+	token := ""
+	if authHeader := c.Get("Authorization"); strings.HasPrefix(authHeader, "Bearer ") {
+		token = strings.TrimSpace(strings.TrimPrefix(authHeader, "Bearer "))
+	}
+	if token == "" {
+		token = extractRefreshToken(c)
+	}
+	if token != "" && h.service != nil {
+		if err := h.service.Logout(c.UserContext(), token, extractMeta(c)); err != nil {
+			return err
+		}
+	}
+
+	h.clearAuthCookie(c)
+	return c.JSON(fiber.Map{"success": true, "message": "تم تسجيل الخروج بنجاح"})
 }
 
 func (h *Handler) Signup(c *fiber.Ctx) error {
@@ -353,6 +373,27 @@ func (h *Handler) setAuthCookie(c *fiber.Ctx, refreshToken string) {
 		Domain:   h.cfg.Domain,
 		Expires:  expiresAt,
 		MaxAge:   int(h.cfg.MaxAge.Seconds()),
+	}
+	if cookie.SameSite == "" {
+		cookie.SameSite = "Lax"
+	}
+	c.Cookie(&cookie)
+}
+
+func (h *Handler) clearAuthCookie(c *fiber.Ctx) {
+	if h.cfg.Name == "" {
+		return
+	}
+	cookie := fiber.Cookie{
+		Name:     h.cfg.Name,
+		Value:    "",
+		Path:     "/",
+		HTTPOnly: true,
+		Secure:   h.cfg.Secure,
+		SameSite: h.cfg.SameSite,
+		Domain:   h.cfg.Domain,
+		Expires:  time.Unix(0, 0),
+		MaxAge:   -1,
 	}
 	if cookie.SameSite == "" {
 		cookie.SameSite = "Lax"

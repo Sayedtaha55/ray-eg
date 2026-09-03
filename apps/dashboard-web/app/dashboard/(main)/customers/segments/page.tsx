@@ -65,49 +65,9 @@ export default function CustomerSegmentsPage() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      // Mock data for now - in production, this would load from API
-      const mockSegments: Segment[] = [
-        {
-          id: '1',
-          name: 'VIP Customers',
-          nameAr: 'عملاء VIP',
-          description: 'العملاء الذين أنفقوا أكثر من 5000 ج.م',
-          criteria: { minSpent: 5000 },
-          customerCount: 45,
-          totalSpent: 225000,
-          averageOrderValue: 5000,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          name: 'New Customers',
-          nameAr: 'عملاء جدد',
-          description: 'العملاء المسجلين في آخر 30 يوم',
-          criteria: { registeredAfter: new Date(Date.now() - 30 * 86400000).toISOString() },
-          customerCount: 120,
-          totalSpent: 60000,
-          averageOrderValue: 500,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          name: 'Loyal Customers',
-          nameAr: 'عملاء مخلصون',
-          description: 'العملاء الذين لديهم أكثر من 1000 نقطة ولاء',
-          criteria: { minLoyaltyPoints: 1000 },
-          customerCount: 78,
-          totalSpent: 156000,
-          averageOrderValue: 2000,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      setSegments(mockSegments);
+      // Load segments from the backend API
+      const segmentsData = await apiRequest(`/shops/${sid}/segments`);
+      setSegments(Array.isArray(segmentsData) ? segmentsData : []);
     } catch { setSegments([]); } finally { setLoading(false); }
   }, []);
 
@@ -166,40 +126,54 @@ export default function CustomerSegmentsPage() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) return;
-      // TODO: Implement API call to create segment
-      const newSegment: Segment = {
-        id: Date.now().toString(),
-        name: formData.name,
-        nameAr: formData.nameAr,
-        description: formData.description,
-        criteria: {
-          minSpent: formData.minSpent ? Number(formData.minSpent) : undefined,
-          maxSpent: formData.maxSpent ? Number(formData.maxSpent) : undefined,
-          minOrders: formData.minOrders ? Number(formData.minOrders) : undefined,
-          maxOrders: formData.maxOrders ? Number(formData.maxOrders) : undefined,
-          minLoyaltyPoints: formData.minLoyaltyPoints ? Number(formData.minLoyaltyPoints) : undefined,
-          maxLoyaltyPoints: formData.maxLoyaltyPoints ? Number(formData.maxLoyaltyPoints) : undefined,
-        },
-        customerCount: 0,
-        totalSpent: 0,
-        averageOrderValue: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setSegments([...segments, newSegment]);
+      const created = await apiRequest(`/shops/${sid}/segments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: formData.name,
+          nameAr: formData.nameAr,
+          description: formData.description,
+          criteria: {
+            minSpent: formData.minSpent ? Number(formData.minSpent) : undefined,
+            maxSpent: formData.maxSpent ? Number(formData.maxSpent) : undefined,
+            minOrders: formData.minOrders ? Number(formData.minOrders) : undefined,
+            maxOrders: formData.maxOrders ? Number(formData.maxOrders) : undefined,
+            minLoyaltyPoints: formData.minLoyaltyPoints ? Number(formData.minLoyaltyPoints) : undefined,
+            maxLoyaltyPoints: formData.maxLoyaltyPoints ? Number(formData.maxLoyaltyPoints) : undefined,
+          },
+          isActive: true,
+        }),
+      });
+      setSegments(prev => Array.isArray(created) ? [...prev, ...created] : [...prev, created]);
       setAddModal(false);
       setFormData({ name: '', nameAr: '', description: '', minSpent: '', maxSpent: '', minOrders: '', maxOrders: '', minLoyaltyPoints: '', maxLoyaltyPoints: '' });
     } catch (error) {
       alert('حدث خطأ أثناء إضافة الشريحة');
     }
-  }, [formData, segments]);
+  }, [formData]);
 
   const handleEdit = useCallback(async () => {
     if (!editSegment) return;
     try {
-      // TODO: Implement API call to update segment
-      setSegments(prev => prev.map(s => s.id === editSegment.id ? { ...s, ...formData } : s));
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      const updated = await apiRequest(`/shops/${sid}/segments/${editSegment.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: formData.name,
+          nameAr: formData.nameAr,
+          description: formData.description,
+          criteria: {
+            minSpent: formData.minSpent ? Number(formData.minSpent) : undefined,
+            maxSpent: formData.maxSpent ? Number(formData.maxSpent) : undefined,
+            minOrders: formData.minOrders ? Number(formData.minOrders) : undefined,
+            maxOrders: formData.maxOrders ? Number(formData.maxOrders) : undefined,
+            minLoyaltyPoints: formData.minLoyaltyPoints ? Number(formData.minLoyaltyPoints) : undefined,
+            maxLoyaltyPoints: formData.maxLoyaltyPoints ? Number(formData.maxLoyaltyPoints) : undefined,
+          },
+        }),
+      });
+      setSegments(prev => prev.map(s => s.id === editSegment.id ? (updated ? { ...s, ...updated } : s) : s));
       setEditModal(false);
       setEditSegment(null);
       setFormData({ name: '', nameAr: '', description: '', minSpent: '', maxSpent: '', minOrders: '', maxOrders: '', minLoyaltyPoints: '', maxLoyaltyPoints: '' });
@@ -211,7 +185,10 @@ export default function CustomerSegmentsPage() {
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذه الشريحة؟')) return;
     try {
-      // TODO: Implement API call to delete segment
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      await apiRequest(`/shops/${sid}/segments/${id}`, { method: 'DELETE' });
       setSegments(prev => prev.filter(s => s.id !== id));
     } catch (error) {
       alert('حدث خطأ أثناء الحذف');
@@ -220,12 +197,26 @@ export default function CustomerSegmentsPage() {
 
   const toggleActive = useCallback(async (id: string) => {
     try {
-      // TODO: Implement API call to toggle segment active status
-      setSegments(prev => prev.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s));
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      const current = segments.find(s => s.id === id);
+      if (!current) return;
+      const updated = await apiRequest(`/shops/${sid}/segments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: current.name,
+          nameAr: current.nameAr,
+          description: current.description,
+          criteria: current.criteria,
+          isActive: !current.isActive,
+        }),
+      });
+      setSegments(prev => prev.map(s => s.id === id ? (updated ? { ...s, ...updated } : { ...s, isActive: !s.isActive }) : s));
     } catch (error) {
       alert('حدث خطأ أثناء تحديث الحالة');
     }
-  }, []);
+  }, [segments]);
 
   const exportCSV = useCallback(() => {
     const headers = ['Name', 'Name (Arabic)', 'Description', 'Customer Count', 'Total Spent', 'Average Order Value', 'Status', 'Created At'];
@@ -337,8 +328,17 @@ export default function CustomerSegmentsPage() {
         <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
           <span className="text-sm font-bold text-slate-600">تم اختيار {selectedIds.size} شريحة</span>
           <button
-            onClick={() => {
+            onClick={async () => {
               if (confirm('هل أنت متأكد من حذف الشرائح المحددة؟')) {
+                try {
+                  const shopData = await apiRequest('/shops/me');
+                  const sid = shopData?.id;
+                  if (sid) {
+                    await Promise.all([...selectedIds].map(id => apiRequest(`/shops/${sid}/segments/${id}`, { method: 'DELETE' })));
+                  }
+                } catch {
+                  alert('حدث خطأ أثناء حذف الشرائح');
+                }
                 setSegments(prev => prev.filter(s => !selectedIds.has(s.id)));
                 setSelectedIds(new Set());
               }

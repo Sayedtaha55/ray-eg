@@ -73,7 +73,7 @@ func (r *Repository) Create(ctx context.Context, s *Shop) (*Shop, error) {
 			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
 			$13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27,
 			true, $28, false, false, NOW(), NOW()
-		) RETURNING ` + shopColumns
+		) RETURNING ` + shopReturnColumns
 	row := r.pool.QueryRow(ctx, query,
 		s.Name, s.Slug, s.Description, s.Category, s.Activity, s.Governorate, s.City, s.Address,
 		s.AddressDetailed, s.DisplayAddress, s.MapLabel, s.Latitude, s.Longitude,
@@ -81,7 +81,7 @@ func (r *Repository) Create(ctx context.Context, s *Shop) (*Shop, error) {
 		s.LogoURL, s.BannerURL, s.Status, s.PageDesign, s.Theme, s.CustomColors,
 		s.CustomFonts, s.LayoutConfig, s.OwnerID,
 	)
-	return scanShop(row)
+	return scanShopReturn(row)
 }
 
 // UpdateSettings applies partial updates to a shop.
@@ -105,18 +105,18 @@ func (r *Repository) UpdateSettings(ctx context.Context, id string, fields map[s
 	i++
 	args = append(args, id)
 
-	query := "UPDATE shops SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", i) + shopColumns
+	query := "UPDATE shops SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", i) + shopReturnColumns
 	row := r.pool.QueryRow(ctx, query, args...)
-	return scanShop(row)
+	return scanShopReturn(row)
 }
 
 // UpdateStatus updates the shop status and returns the updated shop.
 func (r *Repository) UpdateStatus(ctx context.Context, id string, status ShopStatus) (*Shop, error) {
 	row := r.pool.QueryRow(ctx,
-		"UPDATE shops SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING "+shopColumns,
+		"UPDATE shops SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING "+shopReturnColumns,
 		status, id,
 	)
-	return scanShop(row)
+	return scanShopReturn(row)
 }
 
 // ListPublic returns approved, active, public-enabled shops.
@@ -256,6 +256,66 @@ const shopColumns = `
 `
 
 const selectShop = `SELECT ` + shopColumns + ` FROM shops s LEFT JOIN users u ON u.id = s.owner_id`
+
+// shopReturnColumns is used for INSERT/UPDATE RETURNING clauses where table
+// aliases and the joined owner (users) columns are not available.
+const shopReturnColumns = `
+	id, name, slug, description, category, activity, governorate, city, address,
+	address_detailed, display_address, map_label, latitude, longitude,
+	location_source, location_accuracy, location_updated_at, phone, email,
+	opening_hours, logo_url, banner_url, status, page_design, builder_config, theme,
+	custom_colors, custom_fonts, layout_config, followers, visitors,
+	rating, is_active, owner_id, created_at, updated_at, addons,
+	public_disabled, delivery_disabled, ai_tier, ai_usage_month,
+	ai_usage_reset_at
+`
+
+func scanShopReturn(row pgx.Row) (*Shop, error) {
+	var s Shop
+	var desc, address, addrDetailed, displayAddr, mapLabel, locationSrc, phone, email, opening, logo, banner, theme sql.NullString
+	var lat, lng, locAcc sql.NullFloat64
+	var locUpdated, aiReset sql.NullTime
+	var ownerIDVal sql.NullString
+	var activity sql.NullString
+
+	err := row.Scan(
+		&s.ID, &s.Name, &s.Slug, &desc, &s.Category, &activity, &s.Governorate, &s.City, &address,
+		&addrDetailed, &displayAddr, &mapLabel, &lat, &lng, &locationSrc, &locAcc,
+		&locUpdated, &phone, &email, &opening, &logo, &banner, &s.Status, &s.PageDesign,
+		&s.BuilderConfig, &theme, &s.CustomColors, &s.CustomFonts, &s.LayoutConfig, &s.Followers,
+		&s.Visitors, &s.Rating, &s.IsActive, &ownerIDVal, &s.CreatedAt, &s.UpdatedAt,
+		&s.Addons, &s.PublicDisabled, &s.DeliveryDisabled, &s.AiTier, &s.AiUsageMonth,
+		&aiReset,
+	)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, nil
+		}
+		return nil, errors.Internal("scan_shop_failed", err)
+	}
+
+	s.Activity = nullStringPtr(activity)
+	s.Description = nullStringPtr(desc)
+	s.Address = nullStringPtr(address)
+	s.AddressDetailed = nullStringPtr(addrDetailed)
+	s.DisplayAddress = nullStringPtr(displayAddr)
+	s.MapLabel = nullStringPtr(mapLabel)
+	s.Phone = phone.String
+	s.Email = nullStringPtr(email)
+	s.OpeningHours = nullStringPtr(opening)
+	s.LogoURL = nullStringPtr(logo)
+	s.BannerURL = nullStringPtr(banner)
+	s.Theme = nullStringPtr(theme)
+	s.Latitude = nullFloat64Ptr(lat)
+	s.Longitude = nullFloat64Ptr(lng)
+	s.LocationSource = nullStringPtr(locationSrc)
+	s.LocationAccuracy = nullFloat64Ptr(locAcc)
+	s.LocationUpdatedAt = nullTimePtr(locUpdated)
+	s.AiUsageResetAt = nullTimePtr(aiReset)
+	s.OwnerID = nullStringPtr(ownerIDVal)
+
+	return &s, nil
+}
 
 func scanShop(row pgx.Row) (*Shop, error) {
 	var s Shop

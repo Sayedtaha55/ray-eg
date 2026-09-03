@@ -1,5 +1,36 @@
 # 5) دليل الواجهة الأمامية الشامل (React Frontend)
 
+## 5.0 الربط بالباك إند والمصادقة (Backend Connection & Auth)
+
+### 5.0.1 التطبيقات الثلاثة والـ rewrite
+الفرونت عبارة عن **ثلاثة تطبيقات Next.js** في `apps/`:
+- `apps/marketplace-next` — المتجر
+- `apps/dashboard-web` — لوحة التحكم
+- `apps/business` — بوابة التجار
+
+كل تطبيق يعمل rewrite لأي مسار `/api/:path*` إلى `BACKEND_URL` (الافتراضي `http://localhost:4000`) — انظر `apps/*/next.config.mjs`:
+```javascript
+// apps/*/next.config.mjs (مثال marketplace-next)
+async rewrites() {
+  const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000').trim();
+  return [
+    { source: '/api/:path*', destination: `${backendUrl}/api/:path*` },
+  ];
+}
+```
+تطبيق `dashboard-web` يقرأ `BACKEND_URL` أولاً ثم `NEXT_PUBLIC_BACKEND_URL` ثم الافتراضي. هذا يعني أن كود المتصفح ينادي `/api/...` نسبياً، والـ rewrite يوصّله للباك إند Go (Fiber) الذي يخدم الـ 29 موديول تحت `/api/v1`.
+
+### 5.0.2 المصادقة في المتصفح
+- `localStorage`: المفاتيح `ray_user` / `ray_token` / `token`
+- كوكي `ray_session`
+- الدخول التجريبي للتطوير عبر صفحة `/admin/gate` — **تظهر فقط خارج الإنتاج**
+- الأدوار في الـ JWT بأحرف كبيرة حصراً: `CUSTOMER` / `MERCHANT` / `ADMIN` / `COURIER` / `CASHIER`
+
+### 5.0.3 الباك إند الذي تتكلم معه هذه التطبيقات
+- الباك إند الوحيد: **Go 1.25 + Fiber v2.52.5** في `gobackend/`
+- المراقبة: `/monitoring/live` و`/monitoring/ready` و`/metrics` و`/api/v1/status`
+- لا يوجد أي باك NestJS أو Prisma — حُذف بتاريخ 2026-08-24 وبقي فقط في `_archive/`
+
 ## 5.1 نقطة البداية والتهيئة (Entry Point & Bootstrap)
 
 ### 5.1.1 ملف `index.tsx`
@@ -338,6 +369,8 @@ const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode;
 
 export default App;
 ```
+
+> ملاحظة: قيم `requiredRole` تُقارن مع الدور القادم من JWT الباك إند (Go/Fiber) وهي بأحرف كبيرة حصراً: `CUSTOMER` / `MERCHANT` / `ADMIN` / `COURIER` / `CASHIER`.
 
 ### 5.2.2 Route Guards and Redirectors
 ```typescript
@@ -912,10 +945,14 @@ interface User {
   id: string;
   email: string;
   fullName: string;
-  role: 'CUSTOMER' | 'MERCHANT' | 'ADMIN' | 'COURIER';
+  // يطابق الدور القادم من JWT الباك إند (Go/Fiber) — أحرف كبيرة حصراً
+  role: 'CUSTOMER' | 'MERCHANT' | 'ADMIN' | 'COURIER' | 'CASHIER';
   avatar?: string;
   phone?: string;
 }
+
+// ملاحظة: التخزين الفعلي في المتصفح يتم عبر مفاتيح localStorage:
+// ray_user / ray_token / token + كوكي ray_session (انظر القسم 5.0.2)
 
 interface AuthState {
   user: User | null;
@@ -1753,88 +1790,53 @@ describe('ProductCard Integration', () => {
 
 ## 5.9 النشر والبناء (Build & Deployment)
 
-### 5.9.1 Vite Configuration
-```typescript
-// vite.config.ts
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { resolve } from 'path';
-
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      '@': resolve(__dirname, 'src'),
-      '@components': resolve(__dirname, 'src/components'),
-      '@hooks': resolve(__dirname, 'src/hooks'),
-      '@utils': resolve(__dirname, 'src/utils'),
-      '@services': resolve(__dirname, 'src/services'),
-      '@store': resolve(__dirname, 'src/store'),
-    },
+### 5.9.1 Next.js Configuration (الواقع الحالي)
+التطبيقات الثلاثة (`apps/marketplace-next` و`apps/dashboard-web` و`apps/business`) تطبيقات **Next.js** — لا يوجد أي إعداد Vite. كل تطبيق يعرّف rewrite في `apps/*/next.config.mjs`:
+```javascript
+// apps/marketplace-next/next.config.mjs
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  poweredByHeader: false,
+  compress: true,
+  eslint: { ignoreDuringBuilds: true },
+  typescript: { ignoreBuildErrors: false },
+  productionBrowserSourceMaps: false,
+  images: {
+    unoptimized: true,
+    formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: '**' },
+    ],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  build: {
-    outDir: 'dist',
-    sourcemap: true,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          ui: ['framer-motion', 'lucide-react'],
-          state: ['@reduxjs/toolkit', 'react-redux'],
-          query: ['@tanstack/react-query'],
-        },
-      },
-    },
-    chunkSizeWarningLimit: 1000,
+  async rewrites() {
+    const backendUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000').trim();
+    return [
+      { source: '/api/:path*', destination: `${backendUrl}/api/:path*` },
+    ];
   },
-  server: {
-    port: 5174,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:4000',
-        changeOrigin: true,
-      },
-    },
-  },
-  preview: {
-    port: 4174,
-  },
-  optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom'],
-  },
-});
-```
-
-### 5.9.2 Environment Configuration
-```typescript
-// src/config/environment.ts
-interface Environment {
-  VITE_API_BASE_URL: string;
-  VITE_APP_NAME: string;
-  VITE_APP_VERSION: string;
-  VITE_ENABLE_MOCK_API: string;
-  VITE_GEMINI_API_KEY: string;
-  VITE_GOOGLE_MAPS_API_KEY: string;
-  VITE_SENTRY_DSN: string;
-}
-
-const getEnvironment = (): Environment => {
-  return {
-    VITE_API_BASE_URL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api/v1',
-    VITE_APP_NAME: import.meta.env.VITE_APP_NAME || 'Ray',
-    VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION || '1.0.0',
-    VITE_ENABLE_MOCK_API: import.meta.env.VITE_ENABLE_MOCK_API || 'false',
-    VITE_GEMINI_API_KEY: import.meta.env.VITE_GEMINI_API_KEY || '',
-    VITE_GOOGLE_MAPS_API_KEY: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
-    VITE_SENTRY_DSN: import.meta.env.VITE_SENTRY_DSN || '',
-  };
 };
 
-export const environment = getEnvironment();
-export const isDevelopment = import.meta.env.DEV;
-export const isProduction = import.meta.env.PROD;
-export const isTest = import.meta.env.TEST;
+export default nextConfig;
 ```
+تطبيق `dashboard-web` يقرأ `process.env.BACKEND_URL` أولاً ثم `NEXT_PUBLIC_BACKEND_URL` ثم الافتراضي `http://localhost:4000`، ويضيف security headers (`X-Frame-Options` و`Referrer-Policy` وفي الإنتاج `X-Content-Type-Options` و`Strict-Transport-Security`). تطبيق `business` يضيف `X-Frame-Options` و`Referrer-Policy` و`X-Content-Type-Options`.
+
+### 5.9.2 Environment Configuration (الواقع الحالي)
+إعدادات الفرونت تتم عبر متغيرات بيئة Next.js — لا توجد بادئة `VITE_`:
+```javascript
+// المتغيرات الفعلية المستخدمة في apps/*/next.config.mjs
+// BACKEND_URL (يقرأه dashboard-web أولاً) أو NEXT_PUBLIC_BACKEND_URL
+// الافتراضي في الحالتين: http://localhost:4000
+
+// مثال:
+// BACKEND_URL=http://localhost:4000
+// NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+```
+- كود المتصفح ينادي مسارات `/api/...` **نسبية**، والـ rewrite في `next.config.mjs` يحوّلها إلى عنوان الباك إند Go.
+- بيانات الجلسة في المتصفح: `localStorage` (`ray_user` / `ray_token` / `token`) + كوكي `ray_session` (انظر القسم 5.0.2).
+- صفحة الدخول التجريبي `/admin/gate` للتطوير فقط وتظهر خارج الإنتاج.
 
 هذا الدليل الشامل يغطي جميع جوانب تطوير الواجهة الأمامية لمشروع Ray، مع التركيز على أفضل الممارسات والأداء والجودة.

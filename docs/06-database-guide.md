@@ -1,825 +1,427 @@
-# 6) دليل قاعدة البيانات وPrisma الشامل
+# 6) دليل قاعدة البيانات (PostgreSQL فقط)
 
-## 6.1 ملفات Prisma المتاحة
+> لا Prisma ولا SQLite في هذا المشروع. قاعدة البيانات الوحيدة هي PostgreSQL، والهجرات ملفات SQL مرقمة تُطبَّق عبر golang-migrate، وكود الوصول للبيانات مكتوب يدويًا بـ pgx/v5.
+
+## 6.1 ملفات الهجرات المتاحة
 
 ### 6.1.1 هيكل الملفات
 ```
-prisma/
-├── schema.prisma              # المخطط الأساسي (PostgreSQL)
-├── schema.postgres.prisma      # مخطط PostgreSQL محدد
-├── schema-sqlite.prisma        # مخطط SQLite للتطوير السريع
-├── migrations/                  # ملفات الترحيل (migrations)
-│   ├── 001_initial_migration/
-│   ├── 002_add_user_roles/
-│   └── ...
-├── seed.ts                     # بيانات أولية للنظام
-└── seed-data/                  # ملفات البيانات الأولية
-    ├── users.json
-    ├── shops.json
-    └── products.json
+gobackend/
+├── migrations/                  # ملفات الترحيل SQL المرقمة (حتى 000049_*)
+│   ├── 000001_*.up.sql
+│   ├── 000001_*.down.sql
+│   ├── ...
+│   ├── 000049_*.up.sql
+│   └── 000049_*.down.sql
+├── docker-compose.yml           # postgres (5433:5432) + redis (6379:6379)
+├── sqlc.yaml                    # اختياري (توليد كود — المستودعات اليدوية هي الأساس)
+└── internal/
+    └── config/
+        └── config.go            # قراءة DATABASE_URL و DB_MIGRATE_ON_BOOT
 ```
 
-### 6.1.2 اختيار المخطط الصحيح
-**PostgreSQL (الإنتاج والتطوير القياسي):**
+### 6.1.2 الاتصال الصحيح
+**PostgreSQL (الوحيدة — للتطوير والإنتاج):**
 ```bash
-# استخدام المخطط الأساسي
-DATABASE_URL="postgresql://username:password@localhost:5432/ray_eg"
-# أو تحديد المخطط مباشرة
-DATABASE_URL="postgresql://username:password@localhost:5432/ray_eg?schema=public"
-```
-
-**SQLite (التطوير السريع والاختبار):**
-```bash
-# استخدام SQLite للتطوير السريع
-DATABASE_URL="file:./dev.db"
-# أو تحديد المخطط SQLite
-DATABASE_URL="file:./dev.db?schema=public"
+DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
 ```
 
 **التوصية:**
-- استخدم **PostgreSQL** للتطوير القياسي والإنتاج
-- استخدم **SQLite** فقط للتطوير السريع والاختبار الأولي
-- لا تخلط بين المخططات في نفس البيئة
+- استخدم PostgreSQL دائمًا.
+- المنفذ على المضيف هو `5433` (يُ映射 إلى `5432` داخل الحاوية) لتفادي التعارض مع نسخ محلية.
+- لا يوجد `file:./dev.db` ولا `schema.prisma` ولا `schema-sqlite.prisma`.
 
-## 6.2 أوامر Prisma الأساسية
+## 6.2 تشغيل PostgreSQL وRedis
 
-### 6.2.1 توليد Prisma Client
+### 6.2.1 تشغيل الاعتماديات
 ```bash
-# توليد العميل الأساسي
-npm run prisma:generate
-
-# توليد مع مراقبة التغييرات
-npx prisma generate --watch
-
-# توليد للبيئة المحددة
-npx prisma generate --schema=./prisma/schema.postgres.prisma
+cd gobackend
+docker compose up -d postgres redis
+docker compose ps
 ```
 
-### 6.2.2 مزامنة قاعدة البيانات
+### 6.2.2 التحقق من الاتصال
 ```bash
-# للتطوير (يحذف البيانات)
-npm run prisma:push
-
-# مزامنة مع التحقق
-npx prisma db push --accept-data-loss
-
-# تطبيق الترحيلات (للإنتاج)
-npm run prisma:migrate:deploy
-
-# إنشاء ترحيل جديد
-npm run prisma:migrate:dev --name add_new_feature
+psql "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" -c "SELECT 1;"
+redis-cli -p 6379 ping
 ```
 
-### 6.2.3 إدارة الترحيلات (Migrations)
+### 6.2.3 تطبيق الهجرات
 ```bash
-# عرض حالة الترحيلات
-npx prisma migrate status
-
-# إعادة تعيين قاعدة البيانات
-npx prisma migrate reset
-
-# تطبيق ترحيلات معينة
-npx prisma migrate deploy --to 20231201120000_add_user_roles
-
-# حل الترحيلات المعلقة
-npx prisma migrate resolve
+# تلقائيًا عند الإقلاع عندما يكون:
+DB_MIGRATE_ON_BOOT=true
+```
+ثم:
+```bash
+cd gobackend
+go run ./cmd/api
 ```
 
-### 6.2.4 عرض قاعدة البيانات
+### 6.2.4 فحص ملفات الهجرات
 ```bash
-# فتح واجهة Prisma Studio
-npm run prisma:studio
-
-# فتح Studio على بورت محدد
-npx prisma studio --port 5555
-
-# فتح Studio مع مخطط محدد
-npx prisma studio --schema=./prisma/schema.postgres.prisma
+ls gobackend/migrations/ | head -20
+ls gobackend/migrations/ | tail -20
+# الأحدث حتى 000049_*
 ```
 
-### 6.2.5 التحقق والصيانة
-```bash
-# التحقق من صحة المخطط
-npm run prisma:validate
+### 6.2.5 ملاحظة عن أوامر Prisma المحذوفة
+لا تستخدم أيًا من:
+- `prisma generate` / `npm run prisma:generate`
+- `prisma studio` / `npm run prisma:studio`
+- `prisma db push` / `prisma migrate dev|deploy`
+- `prisma validate` / `prisma format` / `prisma db seed`
 
-# التحقق من صحة الاتصال بقاعدة البيانات
-npx prisma db pull
-
-# تنسيق الكود
-npx prisma format
-
-# فحص قاعدة البيانات
-npx prisma db seed
-```
+المقابل الجديد: هجرات SQL + `DB_MIGRATE_ON_BOOT=true` + مستودعات pgx/v5 اليدوية.
 
 ## 6.3 استراتيجية الترحيلات (Migration Strategy)
 
 ### 6.3.1 أفضل الممارسات للترحيلات
-```typescript
-// 1. استخدم أسماء وصفية للترحيلات
-// مثال: 20231201120000_add_user_roles_and_permissions
+```sql
+-- 1. استخدم أسماء مرقمة ووصفية
+-- مثال: 000049_add_shop_segments.up.sql / 000049_add_shop_segments.down.sql
 
-// 2. اكتب SQL واضح وقابل للقراءة
-// مثال:
-CREATE TABLE "user_roles" (
-    "id" SERIAL NOT NULL,
-    "name" VARCHAR(50) NOT NULL,
-    "description" TEXT,
-    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updated_at" TIMESTAMP(3) NOT NULL,
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id")
+-- 2. اكتب SQL واضحًا وقابلًا للقراءة
+CREATE TABLE IF NOT EXISTS "shop_segments" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "shop_id" UUID NOT NULL REFERENCES "shops"("id") ON DELETE CASCADE,
+    "name" VARCHAR(255) NOT NULL,
+    "name_ar" VARCHAR(255),
+    "criteria" JSONB NOT NULL DEFAULT '{}',
+    "is_active" BOOLEAN NOT NULL DEFAULT TRUE,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE UNIQUE INDEX "user_roles_name_key" ON "user_roles"("name");
+CREATE INDEX IF NOT EXISTS "idx_shop_segments_shop_id" ON "shop_segments"("shop_id");
 
-// 3. استخدم الـ constraints المناسبة
-// - NOT NULL للحقول المطلوبة
-// - UNIQUE للحقول الفريدة
-// - FOREIGN KEY للعلاقات
-// - CHECK للتحقق من القيم
+-- 3. كل migration يجب أن يكون له down يعكس الـ up
+-- مثال down:
+-- DROP INDEX IF EXISTS "idx_shop_segments_shop_id";
+-- DROP TABLE IF EXISTS "shop_segments";
 ```
+
+قواعد:
+- لا تعدّل ملف migration مطبَّق — أنشئ ملفًا جديدًا برقم أعلى.
+- كل تغيير schema = ملفا `up` + `down`.
+- راجع الترقيم الحالي (الأحدث `000049_*`) قبل إنشاء `000050_*`.
 
 ### 6.3.2 أنواع التغييرات المدعومة
-```typescript
-// إضافة جدول جديد
-model NewTable {
-    id        String   @id @default(cuid())
-    name      String   @unique
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
-}
+```sql
+-- إضافة جدول جديد
+CREATE TABLE IF NOT EXISTS "new_table" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" VARCHAR(255) NOT NULL UNIQUE,
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-// إضافة حقل جديد
-model ExistingModel {
-    // حقول موجودة...
-    newField String? @default("default_value")
-    anotherField Int?    @default(0)
-}
+-- إضافة عمود جديد (بقيمة افتراضية لتفادي كسر الصفوف القديمة)
+ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "is_featured" BOOLEAN NOT NULL DEFAULT FALSE;
 
-// تعديل حقل موجود
-model ExistingModel {
-    // تعديل نوع الحقل
-    oldField    String @db.Text // كان String عادي
-    // إضافة قيد فريد
-    uniqueField String @unique
-}
+-- إضافة قيد فريد
+ALTER TABLE "products" ADD CONSTRAINT "uq_products_sku" UNIQUE ("sku");
 
-// إضافة علاقة
-model User {
-    id        String   @id @default(cuid())
-    profileId String?  @unique
-    profile   Profile? @relation(fields: [profileId], references: [id])
-}
+-- إضافة علاقة (FK)
+ALTER TABLE "products"
+    ADD CONSTRAINT "fk_products_shop"
+    FOREIGN KEY ("shop_id") REFERENCES "shops"("id") ON DELETE CASCADE;
 
-model Profile {
-    id     String  @id @default(cuid())
-    user   User?   @relation(fields: [id], references: [id])
-    userId String? @unique
-}
+-- إضافة enum الأدوار (مرة واحدة — النوع UserRole)
+DO $$ BEGIN
+    CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'MERCHANT', 'ADMIN', 'COURIER', 'CASHIER');
+EXCEPTION WHEN duplicate_object THEN NULL END $$;
 ```
 
-### 6.3.3 التعامل مع البيانات الحساسة
-```typescript
-// تشفير البيانات الحساسة
-model User {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    password  String   // سيتم تشفيره في الـ service
-    
-    // حقول حساسة أخرى
-    phone     String?  @map("phone_number")
-    ssn       String?  @map("social_security_number") @db.Text
-    
-    @@map("users")
-}
+### 6.3.3 نوع `UserRole` (enum)
+```sql
+-- القيم الرسمية:
+-- CUSTOMER, MERCHANT, ADMIN, COURIER (+ CASHIER حسب الحاجة)
 
-// استخدام الـ enums للحقول ذات القيم محددة
-enum UserRole {
-    CUSTOMER
-    MERCHANT
-    ADMIN
-    COURIER
-}
+CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'MERCHANT', 'ADMIN', 'COURIER', 'CASHIER');
 
-model User {
-    id   String    @id @default(cuid())
-    role UserRole  @default(CUSTOMER)
-    
-    @@map("users")
-}
+-- مثال استخدام:
+ALTER TABLE "users" ADD COLUMN "role" "UserRole" NOT NULL DEFAULT 'CUSTOMER';
 ```
+
+> الأدوار المعتمدة في المصادقة: `CUSTOMER/MERCHANT/ADMIN/COURIER/CASHIER`. أي دور خارجها يُرفض بـ `insufficient_role`.
 
 ## 6.4 قواعد أمان البيانات
 
 ### 6.4.1 حماية البيانات الحساسة
-```typescript
-// 1. لا تخزن كلمات المرور كنص عادي
-model User {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    password  String   // سيتم تخزين الـ hash فقط
-    
-    // لا تخزن بيانات حساسة في النص العادي
-    // استخدم التشفير للبيانات المالية والشخصية
-    creditCard String? @db.Text // مشفر
-    ssn         String? @db.Text // مشفر
-}
+```sql
+-- 1. لا تخزن كلمات المرور كنص عادي — يُخزَّن الـ hash فقط (bcrypt)
+-- عمود password يحمل hash وليس كلمة المرور
 
-// 2. استخدم الـ soft deletes
-model Product {
-    id        String   @id @default(cuid())
-    name      String
-    deletedAt DateTime? @map("deleted_at")
-    
-    @@map("products")
-}
+-- 2. استخدم soft deletes حيث يلزم
+ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMPTZ;
 
-// 3. استخدم الـ timestamps للتدقيق
-model AuditLog {
-    id        String   @id @default(cuid())
-    action    String   // CREATE, UPDATE, DELETE
-    tableName String   @map("table_name")
-    recordId  String   @map("record_id")
-    userId    String?  @map("user_id")
-    oldData   Json?    @map("old_data")
-    newData   Json?    @map("new_data")
-    createdAt DateTime @default(now()) @map("created_at")
-    
-    @@map("audit_logs")
-}
+-- 3. timestamps للتدقيق
+ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW();
+ALTER TABLE "products" ADD COLUMN IF NOT EXISTS "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ```
 
-### 6.4.2 إعدادات الاتصال الآمنة
+### 6.4.2 إعدادات الاتصال
 ```bash
-# استخدام SSL للاتصال بقاعدة البيانات
-DATABASE_URL="postgresql://user:pass@localhost:5432/db?sslmode=require"
+# محليًا (بدون SSL — حسب الإعداد الافتراضي)
+DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable
 
-# تحديد مهلة الاتصال
-DATABASE_URL="postgresql://user:pass@localhost:5432/db?connect_timeout=10"
-
-# استخدام connection pooling
-DATABASE_URL="postgresql://user:pass@localhost:5432/db?connection_limit=20&pool_timeout=10"
+# للإنتاج استخدم sslmode=require (حسب بيئتك)
+# DATABASE_URL=postgresql://user:pass@host:5432/db?sslmode=require
 ```
 
 ### 6.4.3 النسخ الاحتياطي والاسترداد
 ```bash
 # إنشاء نسخة احتياطية
-pg_dump ray_eg > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" > backup_$(date +%Y%m%d_%H%M%S).sql
 
 # استعادة النسخة الاحتياطية
-psql ray_eg < backup_20231201_120000.sql
-
-# باستخدام Prisma
-npx prisma db push --force-reset
-npx prisma db seed
+psql "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" < backup_20231201_120000.sql
 ```
 
 ## 6.5 تحسين الأداء (Performance Optimization)
 
 ### 6.5.1 الـ Indexes الاستراتيجية
-```typescript
-model Product {
-    id          String   @id @default(cuid())
-    name        String
-    price       Decimal
-    categoryId  String
-    shopId      String
-    createdAt   DateTime @default(now())
-    
-    // indexes للبحث السريع
-    @@index([name])
-    @@index([price])
-    @@index([categoryId])
-    @@index([shopId])
-    @@index([createdAt])
-    @@index([shopId, categoryId]) // composite index
-    
-    @@map("products")
-}
+```sql
+-- منتجات: بحث سريع بالاسم/السعر/المتجر/الفئة
+CREATE INDEX IF NOT EXISTS "idx_products_shop_id" ON "products"("shop_id");
+CREATE INDEX IF NOT EXISTS "idx_products_category_id" ON "products"("category_id");
+CREATE INDEX IF NOT EXISTS "idx_products_price" ON "products"("price");
+CREATE INDEX IF NOT EXISTS "idx_products_created_at" ON "products"("created_at");
+CREATE INDEX IF NOT EXISTS "idx_products_shop_category" ON "products"("shop_id", "category_id");
 
-model Order {
-    id         String   @id @default(cuid())
-    userId     String
-    shopId     String
-    status     OrderStatus
-    total      Decimal
-    createdAt  DateTime @default(now())
-    
-    // indexes للاستعلامات الشائعة
-    @@index([userId])
-    @@index([shopId])
-    @@index([status])
-    @@index([createdAt])
-    @@index([userId, status]) // composite index
-    @@index([shopId, createdAt]) // composite index
-    
-    @@map("orders")
-}
+-- طلبات: استعلامات شائعة بالمستخدم/المتجر/الحالة/التاريخ
+CREATE INDEX IF NOT EXISTS "idx_orders_user_id" ON "orders"("user_id");
+CREATE INDEX IF NOT EXISTS "idx_orders_shop_id" ON "orders"("shop_id");
+CREATE INDEX IF NOT EXISTS "idx_orders_status" ON "orders"("status");
+CREATE INDEX IF NOT EXISTS "idx_orders_created_at" ON "orders"("created_at");
+CREATE INDEX IF NOT EXISTS "idx_orders_user_status" ON "orders"("user_id", "status");
+CREATE INDEX IF NOT EXISTS "idx_orders_shop_created" ON "orders"("shop_id", "created_at");
 ```
 
-### 6.5.2 تحسين الاستعلامات
-```typescript
-// استخدام select محدد لتقليل البيانات المنقولة
-const products = await prisma.product.findMany({
-    select: {
-        id: true,
-        name: true,
-        price: true,
-        shop: {
-            select: {
-                id: true,
-                name: true
-            }
-        }
-    },
-    where: {
-        categoryId: categoryId
-    },
-    orderBy: {
-        createdAt: 'desc'
-    },
-    take: 20,
-    skip: (page - 1) * 20
-});
+### 6.5.2 تحسين الاستعلامات (pgx/v5 يدويًا)
+```go
+// حدّد الأعمدة المطلوبة فقط + pagination
+const listProducts = `
+SELECT id, name, price, shop_id, category_id, created_at
+FROM products
+WHERE shop_id = $1
+ORDER BY created_at DESC
+LIMIT $2 OFFSET $3;
+`
 
-// استخدام include مع تحديد
-const orders = await prisma.order.findMany({
-    include: {
-        user: {
-            select: {
-                id: true,
-                name: true,
-                email: true
-            }
-        },
-        items: {
-            select: {
-                id: true,
-                quantity: true,
-                product: {
-                    select: {
-                        id: true,
-                        name: true,
-                        price: true
-                    }
-                }
-            }
-        }
-    }
-});
+rows, err := pool.Query(ctx, listProducts, shopID, limit, offset)
 
-// استخدام raw queries للاستعلامات المعقدة
-const result = await prisma.$queryRaw`
-    SELECT p.*, s.name as shop_name
-    FROM products p
-    JOIN shops s ON p.shop_id = s.id
-    WHERE p.price > $1
-    AND p.created_at > $2
-    ORDER BY p.created_at DESC
-    LIMIT $3
-` [minPrice, date, limit];
+// للاستعلامات المعقدة: SQL خام عبر pgx
+const productWithShop = `
+SELECT p.id, p.name, p.price, s.name AS shop_name
+FROM products p
+JOIN shops s ON s.id = p.shop_id
+WHERE p.price > $1 AND p.created_at > $2
+ORDER BY p.created_at DESC
+LIMIT $3;
+`
 ```
 
-### 6.5.3 Connection Pooling
-```typescript
-// prisma/schema.prisma
-datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
-    
-    // إعدادات connection pooling
-    directUrl = env("DIRECT_URL") // للـ migrations
-}
+### 6.5.3 Connection Pooling (pgxpool)
+```go
+// إعداد الـ pool من DATABASE_URL (انظر internal/config + app wiring)
+cfg, err := pgxpool.ParseConfig(databaseURL)
+cfg.MaxConns = 20
+cfg.MinConns = 2
+cfg.MaxConnLifetime = time.Hour
 
-// في ملف البيئة
-DATABASE_URL="postgresql://user:pass@localhost:5432/db?connection_limit=20&pool_timeout=10"
-DIRECT_URL="postgresql://user:pass@localhost:5432/db"
+pool, err := pgxpool.NewWithConfig(ctx, cfg)
 ```
 
-## 6.6 البيانات الأولية (Seeding)
+## 6.6 كود المستودعات (pgx/v5 يدويًا + sqlc اختياري)
 
-### 6.6.1 إعداد البيانات الأولية
-```typescript
-// prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
-import { hash } from 'bcryptjs';
+### 6.6.1 المبدأ
+- لا يوجد Prisma Client. كل استعلام SQL مكتوب يدويًا بـ pgx/v5 داخل طبقة repository لكل دومين.
+- يوجد `sqlc.yaml` اختياري لتوليد بعض الكود — لكن الأساس اليدوي يبقى المرجع.
 
-const prisma = new PrismaClient();
+### 6.6.2 مثال مستودع (نمط)
+```go
+// internal/<domain>/repository.go (نمط عام)
+package shopdomain
 
-async function main() {
-    console.log('Start seeding...');
+import (
+    "context"
+    "github.com/jackc/pgx/v5/pgxpool"
+)
 
-    // إنشاء أدوار المستخدمين
-    await prisma.userRole.createMany({
-        data: [
-            { name: 'CUSTOMER', description: 'Regular customer' },
-            { name: 'MERCHANT', description: 'Shop owner' },
-            { name: 'ADMIN', description: 'System administrator' },
-            { name: 'COURIER', description: 'Delivery person' }
-        ],
-        skipDuplicates: true
-    });
+type Repository struct{ db *pgxpool.Pool }
 
-    // إنشاء مستخدم admin افتراضي
-    const adminPassword = await hash('admin123');
-    await prisma.user.upsert({
-        where: { email: 'admin@ray-eg.com' },
-        update: {},
-        create: {
-            email: 'admin@ray-eg.com',
-            fullName: 'System Administrator',
-            password: adminPassword,
-            role: 'ADMIN',
-            isActive: true,
-            isEmailVerified: true
-        }
-    });
+func NewRepository(db *pgxpool.Pool) *Repository { return &Repository{db: db} }
 
-    // إنشاء فئات المنتجات
-    await prisma.category.createMany({
-        data: [
-            { name: 'Electronics', slug: 'electronics' },
-            { name: 'Clothing', slug: 'clothing' },
-            { name: 'Food', slug: 'food' },
-            { name: 'Books', slug: 'books' },
-            { name: 'Home & Garden', slug: 'home-garden' }
-        ],
-        skipDuplicates: true
-    });
-
-    // إنشاء متاجر تجريبية
-    await prisma.shop.createMany({
-        data: [
-            {
-                name: 'Demo Electronics',
-                slug: 'demo-electronics',
-                description: 'Best electronics store in town',
-                email: 'demo@electronics.com',
-                phone: '+201234567890',
-                address: '123 Main St, Cairo, Egypt',
-                isActive: true,
-                isApproved: true
-            },
-            {
-                name: 'Fashion Hub',
-                slug: 'fashion-hub',
-                description: 'Latest fashion trends',
-                email: 'info@fashion-hub.com',
-                phone: '+201098765432',
-                address: '456 Fashion Ave, Alexandria, Egypt',
-                isActive: true,
-                isApproved: true
-            }
-        ],
-        skipDuplicates: true
-    });
-
-    console.log('Seeding finished.');
-}
-
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
-```
-
-### 6.6.2 بيانات أولية للمنتجات
-```typescript
-// إنشاء منتجات تجريبية
-const demoProducts = [
-    {
-        name: 'Smartphone XYZ',
-        description: 'Latest smartphone with amazing features',
-        price: 12999.99,
-        originalPrice: 14999.99,
-        sku: 'PHONE-XYZ-001',
-        stock: 50,
-        images: ['phone1.jpg', 'phone2.jpg'],
-        shopId: 'demo-shop-id',
-        categoryId: 'electronics-id',
-        isActive: true,
-        tags: ['smartphone', 'electronics', 'mobile']
-    },
-    {
-        name: 'Wireless Headphones',
-        description: 'Premium wireless headphones with noise cancellation',
-        price: 2499.99,
-        sku: 'HEADPHONE-WL-001',
-        stock: 100,
-        images: ['headphones1.jpg', 'headphones2.jpg'],
-        shopId: 'demo-shop-id',
-        categoryId: 'electronics-id',
-        isActive: true,
-        tags: ['headphones', 'wireless', 'audio']
+func (r *Repository) GetByID(ctx context.Context, id string) (*Shop, error) {
+    const q = `SELECT id, name, slug, owner_id, is_active, created_at FROM shops WHERE id = $1;`
+    var s Shop
+    err := r.db.QueryRow(ctx, q, id).Scan(&s.ID, &s.Name, &s.Slug, &s.OwnerID, &s.IsActive, &s.CreatedAt)
+    if err != nil {
+        return nil, err
     }
-];
-
-await prisma.product.createMany({
-    data: demoProducts,
-    skipDuplicates: true
-});
-```
-
-## 6.7 المراقبة والصيانة (Monitoring & Maintenance)
-
-### 6.7.1 مراقبة أداء قاعدة البيانات
-```typescript
-// إنشاء service لمراقبة الأداء
-class DatabaseMonitor {
-    async checkConnection() {
-        try {
-            await prisma.$queryRaw`SELECT 1`;
-            return { status: 'connected', timestamp: new Date() };
-        } catch (error) {
-            return { status: 'error', error: error.message, timestamp: new Date() };
-        }
-    }
-
-    async getTableSizes() {
-        const tables = await prisma.$queryRaw`
-            SELECT 
-                schemaname,
-                tablename,
-                attname,
-                n_distinct,
-                nullfrac
-            FROM pg_stats
-            WHERE schemaname = 'public'
-            ORDER BY tablename, attname;
-        `;
-        return tables;
-    }
-
-    async getSlowQueries() {
-        const slowQueries = await prisma.$queryRaw`
-            SELECT 
-                query,
-                calls,
-                total_time,
-                mean_time,
-                rows
-            FROM pg_stat_statements
-            WHERE mean_time > 100
-            ORDER BY mean_time DESC
-            LIMIT 10;
-        `;
-        return slowQueries;
-    }
+    return &s, nil
 }
 ```
 
-### 6.7.2 الصيانة الدورية
+### 6.6.3 Transactions
+```go
+// عملية متعددة الخطوات داخل transaction واحدة
+tx, err := pool.Begin(ctx)
+if err != nil {
+    return err
+}
+defer tx.Rollback(ctx)
+
+// 1. إنشاء الطلب
+// 2. إنشاء عناصر الطلب
+// 3. خصم المخزون
+// 4. tx.Commit(ctx)
+```
+
+## 6.7 البيانات الأولية (Seeding)
+
+### 6.7.1 المبدأ
+- لا يوجد `prisma/seed.ts` ولا `npx prisma db seed`.
+- أي بيانات أولية تكون عبر migration من نوع seed (صفوف افتراضية) أو سكربت Go صريح — وحسب الحاجة فقط.
+
+### 6.7.2 مثال seed عبر migration
+```sql
+-- 0000XX_seed_default_roles.up.sql (مثال نمط)
+INSERT INTO "roles" ("name", "description") VALUES
+    ('CUSTOMER', 'Regular customer'),
+    ('MERCHANT', 'Shop owner'),
+    ('ADMIN', 'System administrator'),
+    ('COURIER', 'Delivery person')
+ON CONFLICT ("name") DO NOTHING;
+```
+
+## 6.8 المراقبة والصيانة (Monitoring & Maintenance)
+
+### 6.8.1 فحص صحة قاعدة البيانات
+```bash
+# عبر المراقبة (تتحقق من DB وRedis)
+curl http://localhost:4000/monitoring/health
+curl http://localhost:4000/monitoring/ready
+
+# مباشرة
+psql "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" -c "SELECT 1;"
+```
+
+### 6.8.2 مراقبة الأداء (SQL)
+```sql
+-- أكبر الجداول
+SELECT schemaname, tablename,
+       pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) AS size
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
+LIMIT 10;
+
+-- حجم قاعدة البيانات
+SELECT pg_size_pretty(pg_database_size('ray_marketplace'));
+```
+
+### 6.8.3 الصيانة الدورية
 ```bash
 #!/bin/bash
 # scripts/db-maintenance.sh
+DB="postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable"
 
-echo "Starting database maintenance..."
-
-# 1. تحديث الإحصائيات
 echo "Updating statistics..."
-psql -d ray_eg -c "ANALYZE;"
+psql "$DB" -c "ANALYZE;"
 
-# 2. إعادة بناء الـ indexes
-echo "Rebuilding indexes..."
-psql -d ray_eg -c "REINDEX DATABASE ray_eg;"
+echo "Cleaning up..."
+psql "$DB" -c "VACUUM ANALYZE;"
 
-# 3. تنظيف الجدول المؤقت
-echo "Cleaning up temporary tables..."
-psql -d ray_eg -c "VACUUM ANALYZE;"
-
-# 4. التحقق من حجم قاعدة البيانات
 echo "Database size:"
-psql -d ray_eg -c "SELECT pg_size_pretty(pg_database_size('ray_eg'));"
-
-# 5. التحقق من حجم الجداول
-echo "Table sizes:"
-psql -d ray_eg -c "
-    SELECT 
-        schemaname,
-        tablename,
-        pg_size_pretty(pg_total_relation_size(schemaname||'.'||tablename)) as size
-    FROM pg_tables 
-    WHERE schemaname = 'public'
-    ORDER BY pg_total_relation_size(schemaname||'.'||tablename) DESC
-    LIMIT 10;
-"
-
-echo "Database maintenance completed."
+psql "$DB" -c "SELECT pg_size_pretty(pg_database_size('ray_marketplace'));"
 ```
 
-## 6.8 أخطاء شائعة وحلولها
+## 6.9 أخطاء شائعة وحلولها
 
-### 6.8.1 Prisma Client Initialization Error
+### 6.9.1 فشل الاتصال بقاعدة البيانات
 ```bash
-# المشكلة
-Error: PrismaClientInitializationError: 
-Unable to connect to the database: ...
-
-# الحلول
-# 1. تحقق من DATABASE_URL
+# 1. تحقق من DATABASE_URL (المنفذ 5433 وليس 5432)
 echo $DATABASE_URL
 
-# 2. تحقق من تشغيل قاعدة البيانات
-pg_ctl status
-# أو
-sudo systemctl status postgresql
+# 2. تحقق من الحاويات
+cd gobackend
+docker compose ps
+docker compose logs postgres
 
-# 3. تحقق من صلاحيات المستخدم
-psql -h localhost -U username -d database_name
-
-# 4. تحقق من جدار الحماية
-sudo ufw status
+# 3. تحقق من الاتصال مباشرة
+psql "postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable" -c "SELECT 1;"
 ```
 
-### 6.8.2 Schema Mismatch
+### 6.9.2 تعارض الترقيم في الهجرات
 ```bash
-# المشكلة
-Error: Schema mismatch: The database schema does not match the Prisma schema
-
-# الحلول
-# 1. توليد Prisma Client جديد
-npx prisma generate
-
-# 2. مزامنة قاعدة البيانات
-npx prisma db push
-
-# 3. إعادة تعيين قاعدة البيانات (للتطوير)
-npx prisma migrate reset
+# المشكلة: رقمان مكرران أو migration مطبَّق جزئيًا
+# الحلول:
+ls gobackend/migrations/ | sort | tail -20
+# لا تعدّل ملفًا مطبَّقًا — أنشئ رقمًا جديدًا أعلى من 000049_*
 ```
 
-### 6.8.3 Migration Conflicts
-```bash
-# المشكلة
-Error: Migration failed with error: relation "table_name" already exists
-
-# الحلول
-# 1. عرض حالة الترحيلات
-npx prisma migrate status
-
-# 2. حل الترحيلات المعلقة
-npx prisma migrate resolve
-
-# 3. إنشاء ترحيل جديد يدوياً
-npx prisma migrate dev --name fix_table_conflict
+### 6.9.3 خطأ `UserRole` غير معروف
+```sql
+-- السبب: نوع enum غير منشأ قبل استخدامه
+-- الحل: أنشئ النوع أولًا (idempotent)
+DO $$ BEGIN
+    CREATE TYPE "UserRole" AS ENUM ('CUSTOMER', 'MERCHANT', 'ADMIN', 'COURIER', 'CASHIER');
+EXCEPTION WHEN duplicate_object THEN NULL END $$;
 ```
 
-## 6.9 أفضل الممارسات (Best Practices)
+## 6.10 أفضل الممارسات (Best Practices)
 
-### 6.9.1 تصميم المخطط (Schema Design)
-```typescript
-// 1. استخدم أسماء واضحة ومتسقة
-model User {
-    id        String   @id @default(cuid())
-    email     String   @unique
-    createdAt DateTime @default(now()) @map("created_at")
-    updatedAt DateTime @updatedAt @map("updated_at")
-    
-    @@map("users") // دائما استخدم أسماء جداول صغيرة
-}
+### 6.10.1 تصميم المخطط (Schema Design)
+```sql
+-- 1. أسماء جداول صغيرة بأحرف صغيرة + UUIDs
+CREATE TABLE IF NOT EXISTS "users" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "email" VARCHAR(255) NOT NULL UNIQUE,
+    "role" "UserRole" NOT NULL DEFAULT 'CUSTOMER',
+    "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 
-// 2. استخدم الـ constraints المناسبة
-model Product {
-    id        String   @id @default(cuid())
-    name      String   @db.VarChar(255) // تحديد الطول
-    price      Decimal  @db.Decimal(10, 2) // تحديد الدقة
-    sku       String   @unique @db.VarChar(100)
-    isActive  Boolean  @default(true)
-    
-    @@index([sku]) // index للبحث السريع
-    @@index([isActive, createdAt]) // composite index
-    @@map("products")
-}
+-- 2. حدّد الأطوال والدقة
+-- price NUMERIC(10,2), name VARCHAR(255), sku VARCHAR(100) UNIQUE
 
-// 3. استخدم الـ enums للحقول ذات القيم محددة
-enum OrderStatus {
-    PENDING
-    CONFIRMED
-    SHIPPED
-    DELIVERED
-    CANCELLED
-    REFUNDED
-}
-
-model Order {
-    id     String      @id @default(cuid())
-    status OrderStatus @default(PENDING)
-    
-    @@map("orders")
-}
+-- 3. استخدم enum للحالات
+-- UserRole: CUSTOMER, MERCHANT, ADMIN, COURIER (+ CASHIER)
 ```
 
-### 6.9.2 إدارة البيانات
-```typescript
-// 1. استخدم الـ transactions للعمليات المتعددة
-async function createOrderWithItems(orderData: CreateOrderDto) {
-    return await prisma.$transaction(async (tx) => {
-        // إنشاء الطلب
-        const order = await tx.order.create({
-            data: {
-                userId: orderData.userId,
-                total: orderData.total,
-                status: 'PENDING'
-            }
-        });
-
-        // إنشاء عناصر الطلب
-        for (const item of orderData.items) {
-            await tx.orderItem.create({
-                data: {
-                    orderId: order.id,
-                    productId: item.productId,
-                    quantity: item.quantity,
-                    price: item.price
-                }
-            });
-
-            // تحديث المخزون
-            await tx.product.update({
-                where: { id: item.productId },
-                data: {
-                    stock: {
-                        decrement: item.quantity
-                    }
-                }
-            });
-        }
-
-        return order;
-    });
-}
-
-// 2. استخدم الـ batch operations للعمليات المتعددة
-async function updateMultipleProducts(updates: ProductUpdate[]) {
-    const operations = updates.map(update => 
-        prisma.product.update({
-            where: { id: update.id },
-            data: update.data
-        })
-    );
-
-    return await prisma.$transaction(operations);
-}
-
-// 3. استخدم الـ pagination للبيانات الكبيرة
-async function getProducts(page: number, limit: number) {
-    const skip = (page - 1) * limit;
-    
-    const [products, total] = await Promise.all([
-        prisma.product.findMany({
-            skip,
-            take: limit,
-            orderBy: { createdAt: 'desc' }
-        }),
-        prisma.product.count()
-    ]);
-
-    return {
-        products,
-        pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit)
-        }
-    };
-}
+### 6.10.2 إدارة البيانات (pgx)
+```go
+// 1. استخدم transactions للعمليات المتعددة (إنشاء طلب + عناصره + خصم المخزون)
+// 2. استخدم batch للعمليات المتعددة (pgx Batch)
+// 3. استخدم LIMIT/OFFSET دائمًا للقوائم الكبيرة + COUNT منفصل للـ pagination
 ```
 
-## 6.10 التحقق من النجاح (Success Checklist)
+## 6.11 التحقق من النجاح (Success Checklist)
 
-### 6.10.1 التحقق من التثبيت
-- [ ] Node.js و npm مثبتان بشكل صحيح
-- [ ] Prisma CLI مثبت (`npm install -g prisma`)
-- [ ] قاعدة البيانات (PostgreSQL/SQLite) تعمل
-- [ ] DATABASE_URL معرف بشكل صحيح
-- [ ] الاعتماديات المثبتة (`npm install`)
+### 6.11.1 التحقق من التثبيت
+- [ ] Go 1.25 مثبت
+- [ ] Docker + Compose يعملان
+- [ ] حاويتا postgres وredis تعملان (`docker compose ps`)
+- [ ] `DATABASE_URL` معرف بشكل صحيح (منفذ 5433)
 
-### 6.10.2 التحقق من المخطط
-- [ ] Prisma Client تم توليده (`npx prisma generate`)
-- [ ] المخطط صالح (`npx prisma validate`)
-- [ ] الاتصال بقاعدة البيانات يعمل
-- [ ] الترحيلات تعمل (`npx prisma migrate status`)
+### 6.11.2 التحقق من المخطط
+- [ ] ملفات `gobackend/migrations/` موجودة حتى `000049_*`
+- [ ] `DB_MIGRATE_ON_BOOT=true` والإقلاع بلا أخطاء هجرات
+- [ ] نوع `UserRole` موجود بالقيم الصحيحة
 
-### 6.10.3 التحقق من البيانات
-- [ ] البيانات الأولية تم إضافتها (`npx prisma db seed`)
-- [ ] Prisma Studio يعمل ويعرض البيانات
-- [ ] الجداول والعلاقات صحيحة
-- [ ] الـ indexes تم إنشاؤها بشكل صحيح
+### 6.11.3 التحقق من البيانات
+- [ ] الاتصال يعمل (`SELECT 1`)
+- [ ] الجداول والعلاقات والـ indexes صحيحة
+- [ ] لا توجد أي بقايا Prisma/SQLite
 
-### 6.10.4 التحقق من الأداء
+### 6.11.4 التحقق من الأداء
 - [ ] الاستعلامات الأساسية تعمل بكفاءة
-- [ ] الـ indexes تعمل بشكل صحيح
-- [ ] Connection pooling يعمل
-- [ ] لا يوجد استعلامات بطيئة
+- [ ] الـ indexes موجودة للأعمدة كثيرة الاستعلام
+- [ ] الـ pool مضبوط (MaxConns مناسب)
 
-### 6.10.5 التحقق من الأمان
-- [ ] البيانات الحساسة مشفرة
-- [ ] الاتصالات تستخدم SSL
-- [ ] الصلاحيات معدة بشكل صحيح
-- [ ] النسخ الاحتياطي يعمل
-
-هذا الدليل الشامل يغطي جميع جوانب إدارة قاعدة البيانات باستخدام Prisma، مع التركيز على أفضل الممارسات والأمان والأداء.
+### 6.11.5 التحقق من الأمان
+- [ ] كلمات المرور hash فقط (لا نص عادي)
+- [ ] `JWT_SECRET` بطول 32+ حرف
+- [ ] النسخ الاحتياطي يعمل (`pg_dump`/`psql`)

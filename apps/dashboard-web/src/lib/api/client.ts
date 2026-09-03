@@ -40,7 +40,7 @@ export async function apiRequestWithMeta<T = any>(
 ): Promise<ApiResult<T>> {
   const token = getToken();
   const csrf = getCsrf();
-  const headers: Record<string, any = {
+  const headers: Record<string, any> = {
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };

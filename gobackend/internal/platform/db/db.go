@@ -28,7 +28,17 @@ func New(ctx context.Context, cfg config.DBConfig, log *zap.Logger) (*Pool, erro
 		return nil, fmt.Errorf("invalid DATABASE_URL: %w", err)
 	}
 
-	pgxCfg, err := pgxpool.ParseConfig(cfg.URL)
+	// The DATABASE_URL may carry Prisma-only query parameters (e.g. `schema`)
+	// that the pgx driver forwards to the server, which rejects them with
+	// "unrecognized configuration parameter". Strip those so the pool can
+	// connect; otherwise the whole backend starts with a nil pool and every
+	// /api/v1 route returns "Cannot POST …".
+	cleanURL, err := stripPrismaOnlyParams(cfg.URL)
+	if err != nil {
+		return nil, fmt.Errorf("normalize DATABASE_URL: %w", err)
+	}
+
+	pgxCfg, err := pgxpool.ParseConfig(cleanURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse database url: %w", err)
 	}
@@ -115,4 +125,20 @@ func validateURL(raw string) error {
 		return fmt.Errorf("missing host")
 	}
 	return nil
+}
+
+// stripPrismaOnlyParams removes query parameters that are specific to Prisma
+// and not understood by PostgreSQL/pgx (e.g. `schema=public`). Keeping them in
+// the URL causes a FATAL "unrecognized configuration parameter" error.
+func stripPrismaOnlyParams(raw string) (string, error) {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return "", err
+	}
+	q := u.Query()
+	if q.Has("schema") {
+		q.Del("schema")
+		u.RawQuery = q.Encode()
+	}
+	return u.String(), nil
 }

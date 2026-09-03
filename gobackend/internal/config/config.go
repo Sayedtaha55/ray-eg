@@ -38,6 +38,10 @@ type AppConfig struct {
 	Port        int    `env:"PORT" envDefault:"4000"`
 	Host        string `env:"HOST" envDefault:"0.0.0.0"`
 	FrontendURL string `env:"FRONTEND_APP_URL,required"`
+	// PublicURL is the externally reachable base URL of this backend (used to
+	// build public links for locally stored uploads). Optional: when empty the
+	// media service falls back to http://localhost:<Port>.
+	PublicURL string `env:"APP_PUBLIC_URL" envDefault:""`
 }
 
 // DBConfig holds PostgreSQL connection parameters.

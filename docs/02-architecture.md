@@ -4,70 +4,64 @@
 
 ### 2.1.1 طبقة العرض (Presentation Layer)
 **الواجهة الأمامية (Frontend):**
-- **React SPA (Single Page Application)** مع Server-Side Rendering capabilities
+- **ثلاثة تطبيقات Next.js** في `apps/`: `marketplace-next` (المتجر)، `dashboard-web` (لوحة التحكم)، `business` (بوابة التجار)
 - **Multi-role interfaces:** Public, Merchant, Admin, Courier dashboards
 - **Responsive Design:** Mobile-first approach مع Progressive Web App (PWA) features
-- **Real-time Updates:** WebSocket connections للتحديثات الفورية
 - **State Management:** React Query + Context API لإدارة الحالة
 - **Component Architecture:** Atomic Design pattern مع reusable components
+- كل تطبيق يعمل rewrite للمسار `/api/:path*` إلى `BACKEND_URL` (الافتراضي `http://localhost:4000`) — انظر `apps/*/next.config.mjs`
 
 **التقنيات المستخدمة:**
-- React 19 مع Concurrent Features
+- Next.js مع App Router و Server-Side Rendering
+- React مع Concurrent Features
 - TypeScript للـ type safety
-- Vite كـ build tool ومحسّن للأداء
 - Tailwind CSS للـ utility-first styling
 - Framer Motion للـ animations
 - Lucide React للأيقونات
 
 ### 2.1.2 طبقة الـ API (API Layer)
-**NestJS Controllers & Guards:**
-- **RESTful API** مع OpenAPI/Swagger documentation
-- **Authentication Guards:** JWT-based authentication مع refresh tokens
-- **Authorization Guards:** Role-based access control (RBAC)
-- **Validation Pipes:** Comprehensive input validation مع class-validator
-- **Exception Filters:** Centralized error handling
-- **Rate Limiting:** Multi-tier rate limiting للحماية
-- **CORS Configuration:** Dynamic CORS حسب environment
+**Fiber Handlers & Middleware (باك Go الوحيد):**
+- **RESTful API** تحت البادئة `/api/v1` مكوّن من 29 موديول دومين
+- **Authentication Middleware:** JWT-based authentication مع refresh tokens
+- **Authorization:** Role-based access control (RBAC) بالأدوار `CUSTOMER`/`MERCHANT`/`ADMIN`/`COURIER`/`CASHIER` (أحرف كبيرة)
+- **Validation:** تحقق شامل من المدخلات على مستوى الـ handlers
+- **Centralized error handling:** معالجة مركزية للأخطاء
+- **Rate Limiting:** تحديد معدل متعدد المستويات للحماية (مدعوم بـ Redis)
+- **CORS Configuration:** إعداد CORS حسب الـ environment
 
 **المميزات الأمنية:**
-- Helmet.js لتأمين HTTP headers
+- Helmet middleware لتأمين HTTP headers
 - CSRF protection
 - XSS prevention مع Content Security Policy
-- SQL injection prevention عبر Prisma ORM
+- حماية من حقن SQL عبر استعلامات مُعامَلة (parameterized queries)
 - Request/response logging للتدقيق
 
 ### 2.1.3 طبقة المجال والتطبيق (Domain/Application Layer)
-**NestJS Services (Business Logic):**
-- **Domain-Driven Design (DDD)** patterns
-- **Service Layer Pattern:** فصل منطق الأعمال عن الـ controllers
+**Go Services (Business Logic):**
+- **Service Layer Pattern:** فصل منطق الأعمال عن الـ handlers
 - **Repository Pattern:** تجريد الوصول للبيانات
-- **Event-Driven Architecture:** Domain events للـ loose coupling
-- **CQRS Pattern:** Command Query Responsibility Segregation للعمليات المعقدة
-- **Transaction Management:** Atomic operations عبر Prisma
+- **Event-Driven Architecture:** أحداث دومين للـ loose coupling
+- **Transaction Management:** عمليات ذرية (atomic operations) على مستوى قاعدة البيانات
 
-**المجالات الرئيسية (Domains):**
-- **Authentication & Authorization Domain**
-- **Shop & Product Management Domain**
-- **Order & Reservation Domain**
-- **Payment & Invoice Domain**
-- **Courier & Delivery Domain**
-- **Analytics & Reporting Domain**
-- **Notification & Communication Domain**
+**الموديولات الـ 29 الموصولة تحت `/api/v1`:**
+analytics, apps, auth, bookings, cartEvents, chat, courier, customers, feedback, gallery, hr, invoice, map, media, measurement, notification, offers, orders, portal, products, reservation, reviews, search, seasonalOffers, shopBuilder, shopImageMap, shops, support, users
 
 ### 2.1.4 طبقة البيانات (Data Layer)
-**Prisma ORM & Database:**
-- **Multi-database support:** PostgreSQL (production), SQLite (development)
+**PostgreSQL + golang-migrate (لا Prisma ولا SQLite):**
+- **PostgreSQL 15** عبر Docker على `localhost:5433` (يوزر `ray_user`)
+- سلسلة الاتصال: `postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?sslmode=disable`
+- **الهجرات:** ملفات SQL بـ golang-migrate في `gobackend/migrations/` وتُطبق عند الإقلاع (`DB_MIGRATE_ON_BOOT`)
 - **Connection Pooling:** إدارة اتصالات قاعدة البيانات بكفاءة
-- **Migrations:** Version-controlled schema changes
-- **Query Optimization:** N+1 problem prevention
-- **Data Validation:** Schema-level constraints
-- **Soft Deletes:** Data retention policies
+- **Query Optimization:** منع مشكلة N+1
+- **Data Validation:** قيود على مستوى الـ schema
+- **Soft Deletes:** سياسات الاحتفاظ بالبيانات
 
 **التخزين المؤقت (Caching):**
-- **Redis** للتخزين المؤقت عالي الأداء
-- **Session Storage:** User sessions و temporary data
-- **API Response Caching:** Cache layer للـ read-heavy operations
-- **Distributed Caching:** Multi-instance cache synchronization
+- **Redis 7** على `localhost:6379` للتخزين المؤقت عالي الأداء
+- **Session Storage:** جلسات المستخدمين والبيانات المؤقتة
+- **API Response Caching:** طبقة كاش لعمليات القراءة الكثيفة
+- **Rate Limiting:** عدّادات تحديد المعدل
+- **Background Jobs:** طابور المهام الخلفية (asynq worker في `gobackend/cmd/worker`)
 
 ### 2.1.5 طبقة البنية التحتية (Infrastructure Layer)
 **External Services Integration:**
@@ -79,17 +73,28 @@
 - **AI Services:** Google Gemini API
 
 **Monitoring & Observability:**
-- **Application Logging:** Winston مع structured logging
-- **Performance Monitoring:** Response times, throughput metrics
-- **Health Checks:** Comprehensive health endpoints
+- **Application Logging:** تسجيل منظم (structured logging)
+- **Performance Monitoring:** أزمنة الاستجابة ومقاييس الإنتاجية
+- **Health Checks:** نقاط `/monitoring/live` و`/monitoring/ready` و`/api/v1/status`
+- **Metrics:** نقطة `/metrics`
 - **Error Tracking:** Sentry أو similar
-- **Metrics Collection:** Prometheus/Grafana integration
 
 ## 2.2 الهيكل العام للمجلدات والملفات
 
 ### 2.2.1 الواجهة الأمامية (Frontend Structure)
 ```
-components/
+apps/
+├── marketplace-next/          # المتجر (Next.js)
+│   ├── app/                   # App Router pages
+│   └── next.config.mjs        # rewrite: /api/:path* → BACKEND_URL
+├── dashboard-web/             # لوحة التحكم (Next.js)
+│   ├── app/
+│   └── next.config.mjs        # rewrite: /api/:path* → BACKEND_URL
+└── business/                  # بوابة التجار (Next.js)
+    ├── app/
+    └── next.config.mjs        # rewrite: /api/:path* → BACKEND_URL
+
+components/ (داخل كل تطبيق أو الحزمة المشتركة)
 ├── pages/                    # Route-level components
 │   ├── public/              # Public-facing pages
 │   ├── business/            # Merchant dashboard
@@ -107,94 +112,104 @@ components/
 │   ├── order/              # Order management
 │   └── payment/            # Payment components
 ├── ui/                     # Reusable UI components
-│   ├── Button.tsx
-│   ├── Modal.tsx
-│   ├── Form.tsx
-│   └── index.ts
 ├── hooks/                  # Custom React hooks
-├── services/               # API services
+├── services/               # API services (تتكلم مع /api عبر الـ rewrite)
 ├── utils/                  # Utility functions
 └── types/                  # TypeScript type definitions
 ```
 
+**المصادقة في المتصفح (مشتركة بين التطبيقات الثلاثة):**
+- `localStorage`: المفاتيح `ray_user` / `ray_token` / `token`
+- كوكي `ray_session`
+- الدخول التجريبي للتطوير عبر صفحة `/admin/gate` (تظهر فقط خارج الإنتاج)
+
 ### 2.2.2 الواجهة الخلفية (Backend Structure)
 ```
-backend/
-├── src/
-│   ├── modules/            # Feature modules
-│   │   ├── auth/          # Authentication module
-│   │   ├── shop/          # Shop management
-│   │   ├── product/       # Product management
-│   │   ├── order/         # Order processing
-│   │   ├── payment/       # Payment processing
-│   │   ├── courier/       # Courier management
-│   │   └── analytics/     # Analytics module
-│   ├── common/            # Shared utilities
-│   │   ├── guards/        # Auth guards
-│   │   ├── pipes/         # Validation pipes
-│   │   ├── interceptors/  # Request/response interceptors
-│   │   └── decorators/    # Custom decorators
-│   ├── config/            # Configuration files
-│   └── database/          # Database configuration
-├── test/                  # Test files
-└── prisma/                # Database schema and migrations
+gobackend/                            # الموديول github.com/Sayedtaha55/ray-eg/gobackend
+├── cmd/
+│   ├── api/main.go                   # نقطة الدخول الوحيدة للـ API
+│   └── worker/                       # عامل المهام الخلفية (asynq + Redis)
+├── internal/
+│   ├── app/app.go                    # تجميع التطبيق وتوصيل الموديولات
+│   ├── modules/                      # موديولات الدومين الـ 29
+│   │   ├── analytics/
+│   │   ├── apps/
+│   │   ├── auth/
+│   │   ├── bookings/
+│   │   ├── cartEvents/
+│   │   ├── chat/
+│   │   ├── courier/
+│   │   ├── customers/
+│   │   ├── feedback/
+│   │   ├── gallery/
+│   │   ├── hr/
+│   │   ├── invoice/
+│   │   ├── map/
+│   │   ├── media/
+│   │   ├── measurement/
+│   │   ├── notification/
+│   │   ├── offers/
+│   │   ├── orders/
+│   │   ├── portal/
+│   │   ├── products/
+│   │   ├── reservation/
+│   │   ├── reviews/
+│   │   ├── search/
+│   │   ├── seasonalOffers/
+│   │   ├── shopBuilder/
+│   │   ├── shopImageMap/
+│   │   ├── shops/
+│   │   ├── support/
+│   │   └── users/
+│   ├── middleware/                   # مصادقة JWT، تفويض، تحديد معدل، CORS
+│   └── platform/                     # اتصالات Postgres/Redis والبنية المشتركة
+├── migrations/                       # هجرات SQL (golang-migrate)
+└── pkg/                              # حزم مساعدة مشتركة
 ```
+
+> باك NestJS القديم حُذف من المستودع بتاريخ 2026-08-24 وموجود فقط في `_archive/` ونسخ احتياطية خارجية — ممنوع توثيق أي أمر يخصه (لا `backend/main.ts` ولا `app.module.ts` ولا Prisma).
 
 ### 2.2.3 قاعدة البيانات (Database Structure)
 ```
-prisma/
-├── schema.prisma          # Main database schema
-├── schema.postgres.prisma # PostgreSQL-specific schema
-├── schema-sqlite.prisma   # SQLite-specific schema
-├── migrations/            # Database migrations
-└── seed.ts               # Database seeding script
+gobackend/migrations/       # ملفات هجرات SQL مرقّمة (golang-migrate)
+├── *.up.sql                # هجرة للأمام
+└── *.down.sql              # تراجع عن الهجرة
 ```
+- تُطبق الهجرات تلقائياً عند إقلاع الـ API عندما تكون `DB_MIGRATE_ON_BOOT` مفعّلة
+- لا يوجد `schema.prisma` ولا سكيمات SQLite — أي إشارة إليها مهملة
 
 ## 2.3 معمارية الواجهة الأمامية (Frontend Architecture)
 
 ### 2.3.1 نقطة الدخول والتهيئة (Entry Point & Bootstrap)
-**index.tsx - Application Bootstrap:**
-```typescript
-// التهيئة الأساسية للتطبيق
-- React 19 root creation
+**Next.js App Router - Application Bootstrap (لكل تطبيق في `apps/`):**
+```
+- تهيئة التطبيق عبر app/layout.tsx
 - ErrorBoundary configuration
 - ToastProvider setup
 - Theme provider initialization
-- Service worker registration (PWA)
+- Auth bootstrap من localStorage (ray_user / ray_token / token) وكوكي ray_session
 ```
 
 ### 2.3.2 نظام التوجيه (Routing System)
-**App.tsx - Central Router Configuration:**
-```typescript
-// App shell only
-- Router shell setup
-- auth bootstrap lifecycle
-- redirector mounting
-- route warmup scheduling
+**App Router - Central Route Tree:**
 ```
-
-**app/AppRoutes.tsx - Central Route Tree:**
-```typescript
-// Route definition module
 - Public/business/admin/courier routes
 - Nested layouts
 - Shared suspense wrappers
 - Legacy redirects
 ```
 
-**app/routerHelpers.tsx / app/routeWarmup.ts:**
-```typescript
-// Small focused router helpers
+**app/routerHelpers / routeWarmup:**
+```
 - suspense fallback helpers
 - redirect components
 - route warmup heuristics
 ```
 
-```typescript
-// ميزات التوجيه المتقدمة
-- Dynamic routing mode (Hash/Browser Router)
+```
+- Dynamic routing عبر الـ App Router
 - Lazy loading للـ code splitting
-- Route guards للمصادقة والتفويض
+- Route guards للمصادقة والتفويض (حسب الدور من الـ JWT)
 - Nested routes للـ layouts
 - Redirect handlers للـ legacy routes
 - SEO optimization مع RouteSeoManager
@@ -210,7 +225,7 @@ prisma/
 **Multi-layer State Management:**
 - **Local State:** useState, useReducer للـ component state
 - **Global State:** Context API للتطبيق-wide state
-- **Server State:** React Query للـ API data
+- **Server State:** React Query للـ API data (عبر rewrite إلى `BACKEND_URL`)
 - **Form State:** React Hook Form للـ form management
 - **URL State:** URL parameters للـ shareable state
 
@@ -226,181 +241,156 @@ prisma/
 - **Code Splitting:** Route-based و feature-based splitting
 - **Tree Shaking:** Dead code elimination
 - **Image Optimization:** Lazy loading, WebP format, responsive images
-- **Bundle Analysis:** Webpack Bundle Analyzer integration
+- **Bundle Analysis:** تحليل الحزم المولّدة
 - **Caching Strategies:** Service worker caching, HTTP caching
 
 ## 2.4 معمارية الواجهة الخلفية (Backend Architecture)
 
 ### 2.4.1 تهيئة التطبيق (Application Bootstrap)
-**main.ts - Server Bootstrap:**
-```typescript
-// تهيئة الخادم المتقدمة
-- Environment configuration loading
-- CORS setup مع dynamic origins
-- Security middleware (Helmet, Rate Limiting)
-- ValidationPipe global configuration
-- Exception filter setup
-- Graceful shutdown handling
+**gobackend/cmd/api/main.go - Server Bootstrap:**
+```
+- تحميل إعدادات البيئة
+- إعداد CORS
+- Security middleware (Helmet، تحديد المعدل)
+- معالجة مركزية للأخطاء
+- تطبيق هجرات golang-migrate عند الإقلاع (DB_MIGRATE_ON_BOOT)
+- إغلاق منظم (Graceful shutdown)
 ```
 
 ### 2.4.2 نظام الموديولات (Module System)
-**app.module.ts - Module Registration:**
-```typescript
-// نظام الموديولات المرن
-- Dynamic module loading حسب environment
-- Feature module isolation
-- Shared module configuration
-- Dependency injection setup
-- Module-level configuration
+**gobackend/internal/app/app.go - Module Registration:**
+```
+- توصيل موديولات الدومين الـ 29 تحت /api/v1
+- عزل موديولات المزايا (feature module isolation)
+- إعداد الوحدات المشتركة (DB pool، Redis، الإعدادات)
+- حقن الاعتماديات (dependency injection) يدوياً
 ```
 
 ### 2.4.3 الموديولات الأساسية (Core Modules)
 
-#### Authentication Module
-```typescript
-// ميزات المصادقة المتقدمة
-- JWT token management
-- Refresh token rotation
-- OAuth integration (Google, Facebook)
-- Multi-factor authentication
-- Password strength validation
-- Account lockout mechanisms
+#### Authentication Module (`auth`)
+```
+- إدارة JWT tokens
+- تدوير refresh tokens
+- تكامل OAuth (Google)
+- التحقق من قوة كلمة المرور
+- آليات قفل الحساب
+- الأدوار: CUSTOMER / MERCHANT / ADMIN / COURIER / CASHIER
 ```
 
-#### Shop & Product Module
-```typescript
-// إدارة المتاجر والمنتجات
-- Shop creation and customization
-- Product catalog management
-- Inventory tracking
-- Category and tag management
-- Product variants and options
-- Bulk operations support
+#### Shop & Product Modules (`shops`, `products`, `shopBuilder`, `shopImageMap`, `gallery`, `media`)
+```
+- إنشاء المتاجر وتخصيصها
+- إدارة كتالوج المنتجات
+- تتبع المخزون
+- إدارة الفئات والوسوم
+- صفحات المتجر المبنية (shopBuilder) وخرائط الصور
 ```
 
-#### Order & Payment Module
-```typescript
-// معالجة الطلبات والدفع
-- Order lifecycle management
-- Payment gateway integration
-- Invoice generation
-- Refund and return processing
-- Order status tracking
-- Notification triggers
+#### Order & Payment Modules (`orders`, `bookings`, `reservation`, `cartEvents`, `invoice`)
+```
+- إدارة دورة حياة الطلب
+- تكامل بوابات الدفع
+- توليد الفواتير
+- معالجة الاسترداد والمرتجعات
+- تتبع حالة الطلب
+- إطلاق الإشعارات
 ```
 
-#### Courier & Delivery Module
-```typescript
-// نظام التوصيل
-- Courier registration and verification
-- Order assignment algorithms
-- Real-time location tracking
-- Route optimization
-- Delivery confirmation
-- Performance analytics
+#### Courier & Delivery Module (`courier`, `map`)
+```
+- تسجيل الكابتنات والتحقق منهم
+- خوارزميات إسناد الطلبات
+- تتبع الموقع في الوقت الفعلي
+- تحسين المسارات
+- تأكيد التسليم
+- تحليلات الأداء
 ```
 
 ### 2.4.4 الأنماط الأمنية (Security Patterns)
 
 #### Authentication & Authorization
-```typescript
-// طبقات الأمان المتعددة
-- JWT-based stateless authentication
-- Role-based access control (RBAC)
-- Permission-based fine-grained access
-- API key authentication للـ external services
-- Session management مع Redis
-- Audit logging للـ security events
+```
+- مصادقة JWT عديمة الحالة (stateless)
+- تحكم بالوصول حسب الدور (RBAC) بالأدوار الكبيرة حصراً
+- صلاحيات دقيقة (fine-grained) حسب الحاجة
+- إدارة الجلسات مع Redis
+- سجل تدقيق (audit logging) للأحداث الأمنية
 ```
 
 #### Data Protection
-```typescript
-// حماية البيانات
-- Input validation و sanitization
-- SQL injection prevention
-- XSS protection مع CSP
-- CSRF token validation
-- Data encryption at rest و in transit
-- PII (Personally Identifiable Information) protection
+```
+- التحقق من المدخلات وتنقيتها
+- منع حقن SQL عبر استعلامات مُعامَلة
+- حماية XSS مع CSP
+- التحقق من رموز CSRF
+- تشفير البيانات أثناء النقل (TLS) وعند التخزين
+- حماية البيانات الشخصية (PII)
 ```
 
 #### Rate Limiting & Abuse Prevention
-```typescript
-// الحماية من الإساءة
-- Multi-tier rate limiting
-- IP-based throttling
-- User-based quota management
-- DDoS protection
-- Bot detection و mitigation
-- Anomaly detection
+```
+- تحديد معدل متعدد المستويات (مدعوم بـ Redis)
+- Throttling حسب IP
+- حصص (quotas) حسب المستخدم
+- حماية من DDoS
+- كشف البوتات والتخفيف منها
+- كشف الشذوذ
 ```
 
-## 2.5 أوضاع التشغيل المرنة (Flexible Boot Modes)
+## 2.5 أوضاع التشغيل (Boot Modes)
 
-### 2.5.1 Minimal Boot Mode
-```bash
-# تشغيل محدد للموديولات الأساسية
-MINIMAL_BOOT=true
-BOOT_MODULES=auth,health
+### 2.5.1 وضع التشغيل الموحد (Single Binary Boot)
 ```
-**الاستخدامات:**
-- **Development:** سرعة الإقلاع للتطوير المركز
-- **Testing:** عزل الموديولات للاختبار المركز
-- **Debugging:** تحديد مصادر المشاكل بسرعة
-- **Resource Constrained:** البيئات محدودة الموارد
-
-### 2.5.2 Feature-Specific Boot
-```bash
-# تشغيل موديولات محددة
-BOOT_MODULES=auth,shop,product,order
+الباك إند يعمل كثنائية Go واحدة:
+- نقطة الدخول: gobackend/cmd/api/main.go
+- التجميع: gobackend/internal/app/app.go
+- الموديولات الـ 29 تُوصَّل كلها تحت /api/v1 عند الإقلاع
 ```
-**الموديولات المتاحة:**
-- `auth` - المصادقة والتفويض
-- `shop` - إدارة المتاجر
-- `product` - إدارة المنتجات
-- `order` - معالجة الطلبات
-- `payment` - معالجة الدفع
-- `courier` - إدارة الكابتنات
-- `analytics` - التحليلات والتقارير
-- `notification` - نظام الإشعارات
+**المراقبة بعد الإقلاع:**
+- `/monitoring/live` — فحص الحياة
+- `/monitoring/ready` — فحص الجاهزية
+- `/metrics` — المقاييس
+- `/api/v1/status` — حالة الـ API
 
-### 2.5.3 Development Scripts
-```bash
-# سكربتات التطوير المخصصة
-npm run backend:dev:auth          # Auth module فقط
-npm run backend:dev:shop-product  # Shop + Product modules
-npm run backend:dev:minimal       # Minimal configuration
-npm run backend:dev:stable        # Stable development setup
+### 2.5.2 الهجرات عند الإقلاع (Migrate on Boot)
+```
+- الهجرات: ملفات SQL في gobackend/migrations/ (golang-migrate)
+- تُطبق تلقائياً عند الإقلاع عندما تكون DB_MIGRATE_ON_BOOT مفعّلة
+- قاعدة البيانات: PostgreSQL 15 على localhost:5433
+```
+
+### 2.5.3 عامل المهام الخلفية (Background Worker)
+```
+- المهام الخلفية تعمل عبر asynq worker في gobackend/cmd/worker
+- الطابور والكاش والجلسات على Redis 7 (localhost:6379)
 ```
 
 ## 2.6 تدفق الطلب (Request Flow)
 
 ### 2.6.1 Request Lifecycle
 ```
-1. Client Request → CDN/Load Balancer
-2. Web Server (Nginx/Apache)
-3. NestJS Application
-4. Middleware Chain:
+1. Client Request (من أحد تطبيقات apps/ الثلاثة عبر rewrite /api/:path*)
+2. Fiber Application (gobackend)
+3. Middleware Chain:
    - CORS Middleware
    - Security Headers (Helmet)
-   - Rate Limiting
+   - Rate Limiting (Redis)
    - Request Logging
-5. Route Guards:
-   - Authentication Guard
-   - Authorization Guard
-   - Role-based Guards
-6. Validation Pipe
-7. Controller Method
-8. Service Layer
-9. Repository/Prisma
-10. Database
-11. Response Chain (reverse order)
+4. Route Middleware:
+   - Authentication (JWT)
+   - Authorization (Role-based, أدوار كبيرة)
+5. Input Validation
+6. Handler (Module)
+7. Service Layer
+8. Repository / Database (PostgreSQL 15)
+9. Response Chain (reverse order)
 ```
 
 ### 2.6.2 Error Handling Flow
 ```
 1. Exception Occurs
-2. Global Exception Filter
+2. Global Error Handler
 3. Error Classification:
    - Validation Errors
    - Authentication Errors
@@ -417,9 +407,9 @@ npm run backend:dev:stable        # Stable development setup
 ```
 1. Login Request
 2. Credential Validation
-3. JWT Token Generation
+3. JWT Token Generation (role بأحرف كبيرة)
 4. Refresh Token Creation
-5. Response with Tokens
+5. Response with Tokens (تُحفظ في localStorage: ray_token/token + ray_user)
 6. Subsequent Requests:
    - Token Validation
    - User Context Loading
@@ -468,7 +458,7 @@ npm run backend:dev:stable        # Stable development setup
 
 ### 2.8.1 Notification Channels
 **Multi-channel Delivery:**
-- **In-App Notifications:** Real-time WebSocket notifications
+- **In-App Notifications:** Real-time notifications
 - **Email Notifications:** Transactional and marketing emails
 - **SMS Notifications:** Critical alerts and confirmations
 - **Push Notifications:** Mobile app notifications
@@ -530,15 +520,15 @@ npm run backend:dev:stable        # Stable development setup
 ### 2.10.2 Performance Optimization
 **Caching Strategies:**
 - **Application Cache:** In-memory caching
-- **Database Cache:** Query result caching
+- **Database Cache:** Query result caching (Redis)
 - **CDN Caching:** Static asset distribution
 - **API Response Caching:** Intelligent response caching
-- **Session Caching:** User session storage
+- **Session Caching:** User session storage (Redis)
 
 ### 2.10.3 Monitoring & Scaling
 **Auto-scaling Logic:**
 - **Metrics-based Scaling:** CPU, memory, response time
-- **Queue-based Scaling:** Background job processing
+- **Queue-based Scaling:** Background job processing (asynq)
 - **Predictive Scaling:** AI-powered scaling decisions
 - **Manual Scaling:** Administrative override capabilities
 - **Cost Optimization:** Resource usage optimization

@@ -1,5 +1,7 @@
 # Fault Tolerance & Reliability Improvements
 
+> تحديث السياق: الباك الوحيد الحالي هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. الإشارات أدناه إلى `backend/src/...` هي مراجع تاريخية لستاك NestJS المتقاعد ومعادلها الحالي في `gobackend/internal/...` كما هو موضح. باقي التقرير محفوظ.
+
 ## تاريخ التنفيذ
 13 يوليو 2026
 
@@ -11,7 +13,7 @@
 ## التحسينات المنفذة
 
 ### 1. Circuit Breaker ✅ (موجود بالفعل)
-**الملف:** `backend/src/common/middleware/circuit-breaker.middleware.ts`
+**المعادل الحالي:** `gobackend/internal/platform/middleware/` (Circuit Breaker — المرجع التاريخي: `backend/src/common/middleware/circuit-breaker.middleware.ts` في ستاك NestJS المتقاعد)
 
 - **States:** Closed, Open, Half-Open
 - **Failure Threshold:** 5 failures
@@ -31,7 +33,7 @@ app.use('/api', apiCircuitBreaker.use.bind(apiCircuitBreaker));
 ---
 
 ### 2. Database Connection Pooling ✅
-**الملف:** `docker-compose.prod.yml`
+**الملف:** `docker-compose.prod.yml` + تجمع اتصالات pgx في `gobackend/internal/platform/db/`
 
 - **Connection Limit:** 50 connections لكل backend instance
 - **Pool Timeout:** 20 seconds
@@ -45,7 +47,7 @@ app.use('/api', apiCircuitBreaker.use.bind(apiCircuitBreaker));
 ---
 
 ### 3. Advanced Health Checks ✅
-**الملف:** `backend/src/modules/health/health.controller.ts`
+**المعادل الحالي:** `gobackend/internal/domains/health/` (المرجع التاريخي: `backend/src/modules/health/health.controller.ts` في ستاك NestJS المتقاعد)
 
 #### Endpoints الجديدة:
 
@@ -86,10 +88,15 @@ app.use('/api', apiCircuitBreaker.use.bind(apiCircuitBreaker));
 ---
 
 ### 5. Graceful Degradation ✅
-**الملف:** `backend/src/core/main.ts`
+**المعادل الحالي:** معالجة الأخطاء في `gobackend/internal/app/app.go` + `gobackend/internal/platform/middleware/` (نقطة الدخول `gobackend/cmd/api/main.go` — المرجع التاريخي: `backend/src/core/main.ts` في ستاك NestJS المتقاعد)
 
-```typescript
-// Graceful degradation middleware
+```go
+// gobackend/internal/platform/middleware — المعادل الحالي بلغة Go:
+// - Recovery() يلتقط الـ panics
+// - NewErrorHandler() يوحّد شكل الخطأ {success:false,...} ويخفي التفاصيل الداخلية
+// - NewCircuitBreaker() يعزل الأعطال المتكررة (5 إخفاقات، reset بعد 30s)
+// (المرجع التاريخي أدناه TypeScript من ستاك NestJS المتقاعد — محفوظ للسياق فقط)
+```
 app.use((req, res, next) => {
   const originalSend = res.send;
   res.send = function (data) {
@@ -163,7 +170,7 @@ app.use((req, res, next) => {
 - **Circuit Breaker:** Automatic protection
 
 ### Security
-- **Helmet:** Security headers
+- **Security Headers:** عبر `gobackend/internal/platform/middleware/` (المرجع التاريخي Helmet في ستاك NestJS المتقاعد)
 - **CORS:** Configured origins
 - **CSP:** Content Security Policy
 - **Rate Limiting:** API (10r/s), General (30r/s)
@@ -275,8 +282,8 @@ ELASTICSEARCH_URL=http://elasticsearch:9200
 
 ### الملفات المعدلة (3)
 1. **docker-compose.prod.yml** - Connection pooling, auto-recovery
-2. **backend/src/modules/health/health.controller.ts** - Advanced health checks
-3. **backend/src/core/main.ts** - Graceful degradation
+2. **gobackend/internal/domains/health/** - Advanced health checks (المرجع التاريخي: **backend/src/modules/health/health.controller.ts** في ستاك NestJS المتقاعد)
+3. **gobackend/internal/app/app.go** + **gobackend/internal/platform/middleware/** - Graceful degradation (المرجع التاريخي: **backend/src/core/main.ts** في ستاك NestJS المتقاعد)
 
 ---
 

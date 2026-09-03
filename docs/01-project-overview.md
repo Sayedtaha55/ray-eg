@@ -58,6 +58,8 @@
 
 ## 1.4 الأدوار والمسؤوليات (Roles & Responsibilities)
 
+الأدوار في رمز JWT مكتوبة **بأحرف كبيرة حصراً**: `CUSTOMER` / `MERCHANT` / `ADMIN` / `COURIER` / `CASHIER`.
+
 ### 1.4.1 العميل (Customer)
 **الوصول والتصفح:**
 - تصفح المتاجر حسب الفئة والموقع
@@ -200,43 +202,41 @@
 
 ### 1.6.1 الواجهة الأمامية (Frontend Stack)
 
-المشروع مقسم إلى **تطبيقين منفصلين** يشاركان نفس الـ Backend وحزمة مشتركة:
+المشروع مقسم إلى **ثلاثة تطبيقات Next.js منفصلة** في `apps/` تشترك في الباك إند Go نفسه:
 
-**التطبيق الأول — Marketplace (Next.js 15):**
-- **Next.js 15** (App Router) مع Server-Side Rendering لتحسين SEO
-- **React 19** مع أحدث الميزات
-- **TypeScript** للكود الآمن
+**التطبيق الأول — marketplace-next (المتجر):**
+- **Next.js** (App Router) مع Server-Side Rendering لتحسين SEO
+- **React** مع TypeScript
 - **Tailwind CSS** للتصميم
-- **Framer Motion** للرسوم المتحركة
-- **Lucide React** للأيقونات
-- يعمل على البورت `5174`
 - المسار: `apps/marketplace-next/`
 
-**التطبيق الثاني — Dashboard (Vite SPA):**
-- **React 19** + **TypeScript**
-- **Vite** كـ build tool سريع
+**التطبيق الثاني — dashboard-web (لوحة التحكم):**
+- **Next.js** + TypeScript
 - **Tailwind CSS** للتصميم
-- **Framer Motion** للرسوم المتحركة
-- **Recharts** للرسوم البيانية
-- **React Router** للتوجيه
-- يعمل على البورت `3000`
-- المسار: `apps/dashboard/`
-- **Electron** لتوزيعه كتطبيق سطح مكتب
+- المسار: `apps/dashboard-web/`
+
+**التطبيق الثالث — business (بوابة التجار):**
+- **Next.js** + TypeScript
+- **Tailwind CSS** للتصميم
+- المسار: `apps/business/`
+
+**الربط بالباك إند (ينطبق على التطبيقات الثلاثة):**
+- كل تطبيق يعمل rewrite لأي مسار `/api/:path*` إلى `BACKEND_URL` (الافتراضي `http://localhost:4000`) — انظر `apps/*/next.config.mjs`
+- المصادقة في المتصفح: `localStorage` (`ray_user` / `ray_token` / `token`) + كوكي `ray_session`
+- الدخول التجريبي للتطوير عبر صفحة `/admin/gate` (تظهر فقط خارج الإنتاج)
 
 **الحزمة المشتركة — @ray-eg/shared:**
-- **المسار:** `packages/shared/`
-- تحتوي على: المكونات (160+)، الخدمات (API client, auth)، i18n (ar/en)، الأدوات، الأنواع، الـ hooks
-- يستوردها كلا التطبيقين عبر alias `@`
+- تحتوي على: المكونات، الخدمات (API client, auth)، i18n (ar/en)، الأدوات، الأنواع، الـ hooks
+- تستوردها التطبيقات عبر alias `@`
 
 ### 1.6.2 الواجهة الخلفية (Backend Stack)
-- **NestJS** كإطار عمل Node.js متقدم
-- **Prisma ORM** لإدارة قواعد البيانات
-- **PostgreSQL** كقاعدة بيانات أساسية
-- **SQLite** لبيئة التطوير والاختبار
-- **Redis** للتخزين المؤقت والجلسات
-- **JWT** للمصادقة والتفويض
-- **Helmet** للأمان
-- **Rate Limiting** للحماية من الإساءة
+- **الباك إند الوحيد: Go 1.25 + Fiber v2.52.5** في `gobackend/` (الموديول `github.com/Sayedtaha55/ray-eg/gobackend`)
+- نقطة الدخول `gobackend/cmd/api/main.go` والتجميع `gobackend/internal/app/app.go`
+- **29 موديول دومين** موصولة تحت `/api/v1`: analytics, apps, auth, bookings, cartEvents, chat, courier, customers, feedback, gallery, hr, invoice, map, media, measurement, notification, offers, orders, portal, products, reservation, reviews, search, seasonalOffers, shopBuilder, shopImageMap, shops, support, users
+- المراقبة: `/monitoring/live` و`/monitoring/ready` و`/metrics` و`/api/v1/status`
+- **JWT** للمصادقة والتفويض بالأدوار `CUSTOMER`/`MERCHANT`/`ADMIN`/`COURIER`/`CASHIER`
+- **تحديد المعدل (Rate Limiting)** للحماية من الإساءة
+- **ملاحظة تاريخية:** باك NestJS القديم حُذف من المستودع بتاريخ 2026-08-24 وموجود فقط في `_archive/` ونسخ احتياطية خارجية — لا يُوثَّق أي أمر يخصه (لا `backend/main.ts` ولا `app.module.ts` ولا Prisma)
 
 ### 1.6.3 الذكاء الاصطناعي والخدمات الخارجية
 - **Google Generative AI (Gemini)** للمساعد الذكي
@@ -248,18 +248,18 @@
 
 ### 1.6.4 البنية التحتية والنشر (Infrastructure)
 - **Docker** للحاويات والبيئات المتناسقة
-- **Docker Compose** للتطوير المحلي
-- **Vercel** لاستضافة الواجهة الأمامية
-- **Railway/DigitalOcean** لاستضافة الواجهة الخلفية
-- **Managed PostgreSQL** لقواعد البيانات
+- **Docker Compose** للتطوير المحلي (PostgreSQL 15 + Redis 7)
+- **PostgreSQL 15** عبر Docker على `localhost:5433` (يوزر `ray_user`)
+- **Redis 7** على `localhost:6379` للكاش والجلسات وتحديد المعدل والمهام الخلفية (asynq worker في `gobackend/cmd/worker`)
+- **الهجرات:** ملفات SQL بـ golang-migrate في `gobackend/migrations/` وتُطبق عند الإقلاع (`DB_MIGRATE_ON_BOOT`) — لا Prisma ولا SQLite
 - **CDN** لتسريع توصيل المحتوى
 
 ## 1.7 حدود المشروع الحالية والقيود (Current Limitations)
 
 ### 1.7.1 القيود التقنية
-- **Legacy Vite App:** تطبيق Vite القديم في `src/` مهمل — المكونات نُقلت إلى `packages/shared/`
+- **لا NestJS ولا Prisma ولا SQLite:** أي توثيق أو سكربت يشير إليها مهمل — المرجع الوحيد هو باك Go في `gobackend/`
+- **بقايا الأرشيف:** كود NestJS القديم موجود فقط في `_archive/` ونسخ احتياطية خارجية ولا يُستخدم
 - **Limited Scalability:** بعض المكونات تحتاج إعادة هيكلة للنمو الكبير
-- **Legacy Schema:** وجود مسارات SQLite قديمة تتطلب حذراً
 - **Single Database:** لا يوجد توزيع قواعد بيانات بعد
 
 ### 1.7.2 القيود الوظيفية

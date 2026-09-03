@@ -1,5 +1,7 @@
 # تحسينات الأداء والتوسع المنفذة
 
+> تحديث السياق: الباك الوحيد الحالي هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. حيث يذكر هذا التقرير مسارات `backend/src/...` أو Prisma فهي إشارات تاريخية لستاك NestJS المتقاعد، والمعادل الحالي في `gobackend/internal/...` كما هو موضح أدناه. باقي التقرير محفوظ.
+
 ## تاريخ التنفيذ
 13 يوليو 2026
 
@@ -55,22 +57,21 @@
 
 ### 2. تحسينات Backend ✅
 
-#### Cache Headers (backend/src/core/main.ts)
-```typescript
-// Static assets: 1 year cache
-res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-
-// API: No cache
-res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+#### Cache Headers (المعادل الحالي في Go: `gobackend/internal/platform/middleware/` + ضغط Fiber — المرجع التاريخي: `backend/src/core/main.ts` في ستاك NestJS المتقاعد)
+```go
+// gobackend/internal/platform/middleware — SecurityHeaders + compress (Fiber)
+// Static assets: public, max-age=31536000, immutable
+// API: no-cache, no-store, must-revalidate
+// (نقطة الدخول: gobackend/cmd/api/main.go، والتسجيل في gobackend/internal/app/app.go)
 ```
 
-#### البنية التحتية الموجودة
-- ✅ Redis Caching (مستخدم في multiple services)
-- ✅ Rate Limiting (express-rate-limit: 10000 requests/15min)
-- ✅ Database Indexing (موجود في schema.prisma)
-- ✅ Queue System (BullMQ)
-- ✅ Compression (compression middleware)
-- ✅ Security (helmet, CORS, CSP)
+#### البنية التحتية الموجودة (ستاك Go الحالي)
+- ✅ Redis Caching (مستخدم في multiple services عبر `gobackend/internal/platform/redis/`)
+- ✅ Rate Limiting (Fiber/Redis rate limiter في `gobackend/internal/platform/middleware/` — المرجع التاريخي `express-rate-limit` في ستاك NestJS المتقاعد)
+- ✅ Database Indexing (هجرات SQL في `gobackend/migrations/` — لا Prisma)
+- ✅ Queue System (عميل الوظائف الخلفية في `gobackend/internal/platform/jobs/` — المرجع التاريخي BullMQ في ستاك NestJS المتقاعد)
+- ✅ Compression (ضغط Fiber عبر `compress` في `gobackend/internal/app/app.go`)
+- ✅ Security (Security Headers + CORS + CSP في `gobackend/internal/platform/middleware/` — المرجع التاريخي helmet في ستاك NestJS المتقاعد)
 
 ---
 
@@ -190,7 +191,7 @@ docker-compose --profile production -f docker-compose.prod.yml up -d
 
 ### الملفات المعدلة (3)
 1. **docker-compose.yml** - إضافة Elasticsearch
-2. **backend/src/core/main.ts** - إضافة cache headers
+2. **gobackend/internal/platform/middleware/** + **gobackend/internal/app/app.go** - cache headers وضغط Fiber (المرجع التاريخي: **backend/src/core/main.ts** في ستاك NestJS المتقاعد)
 3. **index.html** - إضافة preconnect/preload
 4. **public/sw.js** - تحديث cache versions
 

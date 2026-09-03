@@ -1,4 +1,9 @@
-# Parity Checklist: gobackend مقابل احتياجات الفرونت
+# Parity Checklist: gobackend (الباك الحالي) مقابل احتياجات الفرونت
+
+> ✅ الترحيل اكتمل: الباك الحالي الوحيد هو `gobackend/` (Go 1.25 + Fiber). باك NestJS القديم حُذف بتاريخ 2026-08-24 (مرجع تاريخي فقط في `C:\Users\Dream\ray-backups\`). الفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`.
+>
+> **الحالة:** 29 موديول موصولة تحت `/api/v1` عبر `gobackend/internal/app/app.go`.
+> **الاستثناءات المعروفة:** دومينات `pos` و`dashboard` و`productcategories` لها handlers لكنها **غير موصولة** في `internal/app/app.go`، ودومين `finance` (service+repo فقط) **بلا handler**.
 
 **التاريخ:** 2026-08-24 · **المصدر:** استخراج فعلي لكل نداءات `/api/v1/*` من التطبيقات الثلاثة مقابل routes Fiber المسجلة في `gobackend`.
 
@@ -48,5 +53,6 @@
 
 ## قاعدة العمل
 
-- عند ترحيل أي عائلة: المرجع كود NestJS في النسخة الاحتياطية `C:\Users\Dream\ray-backups\<date>\backend`، والتنفيذ في `gobackend` بـ sqlc + migrations جديدة.
+- عند توصيل أي عائلة ناقصة: المرجع كود NestJS التاريخي في النسخة الاحتياطية `C:\Users\Dream\ray-backups\<date>\backend`، والتنفيذ في `gobackend` بهجرات SQL جديدة في `gobackend/migrations/` (تشغيل الباك: `go run ./cmd/api` داخل `gobackend/`)، وأي منطق دومين جديد تحت `gobackend/internal/...`.
+- أولوية التوصيل للاستثناءات المعروفة: توصيل handlers دومينات `pos` و`dashboard` و`productcategories` في `internal/app/app.go`، ثم بناء handler لدومين `finance`.
 - حدّث هذا الملف بعد إغلاق كل عائلة.

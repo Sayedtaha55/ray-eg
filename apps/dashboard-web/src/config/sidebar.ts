@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Bell, CreditCard, Package, DollarSign, Megaphone,
   Users, Calendar, UserCog, BarChart3, Globe, Bot, Settings, ExternalLink,
-  Gift, Layout, Image, Import, Sparkles,
+  Gift, Sparkles,
   Home, Shield, Store, FileText, Puzzle, LayoutGrid, Clock, Share2, TrendingUp, User,
   Plus, ShoppingCart, RotateCcw,
 } from 'lucide-react';
@@ -199,16 +199,7 @@ export const sidebarSections: SidebarSection[] = [
     moduleId: 'website',
     icon: Globe,
     items: [
-      { id: 'commercial-builder', label: 'Commercial Builder', labelAr: 'بولدر المتجر', icon: Globe, href: '/dashboard/commercial/builder' },
-      { id: 'reservations-builder', label: 'Reservations Builder', labelAr: 'بولدر الحجوزات', icon: Globe, href: '/dashboard/reservations/builder' },
-      { id: 'templates', label: 'Templates', labelAr: 'القوالب', icon: Layout, href: '/dashboard/website/templates' },
-      { id: 'media', label: 'Media Library', labelAr: 'مكتبة الوسائط', icon: Image, href: '/dashboard/website/media' },
-      { id: 'import', label: 'Import Site', labelAr: 'استيراد موقع', icon: Import, href: '/dashboard/website/import' },
-      { id: 'gallery', label: 'Gallery', labelAr: 'المعرض', icon: Globe, href: '/dashboard/website/gallery' },
-      { id: 'pages', label: 'Pages', labelAr: 'الصفحات', icon: Globe, href: '/dashboard/website/pages' },
-      { id: 'seo', label: 'SEO', labelAr: 'تحسين محركات البحث', icon: Globe, href: '/dashboard/website/seo' },
-      { id: 'blog', label: 'Blog', labelAr: 'المدونة', icon: Globe, href: '/dashboard/website/blog' },
-      { id: 'domains', label: 'Domains', labelAr: 'النطاقات', icon: Globe, href: '/dashboard/website/domains' },
+      { id: 'my-site', label: 'My Site', labelAr: 'موقعي', icon: Globe, href: '/dashboard/website' },
     ],
   },
   {
@@ -266,7 +257,6 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'settings_payments', label: 'Payments', labelAr: 'المدفوعات', icon: CreditCard, href: '/dashboard/settings?tab=payments' },
       { id: 'settings_social_media', label: 'Social Media', labelAr: 'السوشيال ميديا', icon: Share2, href: '/dashboard/settings?tab=social_media' },
       { id: 'settings_notifications', label: 'Notifications', labelAr: 'الإشعارات', icon: Bell, href: '/dashboard/settings?tab=notifications' },
-      { id: 'settings_upgrade', label: 'Upgrade & Plans', labelAr: 'الترقية والباقات', icon: TrendingUp, href: '/dashboard/settings?tab=upgrade' },
     ],
   },
 ];

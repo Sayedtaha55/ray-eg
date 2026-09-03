@@ -6,7 +6,7 @@ import (
 )
 
 func TestBuildWhereBasics(t *testing.T) {
-	opts := listOptions{shopID: "shop-1", activeOnly: true}
+	opts := listOptions{ShopID: "shop-1", Active: true}
 	where, args := buildWhere(opts)
 
 	if !strings.Contains(where, "p.shop_id = $1") {
@@ -25,7 +25,7 @@ func TestBuildWhereBasics(t *testing.T) {
 }
 
 func TestBuildWhereIncludeImageMap(t *testing.T) {
-	opts := listOptions{shopID: "shop-1", includeImageMap: true}
+	opts := listOptions{ShopID: "shop-1", Filter: ProductFilter{IncludeImageMap: true}}
 	where, _ := buildWhere(opts)
 
 	if strings.Contains(where, excludeHiddenCategoriesSQL) {
@@ -38,7 +38,7 @@ func TestBuildWhereIncludeImageMap(t *testing.T) {
 
 func TestBuildWhereSearch(t *testing.T) {
 	f := ProductFilter{Search: "كرسي"}
-	opts := listOptions{shopID: "shop-1", activeOnly: true, filter: f}
+	opts := listOptions{ShopID: "shop-1", Active: true, Filter: f}
 	where, args := buildWhere(opts)
 
 	if !strings.Contains(where, "p.name ILIKE $2") {
@@ -56,10 +56,8 @@ func TestBuildWhereSearch(t *testing.T) {
 }
 
 func TestBuildWhereCategoryAndPrice(t *testing.T) {
-	min := 5.0
-	max := 100.0
-	f := ProductFilter{Category: "أثاث", MinPrice: &min, MaxPrice: &max}
-	opts := listOptions{shopID: "shop-1", filter: f}
+	f := ProductFilter{Category: "أثاث", MinPrice: 5.0, MaxPrice: 100.0}
+	opts := listOptions{ShopID: "shop-1", Filter: f}
 	where, args := buildWhere(opts)
 
 	// shop_id ($1), category ($2), min ($3), max ($4)
@@ -69,7 +67,7 @@ func TestBuildWhereCategoryAndPrice(t *testing.T) {
 	if !strings.Contains(where, "p.price >= $3") || !strings.Contains(where, "p.price <= $4") {
 		t.Fatalf("expected price range filters, got: %q", where)
 	}
-	if !strings.Contains(where, "p.category ILIKE $2") {
+	if !strings.Contains(where, "p.category = $2") {
 		t.Fatalf("expected category filter, got: %q", where)
 	}
 }

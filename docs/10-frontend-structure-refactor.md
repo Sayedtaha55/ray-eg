@@ -4,6 +4,8 @@
 
 This refactor splits previously oversized frontend files into smaller modules with clearer responsibilities.
 
+> Current context: the frontend is three separate Next.js apps in `apps/` — `marketplace-next` (store), `dashboard-web` (control panel), `business` (merchant portal). Each app rewrites `/api/:path*` to `BACKEND_URL` (default `http://localhost:4000`) — see `apps/*/next.config.mjs`. The only backend is Go 1.25 + Fiber v2.52.5 in `gobackend/` (29 domain modules under `/api/v1`).
+
 ### New app-level structure
 
 - `app/AppRoutes.tsx`
@@ -22,6 +24,7 @@ This refactor splits previously oversized frontend files into smaller modules wi
   - Owns the offers loading skeleton, grid rendering, sentinel, and “load more” UI.
 - `components/pages/public/HomeFeed.tsx`
   - Now focuses on state, fetching, and orchestration only.
+  - Fetching goes through relative `/api/...` paths (proxied by the Next.js rewrite to the Go backend).
 
 ## Why this structure is better
 
@@ -36,12 +39,13 @@ Each module now has a more obvious responsibility:
 - route warmup heuristics
 - page state orchestration
 - page visual sections
+- browser auth state (`localStorage`: `ray_user` / `ray_token` / `token`, plus the `ray_session` cookie)
 
 ### 3. Safer performance work
 When route warmup logic, suspense helpers, and hero rendering are isolated, performance changes can be made without risking unrelated routing logic.
 
 ### 4. Better onboarding
-New developers can find routing logic in `app/`, page-level UI sections in the page folder, and cross-cutting helpers in `lib/` / `services/`.
+New developers can find routing logic in `app/`, page-level UI sections in the page folder, and cross-cutting helpers in `lib/` / `services/`. Backend-driven behavior (roles `CUSTOMER` / `MERCHANT` / `ADMIN` / `COURIER` / `CASHIER`, dev-only demo login at `/admin/gate`) comes from the Go/Fiber API, not from frontend code.
 
 ## Suggested organization rules going forward
 
@@ -54,10 +58,16 @@ New developers can find routing logic in `app/`, page-level UI sections in the p
 3. Keep `App.tsx` as a shell, not a mega-file.
 4. Put performance heuristics (warmup, prefetch, scheduling) in dedicated modules.
 5. Prefer one responsibility per file when the logic is reused or independently testable.
+6. Keep backend knowledge in one place: the rewrite target (`BACKEND_URL`, default `http://localhost:4000`) lives in `apps/*/next.config.mjs`; page components should only call relative `/api/...` paths.
 
 ## Current high-value folders
 
 ```text
+apps/
+  marketplace-next/   # store (Next.js, rewrites /api/:path* → BACKEND_URL)
+  dashboard-web/      # control panel (Next.js, rewrites /api/:path* → BACKEND_URL)
+  business/           # merchant portal (Next.js, rewrites /api/:path* → BACKEND_URL)
+
 app/
   AppRoutes.tsx
   routerHelpers.tsx

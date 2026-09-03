@@ -45,7 +45,7 @@ func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Pro
 	if shopID == "" {
 		return nil, pagination.Meta{}, errors.Validation("shopId_required", "shopId مطلوب")
 	}
-	limit, offset := normalizePaging(req.Page, req.Limit)
+	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
 	total, err := s.repo.CountByShop(ctx, shopID, req.Filter)
 	if err != nil {
@@ -60,7 +60,7 @@ func (s *Service) ListByShop(ctx context.Context, req ProductListRequest) ([]Pro
 
 // ListAllActive lists all active public products.
 func (s *Service) ListAllActive(ctx context.Context, req ProductListRequest) ([]Product, pagination.Meta, error) {
-	limit, offset := normalizePaging(req.Page, req.Limit)
+	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
 	total, err := s.repo.CountAllActive(ctx, req.Filter)
 	if err != nil {
@@ -82,7 +82,7 @@ func (s *Service) ListByShopForManage(ctx context.Context, shopID string, actorS
 	if !isAdmin(actorRole) && actorShopID != shopID {
 		return nil, pagination.Meta{}, errors.Forbidden("insufficient_role", "صلاحيات غير كافية")
 	}
-	limit, offset := normalizePaging(req.Page, req.Limit)
+	_, limit, offset := normalizePaging(req.Page, req.Limit)
 	req.Filter.Sort = normalizeSort(req.Filter.Sort)
 	total, err := s.repo.CountByShopForManage(ctx, shopID, req.IncludeImageMap, req.Filter)
 	if err != nil {
@@ -274,7 +274,7 @@ func (s *Service) Delete(ctx context.Context, id, actorShopID, actorRole string)
 	return s.repo.Delete(ctx, id)
 }
 
-func normalizePaging(page, limit int) (int, int) {
+func normalizePaging(page, limit int) (normalizedPage, normalizedLimit, offset int) {
 	if limit <= 0 {
 		limit = 20
 	}
@@ -284,8 +284,8 @@ func normalizePaging(page, limit int) (int, int) {
 	if page < 1 {
 		page = 1
 	}
-	offset := (page - 1) * limit
-	return limit, offset
+	offset = (page - 1) * limit
+	return page, limit, offset
 }
 
 func normalizeSort(sort string) string {
@@ -304,23 +304,6 @@ func isAdmin(role string) bool {
 func isHiddenCategory(category string) bool {
 	c := strings.ToUpper(strings.TrimSpace(category))
 	return c == "__IMAGE_MAP__" || c == "__DUPLICATE__AUTO__" || strings.Contains(c, "IMAGE_MAP")
-}
-
-func filterHidden(products []Product) []Product {
-	out := products[:0]
-	for _, p := range products {
-		if !isHiddenCategory(p.Category) {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
-func nullStringPtr(s sql.NullString) *string {
-	if !s.Valid || s.String == "" {
-		return nil
-	}
-	return &s.String
 }
 
 func nullIfEmpty(s string) any {

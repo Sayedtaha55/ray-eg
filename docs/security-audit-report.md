@@ -1,5 +1,7 @@
 # Security Audit Report - Ray Platform
 
+> ملاحظة تحديث (ستاك Go الحالي): الباك الوحيد هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24). حيث يشير هذا التقرير إلى مسارات `backend/...` القديمة، فالمعادل الحالي: نقطة الدخول `gobackend/cmd/api/main.go`، والتحقق من الأسرار في الإنتاج عبر `gobackend/internal/config/config.go` (إلزام `JWT_SECRET`)، والحماية من حقن SQL عبر استعلامات pgx المعاملة بدل Prisma. باقي التقرير محفوظ كما هو.
+
 **Date:** March 19, 2026  
 **Auditor:** Cascade AI  
 **Scope:** Backend Authentication & Authorization, Frontend Security
@@ -16,7 +18,7 @@ The Ray platform implements a robust security architecture with JWT-based authen
 
 ### 1.1 JWT Implementation ✅
 
-**File:** `backend/auth/jwt.strategy.ts`
+**File (current Go equivalent):** `gobackend/internal/domains/auth/*` (token service) + `gobackend/internal/config/config.go` للتحقق من الأسرار في الإنتاج (المرجع التاريخي: `backend/auth/jwt.strategy.ts` في باك NestJS المتقاعد)
 
 | Aspect | Status | Details |
 |--------|--------|---------|
@@ -46,7 +48,7 @@ The Ray platform implements a robust security architecture with JWT-based authen
 
 ### 2.1 Role-Based Access Control (RBAC) ✅
 
-**Files:** `backend/auth/guards/roles.guard.ts`, `backend/auth/decorators/roles.decorator.ts`
+**Files (current Go equivalent):** `gobackend/internal/platform/middleware/*` (auth + RBAC middleware — المرجع التاريخي: `backend/auth/guards/roles.guard.ts`, `backend/auth/decorators/roles.decorator.ts` في باك NestJS المتقاعد)
 
 | Role | Access Level |
 |------|-------------|
@@ -95,7 +97,7 @@ The backend uses class-validator decorators for input validation.
 
 ### 3.2 SQL Injection Prevention ✅
 
-Prisma ORM is used throughout, which provides automatic SQL injection protection through parameterized queries.
+استعلامات pgx المعاملة تُستخدم في `gobackend/internal/domains/*` (repositories)، وهي توفر حماية تلقائية من حقن SQL عبر parameterized queries (بدل Prisma في الباك المتقاعد).
 
 ---
 
@@ -103,7 +105,7 @@ Prisma ORM is used throughout, which provides automatic SQL injection protection
 
 ### 4.1 CORS Configuration
 
-**File:** `backend/main.ts`
+**File (current Go equivalent):** `gobackend/cmd/api/main.go` (نقطة الدخول) + CORS في `gobackend/internal/platform/middleware/cors.go` (المرجع التاريخي: `backend/main.ts` في باك NestJS المتقاعد)
 
 CORS is configured for the frontend origin. In production:
 - Origins should be strictly defined
@@ -125,7 +127,7 @@ Add these headers via middleware or helmet:
 
 ## 5. Rate Limiting ✅
 
-**Files:** `backend/middleware/rate-limit.middleware.ts`, `backend/middleware/slow-down.middleware.ts`
+**Files (current Go equivalent):** `gobackend/internal/platform/middleware/*` (rate limiter + slow-down — المرجع التاريخي: `backend/middleware/rate-limit.middleware.ts`, `backend/middleware/slow-down.middleware.ts` في باك NestJS المتقاعد)
 
 Rate limiting is implemented with:
 - Request counting per client ID
@@ -138,7 +140,7 @@ Rate limiting is implemented with:
 
 ### 6.1 Image Uploads
 
-**File:** `backend/shop.controller.ts`
+**File (current Go equivalent):** `gobackend/internal/domains/media/*` و`gobackend/internal/domains/shops/*` (المرجع التاريخي: `backend/shop.controller.ts` في باك NestJS المتقاعد)
 
 - File size limits are enforced (5MB for banners)
 - File type validation should be added
@@ -190,7 +192,7 @@ React provides automatic XSS protection through JSX escaping. However:
 |------|--------|----------|
 | JWT authentication | ✅ Implemented | - |
 | RBAC authorization | ✅ Implemented | - |
-| SQL injection protection | ✅ Prisma ORM | - |
+| SQL injection protection | ✅ استعلامات pgx المعاملة | - |
 | Rate limiting | ✅ Implemented | - |
 | CORS configuration | ⚠️ Review needed | Medium |
 | Security headers | ❌ Not implemented | High |

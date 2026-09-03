@@ -25,8 +25,6 @@ export default function AppsTab({ shop, onSaved }: AppsTabProps) {
   const [apps, setApps] = useState<AppWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
-  const [innerTab, setInnerTab] = useState<'apps' | 'upgrade'>('apps');
-
   const getAppIcon = (key: string) => {
     switch (key) {
       case 'image-editor': return Image;

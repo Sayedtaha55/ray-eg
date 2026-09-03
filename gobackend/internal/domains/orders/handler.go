@@ -1,6 +1,8 @@
 package orders
 
 import (
+	"encoding/json"
+
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
@@ -34,6 +36,63 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Patch("/:id", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleMerchant), string(auth.RoleAdmin)), h.Update)
 	g.Patch("/:id/assign-courier", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleAdmin)), h.AssignCourier)
 	g.Patch("/:id/courier", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleCourier)), h.UpdateCourier)
+
+	// Dashboard compatibility aliases for legacy backend paths.
+	r.Get("/shops/:shopId/orders", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleMerchant), string(auth.RoleAdmin)), h.ListShopOrders)
+	r.Post("/shops/:shopId/orders", middleware.RequireAuth(h.cfg), h.CreateShopOrder)
+	r.Patch("/shops/:shopId/orders/:orderId", middleware.RequireAuth(h.cfg), h.PatchShopOrder)
+	r.Get("/courier/orders", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleCourier)), h.ListCourier)
+
+	// Dashboard order returns (POS + website returns pages).
+	h.RegisterReturnRoutes(r)
+}
+
+// CreateShopOrder serves POST /shops/:shopId/orders for the dashboard/POS.
+// The shop id comes from the URL, so it is injected into the JSON body and
+// the shared create handler takes over.
+func (h *Handler) CreateShopOrder(c *fiber.Ctx) error {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
+	}
+	var body map[string]any
+	if err := json.Unmarshal(c.Body(), &body); err != nil || body == nil {
+		body = map[string]any{}
+	}
+	if _, exists := body["shopId"]; !exists {
+		shopID := c.Params("shopId")
+		if user.Role != string(auth.RoleAdmin) && user.ShopID != "" {
+			shopID = user.ShopID
+		}
+		body["shopId"] = shopID
+	}
+	injected, err := json.Marshal(body)
+	if err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+	c.Request().SetBody(injected)
+	return h.Create(c)
+}
+
+// ListShopOrders serves GET /shops/:shopId/orders for the dashboard.
+func (h *Handler) ListShopOrders(c *fiber.Ctx) error {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
+	}
+	req := parseOrderListRequest(c)
+	shopID := c.Params("shopId")
+	if user.Role != string(auth.RoleAdmin) {
+		shopID = user.ShopID
+	}
+	if shopID == "" {
+		return errors.Validation("shopId_required", "shopId مطلوب")
+	}
+	orders, meta, err := h.service.ListByShop(c.UserContext(), shopID, user.ShopID, user.Role, req)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) Create(c *fiber.Ctx) error {
@@ -114,11 +173,11 @@ func (h *Handler) List(c *fiber.Ctx) error {
 	if shopID == "" {
 		return errors.Validation("shopId_required", "shopId مطلوب")
 	}
-	orders, err := h.service.ListByShop(c.UserContext(), shopID, user.ShopID, user.Role, req)
+	orders, meta, err := h.service.ListByShop(c.UserContext(), shopID, user.ShopID, user.Role, req)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": orders})
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) ListMine(c *fiber.Ctx) error {
@@ -128,28 +187,28 @@ func (h *Handler) ListMine(c *fiber.Ctx) error {
 	}
 	if user.Role == string(auth.RoleCustomer) || user.ShopID == "" {
 		page, limit := ParsePageLimit(c.Query("page"), c.Query("limit"))
-		orders, err := h.service.ListCustomerOrders(c.UserContext(), user.ID, page, limit)
+		orders, meta, err := h.service.ListCustomerOrders(c.UserContext(), user.ID, page, limit)
 		if err != nil {
 			return err
 		}
-		return c.JSON(fiber.Map{"success": true, "data": orders})
+		return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 	}
 
 	req := parseOrderListRequest(c)
-	orders, err := h.service.ListMerchantMine(c.UserContext(), user.ShopID, user.Role, req)
+	orders, meta, err := h.service.ListMerchantMine(c.UserContext(), user.ShopID, user.Role, req)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": orders})
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) ListAdmin(c *fiber.Ctx) error {
 	req := parseOrderListRequest(c)
-	orders, err := h.service.ListAllAdmin(c.UserContext(), req)
+	orders, meta, err := h.service.ListAllAdmin(c.UserContext(), req)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": orders})
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) ListCourier(c *fiber.Ctx) error {
@@ -158,11 +217,11 @@ func (h *Handler) ListCourier(c *fiber.Ctx) error {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
 	req := parseCourierOrderListRequest(c)
-	orders, err := h.service.ListMyCourierOrders(c.UserContext(), user.ID, req)
+	orders, meta, err := h.service.ListMyCourierOrders(c.UserContext(), user.ID, req)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": orders})
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) ListCustomerOrders(c *fiber.Ctx) error {
@@ -171,11 +230,11 @@ func (h *Handler) ListCustomerOrders(c *fiber.Ctx) error {
 		return errors.Unauthorized("unauthenticated", "يجب تسجيل الدخول")
 	}
 	page, limit := ParsePageLimit(c.Query("page"), c.Query("limit"))
-	orders, err := h.service.ListCustomerOrders(c.UserContext(), user.ID, page, limit)
+	orders, meta, err := h.service.ListCustomerOrders(c.UserContext(), user.ID, page, limit)
 	if err != nil {
 		return err
 	}
-	return c.JSON(fiber.Map{"success": true, "data": orders})
+	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
 }
 
 func (h *Handler) Update(c *fiber.Ctx) error {

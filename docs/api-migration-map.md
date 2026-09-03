@@ -1,6 +1,11 @@
-# API Migration Map: Nest/Prisma إلى Go/SQL
+# API Migration Map: Go/Fiber (الحالي) — مرجع الترحيل المكتمل من Nest/Prisma
 
-هذه الخريطة هي المرجع أثناء نقل الربط من الباك القديم إلى `gobackend`، مع تأجيل الحجوزات حاليًا.
+> ✅ الترحيل اكتمل: الباك الحالي الوحيد هو `gobackend/` (Go 1.25 + Fiber). باك NestJS القديم حُذف من المستودع بتاريخ 2026-08-24 وتبقى نسخته الاحتياطية مرجعًا تاريخيًا فقط في `C:\Users\Dream\ray-backups\` (وتاريخ git). الفرونت ثلاثة تطبيقات Next.js في `apps/` (marketplace-next, dashboard-web, business)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`.
+>
+> **الحالة:** 29 موديول موصولة تحت `/api/v1` عبر `gobackend/internal/app/app.go`.
+> **الاستثناءات المعروفة:** دومينات `pos` و`dashboard` و`productcategories` لها handlers لكنها **غير موصولة** في `internal/app/app.go`، ودومين `finance` (service+repo فقط) **بلا handler**.
+
+هذه الخريطة هي المرجع بعد نقل الربط من الباك القديم إلى `gobackend`، مع تأجيل الحجوزات حاليًا.
 
 ## Backend freeze decision (2026-08-24)
 
@@ -28,9 +33,9 @@
 
 ## SQL migration rule
 
-- New Go features must use SQL migrations in `gobackend/migrations`.
-- Prisma remains only as the compatibility source for the old `backend` until parity is reached.
-- Before changing an existing table, compare the Prisma model and Go migration history in this map.
+- New Go features must use SQL migrations in `gobackend/migrations` (PostgreSQL على `localhost:5433`).
+- لا Prisma: قاعدة البيانات تُدار حصرًا بهجرات SQL في `gobackend/migrations/`.
+- Before changing an existing table, review the Go migration history in `gobackend/migrations/` (والنسخة الاحتياطية للباك القديم في `C:\Users\Dream\ray-backups\` كمرجع تاريخي فقط عند الحاجة).
 
 ## Frontend integration rule
 

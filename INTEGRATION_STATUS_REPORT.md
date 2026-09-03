@@ -1,5 +1,7 @@
 # 🔍 تقرير فحص الربط بين Frontend و Go Backend
 
+> تحديث السياق: الباك الوحيد الحالي هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/` (marketplace-next, dashboard-web, business)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. **الحالة:** 29 موديول موصولة تحت `/api/v1` عبر `gobackend/internal/app/app.go` — **الاستثناءات المعروفة:** دومينات `pos` و`dashboard` و`productcategories` لها handlers لكنها **غير موصولة** في `internal/app/app.go`، ودومين `finance` (service+repo فقط) **بلا handler**. باقي التقرير محفوظ كما هو.
+
 **تاريخ الفحص:** 2026-08-13  
 **الحالة العامة:** ✅ 85% متصل وجاهز للاختبار
 

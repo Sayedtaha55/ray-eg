@@ -1,5 +1,7 @@
 # Electron Desktop App — دليل التوزيع
 
+> السياق الحالي: تطبيق Electron يتصل بالباك الوحيد `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`) عبر `window.electronApp.backendUrl`. الفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` (لا Prisma)، وRedis على `6379`.
+
 ## Build محلي
 
 ```bash

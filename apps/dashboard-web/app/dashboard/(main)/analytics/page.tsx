@@ -235,9 +235,9 @@ export default function AnalyticsPage() {
           return;
         }
         const [analyticsRes, ordersRes, customerRes] = await Promise.allSettled([
-          apiRequest(`/shops/${sid}/analytics`),
+          apiRequest(`/analytics/shop/${sid}`),
           apiRequest('/orders/me'),
-          apiRequest(`/customers/shop/${sid}/analytics`),
+          apiRequest(`/analytics/shop/${sid}/customer-insights`),
         ]);
         if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value || {});
         if (ordersRes.status === 'fulfilled') {

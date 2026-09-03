@@ -17,8 +17,8 @@ import (
 
 // S3Client wraps an S3-compatible client for uploads and presigned URLs.
 type S3Client struct {
-	cfg    config.S3Config
-	client *s3.Client
+	cfg           config.S3Config
+	client        *s3.Client
 	presignClient *s3.PresignClient
 }
 

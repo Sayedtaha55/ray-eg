@@ -100,8 +100,8 @@ export default function CustomersPage() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) return;
-      const data = await apiRequest(`/shops/${sid}/customers/analytics`);
-      setAnalytics(data);
+      const data = await apiRequest(`/analytics/shop/${sid}/customer-insights`);
+      setAnalytics(data?.data || data);
     } catch { setAnalytics(null); }
   }, []);
 

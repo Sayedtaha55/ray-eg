@@ -1,5 +1,7 @@
 # خطة إعادة هيكلة مجلد Components
 
+> السياق الحالي: الباك الوحيد هو `gobackend/` (Go 1.25 + Fiber، باك NestJS القديم حُذف 2026-08-24)، والفرونت ثلاثة تطبيقات Next.js في `apps/` (marketplace-next, dashboard-web, business)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`. هذه الخطة خاصة بهيكل مكونات الفرونت فقط ولا تغيّر شيئًا في الباك.
+
 > ملاحظة: تم تطبيق جزء كبير من هذه الهيكلة بالفعل داخل الريبو (pages/layouts/common/features).
 > هذا الملف الآن مخصص كمرجع لتأكيد الهيكل الحالي وما تبقى من تحسينات.
 

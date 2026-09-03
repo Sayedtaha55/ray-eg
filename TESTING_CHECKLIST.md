@@ -1,5 +1,7 @@
 # 🧪 اختبارات الربط - Manual Testing Checklist
 
+> السياق الحالي: الباك الوحيد هو `gobackend/` (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/` (marketplace-next, dashboard-web, business)، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`.
+
 **الهدف:** التحقق الفعلي من أن جميع الـ APIs تعمل كما هو متوقع
 
 ---

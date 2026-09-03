@@ -101,14 +101,14 @@ export default function DashboardOverviewPage() {
         if (shopData?.id) {
           try {
             const [analyticsData, notifData, customerData] = await Promise.allSettled([
-              apiRequest(`/shops/${shopData.id}/analytics`),
-              apiRequest('/notifications'),
-              apiRequest(`/shops/${shopData.id}/customers/analytics`),
+              apiRequest(`/analytics/shop/${shopData.id}`),
+              apiRequest('/notifications/me?take=8'),
+              apiRequest(`/analytics/shop/${shopData.id}/customer-insights`),
             ]);
             if (cancelled) return;
             if (analyticsData.status === 'fulfilled') setAnalytics(analyticsData.value || {});
             if (notifData.status === 'fulfilled') {
-              const notifs = notifData.value?.notifications || notifData.value || [];
+              const notifs = notifData.value?.notifications || notifData.value?.data || notifData.value || [];
               setNotifications(Array.isArray(notifs) ? notifs.slice(0, 8) : []);
             }
             if (customerData.status === 'fulfilled') setCustomerStats(customerData.value);

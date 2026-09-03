@@ -1,5 +1,7 @@
 # CDN Configuration for Scaling
 
+> السياق الحالي: أصل الباك (origin) لهذا الإعداد هو `gobackend/` وحده (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` (لا Prisma)، وRedis على `6379`.
+
 ## Overview
 This document provides CDN configuration recommendations for scaling the application from 1,000 to 10,000+ daily users.
 

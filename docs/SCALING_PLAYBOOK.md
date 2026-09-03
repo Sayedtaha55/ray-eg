@@ -1,5 +1,7 @@
 # Scaling Playbook (1000+ Concurrent Users)
 
+> السياق الحالي: الباك المستهدف بهذا الدليل هو `gobackend/` وحده (Go 1.25 + Fiber — باك NestJS القديم حُذف 2026-08-24، وتشغيله عبر `go run ./cmd/api` داخل `gobackend/`)، والفرونت ثلاثة تطبيقات Next.js في `apps/`، وقاعدة البيانات PostgreSQL على `localhost:5433` بهجرات SQL في `gobackend/migrations/` (لا Prisma)، وRedis على `6379`.
+
 This plan is intentionally split into:
 
 1. **Inside repo (my part)**

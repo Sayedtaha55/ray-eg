@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Check, RefreshCw, FileText, ShoppingCart, Camera, Users, Megaphone,
+  Check, RefreshCw, FileText, ShoppingCart, Camera, Users, Megaphone, Globe,
   BarChart3, Palette, Settings as SettingsIcon, LayoutGrid, Store, Coins,
   UserCog, Clock, Wallet, Package, Tag, Monitor, Receipt, CreditCard,
   Download, Trash2, Loader2, Sparkles, ChevronDown, Calendar, ArrowLeftRight,
@@ -11,7 +11,7 @@ import {
   Phone, Percent, Mail, Smartphone, Gift, CalendarCheck, Building,
   Stethoscope, CalendarX, AlarmClock, Utensils, ShieldCheck, CalendarOff,
   CheckSquare, PieChart, LineChart, Eye, MousePointer, Pen, Search,
-  Lightbulb, Brain,
+  Lightbulb, Brain, LockKeyhole, UnlockKeyhole,
 } from 'lucide-react';
 import { useToast } from '../ToastProvider';
 import { apiRequest } from '@/lib/auth';
@@ -24,7 +24,7 @@ interface ModulesTabProps {
 const moduleIcons: Record<string, any> = {
   overview: LayoutGrid, apps: LayoutGrid, products: Package, promotions: Tag,
   builder: Monitor, settings: SettingsIcon, gallery: Camera, reservations: Clock,
-  invoice: Receipt, pos: ShoppingCart, sales: CreditCard, customers: Users,
+  website: Globe, invoice: Receipt, pos: ShoppingCart, sales: CreditCard, customers: Users,
   reports: BarChart3, marketing: Megaphone, expenses: Coins, employees: UserCog,
   attendance: Clock, payroll: Wallet, orders: CreditCard, quotes: FileText,
   payments: Wallet, returns: ArrowLeftRight, loyalty: Star, subscriptions: CreditCard,
@@ -54,11 +54,13 @@ const CORE_IDS = ['overview', 'products', 'promotions', 'builder', 'settings'];
 
 const MODULE_GROUPS = [
   { id: 'sales', label: 'المبيعات والطلبات', icon: CreditCard, color: '#2563EB' },
+  { id: 'pos', label: 'الكاشير ومبيعات نقاط البيع', icon: ShoppingCart, color: '#0F766E' },
   { id: 'inventory', label: 'المخزون والمنتجات', icon: Package, color: '#16A34A' },
   { id: 'finance', label: 'المالية والفواتير', icon: Receipt, color: '#7C3AED' },
   { id: 'crm', label: 'علاقات العملاء', icon: Users, color: '#DC2626' },
   { id: 'marketing', label: 'التسويق والعروض', icon: Megaphone, color: '#EA580C' },
   { id: 'bookings', label: 'الحجوزات والمواعيد', icon: Calendar, color: '#0891B2' },
+  { id: 'website', label: 'الموقع الإلكتروني والمتجر', icon: Globe, color: '#0EA5E9' },
   { id: 'hr', label: 'الموارد البشرية', icon: UserCog, color: '#9333EA' },
   { id: 'analytics', label: 'التحليلات والتقارير', icon: BarChart3, color: '#059669' },
   { id: 'ai', label: 'مساعد الذكاء الاصطناعي', icon: Sparkles, color: '#BD00FF' },
@@ -77,6 +79,14 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'orderStatus', label: 'Order Status', labelAr: 'حالة الطلب' },
     { id: 'payments', label: 'Payments', labelAr: 'المدفوعات' },
   ],
+  pos: [
+    { id: 'posCheckout', label: 'Cashier', labelAr: 'الكاشير', defaultEnabled: true },
+    { id: 'posInvoices', label: 'POS Invoices', labelAr: 'فواتير الكاشير' },
+    { id: 'posReturns', label: 'POS Returns', labelAr: 'مرتجعات الكاشير' },
+    { id: 'posWebsiteReturns', label: 'Website Returns', labelAr: 'مرتجعات الموقع' },
+    { id: 'posShifts', label: 'Shifts', labelAr: 'الورديات' },
+    { id: 'posReports', label: 'POS Reports', labelAr: 'تقارير الكاشير' },
+  ],
   inventory: [
     { id: 'products', label: 'Products', labelAr: 'المنتجات', defaultEnabled: true },
     { id: 'categories', label: 'Categories', labelAr: 'الفئات' },
@@ -84,6 +94,11 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'stocktake', label: 'Stock Take', labelAr: 'جرد المخزون' },
     { id: 'suppliers', label: 'Suppliers', labelAr: 'الموردين' },
     { id: 'purchaseOrders', label: 'Purchase Orders', labelAr: 'أوامر الشراء' },
+    { id: 'warehouses', label: 'Warehouses', labelAr: 'المخازن' },
+    { id: 'transfers', label: 'Transfers', labelAr: 'النقل بين المخازن' },
+    { id: 'barcode', label: 'Barcode', labelAr: 'الباركود' },
+    { id: 'qrCode', label: 'QR Code', labelAr: 'رمز QR' },
+    { id: 'stockTracking', label: 'Stock Tracking', labelAr: 'تتبع الكميات' },
     { id: 'lowStockAlerts', label: 'Low Stock', labelAr: 'تنبيهات المخزون' },
   ],
   finance: [
@@ -94,6 +109,9 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'cashflow', label: 'Cash Flow', labelAr: 'التدفق النقدي' },
     { id: 'accounts', label: 'Accounts', labelAr: 'الحسابات' },
     { id: 'wallets', label: 'Wallets', labelAr: 'المحافظ' },
+    { id: 'profits', label: 'Profits', labelAr: 'الأرباح' },
+    { id: 'journal', label: 'Journal Entries', labelAr: 'القيود اليومية' },
+    { id: 'financialReports', label: 'Financial Reports', labelAr: 'التقارير المالية' },
   ],
   crm: [
     { id: 'customers', label: 'Customers', labelAr: 'العملاء', defaultEnabled: true },
@@ -109,7 +127,9 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'messages', label: 'Messages', labelAr: 'الرسائل' },
     { id: 'emailCampaigns', label: 'Email Campaigns', labelAr: 'حملات الإيميل' },
     { id: 'smsCampaigns', label: 'SMS Campaigns', labelAr: 'حملات SMS' },
+    { id: 'pushNotifications', label: 'Push Notifications', labelAr: 'الإشعارات الفورية' },
     { id: 'loyaltyPrograms', label: 'Loyalty Programs', labelAr: 'برامج الولاء' },
+    { id: 'seasonalOffers', label: 'Seasonal Offers', labelAr: 'العروض الموسمية' },
   ],
   bookings: [
     { id: 'reservations', label: 'Reservations', labelAr: 'الحجوزات' },
@@ -117,10 +137,18 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'calendar', label: 'Calendar', labelAr: 'التقويم' },
     { id: 'rooms', label: 'Rooms', labelAr: 'الغرف' },
     { id: 'doctors', label: 'Doctors', labelAr: 'الأطباء' },
+    { id: 'tables', label: 'Tables', labelAr: 'الطاولات' },
+    { id: 'bookingsNotifications', label: 'Notifications', labelAr: 'إشعارات الحجوزات' },
+    { id: 'bookingsSettings', label: 'Settings', labelAr: 'إعدادات الحجوزات' },
+  ],
+  website: [
+    { id: 'website', label: 'Website', labelAr: 'الموقع الإلكتروني' },
   ],
   hr: [
     { id: 'employees', label: 'Employees', labelAr: 'الموظفين' },
+    { id: 'permissions', label: 'Permissions', labelAr: 'الصلاحيات' },
     { id: 'attendance', label: 'Attendance', labelAr: 'الحضور' },
+    { id: 'checkout', label: 'Check-out', labelAr: 'الانصراف' },
     { id: 'payroll', label: 'Payroll', labelAr: 'الرواتب' },
     { id: 'leaves', label: 'Leaves', labelAr: 'الإجازات' },
     { id: 'tasks', label: 'Tasks', labelAr: 'المهام' },
@@ -130,7 +158,9 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'kpi', label: 'KPIs', labelAr: 'المؤشرات' },
     { id: 'charts', label: 'Charts', labelAr: 'الرسوم البيانية' },
     { id: 'salesPerformance', label: 'Sales Performance', labelAr: 'أداء المبيعات' },
+    { id: 'productPerformance', label: 'Product Performance', labelAr: 'أداء المنتجات' },
     { id: 'visitors', label: 'Visitors', labelAr: 'الزوار' },
+    { id: 'conversions', label: 'Conversions', labelAr: 'التحويلات' },
   ],
   ai: [
     { id: 'aiContent', label: 'AI Content', labelAr: 'محتوى AI' },
@@ -145,10 +175,9 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
 export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
+  const [togglingFeature, setTogglingFeature] = useState<string | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [moduleFeatures, setModuleFeatures] = useState<Record<string, Set<string>>>({});
-  const [pendingFromAdmin, setPendingFromAdmin] = useState<Set<string>>(new Set());
-
   const savedFeatures = (shop as any)?.layoutConfig?.enabledFeatures as Record<string, string[]> | undefined;
 
   useEffect(() => {
@@ -166,30 +195,8 @@ export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
     setModuleFeatures(initial);
   }, [savedFeatures]);
 
-  // Fetch pending upgrade requests
-  const fetchMyRequests = useCallback(async () => {
-    try {
-      const requests = await apiRequest('/shops/me/module-upgrade-requests');
-      const pendingSet = new Set<string>();
-      if (Array.isArray(requests)) {
-        for (const req of requests) {
-          if (req.status === 'PENDING') {
-            let modules: string[] = [];
-            if (Array.isArray(req.requestedModules)) modules = req.requestedModules;
-            else if (typeof req.requestedModules === 'string') {
-              try { modules = JSON.parse(req.requestedModules); } catch {}
-            }
-            if (Array.isArray(modules)) modules.forEach((m) => pendingSet.add(String(m).trim()));
-          }
-        }
-      }
-      setPendingFromAdmin(pendingSet);
-    } catch {}
-  }, []);
-
-  useEffect(() => { fetchMyRequests(); }, [fetchMyRequests]);
-
-  const persistFeatures = useCallback(async (nextFeatures: Record<string, Set<string>>) => {
+  const persistFeatures = useCallback(async (nextFeatures: Record<string, Set<string>>, opts?: { onError?: () => void }) => {
+    setSaving(true);
     try {
       const featuresObj: Record<string, string[]> = {};
       for (const [k, v] of Object.entries(nextFeatures)) featuresObj[k] = Array.from(v);
@@ -201,20 +208,33 @@ export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
       if (shop && typeof shop === 'object') {
         (shop as any).layoutConfig = { ...previousLayout, enabledFeatures: featuresObj };
       }
+      toast({ title: 'تم الحفظ', description: 'تم تحديث إعدادات اللوحة بنجاح' });
     } catch (e: any) {
+      opts?.onError?.();
       toast({ title: 'خطأ', description: e?.message || 'فشل حفظ الميزات', variant: 'destructive' });
+    } finally {
+      setSaving(false);
     }
   }, [shop, toast]);
 
   const toggleFeature = (moduleId: string, featureId: string) => {
     const current = moduleFeatures[moduleId] || new Set<string>();
     const isCurrentlyEnabled = current.has(featureId);
+    const featureKey = `${moduleId}:${featureId}`;
+    const revert = () => {
+      setModuleFeatures((prev) => {
+        const next = new Set(prev[moduleId] || new Set<string>());
+        if (isCurrentlyEnabled) next.add(featureId); else next.delete(featureId);
+        return { ...prev, [moduleId]: next };
+      });
+    };
     if (isCurrentlyEnabled) {
       setModuleFeatures((prev) => {
         const next = new Set(prev[moduleId] || new Set<string>());
         next.delete(featureId);
         const nextState = { ...prev, [moduleId]: next };
-        persistFeatures(nextState);
+        setTogglingFeature(featureKey);
+        persistFeatures(nextState, { onError: revert }).finally(() => setTogglingFeature(null));
         return nextState;
       });
     } else {
@@ -222,29 +242,24 @@ export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
         const next = new Set(prev[moduleId] || new Set<string>());
         next.add(featureId);
         const nextState = { ...prev, [moduleId]: next };
-        persistFeatures(nextState);
+        setTogglingFeature(featureKey);
+        persistFeatures(nextState, { onError: revert }).finally(() => setTogglingFeature(null));
         return nextState;
       });
-      (async () => {
-        try {
-          await apiRequest('/shops/me/module-upgrade-requests', {
-            method: 'POST',
-            body: JSON.stringify({ requestedModules: [moduleId] }),
-          });
-          toast({ title: 'تم إرسال الطلب', description: 'تم تثبيت الميزة وإرسال طلب الترقية للمراجعة' });
-          await fetchMyRequests();
-        } catch (e: any) {
-          if (e?.status !== 400) {
-            toast({ title: 'خطأ', description: e?.message || 'فشل إرسال طلب الترقية', variant: 'destructive' });
-          }
-        }
-      })();
+      toast({ title: 'تم التفعيل', description: 'تم تفعيل الميزة فوراً في لوحتك' });
     }
   };
 
   // Emit changes
   useEffect(() => {
-    try { window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'modules', count: 0 } })); } catch {}
+    try {
+      const enabledFeatures: Record<string, string[]> = {};
+      for (const [moduleId, features] of Object.entries(moduleFeatures)) {
+        enabledFeatures[moduleId] = Array.from(features);
+      }
+      window.dispatchEvent(new CustomEvent('merchant-modules-changed', { detail: { enabledFeatures } }));
+      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'modules', count: 0 } }));
+    } catch {}
   }, [moduleFeatures]);
 
   const toggleGroup = (groupId: string) => {
@@ -269,7 +284,7 @@ export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
       <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-8 text-white shadow-xl">
         <h3 className="text-3xl font-black">ترقية الأقسام</h3>
         <p className="text-sm font-bold text-slate-300 mt-3 leading-relaxed max-w-2xl">
-          فعّل الميزات الإضافية التي تناسب أعمالك. سيتم إرسال طلبك للأدمن للمراجعة والتفعيل.
+          فعّل أو أوقف أي ميزة إضافية بنفسك فوراً — بمراجعة ولا انتظار.
         </p>
       </div>
 
@@ -342,44 +357,43 @@ export default function ModulesTab({ shop, onSaved }: ModulesTabProps) {
                   <div className="p-4 pt-2 bg-slate-50/50 border-t border-slate-100 space-y-2">
                     {features.map((feature) => {
                       const featureEnabled = (moduleFeatures[group.id] || new Set()).has(feature.id);
-                      const isPending = pendingFromAdmin.has(`${group.id}:${feature.id}`) || pendingFromAdmin.has(group.id);
                       return (
                         <div key={feature.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
                           featureEnabled ? 'border-emerald-200 bg-emerald-50/50'
-                          : isPending ? 'border-amber-200 bg-amber-50/50 animate-pulse'
                           : 'border-slate-100 bg-white'
                         }`}>
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                             featureEnabled ? 'bg-emerald-100 text-emerald-600'
-                            : isPending ? 'bg-amber-100 text-amber-600'
                             : 'bg-slate-100 text-slate-400'
                           }`}>
                             {featureEnabled ? <Check size={16} strokeWidth={3} />
-                            : isPending ? <Clock size={16} />
                             : (() => { const FeatureIcon = moduleIcons[feature.id] || LayoutGrid; return <FeatureIcon size={16} />; })()}
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-black text-slate-900">{feature.labelAr}</div>
                             <div className="text-[10px] text-slate-400 font-bold mt-0.5">
-                              {featureEnabled ? 'مفعّلة' : isPending ? 'قيد المراجعة' : 'غير مفعّلة'}
+                              {featureEnabled ? 'مفعّلة' : 'موقوفة'}
                             </div>
                           </div>
-                          {isPending ? (
-                            <div className="px-3 py-2 rounded-xl text-[11px] font-black flex items-center gap-1.5 shrink-0 bg-amber-50 text-amber-700 border border-amber-100">
-                              <Clock size={12} /> قيد المراجعة
-                            </div>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => toggleFeature(group.id, feature.id)}
-                              className={`px-3 py-2 rounded-xl text-[11px] font-black transition-all flex items-center gap-1.5 shrink-0 ${
-                                featureEnabled ? 'bg-white border border-red-100 text-red-600 hover:bg-red-50'
-                                : 'bg-cyan-500 text-white hover:brightness-110 shadow-sm shadow-cyan-100'
-                              }`}
-                            >
-                              {featureEnabled ? (<><Trash2 size={12} /> إزالة</>) : (<><Download size={12} /> تثبيت</>)}
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => toggleFeature(group.id, feature.id)}
+                            disabled={saving || togglingFeature === `${group.id}:${feature.id}`}
+                            aria-label={featureEnabled ? `قفل ${feature.labelAr}` : `فتح ${feature.labelAr}`}
+                            title={featureEnabled ? 'إيقاف الوحدة' : 'تفعيل الوحدة'}
+                            className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center shrink-0 disabled:opacity-50 disabled:cursor-not-allowed ${
+                              featureEnabled ? 'bg-white border border-red-100 text-red-600 hover:bg-red-50'
+                              : 'bg-cyan-500 text-white hover:brightness-110 shadow-sm shadow-cyan-100'
+                            }`}
+                          >
+                            {togglingFeature === `${group.id}:${feature.id}` ? (
+                              <Loader2 size={17} className="animate-spin" />
+                            ) : featureEnabled ? (
+                              <LockKeyhole size={17} />
+                            ) : (
+                              <UnlockKeyhole size={17} />
+                            )}
+                          </button>
                         </div>
                       );
                     })}

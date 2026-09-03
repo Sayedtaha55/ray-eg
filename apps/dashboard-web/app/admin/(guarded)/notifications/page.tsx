@@ -17,8 +17,8 @@ export default function AdminNotificationsPage() {
     else setRefreshing(true);
     try {
       const [list, unread] = await Promise.all([
-        apiRequest('/notifications?take=50&skip=0'),
-        apiRequest('/notifications/unread-count'),
+        apiRequest('/notifications/me?take=50'),
+        apiRequest('/notifications/me/unread-count'),
       ]);
       setItems(Array.isArray(list) ? list : []);
       setUnreadCount(Math.max(0, Number(unread?.count || 0)));
@@ -36,7 +36,7 @@ export default function AdminNotificationsPage() {
 
   const markAllRead = async () => {
     try {
-      await apiRequest('/notifications/read-all', { method: 'POST' });
+      await apiRequest('/notifications/me/read', { method: 'PATCH' });
       await loadData(true);
       toast({ title: 'تم تحديد الكل كمقروء', variant: 'success' });
     } catch (e: any) {
@@ -46,7 +46,7 @@ export default function AdminNotificationsPage() {
 
   const markOneRead = async (id: string) => {
     try {
-      await apiRequest(`/notifications/${id}/read`, { method: 'POST' });
+      await apiRequest(`/notifications/me/${id}/read`, { method: 'PATCH' });
       setItems((prev) => prev.map((n) => (String(n?.id) === String(id) ? { ...n, isRead: true, is_read: true } : n)));
       setUnreadCount((c) => Math.max(0, c - 1));
     } catch (e: any) {

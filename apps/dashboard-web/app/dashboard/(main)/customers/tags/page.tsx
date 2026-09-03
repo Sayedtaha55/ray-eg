@@ -72,58 +72,12 @@ export default function CustomerTagsPage() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      // Mock data for now - in production, this would load from API
-      const mockTags: CustomerTag[] = [
-        {
-          id: '1',
-          name: 'VIP',
-          nameAr: 'VIP',
-          color: '#F59E0B',
-          description: 'عملاء VIP',
-          customerCount: 45,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          name: 'New',
-          nameAr: 'جديد',
-          color: '#10B981',
-          description: 'عملاء جدد',
-          customerCount: 120,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '3',
-          name: 'Regular',
-          nameAr: 'عادي',
-          color: '#3B82F6',
-          description: 'عملاء عاديين',
-          customerCount: 200,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '4',
-          name: 'High Value',
-          nameAr: 'قيمة عالية',
-          color: '#8B5CF6',
-          description: 'عملاء ذو قيمة عالية',
-          customerCount: 35,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ];
-      setTags(mockTags);
+      // Load tags from the backend API
+      const tagsData = await apiRequest(`/shops/${sid}/tags`);
+      setTags(Array.isArray(tagsData) ? tagsData : []);
       
-      // Mock assignments
-      const mockAssignments: TagAssignment[] = [];
-      setAssignments(mockAssignments);
+      // Assignments (empty for now — assignment storage handled later)
+      setAssignments([]);
     } catch { setTags([]); } finally { setLoading(false); }
   }, []);
 
@@ -182,31 +136,40 @@ export default function CustomerTagsPage() {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) return;
-      // TODO: Implement API call to create tag
-      const newTag: CustomerTag = {
-        id: Date.now().toString(),
-        name: formData.name,
-        nameAr: formData.nameAr,
-        color: formData.color,
-        description: formData.description,
-        customerCount: 0,
-        isActive: true,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setTags([...tags, newTag]);
+      const created = await apiRequest(`/shops/${sid}/tags`, {
+        method: 'POST',
+        body: JSON.stringify({
+          name: formData.name,
+          nameAr: formData.nameAr,
+          color: formData.color,
+          description: formData.description,
+          isActive: true,
+        }),
+      });
+      setTags(prev => Array.isArray(created) ? [...prev, ...created] : [...prev, created]);
       setAddModal(false);
       setFormData({ name: '', nameAr: '', color: TAG_COLORS[0], description: '' });
     } catch (error) {
       alert('حدث خطأ أثناء إضافة الوسم');
     }
-  }, [formData, tags]);
+  }, [formData]);
 
   const handleEdit = useCallback(async () => {
     if (!editTag) return;
     try {
-      // TODO: Implement API call to update tag
-      setTags(prev => prev.map(t => t.id === editTag.id ? { ...t, ...formData } : t));
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      const updated = await apiRequest(`/shops/${sid}/tags/${editTag.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: formData.name,
+          nameAr: formData.nameAr,
+          color: formData.color,
+          description: formData.description,
+        }),
+      });
+      setTags(prev => prev.map(t => t.id === editTag.id ? (updated ? { ...t, ...updated } : t) : t));
       setEditModal(false);
       setEditTag(null);
       setFormData({ name: '', nameAr: '', color: TAG_COLORS[0], description: '' });
@@ -218,7 +181,10 @@ export default function CustomerTagsPage() {
   const handleDelete = useCallback(async (id: string) => {
     if (!confirm('هل أنت متأكد من حذف هذا الوسم؟')) return;
     try {
-      // TODO: Implement API call to delete tag
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      await apiRequest(`/shops/${sid}/tags/${id}`, { method: 'DELETE' });
       setTags(prev => prev.filter(t => t.id !== id));
     } catch (error) {
       alert('حدث خطأ أثناء الحذف');
@@ -227,12 +193,26 @@ export default function CustomerTagsPage() {
 
   const toggleActive = useCallback(async (id: string) => {
     try {
-      // TODO: Implement API call to toggle tag active status
-      setTags(prev => prev.map(t => t.id === id ? { ...t, isActive: !t.isActive } : t));
+      const shopData = await apiRequest('/shops/me');
+      const sid = shopData?.id;
+      if (!sid) return;
+      const current = tags.find(t => t.id === id);
+      if (!current) return;
+      const updated = await apiRequest(`/shops/${sid}/tags/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          name: current.name,
+          nameAr: current.nameAr,
+          color: current.color,
+          description: current.description,
+          isActive: !current.isActive,
+        }),
+      });
+      setTags(prev => prev.map(t => t.id === id ? (updated ? { ...t, ...updated } : { ...t, isActive: !t.isActive }) : t));
     } catch (error) {
       alert('حدث خطأ أثناء تحديث الحالة');
     }
-  }, []);
+  }, [tags]);
 
   const handleAssign = useCallback(async () => {
     try {
