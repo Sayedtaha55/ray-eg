@@ -284,9 +284,19 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     let cancelled = false;
     (async () => {
       try {
-        const shop = await apiRequest('/shops/me');
-        const shopId = shop?.id;
-        if (!shopId || cancelled) return;
+        let shop: any = null;
+        try {
+          shop = await apiRequest('/shops/me');
+        } catch {
+          // Dev fallback: fetch dev shop directly if /shops/me is unauthenticated
+          const res = await fetch('http://localhost:4000/api/v1/shops/dev-shop-13e8de3a').then((r) => r.json()).catch(() => null);
+          if (res?.success && res?.data) {
+            shop = res.data;
+          }
+        }
+
+        if (!shop || cancelled) return;
+        const shopId = shop.id;
         setBuilderShopId(shopId);
         if (shop.slug) setBuilderShopSlug(shop.slug);
         if (shop.name) {
@@ -299,7 +309,16 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
             customDomain: `${shop.slug || 'shop'}.mnmknk.com`,
           }));
         }
-        const config = await apiRequest(`/builder/${shopId}/config`);
+
+        // 1. Direct check from shop response
+        if (shop.builderConfig?.website?.pages?.length && shop.builderConfig?.website?.components) {
+          setWebsite(shop.builderConfig.website as Website);
+          setActivePageId(shop.builderConfig.website.pages[0]?.id || 'page_home');
+          return;
+        }
+
+        // 2. Query builder config endpoint
+        const config = await apiRequest(`/builder/${shopId}/config`).catch(() => null);
         if (!cancelled && config?.website?.pages?.length && config?.website?.components) {
           setWebsite(config.website as Website);
           setActivePageId(config.website.pages[0]?.id || 'page_home');

@@ -18,7 +18,7 @@ import { SeoPanel } from './SeoPanel';
 
 export const LeftSidebar: React.FC = () => {
   const { activeSidebarTab, setActiveSidebarTab, isFocusMode } = useBuilder();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
 
   const navItems = [

@@ -29,8 +29,15 @@ export const RightInspector: React.FC = () => {
     isFocusMode,
   } = useBuilder();
 
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
   const [inspectorMode, setInspectorMode] = useState<'integrated' | 'style' | 'responsive'>('integrated');
+
+  // Auto-open inspector when an element is clicked
+  React.useEffect(() => {
+    if (selectedNode) {
+      setIsInspectorOpen(true);
+    }
+  }, [selectedNode?.id]);
 
   const tabs = [
     { id: 'integrated', label: 'شامل', icon: Sparkles, desc: 'تعديل متكامل للقسم والمحتوى والألوان والصور' },

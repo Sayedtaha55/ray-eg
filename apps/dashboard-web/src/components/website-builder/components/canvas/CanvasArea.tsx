@@ -44,14 +44,13 @@ export const CanvasArea: React.FC = () => {
       {/* Viewport Frame Container */}
       <div
         id="canvas_viewport_wrapper"
-        className="w-full min-w-min flex justify-center py-4 sm:py-6 px-2 sm:px-6 pb-36 transition-all"
+        className="w-full flex justify-center py-4 sm:py-6 px-2 sm:px-6 pb-36 transition-all"
       >
         <div
           className="transition-all duration-300 origin-top flex flex-col shadow-xl rounded-2xl overflow-hidden border border-slate-300/80 bg-white"
           style={{
             width: getViewportWidth(),
-            maxWidth: viewport === 'desktop' ? '1280px' : getViewportWidth(),
-            minWidth: viewport === 'tablet' ? '768px' : viewport === 'mobile' ? '390px' : undefined,
+            maxWidth: viewport === 'desktop' ? '1200px' : getViewportWidth(),
             transform: zoom !== 100 ? `scale(${zoom / 100})` : undefined,
             direction: isRtl ? 'rtl' : 'ltr',
           }}
