@@ -10,10 +10,11 @@ import { AiAssistantModal } from './components/ai/AiAssistantModal';
 import { LivePreviewModal } from './components/preview/LivePreviewModal';
 import { DeveloperModeDrawer } from './components/dev/DeveloperModeDrawer';
 import { CartDrawer } from './components/cart/CartDrawer';
+import { MobileBuilderTabBar } from './components/mobile/MobileBuilderTabBar';
 
 const BuilderWorkspace: React.FC<{ fullScreen?: boolean }> = ({ fullScreen = false }) => {
   return (
-    <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'} w-full bg-slate-100 overflow-hidden font-sans antialiased text-slate-900`}>
+    <div className={`flex flex-col ${fullScreen ? 'h-screen' : 'h-[calc(100vh-4rem)]'} w-full bg-slate-100 overflow-hidden font-sans antialiased text-slate-900 pb-16 lg:pb-0`}>
       {/* Top Navigation Header */}
       <TopBar />
 
@@ -38,6 +39,9 @@ const BuilderWorkspace: React.FC<{ fullScreen?: boolean }> = ({ fullScreen = fal
       <LivePreviewModal />
       <DeveloperModeDrawer />
       <CartDrawer />
+
+      {/* Mobile bottom tab bar — only visible on small screens (hidden on lg+) */}
+      <MobileBuilderTabBar />
     </div>
   );
 };

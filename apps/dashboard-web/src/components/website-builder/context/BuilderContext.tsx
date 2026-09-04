@@ -161,11 +161,19 @@ interface BuilderContextType {
   builderShopSlug: string;
   builderShopName: string;
   liveWebsiteUrl: string;
+  isMobileInspectorOpen: boolean;
+  setIsMobileInspectorOpen: (open: boolean) => void;
+  isMobileSidebarOpen: boolean;
+  setIsMobileSidebarOpen: (open: boolean) => void;
 }
 
 const BuilderContext = createContext<BuilderContextType | null>(null);
 
 export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () => void }> = ({ children, onExit }) => {
+  // Mobile / Tablet Responsive Drawer States
+  const [isMobileInspectorOpen, setIsMobileInspectorOpen] = useState<boolean>(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
+
   // Focus Mode for clean, wide, uncluttered workspace
   const [isFocusMode, setIsFocusMode] = useState<boolean>(false);
   const toggleFocusMode = useCallback(() => setIsFocusMode((prev) => !prev), []);
@@ -456,6 +464,9 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   // Node Selection
   const selectNode = useCallback((id: string | null) => {
     setSelectedNodeId(id);
+    if (id) {
+      setIsMobileInspectorOpen(true);
+    }
   }, []);
 
   const setHoveredNode = useCallback((id: string | null) => {
@@ -2207,6 +2218,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
         builderShopSlug,
         builderShopName,
         liveWebsiteUrl,
+        isMobileInspectorOpen,
+        setIsMobileInspectorOpen,
+        isMobileSidebarOpen,
+        setIsMobileSidebarOpen,
       }}
     >
       {children}
