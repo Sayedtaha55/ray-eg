@@ -10,6 +10,7 @@ import (
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/analytics"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/accounting"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/apps"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/bookings"
@@ -79,6 +80,7 @@ type App struct {
 	searchHandler         *search.Handler
 	chatHandler           *chat.Handler
 	invoiceHandler        *invoice.Handler
+	accountingHandler     *accounting.Handler
 	supportHandler        *support.Handler
 	courierHandler        *courier.Handler
 	customersHandler      *customers.Handler
@@ -178,6 +180,7 @@ func New(cfg *config.Config) (*App, error) {
 		searchHandler         *search.Handler
 		chatHandler           *chat.Handler
 		invoiceHandler        *invoice.Handler
+		accountingHandler     *accounting.Handler
 		supportHandler        *support.Handler
 		courierHandler        *courier.Handler
 		customersHandler      *customers.Handler
@@ -283,6 +286,11 @@ func New(cfg *config.Config) (*App, error) {
 		invoiceRepo := invoice.NewRepository(pool)
 		invoiceSvc := invoice.NewService(invoiceRepo)
 		invoiceHandler = invoice.NewHandler(invoiceSvc, cfg)
+
+		// Initialize accounting service
+		accountingRepo := accounting.NewRepository(pool)
+		accountingSvc := accounting.NewService(accountingRepo)
+		accountingHandler = accounting.NewHandler(accountingSvc, cfg)
 
 		// Initialize support service
 		supportRepo := support.NewRepository(pool)
@@ -400,6 +408,7 @@ func New(cfg *config.Config) (*App, error) {
 		searchHandler:         searchHandler,
 		chatHandler:           chatHandler,
 		invoiceHandler:        invoiceHandler,
+		accountingHandler:     accountingHandler,
 		supportHandler:        supportHandler,
 		courierHandler:        courierHandler,
 		customersHandler:      customersHandler,
@@ -553,6 +562,11 @@ func (a *App) registerRoutes() {
 		a.invoiceHandler.RegisterRoutes(api)
 	}
 
+	// Accounting domain routes (double-entry ledger).
+	if a.accountingHandler != nil {
+		a.accountingHandler.RegisterRoutes(api)
+	}
+
 	// Support domain routes.
 	if a.supportHandler != nil {
 		a.supportHandler.RegisterRoutes(api)
@@ -641,6 +655,7 @@ func (a *App) statusHandler(c *fiber.Ctx) error {
 		"gallery":        a.galleryHandler != nil,
 		"hr":             a.hrHandler != nil,
 		"invoice":        a.invoiceHandler != nil,
+		"accounting":     a.accountingHandler != nil,
 		"map":            a.mapHandler != nil,
 		"media":          a.mediaHandler != nil,
 		"measurement":    a.measurementHandler != nil,
