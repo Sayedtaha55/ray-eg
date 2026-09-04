@@ -28,15 +28,18 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Get("/sitemap", h.Sitemap)
 	g.Get("/", h.ListPublic)
 
-	authMerchant := g.Group("", middleware.RequireAuth(h.cfg), requireRolesMiddleware("MERCHANT", "ADMIN"))
-	authMerchant.Post("/", h.CreateShop)
-	authMerchant.Get("/me", h.GetMyShop)
-	authMerchant.Patch("/me", h.UpdateMyShop)
-	authMerchant.Get("/me/module-config", h.GetModuleConfig)
+	merchantAuth := []fiber.Handler{middleware.RequireAuth(h.cfg), requireRolesMiddleware("MERCHANT", "ADMIN")}
+	g.Post("/", append(merchantAuth, h.CreateShop)...)
+	g.Get("/me", append(merchantAuth, h.GetMyShop)...)
+	g.Patch("/me", append(merchantAuth, h.UpdateMyShop)...)
+	g.Get("/me/module-config", append(merchantAuth, h.GetModuleConfig)...)
 
 	admin := g.Group("/admin", middleware.RequireAuth(h.cfg), requireRolesMiddleware("ADMIN"))
 	admin.Get("/", h.ListByStatus)
+	admin.Get("/pending", h.ListPending)
+	admin.Get("/:id", h.GetAdminShop)
 	admin.Patch("/:id/status", h.UpdateStatus)
+	admin.Patch("/:id", h.UpdateAdminShop)
 
 	// Wildcard routes MUST be registered after fixed routes like /me
 	g.Get("/:slug", h.GetBySlug)
@@ -188,6 +191,46 @@ func (h *Handler) UpdateStatus(c *fiber.Ctx) error {
 	}
 
 	shop, err := h.service.UpdateStatus(c.UserContext(), id, ShopStatus(req.Status))
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": shop})
+}
+
+func (h *Handler) ListPending(c *fiber.Ctx) error {
+	req := parseAdminShopListRequest(c)
+	req.Status = string(ShopStatusPending)
+	shops, err := h.service.ListByStatus(c.UserContext(), req)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": shops})
+}
+
+// GetAdminShop returns any shop by ID for admins.
+func (h *Handler) GetAdminShop(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+	shop, err := h.service.GetShopByID(c.UserContext(), id)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": shop})
+}
+
+// UpdateAdminShop allows admins to update shop fields directly.
+func (h *Handler) UpdateAdminShop(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+	var body map[string]any
+	if err := c.BodyParser(&body); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+	shop, err := h.service.UpdateAdminShop(c.UserContext(), id, body)
 	if err != nil {
 		return err
 	}

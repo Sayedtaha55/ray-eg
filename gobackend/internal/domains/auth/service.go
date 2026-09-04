@@ -614,6 +614,7 @@ func (s *Service) SeedTestUsers(ctx context.Context) error {
 // issueAuthResponse creates a token pair and returns it with the user.
 // It creates a server-side session for refresh token rotation and revocation.
 func (s *Service) issueAuthResponse(ctx context.Context, user User, meta RequestMeta) (*AuthResponse, error) {
+	_ = meta
 	sessionID := ""
 	if s.sessions != nil {
 		sess := &session.Session{

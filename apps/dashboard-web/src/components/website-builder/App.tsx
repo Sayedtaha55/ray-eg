@@ -42,9 +42,15 @@ const BuilderWorkspace: React.FC<{ fullScreen?: boolean }> = ({ fullScreen = fal
   );
 };
 
-export default function App({ fullScreen = false }: { fullScreen?: boolean }) {
+export default function App({
+  fullScreen = false,
+  onExit,
+}: {
+  fullScreen?: boolean;
+  onExit?: () => void;
+}) {
   return (
-    <BuilderProvider>
+    <BuilderProvider onExit={onExit}>
       <BuilderWorkspace fullScreen={fullScreen} />
     </BuilderProvider>
   );

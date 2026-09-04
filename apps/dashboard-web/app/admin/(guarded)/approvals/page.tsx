@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Check, X, Loader2, Store, MapPin, ShieldAlert, Truck, Link as LinkIcon,
+  Check, X, Loader2, Store, MapPin, ShieldAlert, Truck, Link as LinkIcon, RefreshCw,
 } from 'lucide-react';
 import Link from 'next/link';
 import { apiRequest } from '@/lib/auth';
@@ -30,62 +30,70 @@ export default function AdminApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [moduleLoading, setModuleLoading] = useState(false);
   const [mapListingLoading, setMapListingLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  const loadShops = async (silent = false) => {
+  const loadShops = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     try {
       const data = await apiRequest('/shops/pending');
       setShops(Array.isArray(data) ? data : []);
-    } catch {
-      if (!silent) toast({ title: 'فشل تحميل طلبات المتاجر', variant: 'destructive' });
+    } catch (err: any) {
+      console.error('Failed to load pending shops:', err);
+      if (!silent) toast({ title: `فشل تحميل طلبات المتاجر: ${err?.message || 'خطأ غير معروف'}`, variant: 'destructive' });
     } finally {
       if (!silent) setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadModuleRequests = async (silent = false) => {
+  const loadModuleRequests = useCallback(async (silent = false) => {
     if (!silent) setModuleLoading(true);
     try {
       const res = await apiRequest('/admin/module-requests?status=PENDING&take=100');
-      setModuleRequests(Array.isArray(res) ? res : []);
-    } catch {
-      if (!silent) toast({ title: 'فشل تحميل طلبات الأزرار', variant: 'destructive' });
+      setModuleRequests(Array.isArray(res) ? res : (res?.items || []));
+    } catch (err: any) {
+      console.error('Failed to load module requests:', err);
+      if (!silent) toast({ title: `فشل تحميل طلبات الأزرار: ${err?.message || 'خطأ غير معروف'}`, variant: 'destructive' });
     } finally {
       if (!silent) setModuleLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadMapListings = async (silent = false) => {
+  const loadMapListings = useCallback(async (silent = false) => {
     if (!silent) setMapListingLoading(true);
     try {
       const res = await apiRequest('/map-listings/pending?limit=100');
-      setMapListings(Array.isArray(res?.items) ? res.items : []);
-    } catch {
-      if (!silent) toast({ title: 'فشل تحميل طلبات الخريطة', variant: 'destructive' });
+      setMapListings(Array.isArray(res?.items) ? res.items : (Array.isArray(res) ? res : []));
+    } catch (err: any) {
+      console.error('Failed to load map listings:', err);
+      if (!silent) toast({ title: `فشل تحميل طلبات الخريطة: ${err?.message || 'خطأ غير معروف'}`, variant: 'destructive' });
     } finally {
       if (!silent) setMapListingLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     loadShops();
     loadModuleRequests();
     loadMapListings();
-  }, []);
+  }, [loadShops, loadModuleRequests, loadMapListings]);
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
+    setActionLoading(id);
     try {
       await apiRequest(`/shops/${id}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ status: action }),
       });
       toast({
-        title: action === 'approved' ? 'تم قبول المتجر' : 'تم رفض الطلب',
+        title: action === 'approved' ? 'تم قبول المتجر بنجاح' : 'تم رفض الطلب',
         variant: 'success',
       });
-      loadShops();
-    } catch {
-      toast({ title: 'فشل تنفيذ العملية', variant: 'destructive' });
+      await loadShops(true);
+    } catch (err: any) {
+      console.error('Shop action failed:', err);
+      toast({ title: `فشل تنفيذ العملية: ${err?.message || 'خطأ غير معروف'}`, variant: 'destructive' });
+    } finally {
+      setActionLoading(null);
     }
   };
 

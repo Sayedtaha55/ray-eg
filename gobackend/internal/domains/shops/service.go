@@ -189,6 +189,23 @@ func (s *Service) UpdateMyShop(ctx context.Context, actor middleware.AuthUser, s
 	return s.repo.UpdateSettings(ctx, shopID, fields)
 }
 
+// UpdateAdminShop allows admins to update any shop's fields directly.
+func (s *Service) UpdateAdminShop(ctx context.Context, shopID string, body map[string]any) (*Shop, error) {
+	if shopID == "" {
+		return nil, errors.NotFound("shop", shopID)
+	}
+
+	fields, err := parseUpdateFields(body)
+	if err != nil {
+		return nil, err
+	}
+	if len(fields) == 0 {
+		return nil, errors.Validation("no_update_data", "لا توجد بيانات للتحديث")
+	}
+
+	return s.repo.UpdateSettings(ctx, shopID, fields)
+}
+
 // UpdateStatus changes a shop status and activates the owner when approved.
 func (s *Service) UpdateStatus(ctx context.Context, shopID string, status ShopStatus) (*Shop, error) {
 	shop, err := s.repo.UpdateStatus(ctx, shopID, status)

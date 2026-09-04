@@ -29,6 +29,20 @@ const FEATURE_ALIASES: Record<string, string> = {
   sales: 'orders',
   addProduct: 'products',
   'my-site': 'website',
+  customerSegments: 'customers',
+  customerTags: 'customers',
+  marketingHub: 'campaigns',
+  promotions: 'campaigns',
+  bookingsOverview: 'reservations',
+  aiTheme: 'aiContent',
+  aiPages: 'aiContent',
+  aiBrand: 'aiContent',
+  aiDesign: 'aiContent',
+  aiReplies: 'aiContent',
+  aiSuggestions: 'aiContent',
+  aiPageGen: 'aiContent',
+  aiDataAnalysis: 'aiAnalysis',
+  aiAutomations: 'aiContent',
 };
 
 const MODULE_ALIASES: Record<string, string> = {

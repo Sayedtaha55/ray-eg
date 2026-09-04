@@ -2,6 +2,7 @@ package support
 
 import (
 	"strconv"
+	"strings"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
@@ -36,6 +37,15 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	support.Patch("/tickets/:id/status", middleware.RequireAuth(h.config), h.UpdateTicketStatus)
 	support.Post("/tickets/:id/resolve", middleware.RequireAuth(h.config), h.ResolveTicket)
 	support.Post("/tickets/:id/close", middleware.RequireAuth(h.config), h.CloseTicket)
+
+	// Dashboard alias routes under /tickets
+	tickets := app.Group("/tickets")
+	tickets.Get("/shop/:shopId", middleware.RequireAuth(h.config), h.ListTickets)
+	tickets.Get("/", middleware.RequireAuth(h.config), h.ListTickets)
+	tickets.Post("/", middleware.RequireAuth(h.config), h.CreateTicket)
+	tickets.Get("/:id", middleware.RequireAuth(h.config), h.GetTicketByID)
+	tickets.Patch("/:id", middleware.RequireAuth(h.config), h.UpdateTicketStatus)
+	tickets.Delete("/:id", middleware.RequireAuth(h.config), h.CloseTicket)
 }
 
 // CreateTicket handles creating a new support ticket
@@ -46,6 +56,14 @@ func (h *Handler) CreateTicket(c *fiber.Ctx) error {
 			Success: false,
 			Error:   "Invalid request body",
 		})
+	}
+
+	req.Priority = TicketPriority(strings.ToUpper(string(req.Priority)))
+	if req.Priority == "CRITICAL" {
+		req.Priority = "URGENT"
+	}
+	if req.Category == "" {
+		req.Category = "GENERAL"
 	}
 
 	if err := req.Validate(h.validate); err != nil {
@@ -122,6 +140,9 @@ func (h *Handler) ListTickets(c *fiber.Ctx) error {
 		if user.ShopID != "" {
 			shopID = &user.ShopID
 		}
+	}
+	if paramShop := c.Params("shopId"); paramShop != "" {
+		shopID = &paramShop
 	}
 
 	limit := 20

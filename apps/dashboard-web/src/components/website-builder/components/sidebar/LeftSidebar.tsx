@@ -17,7 +17,7 @@ import { DesignSystemPanel } from './DesignSystemPanel';
 import { SeoPanel } from './SeoPanel';
 
 export const LeftSidebar: React.FC = () => {
-  const { activeSidebarTab, setActiveSidebarTab } = useBuilder();
+  const { activeSidebarTab, setActiveSidebarTab, isFocusMode } = useBuilder();
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [isExpandedWidth, setIsExpandedWidth] = useState(false);
 
@@ -28,6 +28,8 @@ export const LeftSidebar: React.FC = () => {
     { id: 'design', label: 'السمة', icon: Palette },
     { id: 'seo', label: 'SEO', icon: Globe },
   ] as const;
+
+  if (isFocusMode) return null;
 
   const handleTabClick = (tabId: typeof activeSidebarTab) => {
     if (activeSidebarTab === tabId && isDrawerOpen) {
@@ -49,13 +51,13 @@ export const LeftSidebar: React.FC = () => {
       className={`h-[calc(100vh-3.5rem)] bg-white border-l border-slate-200 flex select-none shrink-0 z-20 shadow-xs transition-all duration-200 ${
         isDrawerOpen
           ? isExpandedWidth
-            ? 'w-[320px] sm:w-[400px] md:w-[440px]'
-            : 'w-[260px] sm:w-[320px] md:w-[360px]'
-          : 'w-12 sm:w-14'
+            ? 'w-[280px] sm:w-[340px] md:w-[380px]'
+            : 'w-[230px] sm:w-[270px] md:w-[300px]'
+          : 'w-11 sm:w-13'
       }`}
     >
       {/* Navigation Rail (Leftmost) */}
-      <div className="w-12 sm:w-14 bg-slate-50 border-l border-slate-200 flex flex-col items-center py-2.5 sm:py-3 justify-between shrink-0">
+      <div className="w-11 sm:w-13 bg-slate-50 border-l border-slate-200 flex flex-col items-center py-2 sm:py-2.5 justify-between shrink-0">
         <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full">
           {navItems.map((item) => {
             const isActive = activeSidebarTab === item.id && isDrawerOpen;

@@ -5,6 +5,7 @@ import "time"
 // BuilderConfig represents the full builder configuration for a shop.
 type BuilderConfig struct {
 	ActivityType               string            `json:"activityType"`
+	Website                    map[string]any    `json:"website,omitempty"`
 	PrimaryColor               string            `json:"primaryColor,omitempty"`
 	SecondaryColor             string            `json:"secondaryColor,omitempty"`
 	Layout                     string            `json:"layout,omitempty"`

@@ -26,6 +26,7 @@ export const RightInspector: React.FC = () => {
     activePage,
     viewport,
     setViewport,
+    isFocusMode,
   } = useBuilder();
 
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
@@ -36,6 +37,8 @@ export const RightInspector: React.FC = () => {
     { id: 'style', label: 'المظهر', icon: Paintbrush, desc: 'التنسيقات المتقدمة والأبعاد والخطوط' },
     { id: 'responsive', label: 'التجاوب', icon: Smartphone, desc: 'معاينة وضبط قياسات الشاشات' },
   ] as const;
+
+  if (isFocusMode) return null;
 
   const handleTabClick = (tabId: 'integrated' | 'style' | 'responsive') => {
     if (inspectorMode === tabId && isInspectorOpen) {
@@ -49,11 +52,11 @@ export const RightInspector: React.FC = () => {
   return (
     <aside
       className={`h-[calc(100vh-3.5rem)] bg-white border-r border-slate-200 flex select-none shrink-0 z-20 shadow-xs transition-all duration-200 ${
-        isInspectorOpen ? 'w-72 sm:w-80 md:w-96' : 'w-12 sm:w-14'
+        isInspectorOpen ? 'w-64 sm:w-72 md:w-80' : 'w-11 sm:w-13'
       }`}
     >
       {/* Navigation Rail for Inspector */}
-      <div className="w-12 sm:w-14 bg-slate-50 border-r border-slate-200 flex flex-col items-center py-2.5 sm:py-3 justify-between shrink-0">
+      <div className="w-11 sm:w-13 bg-slate-50 border-r border-slate-200 flex flex-col items-center py-2 sm:py-2.5 justify-between shrink-0">
         <div className="flex flex-col items-center gap-1.5 sm:gap-2 w-full">
           {tabs.map((tab) => {
             const isActive = inspectorMode === tab.id && isInspectorOpen;

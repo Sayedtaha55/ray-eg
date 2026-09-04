@@ -3,11 +3,7 @@ import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
-import { CartDrawer } from '@/components/CartDrawer';
-import { Navbar } from '@/components/Navbar';
-import { Footer } from '@/components/Footer';
-import { MobileFooter } from '@/components/MobileFooter';
-import { ScrollProgress } from '@/components/ScrollProgress';
+import { AppChrome } from '@/components/AppChrome';
 import { siteConfig } from '@/lib/config';
 
 export const metadata: Metadata = {
@@ -84,12 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <CartProvider>
             <WishlistProvider>
-              <ScrollProgress />
-              <Navbar />
-              <main className="min-h-screen pt-16 md:pt-20 pb-16 lg:pb-0">{children}</main>
-              <Footer />
-              <MobileFooter />
-              <CartDrawer />
+              <AppChrome>{children}</AppChrome>
             </WishlistProvider>
           </CartProvider>
         </AppProvider>
