@@ -9,14 +9,17 @@ import {
 } from 'lucide-react';
 import type { Shop, Product } from '@/lib/services';
 import { ProductCard } from '@/components/ProductCard';
+import { BuilderTreeRenderer } from '@/components/BuilderTreeRenderer';
 
 /**
- * ShopRenderer renders a shop's public website using the builderConfig
- * (same config the merchant edits in the dashboard-web builder).
+ * ShopRenderer — public-facing shop page.
  *
- * This is the public-facing counterpart of dashboard-web's
- * ShopProfilePreview — they share the same config shape so the live
- * preview and the published site always match.
+ * If the shop has a `builderConfig.website` component tree (set by the
+ * dashboard builder), we delegate entirely to BuilderTreeRenderer so the
+ * live site is IDENTICAL to the builder preview.
+ *
+ * Legacy shops that only have `pageDesign` / flat `builderConfig` fields
+ * continue to use the LegacyShopView template below.
  */
 
 interface ShopRendererProps {
@@ -27,10 +30,24 @@ interface ShopRendererProps {
 type Config = Record<string, any>;
 
 function getConfig(shop: Shop): Config {
-  // builderConfig is the source of truth (set by the unified builder).
-  // Fall back to legacy pageDesign for shops that haven't migrated yet.
   return (shop.builderConfig as Config) || (shop.pageDesign as Config) || {};
 }
+
+// ─── Main Export ──────────────────────────────────────────────────────────────
+
+export default function ShopRenderer({ shop, products }: ShopRendererProps) {
+  const config = getConfig(shop);
+
+  // If the shop was designed with the builder, use the tree renderer
+  if (config.website?.components && config.website?.pages?.length) {
+    return <BuilderTreeRenderer website={config.website} />;
+  }
+
+  // Legacy fallback
+  return <LegacyShopView shop={shop} products={products} config={config} />;
+}
+
+// ─── LegacyShopView ───────────────────────────────────────────────────────────
 
 function getColors(config: Config) {
   const c = config.colors || {};
@@ -44,10 +61,16 @@ function getColors(config: Config) {
   };
 }
 
-export default function ShopRenderer({ shop, products }: ShopRendererProps) {
-  const config = getConfig(shop);
+function LegacyShopView({
+  shop,
+  products,
+  config,
+}: {
+  shop: Shop;
+  products: Product[];
+  config: Config;
+}) {
   const colors = useMemo(() => getColors(config), [config]);
-
   const [activeTab, setActiveTab] = useState<'home' | 'products' | 'gallery' | 'info'>('home');
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -260,7 +283,6 @@ export default function ShopRenderer({ shop, products }: ShopRendererProps) {
               </div>
             )}
 
-            {/* Products Preview */}
             {filteredProducts.length > 0 && (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {filteredProducts.slice(0, 8).map((p) => (

@@ -12,6 +12,7 @@
     "./i18n": "./src/i18n/index.ts",
     "./i18n/react": "./src/i18n/react.ts",
     "./utils": "./src/utils/index.ts",
+    "./i18n": "./src/i18n/index.ts",
     "./hooks": "./src/hooks/index.ts",
     "./components": "./src/components/index.ts",
     "./dto": "./src/dto/index.ts",

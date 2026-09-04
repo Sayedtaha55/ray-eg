@@ -40,7 +40,7 @@ func (h *BuilderHandler) GetBuilderConfig(c *fiber.Ctx) error {
 	}
 
 	// Get authenticated user
-	actor, ok := c.Locals("user").(middleware.AuthUser)
+	actor, ok := middleware.AuthUserFromContext(c)
 	if !ok {
 		return errors.Unauthorized("unauthorized", "غير مصرح")
 	}
@@ -73,7 +73,7 @@ func (h *BuilderHandler) UpdateBuilderConfig(c *fiber.Ctx) error {
 	}
 
 	// Get authenticated user
-	actor, ok := c.Locals("user").(middleware.AuthUser)
+	actor, ok := middleware.AuthUserFromContext(c)
 	if !ok {
 		return errors.Unauthorized("unauthorized", "غير مصرح")
 	}
@@ -103,7 +103,7 @@ func (h *BuilderHandler) PublishBuilderConfig(c *fiber.Ctx) error {
 	}
 
 	// Get authenticated user
-	actor, ok := c.Locals("user").(middleware.AuthUser)
+	actor, ok := middleware.AuthUserFromContext(c)
 	if !ok {
 		return errors.Unauthorized("unauthorized", "غير مصرح")
 	}

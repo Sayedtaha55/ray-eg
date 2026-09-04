@@ -25,6 +25,8 @@ export const PublishModal: React.FC = () => {
     website,
     publishingStatus,
     runPublishPipeline,
+    liveWebsiteUrl,
+    builderShopName,
   } = useBuilder();
 
   const [activeTab, setActiveTab] = useState<'pipeline' | 'nextjs_export' | 'seo_sitemap'>('pipeline');
@@ -94,7 +96,7 @@ export default async function HomePage() {
             <div>
               <h2 className="text-base font-bold text-slate-900">نشر الموقع إلى بيئة الإنتاج السحابية</h2>
               <p className="text-xs text-slate-500">
-                Tenant: <span className="font-semibold text-slate-700">{currentTenant.name}</span> | Domain:{' '}
+                المتجر: <span className="font-semibold text-slate-700">{builderShopName || currentTenant.name}</span> | النطاق:{' '}
                 <span className="font-mono text-blue-600">{currentTenant.customDomain}</span>
               </p>
             </div>
@@ -191,7 +193,7 @@ export default async function HomePage() {
                       <span>الموقع متاح الآن عالمياً على شبكة الـCDN</span>
                     </div>
                     <a
-                      href={publishingStatus.liveUrl}
+                      href={publishingStatus.liveUrl || liveWebsiteUrl}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-white px-3 py-1.5 rounded-lg border border-emerald-300 hover:bg-emerald-100 transition-colors"

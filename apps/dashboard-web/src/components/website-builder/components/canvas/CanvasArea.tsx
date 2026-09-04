@@ -31,7 +31,7 @@ export const CanvasArea: React.FC = () => {
     <main
       ref={canvasContainerRef}
       id="canvas_main_container"
-      className="flex-1 h-[calc(100vh-3.5rem)] bg-slate-100/80 overflow-y-auto overflow-x-hidden relative flex flex-col items-center min-h-0"
+      className="flex-1 h-[calc(100vh-3.5rem)] bg-slate-100/80 overflow-y-auto overflow-x-auto relative flex flex-col items-center min-h-0 transition-all"
       onClick={handleCanvasClick}
       style={{
         backgroundImage: 'radial-gradient(#cbd5e1 1.2px, transparent 1.2px)',
@@ -44,13 +44,14 @@ export const CanvasArea: React.FC = () => {
       {/* Viewport Frame Container */}
       <div
         id="canvas_viewport_wrapper"
-        className="w-full flex justify-center py-6 px-4 pb-36"
+        className="w-full min-w-min flex justify-center py-4 sm:py-6 px-2 sm:px-6 pb-36 transition-all"
       >
         <div
           className="transition-all duration-300 origin-top flex flex-col shadow-xl rounded-2xl overflow-hidden border border-slate-300/80 bg-white"
           style={{
             width: getViewportWidth(),
             maxWidth: viewport === 'desktop' ? '1280px' : getViewportWidth(),
+            minWidth: viewport === 'tablet' ? '768px' : viewport === 'mobile' ? '390px' : undefined,
             transform: zoom !== 100 ? `scale(${zoom / 100})` : undefined,
             direction: isRtl ? 'rtl' : 'ltr',
           }}

@@ -221,10 +221,8 @@ export default function AiSeoPage() {
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
       
-      // TODO: Replace with actual API call
-      // const data = await apiRequest(`/ai/seo/shop/${sid}`);
-      // setItems(Array.isArray(data) ? data : []);
-      setItems([]);
+      const data = await apiRequest(`/ai/seo/shop/${sid}`).catch(() => null);
+      setItems(Array.isArray(data) ? data : (data?.data || []));
     } catch { setItems([]); } finally { setLoading(false); }
   }, []);
 
