@@ -37,9 +37,8 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link rel="preload" href="/fonts/fonts.css" as="style" />
+        <link rel="stylesheet" href="/fonts/fonts.css" />
       </head>
       <body className="bg-white text-slate-900">{children}</body>
     </html>

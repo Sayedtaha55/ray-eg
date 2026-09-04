@@ -15,6 +15,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ar" dir="rtl" className="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
+      <head>
+        <link rel="preload" href="/fonts/fonts.css" as="style" />
+        <link rel="stylesheet" href="/fonts/fonts.css" />
+      </head>
       <body className="antialiased" suppressHydrationWarning>
         <I18nProvider>
           <AuthProvider>{children}</AuthProvider>

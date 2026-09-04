@@ -59,6 +59,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
+        <link rel="preload" href="/fonts/fonts.css" as="style" />
+        <link rel="stylesheet" href="/fonts/fonts.css" />
         <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
         <link rel="dns-prefetch" href="http://localhost:4000" />
