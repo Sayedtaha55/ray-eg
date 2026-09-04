@@ -28,11 +28,11 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Get("/sitemap", h.Sitemap)
 	g.Get("/", h.ListPublic)
 
-	authMerchant := g.Group("", middleware.RequireAuth(h.cfg), requireRolesMiddleware("MERCHANT", "ADMIN"))
-	authMerchant.Post("/", h.CreateShop)
-	authMerchant.Get("/me", h.GetMyShop)
-	authMerchant.Patch("/me", h.UpdateMyShop)
-	authMerchant.Get("/me/module-config", h.GetModuleConfig)
+	merchantAuth := []fiber.Handler{middleware.RequireAuth(h.cfg), requireRolesMiddleware("MERCHANT", "ADMIN")}
+	g.Post("/", append(merchantAuth, h.CreateShop)...)
+	g.Get("/me", append(merchantAuth, h.GetMyShop)...)
+	g.Patch("/me", append(merchantAuth, h.UpdateMyShop)...)
+	g.Get("/me/module-config", append(merchantAuth, h.GetModuleConfig)...)
 
 	admin := g.Group("/admin", middleware.RequireAuth(h.cfg), requireRolesMiddleware("ADMIN"))
 	admin.Get("/", h.ListByStatus)
