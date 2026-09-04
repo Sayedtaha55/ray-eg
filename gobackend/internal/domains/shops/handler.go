@@ -36,7 +36,15 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 
 	admin := g.Group("/admin", middleware.RequireAuth(h.cfg), requireRolesMiddleware("ADMIN"))
 	admin.Get("/", h.ListByStatus)
+	admin.Get("/:id", h.GetAdminShop)
 	admin.Patch("/:id/status", h.UpdateStatus)
+	admin.Patch("/:id", h.UpdateAdminShop)
+
+	// Admin-only endpoints (require ADMIN role)
+	adminGroup := g.Group("", middleware.RequireAuth(h.cfg), requireRolesMiddleware("ADMIN"))
+	adminGroup.Get("/pending", h.ListPending)
+	adminGroup.Patch("/:id/status", h.UpdateStatus)
+	adminGroup.Patch("/:id", h.UpdateAdminShop)
 
 	// Wildcard routes MUST be registered after fixed routes like /me
 	g.Get("/:slug", h.GetBySlug)

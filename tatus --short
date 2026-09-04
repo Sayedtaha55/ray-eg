@@ -1,0 +1,20 @@
+[33m01f54e4[m[33m ([m[1;36mHEAD[m[33m, [m[1;32mappmod/typescript-upgrade-20260831023715[m[33m)[m Save existing changes before TypeScript upgrade: orders page, sales page, tsconfig build info
+[33ma5a541f[m[33m ([m[1;32mmain[m[33m)[m feat(marketplace): link all business buttons to business landing and signup
+[33mdd08e39[m fix(vercel): sync configuration and author email
+[33m5692cec[m fix(marketplace): use next build instead of npm run build for Vercel
+[33me58707f[m chore: trigger marketplace rebuild after next.config fix
+[33m396d21d[m fix(business,marketplace): add eslint ignoreDuringBuilds to unblock Vercel builds
+[33mbb135c2[m fix: isolate business/dashboard vercel deployments - set rootDirectory per project, remove root vercel.json (was mixing builds)
+[33m7448e28[m chore: trigger vercel deploy business - manual update 2026-08-24
+[33mae176ec[m chore: trigger all vercel auto-deploys (business, marketplace, dashboard)
+[33m1a72aca[m chore: trigger vercel git deploy
+[33m29d9ede[m chore: trigger vercel rebuild for BOM fix
+[33ma819b31[m fix: vercel rewrite handles BOM/CRLF in BACKEND_URL (fixes Invalid rewrite error)
+[33mbac421a[m fix: hydration and auth DB schema
+[33me72dc7f[m chore: cleanup legacy - keep only Next.js + Go
+[33m66fa11e[m fix: add i18n provider to dashboard-web layout
+[33m7aa2513[m ci: remove dashboard vite job
+[33m60c1339[m ci: remove prisma/nestjs jobs, upgrade Go to 1.25
+[33mdfeafbc[m chore: migrate to supabase, archive old backend, add deploy configs
+[33m9242338[m fix: upgrade Go version to 1.25 in Dockerfile
+[33mbe61ff0[m fix: add activity field to shops to fix activity page filtering

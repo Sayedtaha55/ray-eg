@@ -1,0 +1,39 @@
+﻿node.exe :  ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/node.exe" "C:\nvm4w\nodejs/node_modules/npm/bin/np ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ( ⚠ Warning: Nex...not be correct.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+ We detected multiple lockfiles and selected the directory of C:\Users\Dream\package-lock.json as the root 
+directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the 
+lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles: 
+   * C:\Users\Dream\ray-eg-1\package-lock.json
+
+Backend URL configured: http://localhost:4000
+   ▲ Next.js 15.5.23
+   - Environments: .env.local
+
+Backend URL configured: http://localhost:4000
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 5.1min
+   Skipping linting
+   Checking validity of types ...
+Failed to compile.
+
+./src/components/website-builder/components/canvas/ComponentRenderer.tsx:690:25
+Type error: Parameter 'item' implicitly has an 'any' type.
+
+[0m [90m 688 |[39m             className[33m=[39m{[32m`cursor-pointer transition-all flex flex-wrap 
+items-center gap-2 ${outlineClass}`[39m}
+ [90m 689 |[39m           [33m>[39m
+[31m[1m>[22m[39m[90m 690 |[39m             {items[33m.[39mmap((item[33m,[39m index) [33m=>[39m {
+ [90m     |[39m                         [31m[1m^[22m[39m
+ [90m 691 |[39m               [36mconst[39m trimmed [33m=[39m item[33m.[39mtrim()[33m;[39m
+ [90m 692 |[39m               [36mconst[39m isItemActive [33m=[39m
+ [90m 693 |[39m                 activePage[33m.[39mname[33m.[39mtrim() [33m===[39m trimmed 
+[33m||[39m[0m
+Next.js build worker exited with code: 1 and signal: null
