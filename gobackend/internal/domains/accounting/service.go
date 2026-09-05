@@ -59,10 +59,33 @@ func (s *Service) UpdateJournalEntry(ctx context.Context, id string, dto *Update
 	return s.repo.UpdateJournalEntry(ctx, id, dto)
 }
 func (s *Service) PostJournalEntry(ctx context.Context, id, userID string) (*JournalEntry, error) {
-	return s.repo.PostJournalEntry(ctx, id, userID)
+	entry, err := s.repo.GetJournalEntry(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if closed, periodName, _ := s.repo.IsPeriodClosed(ctx, entry.ShopID, entry.EntryDate); closed {
+		return nil, ErrPeriodClosed(periodName)
+	}
+	posted, err := s.repo.PostJournalEntry(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	s.repo.LogAudit(ctx, entry.ShopID, userID, "", "post", "journal", entry.ID,
+		fmt.Sprintf("ترحيل قيد %s بمبلغ %.2f", entry.Number, entry.TotalDebit))
+	return posted, nil
 }
 func (s *Service) ReverseJournalEntry(ctx context.Context, id, userID string) (*JournalEntry, error) {
-	return s.repo.ReverseJournalEntry(ctx, id, userID)
+	entry, err := s.repo.GetJournalEntry(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	reversed, err := s.repo.ReverseJournalEntry(ctx, id, userID)
+	if err != nil {
+		return nil, err
+	}
+	s.repo.LogAudit(ctx, entry.ShopID, userID, "", "reverse", "journal", entry.ID,
+		fmt.Sprintf("قيد عكسي للقيد %s", entry.Number))
+	return reversed, nil
 }
 func (s *Service) DeleteJournalEntry(ctx context.Context, id string) error {
 	return s.repo.DeleteJournalEntry(ctx, id)
@@ -249,6 +272,10 @@ func (s *Service) PostInvoice(ctx context.Context, id, userID string) (*Invoice,
 	if inv.Status == "posted" {
 		return inv, nil
 	}
+	// Fiscal period check: cannot post into a closed period
+	if closed, periodName, _ := s.repo.IsPeriodClosed(ctx, inv.ShopID, inv.InvoiceDate); closed {
+		return nil, ErrPeriodClosed(periodName)
+	}
 	entry, err := s.autoPostInvoiceEntry(ctx, inv, userID)
 	if err != nil {
 		return nil, err
@@ -262,20 +289,43 @@ func (s *Service) PostInvoice(ctx context.Context, id, userID string) (*Invoice,
 		amt = -amt
 	}
 	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, amt)
+	s.repo.LogAudit(ctx, inv.ShopID, userID, "", "post", "invoice", inv.ID,
+		fmt.Sprintf("ترحيل فاتورة %s بمبلغ %.2f", inv.Number, inv.Total))
 	return s.repo.GetInvoice(ctx, id)
 }
 
-// autoPostInvoiceEntry creates the double-entry journal for an invoice.
+// autoPostInvoiceEntry creates the double-entry journal for an invoice with VAT split.
+// Sale:   Debit AR(total) / Credit Revenue(subtotal) + Credit VAT-output(tax)
+// Purchase: Debit Expense(subtotal) + Debit VAT-input(tax) / Credit AP(total)
 func (s *Service) autoPostInvoiceEntry(ctx context.Context, inv *Invoice, userID string) (*JournalEntry, error) {
-	revenueAccount := "4100"
-	expenseAccount := "5000"
-	receivableAccount := "1130"
-	payableAccount := "2100"
+	revenueAccount := "4100"    // إيرادات المبيعات
+	expenseAccount := "5000"    // المصروفات
+	receivableAccount := "1130" // العملاء
+	payableAccount := "2100"    // الموردون
+	vatOutputAccount := "2130"  // ضريبة القيمة المضافة المستحقة (مبيعات)
+	vatInputAccount := "2140"   // ضريبة القيمة المضافة على المشتريات
+
+	subtotal := round2(inv.Subtotal)
+	taxTotal := round2(inv.TaxTotal)
+	total := round2(inv.Total)
+
 	var lines []JournalLineInput
 	if inv.InvoiceType == "sale" {
-		lines = []JournalLineInput{{AccountCode: receivableAccount, Debit: inv.Total}, {AccountCode: revenueAccount, Credit: inv.Total}}
+		lines = []JournalLineInput{{AccountCode: receivableAccount, Debit: total}}
+		if subtotal > 0 {
+			lines = append(lines, JournalLineInput{AccountCode: revenueAccount, Credit: subtotal})
+		}
+		if taxTotal > 0 {
+			lines = append(lines, JournalLineInput{AccountCode: vatOutputAccount, Credit: taxTotal})
+		}
 	} else {
-		lines = []JournalLineInput{{AccountCode: expenseAccount, Debit: inv.Total}, {AccountCode: payableAccount, Credit: inv.Total}}
+		if subtotal > 0 {
+			lines = append(lines, JournalLineInput{AccountCode: expenseAccount, Debit: subtotal})
+		}
+		if taxTotal > 0 {
+			lines = append(lines, JournalLineInput{AccountCode: vatInputAccount, Debit: taxTotal})
+		}
+		lines = append(lines, JournalLineInput{AccountCode: payableAccount, Credit: total})
 	}
 	dto := &CreateJournalEntryDTO{
 		EntryDate:   inv.InvoiceDate,
@@ -304,6 +354,13 @@ func (s *Service) CancelInvoice(ctx context.Context, id, userID string) (*Invoic
 	if err != nil {
 		return nil, err
 	}
+	amt := -inv.Total
+	if inv.InvoiceType == "purchase" {
+		amt = inv.Total
+	}
+	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, amt)
+	s.repo.LogAudit(ctx, inv.ShopID, userID, "", "cancel", "invoice", inv.ID,
+		fmt.Sprintf("إلغاء فاتورة %s", inv.Number))
 	return s.repo.GetInvoice(ctx, id)
 }
 
@@ -333,6 +390,9 @@ func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment,
 	}
 	if p.Status == "posted" {
 		return p, nil
+	}
+	if closed, periodName, _ := s.repo.IsPeriodClosed(ctx, p.ShopID, p.PaymentDate); closed {
+		return nil, ErrPeriodClosed(periodName)
 	}
 	cashAccount := "1110"
 	bankAccount := "1120"
@@ -366,6 +426,8 @@ func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment,
 	if err != nil {
 		return nil, err
 	}
+	s.repo.LogAudit(ctx, p.ShopID, userID, "", "post", "payment", p.ID,
+		fmt.Sprintf("ترحيل دفعة %s بمبلغ %.2f", p.Number, p.Amount))
 	return s.repo.GetPayment(ctx, id)
 }
 

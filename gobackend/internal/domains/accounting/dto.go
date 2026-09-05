@@ -138,3 +138,40 @@ type AgingRequest struct {
 	AsOf       string `json:"as_of"`                 // optional, defaults to today
 	EntityType string `json:"entity_type,omitempty"` // customer | vendor | "" = both
 }
+
+// --------------------------- Tax rates -------------------------------------
+
+type CreateTaxRateDTO struct {
+	Name      string  `json:"name" validate:"required,min=1,max=80"`
+	Rate      float64 `json:"rate" validate:"required,gte=0,lte=100"`
+	TaxType   string  `json:"tax_type" validate:"required,oneof=vat wht other"`
+	IsDefault bool    `json:"is_default,omitempty"`
+}
+
+func (d *CreateTaxRateDTO) Validate(v *validator.Validate) error { return v.Struct(d) }
+
+type UpdateTaxRateDTO struct {
+	Name   *string  `json:"name,omitempty" validate:"omitempty,min=1,max=80"`
+	Rate   *float64 `json:"rate,omitempty" validate:"omitempty,gte=0,lte=100"`
+	Status *string  `json:"status,omitempty" validate:"omitempty,oneof=active inactive"`
+}
+
+func (d *UpdateTaxRateDTO) Validate(v *validator.Validate) error { return v.Struct(d) }
+
+// --------------------------- Fiscal periods --------------------------------
+
+type CreateFiscalPeriodDTO struct {
+	Year  int `json:"year" validate:"required,gte=2000,lte=2100"`
+	Month int `json:"month" validate:"required,gte=1,lte=12"`
+}
+
+func (d *CreateFiscalPeriodDTO) Validate(v *validator.Validate) error { return v.Struct(d) }
+
+// --------------------------- Tax returns -----------------------------------
+
+type GenerateTaxReturnDTO struct {
+	Year  int `json:"year" validate:"required,gte=2000,lte=2100"`
+	Month int `json:"month" validate:"required,gte=1,lte=12"`
+}
+
+func (d *GenerateTaxReturnDTO) Validate(v *validator.Validate) error { return v.Struct(d) }

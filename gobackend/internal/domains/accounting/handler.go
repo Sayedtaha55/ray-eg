@@ -69,6 +69,26 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 
 	// Aging
 	g.Get("/aging/shop/:shopId", auth, h.AgingReport)
+
+	// Phase 3: Tax rates
+	g.Get("/tax-rates/shop/:shopId", auth, h.ListTaxRates)
+	g.Post("/tax-rates/shop/:shopId", auth, h.CreateTaxRate)
+	g.Put("/tax-rates/:id", auth, h.UpdateTaxRate)
+	g.Delete("/tax-rates/:id", auth, h.DeleteTaxRate)
+
+	// Phase 3: Fiscal periods
+	g.Get("/fiscal-periods/shop/:shopId", auth, h.ListFiscalPeriods)
+	g.Post("/fiscal-periods/shop/:shopId", auth, h.CreateFiscalPeriod)
+	g.Post("/fiscal-periods/:id/close", auth, h.CloseFiscalPeriod)
+	g.Post("/fiscal-periods/:id/reopen", auth, h.ReopenFiscalPeriod)
+
+	// Phase 3: Tax returns (VAT)
+	g.Get("/tax-returns/shop/:shopId", auth, h.ListTaxReturns)
+	g.Post("/tax-returns/shop/:shopId/generate", auth, h.GenerateTaxReturn)
+	g.Post("/tax-returns/:id/submit", auth, h.SubmitTaxReturn)
+
+	// Phase 3: Audit log
+	g.Get("/audit-log/shop/:shopId", auth, h.ListAuditLog)
 }
 
 func fail(c *fiber.Ctx, status int, msg string) error {

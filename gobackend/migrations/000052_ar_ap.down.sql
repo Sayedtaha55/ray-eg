@@ -1,4 +1,8 @@
 DROP TABLE IF EXISTS acc_aging;
+DROP TABLE IF EXISTS acc_tax_rates;
+DROP TABLE IF EXISTS acc_tax_returns;
+DROP TABLE IF EXISTS acc_fiscal_periods;
+DROP TABLE IF EXISTS acc_audit_log;
 DROP TABLE IF EXISTS acc_payment_allocations;
 DROP TABLE IF EXISTS acc_payments;
 DROP TABLE IF EXISTS acc_invoice_lines;

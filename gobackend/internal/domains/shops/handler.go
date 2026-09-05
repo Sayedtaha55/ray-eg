@@ -349,7 +349,7 @@ func (h *Handler) GetAdminSettings(c *fiber.Ctx) error {
 		"data": fiber.Map{
 			"platformName":    "منصة نمّي أعمالك",
 			"defaultLanguage": "ar-EG",
-			"enable2fa":        false,
+			"enable2fa":       false,
 		},
 	})
 }

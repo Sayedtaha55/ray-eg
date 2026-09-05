@@ -112,3 +112,69 @@ CREATE TABLE IF NOT EXISTS acc_aging (
 );
 CREATE INDEX IF NOT EXISTS idx_aging_entity ON acc_aging(entity_id, as_of);
 CREATE INDEX IF NOT EXISTS idx_aging_shop ON acc_aging(shop_id, as_of);
+
+-- ============================================================
+-- Phase 3: Taxes (VAT/WHT), Fiscal Periods, Audit Log
+-- ============================================================
+
+-- Tax rates (Egyptian VAT 14% default, WHT, etc.)
+CREATE TABLE IF NOT EXISTS acc_tax_rates (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id      UUID NOT NULL,
+    name         TEXT NOT NULL,
+    rate         NUMERIC(5,2) NOT NULL,
+    tax_type     TEXT  NOT NULL DEFAULT 'vat' CHECK (tax_type IN ('vat','wht','other')),
+    is_default   BOOLEAN NOT NULL DEFAULT FALSE,
+    status       TEXT  NOT NULL DEFAULT 'active' CHECK (status IN ('active','inactive')),
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_tax_rates_shop ON acc_tax_rates(shop_id, tax_type);
+
+-- Monthly VAT return snapshots
+CREATE TABLE IF NOT EXISTS acc_tax_returns (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id       UUID NOT NULL,
+    period_year   INTEGER NOT NULL,
+    period_month  INTEGER NOT NULL CHECK (period_month BETWEEN 1 AND 12),
+    output_tax    NUMERIC(14,2) NOT NULL DEFAULT 0,   -- VAT on sales (creditor)
+    input_tax     NUMERIC(14,2) NOT NULL DEFAULT 0,   -- VAT on purchases (debtor)
+    net_tax       NUMERIC(14,2) NOT NULL DEFAULT 0,   -- output - input
+    sales_total   NUMERIC(14,2) NOT NULL DEFAULT 0,
+    purchases_total NUMERIC(14,2) NOT NULL DEFAULT 0,
+    status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','submitted')),
+    generated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    submitted_at  TIMESTAMPTZ,
+    submitted_by  UUID,
+    UNIQUE (shop_id, period_year, period_month)
+);
+
+-- Fiscal periods (monthly); closing a period locks all posting into it
+CREATE TABLE IF NOT EXISTS acc_fiscal_periods (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id     UUID NOT NULL,
+    name        TEXT NOT NULL,
+    start_date  DATE NOT NULL,
+    end_date    DATE NOT NULL,
+    status      TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','closed')),
+    closed_by   UUID,
+    closed_at   TIMESTAMPTZ,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (shop_id, start_date)
+);
+
+-- Audit log: who changed what and when
+CREATE TABLE IF NOT EXISTS acc_audit_log (
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    shop_id      UUID NOT NULL,
+    user_id      TEXT,
+    user_name    TEXT,
+    action       TEXT NOT NULL,                -- create | update | post | reverse | cancel | close | reopen | submit
+    entity_type  TEXT NOT NULL,                -- journal | invoice | payment | period | tax_return | account | entity
+    entity_id    TEXT,
+    summary      TEXT,
+    before_data  JSONB,
+    after_data   JSONB,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_audit_shop_time ON acc_audit_log(shop_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON acc_audit_log(entity_type, entity_id);
