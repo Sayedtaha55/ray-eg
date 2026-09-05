@@ -133,6 +133,8 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
       backdropFilter: merged.backdropBlur ? `blur(${merged.backdropBlur})` : undefined,
       WebkitBackdropFilter: merged.backdropBlur ? `blur(${merged.backdropBlur})` : undefined,
       overflow: merged.overflow,
+      wordBreak: 'break-word',
+      overflowWrap: 'break-word',
       position: merged.position,
       top: merged.top,
       right: merged.right,

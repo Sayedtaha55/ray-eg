@@ -77,17 +77,16 @@ export const TopBar: React.FC = () => {
     }
   };
 
-  return (
-    <header className="h-14 bg-white border-b border-slate-200 px-2 sm:px-4 flex items-center justify-between z-30 select-none shadow-xs shrink-0">
+    <header className="h-13 sm:h-14 bg-white border-b border-slate-200 px-2 sm:px-4 flex items-center justify-between z-30 select-none shadow-xs shrink-0 gap-1 sm:gap-2">
       {/* LEFT SECTION: Back to Dashboard, Brand & Page Switcher */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Back to Dashboard Button */}
         {onExit && (
           <button
             type="button"
             onClick={onExit}
             title="العودة إلى لوحة التحكم الرئيسية"
-            className="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer"
+            className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-bold transition-colors cursor-pointer shrink-0"
           >
             <ArrowRight className="w-3.5 h-3.5 text-slate-500" />
             <span className="hidden md:inline">لوحة التحكم</span>
@@ -96,10 +95,10 @@ export const TopBar: React.FC = () => {
 
         {/* Brand Badge */}
         <div className="flex items-center gap-1.5 pr-0.5 sm:pr-1">
-          <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold text-xs tracking-tight shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-xs font-bold text-xs tracking-tight shrink-0">
             VB
           </div>
-          <div className="hidden min-[540px]:flex flex-col">
+          <div className="hidden md:flex flex-col">
             <span className="text-xs font-bold text-slate-900 leading-tight">مُنشئ المواقع</span>
             <span className="text-[9px] text-blue-600 font-bold tracking-wider">Next.js Studio</span>
           </div>
@@ -108,7 +107,9 @@ export const TopBar: React.FC = () => {
         <div className="hidden min-[640px]:block h-5 w-px bg-slate-200" />
 
         {/* Full Activity & Ready-made Template Switcher */}
-        <ActivityTemplateSwitcher />
+        <div className="hidden sm:block">
+          <ActivityTemplateSwitcher />
+        </div>
 
         <div className="hidden sm:block h-5 w-px bg-slate-200" />
 
@@ -117,11 +118,11 @@ export const TopBar: React.FC = () => {
           <button
             id="page_switcher_btn"
             onClick={() => setIsPageDropdownOpen(!isPageDropdownOpen)}
-            className="flex items-center gap-1 sm:gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-1 sm:gap-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg px-2 sm:px-2.5 py-1.5 text-xs font-semibold text-slate-800 transition-colors cursor-pointer shrink-0"
             title="تبديل الصفحة الحالية"
           >
             <FileText className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span className="max-w-[70px] sm:max-w-[110px] truncate">{activePage.name}</span>
+            <span className="max-w-[65px] sm:max-w-[110px] truncate">{activePage.name}</span>
             <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
           </button>
 
@@ -176,8 +177,8 @@ export const TopBar: React.FC = () => {
           </button>
         </div>
 
-        {/* Viewport Switcher */}
-        <div className="flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
+        {/* Viewport Switcher (Visible on md+ screens) */}
+        <div className="hidden md:flex items-center bg-slate-100 p-0.5 rounded-lg border border-slate-200">
           <button
             id="viewport_desktop_btn"
             onClick={() => setViewport('desktop')}
@@ -256,7 +257,7 @@ export const TopBar: React.FC = () => {
       </div>
 
       {/* RIGHT SECTION: Save, Live Site, Publish & More Menu */}
-      <div className="flex items-center gap-1 sm:gap-2">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {/* Autosave Status Pill */}
         <div className="hidden lg:flex items-center gap-1 px-2 py-1 bg-slate-50 border border-slate-200 rounded-full text-[11px] font-medium text-slate-600">
           {autosaveStatus === 'saved' && (
@@ -279,20 +280,20 @@ export const TopBar: React.FC = () => {
           )}
         </div>
 
-        {/* Direct Save Button */}
+        {/* Direct Save Button (Hidden on xs mobile because it's in the bottom tab bar) */}
         <button
           id="save_draft_btn"
           onClick={handleManualSave}
           disabled={isSaving}
           title="حفظ التعديلات فورياً"
-          className="flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 shadow-xs transition-all cursor-pointer"
+          className="hidden sm:flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-white border border-slate-200 hover:bg-slate-50 text-slate-800 shadow-xs transition-all cursor-pointer"
         >
           {isSaving ? (
             <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
           ) : (
             <Save className="w-3.5 h-3.5 text-blue-600" />
           )}
-          <span className="hidden sm:inline">حفظ</span>
+          <span>حفظ</span>
         </button>
 
         {/* View Live Next.js Website Button */}
@@ -301,7 +302,7 @@ export const TopBar: React.FC = () => {
           target="_blank"
           rel="noopener noreferrer"
           title="فتح الموقع الحقيقي على منصة Next.js لمعاينة الريندر والـ SEO"
-          className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 shadow-xs transition-all shrink-0 cursor-pointer"
+          className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-50 border border-emerald-300 hover:bg-emerald-100 text-emerald-800 shadow-xs transition-all shrink-0 cursor-pointer"
         >
           <ExternalLink className="w-3.5 h-3.5 text-emerald-600" />
           <span className="hidden min-[480px]:inline">الموقع الحقيقي</span>
@@ -311,7 +312,7 @@ export const TopBar: React.FC = () => {
         <button
           id="open_publish_modal_btn"
           onClick={() => setIsPublishModalOpen(true)}
-          className="flex items-center gap-1 sm:gap-1.5 px-3 sm:px-4 py-1.5 rounded-lg text-xs font-bold bg-slate-900 hover:bg-black text-white shadow-sm transition-all cursor-pointer shrink-0"
+          className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 hover:bg-black text-white shadow-sm transition-all cursor-pointer shrink-0"
         >
           <CloudUpload className="w-3.5 h-3.5 text-emerald-400" />
           <span>نشر</span>

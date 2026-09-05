@@ -96,6 +96,14 @@ export const restaurantComponents: Record<string, ComponentNode> = {
         paddingLeft: '24px',
         paddingRight: '24px',
       },
+      mobile: {
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingLeft: '12px',
+        paddingRight: '12px',
+        gap: '8px',
+      },
     },
   },
   'rest_logo': {
@@ -108,6 +116,7 @@ export const restaurantComponents: Record<string, ComponentNode> = {
     props: { text: '🍽️ لافيلا جورميه | La Villa', tag: 'h1' },
     styles: {
       desktop: { fontSize: '22px', fontWeight: '800', textColor: '#ea580c' },
+      mobile: { fontSize: '16px', fontWeight: '800' },
     },
   },
   'rest_nav': {
@@ -171,7 +180,10 @@ export const restaurantComponents: Record<string, ComponentNode> = {
     parentId: 'rest_header_inner',
     childrenIds: ['rest_btn_order_now'],
     props: {},
-    styles: { desktop: { display: 'flex', gap: '12px', alignItems: 'center' } },
+    styles: {
+      desktop: { display: 'flex', gap: '12px', alignItems: 'center' },
+      mobile: { display: 'flex', gap: '6px', alignItems: 'center' },
+    },
   },
   'rest_btn_order_now': {
     id: 'rest_btn_order_now',

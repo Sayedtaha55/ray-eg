@@ -57,7 +57,7 @@ export const MobileBuilderTabBar: React.FC = () => {
     <nav
       id="mobile_builder_tab_bar"
       aria-label="شريط أدوات مُنشئ المواقع للجوال"
-      className="lg:hidden fixed bottom-0 inset-x-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 z-30 flex items-center justify-around px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none safe-area-pb"
+      className="lg:hidden fixed bottom-0 inset-x-0 h-16 bg-white/95 backdrop-blur-md border-t border-slate-200 z-50 flex items-center justify-around px-1 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] select-none safe-area-pb"
     >
       {/* 1. Add Sections / Library */}
       <button

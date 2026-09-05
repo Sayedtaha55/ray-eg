@@ -349,6 +349,22 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
     return () => { cancelled = true; };
   }, []);
 
+  // Auto-detect screen size and switch viewport on mobile/tablet devices
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      const w = window.innerWidth;
+      if (w < 640) {
+        setViewport('mobile');
+      } else if (w < 1024) {
+        setViewport((prev) => (prev === 'desktop' ? 'tablet' : prev));
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Compute actual live URL on Next.js customer-facing marketplace
   const liveWebsiteUrl = useMemo(() => {
     const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
