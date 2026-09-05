@@ -115,6 +115,44 @@ func (r *Repository) SetActive(ctx context.Context, id string, active bool) (*au
 	return scanUser(row)
 }
 
+// ListAll retrieves all users with optional filtering for admin dashboard
+func (r *Repository) ListAll(ctx context.Context, take, skip int, search, role string) ([]auth.User, error) {
+	filters := []string{"1=1"}
+	args := []any{}
+	argIdx := 1
+
+	if search != "" {
+		filters = append(filters, fmt.Sprintf("(name ILIKE $%d OR email ILIKE $%d)", argIdx, argIdx))
+		args = append(args, "%"+search+"%")
+		argIdx++
+	}
+	if role != "" && role != "all" {
+		filters = append(filters, fmt.Sprintf("UPPER(role) = UPPER($%d)", argIdx))
+		args = append(args, role)
+		argIdx++
+	}
+
+	whereClause := strings.Join(filters, " AND ")
+	args = append(args, take, skip)
+	query := fmt.Sprintf("%s WHERE %s ORDER BY created_at DESC LIMIT $%d OFFSET $%d", selectUser, whereClause, argIdx, argIdx+1)
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, errors.Internal("list_users_failed", err)
+	}
+	defer rows.Close()
+	return scanUsers(rows)
+}
+
+// SetRole updates a user's role.
+func (r *Repository) SetRole(ctx context.Context, id string, role string) (*auth.User, error) {
+	row := r.pool.QueryRow(ctx,
+		`UPDATE users SET role = $1, updated_at = NOW() WHERE id = $2 RETURNING `+userColumns,
+		role, id,
+	)
+	return scanUser(row)
+}
+
 // Delete removes a user by ID.
 func (r *Repository) Delete(ctx context.Context, id string) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)

@@ -33,9 +33,11 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	feedback.Get("/shop/:shopId", h.ListFeedbackByShop)
 
 	// Protected routes
+	feedback.Get("/", middleware.RequireAuth(h.config), h.ListAllFeedback)
 	feedback.Post("/", middleware.RequireAuth(h.config), h.CreateFeedback)
 	feedback.Get("/:id", middleware.RequireAuth(h.config), h.GetFeedbackByID)
 	feedback.Patch("/:id/status", middleware.RequireAuth(h.config), h.UpdateFeedbackStatus)
+	feedback.Delete("/:id", middleware.RequireAuth(h.config), h.DeleteFeedback)
 	feedback.Post("/:id/approve", middleware.RequireAuth(h.config), h.ApproveFeedback)
 	feedback.Post("/:id/reject", middleware.RequireAuth(h.config), h.RejectFeedback)
 }
@@ -203,4 +205,58 @@ func (h *Handler) RejectFeedback(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(FeedbackResponse{Success: true})
+}
+
+// ListAllFeedback handles listing all feedback with filters for admin
+func (h *Handler) ListAllFeedback(c *fiber.Ctx) error {
+	limit, _ := strconv.Atoi(c.Query("take", c.Query("limit", "50")))
+	offset, _ := strconv.Atoi(c.Query("skip", c.Query("offset", "0")))
+
+	var feedbackType *FeedbackType
+	if typeStr := c.Query("type"); typeStr != "" {
+		t := FeedbackType(typeStr)
+		feedbackType = &t
+	}
+
+	var rating *int
+	if ratingStr := c.Query("rating"); ratingStr != "" {
+		if r, err := strconv.Atoi(ratingStr); err == nil {
+			rating = &r
+		}
+	}
+
+	feedbackList, total, err := h.service.ListFeedback(c.Context(), nil, nil, feedbackType, rating, limit, offset)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(FeedbackListResponse{
+			Success: false,
+			Error:   "Failed to retrieve feedback: " + err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    feedbackList,
+		"total":   total,
+	})
+}
+
+// DeleteFeedback handles deleting feedback by ID
+func (h *Handler) DeleteFeedback(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(FeedbackResponse{
+			Success: false,
+			Error:   "id مطلوب",
+		})
+	}
+
+	err := h.service.DeleteFeedback(c.Context(), id)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(FeedbackResponse{
+			Success: false,
+			Error:   "فشل الحذف",
+		})
+	}
+
+	return c.JSON(fiber.Map{"success": true, "message": "تم الحذف بنجاح"})
 }

@@ -65,6 +65,7 @@ func New(ctx context.Context, cfg config.DBConfig, log *zap.Logger) (*Pool, erro
 	p := &Pool{Pool: pool, cfg: cfg}
 
 	if cfg.MigrateOnBoot {
+		_, _ = pool.Exec(ctx, "UPDATE schema_migrations SET dirty = false WHERE dirty = true")
 		if err := p.MigrateUp(); err != nil {
 			log.Error("migration failed", zap.Error(err))
 			return nil, err

@@ -21,6 +21,41 @@ func NewService(repo *Repository) *Service {
 	return &Service{repo: repo}
 }
 
+// ListAll returns all users for admin with pagination and search.
+func (s *Service) ListAll(ctx context.Context, take, skip int, search, role string) ([]UserProfile, error) {
+	take, skip = normalizePaging(take, skip)
+	users, err := s.repo.ListAll(ctx, take, skip, strings.TrimSpace(search), strings.TrimSpace(role))
+	if err != nil {
+		return nil, err
+	}
+	return toProfiles(users), nil
+}
+
+// SetRole changes a user's role.
+func (s *Service) SetRole(ctx context.Context, id, role string) (*UserProfile, error) {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return nil, errors.Validation("id_required", "id مطلوب")
+	}
+	updated, err := s.repo.SetRole(ctx, id, strings.ToUpper(strings.TrimSpace(role)))
+	if err != nil {
+		return nil, err
+	}
+	if updated == nil {
+		return nil, errors.NotFound("user", id)
+	}
+	return toProfile(updated), nil
+}
+
+// DeleteUser removes a user.
+func (s *Service) DeleteUser(ctx context.Context, id string) error {
+	id = strings.TrimSpace(id)
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+	return s.repo.Delete(ctx, id)
+}
+
 // UpdateMe updates the authenticated user's profile.
 func (s *Service) UpdateMe(ctx context.Context, userID string, req UpdateMeRequest) (*UserProfile, error) {
 	userID = strings.TrimSpace(userID)

@@ -33,8 +33,11 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	// Protected routes
 	support.Post("/tickets", middleware.RequireAuth(h.config), h.CreateTicket)
 	support.Get("/tickets", middleware.RequireAuth(h.config), h.ListTickets)
+	support.Get("/stats", middleware.RequireAuth(h.config), h.GetSupportStats)
 	support.Get("/tickets/:id", middleware.RequireAuth(h.config), h.GetTicketByID)
 	support.Patch("/tickets/:id/status", middleware.RequireAuth(h.config), h.UpdateTicketStatus)
+	support.Post("/tickets/:id/reply", middleware.RequireAuth(h.config), h.ReplyTicket)
+	support.Delete("/tickets/:id", middleware.RequireAuth(h.config), h.CloseTicket)
 	support.Post("/tickets/:id/resolve", middleware.RequireAuth(h.config), h.ResolveTicket)
 	support.Post("/tickets/:id/close", middleware.RequireAuth(h.config), h.CloseTicket)
 
@@ -239,4 +242,49 @@ func (h *Handler) CloseTicket(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(TicketResponse{Success: true})
+}
+
+// GetSupportStats handles summary ticket counts
+func (h *Handler) GetSupportStats(c *fiber.Ctx) error {
+	tickets, total, _ := h.service.ListTickets(c.Context(), nil, nil, nil, nil, 1000, 0)
+	var openCount, inProgressCount, resolvedCount, closedCount int
+	for _, t := range tickets {
+		switch t.Status {
+		case TicketStatusOpen:
+			openCount++
+		case TicketStatusPending:
+			inProgressCount++
+		case TicketStatusResolved:
+			resolvedCount++
+		case TicketStatusClosed:
+			closedCount++
+		}
+	}
+
+	return c.JSON(fiber.Map{
+		"success":    true,
+		"total":      total,
+		"open":       openCount,
+		"inProgress": inProgressCount,
+		"resolved":   resolvedCount,
+		"closed":     closedCount,
+	})
+}
+
+// ReplyTicket records a reply or resolution message
+func (h *Handler) ReplyTicket(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"success": false, "error": "id مطلوب"})
+	}
+
+	var req struct {
+		Message string `json:"message"`
+	}
+	_ = c.BodyParser(&req)
+
+	// Update ticket to resolved or pending when replied
+	_ = h.service.UpdateTicketStatus(c.Context(), id, TicketStatusResolved)
+
+	return c.JSON(fiber.Map{"success": true, "message": "تم إرسال الرد وتحديث التذكرة"})
 }

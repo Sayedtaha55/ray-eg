@@ -32,6 +32,7 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	// Protected routes
 	invoice.Post("/", middleware.RequireAuth(h.config), h.CreateInvoice)
 	invoice.Get("/", middleware.RequireAuth(h.config), h.ListInvoices)
+	invoice.Get("/shop/:shopId", middleware.RequireAuth(h.config), h.ListInvoices)
 	invoice.Get("/:id", middleware.RequireAuth(h.config), h.GetInvoiceByID)
 	invoice.Patch("/:id/status", middleware.RequireAuth(h.config), h.UpdateInvoiceStatus)
 	invoice.Post("/:id/pay", middleware.RequireAuth(h.config), h.MarkAsPaid)
@@ -104,7 +105,9 @@ func (h *Handler) ListInvoices(c *fiber.Ctx) error {
 	}
 
 	var shopID, customerID *string
-	if user.ShopID != "" {
+	if paramShop := c.Params("shopId"); paramShop != "" {
+		shopID = &paramShop
+	} else if user.ShopID != "" {
 		shopID = &user.ShopID
 	} else {
 		customerID = &user.ID

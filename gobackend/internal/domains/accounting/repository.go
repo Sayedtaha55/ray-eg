@@ -2,7 +2,10 @@ package accounting
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
@@ -242,11 +245,24 @@ func (r *Repository) CreateJournalEntry(ctx context.Context, shopID, createdBy s
 	}
 	e.CreatedAt = createdAt.Format(time.RFC3339)
 
+	// resolve account codes to IDs if AccountID is empty
+	accountMap := map[string]string{} // code -> id
 	for i, l := range dto.Lines {
+		acctID := l.AccountID
+		if acctID == "" && l.AccountCode != "" {
+			if acctID == "" {
+				var id string
+				if err := tx.QueryRow(ctx, `SELECT id FROM acc_accounts WHERE shop_id = $1 AND code = $2`, shopID, l.AccountCode).Scan(&id); err != nil {
+					return nil, fmt.Errorf("resolve account code %s: %w", l.AccountCode, err)
+				}
+				acctID = id
+			}
+		}
+		accountMap[l.AccountCode] = acctID
 		if _, err := tx.Exec(ctx,
 			`INSERT INTO acc_journal_lines (entry_id, account_id, description, debit, credit, line_no)
 			 VALUES ($1,$2,$3,$4,$5,$6)`,
-			e.ID, l.AccountID, l.Description, l.Debit, l.Credit, i+1); err != nil {
+			e.ID, acctID, l.Description, l.Debit, l.Credit, i+1); err != nil {
 			return nil, fmt.Errorf("insert line %d: %w", i+1, err)
 		}
 	}
@@ -543,6 +559,449 @@ func (r *Repository) AccountTotals(ctx context.Context, shopID, from, to string)
 			continue
 		}
 		out[id] = [2]float64{d, c}
+	}
+	return out, rows.Err()
+}
+
+func nullString(s string) sql.NullString {
+	if s == "" {
+		return sql.NullString{Valid: false}
+	}
+	return sql.NullString{String: s, Valid: true}
+}
+
+func round2(v float64) float64 {
+	return math.Round(v*100) / 100
+}
+
+// --- Entities ---
+
+func (r *Repository) ListEntities(ctx context.Context, shopID, entityType string) ([]Entity, error) {
+	query := `SELECT id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at
+		FROM acc_entities WHERE shop_id = $1`
+	args := []any{shopID}
+	if entityType != "" {
+		args = append(args, entityType)
+		query += fmt.Sprintf(" AND entity_type = $%d", len(args))
+	}
+	query += " ORDER BY name"
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list entities: %w", err)
+	}
+	defer rows.Close()
+	var out []Entity
+	for rows.Next() {
+		var e Entity
+		var nameEn, taxID, phone, email, address sql.NullString
+		if err := rows.Scan(&e.ID, &e.ShopID, &e.EntityType, &e.Name, &nameEn, &taxID, &phone, &email, &address, &e.CurrencyCode, &e.CreditLimit, &e.Balance, &e.Status, &e.CreatedAt, &e.UpdatedAt); err != nil {
+			continue
+		}
+		e.NameEN = nameEn.String
+		e.TaxID = taxID.String
+		e.Phone = phone.String
+		e.Email = email.String
+		e.Address = address.String
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repository) GetEntity(ctx context.Context, id string) (*Entity, error) {
+	var e Entity
+	var nameEn, taxID, phone, email, address sql.NullString
+	err := r.pool.QueryRow(ctx, `
+		SELECT id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at
+		FROM acc_entities WHERE id = $1`, id).Scan(
+		&e.ID, &e.ShopID, &e.EntityType, &e.Name, &nameEn, &taxID, &phone, &email, &address, &e.CurrencyCode, &e.CreditLimit, &e.Balance, &e.Status, &e.CreatedAt, &e.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	e.NameEN = nameEn.String
+	e.TaxID = taxID.String
+	e.Phone = phone.String
+	e.Email = email.String
+	e.Address = address.String
+	return &e, nil
+}
+
+func (r *Repository) CreateEntity(ctx context.Context, shopID, userID string, dto *CreateEntityDTO) (*Entity, error) {
+	var e Entity
+	var nameEn, taxID, phone, email, address sql.NullString
+	err := r.pool.QueryRow(ctx, `
+		INSERT INTO acc_entities (shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+		RETURNING id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at`,
+		shopID, dto.EntityType, dto.Name,
+		nullString(dto.NameEN), nullString(dto.TaxID), nullString(dto.Phone),
+		nullString(dto.Email), nullString(dto.Address),
+		nullString(dto.CurrencyCode), dto.CreditLimit, userID,
+	).Scan(&e.ID, &e.ShopID, &e.EntityType, &e.Name, &nameEn, &taxID, &phone, &email, &address, &e.CurrencyCode, &e.CreditLimit, &e.Balance, &e.Status, &e.CreatedAt, &e.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("create entity: %w", err)
+	}
+	e.NameEN = nameEn.String
+	e.TaxID = taxID.String
+	e.Phone = phone.String
+	e.Email = email.String
+	e.Address = address.String
+	return &e, nil
+}
+
+func (r *Repository) GetEntityBalance(ctx context.Context, entityID string) (float64, error) {
+	var bal float64
+	err := r.pool.QueryRow(ctx, `SELECT balance FROM acc_entities WHERE id = $1`, entityID).Scan(&bal)
+	return bal, err
+}
+
+func (r *Repository) UpdateEntityBalance(ctx context.Context, entityID string, amount float64) error {
+	_, err := r.pool.Exec(ctx, `UPDATE acc_entities SET balance = balance + $1 WHERE id = $2`, amount, entityID)
+	return err
+}
+
+func (r *Repository) DeleteEntity(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM acc_entities WHERE id = $1
+		AND (SELECT COUNT(*) FROM acc_invoices WHERE entity_id = $1) = 0
+		AND (SELECT COUNT(*) FROM acc_payments WHERE entity_id = $1) = 0`, id)
+	return err
+}
+
+func (r *Repository) UpdateEntity(ctx context.Context, id string, dto *UpdateEntityDTO) (*Entity, error) {
+	set, args := []string{"updated_at = NOW()"}, []any{}
+	ai := 1
+	if dto.Name != nil {
+		set = append(set, fmt.Sprintf("name = $%d", ai))
+		args = append(args, *dto.Name)
+		ai++
+	}
+	if dto.NameEN != nil {
+		set = append(set, fmt.Sprintf("name_en = $%d", ai))
+		args = append(args, *dto.NameEN)
+		ai++
+	}
+	if dto.TaxID != nil {
+		set = append(set, fmt.Sprintf("tax_id = $%d", ai))
+		args = append(args, *dto.TaxID)
+		ai++
+	}
+	if dto.Phone != nil {
+		set = append(set, fmt.Sprintf("phone = $%d", ai))
+		args = append(args, *dto.Phone)
+		ai++
+	}
+	if dto.Email != nil {
+		set = append(set, fmt.Sprintf("email = $%d", ai))
+		args = append(args, *dto.Email)
+		ai++
+	}
+	if dto.Address != nil {
+		set = append(set, fmt.Sprintf("address = $%d", ai))
+		args = append(args, *dto.Address)
+		ai++
+	}
+	if dto.CreditLimit != nil {
+		set = append(set, fmt.Sprintf("credit_limit = $%d", ai))
+		args = append(args, *dto.CreditLimit)
+		ai++
+	}
+	if dto.Status != nil {
+		set = append(set, fmt.Sprintf("status = $%d", ai))
+		args = append(args, *dto.Status)
+		ai++
+	}
+	args = append(args, id)
+	query := fmt.Sprintf(`UPDATE acc_entities SET %s WHERE id = $%d RETURNING id, shop_id, entity_type, name, name_en, tax_id, phone, email, address, currency_code, credit_limit, balance, status, created_at, updated_at`, strings.Join(set, ", "), ai)
+	var e Entity
+	var nameEn, taxID, phone, email, address sql.NullString
+	err := r.pool.QueryRow(ctx, query, args...).Scan(
+		&e.ID, &e.ShopID, &e.EntityType, &e.Name, &nameEn, &taxID, &phone, &email, &address, &e.CurrencyCode, &e.CreditLimit, &e.Balance, &e.Status, &e.CreatedAt, &e.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	e.NameEN = nameEn.String
+	e.TaxID = taxID.String
+	e.Phone = phone.String
+	e.Email = email.String
+	e.Address = address.String
+	return &e, nil
+}
+
+// --- Invoices ---
+
+func (r *Repository) CreateInvoice(ctx context.Context, shopID, userID string, dto *CreateInvoiceDTO) (*Invoice, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	var subtotal, taxTotal float64
+	for _, l := range dto.Lines {
+		amt := l.Quantity * l.UnitPrice
+		lineTax := amt * l.TaxRate / 100
+		taxTotal += lineTax
+		subtotal += amt
+	}
+	total := round2(subtotal + taxTotal)
+	var invID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO acc_invoices (shop_id, entity_id, invoice_type, number, invoice_date, due_date, currency_code, subtotal, tax_total, total, balance, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$10,$11) RETURNING id`,
+		shopID, dto.EntityID, dto.InvoiceType, dto.Number, dto.InvoiceDate, dto.DueDate, nullString(dto.CurrencyCode), subtotal, taxTotal, total, userID).Scan(&invID)
+	if err != nil {
+		return nil, fmt.Errorf("insert invoice: %w", err)
+	}
+	for i, l := range dto.Lines {
+		amt := l.Quantity * l.UnitPrice
+		lineTax := amt * l.TaxRate / 100
+		_, err = tx.Exec(ctx, `
+			INSERT INTO acc_invoice_lines (invoice_id, description, account_id, quantity, unit_price, tax_rate, tax_amount, amount, line_no)
+			VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`, invID, l.Description, l.AccountID, l.Quantity, l.UnitPrice, l.TaxRate, lineTax, amt, i+1)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return r.GetInvoice(ctx, invID)
+}
+
+func (r *Repository) GetInvoice(ctx context.Context, id string) (*Invoice, error) {
+	var inv Invoice
+	var entityName, journalID, createdBy sql.NullString
+	var invoiceDate, dueDate, createdAt, updatedAt string
+	err := r.pool.QueryRow(ctx, `
+		SELECT i.id, i.shop_id, i.entity_id, e.name, i.entity_type, i.invoice_type, i.number, i.invoice_date, i.due_date, i.currency_code, i.subtotal, i.tax_total, i.total, i.paid_amount, i.balance, i.status, i.journal_id, i.created_by, i.created_at, i.updated_at
+		FROM acc_invoices i LEFT JOIN acc_entities e ON e.id = i.entity_id
+		WHERE i.id = $1`, id).Scan(
+		&inv.ID, &inv.ShopID, &inv.EntityID, &entityName, &inv.EntityType, &inv.InvoiceType, &inv.Number, &invoiceDate, &dueDate, &inv.CurrencyCode, &inv.Subtotal, &inv.TaxTotal, &inv.Total, &inv.PaidAmount, &inv.Balance, &inv.Status, &journalID, &createdBy, &createdAt, &updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	inv.InvoiceDate = invoiceDate
+	inv.DueDate = dueDate
+	inv.CreatedAt = createdAt
+	inv.UpdatedAt = updatedAt
+	inv.EntityName = entityName.String
+	inv.JournalID = journalID.String
+	inv.CreatedBy = createdBy.String
+	rows, err := r.pool.Query(ctx, `
+		SELECT id, invoice_id, description, account_id, quantity, unit_price, tax_rate, tax_amount, amount, line_no
+		FROM acc_invoice_lines WHERE invoice_id = $1 ORDER BY line_no`, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var l InvoiceLine
+		var accountID sql.NullString
+		if err := rows.Scan(&l.ID, &l.InvoiceID, &l.Description, &accountID, &l.Quantity, &l.UnitPrice, &l.TaxRate, &l.TaxAmount, &l.Amount, &l.LineNo); err != nil {
+			continue
+		}
+		l.AccountID = accountID.String
+		inv.Lines = append(inv.Lines, l)
+	}
+	return &inv, rows.Err()
+}
+
+func (r *Repository) ListInvoices(ctx context.Context, shopID, entityID, status string) ([]Invoice, error) {
+	query := `SELECT i.id, i.shop_id, i.entity_id, e.name, i.entity_type, i.invoice_type, i.number, i.invoice_date, i.due_date, i.currency_code, i.subtotal, i.tax_total, i.total, i.paid_amount, i.balance, i.status, i.journal_id, i.created_by, i.created_at, i.updated_at
+		FROM acc_invoices i LEFT JOIN acc_entities e ON e.id = i.entity_id
+		WHERE i.shop_id = $1`
+	args := []any{shopID}
+	i := 1
+	if entityID != "" {
+		i++
+		query += fmt.Sprintf(" AND i.entity_id = $%d", i)
+		args = append(args, entityID)
+	}
+	if status != "" {
+		i++
+		query += fmt.Sprintf(" AND i.status = $%d", i)
+		args = append(args, status)
+	}
+	query += " ORDER BY i.invoice_date DESC, i.number DESC"
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list invoices: %w", err)
+	}
+	defer rows.Close()
+	var out []Invoice
+	for rows.Next() {
+		var inv Invoice
+		var entityName, journalID, createdBy sql.NullString
+		var invoiceDate, dueDate, createdAt, updatedAt string
+		if err := rows.Scan(&inv.ID, &inv.ShopID, &inv.EntityID, &entityName, &inv.EntityType, &inv.InvoiceType, &inv.Number, &invoiceDate, &dueDate, &inv.CurrencyCode, &inv.Subtotal, &inv.TaxTotal, &inv.Total, &inv.PaidAmount, &inv.Balance, &inv.Status, &journalID, &createdBy, &createdAt, &updatedAt); err != nil {
+			continue
+		}
+		inv.InvoiceDate = invoiceDate
+		inv.DueDate = dueDate
+		inv.CreatedAt = createdAt
+		inv.UpdatedAt = updatedAt
+		inv.EntityName = entityName.String
+		inv.JournalID = journalID.String
+		inv.CreatedBy = createdBy.String
+		out = append(out, inv)
+	}
+	return out, rows.Err()
+}
+
+func (r *Repository) UpdateInvoiceStatus(ctx context.Context, id, journalID, status string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE acc_invoices SET status = $1, journal_id = $2 WHERE id = $3`, status, nullString(journalID), id)
+	return err
+}
+
+func (r *Repository) UpdateInvoiceTotals(ctx context.Context, id string, total, balance float64) error {
+	_, err := r.pool.Exec(ctx, `UPDATE acc_invoices SET total = $1, balance = $2 WHERE id = $3`, total, balance, id)
+	return err
+}
+
+func (r *Repository) GetInvoiceBalanceForUpdate(ctx context.Context, id string) (float64, error) {
+	var bal float64
+	err := r.pool.QueryRow(ctx, `SELECT balance FROM acc_invoices WHERE id = $1 FOR UPDATE`, id).Scan(&bal)
+	return bal, err
+}
+
+func (r *Repository) GetInvoiceEntityID(ctx context.Context, invoiceID string) (string, error) {
+	var entityID string
+	err := r.pool.QueryRow(ctx, `SELECT entity_id FROM acc_invoices WHERE id = $1`, invoiceID).Scan(&entityID)
+	return entityID, err
+}
+
+func (r *Repository) UpdateInvoice(ctx context.Context, id, number, dueDate string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE acc_invoices SET number = $1, due_date = $2, updated_at = NOW() WHERE id = $3`, number, dueDate, id)
+	return err
+}
+
+// --- Payments ---
+
+func (r *Repository) CreatePayment(ctx context.Context, shopID, userID string, dto *CreatePaymentDTO) (*Payment, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+	var pID string
+	err = tx.QueryRow(ctx, `
+		INSERT INTO acc_payments (shop_id, entity_id, payment_type, number, payment_date, amount, currency_code, method, reference, created_by)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+		shopID, dto.EntityID, dto.PaymentType, dto.Number, dto.PaymentDate, dto.Amount, nullString(dto.CurrencyCode), dto.Method, nullString(dto.Reference), userID).Scan(&pID)
+	if err != nil {
+		return nil, fmt.Errorf("insert payment: %w", err)
+	}
+	var et string
+	_ = tx.QueryRow(ctx, `SELECT entity_type FROM acc_entities WHERE id = $1`, dto.EntityID).Scan(&et)
+	_, _ = tx.Exec(ctx, `UPDATE acc_payments SET entity_type = $1 WHERE id = $2`, et, pID)
+	for _, a := range dto.Allocations {
+		_, err = tx.Exec(ctx, `INSERT INTO acc_payment_allocations (payment_id, invoice_id, allocated) VALUES ($1,$2,$3)`, pID, a.InvoiceID, a.Amount)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
+	}
+	return r.GetPayment(ctx, pID)
+}
+
+func (r *Repository) GetPayment(ctx context.Context, id string) (*Payment, error) {
+	var p Payment
+	var entityName, reference, journalID, createdBy sql.NullString
+	var paymentDate, createdAt, updatedAt string
+	err := r.pool.QueryRow(ctx, `
+		SELECT p.id, p.shop_id, p.entity_id, e.name, p.entity_type, p.payment_type, p.number, p.payment_date::text, p.amount, p.currency_code, p.method, p.reference, p.status, p.journal_id, p.created_by, p.created_at::text, p.updated_at::text
+		FROM acc_payments p LEFT JOIN acc_entities e ON e.id = p.entity_id
+		WHERE p.id = $1`, id).Scan(
+		&p.ID, &p.ShopID, &p.EntityID, &entityName, &p.EntityType, &p.PaymentType, &p.Number, &paymentDate, &p.Amount, &p.CurrencyCode, &p.Method, &reference, &p.Status, &journalID, &createdBy, &createdAt, &updatedAt)
+	if err != nil {
+		return nil, err
+	}
+	p.EntityName = entityName.String
+	p.Reference = reference.String
+	p.JournalID = journalID.String
+	p.CreatedBy = createdBy.String
+	p.PaymentDate = paymentDate
+	p.CreatedAt = createdAt
+	p.UpdatedAt = updatedAt
+	return &p, nil
+}
+
+func (r *Repository) UpdatePaymentStatus(ctx context.Context, id, journalID, status string) error {
+	_, err := r.pool.Exec(ctx, `UPDATE acc_payments SET status = $1, journal_id = $2 WHERE id = $3`, status, nullString(journalID), id)
+	return err
+}
+
+func (r *Repository) ListPayments(ctx context.Context, shopID, entityID string) ([]Payment, error) {
+	query := `SELECT p.id, p.shop_id, p.entity_id, e.name, p.entity_type, p.payment_type, p.number, p.payment_date::text, p.amount, p.currency_code, p.method, p.reference, p.status, p.journal_id, p.created_by, p.created_at::text, p.updated_at::text
+		FROM acc_payments p LEFT JOIN acc_entities e ON e.id = p.entity_id
+		WHERE p.shop_id = $1`
+	args := []any{shopID}
+	if entityID != "" {
+		query += " AND p.entity_id = $2"
+		args = append(args, entityID)
+	}
+	query += " ORDER BY p.payment_date DESC"
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list payments: %w", err)
+	}
+	defer rows.Close()
+	var out []Payment
+	for rows.Next() {
+		var p Payment
+		var entityName, journalID, createdBy, ref sql.NullString
+		var paymentDate, createdAt, updatedAt string
+		if err := rows.Scan(&p.ID, &p.ShopID, &p.EntityID, &entityName, &p.EntityType, &p.PaymentType, &p.Number, &paymentDate, &p.Amount, &p.CurrencyCode, &p.Method, &ref, &p.Status, &journalID, &p.CreatedBy, &createdAt, &updatedAt); err != nil {
+			continue
+		}
+		p.PaymentDate = paymentDate
+		p.CreatedAt = createdAt
+		p.UpdatedAt = updatedAt
+		p.EntityName = entityName.String
+		if journalID.Valid {
+			p.JournalID = journalID.String
+		}
+		if createdBy.Valid {
+			p.CreatedBy = createdBy.String
+		}
+		p.Reference = ref.String
+		out = append(out, p)
+	}
+	return out, rows.Err()
+}
+
+// --- Aging ---
+
+func (r *Repository) CalculateAging(ctx context.Context, shopID, entityType, asOf string) ([]AgingRow, error) {
+	if asOf == "" {
+		asOf = time.Now().Format("2006-01-02")
+	}
+	query := `
+		SELECT e.id, e.name, e.currency_code,
+			COALESCE(SUM(CASE WHEN i.due_date >= $2::date THEN i.balance ELSE 0 END), 0) AS current_amt,
+			COALESCE(SUM(CASE WHEN i.due_date < $2::date AND i.due_date >= ($2::date - INTERVAL '30 days') THEN i.balance ELSE 0 END), 0) AS d30_amt,
+			COALESCE(SUM(CASE WHEN i.due_date < ($2::date - INTERVAL '30 days') AND i.due_date >= ($2::date - INTERVAL '60 days') THEN i.balance ELSE 0 END), 0) AS d60_amt,
+			COALESCE(SUM(CASE WHEN i.due_date < ($2::date - INTERVAL '60 days') AND i.due_date >= ($2::date - INTERVAL '90 days') THEN i.balance ELSE 0 END), 0) AS d90_amt,
+			COALESCE(SUM(CASE WHEN i.due_date < ($2::date - INTERVAL '90 days') THEN i.balance ELSE 0 END), 0) AS d90_plus_amt
+		FROM acc_entities e
+		LEFT JOIN acc_invoices i ON i.entity_id = e.id AND i.balance > 0 AND i.status = 'posted'
+		WHERE e.shop_id = $1`
+	args := []any{shopID, asOf}
+	if entityType != "" {
+		query += fmt.Sprintf(" AND e.entity_type = $%d", len(args)+1)
+		args = append(args, entityType)
+	}
+	query += " GROUP BY e.id, e.name, e.currency_code ORDER BY e.name"
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("aging: %w", err)
+	}
+	defer rows.Close()
+	var out []AgingRow
+	for rows.Next() {
+		var row AgingRow
+		if err := rows.Scan(&row.EntityID, &row.EntityName, &row.CurrencyCode, &row.Current, &row.D30, &row.D60, &row.D90, &row.D90Plus); err != nil {
+			continue
+		}
+		row.Total = row.Current + row.D30 + row.D60 + row.D90 + row.D90Plus
+		out = append(out, row)
 	}
 	return out, rows.Err()
 }

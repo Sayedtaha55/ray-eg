@@ -1,6 +1,9 @@
 package accounting
 
-import "context"
+import (
+	"context"
+	"fmt"
+)
 
 // Service handles accounting business logic.
 type Service struct {
@@ -182,6 +185,201 @@ func validateBalanced(lines []JournalLineInput) error {
 	}
 	return nil
 }
+
+// ---------------------------------------------------------------------------
+// Phase 2: Entities
+// ---------------------------------------------------------------------------
+
+func (s *Service) ListEntities(ctx context.Context, shopID, entityType string) ([]Entity, error) {
+	return s.repo.ListEntities(ctx, shopID, entityType)
+}
+
+func (s *Service) GetEntity(ctx context.Context, id string) (*Entity, error) {
+	return s.repo.GetEntity(ctx, id)
+}
+
+func (s *Service) CreateEntity(ctx context.Context, shopID, userID string, dto *CreateEntityDTO) (*Entity, error) {
+	return s.repo.CreateEntity(ctx, shopID, userID, dto)
+}
+
+func (s *Service) UpdateEntity(ctx context.Context, id string, dto *UpdateEntityDTO) (*Entity, error) {
+	return s.repo.UpdateEntity(ctx, id, dto)
+}
+
+func (s *Service) DeleteEntity(ctx context.Context, id string) error {
+	return s.repo.DeleteEntity(ctx, id)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Invoices
+// ---------------------------------------------------------------------------
+
+func (s *Service) CreateInvoice(ctx context.Context, shopID, userID string, dto *CreateInvoiceDTO) (*Invoice, error) {
+	if len(dto.Lines) == 0 {
+		return nil, ErrNoBothSides
+	}
+	return s.repo.CreateInvoice(ctx, shopID, userID, dto)
+}
+
+func (s *Service) GetInvoice(ctx context.Context, id string) (*Invoice, error) {
+	return s.repo.GetInvoice(ctx, id)
+}
+
+func (s *Service) ListInvoices(ctx context.Context, shopID, entityID, status string) ([]Invoice, error) {
+	return s.repo.ListInvoices(ctx, shopID, entityID, status)
+}
+
+func (s *Service) UpdateInvoice(ctx context.Context, id, number, dueDate string) (*Invoice, error) {
+	err := s.repo.UpdateInvoice(ctx, id, number, dueDate)
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.GetInvoice(ctx, id)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Invoices (Post/Cancel)
+// ---------------------------------------------------------------------------
+
+func (s *Service) PostInvoice(ctx context.Context, id, userID string) (*Invoice, error) {
+	inv, err := s.repo.GetInvoice(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if inv.Status == "posted" {
+		return inv, nil
+	}
+	entry, err := s.autoPostInvoiceEntry(ctx, inv, userID)
+	if err != nil {
+		return nil, err
+	}
+	err = s.repo.UpdateInvoiceStatus(ctx, id, entry.ID, "posted")
+	if err != nil {
+		return nil, err
+	}
+	amt := inv.Total
+	if inv.InvoiceType == "purchase" {
+		amt = -amt
+	}
+	_ = s.repo.UpdateEntityBalance(ctx, inv.EntityID, amt)
+	return s.repo.GetInvoice(ctx, id)
+}
+
+// autoPostInvoiceEntry creates the double-entry journal for an invoice.
+func (s *Service) autoPostInvoiceEntry(ctx context.Context, inv *Invoice, userID string) (*JournalEntry, error) {
+	revenueAccount := "4100"
+	expenseAccount := "5000"
+	receivableAccount := "1130"
+	payableAccount := "2100"
+	var lines []JournalLineInput
+	if inv.InvoiceType == "sale" {
+		lines = []JournalLineInput{{AccountCode: receivableAccount, Debit: inv.Total}, {AccountCode: revenueAccount, Credit: inv.Total}}
+	} else {
+		lines = []JournalLineInput{{AccountCode: expenseAccount, Debit: inv.Total}, {AccountCode: payableAccount, Credit: inv.Total}}
+	}
+	dto := &CreateJournalEntryDTO{
+		EntryDate:   inv.InvoiceDate,
+		Description: fmt.Sprintf("قيد ناتج عن فاتورة %s %s", inv.InvoiceType, inv.Number),
+		Reference:   inv.Number,
+		Lines:       lines,
+	}
+	return s.repo.CreateJournalEntry(ctx, inv.ShopID, userID, dto)
+}
+
+func (s *Service) CancelInvoice(ctx context.Context, id, userID string) (*Invoice, error) {
+	inv, err := s.repo.GetInvoice(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if inv.Status == "cancelled" {
+		return inv, nil
+	}
+	if inv.Status == "posted" && inv.JournalID != "" {
+		_, err := s.repo.ReverseJournalEntry(ctx, inv.JournalID, userID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	err = s.repo.UpdateInvoiceStatus(ctx, id, "", "cancelled")
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.GetInvoice(ctx, id)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Payments
+// ---------------------------------------------------------------------------
+
+func (s *Service) CreatePayment(ctx context.Context, shopID, userID string, dto *CreatePaymentDTO) (*Payment, error) {
+	if dto.Amount <= 0 {
+		return nil, ErrLineEmpty
+	}
+	return s.repo.CreatePayment(ctx, shopID, userID, dto)
+}
+
+func (s *Service) GetPayment(ctx context.Context, id string) (*Payment, error) {
+	return s.repo.GetPayment(ctx, id)
+}
+
+func (s *Service) ListPayments(ctx context.Context, shopID, entityID string) ([]Payment, error) {
+	return s.repo.ListPayments(ctx, shopID, entityID)
+}
+
+func (s *Service) PostPayment(ctx context.Context, id, userID string) (*Payment, error) {
+	p, err := s.repo.GetPayment(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if p.Status == "posted" {
+		return p, nil
+	}
+	cashAccount := "1110"
+	bankAccount := "1120"
+	receivableAccount := "1130"
+	payableAccount := "2100"
+	var debitCode, creditCode string
+	amt := p.Amount
+	if p.PaymentType == "receipt" {
+		debitCode = cashAccount
+		creditCode = receivableAccount
+		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, -amt)
+	} else {
+		debitCode = payableAccount
+		creditCode = bankAccount
+		_ = s.repo.UpdateEntityBalance(ctx, p.EntityID, amt)
+	}
+	dto := &CreateJournalEntryDTO{
+		EntryDate:   p.PaymentDate,
+		Description: fmt.Sprintf("قيد ناتج عن دفعة %s", p.Number),
+		Reference:   p.Number,
+		Lines: []JournalLineInput{
+			{AccountCode: debitCode, Debit: amt},
+			{AccountCode: creditCode, Credit: amt},
+		},
+	}
+	entry, err := s.repo.CreateJournalEntry(ctx, p.ShopID, userID, dto)
+	if err != nil {
+		return nil, err
+	}
+	err = s.repo.UpdatePaymentStatus(ctx, id, entry.ID, "posted")
+	if err != nil {
+		return nil, err
+	}
+	return s.repo.GetPayment(ctx, id)
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2: Aging
+// ---------------------------------------------------------------------------
+
+func (s *Service) CalculateAging(ctx context.Context, shopID, entityType, asOf string) ([]AgingRow, error) {
+	return s.repo.CalculateAging(ctx, shopID, entityType, asOf)
+}
+
+// ---------------------------------------------------------------------------
+// Validators
+// ---------------------------------------------------------------------------
 
 func validateBalancedLines(lines []JournalLineInput) error {
 	var d, c float64

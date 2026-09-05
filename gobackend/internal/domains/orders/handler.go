@@ -171,6 +171,9 @@ func (h *Handler) List(c *fiber.Ctx) error {
 		shopID = user.ShopID
 	}
 	if shopID == "" {
+		if user.Role == string(auth.RoleAdmin) {
+			return h.ListAdmin(c)
+		}
 		return errors.Validation("shopId_required", "shopId مطلوب")
 	}
 	orders, meta, err := h.service.ListByShop(c.UserContext(), shopID, user.ShopID, user.Role, req)

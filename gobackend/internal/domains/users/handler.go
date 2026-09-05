@@ -29,6 +29,7 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g.Patch("/me", middleware.RequireAuth(h.cfg), h.UpdateMe)
 
 	admin := g.Group("", middleware.RequireAuth(h.cfg), requireRoleMiddleware(auth.RoleAdmin))
+	admin.Get("/", h.ListUsers)
 	admin.Get("/couriers", h.ListCouriers)
 	admin.Post("/couriers", h.CreateCourier)
 	admin.Get("/couriers/pending", h.ListPendingCouriers)
@@ -36,6 +37,21 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	admin.Patch("/couriers/:id/reject", h.RejectCourier)
 	admin.Get("/couriers/:id", h.GetCourierDetails)
 	admin.Patch("/couriers/:id/status", h.SetCourierStatus)
+	admin.Patch("/:id/role", h.SetUserRole)
+	admin.Delete("/:id", h.DeleteUser)
+
+	// Top-level /couriers routes for dashboard delivery page compatibility
+	cGroup := r.Group("/couriers", middleware.RequireAuth(h.cfg), requireRoleMiddleware(auth.RoleAdmin))
+	cGroup.Get("/", h.ListCouriers)
+	cGroup.Post("/", h.CreateCourier)
+	cGroup.Get("/pending", h.ListPendingCouriers)
+	cGroup.Post("/:id/approve", h.ApproveCourier)
+	cGroup.Patch("/:id/approve", h.ApproveCourier)
+	cGroup.Post("/:id/reject", h.RejectCourier)
+	cGroup.Patch("/:id/reject", h.RejectCourier)
+	cGroup.Get("/:id/admin-details", h.GetCourierDetails)
+	cGroup.Get("/:id", h.GetCourierDetails)
+	cGroup.Patch("/:id/status", h.SetCourierStatus)
 }
 
 func (h *Handler) UpdateMe(c *fiber.Ctx) error {
@@ -162,4 +178,49 @@ func requireRoleMiddleware(allowed auth.Role) fiber.Handler {
 		}
 		return c.Next()
 	}
+}
+
+func (h *Handler) ListUsers(c *fiber.Ctx) error {
+	take, _ := strconv.Atoi(c.Query("take", "50"))
+	skip, _ := strconv.Atoi(c.Query("skip", "0"))
+	search := c.Query("search", c.Query("q", ""))
+	role := c.Query("role", "")
+
+	users, err := h.service.ListAll(c.UserContext(), take, skip, search, role)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": users})
+}
+
+func (h *Handler) SetUserRole(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+
+	var req struct {
+		Role string `json:"role"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+
+	user, err := h.service.SetRole(c.UserContext(), id, req.Role)
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": user})
+}
+
+func (h *Handler) DeleteUser(c *fiber.Ctx) error {
+	id := c.Params("id")
+	if id == "" {
+		return errors.Validation("id_required", "id مطلوب")
+	}
+
+	if err := h.service.DeleteUser(c.UserContext(), id); err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "message": "تم حذف المستخدم بنجاح"})
 }

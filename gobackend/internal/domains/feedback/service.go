@@ -53,3 +53,8 @@ func (s *Service) ApproveFeedback(ctx context.Context, id string) error {
 func (s *Service) RejectFeedback(ctx context.Context, id string) error {
 	return s.repo.UpdateFeedbackStatus(ctx, id, "REJECTED")
 }
+
+// DeleteFeedback deletes feedback by ID
+func (s *Service) DeleteFeedback(ctx context.Context, id string) error {
+	return s.repo.DeleteFeedback(ctx, id)
+}

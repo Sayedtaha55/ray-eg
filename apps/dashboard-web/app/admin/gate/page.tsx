@@ -357,7 +357,7 @@ export default function AdminGatePage() {
           </div>
           <button
             disabled={loading}
-            className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3"
+            className="w-full py-6 bg-white text-black rounded-[2rem] font-black text-xl hover:bg-[#BD00FF] hover:text-white transition-all shadow-2xl flex items-center justify-center gap-3 cursor-pointer"
           >
             {loading ? <Loader2 className="animate-spin" /> : <KeyRound />}
             دخول الأدمن
@@ -365,6 +365,33 @@ export default function AdminGatePage() {
 
           {showDevLogins && (
             <>
+              {/* Quick 1-Click Super Admin Login */}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={async () => {
+                  setEmail('admin@example.com');
+                  setPassword('Admin123!');
+                  setLoading(true);
+                  setError('');
+                  try {
+                    const data = await login('admin@example.com', 'Admin123!');
+                    const user = data?.user || data?.data?.user || { id: data?.id, email: data?.email, name: data?.name, role: data?.role };
+                    const role = String(user?.role || data?.role || '').toLowerCase();
+                    if (role !== 'admin') throw new Error('الأدمن فقط يمكنه الدخول من هنا');
+                    const returnTo = new URLSearchParams(window.location.search).get('returnTo') || '';
+                    goToAdminArea(returnTo);
+                  } catch (err: any) {
+                    setError(err?.message || 'فشل الدخول التلقائي');
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                className="w-full py-4 bg-purple-600/30 border border-purple-500/50 text-purple-200 rounded-[2rem] font-black text-sm hover:bg-purple-600 hover:text-white transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+              >
+                <ShieldAlert size={18} className="text-purple-400" />
+                <span>دخول سريع كـ Super Admin بنقرة واحدة</span>
+              </button>
               {/* Dev merchant login with activity menu */}
               <div className="relative">
                 <button

@@ -45,7 +45,13 @@ export default function AdminDashboardPage() {
         apiRequest('/analytics/system/activity?limit=10').catch(() => null),
       ]);
 
-      setStats(s || {});
+      setStats(s ? {
+        totalRevenue: s.total_revenue ?? s.totalRevenue ?? 0,
+        totalUsers: s.total_users ?? s.totalUsers ?? 0,
+        totalShops: s.total_shops ?? s.totalShops ?? 0,
+        totalOrders: s.total_orders ?? s.totalOrders ?? 0,
+        totalVisits: s.total_visits ?? s.totalVisits ?? 0,
+      } : {});
 
       const mapped: ChartPoint[] = (Array.isArray(ts) ? ts : []).map((row: any) => {
         const date = String(row?.date || '').trim();

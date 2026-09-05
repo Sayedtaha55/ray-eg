@@ -45,6 +45,30 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	g.Get("/trial-balance/shop/:shopId", auth, h.TrialBalance)
 	g.Get("/reports/income-statement/shop/:shopId", auth, h.IncomeStatement)
 	g.Get("/reports/balance-sheet/shop/:shopId", auth, h.BalanceSheet)
+
+	// Entities (customers / vendors)
+	g.Get("/entities/shop/:shopId", auth, h.ListEntities)
+	g.Post("/entities/shop/:shopId", auth, h.CreateEntity)
+	g.Get("/entities/:id", auth, h.GetEntity)
+	g.Put("/entities/:id", auth, h.UpdateEntity)
+	g.Delete("/entities/:id", auth, h.DeleteEntity)
+
+	// Invoices
+	g.Get("/invoices/shop/:shopId", auth, h.ListInvoices)
+	g.Post("/invoices/shop/:shopId", auth, h.CreateInvoice)
+	g.Get("/invoices/:id", auth, h.GetInvoice)
+	g.Put("/invoices/:id", auth, h.UpdateInvoice)
+	g.Post("/invoices/:id/post", auth, h.PostInvoice)
+	g.Post("/invoices/:id/cancel", auth, h.CancelInvoice)
+
+	// Payments
+	g.Get("/payments/shop/:shopId", auth, h.ListPayments)
+	g.Post("/payments/shop/:shopId", auth, h.CreatePayment)
+	g.Get("/payments/:id", auth, h.GetPayment)
+	g.Post("/payments/:id/post", auth, h.PostPayment)
+
+	// Aging
+	g.Get("/aging/shop/:shopId", auth, h.AgingReport)
 }
 
 func fail(c *fiber.Ctx, status int, msg string) error {
@@ -245,4 +269,224 @@ func (h *Handler) BalanceSheet(c *fiber.Ctx) error {
 		return fail(c, fiber.StatusInternalServerError, err.Error())
 	}
 	return c.JSON(map[string]any{"success": true, "data": bs})
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 Handlers: Entities
+// ---------------------------------------------------------------------------
+
+func (h *Handler) ListEntities(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	entities, err := h.service.ListEntities(c.Context(), shopID, c.Query("type"))
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": entities})
+}
+
+func (h *Handler) GetEntity(c *fiber.Ctx) error {
+	entity, err := h.service.GetEntity(c.Context(), c.Params("id"))
+	if err != nil {
+		return fail(c, fiber.StatusNotFound, ErrEntityNotFound.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": entity})
+}
+
+func (h *Handler) CreateEntity(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	user, _ := middleware.AuthUserFromContext(c)
+	var dto CreateEntityDTO
+	if err := c.BodyParser(&dto); err != nil {
+		return fail(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if err := dto.Validate(h.validate); err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	entity, err := h.service.CreateEntity(c.Context(), shopID, user.ID, &dto)
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(map[string]any{"success": true, "data": entity})
+}
+
+func (h *Handler) UpdateEntity(c *fiber.Ctx) error {
+	var dto UpdateEntityDTO
+	if err := c.BodyParser(&dto); err != nil {
+		return fail(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if err := dto.Validate(h.validate); err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	entity, err := h.service.UpdateEntity(c.Context(), c.Params("id"), &dto)
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": entity})
+}
+
+func (h *Handler) DeleteEntity(c *fiber.Ctx) error {
+	err := h.service.DeleteEntity(c.Context(), c.Params("id"))
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": "deleted"})
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 Handlers: Invoices
+// ---------------------------------------------------------------------------
+
+func (h *Handler) ListInvoices(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	inv, err := h.service.ListInvoices(c.Context(), shopID, c.Query("entityId"), c.Query("status"))
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": inv})
+}
+
+func (h *Handler) GetInvoice(c *fiber.Ctx) error {
+	inv, err := h.service.GetInvoice(c.Context(), c.Params("id"))
+	if err != nil {
+		return fail(c, fiber.StatusNotFound, ErrInvoiceNotFound.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": inv})
+}
+
+func (h *Handler) CreateInvoice(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	user, _ := middleware.AuthUserFromContext(c)
+	var dto CreateInvoiceDTO
+	if err := c.BodyParser(&dto); err != nil {
+		return fail(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if err := dto.Validate(h.validate); err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	inv, err := h.service.CreateInvoice(c.Context(), shopID, user.ID, &dto)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(map[string]any{"success": true, "data": inv})
+}
+
+func (h *Handler) UpdateInvoice(c *fiber.Ctx) error {
+	var dto UpdateInvoiceDTO
+	if err := c.BodyParser(&dto); err != nil {
+		return fail(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if err := dto.Validate(h.validate); err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	var number, dueDate string
+	if dto.Number != nil {
+		number = *dto.Number
+	}
+	if dto.DueDate != nil {
+		dueDate = *dto.DueDate
+	}
+	inv, err := h.service.UpdateInvoice(c.Context(), c.Params("id"), number, dueDate)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": inv})
+}
+
+func (h *Handler) PostInvoice(c *fiber.Ctx) error {
+	user, _ := middleware.AuthUserFromContext(c)
+	inv, err := h.service.PostInvoice(c.Context(), c.Params("id"), user.ID)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": inv})
+}
+
+func (h *Handler) CancelInvoice(c *fiber.Ctx) error {
+	user, _ := middleware.AuthUserFromContext(c)
+	inv, err := h.service.CancelInvoice(c.Context(), c.Params("id"), user.ID)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": inv})
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 Handlers: Payments
+// ---------------------------------------------------------------------------
+
+func (h *Handler) ListPayments(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	p, err := h.service.ListPayments(c.Context(), shopID, c.Query("entityId"))
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": p})
+}
+
+func (h *Handler) GetPayment(c *fiber.Ctx) error {
+	p, err := h.service.GetPayment(c.Context(), c.Params("id"))
+	if err != nil {
+		return fail(c, fiber.StatusNotFound, ErrPaymentNotFound.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": p})
+}
+
+func (h *Handler) CreatePayment(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	user, _ := middleware.AuthUserFromContext(c)
+	var dto CreatePaymentDTO
+	if err := c.BodyParser(&dto); err != nil {
+		return fail(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	if err := dto.Validate(h.validate); err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	p, err := h.service.CreatePayment(c.Context(), shopID, user.ID, &dto)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.Status(fiber.StatusCreated).JSON(map[string]any{"success": true, "data": p})
+}
+
+func (h *Handler) PostPayment(c *fiber.Ctx) error {
+	user, _ := middleware.AuthUserFromContext(c)
+	p, err := h.service.PostPayment(c.Context(), c.Params("id"), user.ID)
+	if err != nil {
+		return fail(c, fiber.StatusBadRequest, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": p})
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2 Handlers: Aging
+// ---------------------------------------------------------------------------
+
+func (h *Handler) AgingReport(c *fiber.Ctx) error {
+	shopID, ok := resolveShop(c)
+	if !ok {
+		return nil
+	}
+	rows, err := h.service.CalculateAging(c.Context(), shopID, c.Query("type"), c.Query("asOf"))
+	if err != nil {
+		return fail(c, fiber.StatusInternalServerError, err.Error())
+	}
+	return c.JSON(map[string]any{"success": true, "data": rows})
 }

@@ -4,6 +4,7 @@ import (
 	"strconv"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -22,6 +23,12 @@ func NewHandler(service *Service, cfg *config.Config) *Handler {
 func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g := r.Group("/map")
 	g.Get("/pins", h.GetPins)
+
+	ml := r.Group("/map-listings")
+	ml.Get("/pending", h.ListPendingListings)
+	ml.Get("/", h.ListPendingListings)
+	ml.Post("/:id/approve", h.ApproveListing)
+	ml.Post("/:id/reject", h.RejectListing)
 }
 
 // GetPins handles retrieving map pins
@@ -56,4 +63,57 @@ func (h *Handler) GetPins(c *fiber.Ctx) error {
 		Success: true,
 		Data:    pins,
 	})
+}
+
+// ListPendingListings handles GET /map-listings/pending
+func (h *Handler) ListPendingListings(c *fiber.Ctx) error {
+	limit, _ := strconv.Atoi(c.Query("limit", "100"))
+	listings, err := h.service.ListPendingListings(c.Context(), limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "Failed to retrieve map listings",
+		})
+	}
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    listings,
+		"items":   listings,
+	})
+}
+
+// ApproveListing handles POST /map-listings/:id/approve
+func (h *Handler) ApproveListing(c *fiber.Ctx) error {
+	id := c.Params("id")
+	adminID := ""
+	if user, ok := middleware.AuthUserFromContext(c); ok {
+		adminID = user.ID
+	}
+	if err := h.service.SetListingStatus(c.Context(), id, "APPROVED", "", adminID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "فشل قبول الموقع",
+		})
+	}
+	return c.JSON(fiber.Map{"success": true, "message": "تم قبول الموقع بنجاح"})
+}
+
+// RejectListing handles POST /map-listings/:id/reject
+func (h *Handler) RejectListing(c *fiber.Ctx) error {
+	id := c.Params("id")
+	var body struct {
+		Note string `json:"note"`
+	}
+	_ = c.BodyParser(&body)
+	adminID := ""
+	if user, ok := middleware.AuthUserFromContext(c); ok {
+		adminID = user.ID
+	}
+	if err := h.service.SetListingStatus(c.Context(), id, "REJECTED", body.Note, adminID); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"success": false,
+			"error":   "فشل رفض الموقع",
+		})
+	}
+	return c.JSON(fiber.Map{"success": true, "message": "تم رفض الموقع"})
 }

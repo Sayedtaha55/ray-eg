@@ -54,7 +54,7 @@ func (r *Repository) CreateFeedback(ctx context.Context, userID string, data *Cr
 // GetFeedbackByID retrieves a feedback by ID
 func (r *Repository) GetFeedbackByID(ctx context.Context, id string) (*Feedback, error) {
 	query := `
-		SELECT id, user_id, shop_id, order_id, product_id, type, rating, title, comment, status, user_name, user_email, created_at, updated_at
+		SELECT id, COALESCE(user_id, ''), COALESCE(shop_id, ''), order_id, product_id, COALESCE(type, 'GENERAL'), rating, COALESCE(title, ''), COALESCE(comment, content, ''), COALESCE(status, 'PENDING'), user_name, user_email, created_at::text, COALESCE(updated_at, created_at)::text
 		FROM feedback
 		WHERE id = $1
 	`
@@ -79,7 +79,7 @@ func (r *Repository) GetFeedbackByID(ctx context.Context, id string) (*Feedback,
 // ListFeedback retrieves feedback with filters
 func (r *Repository) ListFeedback(ctx context.Context, shopID, productID *string, feedbackType *FeedbackType, rating *int, limit, offset int) ([]Feedback, int64, error) {
 	query := `
-		SELECT id, user_id, shop_id, order_id, product_id, type, rating, title, comment, status, user_name, user_email, created_at, updated_at
+		SELECT id, COALESCE(user_id, ''), COALESCE(shop_id, ''), order_id, product_id, COALESCE(type, 'GENERAL'), rating, COALESCE(title, ''), COALESCE(comment, content, ''), COALESCE(status, 'PENDING'), user_name, user_email, created_at::text, COALESCE(updated_at, created_at)::text
 		FROM feedback
 		WHERE 1=1
 	`
@@ -178,5 +178,11 @@ func (r *Repository) UpdateFeedbackStatus(ctx context.Context, id string, status
 		`UPDATE feedback SET status = $1, updated_at = NOW() WHERE id = $2`,
 		status, id,
 	)
+	return err
+}
+
+// DeleteFeedback deletes feedback by ID
+func (r *Repository) DeleteFeedback(ctx context.Context, id string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM feedback WHERE id = $1`, id)
 	return err
 }
