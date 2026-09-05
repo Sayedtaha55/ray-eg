@@ -72,36 +72,36 @@ export const DesignSystemPanel: React.FC = () => {
       </div>
 
       {/* Full Activity Ready-Made Templates */}
-      <div className="space-y-2.5 bg-gradient-to-br from-blue-50/70 to-indigo-50/40 p-3 rounded-2xl border border-blue-200">
+      <div className="space-y-3 bg-gradient-to-br from-blue-50/80 to-indigo-50/50 p-3.5 rounded-2xl border border-blue-200 shadow-2xs">
         <div className="flex items-center justify-between">
           <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
             <LayoutTemplate className="w-4 h-4 text-blue-600" />
-            <span>قوالب الأنشطة الجاهزة بالكامل</span>
+            <span>قوالب وثيمات الأنشطة الجاهزة</span>
           </span>
           <span className="text-[10px] bg-blue-600 text-white font-bold px-2 py-0.5 rounded-full">
-            {allTemplatesList.length} نشاط
+            {allTemplatesList.length} نشاط جاهز
           </span>
         </div>
         <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
-          اختر نشاطك التجاري ليتم استبدال كامل الموقع (الصفحات، القائمة، الأقسام، نماذج الحجز) فوراً.
+          اختر نشاطك التجاري ليتم تطبيق الثيم واستبدال كامل الموقع (الصفحات، القائمة، الأقسام، نماذج الحجز) فوراً.
         </p>
 
         {/* Scrollable / Grid of activities */}
-        <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+        <div className="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
           {allTemplatesList.map((tpl) => {
             const isSelected = tpl.id === activeTemplateId;
             return (
               <button
                 key={tpl.id}
                 onClick={() => switchWebsite(tpl.id)}
-                className={`w-full p-2 rounded-xl border text-right transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center justify-between gap-2 cursor-pointer ${
                   isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold'
-                    : 'bg-white hover:bg-blue-50/60 border-slate-200 text-slate-800'
+                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold ring-2 ring-blue-400/40'
+                    : 'bg-white hover:bg-blue-50/70 border-slate-200 hover:border-blue-300 text-slate-800 shadow-2xs'
                 }`}
               >
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">{tpl.icon}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="text-lg shrink-0 p-1 rounded-lg bg-slate-50 border border-slate-100">{tpl.icon}</span>
                   <div className="flex flex-col min-w-0">
                     <span className="text-xs font-black truncate">{tpl.name}</span>
                     <span
@@ -114,13 +114,13 @@ export const DesignSystemPanel: React.FC = () => {
                   </div>
                 </div>
                 {isSelected ? (
-                  <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-bold shrink-0">
+                  <span className="text-[10px] bg-white text-blue-700 px-2.5 py-0.5 rounded-full font-black shrink-0 shadow-2xs">
                     مطبق حالياً ✓
                   </span>
                 ) : (
                   <span
                     style={{ backgroundColor: tpl.primaryColor }}
-                    className="w-2.5 h-2.5 rounded-full border border-black/10 shrink-0"
+                    className="w-3 h-3 rounded-full border-2 border-white shadow-xs shrink-0"
                     title="اللون الأساسي"
                   />
                 )}

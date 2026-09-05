@@ -28,7 +28,6 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import { useBuilder } from '../../context/BuilderContext';
-import { ActivityTemplateSwitcher } from './ActivityTemplateSwitcher';
 
 export const TopBar: React.FC = () => {
   const {
@@ -105,14 +104,7 @@ export const TopBar: React.FC = () => {
           </div>
         </div>
 
-        <div className="hidden min-[640px]:block h-5 w-px bg-slate-200" />
-
-        {/* Full Activity & Ready-made Template Switcher */}
-        <div className="hidden sm:block">
-          <ActivityTemplateSwitcher />
-        </div>
-
-        <div className="hidden sm:block h-5 w-px bg-slate-200" />
+        <div className="h-5 w-px bg-slate-200" />
 
         {/* Page Switcher Dropdown */}
         <div className="relative">
