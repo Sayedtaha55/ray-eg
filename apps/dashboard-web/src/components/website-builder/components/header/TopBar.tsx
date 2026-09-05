@@ -77,6 +77,7 @@ export const TopBar: React.FC = () => {
     }
   };
 
+  return (
     <header className="h-13 sm:h-14 bg-white border-b border-slate-200 px-2 sm:px-4 flex items-center justify-between z-30 select-none shadow-xs shrink-0 gap-1 sm:gap-2">
       {/* LEFT SECTION: Back to Dashboard, Brand & Page Switcher */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
