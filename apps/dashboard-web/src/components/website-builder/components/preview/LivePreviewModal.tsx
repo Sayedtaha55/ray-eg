@@ -35,9 +35,9 @@ export const LivePreviewModal: React.FC = () => {
       case 'desktop':
         return '100%';
       case 'tablet':
-        return '768px';
+        return 'min(100%, 768px)';
       case 'mobile':
-        return '390px';
+        return 'min(100%, 390px)';
     }
   };
 

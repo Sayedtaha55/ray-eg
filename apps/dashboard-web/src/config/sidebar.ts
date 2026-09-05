@@ -3,7 +3,7 @@ import {
   Users, Calendar, UserCog, BarChart3, Globe, Bot, Settings, ExternalLink,
   Gift, Sparkles,
   Home, Shield, Store, FileText, Puzzle, LayoutGrid, Clock, Share2, TrendingUp, User,
-  Plus, ShoppingCart, RotateCcw,
+  Plus, ShoppingCart, RotateCcw, Scale,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -109,6 +109,7 @@ export const sidebarSections: SidebarSection[] = [
       { id: 'wallets', label: 'Wallets', labelAr: 'المحافظ', icon: DollarSign, href: '/dashboard/finance/wallets' },
       { id: 'profits', label: 'Profits', labelAr: 'الأرباح', icon: DollarSign, href: '/dashboard/finance/profits' },
       { id: 'journal', label: 'Journal Entries', labelAr: 'القيود', icon: DollarSign, href: '/dashboard/finance/journal' },
+      { id: 'trialBalance', label: 'Trial Balance', labelAr: 'ميزان المراجعة', icon: Scale, href: '/dashboard/finance/trial-balance' },
       { id: 'financialReports', label: 'Financial Reports', labelAr: 'التقارير المالية', icon: DollarSign, href: '/dashboard/finance/financial-reports' },
     ],
   },

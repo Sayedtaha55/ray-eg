@@ -88,55 +88,59 @@ export default async function HomePage() {
     <div className="fixed inset-0 z-[9990] flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center font-bold">
-              <CloudUpload className="w-5 h-5" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-900 text-emerald-400 flex items-center justify-center font-bold shrink-0">
+              <CloudUpload className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
-            <div>
-              <h2 className="text-base font-bold text-slate-900">نشر الموقع إلى بيئة الإنتاج السحابية</h2>
-              <p className="text-xs text-slate-500">
-                المتجر: <span className="font-semibold text-slate-700">{builderShopName || currentTenant.name}</span> | النطاق:{' '}
-                <span className="font-mono text-blue-600">{currentTenant.customDomain}</span>
+            <div className="min-w-0">
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 truncate">نشر الموقع إلى بيئة الإنتاج السحابية</h2>
+              <p className="text-[11px] sm:text-xs text-slate-500 truncate">
+                المتجر: <span className="font-semibold text-slate-700">{builderShopName || currentTenant.name}</span>
+                {currentTenant.customDomain && (
+                  <>
+                    {' '}| النطاق: <span className="font-mono text-blue-600">{currentTenant.customDomain}</span>
+                  </>
+                )}
               </p>
             </div>
           </div>
           <button
             onClick={() => setIsPublishModalOpen(false)}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors shrink-0 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex border-b border-slate-200 px-6 bg-slate-50/30 gap-6 text-xs font-semibold text-slate-600">
+        <div className="flex border-b border-slate-200 px-3 sm:px-6 bg-slate-50/30 gap-2 sm:gap-6 text-xs font-semibold text-slate-600 overflow-x-auto no-scrollbar shrink-0">
           <button
             onClick={() => setActiveTab('pipeline')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'pipeline' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-slate-900'
+            className={`py-2.5 sm:py-3 border-b-2 transition-colors flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'pipeline' ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent hover:text-slate-900'
             }`}
           >
             <Server className="w-4 h-4" />
-            <span>مسار النشر السحابي (Publish Pipeline)</span>
+            <span>مسار النشر السحابي</span>
           </button>
           <button
             onClick={() => setActiveTab('nextjs_export')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'nextjs_export' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-slate-900'
+            className={`py-2.5 sm:py-3 border-b-2 transition-colors flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'nextjs_export' ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent hover:text-slate-900'
             }`}
           >
             <FileCode2 className="w-4 h-4" />
-            <span>كود Next.js App Router المولد</span>
+            <span>كود Next.js</span>
           </button>
           <button
             onClick={() => setActiveTab('seo_sitemap')}
-            className={`py-3 border-b-2 transition-colors flex items-center gap-2 ${
-              activeTab === 'seo_sitemap' ? 'border-blue-600 text-blue-600' : 'border-transparent hover:text-slate-900'
+            className={`py-2.5 sm:py-3 border-b-2 transition-colors flex items-center gap-1.5 sm:gap-2 shrink-0 cursor-pointer ${
+              activeTab === 'seo_sitemap' ? 'border-blue-600 text-blue-600 font-bold' : 'border-transparent hover:text-slate-900'
             }`}
           >
             <Globe className="w-4 h-4" />
-            <span>ملفات Sitemap وSEO الإنتاج</span>
+            <span>Sitemap وSEO</span>
           </button>
         </div>
 
@@ -226,15 +230,15 @@ export default async function HomePage() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-xs text-slate-500">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+                <div className="text-[11px] sm:text-xs text-slate-500 text-center sm:text-right">
                   سيتم تحديث كاش الخوادم السحابية وإرسال طلبات الـRevalidation تلقائياً.
                 </div>
                 <button
                   id="execute_publish_btn"
                   onClick={runPublishPipeline}
                   disabled={publishingStatus.status !== 'idle' && publishingStatus.status !== 'published'}
-                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 transition-all cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50 transition-all shrink-0 cursor-pointer"
                 >
                   <RefreshCw
                     className={`w-4 h-4 ${

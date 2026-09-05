@@ -11,6 +11,7 @@ import {
   RefreshCw,
   LayoutTemplate,
   ArrowUpRight,
+  Search,
 } from 'lucide-react';
 import { useBuilder } from '../../context/BuilderContext';
 import { themePresets } from '../../data/defaultTheme';
@@ -53,6 +54,18 @@ export const DesignSystemPanel: React.FC = () => {
     { name: 'وردي بنفسجي', color: '#c084fc' },
   ];
 
+  const [templateSearch, setTemplateSearch] = useState('');
+
+  const filteredTemplates = allTemplatesList.filter((tpl) => {
+    if (!templateSearch.trim()) return true;
+    const q = templateSearch.toLowerCase();
+    return (
+      tpl.name.toLowerCase().includes(q) ||
+      (tpl.category && tpl.category.toLowerCase().includes(q)) ||
+      (tpl.badge && tpl.badge.toLowerCase().includes(q))
+    );
+  });
+
   return (
     <div className="p-3.5 space-y-5 text-right" dir="rtl">
       {/* Header Bar */}
@@ -86,47 +99,65 @@ export const DesignSystemPanel: React.FC = () => {
           اختر نشاطك التجاري ليتم تطبيق الثيم واستبدال كامل الموقع (الصفحات، القائمة، الأقسام، نماذج الحجز) فوراً.
         </p>
 
+        {/* Search input for templates */}
+        <div className="relative">
+          <input
+            type="text"
+            value={templateSearch}
+            onChange={(e) => setTemplateSearch(e.target.value)}
+            placeholder="ابحث عن قالب أو نشاط (مطعم، كافيه، عيادة...)"
+            className="w-full text-xs px-3 py-1.5 pl-8 rounded-xl border border-blue-200 bg-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 text-slate-800"
+          />
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+        </div>
+
         {/* Scrollable / Grid of activities */}
         <div className="space-y-1.5 max-h-64 overflow-y-auto pr-0.5">
-          {allTemplatesList.map((tpl) => {
-            const isSelected = tpl.id === activeTemplateId;
-            return (
-              <button
-                key={tpl.id}
-                onClick={() => switchWebsite(tpl.id)}
-                className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center justify-between gap-2 cursor-pointer ${
-                  isSelected
-                    ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold ring-2 ring-blue-400/40'
-                    : 'bg-white hover:bg-blue-50/70 border-slate-200 hover:border-blue-300 text-slate-800 shadow-2xs'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-lg shrink-0 p-1 rounded-lg bg-slate-50 border border-slate-100">{tpl.icon}</span>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-xs font-black truncate">{tpl.name}</span>
-                    <span
-                      className={`text-[9px] truncate ${
-                        isSelected ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      {tpl.badge || tpl.category}
-                    </span>
+          {filteredTemplates.length === 0 ? (
+            <p className="text-[11px] text-slate-400 text-center py-4 font-medium">
+              لا توجد قوالب مطابقة للبحث
+            </p>
+          ) : (
+            filteredTemplates.map((tpl) => {
+              const isSelected = tpl.id === activeTemplateId;
+              return (
+                <button
+                  key={tpl.id}
+                  onClick={() => switchWebsite(tpl.id)}
+                  className={`w-full p-2.5 rounded-xl border text-right transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                    isSelected
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-sm font-bold ring-2 ring-blue-400/40'
+                      : 'bg-white hover:bg-blue-50/70 border-slate-200 hover:border-blue-300 text-slate-800 shadow-2xs'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span className="text-lg shrink-0 p-1 rounded-lg bg-slate-50 border border-slate-100">{tpl.icon}</span>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-xs font-black truncate">{tpl.name}</span>
+                      <span
+                        className={`text-[9px] truncate ${
+                          isSelected ? 'text-blue-100' : 'text-slate-400'
+                        }`}
+                      >
+                        {tpl.badge || tpl.category}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                {isSelected ? (
-                  <span className="text-[10px] bg-white text-blue-700 px-2.5 py-0.5 rounded-full font-black shrink-0 shadow-2xs">
-                    مطبق حالياً ✓
-                  </span>
-                ) : (
-                  <span
-                    style={{ backgroundColor: tpl.primaryColor }}
-                    className="w-3 h-3 rounded-full border-2 border-white shadow-xs shrink-0"
-                    title="اللون الأساسي"
-                  />
-                )}
-              </button>
-            );
-          })}
+                  {isSelected ? (
+                    <span className="text-[10px] bg-white text-blue-700 px-2.5 py-0.5 rounded-full font-black shrink-0 shadow-2xs">
+                      مطبق حالياً ✓
+                    </span>
+                  ) : (
+                    <span
+                      style={{ backgroundColor: tpl.primaryColor }}
+                      className="w-3 h-3 rounded-full border-2 border-white shadow-xs shrink-0"
+                      title="اللون الأساسي"
+                    />
+                  )}
+                </button>
+              );
+            })
+          )}
         </div>
       </div>
 

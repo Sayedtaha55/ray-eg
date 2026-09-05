@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Star,
   CheckCircle,
@@ -97,13 +97,13 @@ interface BuilderWebsite {
 
 // ─── getComputedStyles ────────────────────────────────────────────────────────
 
-function getComputedStyles(node: ComponentNode, theme: BuilderWebsite['theme']): React.CSSProperties {
+function getComputedStyles(node: ComponentNode, theme: BuilderWebsite['theme'], isMobileClient = false): React.CSSProperties {
   const d = node.styles.desktop || {};
   const t = node.styles.tablet || {};
   const m = node.styles.mobile || {};
 
-  // Server-side / Responsive defaults: merge desktop with mobile overrides for narrow screens
-  const merged = { ...d };
+  // If running on mobile or narrow viewport, merge tablet and mobile overrides
+  const merged = isMobileClient ? { ...d, ...t, ...m } : { ...d };
 
   const css: React.CSSProperties = {
     display: merged.display as any,
@@ -170,11 +170,21 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [isFaqOpen, setIsFaqOpen] = useState(true);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+
+  useEffect(() => {
+    const checkScreen = () => {
+      setIsMobileScreen(window.innerWidth < 768);
+    };
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
 
   if (!node || node.isHidden) return null;
 
   const theme = website.theme;
-  const computed = getComputedStyles(node, theme);
+  const computed = getComputedStyles(node, theme, isMobileScreen);
 
   const renderChildren = () =>
     (node.childrenIds || []).map((cid) => (

@@ -1,474 +1,293 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import {
-  BookOpen, Search, Plus, Download, RefreshCw, Info, X, Edit, Trash2,
-  ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check,
-  DollarSign, Calendar, CheckCircle2, Clock, AlertTriangle,
-} from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, Plus, Trash2, X, BookOpen, Info, CheckCircle2, Undo2, Send, RotateCcw, Lock, Unlock } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
-type JournalEntry = {
-  id: string;
-  entryNumber: string;
-  date: string;
-  description: string;
-  accountName: string;
-  debit: number;
-  credit: number;
-  reference: string;
-  status: 'draft' | 'posted' | 'reversed';
-  createdBy: string;
-  createdAt: string;
+type Account = { id: string; code: string; name: string; is_group: boolean; is_system: boolean; status: string };
+type Line = { account_id: string; description: string; debit: number; credit: number };
+type Entry = {
+  id: string; number: string; entry_date: string; description: string;
+  reference: string; status: string; total_debit: number; total_credit: number;
+  reversed_by_entry_id: string;
+  lines: { id: string; account_id: string; account_code: string; account_name: string; description: string; debit: number; credit: number }[];
 };
 
-const emptyForm = {
-  date: new Date().toISOString().split('T')[0],
-  description: '',
-  accountName: '',
-  debit: 0,
-  credit: 0,
-  reference: '',
+const STATUS_META: Record<string, { label: string; cls: string }> = {
+  draft: { label: 'مسودة', cls: 'bg-amber-100 text-amber-700' },
+  posted: { label: 'مرحَّل', cls: 'bg-emerald-100 text-emerald-700' },
+  reversed: { label: 'معكوس', cls: 'bg-rose-100 text-rose-700' },
 };
 
 export default function JournalPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>([]);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [editItem, setEditItem] = useState<JournalEntry | null>(null);
-  const [formData, setFormData] = useState(emptyForm);
+  const [shopId, setShopId] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [modal, setModal] = useState<'add' | 'edit' | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({ entry_date: new Date().toISOString().slice(0, 10), description: '', reference: '' });
+  const [lines, setLines] = useState<Line[]>([
+    { account_id: '', description: '', debit: 0, credit: 0 },
+    { account_id: '', description: '', debit: 0, credit: 0 },
+  ]);
 
-  const loadEntries = useCallback(async () => {
+  const leafAccounts = accounts.filter(a => !a.is_group && a.status === 'active');
+  const totalDebit = lines.reduce((s, l) => s + (Number(l.debit) || 0), 0);
+  const totalCredit = lines.reduce((s, l) => s + (Number(l.credit) || 0), 0);
+  const isBalanced = totalDebit > 0 && Math.abs(totalDebit - totalCredit) < 0.005;
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/finance/journal/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setEntries(data.map((j: any) => ({
-        id: String(j.id),
-        entryNumber: j.entryNumber || j.entry_number || `JE-${String(j.id).slice(0, 6)}`,
-        date: j.date || j.createdAt || new Date().toISOString(),
-        description: j.description || '',
-        accountName: j.accountName || j.account_name || '---',
-        debit: Number(j.debit ?? 0),
-        credit: Number(j.credit ?? 0),
-        reference: j.reference || '',
-        status: j.status || 'draft',
-        createdBy: j.createdBy || j.created_by || '---',
-        createdAt: j.createdAt || new Date().toISOString(),
-      })));
+      setShopId(sid);
+      const [accRes, jeRes] = await Promise.all([
+        apiRequest(`/accounting/accounts/shop/${sid}`),
+        apiRequest(`/accounting/journal/shop/${sid}${filterStatus ? `?status=${filterStatus}` : ''}`),
+      ]);
+      const accData = Array.isArray(accRes) ? accRes : (accRes?.data || []);
+      setAccounts(accData);
+      setEntries(Array.isArray(jeRes) ? jeRes : (jeRes?.data || []));
     } catch { setEntries([]); } finally { setLoading(false); }
-  }, []);
+  }, [filterStatus]);
 
-  useEffect(() => { loadEntries(); }, [loadEntries]);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    let result = entries.filter(j =>
-      j.entryNumber.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      j.description.includes(debouncedSearch) ||
-      j.accountName.includes(debouncedSearch) ||
-      j.reference.includes(debouncedSearch)
-    );
-    if (filterStatus !== 'all') {
-      result = result.filter(j => j.status === filterStatus);
-    }
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'date' ? a.date : sortBy === 'debit' ? a.debit : sortBy === 'credit' ? a.credit : a.entryNumber;
-      const bVal = sortBy === 'date' ? b.date : sortBy === 'debit' ? b.debit : sortBy === 'credit' ? b.credit : b.entryNumber;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
-    return result;
-  }, [entries, debouncedSearch, filterStatus, sortBy, sortOrder]);
-
-  const paginated = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(start, start + itemsPerPage);
-  }, [filtered, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const exportCSV = useCallback(() => {
-    const headers = ['Entry Number', 'Date', 'Description', 'Account', 'Debit', 'Credit', 'Reference', 'Status', 'Created By'];
-    const rows = filtered.map(j => [j.entryNumber, j.date, j.description, j.accountName, j.debit, j.credit, j.reference, j.status, j.createdBy]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'journal-entries.csv';
-    link.click();
-  }, [filtered]);
-
-  const handleAdd = useCallback(async () => {
-    if (!formData.description || !formData.accountName) { alert('يرجى إدخال الوصف واسم الحساب'); return; }
-    if (formData.debit === 0 && formData.credit === 0) { alert('يجب إدخال مدين أو دائن'); return; }
-    setSaving(true);
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      await apiRequest('/finance/journal', {
-        method: 'POST',
-        body: JSON.stringify({ ...formData, shopId: sid }),
-      });
-      setAddModal(false);
-      setFormData(emptyForm);
-      loadEntries();
-    } catch { alert('حدث خطأ أثناء إضافة القيد'); }
-    finally { setSaving(false); }
-  }, [formData, loadEntries]);
-
-  const handleEdit = useCallback(async () => {
-    if (!editItem) return;
-    setSaving(true);
-    try {
-      await apiRequest(`/finance/journal/${editItem.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
-      setEditModal(false);
-      setEditItem(null);
-      setFormData(emptyForm);
-      loadEntries();
-    } catch { alert('حدث خطأ أثناء تعديل القيد'); }
-    finally { setSaving(false); }
-  }, [editItem, formData, loadEntries]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا القيد؟')) return;
-    try {
-      await apiRequest(`/finance/journal/${id}`, { method: 'DELETE' });
-      loadEntries();
-    } catch { alert('حدث خطأ أثناء الحذف'); }
-  }, [loadEntries]);
-
-  const handlePost = useCallback(async (id: string) => {
-    try {
-      await apiRequest(`/finance/journal/${id}/post`, { method: 'PUT' });
-      loadEntries();
-    } catch { alert('حدث خطأ أثناء الترحيل'); }
-  }, [loadEntries]);
-
-  const openEditModal = useCallback((j: JournalEntry) => {
-    setEditItem(j);
-    setFormData({
-      date: j.date.split('T')[0],
-      description: j.description,
-      accountName: j.accountName,
-      debit: j.debit,
-      credit: j.credit,
-      reference: j.reference,
-    });
-    setEditModal(true);
-  }, []);
-
-  const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-    draft: { label: 'مسودة', color: 'bg-slate-50 text-slate-600', icon: <Clock size={12} /> },
-    posted: { label: 'مرحل', color: 'bg-green-50 text-green-700', icon: <CheckCircle2 size={12} /> },
-    reversed: { label: 'ملغي', color: 'bg-red-50 text-red-700', icon: <AlertTriangle size={12} /> },
+  const openAdd = () => {
+    setForm({ entry_date: new Date().toISOString().slice(0, 10), description: '', reference: '' });
+    setLines([
+      { account_id: '', description: '', debit: 0, credit: 0 },
+      { account_id: '', description: '', debit: 0, credit: 0 },
+    ]);
+    setEditId(null); setModal('add');
   };
 
-  const stats = useMemo(() => {
-    const total = entries.length;
-    const drafts = entries.filter(j => j.status === 'draft').length;
-    const posted = entries.filter(j => j.status === 'posted').length;
-    const totalDebit = entries.reduce((sum, j) => sum + j.debit, 0);
-    const totalCredit = entries.reduce((sum, j) => sum + j.credit, 0);
-    return [
-      { label: 'إجمالي القيود', value: total, icon: BookOpen, color: 'bg-blue-50 text-blue-600' },
-      { label: 'مسودات', value: drafts, icon: Clock, color: 'bg-amber-50 text-amber-600' },
-      { label: 'مرحلة', value: posted, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي مدين', value: totalDebit.toLocaleString(), icon: DollarSign, color: 'bg-cyan-50 text-cyan-600' },
-      { label: 'إجمالي دائن', value: totalCredit.toLocaleString(), icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
-      { label: 'الرصيد', value: (totalDebit - totalCredit).toLocaleString(), icon: AlertTriangle, color: Math.abs(totalDebit - totalCredit) < 0.01 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-700' },
-    ];
-  }, [entries]);
+  const openEdit = (e: Entry) => {
+    setForm({ entry_date: e.entry_date, description: e.description, reference: e.reference || '' });
+    setLines(e.lines.map(l => ({ account_id: l.account_id, description: l.description, debit: l.debit, credit: l.credit })));
+    setEditId(e.id); setModal('edit');
+  };
 
-  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const closeModal = () => setModal(null);
 
-  const renderForm = (isEdit: boolean) => (
-    <div className="grid grid-cols-2 gap-4">
-      <div>
-        <label className="text-sm font-bold text-slate-700 mb-1 block">التاريخ</label>
-        <input type="date" value={formData.date} onChange={e => setFormData({ ...formData, date: e.target.value })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div>
-        <label className="text-sm font-bold text-slate-700 mb-1 block">المرجع</label>
-        <input type="text" value={formData.reference} onChange={e => setFormData({ ...formData, reference: e.target.value })} placeholder="رقم الفاتورة / المرجع" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div className="col-span-2">
-        <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-        <input type="text" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="وصف القيد" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div className="col-span-2">
-        <label className="text-sm font-bold text-slate-700 mb-1 block">اسم الحساب</label>
-        <input type="text" value={formData.accountName} onChange={e => setFormData({ ...formData, accountName: e.target.value })} placeholder="مثال: النقدية، المبيعات، المشتريات" className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div>
-        <label className="text-sm font-bold text-slate-700 mb-1 block">مدين (Debit)</label>
-        <input type="number" value={formData.debit} onChange={e => setFormData({ ...formData, debit: Number(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div>
-        <label className="text-sm font-bold text-slate-700 mb-1 block">دائن (Credit)</label>
-        <input type="number" value={formData.credit} onChange={e => setFormData({ ...formData, credit: Number(e.target.value) })} className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-      <div className="col-span-2">
-        <button onClick={isEdit ? handleEdit : handleAdd} disabled={saving} className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all disabled:opacity-50">
-          {saving ? 'جاري الحفظ...' : isEdit ? 'حفظ التعديلات' : 'إضافة القيد'}
-        </button>
-      </div>
-    </div>
+  const setLine = (i: number, patch: Partial<Line>) => setLines(prev =>
+    prev.map((l, idx) => (idx === i ? { ...l, ...patch } : l))
   );
 
+  const addLine = () => setLines(prev => [...prev, { account_id: '', description: '', debit: 0, credit: 0 }]);
+  const removeLine = (i: number) => setLines(prev => (prev.length > 2 ? prev.filter((_, idx) => idx !== i) : prev));
+
+  const save = async () => {
+    if (!isBalanced) { alert('القيد غير متوازن — مجموع المدين يجب أن يساوي الدائن'); return; }
+    setSaving(true);
+    try {
+      const body = JSON.stringify({ ...form, lines: lines.filter(l => l.account_id) });
+      if (modal === 'edit' && editId) {
+        await apiRequest(`/accounting/journal/${editId}`, { method: 'PUT', body });
+      } else {
+        await apiRequest(`/accounting/journal/shop/${shopId}`, { method: 'POST', body });
+      }
+      closeModal(); await load();
+    } catch (e: any) { alert(e?.message || 'حدث خطأ أثناء الحفظ'); }
+    finally { setSaving(false); }
+  };
+
+  const post = async (id: string) => {
+    if (!confirm('ترحيل القيد؟ لن يمكن تعديله بعد الترحيل.')) return;
+    try { await apiRequest(`/accounting/journal/${id}/post`, { method: 'POST' }); await load(); }
+    catch (e: any) { alert(e?.message || 'فشل الترحيل'); }
+  };
+
+  const reverse = async (id: string) => {
+    if (!confirm('إنشاء قيد عكسي لهذا القيد؟')) return;
+    try { await apiRequest(`/accounting/journal/${id}/reverse`, { method: 'POST' }); await load(); }
+    catch (e: any) { alert(e?.message || 'فشل العكس'); }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('حذف القيد؟')) return;
+    try { await apiRequest(`/accounting/journal/${id}`, { method: 'DELETE' }); await load(); }
+    catch (e: any) { alert(e?.message || 'فشل الحذف'); }
+  };
+
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <BookOpen size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">القيود اليومية</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
+    <div className="p-6 space-y-4" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center text-white">
+            <BookOpen size={22} />
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة القيود المحاسبية اليومية</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div className="min-w-0"><p className="text-xs font-bold text-slate-400 truncate">{s.label}</p><p className="text-sm font-black text-slate-900 truncate">{s.value}</p></div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900">القيود المحاسبية</h1>
+            <p className="text-sm text-slate-500 font-bold">قيد مزدوج — كل قيد يجب أن يتوازن (مدين = دائن)</p>
           </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3">
-        <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-          <Plus size={18} /> قيد جديد
-        </button>
-        <button onClick={() => loadEntries()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-all">
-          <RefreshCw size={18} /> تحديث
-        </button>
-        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-          <Download size={18} /> تصدير CSV
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث برقم القيد أو الوصف أو الحساب..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200">
-            <option value="all">الكل</option>
-            <option value="draft">مسودة</option>
-            <option value="posted">مرحل</option>
-            <option value="reversed">ملغي</option>
-          </select>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select value={sortBy} onChange={e => setSortBy(e.target.value)} className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200">
-            <option value="date">التاريخ</option>
-            <option value="entryNumber">رقم القيد</option>
-            <option value="debit">مدين</option>
-            <option value="credit">دائن</option>
+          <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+            <option value="">كل الحالات</option>
+            <option value="draft">مسودات</option>
+            <option value="posted">مرحَّلة</option>
+            <option value="reversed">معكوسة</option>
           </select>
+          <button onClick={openAdd} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl">
+            <Plus size={16} /> قيد جديد
+          </button>
         </div>
-        <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
       </div>
 
-      {/* List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <BookOpen size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد قيود حالياً</p>
-        </div>
-      ) : (
-        <>
-          {/* Mobile View */}
-          <div className="space-y-3 md:hidden">
-            {paginated.map((j) => {
-              const statusConfig = STATUS_CONFIG[j.status];
-              return (
-                <div key={j.id} className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-bold text-slate-900 text-sm">{j.entryNumber}</div>
-                      <div className="text-slate-500 text-xs flex items-center gap-1 mt-1"><Calendar size={12} />{new Date(j.date).toLocaleDateString('ar-EG')}</div>
-                    </div>
-                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${statusConfig.color}`}>{statusConfig.icon} {statusConfig.label}</span>
-                  </div>
-                  <div className="text-sm text-slate-700 mb-2">{j.description}</div>
-                  <div className="text-xs text-slate-500 mb-2">الحساب: {j.accountName}</div>
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    <div className="text-center p-2 rounded-lg bg-cyan-50">
-                      <div className="text-xs text-slate-400">مدين</div>
-                      <div className="font-bold text-cyan-700 text-sm">{fmt(j.debit)}</div>
-                    </div>
-                    <div className="text-center p-2 rounded-lg bg-purple-50">
-                      <div className="text-xs text-slate-400">دائن</div>
-                      <div className="font-bold text-purple-700 text-sm">{fmt(j.credit)}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {j.status === 'draft' && (
-                      <button onClick={() => handlePost(j.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 text-green-700 text-xs hover:bg-green-100 transition-all">
-                        <CheckCircle2 size={12} /> ترحيل
-                      </button>
-                    )}
-                    <button onClick={() => openEditModal(j)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-50 text-slate-600 text-xs hover:bg-slate-100 transition-all">
-                      <Edit size={12} /> تعديل
-                    </button>
-                    <button onClick={() => handleDelete(j.id)} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-600 text-xs hover:bg-red-100 transition-all">
-                      <Trash2 size={12} /> حذف
-                    </button>
-                  </div>
+      <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex gap-3">
+        <Info size={18} className="text-emerald-500 shrink-0 mt-0.5" />
+        <p className="text-sm text-emerald-800 leading-relaxed font-bold">
+          القيد يتكون من سطرين على الأقل: طرف مدين وطرف دائن. لا يمكن الترحيل قبل التوازن.
+          القيود المرحَّلة مقفلة للتعديل ويمكن عكسها بقيد عكسي.
+        </p>
+      </div>
+
+      <div className="space-y-3">
+        {loading ? (
+          <div className="flex items-center justify-center py-20 bg-white rounded-2xl border border-slate-200"><Loader2 size={28} className="animate-spin text-emerald-500" /></div>
+        ) : entries.length === 0 ? (
+          <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 text-slate-400 font-bold">لا توجد قيود بعد — اضغط "قيد جديد"</div>
+        ) : entries.map(e => {
+          const sm = STATUS_META[e.status] || STATUS_META.draft;
+          return (
+            <div key={e.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-3 bg-slate-50 border-b border-slate-100 flex-wrap gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-black text-slate-500">{e.number}</span>
+                  <span className="font-bold text-slate-800 text-sm">{e.description}</span>
+                  <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${sm.cls}`}>{sm.label}</span>
+                  {e.reference && <span className="text-[11px] text-slate-400 font-bold">مرجع: {e.reference}</span>}
                 </div>
-              );
-            })}
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-bold">{e.entry_date}</span>
+                  {e.status === 'draft' && (
+                    <>
+                      <button onClick={() => openEdit(e)} className="text-xs font-bold text-blue-600 hover:bg-blue-50 px-2 py-1 rounded-lg">تعديل</button>
+                      <button onClick={() => post(e.id)} className="flex items-center gap-1 text-xs font-black text-white bg-emerald-600 hover:bg-emerald-700 px-2.5 py-1.5 rounded-lg"><Send size={12} /> ترحيل</button>
+                      <button onClick={() => remove(e.id)} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500" title="حذف"><Trash2 size={14} /></button>
+                    </>
+                  )}
+                  {e.status === 'posted' && !e.reversed_by_entry_id && (
+                    <button onClick={() => reverse(e.id)} className="flex items-center gap-1 text-xs font-black text-amber-700 hover:bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded-lg"><Undo2 size={12} /> قيد عكسي</button>
+                  )}
+                  {e.status === 'reversed' && (
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-rose-500"><RotateCcw size={12} /> تم عكسه</span>
+                  )}
+                </div>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-slate-400 font-black border-b border-slate-100">
+                    <th className="px-4 py-2 text-right">الحساب</th>
+                    <th className="px-4 py-2 text-right">البيان</th>
+                    <th className="px-4 py-2 text-left">مدين</th>
+                    <th className="px-4 py-2 text-left">دائن</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(e.lines || []).map(l => (
+                    <tr key={l.id} className="border-b border-slate-50 last:border-0">
+                      <td className="px-4 py-2"><span className="font-mono text-xs text-slate-400">{l.account_code}</span> <span className="font-bold text-slate-700">{l.account_name}</span></td>
+                      <td className="px-4 py-2 text-slate-500 text-xs">{l.description || '—'}</td>
+                      <td className="px-4 py-2 text-left font-mono tabular-nums text-slate-800 font-bold">{l.debit ? l.debit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</td>
+                      <td className="px-4 py-2 text-left font-mono tabular-nums text-slate-800 font-bold">{l.credit ? l.credit.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '—'}</td>
+                    </tr>
+                  ))}
+                  <tr className="bg-slate-50 font-black text-xs">
+                    <td className="px-4 py-2" colSpan={2}>الإجمالي</td>
+                    <td className="px-4 py-2 text-left font-mono tabular-nums">{(e.total_debit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                    <td className="px-4 py-2 text-left font-mono tabular-nums">{(e.total_credit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          );
+        })}
+      </div>
 
-          {/* Desktop Table */}
-          <div className="hidden md:block overflow-x-auto touch-auto">
-            <table className="w-full text-right border-collapse min-w-[1100px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="p-4 text-xs font-semibold text-slate-500">رقم القيد</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">التاريخ</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الوصف</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحساب</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">مدين</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">دائن</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                  <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginated.map((j) => {
-                  const statusConfig = STATUS_CONFIG[j.status];
-                  return (
-                    <tr key={j.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                      <td className="p-4"><div className="font-bold text-slate-900 text-sm">{j.entryNumber}</div></td>
-                      <td className="p-4"><div className="text-slate-600 text-sm">{new Date(j.date).toLocaleDateString('ar-EG')}</div></td>
-                      <td className="p-4"><div className="text-slate-700 text-sm">{j.description}</div></td>
-                      <td className="p-4"><div className="text-slate-600 text-sm">{j.accountName}</div></td>
-                      <td className="p-4"><div className="font-bold text-cyan-700 text-sm">{fmt(j.debit)}</div></td>
-                      <td className="p-4"><div className="font-bold text-purple-700 text-sm">{fmt(j.credit)}</div></td>
-                      <td className="p-4"><span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 w-fit ${statusConfig.color}`}>{statusConfig.icon} {statusConfig.label}</span></td>
-                      <td className="p-4">
-                        <div className="flex items-center gap-2">
-                          {j.status === 'draft' && (
-                            <button onClick={() => handlePost(j.id)} className="px-2 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-bold hover:bg-green-100 transition-all">ترحيل</button>
-                          )}
-                          <button onClick={() => openEditModal(j)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل"><Edit size={14} /></button>
-                          <button onClick={() => handleDelete(j.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف"><Trash2 size={14} /></button>
-                        </div>
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto p-6 space-y-4" onClick={ev => ev.stopPropagation()} dir="rtl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-lg text-slate-900">{modal === 'edit' ? 'تعديل القيد' : 'قيد جديد'}</h3>
+              <button onClick={closeModal} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs font-black text-slate-600 block mb-1">التاريخ</label>
+                <input type="date" value={form.entry_date} onChange={e => setForm({ ...form, entry_date: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-xs font-black text-slate-600 block mb-1">البيان</label>
+                <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="مثال: دفع إيجار شهر يناير" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">المرجع (اختياري)</label>
+              <input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
+            </div>
+
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-xs text-slate-500 font-black border-b border-slate-200">
+                    <th className="px-3 py-2 text-right w-2/5">الحساب</th>
+                    <th className="px-3 py-2 text-right">البيان</th>
+                    <th className="px-3 py-2 text-left w-28">مدين</th>
+                    <th className="px-3 py-2 text-left w-28">دائن</th>
+                    <th className="w-10"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((l, i) => (
+                    <tr key={i} className="border-b border-slate-50 last:border-0">
+                      <td className="px-3 py-1.5">
+                        <select value={l.account_id} onChange={e => setLine(i, { account_id: e.target.value })} className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-bold bg-white">
+                          <option value="">— اختر الحساب —</option>
+                          {leafAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+                        </select>
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <input value={l.description} onChange={e => setLine(i, { description: e.target.value })} className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs" />
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <input type="number" min="0" value={l.debit || ''} onChange={e => setLine(i, { debit: Number(e.target.value) || 0, credit: 0 })} className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-left" dir="ltr" />
+                      </td>
+                      <td className="px-3 py-1.5">
+                        <input type="number" min="0" value={l.credit || ''} onChange={e => setLine(i, { credit: Number(e.target.value) || 0, debit: 0 })} className="w-full border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono text-left" dir="ltr" />
+                      </td>
+                      <td className="px-1 py-1.5">
+                        <button onClick={() => removeLine(i)} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-400" title="حذف السطر"><Trash2 size={13} /></button>
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+              <button onClick={addLine} className="w-full py-2 text-xs font-black text-blue-600 hover:bg-blue-50 flex items-center justify-center gap-1.5 border-t border-slate-100">
+                <Plus size={13} /> إضافة سطر
+              </button>
+            </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-6">
-              <div className="text-xs font-bold text-slate-500">عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filtered.length)} من {filtered.length}</div>
+            <div className={`flex items-center justify-between px-4 py-3 rounded-xl font-black text-sm ${isBalanced ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-600'}`}>
               <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"><ChevronRight size={18} /></button>
-                <span className="text-xs font-bold text-slate-600 px-3">صفحة {currentPage} من {totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"><ChevronLeft size={18} /></button>
+                {isBalanced ? <CheckCircle2 size={18} /> : <Lock size={18} />}
+                {isBalanced ? 'القيد متوازن' : 'القيد غير متوازن — لا يمكن الحفظ والترحيل'}
+              </div>
+              <div className="font-mono tabular-nums" dir="ltr">
+                مدين: {totalDebit.toLocaleString('en-US', { minimumFractionDigits: 2 })} | دائن: {totalCredit.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </div>
             </div>
-          )}
-        </>
-      )}
 
-      {/* Add Modal */}
-      {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">قيد جديد</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            {renderForm(false)}
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editModal && editItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">تعديل القيد</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            {renderForm(true)}
-          </div>
-        </div>
-      )}
-
-      {/* Guide Modal */}
-      {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">دليل القيود اليومية</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة القيود المحاسبية اليومية وتسجيل الحركات المالية.</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><BookOpen size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• تسجيل القيود المحاسبية (مدين/دائن)</li>
-                  <li>• ربط القيود بالفواتير والمصروفات</li>
-                  <li>• تتبع أرصدة الحسابات تلقائياً</li>
-                  <li>• مراجعة واعتماد القيود (ترحيل)</li>
-                  <li>• تصدير دفتر اليومية</li>
-                </ul>
-              </div>
-            </div>
+            <button onClick={save} disabled={saving || !isBalanced || !form.description} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Unlock size={16} />}
+              {modal === 'edit' ? 'حفظ التعديلات' : 'حفظ القيد (مسودة)'}
+            </button>
           </div>
         </div>
       )}

@@ -1,692 +1,276 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Building2, Search, Loader2, Plus, Edit, Trash2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Check, X, Info, DollarSign, Calendar, Clock, CheckCircle2, AlertTriangle, CreditCard, Wallet } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, Plus, Edit, Trash2, X, ChevronDown, ChevronLeft, FolderTree, Info, ShieldCheck, Wallet } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
 type Account = {
   id: string;
+  code: string;
   name: string;
-  nameAr: string;
-  type: 'bank' | 'cash' | 'credit_card' | 'digital_wallet' | 'other';
-  accountNumber: string;
-  bankName: string;
-  currency: string;
-  balance: number;
-  status: 'active' | 'inactive' | 'frozen';
-  description: string;
-  createdAt: string;
-  updatedAt: string;
+  type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+  parent_id: string | null;
+  is_group: boolean;
+  is_system: boolean;
+  opening_balance: number;
+  status: string;
+  debit_balance: number;
+  credit_balance: number;
+};
+
+const TYPE_META: Record<string, { label: string; color: string }> = {
+  asset: { label: 'أصول', color: 'bg-blue-100 text-blue-700' },
+  liability: { label: 'التزامات', color: 'bg-amber-100 text-amber-700' },
+  equity: { label: 'حقوق ملكية', color: 'bg-purple-100 text-purple-700' },
+  revenue: { label: 'إيرادات', color: 'bg-emerald-100 text-emerald-700' },
+  expense: { label: 'مصروفات', color: 'bg-rose-100 text-rose-700' },
 };
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const debouncedSearch = useDebouncedValue(search, 200);
-  const [guideOpen, setGuideOpen] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [sortBy, setSortBy] = useState('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [addModal, setAddModal] = useState(false);
-  const [editModal, setEditModal] = useState(false);
-  const [editAccount, setEditAccount] = useState<Account | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    nameAr: '',
-    type: 'bank' as 'bank' | 'cash' | 'credit_card' | 'digital_wallet' | 'other',
-    accountNumber: '',
-    bankName: '',
-    currency: 'EGP',
-    balance: 0,
-    status: 'active' as 'active' | 'inactive' | 'frozen',
-    description: '',
+  const [shopId, setShopId] = useState('');
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [modal, setModal] = useState<'add' | 'edit' | null>(null);
+  const [editItem, setEditItem] = useState<Account | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    code: '', name: '', type: 'asset' as Account['type'],
+    parent_id: '', is_group: false, opening_balance: 0,
   });
 
-  const loadAccounts = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/accounts/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setAccounts(data.map((a: any) => ({
-        id: String(a.id),
-        name: a.name || '---',
-        nameAr: a.nameAr || a.name_ar || '---',
-        type: a.type || 'bank',
-        accountNumber: a.accountNumber || a.account_number || '---',
-        bankName: a.bankName || a.bank_name || '---',
-        currency: a.currency || 'EGP',
-        balance: Number(a.balance || 0),
-        status: a.status || 'active',
-        description: a.description || '',
-        createdAt: a.createdAt || new Date().toISOString(),
-        updatedAt: a.updatedAt || new Date().toISOString(),
-      })));
+      setShopId(sid);
+      const res = await apiRequest(`/accounting/accounts/shop/${sid}`);
+      const data: Account[] = Array.isArray(res) ? res : (res?.data || []);
+      setAccounts(data);
+      setExpanded(new Set(data.filter(a => a.is_group && !a.parent_id).map(a => a.id)));
     } catch { setAccounts([]); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadAccounts(); }, [loadAccounts]);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    let result = accounts.filter(a =>
-      a.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      a.nameAr.includes(debouncedSearch) ||
-      a.accountNumber.includes(debouncedSearch)
-    );
+  const childrenOf = (parentId: string | null) =>
+    accounts.filter(a => (a.parent_id || null) === (parentId || null));
 
-    if (filterType !== 'all') {
-      result = result.filter(a => a.type === filterType);
-    }
-
-    if (filterStatus !== 'all') {
-      result = result.filter(a => a.status === filterStatus);
-    }
-
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'name' ? a.name : sortBy === 'balance' ? a.balance : a.createdAt;
-      const bVal = sortBy === 'name' ? b.name : sortBy === 'balance' ? b.balance : b.createdAt;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
-
-    return result;
-  }, [accounts, debouncedSearch, filterType, filterStatus, sortBy, sortOrder]);
-
-  const paginatedAccounts = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(start, start + itemsPerPage);
-  }, [filtered, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const toggleSelectAll = useCallback(() => {
-    if (selectedIds.size === paginatedAccounts.length && paginatedAccounts.length > 0) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(paginatedAccounts.map(a => a.id)));
-    }
-  }, [paginatedAccounts, selectedIds.size]);
-
-  const toggleSelect = useCallback((id: string) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
-
-  const bulkDelete = useCallback(async () => {
-    if (selectedIds.size === 0) return;
-    if (!confirm(`هل أنت متأكد من حذف ${selectedIds.size} حساب؟`)) return;
-    try {
-      // TODO: Implement bulk delete API call
-      alert(`تم حذف ${selectedIds.size} حساب`);
-      setSelectedIds(new Set());
-      loadAccounts();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [selectedIds, loadAccounts]);
-
-  const exportCSV = useCallback(() => {
-    const headers = ['Name', 'Name (Arabic)', 'Type', 'Account Number', 'Bank', 'Currency', 'Balance', 'Status', 'Description', 'Created At'];
-    const rows = filtered.map(a => [
-      a.name,
-      a.nameAr,
-      a.type,
-      a.accountNumber,
-      a.bankName,
-      a.currency,
-      a.balance,
-      a.status,
-      a.description,
-      a.createdAt
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = 'accounts.csv';
-    link.click();
-  }, [filtered]);
-
-  const handleAdd = useCallback(async () => {
-    try {
-      const shopData = await apiRequest('/shops/me');
-      const sid = shopData?.id;
-      if (!sid) return;
-      await apiRequest('/accounts', {
-        method: 'POST',
-        body: JSON.stringify({
-          ...formData,
-          shopId: sid,
-        }),
-      });
-      setAddModal(false);
-      setFormData({ name: '', nameAr: '', type: 'bank', accountNumber: '', bankName: '', currency: 'EGP', balance: 0, status: 'active', description: '' });
-      loadAccounts();
-    } catch (error) {
-      alert('حدث خطأ أثناء إضافة الحساب');
-    }
-  }, [formData, loadAccounts]);
-
-  const handleEdit = useCallback(async () => {
-    if (!editAccount) return;
-    try {
-      await apiRequest(`/accounts/${editAccount.id}`, {
-        method: 'PUT',
-        body: JSON.stringify(formData),
-      });
-      setEditModal(false);
-      setEditAccount(null);
-      setFormData({ name: '', nameAr: '', type: 'bank', accountNumber: '', bankName: '', currency: 'EGP', balance: 0, status: 'active', description: '' });
-      loadAccounts();
-    } catch (error) {
-      alert('حدث خطأ أثناء تعديل الحساب');
-    }
-  }, [editAccount, formData, loadAccounts]);
-
-  const handleDelete = useCallback(async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الحساب؟')) return;
-    try {
-      await apiRequest(`/accounts/${id}`, { method: 'DELETE' });
-      loadAccounts();
-    } catch (error) {
-      alert('حدث خطأ أثناء الحذف');
-    }
-  }, [loadAccounts]);
-
-  const openEditModal = useCallback((account: Account) => {
-    setEditAccount(account);
-    setFormData({
-      name: account.name,
-      nameAr: account.nameAr,
-      type: account.type,
-      accountNumber: account.accountNumber,
-      bankName: account.bankName,
-      currency: account.currency,
-      balance: account.balance,
-      status: account.status,
-      description: account.description,
-    });
-    setEditModal(true);
-  }, []);
-
-  const TYPE_CONFIG = {
-    bank: { label: 'بنك', color: 'bg-blue-50 text-blue-600', icon: <Building2 size={12} /> },
-    cash: { label: 'نقد', color: 'bg-green-50 text-green-600', icon: <Wallet size={12} /> },
-    credit_card: { label: 'بطاقة ائتمان', color: 'bg-purple-50 text-purple-600', icon: <CreditCard size={12} /> },
-    digital_wallet: { label: 'محفظة رقمية', color: 'bg-cyan-50 text-cyan-600', icon: <Wallet size={12} /> },
-    other: { label: 'أخرى', color: 'bg-slate-50 text-slate-600', icon: <Building2 size={12} /> },
+  const netBalance = (a: Account) => {
+    const raw = (a.type === 'asset' || a.type === 'expense')
+      ? a.debit_balance - a.credit_balance
+      : a.credit_balance - a.debit_balance;
+    return a.opening_balance + raw;
   };
 
-  const stats = useMemo(() => {
-    const total = accounts.length;
-    const active = accounts.filter(a => a.status === 'active').length;
-    const totalBalance = accounts.reduce((sum, a) => sum + a.balance, 0);
-    return [
-      { label: 'إجمالي الحسابات', value: total, icon: Building2, color: 'bg-blue-50 text-blue-600' },
-      { label: 'نشط', value: active, icon: CheckCircle2, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي الرصيد', value: `ج.م ${totalBalance.toLocaleString()}`, icon: DollarSign, color: 'bg-purple-50 text-purple-600' },
-    ];
-  }, [accounts]);
+  const toggle = (id: string) => setExpanded(prev => {
+    const n = new Set(prev);
+    if (n.has(id)) n.delete(id); else n.add(id);
+    return n;
+  });
+
+  const nextCode = (parentCode: string | null) => {
+    if (!parentCode) {
+      const roots = accounts.filter(a => !a.parent_id).map(a => parseInt(a.code) || 0);
+      return String(Math.max(1000, ...roots.map(r => Math.floor(r / 1000) * 1000 + 1000)));
+    }
+    const base = parseInt(parentCode) || 0;
+    const used = new Set(accounts.map(a => parseInt(a.code) || 0));
+    let candidate = base * 10;
+    while (used.has(candidate)) candidate++;
+    return String(candidate);
+  };
+
+  const openAdd = (parentId?: string) => {
+    const parent = parentId ? accounts.find(a => a.id === parentId) : null;
+    setForm({
+      code: nextCode(parent?.code || null),
+      name: '', type: parent?.type || 'asset',
+      parent_id: parentId || '', is_group: false, opening_balance: 0,
+    });
+    setEditItem(null); setModal('add');
+  };
+
+  const openEdit = (a: Account) => {
+    setEditItem(a);
+    setForm({ code: a.code, name: a.name, type: a.type, parent_id: a.parent_id || '', is_group: a.is_group, opening_balance: a.opening_balance });
+    setModal('edit');
+  };
+
+  const closeModal = () => setModal(null);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      if (modal === 'edit' && editItem) {
+        await apiRequest(`/accounting/accounts/${editItem.id}`, {
+          method: 'PUT',
+          body: JSON.stringify({ name: form.name, parent_id: form.parent_id || null, status: 'active' }),
+        });
+      } else {
+        await apiRequest(`/accounting/accounts/shop/${shopId}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            code: form.code, name: form.name, type: form.type,
+            parent_id: form.parent_id || undefined,
+            is_group: form.is_group,
+            opening_balance: Number(form.opening_balance) || 0,
+          }),
+        });
+      }
+      closeModal(); await load();
+    } catch (e: any) { alert(e?.message || 'حدث خطأ أثناء الحفظ'); }
+    finally { setSaving(false); }
+  };
+
+  const remove = async (a: Account) => {
+    if (!confirm(`حذف الحساب "${a.name}"؟`)) return;
+    try {
+      await apiRequest(`/accounting/accounts/${a.id}`, { method: 'DELETE' });
+      await load();
+    } catch (e: any) { alert(e?.message || 'تعذر الحذف'); }
+  };
+
+  const renderRow = (a: Account, depth: number): React.ReactNode[] => {
+    const kids = childrenOf(a.id);
+    const isOpen = expanded.has(a.id);
+    const meta = TYPE_META[a.type] || TYPE_META.asset;
+    const bal = netBalance(a);
+    const rows: React.ReactNode[] = [];
+    rows.push(
+      <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50">
+        <td className="px-3 py-2.5">
+          <div className="flex items-center gap-1.5" style={{ paddingRight: depth * 22 }}>
+            {a.is_group ? (
+              <button onClick={() => toggle(a.id)} className="p-0.5 hover:bg-slate-200 rounded">
+                {isOpen ? <ChevronDown size={14} /> : <ChevronLeft size={14} />}
+              </button>
+            ) : <span className="w-5" />}
+            <span className="font-mono text-xs text-slate-500 font-bold">{a.code}</span>
+            <span className="font-bold text-slate-800 text-sm">{a.name}</span>
+            {a.is_group && <span className="text-[10px] bg-slate-200 text-slate-600 rounded px-1.5 py-0.5 font-bold">مجموعة</span>}
+            {a.is_system && <ShieldCheck size={13} className="text-emerald-500" aria-label="حساب نظامي" />}
+          </div>
+        </td>
+        <td className="px-3 py-2.5">
+          <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 ${meta.color}`}>{meta.label}</span>
+        </td>
+        <td className="px-3 py-2.5 text-left font-mono text-sm text-slate-700 font-bold tabular-nums">{bal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td className="px-3 py-2.5">
+          <div className="flex items-center gap-1">
+            {!a.is_group && (
+              <button onClick={() => openAdd(a.id)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600" title="إضافة حساب فرعي"><Plus size={14} /></button>
+            )}
+            <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-slate-200 text-slate-600" title="تعديل"><Edit size={14} /></button>
+            {!a.is_system && (
+              <button onClick={() => remove(a)} className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500" title="حذف"><Trash2 size={14} /></button>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+    if (a.is_group && isOpen) {
+      for (const kid of kids) rows.push(...renderRow(kid, depth + 1));
+    }
+    return rows;
+  };
+
+  const roots = childrenOf(null);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <Building2 size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الحسابات</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
+    <div className="p-6 space-y-4" dir="rtl">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center text-white">
+            <FolderTree size={22} />
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">إدارة الحسابات البنكية والمالية</p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
+          <div>
+            <h1 className="text-xl font-black text-slate-900">دليل الحسابات</h1>
+            <p className="text-sm text-slate-500 font-bold">شجرة الحسابات الهرمية — الأصول، الالتزامات، حقوق الملكية، الإيرادات والمصروفات</p>
           </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3 items-center justify-between">
-        <div className="flex flex-wrap gap-3">
-          <button onClick={() => setAddModal(true)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all">
-            <Plus size={18} />
-            حساب جديد
-          </button>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-            <Download size={18} />
-            تصدير CSV
-          </button>
         </div>
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-900">{selectedIds.size} محدد</span>
-            <button onClick={bulkDelete} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-50 text-red-700 font-bold text-xs hover:bg-red-100 transition-all">
-              <Trash2 size={14} />
-              حذف
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو رقم الحساب..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">النوع:</span>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="bank">بنك</option>
-            <option value="cash">نقد</option>
-            <option value="credit_card">بطاقة ائتمان</option>
-            <option value="digital_wallet">محفظة رقمية</option>
-            <option value="other">أخرى</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الحالة:</span>
-          <select
-            value={filterStatus}
-            onChange={e => setFilterStatus(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="active">نشط</option>
-            <option value="inactive">غير نشط</option>
-            <option value="frozen">مجمد</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="name">الاسم</option>
-            <option value="balance">الرصيد</option>
-            <option value="createdAt">تاريخ الإنشاء</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+        <button onClick={() => openAdd()} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm px-4 py-2.5 rounded-xl">
+          <Plus size={16} /> حساب جديد
         </button>
       </div>
 
-      {/* Accounts List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <Building2 size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد حسابات حالياً</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
-          <table className="w-full text-right border-collapse min-w-[1400px]">
+      <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+        <Info size={18} className="text-blue-500 shrink-0 mt-0.5" />
+        <p className="text-sm text-blue-800 leading-relaxed font-bold">
+          كل حساب يمكن أن يحتوي حسابات فرعية (اضغط السهم للتوسيع). الحسابات النظامية
+          <ShieldCheck size={13} className="inline text-emerald-500 mx-1" />
+          محمية من الحذف. رصيد الحساب يُحسب تلقائيًا من القيود المرحَّلة.
+        </p>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-x-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 size={28} className="animate-spin text-blue-500" /></div>
+        ) : (
+          <table className="w-full min-w-[640px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 w-10">
-                  <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedAccounts.length && paginatedAccounts.length > 0 ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                  </button>
-                </th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الاسم</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">النوع</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">رقم الحساب</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">البنك</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">العملة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الرصيد</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
+                <th className="px-3 py-3 text-right text-xs font-black text-slate-500">الحساب</th>
+                <th className="px-3 py-3 text-right text-xs font-black text-slate-500">النوع</th>
+                <th className="px-3 py-3 text-left text-xs font-black text-slate-500">الرصيد</th>
+                <th className="px-3 py-3 text-right text-xs font-black text-slate-500">إجراءات</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedAccounts.map((account) => {
-                const typeConfig = TYPE_CONFIG[account.type];
-                return (
-                  <tr key={account.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4">
-                      <button onClick={() => toggleSelect(account.id)} className="p-1">
-                        {selectedIds.has(account.id) ? <Check size={18} className="text-[#00E5FF]" /> : <div className="w-4 h-4 border-2 border-slate-300 rounded" />}
-                      </button>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{account.name}</div>
-                      <div className="text-slate-500 text-xs">{account.nameAr}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 ${typeConfig.color}`}>
-                        {typeConfig.icon}
-                        {typeConfig.label}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">{account.accountNumber}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">{account.bankName}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">{account.currency}</div>
-                    </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {account.balance.toLocaleString()}</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${account.status === 'active' ? 'bg-green-50 text-green-700' : account.status === 'inactive' ? 'bg-slate-50 text-slate-600' : 'bg-red-50 text-red-700'}`}>
-                        {account.status === 'active' ? 'نشط' : account.status === 'inactive' ? 'غير نشط' : 'مجمد'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => openEditModal(account)} className="p-1.5 rounded-lg bg-slate-50 text-slate-600 hover:bg-slate-100 transition-all" title="تعديل">
-                          <Edit size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(account.id)} className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-all" title="حذف">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+              {roots.length === 0 ? (
+                <tr><td colSpan={4} className="text-center py-16 text-slate-400 font-bold">لا توجد حسابات — اضغط "حساب جديد" للبدء (سيتم إنشاء دليل حسابات افتراضي تلقائيًا)</td></tr>
+              ) : roots.flatMap(a => renderRow(a, 0))}
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
-      {/* Add Modal */}
-      {addModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setAddModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">حساب جديد</h2>
-              <button onClick={() => setAddModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={closeModal}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} dir="rtl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-lg text-slate-900">{modal === 'edit' ? 'تعديل حساب' : 'حساب جديد'}</h3>
+              <button onClick={closeModal} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Account Name"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  placeholder="اسم الحساب"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">النوع</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="bank">بنك</option>
-                  <option value="cash">نقد</option>
-                  <option value="credit_card">بطاقة ائتمان</option>
-                  <option value="digital_wallet">محفظة رقمية</option>
-                  <option value="other">أخرى</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">رقم الحساب</label>
-                <input
-                  type="text"
-                  value={formData.accountNumber}
-                  onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                  placeholder="رقم الحساب"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">البنك</label>
-                <input
-                  type="text"
-                  value={formData.bankName}
-                  onChange={e => setFormData({ ...formData, bankName: e.target.value })}
-                  placeholder="اسم البنك"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">العملة</label>
-                <select
-                  value={formData.currency}
-                  onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="EGP">ج.م</option>
-                  <option value="USD">$</option>
-                  <option value="EUR">€</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الرصيد</label>
-                <input
-                  type="number"
-                  value={formData.balance}
-                  onChange={e => setFormData({ ...formData, balance: Number(e.target.value) })}
-                  placeholder="الرصيد"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="frozen">مجمد</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="وصف الحساب"
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <button
-                onClick={handleAdd}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                إضافة الحساب
-              </button>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">كود الحساب</label>
+              <input value={form.code} disabled={modal === 'edit'} onChange={e => setForm({ ...form, code: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-slate-50 disabled:opacity-60" dir="ltr" />
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Modal */}
-      {editModal && editAccount && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setEditModal(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">تعديل الحساب</h2>
-              <button onClick={() => setEditModal(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">اسم الحساب</label>
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="مثال: النقدية بالصندوق" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (إنجليزي)</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={e => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الاسم (عربي)</label>
-                <input
-                  type="text"
-                  value={formData.nameAr}
-                  onChange={e => setFormData({ ...formData, nameAr: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">النوع</label>
-                <select
-                  value={formData.type}
-                  onChange={e => setFormData({ ...formData, type: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="bank">بنك</option>
-                  <option value="cash">نقد</option>
-                  <option value="credit_card">بطاقة ائتمان</option>
-                  <option value="digital_wallet">محفظة رقمية</option>
-                  <option value="other">أخرى</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">رقم الحساب</label>
-                <input
-                  type="text"
-                  value={formData.accountNumber}
-                  onChange={e => setFormData({ ...formData, accountNumber: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">البنك</label>
-                <input
-                  type="text"
-                  value={formData.bankName}
-                  onChange={e => setFormData({ ...formData, bankName: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">العملة</label>
-                <select
-                  value={formData.currency}
-                  onChange={e => setFormData({ ...formData, currency: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="EGP">ج.م</option>
-                  <option value="USD">$</option>
-                  <option value="EUR">€</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الرصيد</label>
-                <input
-                  type="number"
-                  value={formData.balance}
-                  onChange={e => setFormData({ ...formData, balance: Number(e.target.value) })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الحالة</label>
-                <select
-                  value={formData.status}
-                  onChange={e => setFormData({ ...formData, status: e.target.value as any })}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                >
-                  <option value="active">نشط</option>
-                  <option value="inactive">غير نشط</option>
-                  <option value="frozen">مجمد</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-bold text-slate-700 mb-1 block">الوصف</label>
-                <textarea
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                  rows={2}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
-                />
-              </div>
-              <button
-                onClick={handleEdit}
-                className="w-full py-2.5 rounded-xl bg-[#00E5FF] text-slate-900 font-bold text-sm hover:bg-[#00B8CC] transition-all"
-              >
-                حفظ التعديلات
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Guide Modal */}
-      {guideOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setGuideOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">دليل الحسابات</h2>
-              <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
-            </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">إدارة الحسابات البنكية والمالية للمتجر.</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Building2 size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• إضافة وتعديل وحذف الحسابات</li>
-                  <li>• أنواع مختلفة (بنك، نقد، بطاقة ائتمان، محفظة رقمية)</li>
-                  <li>• تتبع الأرصدة</li>
-                  <li>• تصدير تقارير الحسابات</li>
-                </ul>
-              </div>
-            </div>
+            {modal === 'add' && (
+              <>
+                <div>
+                  <label className="text-xs font-black text-slate-600 block mb-1">النوع</label>
+                  <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value as Account['type'] })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+                    {Object.entries(TYPE_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-black text-slate-600 block mb-1">الحساب الأب (اختياري)</label>
+                  <select value={form.parent_id} onChange={e => setForm({ ...form, parent_id: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+                    <option value="">— بدون (حساب رئيسي) —</option>
+                    {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="isGroup" checked={form.is_group} onChange={e => setForm({ ...form, is_group: e.target.checked })} className="w-4 h-4" />
+                  <label htmlFor="isGroup" className="text-sm font-bold text-slate-700">حساب مجموعة (لا تُسجل عليه قيود)</label>
+                </div>
+                <div>
+                  <label className="text-xs font-black text-slate-600 block mb-1">رصيد افتتاحي</label>
+                  <input type="number" value={form.opening_balance} onChange={e => setForm({ ...form, opening_balance: Number(e.target.value) })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" dir="ltr" />
+                </div>
+              </>
+            )}
+            <button onClick={save} disabled={saving || !form.name} className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <Wallet size={16} />}
+              {modal === 'edit' ? 'حفظ التعديلات' : 'إضافة الحساب'}
+            </button>
           </div>
         </div>
       )}
