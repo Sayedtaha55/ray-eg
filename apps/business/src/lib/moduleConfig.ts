@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, ShoppingCart, Package, Receipt, Users, Megaphone,
   Calendar, UserCog, BarChart3, Sparkles, Monitor, LucideIcon,
-  ClipboardList, UserCircle,
+  ClipboardList, UserCircle, BookOpen,
 } from 'lucide-react';
 
 export type ModuleId =
@@ -192,6 +192,36 @@ const financeModule: ModuleDef = {
   defaultEnabled: false,
   optional: true,
   estimatedSetupMinutes: 8,
+};
+
+const accountingModule: ModuleDef = {
+  id: 'accounting',
+  name: 'Accounting & Ledger',
+  nameAr: 'المحاسبة والدفاتر',
+  description: 'Chart of accounts, double-entry journal, trial balance, and financial statements.',
+  descriptionAr: 'دليل الحسابات، القيود المزدوجة، ميزان المراجعة، والقوائم المالية.',
+  icon: BookOpen,
+  color: '#16A34A',
+  dependencies: ['core', 'finance'],
+  features: [
+    { id: 'accounts', label: 'Chart of Accounts', labelAr: 'دليل الحسابات', defaultEnabled: true },
+    { id: 'journal', label: 'Journal Entries', labelAr: 'القيود المحاسبية', defaultEnabled: true },
+    { id: 'trialBalance', label: 'Trial Balance', labelAr: 'ميزان المراجعة', defaultEnabled: true },
+    { id: 'financialReports', label: 'Financial Reports', labelAr: 'القوائم المالية', defaultEnabled: true },
+    { id: 'expenses', label: 'Expenses', labelAr: 'المصروفات', defaultEnabled: true },
+    { id: 'taxes', label: 'Taxes', labelAr: 'الضرائب', defaultEnabled: true },
+  ],
+  pages: [
+    { id: 'accounts', label: 'Chart of Accounts', route: '/dashboard/finance/accounts', existing: true },
+    { id: 'journal', label: 'Journal', route: '/dashboard/finance/journal', existing: true },
+    { id: 'trialBalance', label: 'Trial Balance', route: '/dashboard/finance/trial-balance', existing: true },
+    { id: 'financialReports', label: 'Financial Reports', route: '/dashboard/finance/financial-reports', existing: true },
+    { id: 'expenses', label: 'Expenses', route: '/dashboard/finance/expenses', existing: true },
+    { id: 'taxes', label: 'Taxes', route: '/dashboard/finance/taxes', existing: true },
+  ],
+  defaultEnabled: false,
+  optional: true,
+  estimatedSetupMinutes: 6,
 };
 
 const crmModule: ModuleDef = {
@@ -509,7 +539,7 @@ const aiModule: ModuleDef = {
 };
 
 export const MODULE_DEFINITIONS: ModuleDef[] = [
-  coreModule, salesModule, posModule, inventoryModule, financeModule, crmModule, customersModule,
+  coreModule, salesModule, posModule, inventoryModule, financeModule, accountingModule, crmModule, customersModule,
   marketingModule, bookingsModule, hrModule, websiteModule, analyticsModule, aiModule,
 ];
 

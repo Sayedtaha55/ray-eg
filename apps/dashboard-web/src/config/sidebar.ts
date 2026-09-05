@@ -2,8 +2,8 @@ import {
   LayoutDashboard, Bell, CreditCard, Package, DollarSign, Megaphone,
   Users, Calendar, UserCog, BarChart3, Globe, Bot, Settings, ExternalLink,
   Gift, Sparkles,
-  Home, Shield, Store, FileText, Puzzle, LayoutGrid, Clock, Share2, TrendingUp, User,
-  Plus, ShoppingCart, RotateCcw, Scale,
+  Home, Shield, Store, FileText, Puzzle, LayoutGrid, Clock, Share2, TrendingUp, TrendingDown, User,
+  Plus, ShoppingCart, RotateCcw, Scale, BookOpen, Landmark, Wallet as WalletIcon,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -101,16 +101,26 @@ export const sidebarSections: SidebarSection[] = [
     items: [
       { id: 'invoice', label: 'Invoices', labelAr: 'الفواتير', icon: DollarSign, href: '/dashboard/finance' },
       { id: 'newInvoice', label: 'New Invoice', labelAr: 'فاتورة جديدة', icon: Plus, href: '/dashboard/finance?action=new' },
-      { id: 'expenses', label: 'Expenses', labelAr: 'المصروفات', icon: DollarSign, href: '/dashboard/finance/expenses' },
-      { id: 'revenue', label: 'Revenue', labelAr: 'الإيرادات', icon: DollarSign, href: '/dashboard/finance/revenue' },
-      { id: 'taxes', label: 'Taxes', labelAr: 'الضرائب', icon: DollarSign, href: '/dashboard/finance/taxes' },
-      { id: 'cashflow', label: 'Cash Flow', labelAr: 'التدفق النقدي', icon: DollarSign, href: '/dashboard/finance/cashflow' },
-      { id: 'accounts', label: 'Accounts', labelAr: 'الحسابات', icon: DollarSign, href: '/dashboard/finance/accounts' },
-      { id: 'wallets', label: 'Wallets', labelAr: 'المحافظ', icon: DollarSign, href: '/dashboard/finance/wallets' },
-      { id: 'profits', label: 'Profits', labelAr: 'الأرباح', icon: DollarSign, href: '/dashboard/finance/profits' },
-      { id: 'journal', label: 'Journal Entries', labelAr: 'القيود', icon: DollarSign, href: '/dashboard/finance/journal' },
+      { id: 'revenue', label: 'Revenue', labelAr: 'الإيرادات', icon: TrendingUp, href: '/dashboard/finance/revenue' },
+      { id: 'wallets', label: 'Wallets', labelAr: 'المحافظ والخزائن', icon: WalletIcon, href: '/dashboard/finance/wallets' },
+      { id: 'cashflow', label: 'Cash Flow', labelAr: 'التدفق النقدي', icon: Share2, href: '/dashboard/finance/cashflow' },
+      { id: 'profits', label: 'Profits', labelAr: 'الأرباح', icon: BarChart3, href: '/dashboard/finance/profits' },
+      { id: 'payments', label: 'Payments', labelAr: 'المدفوعات والتحصيلات', icon: CreditCard, href: '/dashboard/sales/payments' },
+    ],
+  },
+  {
+    id: 'accounting',
+    title: 'Accounting',
+    titleAr: 'المحاسبة',
+    moduleId: 'accounting',
+    icon: BookOpen,
+    items: [
+      { id: 'accounts', label: 'Chart of Accounts', labelAr: 'دليل الحسابات', icon: Landmark, href: '/dashboard/finance/accounts' },
+      { id: 'journal', label: 'Journal Entries', labelAr: 'القيود المحاسبية', icon: BookOpen, href: '/dashboard/finance/journal' },
       { id: 'trialBalance', label: 'Trial Balance', labelAr: 'ميزان المراجعة', icon: Scale, href: '/dashboard/finance/trial-balance' },
-      { id: 'financialReports', label: 'Financial Reports', labelAr: 'التقارير المالية', icon: DollarSign, href: '/dashboard/finance/financial-reports' },
+      { id: 'financialReports', label: 'Financial Reports', labelAr: 'القوائم المالية', icon: BarChart3, href: '/dashboard/finance/financial-reports' },
+      { id: 'expenses', label: 'Expenses', labelAr: 'المصروفات', icon: TrendingDown, href: '/dashboard/finance/expenses' },
+      { id: 'taxes', label: 'Taxes', labelAr: 'الضرائب', icon: Scale, href: '/dashboard/finance/taxes' },
     ],
   },
   {

@@ -20,7 +20,8 @@ type Shop = {
 const DEFAULT_FEATURES: Record<string, string[]> = {
   sales: ['orders'],
   inventory: ['products'],
-  finance: ['invoice'],
+  finance: ['invoice', 'revenue', 'wallets', 'payments'],
+  accounting: ['accounts', 'journal', 'trialBalance', 'financialReports', 'expenses', 'taxes'],
   crm: ['customers'],
   pos: ['posCheckout'],
 };
@@ -86,8 +87,16 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
 
   const enabledFeatures = useMemo(() => {
     const saved = shop?.layoutConfig?.enabledFeatures;
-    const source = saved && typeof saved === 'object' ? saved : DEFAULT_FEATURES;
-    return Object.fromEntries(Object.entries(source).map(([moduleId, features]) => [
+    // Merge defaults in so new modules (e.g. accounting) always appear,
+    // even for shops created before the module existed.
+    const merged: Record<string, string[]> = {};
+    for (const [k, v] of Object.entries(DEFAULT_FEATURES)) merged[k] = [...v];
+    if (saved && typeof saved === 'object') {
+      for (const [k, v] of Object.entries(saved)) {
+        merged[k] = [...(merged[k] || []), ...(Array.isArray(v) ? v : [])];
+      }
+    }
+    return Object.fromEntries(Object.entries(merged).map(([moduleId, features]) => [
       moduleId.toLowerCase(), new Set((Array.isArray(features) ? features : []).map((feature) => String(feature).toLowerCase())),
     ])) as Record<string, Set<string>>;
   }, [shop]);

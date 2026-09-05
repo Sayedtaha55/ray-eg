@@ -11,7 +11,7 @@ import {
   Phone, Percent, Mail, Smartphone, Gift, CalendarCheck, Building,
   Stethoscope, CalendarX, AlarmClock, Utensils, ShieldCheck, CalendarOff,
   CheckSquare, PieChart, LineChart, Eye, MousePointer, Pen, Search,
-  Lightbulb, Brain, LockKeyhole, UnlockKeyhole,
+  Lightbulb, Brain, LockKeyhole, UnlockKeyhole, BookOpen,
 } from 'lucide-react';
 import { useToast } from '../ToastProvider';
 import { apiRequest } from '@/lib/auth';
@@ -57,6 +57,7 @@ const MODULE_GROUPS = [
   { id: 'pos', label: 'الكاشير ومبيعات نقاط البيع', icon: ShoppingCart, color: '#0F766E' },
   { id: 'inventory', label: 'المخزون والمنتجات', icon: Package, color: '#16A34A' },
   { id: 'finance', label: 'المالية والفواتير', icon: Receipt, color: '#7C3AED' },
+  { id: 'accounting', label: 'المحاسبة والدفاتر', icon: BookOpen, color: '#16A34A' },
   { id: 'crm', label: 'علاقات العملاء', icon: Users, color: '#DC2626' },
   { id: 'marketing', label: 'التسويق والعروض', icon: Megaphone, color: '#EA580C' },
   { id: 'bookings', label: 'الحجوزات والمواعيد', icon: Calendar, color: '#0891B2' },
@@ -112,6 +113,14 @@ const REGISTRY_FEATURES: Record<string, Array<{ id: string; label: string; label
     { id: 'profits', label: 'Profits', labelAr: 'الأرباح' },
     { id: 'journal', label: 'Journal Entries', labelAr: 'القيود اليومية' },
     { id: 'financialReports', label: 'Financial Reports', labelAr: 'التقارير المالية' },
+  ],
+  accounting: [
+    { id: 'accounts', label: 'Chart of Accounts', labelAr: 'دليل الحسابات', defaultEnabled: true },
+    { id: 'journal', label: 'Journal Entries', labelAr: 'القيود المحاسبية', defaultEnabled: true },
+    { id: 'trialBalance', label: 'Trial Balance', labelAr: 'ميزان المراجعة', defaultEnabled: true },
+    { id: 'financialReports', label: 'Financial Reports', labelAr: 'القوائم المالية', defaultEnabled: true },
+    { id: 'expenses', label: 'Expenses', labelAr: 'المصروفات', defaultEnabled: true },
+    { id: 'taxes', label: 'Taxes', labelAr: 'الضرائب', defaultEnabled: true },
   ],
   crm: [
     { id: 'customers', label: 'Customers', labelAr: 'العملاء', defaultEnabled: true },
