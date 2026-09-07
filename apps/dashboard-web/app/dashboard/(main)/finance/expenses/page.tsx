@@ -99,6 +99,16 @@ export default function ExpensesPage() {
           entry_date: form.date, description: form.description, reference: form.reference || 'EXPENSE',
           lines: [
             { account_id: form.expenseAccountId, debit: Number(form.amount), credit: 0, description: form.description },
+            { account_id: form.payFromAccountId, debit: 0, credit: Number(form.amount), description: form.description },
+          ],
+        }),
+      });
+      const newId = created?.data?.id || created?.id;
+      if (newId) await apiRequest(`/accounting/journal/${newId}/post`, { method: 'POST' });
+      setModal(false);
+      await load();
+    } catch (e: any) { setError(e?.message || 'تعذر حفظ المصروف'); } finally { setSaving(false); }
+  };
 
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6" dir="rtl">
@@ -246,21 +256,5 @@ export default function ExpensesPage() {
     </div>
   );
 }
-
-            </tbody>
-          </table>
-        )}
-      </div>
-
-            { account_id: form.payFromAccountId, debit: 0, credit: Number(form.amount), description: form.description },
-          ],
-        }),
-      });
-      const newId = created?.data?.id || created?.id;
-      if (newId) await apiRequest(`/accounting/journal/${newId}/post`, { method: 'POST' });
-      setModal(false);
-      await load();
-    } catch (e: any) { setError(e?.message || 'تعذر حفظ المصروف'); } finally { setSaving(false); }
-  };
 
   const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

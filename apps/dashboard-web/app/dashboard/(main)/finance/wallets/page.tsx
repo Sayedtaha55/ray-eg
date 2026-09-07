@@ -82,6 +82,18 @@ export default function WalletsPage() {
         let candidate = base * 10 + 1;
         while (used.has(candidate)) candidate++;
 
+        await apiRequest(`/accounting/accounts/shop/${shopId}`, {
+          method: 'POST',
+          body: JSON.stringify({ code: String(candidate), name: form.name, type: 'asset', parent_id: cashGroup?.id || null, is_group: false, opening_balance: Number(form.opening_balance) || 0 }),
+        });
+      }
+      setModal(null);
+      await load();
+    } catch (e: any) { setError(e?.message || 'تعذر الحفظ'); } finally { setSaving(false); }
+  };
+
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   return (
     <div className="p-4 sm:p-6 md:p-8 space-y-6" dir="rtl">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -162,6 +174,10 @@ export default function WalletsPage() {
                   {w.is_system && <span className="text-slate-400">حساب أساسي</span>}
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Modal */}
       {modal && (
@@ -198,19 +214,3 @@ export default function WalletsPage() {
   );
 }
 
-            );
-          })}
-        </div>
-      )}
-
-        await apiRequest(`/accounting/accounts/shop/${shopId}`, {
-          method: 'POST',
-          body: JSON.stringify({ code: String(candidate), name: form.name, type: 'asset', parent_id: cashGroup?.id || null, is_group: false, opening_balance: Number(form.opening_balance) || 0 }),
-        });
-      }
-      setModal(null);
-      await load();
-    } catch (e: any) { setError(e?.message || 'تعذر الحفظ'); } finally { setSaving(false); }
-  };
-
-  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
