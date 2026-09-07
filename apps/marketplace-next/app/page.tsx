@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowLeft, Tag, TrendingUp, Star } from 'lucide-react';
+import { ArrowLeft, Tag, TrendingUp, Star, Sparkles } from 'lucide-react';
 import { getShops, getOffers, getSeasonalOffers } from '@/lib/services';
 import { activities, siteConfig } from '@/lib/config';
 import { ShopCard } from '@/components/ShopCard';
