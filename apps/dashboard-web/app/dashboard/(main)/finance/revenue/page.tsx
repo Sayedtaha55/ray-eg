@@ -1,234 +1,175 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { TrendingUp, Search, Loader2, Download, Filter, ChevronUp, ChevronDown, ChevronRight, ChevronLeft, Info, Calendar, DollarSign, BarChart3, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertTriangle, X } from 'lucide-react';
+import { TrendingUp, Loader2, Download, Info, ArrowUpRight, ArrowDownRight, X } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
-import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
-type RevenueData = {
-  id: string;
-  period: string;
-  startDate: string;
-  endDate: string;
-  totalRevenue: number;
-  totalOrders: number;
-  averageOrderValue: number;
-  growth: number;
-  category: string;
+type StatementLine = { code: string; name: string; type: string; amount: number };
+type IncomeStatement = {
+  shop_id: string; from_date: string; to_date: string;
+  revenue: StatementLine[]; expenses: StatementLine[];
+  total_revenue: number; total_expenses: number; net_profit: number;
 };
 
+function periodRange(period: 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'all'): { from: string; to: string } {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = (dt: Date) => dt.toISOString().split('T')[0];
+  switch (period) {
+    case 'this_month': return { from: d(new Date(y, m, 1)), to: d(new Date(y, m + 1, 0)) };
+    case 'last_month': return { from: d(new Date(y, m - 1, 1)), to: d(new Date(y, m, 0)) };
+    case 'this_year': return { from: d(new Date(y, 0, 1)), to: d(new Date(y, 11, 31)) };
+    case 'last_year': return { from: d(new Date(y - 1, 0, 1)), to: d(new Date(y - 1, 11, 31)) };
+    default: return { from: '', to: d(now) };
+  }
+}
+
+type PeriodKey = 'this_month' | 'last_month' | 'this_year' | 'last_year' | 'all';
+
 export default function RevenuePage() {
-  const [revenueData, setRevenueData] = useState<RevenueData[]>([]);
+  const [current, setCurrent] = useState<IncomeStatement | null>(null);
+  const [previous, setPrevious] = useState<IncomeStatement | null>(null);
   const [loading, setLoading] = useState(true);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [filterPeriod, setFilterPeriod] = useState('all');
-  const [sortBy, setSortBy] = useState('startDate');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [period, setPeriod] = useState<PeriodKey>('this_year');
 
-  const loadRevenue = useCallback(async () => {
+  const load = useCallback(async (p: PeriodKey) => {
     setLoading(true);
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/revenue/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setRevenueData(data.map((r: any) => ({
-        id: String(r.id),
-        period: r.period || '---',
-        startDate: r.startDate || r.start_date || new Date().toISOString(),
-        endDate: r.endDate || r.end_date || new Date().toISOString(),
-        totalRevenue: Number(r.totalRevenue || r.total_revenue || 0),
-        totalOrders: Number(r.totalOrders || r.total_orders || 0),
-        averageOrderValue: Number(r.averageOrderValue || r.average_order_value || 0),
-        growth: Number(r.growth || 0),
-        category: r.category || 'all',
-      })));
-    } catch { setRevenueData([]); } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { loadRevenue(); }, [loadRevenue]);
-
-  const filtered = useMemo(() => {
-    let result = revenueData;
-    if (filterPeriod !== 'all') {
-      result = result.filter(r => r.period === filterPeriod);
-    }
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'totalRevenue' ? a.totalRevenue : sortBy === 'startDate' ? a.startDate : a.growth;
-      const bVal = sortBy === 'totalRevenue' ? b.totalRevenue : sortBy === 'startDate' ? b.startDate : b.growth;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      const cur = periodRange(p);
+      const q = (f: string, t: string) => {
+        const params = new URLSearchParams();
+        if (f) params.set('from', f);
+        if (t) params.set('to', t);
+        return params.toString();
+      };
+      // الفترة السابقة بنفس طول الفترة الحالية (لحساب النمو)
+      let prev: { from: string; to: string } | null = null;
+      if (cur.from && cur.to) {
+        const [fy, fm, fd] = cur.from.split('-').map(Number);
+        const [ty, tm, td] = cur.to.split('-').map(Number);
+        const lenDays = Math.round((Date.UTC(ty, tm - 1, td) - Date.UTC(fy, fm - 1, fd)) / 86400000) + 1;
+        const prevEnd = new Date(Date.UTC(fy, fm - 1, fd - 1));
+        const prevStart = new Date(prevEnd.getTime() - (lenDays - 1) * 86400000);
+        prev = { from: prevStart.toISOString().split('T')[0], to: prevEnd.toISOString().split('T')[0] };
       }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
-    return result;
-  }, [revenueData, filterPeriod, sortBy, sortOrder]);
+      const [curRes, prevRes] = await Promise.all([
+        apiRequest(`/accounting/reports/income-statement/shop/${sid}?${q(cur.from, cur.to)}`),
+        prev ? apiRequest(`/accounting/reports/income-statement/shop/${sid}?${q(prev.from, prev.to)}`).catch(() => null) : Promise.resolve(null),
 
-  const exportCSV = useCallback(() => {
-    const headers = ['Period', 'Start Date', 'End Date', 'Total Revenue', 'Total Orders', 'Average Order Value', 'Growth %'];
-    const rows = filtered.map(r => [
-      r.period,
-      r.startDate,
-      r.endDate,
-      r.totalRevenue,
-      r.totalOrders,
-      r.averageOrderValue,
-      r.growth
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const revenueLines = useMemo(() => current?.revenue || [], [current]);
+  const totalRevenue = revenueLines.reduce((s, l) => s + Number(l.amount || 0), 0);
+  const prevRevenue = (previous?.revenue || []).reduce((s, l) => s + Number(l.amount || 0), 0);
+  const growth = prevRevenue > 0 ? ((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
+  const maxLine = Math.max(1, ...revenueLines.map(l => Math.abs(Number(l.amount || 0))));
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const exportCSV = () => {
+    const headers = ['Code', 'Account', 'Amount'];
+    const rows = revenueLines.map(l => [l.code, l.name, l.amount]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'revenue.csv';
     link.click();
-  }, [filtered]);
+  };
 
-  const stats = useMemo(() => {
-    const totalRevenue = revenueData.reduce((sum, r) => sum + r.totalRevenue, 0);
-    const totalOrders = revenueData.reduce((sum, r) => sum + r.totalOrders, 0);
-    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    const avgGrowth = revenueData.length > 0 ? revenueData.reduce((sum, r) => sum + r.growth, 0) / revenueData.length : 0;
-    return [
-      { label: 'إجمالي الإيرادات', value: `ج.م ${totalRevenue.toLocaleString()}`, icon: DollarSign, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي الطلبات', value: totalOrders.toLocaleString(), icon: BarChart3, color: 'bg-blue-50 text-blue-600' },
-      { label: 'متوسط قيمة الطلب', value: `ج.م ${avgOrderValue.toLocaleString()}`, icon: TrendingUp, color: 'bg-purple-50 text-purple-600' },
-      { label: 'متوسط النمو', value: `${avgGrowth.toFixed(1)}%`, icon: ArrowUpRight, color: avgGrowth >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600' },
-    ];
-  }, [revenueData]);
+  const PERIOD_LABELS: Record<PeriodKey, string> = {
+    this_month: 'هذا الشهر', last_month: 'الشهر الماضي',
+    this_year: 'هذا العام', last_year: 'العام الماضي', all: 'كل الفترات',
+  };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <TrendingUp size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الإيرادات</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6" dir="rtl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center">
+            <TrendingUp size={24} className="text-[#00E5FF]" />
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">تتبع الإيرادات والنمو</p>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الإيرادات</h1>
+            <p className="text-sm font-bold text-slate-400 mt-1">الإيرادات الحقيقية من قائمة الدخل — مصدرها القيود المرحَّلة</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setGuideOpen(true)} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50" title="دليل"><Info size={16} /></button>
+          <button onClick={exportCSV} disabled={!revenueLines.length} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 disabled:opacity-50">
+            <Download size={16} /> تصدير CSV
+          </button>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
-          </div>
+      {/* Period selector */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {(Object.keys(PERIOD_LABELS) as PeriodKey[]).map(k => (
+          <button key={k} onClick={() => setPeriod(k)}
+            className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${period === k ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`}>
+            {PERIOD_LABELS[k]}
+          </button>
         ))}
       </div>
 
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3">
-        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-          <Download size={18} />
-          تصدير CSV
-        </button>
-      </div>
+      {/* Stats */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
+          <span className="text-slate-500 font-semibold text-xs">إجمالي الإيرادات</span>
+          <div className="text-2xl font-black text-emerald-600 mt-1">ج.م {fmt(totalRevenue)}</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
+          <span className="text-slate-500 font-semibold text-xs">الفترة السابقة</span>
+          <div className="text-2xl font-black text-slate-900 mt-1">ج.م {fmt(prevRevenue)}</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
+          <span className="text-slate-500 font-semibold text-xs">النمو</span>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الفترة:</span>
-          <select
-            value={filterPeriod}
-            onChange={e => setFilterPeriod(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="daily">يومي</option>
-            <option value="weekly">أسبوعي</option>
-            <option value="monthly">شهري</option>
-            <option value="yearly">سنوي</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="startDate">التاريخ</option>
-            <option value="totalRevenue">الإيرادات</option>
-            <option value="growth">النمو</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Revenue List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <TrendingUp size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد بيانات إيرادات</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
-          <table className="w-full text-right border-collapse min-w-[1000px]">
+      {/* Revenue breakdown */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 size={26} className="animate-spin text-slate-400" /></div>
+        ) : revenueLines.length === 0 ? (
+          <div className="p-12 text-center">
+            <TrendingUp size={32} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-400 font-bold text-sm">لا توجد إيرادات مرحَّلة في هذه الفترة — الإيرادات تظهر هنا بعد ترحيل الفواتير أو القيود</p>
+          </div>
+        ) : (
+          <table className="w-full min-w-[560px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 text-xs font-semibold text-slate-500">الفترة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">تاريخ البدء</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">تاريخ النهاية</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإيرادات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الطلبات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">متوسط الطلب</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">النمو</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-black text-slate-500">
+                <th className="p-4 text-right">الكود</th>
+                <th className="p-4 text-right">حساب الإيراد</th>
+                <th className="p-4 text-right w-1/2">المساهمة</th>
+                <th className="p-4 text-left">المبلغ</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map((revenue) => (
-                <tr key={revenue.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm">{revenue.period}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm flex items-center gap-1">
-                      <Calendar size={12} />
-                      {new Date(revenue.startDate).toLocaleDateString('ar-EG')}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm">{new Date(revenue.endDate).toLocaleDateString('ar-EG')}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-bold text-slate-900 text-sm">ج.م {revenue.totalRevenue.toLocaleString()}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-bold text-slate-900 text-sm">{revenue.totalOrders}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-bold text-slate-900 text-sm">ج.م {revenue.averageOrderValue.toLocaleString()}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className={`flex items-center gap-1 text-sm font-bold ${revenue.growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {revenue.growth >= 0 ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
-                      {revenue.growth.toFixed(1)}%
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {revenueLines.map(l => {
+                const pct = (Math.abs(Number(l.amount || 0)) / maxLine) * 100;
+                return (
+                  <tr key={l.code} className="border-b border-slate-100 hover:bg-slate-50">
+                    <td className="p-4 font-mono text-xs font-bold text-slate-500">{l.code}</td>
+                    <td className="p-4 font-bold text-slate-800 text-sm">{l.name}</td>
+                    <td className="p-4">
+                      <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
+                      </div>
+                    </td>
+                    <td className="p-4 text-left font-black text-emerald-600">ج.م {fmt(Number(l.amount || 0))}</td>
+                  </tr>
+                );
+              })}
+              <tr className="bg-slate-50 font-black">
+                <td className="p-4" colSpan={3}>الإجمالي</td>
+                <td className="p-4 text-left font-black text-emerald-700">ج.م {fmt(totalRevenue)}</td>
+              </tr>
             </tbody>
           </table>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Guide Modal */}
       {guideOpen && (
@@ -238,20 +179,11 @@ export default function RevenuePage() {
               <h2 className="text-xl font-black text-slate-900">دليل الإيرادات</h2>
               <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
             </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">تتبع الإيرادات والنمو المالي للمتجر.</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><TrendingUp size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• عرض الإيرادات حسب الفترة (يومي، أسبوعي، شهري، سنوي)</li>
-                  <li>• تتبع النمو المالي</li>
-                  <li>• إحصائيات شاملة للإيرادات</li>
-                  <li>• تصدير تقارير الإيرادات</li>
-                </ul>
-              </div>
+            <div className="space-y-4 text-right text-sm text-slate-600 leading-relaxed">
+              <p><strong>مصدر البيانات:</strong> الأرصدة الدائنة لحسابات الإيرادات (سلسلة 4000) من القيود المرحَّلة في قائمة الدخل.</p>
+              <p><strong>الفواتير:</strong> عند ترحيل فاتورة بيع من صفحة الفواتير، يُسجَّل قيد مزدوج تلقائيًا ويظهر الإيراد هنا فورًا.</p>
+              <p><strong>النمو:</strong> يقارن الفترة الحالية بالفترة السابقة بنفس الطول (شهر مقابل شهر، سنة مقابل سنة).</p>
+              <p><strong>الربط:</strong> نفس الأرقام تظهر في قائمة الدخل وصفحة الأرباح وميزان المراجعة — مصدر حقيقة واحد.</p>
             </div>
           </div>
         </div>
@@ -259,3 +191,18 @@ export default function RevenuePage() {
     </div>
   );
 }
+
+          <div className={`text-2xl font-black mt-1 flex items-center gap-1 ${growth >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+            {growth >= 0 ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
+            {prevRevenue > 0 ? `${growth.toFixed(1)}%` : '—'}
+          </div>
+        </div>
+      </div>
+
+      ]);
+      setCurrent(curRes?.data || curRes || null);
+      setPrevious(prevRes ? (prevRes?.data || prevRes) : null);
+    } catch { setCurrent(null); setPrevious(null); } finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(period); }, [period]); // eslint-disable-line react-hooks/exhaustive-deps
