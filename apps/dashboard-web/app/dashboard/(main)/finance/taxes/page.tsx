@@ -229,17 +229,4 @@ export default function TaxesPage() {
 }
 
 
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center">
-            <Receipt size={24} className="text-[#00E5FF]" />
-          </div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الضرائب</h1>
-            <p className="text-sm font-bold text-slate-400 mt-1">إعداد نسب الضريبة المستخدمة في الفواتير والإقرارات الضريبية</p>
-          </div>
-        </div>
-        <button onClick={openAdd} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-black">
-          <Plus size={16} /> ضريبة جديدة
-        </button>
-      </div>
+
