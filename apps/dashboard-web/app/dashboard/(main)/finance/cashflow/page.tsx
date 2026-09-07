@@ -1,278 +1,201 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { ArrowRightLeft, ArrowRight, Search, Loader2, Download, Filter, ChevronUp, ChevronDown, Info, Calendar, DollarSign, TrendingUp, TrendingDown, Wallet, CreditCard, BarChart3, X } from 'lucide-react';
+import { ArrowRightLeft, Loader2, Download, Info, Search, ArrowDownToLine, ArrowUpFromLine, X } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { useDebouncedValue } from '@/lib/useDebouncedValue';
 
-type Cashflow = {
-  id: string;
-  date: string;
-  type: 'inflow' | 'outflow';
-  category: string;
-  description: string;
-  amount: number;
-  balance: number;
-  reference: string;
-  createdAt: string;
+type Account = {
+  id: string; code: string; name: string; type: string;
+  is_group: boolean; opening_balance: number; status: string;
+  debit_balance: number; credit_balance: number;
+};
+
+type JLine = { account_id: string; account_code: string; account_name: string; description: string; debit: number; credit: number };
+type Entry = {
+  id: string; number: string; entry_date: string; description: string; reference: string;
+  status: string; lines: JLine[];
+};
+
+type Movement = {
+  id: string; date: string; number: string;
+  direction: 'in' | 'out';
+  description: string; counterAccount: string;
+  amount: number; wallet: string;
 };
 
 export default function CashflowPage() {
-  const [cashflow, setCashflow] = useState<Cashflow[]>([]);
+  const [movements, setMovements] = useState<Movement[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 200);
   const [guideOpen, setGuideOpen] = useState(false);
-  const [filterType, setFilterType] = useState('all');
-  const [filterCategory, setFilterCategory] = useState('all');
-  const [sortBy, setSortBy] = useState('date');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterDirection, setFilterDirection] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const itemsPerPage = 12;
 
-  const loadCashflow = useCallback(async () => {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const shopData = await apiRequest('/shops/me');
       const sid = shopData?.id;
       if (!sid) { setLoading(false); return; }
-      const res = await apiRequest(`/cashflow/shop/${sid}`);
-      const data = Array.isArray(res) ? res : (res?.data || []);
-      setCashflow(data.map((c: any) => ({
-        id: String(c.id),
-        date: c.date || new Date().toISOString(),
-        type: c.type || 'inflow',
-        category: c.category || '---',
-        description: c.description || '---',
-        amount: Number(c.amount || 0),
-        balance: Number(c.balance || 0),
-        reference: c.reference || '---',
-        createdAt: c.createdAt || new Date().toISOString(),
-      })));
-    } catch { setCashflow([]); } finally { setLoading(false); }
+      const [accRes, jeRes] = await Promise.all([
+        apiRequest(`/accounting/accounts/shop/${sid}`),
+        apiRequest(`/accounting/journal/shop/${sid}?status=posted`),
+      ]);
+      const accData: Account[] = Array.isArray(accRes) ? accRes : (accRes?.data || []);
+      setAccounts(accData);
+      const entries: Entry[] = Array.isArray(jeRes) ? jeRes : (jeRes?.data || []);
+      const cashIds = new Set(accData.filter(a =>
+        a.type === 'asset' && !a.is_group && a.status === 'active' &&
+        /نقد|نقدية|صندوق|بنك|كاش|محفظة|محفظه|cash|bank|wallet/i.test(`${a.code} ${a.name}`)
+      ).map(a => a.id));
+      const out: Movement[] = [];
+      for (const e of entries) {
+        for (const l of e.lines || []) {
+          if (!cashIds.has(l.account_id)) continue;
+          const counter = (e.lines || []).find(x => x.account_id !== l.account_id);
+          const debit = Number(l.debit || 0);
+          const credit = Number(l.credit || 0);
+          if (debit <= 0 && credit <= 0) continue;
+          out.push({
+            id: `${e.id}-${l.account_id}`,
+            date: e.entry_date,
+            number: e.number,
+            direction: debit > 0 ? 'in' : 'out',
+            description: l.description || e.description,
+            counterAccount: counter ? `${counter.account_code} ${counter.account_name}` : '—',
+            amount: debit > 0 ? debit : credit,
+            wallet: l.account_name,
+          });
+        }
+      }
+      setMovements(out.sort((a, b) => b.date.localeCompare(a.date)));
+    } catch { setMovements([]); } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { loadCashflow(); }, [loadCashflow]);
+  useEffect(() => { load(); }, [load]);
 
-  const filtered = useMemo(() => {
-    let result = cashflow.filter(c =>
-      c.description.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      c.reference.includes(debouncedSearch)
-    );
+  const filtered = useMemo(() => movements
+    .filter(m => `${m.description} ${m.wallet} ${m.number}`.toLowerCase().includes(debouncedSearch.toLowerCase()))
+    .filter(m => filterDirection === 'all' || m.direction === filterDirection), [movements, debouncedSearch, filterDirection]);
 
-    if (filterType !== 'all') {
-      result = result.filter(c => c.type === filterType);
-    }
+  const paginated = useMemo(() => filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage), [filtered, currentPage]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  useEffect(() => { setCurrentPage(1); }, [debouncedSearch, filterDirection]);
 
-    if (filterCategory !== 'all') {
-      result = result.filter(c => c.category === filterCategory);
-    }
+  const totalIn = filtered.filter(m => m.direction === 'in').reduce((s, m) => s + m.amount, 0);
+  const totalOut = filtered.filter(m => m.direction === 'out').reduce((s, m) => s + m.amount, 0);
+  const netCash = totalIn - totalOut;
+  const closingBalance = accounts
+    .filter(a => a.type === 'asset' && !a.is_group &&
+      /نقد|نقدية|صندوق|بنك|كاش|محفظة|محفظه|cash|bank|wallet/i.test(`${a.code} ${a.name}`))
+    .reduce((s, a) => s + a.opening_balance + (a.debit_balance - a.credit_balance), 0);
 
-    result = [...result].sort((a, b) => {
-      const aVal = sortBy === 'date' ? a.date : sortBy === 'amount' ? a.amount : a.createdAt;
-      const bVal = sortBy === 'date' ? b.date : sortBy === 'amount' ? b.amount : b.createdAt;
-      if (typeof aVal === 'string' && typeof bVal === 'string') {
-        return sortOrder === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
-      }
-      return sortOrder === 'asc' ? (aVal as number) - (bVal as number) : (bVal as number) - (aVal as number);
-    });
+  const fmt = (n: number) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-    return result;
-  }, [cashflow, debouncedSearch, filterType, filterCategory, sortBy, sortOrder]);
-
-  const paginatedCashflow = useMemo(() => {
-    const start = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(start, start + itemsPerPage);
-  }, [filtered, currentPage, itemsPerPage]);
-
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const exportCSV = useCallback(() => {
-    const headers = ['Date', 'Type', 'Category', 'Description', 'Amount', 'Balance', 'Reference', 'Created At'];
-    const rows = filtered.map(c => [
-      c.date,
-      c.type,
-      c.category,
-      c.description,
-      c.amount,
-      c.balance,
-      c.reference,
-      c.createdAt
-    ]);
-    const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const exportCSV = () => {
+    const headers = ['Date', 'Entry', 'Direction', 'Wallet', 'Counter Account', 'Description', 'Amount'];
+    const rows = filtered.map(m => [m.date, m.number, m.direction === 'in' ? 'IN' : 'OUT', m.wallet, m.counterAccount, m.description, m.amount]);
+    const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
     link.download = 'cashflow.csv';
     link.click();
-  }, [filtered]);
+  };
 
-  const stats = useMemo(() => {
-    const totalInflow = cashflow.filter(c => c.type === 'inflow').reduce((sum, c) => sum + c.amount, 0);
-    const totalOutflow = cashflow.filter(c => c.type === 'outflow').reduce((sum, c) => sum + c.amount, 0);
-    const netCashflow = totalInflow - totalOutflow;
-    const currentBalance = cashflow.length > 0 ? cashflow[cashflow.length - 1].balance : 0;
-    return [
-      { label: 'إجمالي الداخل', value: `ج.م ${totalInflow.toLocaleString()}`, icon: ArrowRightLeft, color: 'bg-green-50 text-green-600' },
-      { label: 'إجمالي الخارج', value: `ج.م ${totalOutflow.toLocaleString()}`, icon: ArrowRight, color: 'bg-red-50 text-red-600' },
-      { label: 'صافي التدفق', value: `ج.م ${netCashflow.toLocaleString()}`, icon: TrendingUp, color: netCashflow >= 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600' },
-      { label: 'الرصيد الحالي', value: `ج.م ${currentBalance.toLocaleString()}`, icon: Wallet, color: 'bg-blue-50 text-blue-600' },
-    ];
-  }, [cashflow]);
-
-  const categories = useMemo(() => {
-    const cats = new Set(cashflow.map(c => c.category));
-    return Array.from(cats).filter(c => c !== '---');
-  }, [cashflow]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <ArrowRightLeft size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">التدفق النقدي</h1>
-            <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
-              <Info size={18} />
-            </button>
+    <div className="p-4 sm:p-6 md:p-8 space-y-6" dir="rtl">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center">
+            <ArrowRightLeft size={24} className="text-[#00E5FF]" />
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">تتبع التدفق النقدي للمتجر</p>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">التدفق النقدي</h1>
+            <p className="text-sm font-bold text-slate-400 mt-1">حركات النقدية الحقيقية من القيود المرحَّلة على حسابات النقد والبنوك</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => setGuideOpen(true)} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50" title="دليل"><Info size={16} /></button>
+          <button onClick={exportCSV} disabled={!filtered.length} className="flex items-center gap-2 bg-slate-100 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-200 disabled:opacity-50">
+            <Download size={16} /> تصدير CSV
+          </button>
         </div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {stats.map((s, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
-            <div className={`p-2 rounded-xl ${s.color}`}><s.icon size={20} /></div>
-            <div><p className="text-xs font-bold text-slate-400">{s.label}</p><p className="text-lg font-black text-slate-900">{s.value}</p></div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 text-right">
+          <span className="text-slate-500 font-semibold text-xs flex items-center gap-1"><ArrowDownToLine size={12} className="text-emerald-500" /> داخِل</span>
+          <div className="text-lg font-black text-emerald-600 mt-1">ج.م {fmt(totalIn)}</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 text-right">
+          <span className="text-slate-500 font-semibold text-xs flex items-center gap-1"><ArrowUpFromLine size={12} className="text-rose-500" /> خارِج</span>
+          <div className="text-lg font-black text-rose-600 mt-1">ج.م {fmt(totalOut)}</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4 text-right">
+          <span className="text-slate-500 font-semibold text-xs">صافي التدفق</span>
+          <div className={`text-lg font-black mt-1 ${netCash >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>ج.م {fmt(netCash)}</div>
+        </div>
+        <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 text-right">
+          <span className="text-slate-500 font-semibold text-xs">الرصيد الختامي (دفتر الأستاذ)</span>
+
+      {/* Movements Table */}
+      <div className="bg-white rounded-xl border border-slate-200 overflow-x-auto">
+        {loading ? (
+          <div className="flex items-center justify-center py-16"><Loader2 size={26} className="animate-spin text-slate-400" /></div>
+        ) : paginated.length === 0 ? (
+          <div className="p-12 text-center">
+            <ArrowRightLeft size={32} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-slate-400 font-bold text-sm">لا توجد حركات نقدية مرحَّلة — سجل مصروفًا أو رحِّل فاتورة لتظهر الحركة هنا</p>
           </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex flex-wrap gap-3">
-        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-slate-800 transition-all">
-          <Download size={18} />
-          تصدير CSV
-        </button>
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute top-1/2 -translate-y-1/2 right-3 text-slate-300" size={18} />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالوصف أو المرجع..." className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200" />
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-white border border-slate-200">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">النوع:</span>
-          <select
-            value={filterType}
-            onChange={e => setFilterType(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            <option value="inflow">داخل</option>
-            <option value="outflow">خارج</option>
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الفئة:</span>
-          <select
-            value={filterCategory}
-            onChange={e => setFilterCategory(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="all">الكل</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-400">الترتيب:</span>
-          <select
-            value={sortBy}
-            onChange={e => setSortBy(e.target.value)}
-            className="px-3 py-2 rounded-lg border border-slate-200 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-slate-200"
-          >
-            <option value="date">التاريخ</option>
-            <option value="amount">القيمة</option>
-            <option value="createdAt">تاريخ الإنشاء</option>
-          </select>
-        </div>
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-        >
-          {sortOrder === 'asc' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-        </button>
-      </div>
-
-      {/* Cashflow List */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <ArrowRightLeft size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد بيانات تدفق نقدي</p>
-        </div>
-      ) : (
-        <div className="hidden md:block overflow-x-auto touch-auto">
-          <table className="w-full text-right border-collapse min-w-[1200px]">
+        ) : (
+          <table className="w-full min-w-[760px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 text-xs font-semibold text-slate-500">التاريخ</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">النوع</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الفئة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الوصف</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">القيمة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الرصيد</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">المرجع</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-xs font-black text-slate-500">
+                <th className="p-4 text-right">التاريخ</th>
+                <th className="p-4 text-right">القيد</th>
+                <th className="p-4 text-right">النوع</th>
+                <th className="p-4 text-right">المحفظة</th>
+                <th className="p-4 text-right">الطرف المقابل</th>
+                <th className="p-4 text-right">البيان</th>
+                <th className="p-4 text-left">المبلغ</th>
               </tr>
             </thead>
             <tbody>
-              {paginatedCashflow.map((cf) => (
-                <tr key={cf.id} className="border-b border-slate-100 hover:bg-slate-50/50">
+              {paginated.map(m => (
+                <tr key={m.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="p-4 text-slate-600 text-sm">{new Date(m.date).toLocaleDateString('ar-EG')}</td>
+                  <td className="p-4 font-mono text-xs font-bold text-slate-500">{m.number}</td>
                   <td className="p-4">
-                    <div className="text-slate-600 text-sm flex items-center gap-1">
-                      <Calendar size={12} />
-                      {new Date(cf.date).toLocaleDateString('ar-EG')}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${cf.type === 'inflow' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                      {cf.type === 'inflow' ? 'داخل' : 'خارج'}
+                    <span className={`px-2 py-1 rounded-lg text-[10px] font-black ${m.direction === 'in' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                      {m.direction === 'in' ? 'داخل' : 'خارج'}
                     </span>
                   </td>
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm">{cf.category}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm max-w-xs truncate">{cf.description}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className={`font-bold text-sm ${cf.type === 'inflow' ? 'text-green-600' : 'text-red-600'}`}>
-                      {cf.type === 'inflow' ? '+' : '-'}ج.م {cf.amount.toLocaleString()}
-                    </div>
-                  </td>
-                  <td className="p-4">
-                    <div className="font-bold text-slate-900 text-sm">ج.م {cf.balance.toLocaleString()}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="text-slate-600 text-sm">{cf.reference}</div>
+                  <td className="p-4 font-bold text-slate-800 text-sm">{m.wallet}</td>
+                  <td className="p-4 text-slate-500 text-sm">{m.counterAccount}</td>
+                  <td className="p-4 text-slate-600 text-sm max-w-xs truncate">{m.description}</td>
+                  <td className={`p-4 text-left font-black ${m.direction === 'in' ? 'text-emerald-600' : 'text-rose-600'}`} dir="ltr">
+                    {m.direction === 'in' ? '+' : '−'}{fmt(m.amount)} EGP
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">السابق</button>
+          <span className="text-sm font-bold text-slate-500">{currentPage} / {totalPages}</span>
+          <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">التالي</button>
         </div>
       )}
 
@@ -284,20 +207,11 @@ export default function CashflowPage() {
               <h2 className="text-xl font-black text-slate-900">دليل التدفق النقدي</h2>
               <button onClick={() => setGuideOpen(false)} className="p-2 hover:bg-slate-50 rounded-lg"><X size={20} className="text-slate-400" /></button>
             </div>
-            <div className="space-y-6 text-right">
-              <div>
-                <div className="flex items-center gap-2 mb-2"><Info size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">وظيفة الصفحة</h3></div>
-                <p className="text-sm text-slate-600 leading-relaxed">تتبع التدفق النقدي للمتجر (داخل وخارج).</p>
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2"><ArrowRightLeft size={18} className="text-slate-700" /><h3 className="font-bold text-slate-900">الميزات</h3></div>
-                <ul className="text-sm text-slate-600 space-y-1.5 pr-4">
-                  <li>• عرض التدفق النقدي حسب الفترة</li>
-                  <li>• تتبع الداخل والخارج</li>
-                  <li>• إحصائيات شاملة للتدفق</li>
-                  <li>• تصدير تقارير التدفق النقدي</li>
-                </ul>
-              </div>
+            <div className="space-y-4 text-right text-sm text-slate-600 leading-relaxed">
+              <p><strong>مصدر البيانات:</strong> كل سطر في القيود المرحَّلة يمس حساب نقدي (صندوق / بنك / محفظة) يظهر هنا كحركة.</p>
+              <p><strong>داخِل / خارِج:</strong> مدين على حساب نقدي = نقد داخِل، دائن = نقد خارِج — وفق القيد المزدوج.</p>
+              <p><strong>الرصيد الختامي:</strong> نفس رصيد حسابات النقدية في شجرة الحسابات وميزان المراجعة وميزانية المراكز — أرقام متطابقة دائمًا.</p>
+              <p><strong>الربط:</strong> أي مصروف من صفحة المصروفات أو تحصيل/سداد من المدفوعات يظهر هنا تلقائيًا.</p>
             </div>
           </div>
         </div>
@@ -305,3 +219,20 @@ export default function CashflowPage() {
     </div>
   );
 }
+
+          <div className="text-lg font-black text-emerald-700 mt-1">ج.م {fmt(closingBalance)}</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <div className="relative flex-1 min-w-[220px]">
+          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث بالبيان أو المحفظة..." className="w-full pr-9 pl-3 py-2.5 rounded-xl border border-slate-200 text-sm font-medium" />
+        </div>
+        <select value={filterDirection} onChange={e => setFilterDirection(e.target.value)} className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+          <option value="all">الكل</option>
+          <option value="in">داخل فقط</option>
+          <option value="out">خارج فقط</option>
+        </select>
+      </div>
