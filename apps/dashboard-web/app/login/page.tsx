@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -207,10 +208,10 @@ export default function LoginPage() {
             className="w-20 h-20 bg-[#1A1A1A] rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl relative group overflow-hidden cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <span className="text-white font-black text-4xl relative z-10">R</span>
+            <Image src="/brand/logo-business.png" alt="نمّي أعمالك" width={56} height={56} className="relative z-10 w-12 h-12 object-contain" />
           </div>
           <h1 className="text-4xl font-black tracking-tighter mb-4">
-            أهلاً بك في <span className="text-[#00E5FF]">راي</span>
+            أهلاً بك في <span className="text-[#00E5FF]">نمّي أعمالك</span>
           </h1>
           <p className="text-slate-400 font-bold text-sm">سجّل دخولك للوصول إلى لوحة التحكم</p>
         </div>

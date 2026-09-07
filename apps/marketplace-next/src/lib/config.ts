@@ -1,5 +1,5 @@
 export const siteConfig = {
-  name: 'MNMKNK',
+  name: 'mnmknk',
   nameArabic: 'من مكانك',
   nameBusiness: 'MNMKNK Business',
   description: 'منصة تسويق ومبيعات للأنشطة التجارية - اكتشف المتاجر والمنتجات والعروض',
@@ -9,7 +9,7 @@ export const siteConfig = {
   locales: ['ar', 'en'],
   defaultLocale: 'ar',
   themeColor: '#1A1A1A',
-  keywords: ['تسويق', 'متاجر', 'منتجات', 'عروض', 'من مكانك', 'MNMKNK', 'مصر', 'تجارة الكترونية'],
+  keywords: ['تسويق', 'متاجر', 'منتجات', 'عروض', 'من مكانك', 'mnmknk', 'مصر', 'تجارة الكترونية'],
   businessUrl:
     process.env.NEXT_PUBLIC_BUSINESS_URL || 'https://business-blond-psi.vercel.app',
   dashboardUrl:
@@ -18,11 +18,9 @@ export const siteConfig = {
 
 export const navLinks = [
   { href: '/', label: { ar: 'الرئيسية', en: 'Home' } },
-  { href: '/dalil', label: { ar: 'الدليل', en: 'Directory' } },
   { href: '/offers', label: { ar: 'العروض', en: 'Offers' } },
   { href: '/map', label: { ar: 'الخريطة', en: 'Map' } },
-  { href: '/blog', label: { ar: 'المدونة', en: 'Blog' } },
-  { href: '/about', label: { ar: 'حول', en: 'About' } },
+  { href: '/dalil', label: { ar: 'الدليل', en: 'Guide' } },
 ];
 
 export const activities = [

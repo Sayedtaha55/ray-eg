@@ -1,9 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
+import { businessBrand } from '@/lib/brand';
 import {
   TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
-  Globe, Shield, Star, Store, Smartphone, Package,
+  Globe, Shield, Star, Smartphone, Package,
   Building2, Utensils, Scissors, Stethoscope, Car, Home as HomeIcon,
   Wrench, GraduationCap, Dumbbell, Ticket, ShoppingBag,
   MessageSquare, Bell, Headphones, Rocket, Target, Award, Layers,
@@ -565,10 +567,10 @@ export function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12">
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center">
-                <Store className="w-5 h-5 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center overflow-hidden">
+                <Image src={businessBrand.logo} alt={businessBrand.name} width={28} height={28} className="w-6 h-6 object-contain" />
               </div>
-              <span className="text-white font-black text-lg">من مكانك</span>
+              <span className="text-white font-black text-lg">{businessBrand.name}</span>
             </div>
             <p className="text-white/40 text-sm leading-relaxed mb-4 max-w-xs">
               منصة عربية متكاملة لإدارة وتنمية أعمالك التجارية.

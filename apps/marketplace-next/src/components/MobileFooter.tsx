@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Heart, User, ShoppingBag, Bell } from 'lucide-react';
+import { Home, Search, Heart, User, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCart } from '@/lib/cart';
 
@@ -12,14 +12,13 @@ export function MobileFooter() {
 
   const navItems = [
     { href: '/', icon: Home, label: 'الرئيسية' },
-    { href: '/dalil', icon: Search, label: 'الدليل' },
+    { href: '/offers', icon: Search, label: 'العروض' },
     { href: '/wishlist', icon: Heart, label: 'المفضلة' },
-    { href: '/notifications', icon: Bell, label: 'الإشعارات' },
     { href: '/profile', icon: User, label: 'حسابي' },
   ];
 
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-[100]">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 z-[100] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-around py-2">
         {navItems.slice(0, 2).map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');

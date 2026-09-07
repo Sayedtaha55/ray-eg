@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Menu, X, Sun, Moon, Globe, Store, LogIn, User, ShoppingBag, Bell, Heart } from 'lucide-react';
+import { Menu, X, Sun, Moon, Globe, LogIn, User, ShoppingBag, Bell, Heart } from 'lucide-react';
 import { useApp } from './AppProvider';
 import { useCart } from '@/lib/cart';
 import { useWishlist } from '@/lib/wishlist';
@@ -52,9 +52,8 @@ export function Navbar() {
     <>
       <header
         className={cn(
-          'fixed top-0 left-0 right-0 z-[80] transition-all duration-300',
-          scrolled ? 'glass shadow-sm' : 'bg-transparent',
-          !scrolled && (pathname === '/' ? 'text-white' : 'text-slate-900 dark:text-white')
+          'fixed top-0 left-0 right-0 z-[80] transition-all duration-300 bg-white dark:bg-slate-900 shadow-sm',
+          !scrolled && 'text-slate-900 dark:text-white'
         )}
       >
         <div className="max-w-[1400px] mx-auto px-4 md:px-6 h-16 md:h-20 flex items-center justify-between">
@@ -66,12 +65,12 @@ export function Navbar() {
             </div>
             <span
               className={cn(
-                'text-lg md:text-2xl font-bold tracking-tight hidden sm:block',
+                'text-sm md:text-lg font-bold tracking-tight hidden sm:block',
                 'bg-gradient-to-r from-brand-cyan via-brand-purple to-brand-cyan bg-[length:200%_200%] text-transparent bg-clip-text',
                 'transition-transform duration-300 hover:scale-[1.06]'
               )}
             >
-              {siteConfig.name}
+              {lang === 'ar' ? siteConfig.nameArabic : siteConfig.name}
             </span>
           </Link>
 
@@ -158,10 +157,11 @@ export function Navbar() {
             {isLoggedIn ? (
               <Link
                 href="/profile"
-                className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-brand-black to-slate-800 text-white font-semibold text-xs hover:from-brand-cyan hover:to-cyan-600 hover:text-black transition-all shadow-lg"
+                className="hidden md:flex w-10 h-10 rounded-full items-center justify-center bg-gradient-to-r from-brand-black to-slate-800 text-white hover:from-brand-cyan hover:to-cyan-600 hover:text-black transition-all shadow-lg"
+                aria-label={lang === 'ar' ? 'حسابي' : 'My Account'}
+                title={lang === 'ar' ? 'حسابي' : 'My Account'}
               >
-                <User className="w-4 h-4" />
-                {lang === 'ar' ? 'البروفايل' : 'Profile'}
+                <User className="w-5 h-5" />
               </Link>
             ) : (
               <Link
@@ -169,16 +169,24 @@ export function Navbar() {
                 className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg bg-gradient-to-r from-brand-black to-slate-800 text-white font-semibold text-xs hover:from-brand-cyan hover:to-cyan-600 hover:text-black transition-all shadow-lg"
               >
                 <LogIn className="w-4 h-4" />
-                {lang === 'ar' ? 'دخول' : 'Login'}
+                {lang === 'ar' ? 'تسجيل الدخول' : 'Login'}
               </Link>
             )}
-            <a
-              href={siteConfig.businessUrl}
-              className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-lg bg-brand-gradient text-white font-semibold text-xs hover:shadow-glow-cyan transition-all"
-            >
-              <Store className="w-4 h-4" />
-              {lang === 'ar' ? 'للأعمال' : 'Business'}
-            </a>
+
+            {isLoggedIn && (
+              <Link
+                href="/notifications"
+                className="lg:hidden relative w-9 h-9 rounded-lg flex items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5"
+                aria-label="الإشعارات"
+              >
+                <Bell className="w-5 h-5" />
+                {unreadNotifs > 0 && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+                    {unreadNotifs > 9 ? '9+' : unreadNotifs}
+                  </span>
+                )}
+              </Link>
+            )}
             <button
               onClick={() => setMobileOpen(true)}
               className="lg:hidden w-9 h-9 rounded-lg flex items-center justify-center hover:bg-brand-black/5 dark:hover:bg-white/5"
@@ -195,7 +203,7 @@ export function Navbar() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
           <div className="absolute top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white dark:bg-brand-black shadow-2xl flex flex-col animate-fade-in">
             <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-800">
-              <span className="text-xl font-bold text-gradient">{siteConfig.name}</span>
+              <span className="text-xl font-bold text-gradient">{lang === 'ar' ? siteConfig.nameArabic : siteConfig.name}</span>
               <button onClick={() => setMobileOpen(false)} className="w-10 h-10 rounded-lg flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800">
                 <X className="w-5 h-5" />
               </button>
@@ -218,6 +226,17 @@ export function Navbar() {
                   {link.label[lang]}
                 </Link>
               ))}
+              <Link
+                href="/dalil"
+                className={cn(
+                  'flex items-center gap-3 p-4 rounded-lg font-semibold text-base transition-all',
+                  isActive('/dalil')
+                    ? 'bg-brand-black/5 dark:bg-white/10 text-brand-cyan'
+                    : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
+                )}
+              >
+                {lang === 'ar' ? 'الدليل' : 'Guide'}
+              </Link>
               <div className="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-2">
                 <Link href="/wishlist" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
                   <Heart className="w-5 h-5" />
@@ -235,21 +254,13 @@ export function Navbar() {
                     )}
                   </Link>
                 )}
-                {isLoggedIn ? (
-                  <Link href="/profile" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
-                    <User className="w-5 h-5" />
-                    {lang === 'ar' ? 'البروفايل' : 'Profile'}
-                  </Link>
-                ) : (
+                {!isLoggedIn && (
                   <Link href="/login" className="flex items-center gap-3 p-4 rounded-lg bg-slate-50 dark:bg-slate-800/50 font-semibold">
                     <User className="w-5 h-5" />
                     {lang === 'ar' ? 'تسجيل الدخول' : 'Login'}
                   </Link>
                 )}
-                <a href={siteConfig.businessUrl} className="flex items-center gap-3 p-4 rounded-lg bg-brand-gradient text-white font-semibold">
-                  <Store className="w-5 h-5" />
-                  {lang === 'ar' ? 'للأعمال' : 'Business'}
-                </a>
+
               </div>
             </nav>
           </div>

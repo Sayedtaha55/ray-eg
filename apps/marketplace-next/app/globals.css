@@ -194,3 +194,23 @@ section {
   will-change: background-position;
   transform: translateZ(0);
 }
+
+/* Hero Banner Slider Animation */
+@keyframes heroSlide {
+  0%, 30% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  33%, 63% {
+    opacity: 0;
+    transform: translateX(-100%);
+  }
+  66%, 96% {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

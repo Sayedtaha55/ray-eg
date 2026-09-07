@@ -6,6 +6,13 @@ import { I18nProvider } from '@/lib/I18nProvider';
 export const metadata: Metadata = {
   title: 'لوحة التحكم | نمّي أعمالك',
   description: 'منصة إدارة الأعمال المتكاملة',
+  icons: {
+    icon: [
+      { url: '/brand/logo-business.png', sizes: '192x192', type: 'image/png' },
+      { url: '/brand/logo-business.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: '/brand/logo-business.png',
+  },
 };
 
 export default function RootLayout({

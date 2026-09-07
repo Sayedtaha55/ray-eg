@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ExternalLink, X, Menu, LogOut } from 'lucide-react';
@@ -160,16 +161,16 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       <div className="h-16 flex items-center justify-between px-4 border-b border-slate-50 shrink-0">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-[#1A1A1A] rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-lg">R</span>
+            <div className="w-9 h-9 bg-[#1A1A1A] rounded-xl flex items-center justify-center overflow-hidden">
+              <Image src="/brand/logo-business.png" alt="نمّي أعمالك" width={28} height={28} className="w-6 h-6 object-contain" />
             </div>
-            <span className="font-black text-sm text-slate-900">راي</span>
+            <span className="font-black text-sm text-slate-900">نمّي أعمالك</span>
           </Link>
         )}
         {collapsed && (
           <Link href="/dashboard" className="mx-auto">
-            <div className="w-9 h-9 bg-[#1A1A1A] rounded-xl flex items-center justify-center">
-              <span className="text-white font-black text-lg">R</span>
+            <div className="w-9 h-9 bg-[#1A1A1A] rounded-xl flex items-center justify-center overflow-hidden">
+              <Image src="/brand/logo-business.png" alt="نمّي أعمالك" width={28} height={28} className="w-6 h-6 object-contain" />
             </div>
           </Link>
         )}
@@ -346,7 +347,7 @@ export default function Sidebar({ onClose }: { onClose?: () => void }) {
       {!collapsed && (
         <div className="p-4 border-t border-slate-50 shrink-0">
           <div className="text-[9px] font-bold text-slate-300 text-center">
-            © 2026 راي — نمّي أعمالك
+            © 2026 نمّي أعمالك — راي
           </div>
         </div>
       )}

@@ -37,7 +37,7 @@ export function Footer() {
           {/* Brand & Newsletter */}
           <div className="lg:col-span-4 space-y-8">
             <div className="flex items-center gap-3 justify-end">
-              <span className="text-2xl font-bold tracking-tight text-gradient">MNMKNK</span>
+              <span className="text-xl md:text-2xl font-bold tracking-tight text-gradient">{ar ? siteConfig.nameArabic : siteConfig.name}</span>
               <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-xl flex items-center justify-center p-2 backdrop-blur-sm">
                 <Image src="/brand/logo.png" alt="MNMKNK" width={32} height={32} className="w-full h-full object-contain" />
               </div>
@@ -208,7 +208,7 @@ export function Footer() {
         <div className="pt-10 border-t border-white/5 flex flex-col lg:flex-row items-center justify-between gap-8 lg:gap-4">
           <div className="flex flex-col lg:flex-row items-center gap-4 lg:gap-8 order-2 lg:order-1">
             <p className="text-white/30 text-xs font-semibold">
-              © {new Date().getFullYear()} MNMKNK. {ar ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
+              © {new Date().getFullYear()} {ar ? siteConfig.nameArabic : siteConfig.name}. {ar ? 'جميع الحقوق محفوظة.' : 'All rights reserved.'}
             </p>
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2 text-white/30 text-xs font-semibold">

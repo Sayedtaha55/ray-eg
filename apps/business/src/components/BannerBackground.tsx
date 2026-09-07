@@ -6,6 +6,7 @@ interface BannerBackgroundProps {
   videoUrl?: string;
   gradientColor?: string;
   fadeDuration?: number;
+  startOffset?: number;
 }
 
 const DEFAULT_VIDEO_URL =
@@ -15,6 +16,7 @@ export default function BannerBackground({
   videoUrl = DEFAULT_VIDEO_URL,
   gradientColor = '#020617',
   fadeDuration = 0.5,
+  startOffset = 0.8,
 }: BannerBackgroundProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [videoOpacity, setVideoOpacity] = useState(0);
@@ -32,8 +34,9 @@ export default function BannerBackground({
         const duration = video.duration;
         let targetOpacity = 1;
 
-        if (current < fadeDuration) {
-          targetOpacity = Math.max(0, Math.min(1, current / fadeDuration));
+        // Fade in from startOffset
+        if (current < startOffset + fadeDuration) {
+          targetOpacity = Math.max(0, Math.min(1, (current - startOffset) / fadeDuration));
         } else if (current > duration - fadeDuration) {
           targetOpacity = Math.max(0, Math.min(1, (duration - current) / fadeDuration));
         }
@@ -53,7 +56,7 @@ export default function BannerBackground({
 
       setTimeout(() => {
         if (videoRef.current) {
-          videoRef.current.currentTime = 0;
+          videoRef.current.currentTime = startOffset;
           videoRef.current.play().then(() => { isResetting = false; }).catch(() => { isResetting = false; });
         } else {
           isResetting = false;
@@ -61,14 +64,23 @@ export default function BannerBackground({
       }, 100);
     };
 
+    // Set initial time to skip black frame
+    const handleLoadedData = () => {
+      if (videoRef.current) {
+        videoRef.current.currentTime = startOffset;
+      }
+    };
+
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('loadeddata', handleLoadedData);
     video.play().catch(() => {});
 
     return () => {
       cancelAnimationFrame(animationFrameId);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [videoUrl, fadeDuration]);
+  }, [videoUrl, fadeDuration, startOffset]);
 
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">

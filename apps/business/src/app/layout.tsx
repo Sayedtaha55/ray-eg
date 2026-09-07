@@ -13,10 +13,10 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/brand/logo-business.png', sizes: '192x192', type: 'image/png' },
+      { url: '/brand/logo-business.png', sizes: '512x512', type: 'image/png' },
     ],
-    apple: '/apple-touch-icon.png',
+    apple: '/brand/logo-business.png',
   },
   openGraph: {
     type: 'website',

@@ -35,7 +35,7 @@ type AppConfig struct {
 	Name        string `env:"APP_NAME" envDefault:"ray-backend-go"`
 	Env         string `env:"APP_ENV" envDefault:"development"`
 	Version     string `env:"APP_VERSION" envDefault:"0.1.0"`
-	Port        int    `env:"PORT" envDefault:"4000"`
+	Port        int    `env:"PORT" envDefault:"4001"`
 	Host        string `env:"HOST" envDefault:"0.0.0.0"`
 	FrontendURL string `env:"FRONTEND_APP_URL,required"`
 	// PublicURL is the externally reachable base URL of this backend (used to

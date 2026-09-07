@@ -1504,7 +1504,7 @@ const POSSystemPage: React.FC = () => {
                       </button>
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.imageUrl || p.image_url || '/brand/logo.png'} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
+                      <img src={p.imageUrl || p.image_url || '/brand/logo-business.png'} alt={p.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" />
                       <div className="absolute bottom-0 left-0 right-0 p-1.5 md:p-3 text-right">
                         <h3 className="text-white font-black text-[9px] md:text-sm line-clamp-2 leading-tight mb-0.5">{p.name}</h3>
                         <div className="flex items-center justify-between flex-row-reverse">

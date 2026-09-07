@@ -30,7 +30,7 @@ export default function FooterVideoBackground({
 
   return (
     <div className={`relative w-full overflow-hidden ${className}`}>
-      <div className="absolute inset-0 z-0 pointer-events-none" aria-hidden="true">
+      <div className="absolute inset-0 z-0 pointer-events-none h-full w-full" aria-hidden="true">
         {VIDEOS.map((src, idx) => (
           <video
             key={idx}

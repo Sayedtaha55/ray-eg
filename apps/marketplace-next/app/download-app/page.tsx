@@ -78,7 +78,7 @@ export default function DownloadAppPage() {
                         <div className="w-20 h-20 bg-brand-cyan/10 rounded-3xl flex items-center justify-center mb-6">
                            <Download className="w-10 h-10 text-brand-cyan animate-bounce" />
                         </div>
-                        <h3 className="text-2xl font-black mb-4">MNMKNK App</h3>
+                        <h3 className="text-2xl font-black mb-4">{siteConfig.name} App</h3>
                         <p className="text-slate-500 font-bold text-sm leading-relaxed">تصفح المتاجر، اطلب المنتجات، وتابع العروض بكل سهولة.</p>
                      </div>
                   </div>
