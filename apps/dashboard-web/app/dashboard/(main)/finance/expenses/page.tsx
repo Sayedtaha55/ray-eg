@@ -175,6 +175,78 @@ export default function ExpensesPage() {
                   <td className="p-4 text-left font-black text-rose-600">ج.م {fmt(r.amount)}</td>
                 </tr>
               ))}
+
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">السابق</button>
+          <span className="text-sm font-bold text-slate-500">{currentPage} / {totalPages}</span>
+          <button disabled={currentPage >= totalPages} onClick={() => setCurrentPage(p => p + 1)} className="px-3 py-2 rounded-xl border border-slate-200 text-sm font-bold disabled:opacity-40">التالي</button>
+        </div>
+      )}
+
+      {/* Add Modal */}
+      {modal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()} dir="rtl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-black text-lg text-slate-900">مصروف جديد</h3>
+              <button onClick={() => setModal(false)} className="p-1.5 hover:bg-slate-100 rounded-lg"><X size={18} /></button>
+            </div>
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-50 text-rose-700 text-xs font-bold flex items-center gap-2">
+                <AlertTriangle size={14} /> {error}
+              </div>
+            )}
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">بند المصروف (حساب مدين)</label>
+              <select value={form.expenseAccountId} onChange={e => setForm({ ...form, expenseAccountId: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+                <option value="">— اختر بند المصروف —</option>
+                {expenseAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+              </select>
+              {expenseAccounts.length === 0 && <p className="text-[11px] font-bold text-amber-600 mt-1">أضف حسابات مصروفات من شجرة الحسابات أولًا.</p>}
+            </div>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">دُفع من (حساب دائن)</label>
+              <select value={form.payFromAccountId} onChange={e => setForm({ ...form, payFromAccountId: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold bg-white">
+                <option value="">— اختر النقدية / البنك —</option>
+                {cashAccounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-black text-slate-600 block mb-1">المبلغ</label>
+                <input type="number" min={0} step="0.01" value={form.amount || ''} onChange={e => setForm({ ...form, amount: Number(e.target.value) })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" dir="ltr" />
+              </div>
+              <div>
+                <label className="text-xs font-black text-slate-600 block mb-1">التاريخ</label>
+                <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">البيان</label>
+              <input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="مثال: إيجار شهر يناير" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" />
+            </div>
+            <div>
+              <label className="text-xs font-black text-slate-600 block mb-1">مرجع (اختياري)</label>
+              <input value={form.reference} onChange={e => setForm({ ...form, reference: e.target.value })} placeholder="رقم فاتورة/إيصال" className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-sm font-bold" dir="ltr" />
+            </div>
+            <button onClick={save} disabled={saving} className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black py-3 rounded-xl flex items-center justify-center gap-2">
+              {saving ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+              حفظ وترحيل القيد
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
             </tbody>
           </table>
         )}
