@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ComponentNode } from '@/types/builder';
 import { AlertCircle, Code, Play } from 'lucide-react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 interface CustomCodeRendererProps {
   node: ComponentNode;
@@ -64,7 +65,7 @@ export const CustomCodeRenderer: React.FC<CustomCodeRendererProps> = ({
       <div
         ref={containerRef}
         className="w-full"
-        dangerouslySetInnerHTML={{ __html: customHtml }}
+        dangerouslySetInnerHTML={{ __html: sanitizeHtml(customHtml) }}
       />
 
       {error && (

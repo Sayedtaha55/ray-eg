@@ -62,9 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preload" href="/fonts/fonts.css" as="style" />
         <link rel="stylesheet" href="/fonts/fonts.css" />
-        <link rel="dns-prefetch" href="https://nominatim.openstreetmap.org" />
         <link rel="dns-prefetch" href="https://tile.openstreetmap.org" />
-        <link rel="dns-prefetch" href="http://localhost:4000" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

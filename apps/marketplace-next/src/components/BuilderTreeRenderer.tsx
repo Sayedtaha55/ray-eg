@@ -17,6 +17,7 @@ import {
   Mail,
   MapPin,
 } from 'lucide-react';
+import { sanitizeHtml } from '@/lib/sanitize';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -202,7 +203,7 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
     const html = node.customCode?.tsxSnippet || node.props?.html || '';
     return (
       <div id={node.id} style={computed}>
-        {html && <div dangerouslySetInnerHTML={{ __html: html }} />}
+        {html && <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(html) }} />}
         {renderChildren()}
       </div>
     );
