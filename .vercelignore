@@ -19,7 +19,7 @@ saas-backend/
 # Other apps (not used for dashboard-web)
 apps/business/
 apps/dashboard/
-apps/marketplace-next/
+# apps/marketplace-next/ — هذا هو التطبيق المنشور، لا يتم تجاهله
 
 # Unused packages (dashboard-web only needs @ray-eg/shared)
 packages/config/
