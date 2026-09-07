@@ -106,3 +106,9 @@ utputFormat
 
 # Local backup of old Vite/React code
 _archive/
+
+# YoYo AI version control directory
+.yoyo/
+
+# Local dev log files (root) generated when launching services
+/logs-*.txt
