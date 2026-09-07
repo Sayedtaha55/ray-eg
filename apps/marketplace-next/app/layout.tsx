@@ -4,6 +4,7 @@ import { AppProvider } from '@/components/AppProvider';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
 import { AppChrome } from '@/components/AppChrome';
+import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { siteConfig } from '@/lib/config';
 
 export const metadata: Metadata = {
@@ -68,10 +69,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{
             __html: `
               if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for (var i = 0; i < registrations.length; i++) {
-                    registrations[i].unregister();
-                  }
+                window.addEventListener('load', function () {
+                  navigator.serviceWorker.register('/sw.js').catch(function (err) {
+                    console.warn('SW registration failed:', err);
+                  });
                 });
               }
             `,
@@ -83,6 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartProvider>
             <WishlistProvider>
               <AppChrome>{children}</AppChrome>
+              <PwaInstallPrompt />
             </WishlistProvider>
           </CartProvider>
         </AppProvider>
