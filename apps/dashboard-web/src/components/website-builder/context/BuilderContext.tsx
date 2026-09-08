@@ -195,7 +195,7 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
       id: 'cart_item_amg_gt',
       title: 'مرسيدس AMG GT 63 S E-Performance',
       price: 890000,
-      priceFormatted: '890,000 ر.س',
+      priceFormatted: '890,000 ج.م',
       image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
       category: 'mercedes',
       badge: 'أعلى فئة VIP',
@@ -368,9 +368,10 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
   // Compute actual live URL on Next.js customer-facing marketplace
   const liveWebsiteUrl = useMemo(() => {
     const isDev = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-    const base = isDev ? 'http://localhost:5174' : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
+    const base = isDev ? 'http://localhost:3000' : (process.env.NEXT_PUBLIC_MARKETPLACE_URL || 'https://mnmknk.com');
     const slug = builderShopSlug || website.subdomain || 'dev-shop-13e8de3a';
-    return `${base}/shop/${slug}`;
+    // Published builder website renderer (uses the published builder config)
+    return `${base}/site/${slug}`;
   }, [builderShopSlug, website.subdomain]);
 
   // Versions
@@ -1426,7 +1427,7 @@ export const BuilderProvider: React.FC<{ children: React.ReactNode; onExit?: () 
           props: {
             title: `منتجات ${name}`,
             description: 'تصفح باقة مختارة وعروض حصرية للتسليم الفوري.',
-            price: '520,000 ر.س',
+            price: '520,000 ج.م',
             badge: 'جديد',
             image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
             ctaText: 'طلب فحص وتجربة',

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import OrderBellWatcher from '@/components/OrderBellWatcher';
 import { useAuth } from '@/lib/auth';
 
 export default function DashboardLayout({
@@ -40,6 +41,9 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* Global order bell watcher — rings on new website / POS orders */}
+      <OrderBellWatcher />
+
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
         <Sidebar />

@@ -16,7 +16,7 @@ export const mockTenants: Tenant[] = [
       email: 'info@almajd-motors.com',
       address: 'طريق الملك فهد، الرياض، المملكة العربية السعودية',
       whatsappNumber: '+966501234567',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -39,7 +39,7 @@ export const mockTenants: Tenant[] = [
       email: 'dine@lavilla-gourmet.com',
       address: 'بوليفارد الرياض، حي حطين، الرياض',
       whatsappNumber: '+966112345678',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -62,7 +62,7 @@ export const mockTenants: Tenant[] = [
       email: 'join@powerfit-gym.sa',
       address: 'طريق التخصصي، حي المروج، الرياض',
       whatsappNumber: '+966559998877',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -85,7 +85,7 @@ export const mockTenants: Tenant[] = [
       email: 'appointments@zaha-clinic.com',
       address: 'شارع الأمير فيصل بن فهد، الخبر',
       whatsappNumber: '+966138889900',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -108,7 +108,7 @@ export const mockTenants: Tenant[] = [
       email: 'booking@lotus-beauty.sa',
       address: 'شارع التحلية، حي الروضة، جدة',
       whatsappNumber: '+966543210987',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -131,7 +131,7 @@ export const mockTenants: Tenant[] = [
       email: 'vip@zumurrud-gold.com',
       address: 'سوق الذهب المركزي، شارع الثميري، الرياض',
       whatsappNumber: '+966114567890',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -154,7 +154,7 @@ export const mockTenants: Tenant[] = [
       email: 'sales@afaq-properties.sa',
       address: 'برج النخبة، حي العليا، الرياض',
       whatsappNumber: '+966119876543',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -177,7 +177,7 @@ export const mockTenants: Tenant[] = [
       email: 'orders@opal-boutique.sa',
       address: 'رد سي مول، طريق الملك عبدالعزيز، جدة',
       whatsappNumber: '+966567890123',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -200,7 +200,7 @@ export const mockTenants: Tenant[] = [
       email: 'delivery@alwaha-market.com',
       address: 'حي النرجس، تقاطع طريق عثمان بن عفان، الرياض',
       whatsappNumber: '+966113334455',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -223,7 +223,7 @@ export const mockTenants: Tenant[] = [
       email: 'decor@royal-furniture.sa',
       address: 'طريق الملك عبدالله، حي الواحة، الرياض',
       whatsappNumber: '+966118881122',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -246,7 +246,7 @@ export const mockTenants: Tenant[] = [
       email: 'landscape@oasis-nursery.sa',
       address: 'طريق الثمامة، مخرج المزارع، الرياض',
       whatsappNumber: '+966504443322',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -269,7 +269,7 @@ export const mockTenants: Tenant[] = [
       email: 'store@tech-future.sa',
       address: 'سوق الكمبيوتر، حي السليمانية، الرياض',
       whatsappNumber: '+966117776655',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -292,7 +292,7 @@ export const mockTenants: Tenant[] = [
       email: 'booking@sarh-services.sa',
       address: 'طريق الدائري الشرقي، الرياض',
       whatsappNumber: '+966920012345',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -315,7 +315,7 @@ export const mockTenants: Tenant[] = [
       email: 'packages@ofok-travel.sa',
       address: 'طريق العروبة، حي الورود، الرياض',
       whatsappNumber: '+966115558899',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -338,7 +338,7 @@ export const mockTenants: Tenant[] = [
       email: 'consult@nukhba-law.sa',
       address: 'مركز الملك عبدالله المالي (KAFD)، الرياض',
       whatsappNumber: '+966112223344',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -361,7 +361,7 @@ export const mockTenants: Tenant[] = [
       email: 'rfq@sharq-industries.sa',
       address: 'المدينة الصناعية الثانية، الرياض',
       whatsappNumber: '+966116664433',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -407,7 +407,7 @@ export const mockTenants: Tenant[] = [
       email: 'info@alrawad-academy.edu.sa',
       address: 'طريق الملك عبدالله، حي الواحة، الرياض',
       whatsappNumber: '+966114447788',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -430,7 +430,7 @@ export const mockTenants: Tenant[] = [
       email: 'support@techzone-sa.com',
       address: 'طريق العليا العام، مجمع العقارية، الرياض',
       whatsappNumber: '+966920012345',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1550009158-9ebf69173e03?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -453,7 +453,7 @@ export const mockTenants: Tenant[] = [
       email: 'info@iwan-furniture.sa',
       address: 'طريق الدائري الشمالي، مخرج 5، الرياض',
       whatsappNumber: '+966118883322',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -476,7 +476,7 @@ export const mockTenants: Tenant[] = [
       email: 'reservations@rentalpro-sa.com',
       address: 'مطار الملك خالد الدولي صالة 5 & فرع التحلية، الرياض',
       whatsappNumber: '+966548887766',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -499,7 +499,7 @@ export const mockTenants: Tenant[] = [
       email: 'love@flora-gifts.sa',
       address: 'شارع التحلية، حي السليمانية، الرياض',
       whatsappNumber: '+966567774433',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {
@@ -522,7 +522,7 @@ export const mockTenants: Tenant[] = [
       email: 'consult@diqqa-cpa.sa',
       address: 'مركز الملك عبدالله المالي KAFD، البرج الرابع، الرياض',
       whatsappNumber: '+966113339911',
-      currency: 'SAR',
+      currency: 'EGP',
       logoUrl: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=300&auto=format&fit=crop&q=80',
     },
     dataSources: {

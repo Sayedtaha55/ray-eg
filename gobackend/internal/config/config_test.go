@@ -28,8 +28,8 @@ func TestLoadDevelopmentDefaults(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if cfg.App.Port != 4000 {
-		t.Fatalf("expected default port 4000, got %d", cfg.App.Port)
+	if cfg.App.Port != 4001 {
+		t.Fatalf("expected default port 4001, got %d", cfg.App.Port)
 	}
 	if cfg.Redis.Host != "localhost" {
 		t.Fatalf("expected default redis host localhost, got %s", cfg.Redis.Host)

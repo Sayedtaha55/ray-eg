@@ -3,22 +3,17 @@
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import {
-  TrustMarquee,
   ThemeShowcase,
   AboutSection,
   FeaturesSection,
   HowItWorks,
-  DashboardPreview,
 } from '@/components/Sections';
 import {
   IndustriesSection,
   GrowthSection,
-  TestimonialsSection,
   AboutSection2,
   ProductsSection,
   FaqSection,
-  MapSection,
-  FinalCta,
   Footer,
 } from '@/components/MoreSections';
 import { useScrollReveal, useBackToTop } from '@/lib/hooks';
@@ -30,23 +25,18 @@ export default function HomePage() {
   const { show, scrollToTop } = useBackToTop();
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-white">
       <Navbar />
       <Hero />
-      <TrustMarquee />
       <ThemeShowcase />
       <AboutSection />
       <FeaturesSection />
       <HowItWorks />
-      <DashboardPreview />
       <IndustriesSection />
       <GrowthSection />
-      <TestimonialsSection />
       <AboutSection2 />
       <ProductsSection />
       <FaqSection />
-      <MapSection />
-      <FinalCta />
       <Footer />
 
       {show && (
@@ -59,7 +49,7 @@ export default function HomePage() {
         </button>
       )}
 
-      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden p-3 bg-slate-950/90 backdrop-blur-lg border-t border-white/10">
+      <div className="fixed bottom-0 left-0 right-0 z-40 md:hidden p-3 bg-white backdrop-blur-lg border-t border-slate-200">
         <Link
           href="/signup"
           className="flex items-center justify-center gap-2 w-full bg-[#00E5FF] text-slate-900 py-3.5 rounded-xl font-black text-base shadow-lg shadow-cyan-500/20 cursor-pointer"

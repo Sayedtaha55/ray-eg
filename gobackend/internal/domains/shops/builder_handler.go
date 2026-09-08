@@ -28,6 +28,44 @@ func (h *BuilderHandler) RegisterBuilderRoutes(r fiber.Router, authMW fiber.Hand
 	g.Post("/:shopId/publish", h.PublishBuilderConfig)
 }
 
+// RegisterPublicRoutes wires public (no-auth) storefront endpoints.
+// GET /shops/:slug/website serves the published website config.
+// GET /shops/published-slugs lists published site slugs for sitemaps.
+func (h *BuilderHandler) RegisterPublicRoutes(r fiber.Router) {
+	g := r.Group("/shops")
+	g.Get("/published-slugs", h.GetPublishedSlugs)
+	g.Get("/:slug/website", h.GetPublicWebsite)
+}
+
+// GetPublishedSlugs handles GET /shops/published-slugs (public).
+// Returns the slugs of approved shops with a published website — used by the
+// frontend sitemap to index /site/:slug pages.
+func (h *BuilderHandler) GetPublishedSlugs(c *fiber.Ctx) error {
+	slugs, err := h.service.ListPublishedSlugs(c.UserContext())
+	if err != nil {
+		return err
+	}
+	return c.JSON(fiber.Map{"success": true, "data": slugs})
+}
+
+// GetPublicWebsite handles GET /shops/:slug/website (public).
+func (h *BuilderHandler) GetPublicWebsite(c *fiber.Ctx) error {
+	slug := c.Params("slug")
+	if slug == "" {
+		return errors.Validation("slug_required", "slug مطلوب")
+	}
+
+	site, err := h.service.GetPublicWebsiteBySlug(c.UserContext(), slug)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    site,
+	})
+}
+
 // GetBuilderConfig handles GET /builder/:shopId/config
 // Requires authentication and shop ownership or admin role.
 func (h *BuilderHandler) GetBuilderConfig(c *fiber.Ctx) error {

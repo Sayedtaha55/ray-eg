@@ -1,13 +1,41 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ChevronDown, ShoppingCart, LayoutDashboard, Palette, BarChart3, Smartphone, CalendarCheck, Shield, Store, Utensils, ShoppingBag, Scissors, Stethoscope, Car, Home as HomeIcon, Wrench, GraduationCap, Dumbbell, Ticket, Package, Building2 } from 'lucide-react';
 import { businessBrand } from '@/lib/brand';
+
+const industries = [
+  { icon: Utensils, label: 'مطاعم' },
+  { icon: ShoppingBag, label: 'تجزئة' },
+  { icon: Scissors, label: 'صالونات' },
+  { icon: Stethoscope, label: 'عيادات' },
+  { icon: Car, label: 'سيارات' },
+  { icon: HomeIcon, label: 'عقارات' },
+  { icon: Wrench, label: 'خدمات' },
+  { icon: GraduationCap, label: 'تعليم' },
+  { icon: Dumbbell, label: 'رياضة' },
+  { icon: Ticket, label: 'فعاليات' },
+  { icon: Package, label: 'جملة' },
+  { icon: Building2, label: 'شركات' },
+];
+
+const solutions = [
+  { icon: Store, title: 'المتجر الإلكتروني', desc: 'متجر متكامل لإدارة منتجاتك وطلباتك', href: '/#products' },
+  { icon: ShoppingCart, title: 'نقطة البيع (POS)', desc: 'حوّل أي موبايل لكاشير ذكي لمحلك', href: '/#products' },
+  { icon: CalendarCheck, title: 'الحجوزات والمواعيد', desc: 'نظام حجز ذكي للعيادات والصالونات', href: '/#products' },
+  { icon: Palette, title: 'مصمم الصفحات', desc: 'صمم متجرك بالسحب والإفلات بدون برمجة', href: '/#products' },
+  { icon: BarChart3, title: 'التحليلات والتقارير', desc: 'تقارير مفصلة عن المبيعات والعملاء', href: '/#products' },
+  { icon: LayoutDashboard, title: 'لوحة التحكم', desc: 'إدارة كل جوانب نشاطك من مكان واحد', href: '/#products' },
+  { icon: Smartphone, title: 'تطبيق الموبايل', desc: 'أدر أعمالك من أي مكان وفي أي وقت', href: '/#products' },
+  { icon: Shield, title: 'الأمان والحماية', desc: 'حماية متقدمة لبياناتك وبيانات عملائك', href: '/#products' },
+];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
@@ -16,47 +44,107 @@ export default function Navbar() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
+  const openMenu = (id: string) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setOpen(id);
+  };
+  const scheduleClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(null), 150);
+  };
+
   const dark = scrolled;
 
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
-        dark
-          ? 'bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm'
-          : 'bg-transparent border-b border-transparent'
+        dark ? 'bg-white shadow-md shadow-slate-900/5' : 'bg-transparent'
       }`}
+      onMouseLeave={scheduleClose}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center overflow-hidden">
             <Image src={businessBrand.logo} alt={businessBrand.name} width={28} height={28} className="w-6 h-6 object-contain" />
           </div>
-          <span className="text-slate-900 font-black text-lg transition-colors">{businessBrand.name}</span>
+          <span className="text-slate-900 font-black text-lg">{businessBrand.name}</span>
         </Link>
+
         <div className="hidden md:flex items-center gap-6">
+          <button
+            type="button"
+            onMouseEnter={() => openMenu('solutions')}
+            className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            الحلول
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'solutions' ? 'rotate-180' : ''}`} />
+          </button>
+          <Link href="/#features" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">المميزات</Link>
+          <Link href="/#products" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">المنتجات</Link>
+          <button
+            type="button"
+            onMouseEnter={() => openMenu('industries')}
+            className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
+          >
+            الأنشطة
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${open === 'industries' ? 'rotate-180' : ''}`} />
+          </button>
+          <Link href="/#faq" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">الأسئلة الشائعة</Link>
           <Link href="/new" className="inline-flex items-center gap-1 text-sm font-black text-cyan-600 hover:text-cyan-500 transition-colors">
             <Sparkles className="w-3.5 h-3.5" />
             جديد
           </Link>
-          <Link href="/#features" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">المميزات</Link>
-          <Link href="/#themes" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">الثيمات</Link>
-          <Link href="/#industries" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">الأنشطة</Link>
-          <Link href="/#faq" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">الأسئلة الشائعة</Link>
         </div>
+
         <div className="flex items-center gap-3">
-          <Link
-            href="/login"
-            className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors"
-          >
-            دخول
-          </Link>
-          <Link
-            href="/signup"
-            className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-black hover:bg-cyan-400 transition-all"
-          >
-            ابدأ مجاناً
-          </Link>
+          <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-cyan-600 transition-colors">دخول</Link>
+          <Link href="/signup" className="px-4 py-2 rounded-xl bg-cyan-500 text-slate-900 text-sm font-black hover:bg-cyan-400 transition-all">ابدأ مجاناً</Link>
         </div>
+      </div>
+
+      {/* الشريط الأبيض بعرض الهدر كامل — بيفتح عند الـ hover */}
+      <div className="absolute left-0 right-0 top-full max-h-[calc(100vh-4rem)] overflow-y-auto">
+        {/* لوحة الحلول */}
+        {open === 'solutions' && (
+          <div onMouseEnter={() => openMenu('solutions')} onMouseLeave={scheduleClose}>
+            <div className="border-t border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+              <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {solutions.map((s) => (
+                    <Link
+                      key={s.title}
+                      href={s.href}
+                      className="group/item p-3 rounded-xl hover:bg-cyan-50 transition-colors"
+                    >
+                      <span className="block text-sm font-bold text-slate-800 group-hover/item:text-cyan-700 transition-colors">{s.title}</span>
+                      <span className="block text-xs text-slate-500 mt-0.5 leading-relaxed">{s.desc}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+{/* لوحة الأنشطة */}
+        {open === 'industries' && (
+          <div onMouseEnter={() => openMenu('industries')} onMouseLeave={scheduleClose}>
+            <div className="border-t border-slate-200 bg-white shadow-xl shadow-slate-900/10">
+              <div className="max-w-7xl mx-auto px-4 md:px-6 py-6">
+                <div className="grid gap-2 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+                  {industries.map((it) => (
+                    <Link
+                      key={it.label}
+                      href="/#industries"
+                      className="p-3 rounded-xl hover:bg-cyan-50 transition-colors"
+                    >
+                      <span className="block text-sm font-bold text-slate-700 hover:text-cyan-700 transition-colors">{it.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

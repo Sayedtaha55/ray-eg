@@ -12,6 +12,7 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/analytics"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/accounting"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/apps"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/audit"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/auth"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/bookings"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/cartevent"
@@ -66,6 +67,7 @@ type App struct {
 	Jobs                  *jobs.Client
 	Metrics               *telemetry.Metrics
 	Logger                *zap.Logger
+	auditHandler         *audit.Handler
 	authHandler           *auth.Handler
 	usersHandler          *users.Handler
 	shopsHandler          *shops.Handler
@@ -167,6 +169,7 @@ func New(cfg *config.Config) (*App, error) {
 
 	var (
 		authHandler           *auth.Handler
+		auditHandler          *audit.Handler
 		usersHandler          *users.Handler
 		shopsHandler          *shops.Handler
 		productsHandler       *products.Handler
@@ -218,7 +221,13 @@ func New(cfg *config.Config) (*App, error) {
 			Secure:   cfg.IsProduction(),
 			SameSite: "Lax",
 		}
-		authHandler = auth.NewHandler(authSvc, cookieCfg, cfg)
+
+		// Initialize audit service before auth handler
+		auditRepo := audit.NewRepository(pool)
+		auditSvc := audit.NewService(auditRepo)
+		auditHandler = audit.NewHandler(auditSvc, cfg)
+
+		authHandler = auth.NewHandler(authSvc, auditSvc, cookieCfg, cfg)
 
 		usersRepo := users.NewRepository(pool)
 		usersSvc := users.NewService(usersRepo)
@@ -232,8 +241,18 @@ func New(cfg *config.Config) (*App, error) {
 		productsSvc := products.NewService(productsRepo, compressionService)
 		productsHandler = products.NewHandler(productsSvc, cfg)
 
+		// Initialize notification service
+		notificationRepo := notification.NewRepository(pool)
+		webPushService := notification.NewWebPushService(
+			cfg.External.VAPIDSubject,
+			cfg.External.VAPIDPublicKey,
+			cfg.External.VAPIDPrivateKey,
+		)
+		notificationSvc := notification.NewService(notificationRepo, webPushService, jobsClient)
+		notificationHandler = notification.NewHandler(notificationSvc, cfg)
+
 		ordersRepo := orders.NewRepository(pool)
-		ordersSvc := orders.NewService(cfg, ordersRepo)
+		ordersSvc := orders.NewService(cfg, ordersRepo, notificationSvc)
 		ordersHandler = orders.NewHandler(ordersSvc, cfg)
 
 		builderSvc := shops.NewBuilderService(shopsRepo, log)
@@ -246,16 +265,6 @@ func New(cfg *config.Config) (*App, error) {
 		offersRepo := offers.NewRepository(pool)
 		offersSvc := offers.NewService(offersRepo)
 		offersHandler = offers.NewHandler(offersSvc, cfg)
-
-		// Initialize notification service
-		notificationRepo := notification.NewRepository(pool)
-		webPushService := notification.NewWebPushService(
-			cfg.External.VAPIDSubject,
-			cfg.External.VAPIDPublicKey,
-			cfg.External.VAPIDPrivateKey,
-		)
-		notificationSvc := notification.NewService(notificationRepo, webPushService, jobsClient)
-		notificationHandler = notification.NewHandler(notificationSvc, cfg)
 
 		// Initialize analytics service
 		analyticsRepo := analytics.NewRepository(pool)
@@ -394,6 +403,7 @@ func New(cfg *config.Config) (*App, error) {
 		Jobs:                  jobsClient,
 		Metrics:               metrics,
 		Logger:                log,
+		auditHandler:          auditHandler,
 		authHandler:           authHandler,
 		usersHandler:          usersHandler,
 		shopsHandler:          shopsHandler,
@@ -492,6 +502,11 @@ func (a *App) registerRoutes() {
 		a.authHandler.RegisterRoutes(api)
 	}
 
+	// Audit domain routes.
+	if a.auditHandler != nil {
+		a.auditHandler.RegisterRoutes(api)
+	}
+
 	// Users domain routes.
 	if a.usersHandler != nil {
 		a.usersHandler.RegisterRoutes(api)
@@ -509,6 +524,8 @@ func (a *App) registerRoutes() {
 		// Builder domain routes (auth required — owner/admin gated inside handlers).
 		if a.builderHandler != nil {
 			a.builderHandler.RegisterBuilderRoutes(api, middleware.RequireAuth(a.Config))
+			// Public storefront endpoint (no auth): GET /shops/:slug/website
+			a.builderHandler.RegisterPublicRoutes(api)
 		}
 	}
 

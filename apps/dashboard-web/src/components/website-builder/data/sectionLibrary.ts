@@ -1173,7 +1173,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_p1',
         childrenIds: [],
-        props: { text: '199 ر.س / شهرياً' },
+        props: { text: '199 ج.م / شهرياً' },
         styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#2563eb', marginTop: '12px', marginBottom: '20px' } },
       },
       'tmpl_p1_btn': {
@@ -1213,7 +1213,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_p2',
         childrenIds: [],
-        props: { text: '499 ر.س / شهرياً' },
+        props: { text: '499 ج.م / شهرياً' },
         styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginTop: '12px', marginBottom: '20px' } },
       },
       'tmpl_p2_btn': {
@@ -1253,7 +1253,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_p3',
         childrenIds: [],
-        props: { text: '1499 ر.س / شهرياً' },
+        props: { text: '1499 ج.م / شهرياً' },
         styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#2563eb', marginTop: '12px', marginBottom: '20px' } },
       },
       'tmpl_p3_btn': {
@@ -2429,7 +2429,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_sg_c1',
         childrenIds: [],
-        props: { text: '500+ مليون ر.س' },
+        props: { text: '500+ مليون ج.م' },
         styles: { desktop: { fontSize: '28px', fontWeight: '800', textColor: '#0f172a', marginBottom: '8px' } },
       },
       'tmpl_sg1_desc': {
@@ -3044,7 +3044,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_fc_card1',
         childrenIds: [],
-        props: { text: '950,000 ر.س' },
+        props: { text: '950,000 ج.م' },
         styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
       },
       'tmpl_f1_btn': {
@@ -3104,7 +3104,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_fc_card2',
         childrenIds: [],
-        props: { text: '870,000 ر.س' },
+        props: { text: '870,000 ج.م' },
         styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
       },
       'tmpl_f2_btn': {
@@ -3164,7 +3164,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_fc_card3',
         childrenIds: [],
-        props: { text: '460,000 ر.س' },
+        props: { text: '460,000 ج.م' },
         styles: { desktop: { fontSize: '20px', fontWeight: '900', textColor: '#2563eb', paddingLeft: '20px', paddingRight: '20px', marginBottom: '14px' } },
       },
       'tmpl_f3_btn': {
@@ -3551,7 +3551,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_prv_c1',
         childrenIds: [],
-        props: { text: '3,500 ر.س / سنوياً' },
+        props: { text: '3,500 ج.م / سنوياً' },
         styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginBottom: '20px' } },
       },
       'tmpl_pc1_feats': {
@@ -3611,7 +3611,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_prv_c2',
         childrenIds: [],
-        props: { text: '6,900 ر.س / سنوياً' },
+        props: { text: '6,900 ج.م / سنوياً' },
         styles: { desktop: { fontSize: '28px', fontWeight: '900', textColor: '#ffffff', marginBottom: '20px' } },
       },
       'tmpl_pc2_feats': {
@@ -3661,7 +3661,7 @@ export const sectionTemplates: SectionTemplate[] = [
         category: 'typography',
         parentId: 'tmpl_prv_c3',
         childrenIds: [],
-        props: { text: '11,500 ر.س / سنوياً' },
+        props: { text: '11,500 ج.م / سنوياً' },
         styles: { desktop: { fontSize: '24px', fontWeight: '800', textColor: '#ffffff', marginBottom: '20px' } },
       },
       'tmpl_pc3_feats': {

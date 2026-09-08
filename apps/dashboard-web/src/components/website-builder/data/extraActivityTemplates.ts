@@ -140,7 +140,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c1',
           title: 'دبلوم الذكاء الاصطناعي التوليدي وهندسة النماذج (GenAI)',
-          price: '3,850 ر.س',
+          price: '3,850 ج.م',
           description: 'تعلم بناء تطبيقات LLM، ودمج Gemini وOpenAI مع برمجيات بايثون وLangChain وتطوير وكلاء ذكاء اصطناعي.',
           image: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?w=600&auto=format&fit=crop&q=80',
           badge: 'الأكثر طلباً 🔥',
@@ -149,7 +149,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c2',
           title: 'معسكر هندسة البرمجيات الكاملة (Full-Stack React & Node.js)',
-          price: '4,200 ر.س',
+          price: '4,200 ج.م',
           description: 'بناء منصات الويب السحابية الحديثة من الصفر وتطوير قواعد البيانات والنشر على AWS وCloud Run.',
           image: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600&auto=format&fit=crop&q=80',
           badge: 'معسكر مكثف',
@@ -158,7 +158,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c3',
           title: 'شهادة إدارة المشاريع الاحترافية الدولية (PMP® Edition)',
-          price: '2,400 ر.س',
+          price: '2,400 ج.م',
           description: 'تأهيل كامل لاجتياز اختبار PMP مع تدريب عملي على منهجيات Agile وScrum ومحاكاة الاختبار الحقيقي.',
           image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&auto=format&fit=crop&q=80',
           badge: 'اعتماد PMI',
@@ -167,7 +167,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c4',
           title: 'دبلوم الأمن السيبراني واختبار الاختراق الأخلاقي',
-          price: '3,600 ر.س',
+          price: '3,600 ج.م',
           description: 'حماية الشبكات السحابية، التحقيق الجنائي الرقمي، واكتشاف الثغرات الأمنية في التطبيقات.',
           image: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=600&auto=format&fit=crop&q=80',
           badge: 'مستوى متقدم',
@@ -176,7 +176,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c5',
           title: 'مسار تصميم تجربة وواجهة المستخدم الشامل (UI/UX Design)',
-          price: '2,200 ر.س',
+          price: '2,200 ج.م',
           description: 'احتراف Figma، وأبحاث تجربة المستخدم، وبناء أنظمة التصميم Design Systems ونماذج تفاعلية.',
           image: 'https://images.unsplash.com/photo-1581291518633-83b4ebd1d83e?w=600&auto=format&fit=crop&q=80',
           badge: 'محفظة أعمال',
@@ -185,7 +185,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'c6',
           title: 'البرنامج التنفيذي للقيادة الرقمية والتحول المؤسسي',
-          price: '4,900 ر.س',
+          price: '4,900 ج.م',
           description: 'استراتيجيات قيادة الفرق التقنية، الحوكمة الرقمية، واستثمار أدوات الذكاء الاصطناعي في الأعمال.',
           image: 'https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=600&auto=format&fit=crop&q=80',
           badge: 'تنفيذي',
@@ -230,7 +230,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_single',
           title: 'مسار فردي محدد',
-          price: '1,450 ر.س',
+          price: '1,450 ج.م',
           period: 'دورة واحدة',
           description: 'مثالي لمن يرغب في احتراف مهارة أو تقنية محددة في وقت قياسي.',
           features: ['حضور دورة كاملة مباشرة', 'مشاريع عملية وتطبيقات', 'شهادة إتمام معتمدة', 'تسجيلات المحاضرات 6 أشهر'],
@@ -239,7 +239,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_pro',
           title: 'دبلوم المعسكر المتكامل',
-          price: '3,800 ر.س',
+          price: '3,800 ج.م',
           period: 'برنامج مكثف',
           badge: 'الأكثر شعبية ⭐',
           isPopular: true,
@@ -250,7 +250,7 @@ export const academyComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_enterprise',
           title: 'باقة الشركات والمؤسسات',
-          price: '8,500 ر.س',
+          price: '8,500 ج.م',
           period: 'لفريق العمل',
           description: 'تدريب مخصص للفرق التقنية والمؤسسية مع تقارير أداء ومتابعة مستمرة.',
           features: ['تدريب حتى 10 متدربين', 'مناهج مخصصة حسب احتياج الشركة', 'لوحة تحكم لمتابعة أداء الموظفين', 'شهادات معتمدة لكل عضو', 'مدرب خاص ودعم فني مخصص'],
@@ -415,7 +415,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p1',
           title: 'iPhone 16 Pro Max (تيتانيوم صحراوي - 256GB)',
-          price: '5,199 ر.س',
+          price: '5,199 ج.م',
           description: 'شريحة A18 Pro الجبارة مع زر التحكم بالكاميرا وكاميرا بدقة 48 ميجابكسل وبطارية تدوم طويلاً.',
           image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=600&auto=format&fit=crop&q=80',
           badge: 'الأحدث 🔥',
@@ -424,7 +424,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p2',
           title: 'MacBook Pro 16" (شريحة M3 Max - 36GB RAM)',
-          price: '11,499 ر.س',
+          price: '11,499 ج.م',
           description: 'محطة العمل المحمولة الأقوى للمطورين وصناع المحتوى مع شاشة Liquid Retina XDR مبهرة.',
           image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=600&auto=format&fit=crop&q=80',
           badge: 'أداء احترافي',
@@ -433,7 +433,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p3',
           title: 'سماعات Sony WH-1000XM5 العازلة للضوضاء',
-          price: '1,299 ر.س',
+          price: '1,299 ج.م',
           description: 'أفضل عزل صوت في العالم مع صوت عالي الدقة Hi-Res وميكروفونات ذكية للمكالمات النقية.',
           image: 'https://images.unsplash.com/photo-1546435770-a3e426bf472b?w=600&auto=format&fit=crop&q=80',
           badge: 'صوت Hi-Res',
@@ -442,7 +442,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p4',
           title: 'Apple Watch Ultra 2 (تيتانيوم أسود مع سوار المحيط)',
-          price: '3,399 ر.س',
+          price: '3,399 ج.م',
           description: 'الساعة الرياضية الأكثر صلابة وقوة مع نظام تحديد المواقع المزدوج الدقيق ومقاومة الماء 100م.',
           image: 'https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?w=600&auto=format&fit=crop&q=80',
           badge: 'مغامرات ورياضة',
@@ -451,7 +451,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p5',
           title: 'شاشة Samsung Odyssey OLED G9 (49 بوصة منحنية 240Hz)',
-          price: '4,799 ر.س',
+          price: '4,799 ج.م',
           description: 'تجربة ألعاب غامرة بدقة Dual QHD وزمن استجابة 0.03ms مع ألوان OLED ساحرة.',
           image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=600&auto=format&fit=crop&q=80',
           badge: 'شاشة ألعاب 240Hz',
@@ -460,7 +460,7 @@ export const electronicsComponents: Record<string, ComponentNode> = {
         {
           id: 'p6',
           title: 'iPad Pro 13" M4 (شاشة Ultra Retina XDR نحيفة جداً)',
-          price: '4,699 ر.س',
+          price: '4,699 ج.م',
           description: 'أنحف جهاز صممته آبل على الإطلاق مع شريحة M4 وأداء مذهل للرسم والتصميم والإنتاجية.',
           image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=600&auto=format&fit=crop&q=80',
           badge: 'M4 OLED',
@@ -644,7 +644,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f1',
           title: 'طقم جلوس لوسيان الملكي (قماش بوكليه فرنسي وأرجل خشب زان)',
-          price: '12,800 ر.س',
+          price: '12,800 ج.م',
           description: 'تصميم انسيابي عصري يتسع لـ 8 أشخاص مع حشوة ريش ناعمة وإسفنج عالي الكثافة لراحة استثنائية.',
           image: 'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=600&auto=format&fit=crop&q=80',
           badge: 'الملكية الفاخرة',
@@ -653,7 +653,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f2',
           title: 'غرفة نوم ماستر أندلسية (خشب جوز طبيعي مع تنجيد جلد)',
-          price: '18,500 ر.س',
+          price: '18,500 ج.م',
           description: 'تشمل سريراً كينغ مع رأسية جلدية فاخرة، دولاب سحاب 6 درف، تسريحة رخامية و2 كومودينو.',
           image: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?w=600&auto=format&fit=crop&q=80',
           badge: 'ماستر VIP',
@@ -662,7 +662,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f3',
           title: 'طاولة طعام ماربيلا رخام كلكتا طبيعي مع 8 كراسي مخمل',
-          price: '9,900 ر.س',
+          price: '9,900 ج.م',
           description: 'سطح رخام إيطالي كلكتا فاخر مقاوم للحرارة والخدش مع قاعدة ستيل ذهبي مطفي وكراسي مريحة.',
           image: 'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=600&auto=format&fit=crop&q=80',
           badge: 'رخام طبيعي',
@@ -671,7 +671,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f4',
           title: 'طقم كنب زاوية مودرن بيج ساند (Modular Sofa System)',
-          price: '8,400 ر.س',
+          price: '8,400 ج.م',
           description: 'كنب معياري مرن يمكن إعادة ترتيب قطعه بسهولة ليتناسب مع أي مساحة صالة أو معيشة.',
           image: 'https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=600&auto=format&fit=crop&q=80',
           badge: 'مودرن عملي',
@@ -680,7 +680,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f5',
           title: 'مكتب تنفيذي ملكي خشب ماهوجني مع خزانة كتب جدارية',
-          price: '11,200 ر.س',
+          price: '11,200 ج.م',
           description: 'مكتب فخم لرجال الأعمال والمديرين مع لمسات جلدية وقفل ذكي ومخارج شحن وكابلات مدمجة.',
           image: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=600&auto=format&fit=crop&q=80',
           badge: 'تنفيذي فاخر',
@@ -689,7 +689,7 @@ export const furnitureComponents: Record<string, ComponentNode> = {
         {
           id: 'f6',
           title: 'طقم طاولات خدمة وضيافة رخام مع ستاند تلفزيون عصري',
-          price: '4,600 ر.س',
+          price: '4,600 ج.م',
           description: 'طقم مكون من طاولة وسط كبيرة و4 طاولات جانبية ووحدة تلفزيون بتصميم هندسي راقٍ.',
           image: 'https://images.unsplash.com/photo-1538688525198-9b88f6f53126?w=600&auto=format&fit=crop&q=80',
           badge: 'طقم متكامل',
@@ -874,7 +874,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r1',
           title: 'مرسيدس S-Class 2025 (S500 ليموزين VIP مع سائق خاص)',
-          price: '1,850 ر.س / يوم',
+          price: '1,850 ج.م / يوم',
           description: 'قمة الفخامة والراحة لرجال الأعمال وكبار الشخصيات مع كراسي مساج وشاشات خلفية وتكييف منفصل.',
           image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=600&auto=format&fit=crop&q=80',
           badge: 'VIP فخامة',
@@ -883,7 +883,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r2',
           title: 'رينج روفر سبورت 2025 (Autobiography دفع رباعي)',
-          price: '1,600 ر.س / يوم',
+          price: '1,600 ج.م / يوم',
           description: 'سيارة الدفع الرباعي الرياضية الفاخرة التي تجمع بين الأداء القوي والهيبة المطلقة في كل طريق.',
           image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=600&auto=format&fit=crop&q=80',
           badge: 'دفع رباعي فاخر',
@@ -892,7 +892,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r3',
           title: 'بي إم دبليو الفئة السابعة (BMW 740i M-Sport 2025)',
-          price: '1,450 ر.س / يوم',
+          price: '1,450 ج.م / يوم',
           description: 'شاشة سينمائية خلفية 31 بوصة وأبواب كهربائية بالكامل لتجربة قيادة وركوب استثنائية.',
           image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=600&auto=format&fit=crop&q=80',
           badge: 'M-Performance',
@@ -901,7 +901,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r4',
           title: 'تويوتا لاندكروزر 2025 (GR-Sport Twin Turbo V6)',
-          price: '850 ر.س / يوم',
+          price: '850 ج.م / يوم',
           description: 'مفخرة الأرض الأقوى للمغامرات والرحلات العائلية والسفر الطويل مع 7 مقاعد مريحة.',
           image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&auto=format&fit=crop&q=80',
           badge: 'عائلية ووعرة',
@@ -910,7 +910,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r5',
           title: 'لكزس ES 350 هايبرد فل كامل 2025',
-          price: '450 ر.س / يوم',
+          price: '450 ج.م / يوم',
           description: 'هدوء وانسيابية فائقة مع اقتصاد ممتاز للوقود ومظهر أنيق يناسب المشاوير اليومية والعمل.',
           image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=600&auto=format&fit=crop&q=80',
           badge: 'الأكثر طلباً',
@@ -919,7 +919,7 @@ export const carRentalComponents: Record<string, ComponentNode> = {
         {
           id: 'r6',
           title: 'هيونداي أكسنت / إلنترا 2025 اقتصادية',
-          price: '120 ر.س / يوم',
+          price: '120 ج.م / يوم',
           description: 'الخيار العملي الأفضل للمشاوير السريعة والدوام مع استهلاك وقود منخفض جداً وتكييف بارد.',
           image: 'https://images.unsplash.com/photo-1590362891991-f776e747a588?w=600&auto=format&fit=crop&q=80',
           badge: 'اقتصادية وعملية',
@@ -1104,7 +1104,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w1',
           title: 'بوكيه الجوري الملكي الأحمر الفاخر (100 وردة هولندية)',
-          price: '480 ر.س',
+          price: '480 ج.م',
           description: 'تنسيق ملكي مبهر من 100 وردة جوري حمراء مخملية مع تغليف أسود ملكي وشريطة حريرية.',
           image: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&auto=format&fit=crop&q=80',
           badge: 'الملكية الفاخرة 🌹',
@@ -1113,7 +1113,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w2',
           title: 'فازة التوليب الهولندي الوردي مع شوكولاتة باتشي',
-          price: '360 ر.س',
+          price: '360 ج.م',
           description: 'فازة زجاجية أنيقة تضم زهور التوليب المنعشة مع علبة شوكولاتة بلجيكية فاخرة.',
           image: 'https://images.unsplash.com/photo-1526047932273-341f2a7631f9?w=600&auto=format&fit=crop&q=80',
           badge: 'توليب وشوكولاتة',
@@ -1122,7 +1122,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w3',
           title: 'صندوق الهدايا الملكي (ورد أبيض مع عطر فخم وبخور)',
-          price: '550 ر.س',
+          price: '550 ج.م',
           description: 'هدية راقية متكاملة تضم ورود بيضاء وبيبي جوري مع دهن عود وبخور فاخر وتنسيق مذهل.',
           image: 'https://images.unsplash.com/photo-1518895949257-7621c3c786d7?w=600&auto=format&fit=crop&q=80',
           badge: 'هدية VIP متكاملة',
@@ -1131,7 +1131,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w4',
           title: 'استاند استقبال المواليد الفاخر مع بالونات هيليوم',
-          price: '690 ر.س',
+          price: '690 ج.م',
           description: 'استاند أكريليك أو خشب مزين بأجمل الورود الطبيعية وبالونات هيليوم واسم المولود.',
           image: 'https://images.unsplash.com/photo-1533616688419-b7a585564566?w=600&auto=format&fit=crop&q=80',
           badge: 'مواليد واستقبال',
@@ -1140,7 +1140,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w5',
           title: 'نبات الأوركيد الأبيض الملكي في حوض سيراميك إيطالي',
-          price: '320 ر.س',
+          price: '320 ج.م',
           description: 'نبات أوركيد طبيعي حي يدوم لأشهر ويزين صالات الاستقبال والمكاتب بأناقة فائقة.',
           image: 'https://images.unsplash.com/photo-1508615039623-a25605d2b022?w=600&auto=format&fit=crop&q=80',
           badge: 'نبات حي دائم',
@@ -1149,7 +1149,7 @@ export const flowersComponents: Record<string, ComponentNode> = {
         {
           id: 'w6',
           title: 'بوكيه التخرج والنجاح المبهج مع كاب ودمية تخرج',
-          price: '240 ر.س',
+          price: '240 ج.م',
           description: 'باقة مبهجة من زهور دوار الشمس والجوري الأصفر والوردي مع وشاح مبروك التخرج.',
           image: 'https://images.unsplash.com/photo-1561181286-d3fee7d55364?w=600&auto=format&fit=crop&q=80',
           badge: 'تخرج واحتفال',
@@ -1334,7 +1334,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac1',
           title: 'مسك الدفاتر المحاسبية وإعداد القوائم المالية الدورية',
-          price: '1,500 ر.س / شهر',
+          price: '1,500 ج.م / شهر',
           description: 'تسجيل العمليات اليومية، مطابقة كشوف الحسابات البنكية، وإصدار ميزان المراجعة وقائمة الدخل والمركز المالي.',
           image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?w=600&auto=format&fit=crop&q=80',
           badge: 'خدمة شهرية أساسية',
@@ -1343,7 +1343,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac2',
           title: 'إعداد وتقديم الإقرارات الضريبية والزكوية (ZATCA)',
-          price: '850 ر.س / إقرار',
+          price: '850 ج.م / إقرار',
           description: 'حساب ضريبة القيمة المضافة بدقة، وتقديم إقرارات الزكاة وضريبة الدخل واسترداد الضرائب وتجنب الغرامات.',
           image: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=600&auto=format&fit=crop&q=80',
           badge: 'امتثال ضريبي',
@@ -1352,7 +1352,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac3',
           title: 'تأهيل وربط الفوترة الإلكترونية (المرحلة الثانية - الربط والتكامل)',
-          price: '2,200 ر.س',
+          price: '2,200 ج.م',
           description: 'ربط نظام مبيعاتك ونقاط البيع مع منصة فاتورة (Fatoora) التابعة لهيئة الزكاة وتوليد الكريبتوجرافي والـ QR كود.',
           image: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=600&auto=format&fit=crop&q=80',
           badge: 'ربط ZATCA فوري',
@@ -1361,7 +1361,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac4',
           title: 'التدقيق المالي الداخلي ومراجعة الحسابات القانونية',
-          price: '4,500 ر.س',
+          price: '4,500 ج.م',
           description: 'فحص وتدقيق السجلات المحاسبية والرقابة الداخلية وإصدار تقرير مراجع الحسابات المعتمد لتقديمه للبنوك والمستثمرين.',
           image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=600&auto=format&fit=crop&q=80',
           badge: 'تقرير معتمد SOCPA',
@@ -1370,7 +1370,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac5',
           title: 'دراسات الجدوى الاقتصادية ونمذجة التكاليف والتسعير',
-          price: '3,800 ر.س',
+          price: '3,800 ج.م',
           description: 'إعداد دراسات جدوى مالية وتسويقية متوافقة مع متطلبات بنك التنمية وصناديق الاستثمار ومسرعات الأعمال.',
           image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&auto=format&fit=crop&q=80',
           badge: 'دراسات معتمدة',
@@ -1379,7 +1379,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'ac6',
           title: 'استشارات التخطيط المالي وتأسيس الهيكل المالي للشركات',
-          price: '2,900 ر.س',
+          price: '2,900 ج.م',
           description: 'تصميم دليل الحسابات، سياسات الصرف والتحصيل، وإدارة التدفقات النقدية لحماية سيولة الشركة.',
           image: 'https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=600&auto=format&fit=crop&q=80',
           badge: 'تخطيط تنفيذي',
@@ -1424,7 +1424,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'acc_tier_starter',
           title: 'باقة المنشآت الصغيرة',
-          price: '990 ر.س',
+          price: '990 ج.م',
           period: 'شهرياً',
           description: 'مثالية للمتاجر الإلكترونية والمؤسسات الفردية الناشئة.',
           features: ['حتى 100 حركة مالية شهرياً', 'إعداد الإقرار الضريبي الفصلي', 'قائمة الدخل والمركز المالي', 'استشارة هاتفية شهرية'],
@@ -1433,7 +1433,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'acc_tier_growth',
           title: 'باقة الشركات المتوسطة',
-          price: '1,850 ر.س',
+          price: '1,850 ج.م',
           period: 'شهرياً',
           badge: 'الأكثر اختياراً 🌟',
           isPopular: true,
@@ -1444,7 +1444,7 @@ export const accountingComponents: Record<string, ComponentNode> = {
         {
           id: 'acc_tier_corp',
           title: 'باقة الشركات الكبرى والمجموعات',
-          price: '3,800 ر.س',
+          price: '3,800 ج.م',
           period: 'شهرياً',
           description: 'إدارة مالية متقدمة وتدقيق مستمر للمؤسسات والشركات الكبرى.',
           features: ['حركات مالية غير محدودة', 'إشراف على برامج ERP السحابية', 'تدقيق مالي ربع سنوي وإغلاق سنوي', 'دراسة وتحسين كفاءة التكاليف', 'جلسة استراتيجية شهرية مع الشريك الإداري'],

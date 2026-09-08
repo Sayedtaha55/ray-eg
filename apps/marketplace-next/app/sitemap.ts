@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import { siteConfig, activities } from '@/lib/config';
 import { getShops, getProducts } from '@/lib/services';
+import { api } from '@/lib/api';
 
 export const revalidate = 3600;
 
@@ -88,5 +89,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
   } catch {}
 
-  return [...staticPages, ...activityPages, ...blogPages, ...shopPages, ...productPages];
+  let sitePages: MetadataRoute.Sitemap = [];
+  try {
+    const res = await api.get<any>('/shops/published-slugs', {
+      revalidate: 3600,
+      tags: ['published-slugs'],
+    });
+    const slugs: string[] = Array.isArray(res?.data) ? res.data : [];
+    sitePages = slugs.map((slug) => ({
+      url: `${baseUrl}/site/${slug}`,
+      lastModified: now,
+      changeFrequency: 'daily' as const,
+      priority: 0.9,
+    }));
+  } catch {}
+
+  return [...staticPages, ...activityPages, ...blogPages, ...shopPages, ...productPages, ...sitePages];
 }

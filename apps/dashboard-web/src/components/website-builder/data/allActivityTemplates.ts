@@ -223,7 +223,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
         {
           id: 'prop_1',
           title: 'فيلا الملقا الملكية VIP | مساحة 650 م²',
-          price: '4,850,000 ر.س',
+          price: '4,850,000 ج.م',
           badge: 'جاهزة للسكن',
           image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&auto=format&fit=crop&q=80',
           specs: ['6 أجنحة نوم ماستر', 'مسبح خاص وحديقة ذكية', 'تكييف مركزي ومصعد إيطالي', 'حي الملقا الراقي، الرياض'],
@@ -231,7 +231,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
         {
           id: 'prop_2',
           title: 'بنتهاوس أبراج كافد KAFD Sky View',
-          price: '3,200,000 ر.س',
+          price: '3,200,000 ج.م',
           badge: 'إطلالة بانورامية',
           image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop&q=80',
           specs: ['3 غرف نوم وصالة واسعة', 'شرفة خاصة بإطلالة المركز المالي', 'نادي صحي وحراسة 24/7', 'مركز الملك عبدالله المالي'],
@@ -239,7 +239,7 @@ export const realEstateComponents: Record<string, ComponentNode> = {
         {
           id: 'prop_3',
           title: 'تاون هاوس النرجس الحديث | مساحة 320 م²',
-          price: '1,950,000 ر.س',
+          price: '1,950,000 ج.م',
           badge: 'سعر استثماري',
           image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&auto=format&fit=crop&q=80',
           specs: ['4 غرف نوم وحديقة خلفية', 'تصميم مودرن بواجهات زجاجية', 'ضمانات إنشائية 10 سنوات', 'حي النرجس، شمال الرياض'],
@@ -437,7 +437,7 @@ export const fashionComponents: Record<string, ComponentNode> = {
         {
           id: 'fsh_item_1',
           title: 'فستان السهرة الملكي بلون التوت والزمرد',
-          price: '1,250 ر.س',
+          price: '1,250 ج.م',
           badge: 'الأكثر طلباً',
           image: 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=800&auto=format&fit=crop&q=80',
           specs: ['حرير إيطالي ناعم', 'تطريز يدوي فاخر', 'متوفر بالمقاسات S - M - L - XL'],
@@ -445,7 +445,7 @@ export const fashionComponents: Record<string, ComponentNode> = {
         {
           id: 'fsh_item_2',
           title: 'عباية مخملية كلوش بتطريز لؤلؤي ناعم',
-          price: '890 ر.س',
+          price: '890 ج.م',
           badge: 'إصدار محدود',
           image: 'https://images.unsplash.com/photo-1583391733956-3750e0ff4e8b?w=800&auto=format&fit=crop&q=80',
           specs: ['قماش كريب ملكي كوري', 'شاملة الطرحة المطرزة', 'قصة مريحة وعصرية'],
@@ -453,7 +453,7 @@ export const fashionComponents: Record<string, ComponentNode> = {
         {
           id: 'fsh_item_3',
           title: 'طقم كاجوال أنيق قطعتين (جاكيت + بنطال)',
-          price: '640 ر.س',
+          price: '640 ج.م',
           badge: 'وصل حديثاً',
           image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&auto=format&fit=crop&q=80',
           specs: ['كتان طبيعي بارد', 'مناسب للعمل والمناسبات', 'ألوان: بيج / زيتي / كحلي'],
@@ -632,7 +632,7 @@ export const groceryComponents: Record<string, ComponentNode> = {
         {
           id: 'grc_p1',
           title: 'صندوق خضار مشكل طازج قطاف المزارع (8 كجم)',
-          price: '45.00 ر.س',
+          price: '45.00 ج.م',
           badge: 'طازج اليوم',
           image: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?w=800&auto=format&fit=crop&q=80',
           specs: ['طماطم، خيار، كوسة، جزر، بطاطس', 'عضوي 100% بدون مبيدات', 'معبأ في كرتون صحي مبرد'],
@@ -640,7 +640,7 @@ export const groceryComponents: Record<string, ComponentNode> = {
         {
           id: 'grc_p2',
           title: 'لحم حاشي بلدي طازج بالعظم (1 كجم)',
-          price: '58.00 ر.س',
+          price: '58.00 ج.م',
           badge: 'ذبح اليوم',
           image: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=800&auto=format&fit=crop&q=80',
           specs: ['بلدي بإشراف بيطري معتمد', 'تقطيع حسب رغبة العميل', 'تغليف سحب هواء مفرغ'],
@@ -648,7 +648,7 @@ export const groceryComponents: Record<string, ComponentNode> = {
         {
           id: 'grc_p3',
           title: 'سلة مخبوزات فرنسية وكرواسون بالزبدة (12 حبة)',
-          price: '32.00 ر.س',
+          price: '32.00 ج.م',
           badge: 'مخبوز طازج',
           image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800&auto=format&fit=crop&q=80',
           specs: ['مخبوز بفرن الحطب الحجري', 'شوكولاتة، جبن، وزعتر طازج', 'يصلك دافئاً خلال 30 دقيقة'],
@@ -826,7 +826,7 @@ export const homeServicesComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_ac',
           title: '❄️ غسيل وصيانة تكييف سبليت',
-          price: '89 ر.س / مكيف',
+          price: '89 ج.م / مكيف',
           badge: 'العرض الأقوى',
           features: ['غسيل بالضغط العالي وغلاف حماية', 'فحص الفريون ومجاري التصريف', 'تعقيم الفلاتر بمركبات مضادة للبكتيريا', 'ضمان شهر كامل على جودة التبريد'],
           ctaText: 'حجز فني تكييف',
@@ -834,7 +834,7 @@ export const homeServicesComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_plumb',
           title: '🚰 كشف تسربات المياه والسباكة',
-          price: '150 ر.س',
+          price: '150 ج.م',
           badge: 'جهاز إلكتروني',
           features: ['كشف بدون تكسير بأجهزة كهرومغناطيسية', 'تقرير معتمد لشركة المياه الوطنية', 'إصلاح فوري لمضخات وخلاطات المياه', 'عزل وتأمين الخزانات الأرضية'],
           ctaText: 'حجز فحص سباكة',
@@ -842,7 +842,7 @@ export const homeServicesComponents: Record<string, ComponentNode> = {
         {
           id: 'tier_electric',
           title: '⚡ صيانة لوحات وتمديدات الكهرباء',
-          price: '120 ر.س',
+          price: '120 ج.م',
           badge: 'فني معتمد',
           features: ['فحص القواطع وتوازن الأحمال', 'إصلاح التماسات الكهرباء والإنارة', 'تركيب أجهزة سمارت هوم وإضاءة LED', 'تأريض وحماية الأجهزة الحساسة'],
           ctaText: 'حجز فني كهرباء',
@@ -1023,7 +1023,7 @@ export const travelComponents: Record<string, ComponentNode> = {
         {
           id: 'pkg_maldives',
           title: '🌴 بكج جزر المالديف الملكي (6 أيام / 5 ليالي)',
-          price: '8,900 ر.س / شخصين',
+          price: '8,900 ج.م / شخصين',
           badge: 'شهر عسل VIP',
           image: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&auto=format&fit=crop&q=80',
           specs: ['فيلا فوق الماء مع مسبح خاص', 'طيران داخلي بالطائرة المائية', 'شامل جميع الوجبات والأنشطة البحرية'],
@@ -1031,7 +1031,7 @@ export const travelComponents: Record<string, ComponentNode> = {
         {
           id: 'pkg_swiss',
           title: '🏔️ رحلة سويسرا وجبال الألب (8 أيام / 7 ليالي)',
-          price: '11,400 ر.س / شخص',
+          price: '11,400 ج.م / شخص',
           badge: 'طبيعة ساحرة',
           image: 'https://images.unsplash.com/photo-1530122037265-a5f1f91d3b99?w=800&auto=format&fit=crop&q=80',
           specs: ['إنترلاكن وزيورخ وجنيف', 'تذكرة قطار سويس باس الدرجة الأولى', 'فنادق 5 نجوم بإطلالات جبلية'],
@@ -1039,7 +1039,7 @@ export const travelComponents: Record<string, ComponentNode> = {
         {
           id: 'pkg_bosnia',
           title: '🌲 بكج سراييفو والبوسنة العائلي (7 أيام / 6 ليالي)',
-          price: '4,800 ر.س / شخص',
+          price: '4,800 ج.م / شخص',
           badge: 'عائلي مميز',
           image: 'https://images.unsplash.com/photo-1596484552834-6a58f850e0a1?w=800&auto=format&fit=crop&q=80',
           specs: ['سيارة خاصة فان مع سائق يتحدث العربية', 'شلالات كرافيتسا ونهر بونا', 'أكواخ ريفية فاخرة'],
@@ -1447,6 +1447,99 @@ all85ActivitiesMeta.forEach((meta) => {
   if (!allActivityWebsites[meta.id]) {
     allActivityWebsites[meta.id] = generateActivityWebsite(meta);
   }
+});
+
+// ==========================================
+// قوالب الأنشطة الناقصة (مطلوبة من activitiesRegistry كـ defaultWebsiteId)
+// ==========================================
+const missingRegistrySiteMetas: ActivityTemplateMeta[] = [
+  {
+    id: 'site_supermarket_grocery',
+    tenantId: 'tenant_al_waha_grocery',
+    name: 'سوبرماركت البقالة والتموين المنزلي',
+    category: 'البقالة والتموين',
+    icon: '🛒',
+    badge: 'خضار وفواكه طازجة ومقاضي بتوصيل سريع',
+    themeKey: 'groceryFresh',
+    primaryColor: '#16a34a',
+    description: 'قالب سوبرماركت متكامل: مقاضي منزلية، خضار وفواكه يومية، ألبان ولحوم، وعروض أسبوعية بتوصيل لحد باب البيت.',
+    tags: ['سوبرماركت', 'مقاضي', 'توصيل سريع', 'عروض أسبوعية'],
+  },
+  {
+    id: 'site_fashion_apparel',
+    tenantId: 'tenant_opal_fashion',
+    name: 'أوبال للأزياء والملابس الجاهزة',
+    category: 'الأزياء والملابس',
+    icon: '👗',
+    badge: 'أحدث صيحات الموضة للرجال والنساء والأطفال',
+    themeKey: 'fashionChic',
+    primaryColor: '#db2777',
+    description: 'قالب أزياء أنيق: كولكشن الموسم الجديد، ملابس كاجوال وفخمة، أحذية وحقائب، مع تجربة تسوق سلسة وشحن لكل المحافظات.',
+    tags: ['أزياء', 'موضة', 'كولكشن جديد', 'شحن لكل المحافظات'],
+  },
+  {
+    id: 'site_gold_jewelry',
+    tenantId: 'tenant_zumurrud_jewelry',
+    name: 'الزمرد للمجوهرات والذهب والمصاغ',
+    category: 'الذهب والمجوهرات',
+    icon: '💎',
+    badge: 'ذهب عيار 18 و21 ومجوهرات ماسية بضمان مصنع',
+    themeKey: 'goldRoyalty',
+    primaryColor: '#d97706',
+    description: 'قالب مجوهرات فخم: شغل مصنع، سلاسل وخواتم وأطقم زفاف، مجوهرات ماسية بشهادات أصالة، وشنطة كماليات متنوعة.',
+    tags: ['ذهب', 'مجوهرات', 'أطقم زفاف', 'شهادات أصالة'],
+  },
+  {
+    id: 'site_real_estate',
+    tenantId: 'tenant_afaq_real_estate',
+    name: 'آفاق للتطوير والاستثمار العقاري',
+    category: 'العقارات',
+    icon: '🏢',
+    badge: 'شقق وفيلات ومحلات للبيع والإيجار',
+    themeKey: 'realEstateEmerald',
+    primaryColor: '#059669',
+    description: 'قالب عقاري متكامل: وحدات سكنية وتجارية للبيع والإيجار، معاينات بالفيديو، حجز جولات ميدانية، وحاسبة أقساط.',
+    tags: ['عقارات', 'شقق للبيع', 'إيجارات', 'استثمار عقاري'],
+  },
+  {
+    id: 'site_auto_service_parts',
+    tenantId: 'tenant_auto_service_parts',
+    name: 'مركز خدمة السيارات وقطع الغيار الأصلية',
+    category: 'خدمة السيارات',
+    icon: '🔧',
+    badge: 'صيانة شاملة وقطع غيار أصلية بضمان معتمد',
+    themeKey: 'automotiveSpeed',
+    primaryColor: '#dc2626',
+    description: 'قالب مركز سيارات: صيانة دورية، ميكانيكا وكهرباء، قطع غيار أصلية وبديل، زيوت وفلاتر، مع حجز موعد صيانة أونلاين.',
+    tags: ['صيانة سيارات', 'قطع غيار', 'زيوت وفلاتر', 'حجز موعد'],
+  },
+  {
+    id: 'site_agriculture_nursery',
+    tenantId: 'tenant_oasis_nursery',
+    name: 'واحة الزراعة والمشاتل ومستلزمات الحدائق',
+    category: 'الزراعة والمشاتل',
+    icon: '🌱',
+    badge: 'شتلات ونباتات زينة وأسمدة ومستلزمات زراعية',
+    themeKey: 'nurseryGreen',
+    primaryColor: '#15803d',
+    description: 'قالب زراعي: مشاتل وشتلات مثمرة، نباتات زينة داخلية وخارجية، أسمدة ومبيدات، أدوات حدائق، مع استشارات زراعية.',
+    tags: ['مشاتل', 'شتلات', 'أسمدة', 'نباتات زينة'],
+  },
+  {
+    id: 'site_factories_production',
+    tenantId: 'tenant_sharq_factory',
+    name: 'الشرق للمصانع والإنتاج والتوريدات',
+    category: 'المصانع والإنتاج',
+    icon: '🏭',
+    badge: 'إنتاج وتصنيع وتوريدات بالجملة بأسعار مصانع',
+    themeKey: 'factoryIndustrial',
+    primaryColor: '#374151',
+    description: 'قالب مصنعي B2B: خطوط إنتاج، تصنيع حسب الطلب، توريدات جملة للتجار والموزعين، وعروض أسعار مخصصة للمشاريع.',
+    tags: ['مصانع', 'تصنيع', 'توريدات جملة', 'B2B'],
+  },
+];
+missingRegistrySiteMetas.forEach((meta) => {
+  allActivityWebsites[meta.id] = generateActivityWebsite(meta);
 });
 
 // Metadata for UI Switcher (Full 85 Activities Catalog)

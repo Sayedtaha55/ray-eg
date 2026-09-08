@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useMemo, useState, useEffect, useCallback, useRef } from 'react';
-import { Search, ChevronRight, Loader2, CheckCircle2, UserPlus, X, Plus, Receipt, RotateCcw, Clock, BarChart3, Tag, CreditCard, Wallet, Banknote, Ruler, SlidersHorizontal, ShoppingCart, Trash2, Printer, Minus, Pause, Play, ScanLine, Camera, Filter, Mail, Gift, Percent, Users, Table2, Eraser, Settings2, Scale, Send, DollarSign, Crown, ShieldCheck, Star, FileText, ArrowDownCircle, ArrowUpCircle, Calculator, Zap } from 'lucide-react';
+import { Search, ChevronRight, ChevronDown, ChevronUp, Loader2, CheckCircle2, UserPlus, X, Plus, Receipt, RotateCcw, Clock, BarChart3, Tag, CreditCard, Wallet, Banknote, Ruler, SlidersHorizontal, ShoppingCart, Trash2, Printer, Minus, Pause, Play, ScanLine, Camera, Filter, Mail, Gift, Percent, Users, Table2, Eraser, Settings2, Scale, Send, DollarSign, Crown, ShieldCheck, Star, FileText, ArrowDownCircle, ArrowUpCircle, Calculator, Zap, Sliders } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { apiRequest } from '@/lib/auth';
+import { apiRequest, useAuth } from '@/lib/auth';
 import { useShop } from '@/hooks/useShop';
 import Link from 'next/link';
 import {
@@ -60,6 +60,13 @@ const POSSystemPage: React.FC = () => {
   // Discount state
   const [discountType, setDiscountType] = useState<'none' | 'percent' | 'fixed'>('none');
   const [discountValue, setDiscountValue] = useState(0);
+
+  // Collapsible cart sections (closed by default to reduce clutter)
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showTipSection, setShowTipSection] = useState(false);
+
+  // Active shift / cashier name (shift owner printed on the invoice)
+  const [activeShift, setActiveShift] = useState<any>(null);
 
   // Payment method state
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'wallet' | 'credit'>('cash');
@@ -165,7 +172,35 @@ const POSSystemPage: React.FC = () => {
 
   // Cashier identity (for audit)
   const cashierId = typeof window !== 'undefined' ? (localStorage.getItem('pos_cashier_id') || 'cashier') : 'cashier';
+  const { user } = useAuth();
 
+  // Shift owner name shown on the invoice: prefer the active shift's owner,
+  // then the logged-in user, then the stored cashier id.
+  const shiftOwnerName: string = useMemo(() => {
+    const candidates = [
+      activeShift?.userName,
+      activeShift?.user?.name,
+      activeShift?.cashierName,
+      activeShift?.openedBy,
+      user?.name,
+      user?.email,
+      cashierId,
+    ];
+    const found = candidates.map((c) => String(c || '').trim()).find((c) => c && c !== 'cashier');
+    return found || cashierId;
+  }, [activeShift, user, cashierId]);
+
+  // Load the active shift once (for the invoice + reports).
+  useEffect(() => {
+    if (!shopId) return;
+    let cancelled = false;
+    apiRequest(`/shops/${shopId}/shifts/active`)
+      .then((data: any) => {
+        if (!cancelled) setActiveShift(data?.data ?? data ?? null);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [shopId]);
   // ─── Z/X Report + Cash In/Out + Drawer Declaration + Quick Keys ──────────
   const [showZReport, setShowZReport] = useState(false);
   const [showXReport, setShowXReport] = useState(false);
@@ -560,7 +595,7 @@ const POSSystemPage: React.FC = () => {
     <div class="meta">${phone ? `<div>${phone}</div>` : ''}${city ? `<div>${city}</div>` : ''}${address ? `<div>${address}</div>` : ''}
     ${(customerNameEsc || customerPhoneEsc) ? `<div style="margin-top:6px;"><strong>العميل:</strong> ${customerNameEsc || '-'} ${customerPhoneEsc ? `- ${customerPhoneEsc}` : ''}</div>` : ''}
     ${selectedTableId ? `<div><strong>الطاولة:</strong> ${escapeHtml(tables.find((t) => t.id === selectedTableId)?.name || selectedTableId)}</div>` : ''}
-    ${showCashier ? `<div><strong>الكاشير:</strong> ${escapeHtml(cashierId)}</div>` : ''}
+    ${showCashier ? `<div style="margin-top:6px;"><strong>الكاشير / صاحب الوردية:</strong> ${escapeHtml(shiftOwnerName)}</div>${activeShift?.openedAt || activeShift?.opened_at ? `<div style="font-size:10px;color:#666;">الوردية مفتوحة من ${escapeHtml(String(activeShift.openedAt || activeShift.opened_at).replace('T', ' ').slice(0, 16))}</div>` : ''}` : ''}
     <div>${dateLabel}</div></div>
     <div class="sep"></div><table><tbody>${linesHtml}</tbody></table><div class="sep"></div>
     <div class="row"><span>المجموع الفرعي</span><span>${currency} ${fmt(subtotal)}</span></div>
@@ -584,7 +619,7 @@ const POSSystemPage: React.FC = () => {
       w.focus(); w.print();
       setTimeout(() => { try { w.close(); } catch {} }, 15000);
     } catch {}
-  }, [shopId, shop, cart, subtotal, vatAmount, vatRatePct, total, discountAmount, paymentMethod, customerName, customerPhone, receiptTheme, usingSplitPayment, splitPayments, loyaltyRedeemValue, giftCardAmount, taxExempt, tipAmount, loyaltyCfg, earnedPoints, selectedTableId, tables, cashierId]);
+  }, [shopId, shop, cart, subtotal, vatAmount, vatRatePct, total, discountAmount, paymentMethod, customerName, customerPhone, receiptTheme, usingSplitPayment, splitPayments, loyaltyRedeemValue, giftCardAmount, taxExempt, tipAmount, loyaltyCfg, earnedPoints, selectedTableId, tables, shiftOwnerName, activeShift]);
 
   const processPayment = async () => {
     if (cart.length === 0) return;
@@ -1053,10 +1088,13 @@ const POSSystemPage: React.FC = () => {
         {/* Discount */}
         {cart.length > 0 && (
           <div className="space-y-2">
-            <button type="button" onClick={() => setShowDiscount(!showDiscount)}
+            <button type="button" onClick={() => setShowDiscount((v) => !v)}
               className="w-full flex items-center justify-between text-xs font-black text-slate-500 hover:text-slate-700 transition-colors py-1">
               <span className="flex items-center gap-1.5"><Tag size={14} />{isArabic ? 'خصم' : 'Discount'}</span>
-              {discountAmount > 0 ? <span className="text-red-500">- ج.م {discountAmount.toFixed(2)}</span> : <span className="text-slate-300">{isArabic ? 'إضافة' : 'Add'}</span>}
+              <span className="flex items-center gap-1.5">
+                {discountAmount > 0 ? <span className="text-red-500">- ج.م {discountAmount.toFixed(2)}</span> : <span className="text-slate-300">{isArabic ? 'إضافة' : 'Add'}</span>}
+                {showDiscount ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+              </span>
             </button>
             <AnimatePresence>
               {showDiscount && (
@@ -1082,13 +1120,16 @@ const POSSystemPage: React.FC = () => {
         {/* Payment method */}
         {cart.length > 0 && (
           <div className="space-y-2">
-            <button type="button" onClick={() => setShowPaymentMethods(!showPaymentMethods)}
+            <button type="button" onClick={() => setShowPaymentMethods((v) => !v)}
               className="w-full flex items-center justify-between text-xs font-black text-slate-500 hover:text-slate-700 transition-colors py-1">
               <span className="flex items-center gap-1.5">
                 {paymentMethod === 'cash' ? <Banknote size={14} /> : paymentMethod === 'card' ? <CreditCard size={14} /> : paymentMethod === 'wallet' ? <Wallet size={14} /> : <Clock size={14} />}
                 {isArabic ? 'طريقة الدفع' : 'Payment Method'}
               </span>
-              <span className="text-slate-700">{paymentMethod === 'cash' ? (isArabic ? 'كاش' : 'Cash') : paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Card') : paymentMethod === 'wallet' ? (isArabic ? 'محفظة' : 'Wallet') : (isArabic ? 'آجل' : 'Credit')}</span>
+              <span className="flex items-center gap-1.5">
+                <span className="text-slate-700">{paymentMethod === 'cash' ? (isArabic ? 'كاش' : 'Cash') : paymentMethod === 'card' ? (isArabic ? 'بطاقة' : 'Card') : paymentMethod === 'wallet' ? (isArabic ? 'محفظة' : 'Wallet') : (isArabic ? 'آجل' : 'Credit')}</span>
+                {showPaymentMethods ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+              </span>
             </button>
             <AnimatePresence>
               {showPaymentMethods && (
@@ -1110,9 +1151,26 @@ const POSSystemPage: React.FC = () => {
           </div>
         )}
 
-        {/* Advanced features row */}
+        {/* Advanced features — collapsible (closed by default) */}
         {cart.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 pb-1">
+          <>
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className={`w-full flex items-center justify-between text-xs font-black transition-colors py-1.5 px-2 rounded-xl border ${showAdvanced ? 'bg-slate-50 border-slate-200 text-slate-700' : 'bg-white border-slate-100 text-slate-500 hover:bg-slate-50'}`}
+            >
+              <span className="flex items-center gap-1.5"><Sliders size={14} />{isArabic ? 'خيارات متقدمة' : 'Advanced options'}</span>
+              <span className="flex items-center gap-1.5">
+                {!showAdvanced && (usingSplitPayment || taxExempt || priceLevel !== 'retail' || (loyaltyCfg.enabled && redeemPoints > 0)) && (
+                  <span className="w-2 h-2 rounded-full bg-[#BD00FF]" title={isArabic ? 'خيارات مفعّلة' : 'Active'} />
+                )}
+                {showAdvanced ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+              </span>
+            </button>
+            <AnimatePresence>
+              {showAdvanced && (
+                <MotionDiv initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="flex flex-wrap gap-1.5 pb-1">
             <button type="button" onClick={() => setShowSplitPayment((v) => !v)}
               className={`px-2.5 py-1.5 rounded-lg text-[10px] font-black flex items-center gap-1 border transition-all ${usingSplitPayment ? 'bg-[#BD00FF]/10 border-[#BD00FF] text-[#BD00FF]' : 'bg-slate-50 border-slate-100 text-slate-500 hover:bg-slate-100'}`}
               title={isArabic ? 'تقسيم الدفع' : 'Split payment'}>
@@ -1205,7 +1263,11 @@ const POSSystemPage: React.FC = () => {
               title={isArabic ? 'أزرار سريعة' : 'Quick keys'}>
               <Zap size={12} /> {isArabic ? 'سريع' : 'Quick'}
             </button>
-          </div>
+                  </div>
+                </MotionDiv>
+              )}
+            </AnimatePresence>
+          </>
         )}
 
         {/* Quick keys bar */}
@@ -1220,25 +1282,37 @@ const POSSystemPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tip section */}
+        {/* Tip section — collapsible */}
         {cart.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-black text-slate-500 py-1">
+            <button
+              type="button"
+              onClick={() => setShowTipSection((v) => !v)}
+              className="w-full flex items-center justify-between text-xs font-black text-slate-500 hover:text-slate-700 transition-colors py-1">
               <span className="flex items-center gap-1.5"><DollarSign size={14} />{isArabic ? 'إكرامية' : 'Tip'}</span>
-              <div className="flex items-center gap-1.5">
-                <select value={tipType} onChange={(e) => setTipType(e.target.value as any)} className="text-[10px] font-black border rounded-lg px-1.5 py-1 outline-none bg-slate-50">
-                  <option value="none">{isArabic ? 'بدون' : 'None'}</option>
-                  <option value="percent">%</option>
-                  <option value="fixed">{isArabic ? 'مبلغ' : 'Amount'}</option>
-                </select>
-                {tipType !== 'none' && (
-                  <input type="number" value={tipValue || ''} onChange={(e) => setTipValue(Number(e.target.value) || 0)}
-                    placeholder={tipType === 'percent' ? '%' : isArabic ? 'مبلغ' : 'Amount'}
-                    className="w-16 text-[10px] font-black border rounded-lg px-2 py-1 outline-none bg-slate-50 text-center" min={0} />
-                )}
-                {tipAmount > 0 && <span className="text-emerald-600">+ ج.م {tipAmount.toFixed(2)}</span>}
-              </div>
-            </div>
+              <span className="flex items-center gap-1.5">
+                {tipAmount > 0 ? <span className="text-emerald-600">+ ج.م {tipAmount.toFixed(2)}</span> : <span className="text-slate-300">{isArabic ? 'إضافة' : 'Add'}</span>}
+                {showTipSection ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
+              </span>
+            </button>
+            <AnimatePresence>
+              {showTipSection && (
+                <MotionDiv initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                  <div className="flex items-center gap-1.5 pb-2">
+                    <select value={tipType} onChange={(e) => setTipType(e.target.value as any)} className="text-[10px] font-black border rounded-lg px-1.5 py-1 outline-none bg-slate-50">
+                      <option value="none">{isArabic ? 'بدون' : 'None'}</option>
+                      <option value="percent">%</option>
+                      <option value="fixed">{isArabic ? 'مبلغ' : 'Amount'}</option>
+                    </select>
+                    {tipType !== 'none' && (
+                      <input type="number" value={tipValue || ''} onChange={(e) => setTipValue(Number(e.target.value) || 0)}
+                        placeholder={tipType === 'percent' ? '%' : isArabic ? 'مبلغ' : 'Amount'}
+                        className="w-16 text-[10px] font-black border rounded-lg px-2 py-1 outline-none bg-slate-50 text-center" min={0} />
+                    )}
+                  </div>
+                </MotionDiv>
+              )}
+            </AnimatePresence>
           </div>
         )}
 
@@ -1345,7 +1419,7 @@ const POSSystemPage: React.FC = () => {
             <Printer size={18} className="md:w-5 md:h-5" /> {isArabic ? 'طباعة' : 'Print'}
           </button>
           <button type="button" disabled={!canCheckout} onClick={processPayment}
-            className="w-full py-4 md:py-6 bg-slate-900 text-white rounded-2xl md:rounded-3xl font-black text-base md:text-xl shadow-2xl shadow-slate-200 hover:bg-black transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3">
+            className="w-full py-4 md:py-6 bg-gradient-to-l from-[#BD00FF] to-[#8A00C2] text-white rounded-2xl md:rounded-3xl font-black text-base md:text-xl shadow-lg shadow-[#BD00FF]/25 hover:from-[#8A00C2] hover:to-[#BD00FF] transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3">
             {isProcessing ? (isArabic ? 'جاري...' : 'Processing...') : (isArabic ? 'دفع الآن' : 'Checkout')}
           </button>
         </div>

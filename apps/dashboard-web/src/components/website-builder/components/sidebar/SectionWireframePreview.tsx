@@ -328,17 +328,17 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
             <div className="bg-white rounded border border-slate-200 p-1">
               <div className="h-7 bg-slate-200 rounded-xs mb-1" />
               <span className="text-[8px] font-bold text-slate-800 block truncate">Porsche 911</span>
-              <span className="text-[8px] font-extrabold text-blue-600 block">950,000 ر.س</span>
+              <span className="text-[8px] font-extrabold text-blue-600 block">950,000 ج.م</span>
             </div>
             <div className="bg-white rounded border border-slate-200 p-1">
               <div className="h-7 bg-slate-200 rounded-xs mb-1" />
               <span className="text-[8px] font-bold text-slate-800 block truncate">AMG GT</span>
-              <span className="text-[8px] font-extrabold text-blue-600 block">870,000 ر.س</span>
+              <span className="text-[8px] font-extrabold text-blue-600 block">870,000 ج.م</span>
             </div>
             <div className="bg-white rounded border border-slate-200 p-1">
               <div className="h-7 bg-slate-200 rounded-xs mb-1" />
               <span className="text-[8px] font-bold text-slate-800 block truncate">Range Rover</span>
-              <span className="text-[8px] font-extrabold text-blue-600 block">460,000 ر.س</span>
+              <span className="text-[8px] font-extrabold text-blue-600 block">460,000 ج.م</span>
             </div>
           </div>
         </div>
@@ -366,11 +366,11 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
           <div className="grid grid-cols-2 gap-1.5 text-right">
             <div className="bg-slate-900 border border-amber-500/20 rounded p-1.5">
               <span className="text-[8px] font-bold text-amber-400">نادي النخبة</span>
-              <span className="text-[9px] font-black text-white block">2,500 ر.س / شهرياً</span>
+              <span className="text-[9px] font-black text-white block">2,500 ج.م / شهرياً</span>
             </div>
             <div className="bg-gradient-to-r from-amber-950 to-slate-900 border border-amber-400 rounded p-1.5">
               <span className="text-[8px] font-bold text-amber-300">عضوية الـ VIP</span>
-              <span className="text-[9px] font-black text-amber-300 block">5,000 ر.س / شهرياً</span>
+              <span className="text-[9px] font-black text-amber-300 block">5,000 ج.م / شهرياً</span>
             </div>
           </div>
         </div>
@@ -383,15 +383,15 @@ export const SectionWireframePreview: React.FC<Props> = ({ template }) => {
         <div className="grid grid-cols-3 gap-1 text-center">
           <div className="bg-white p-1.5 rounded-lg border border-slate-200">
             <span className="text-[8px] font-bold text-slate-600 block">أساسية</span>
-            <span className="text-[9px] font-extrabold text-slate-900 block mt-0.5">199 ر.س</span>
+            <span className="text-[9px] font-extrabold text-slate-900 block mt-0.5">199 ج.م</span>
           </div>
           <div className="bg-slate-900 p-1.5 rounded-lg text-white shadow-xs">
             <span className="text-[8px] font-bold text-cyan-400 block">احترافية</span>
-            <span className="text-[9px] font-extrabold text-white block mt-0.5">499 ر.س</span>
+            <span className="text-[9px] font-extrabold text-white block mt-0.5">499 ج.م</span>
           </div>
           <div className="bg-white p-1.5 rounded-lg border border-slate-200">
             <span className="text-[8px] font-bold text-slate-600 block">شركات</span>
-            <span className="text-[9px] font-extrabold text-slate-900 block mt-0.5">1499 ر.س</span>
+            <span className="text-[9px] font-extrabold text-slate-900 block mt-0.5">1499 ج.م</span>
           </div>
         </div>
       </div>

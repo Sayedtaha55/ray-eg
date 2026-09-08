@@ -27,6 +27,8 @@ func (h *Handler) RegisterRoutes(r fiber.Router) {
 	g := r.Group("/orders")
 
 	g.Post("/", middleware.RequireAuth(h.cfg), h.Create)
+	// Public guest checkout from published storefronts (no auth).
+	g.Post("/public", h.CreatePublic)
 	g.Get("/", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleMerchant), string(auth.RoleAdmin)), h.List)
 	g.Get("/me", middleware.RequireAuth(h.cfg), h.ListMine)
 	g.Get("/admin", middleware.RequireAuth(h.cfg), middleware.RequireRole(string(auth.RoleAdmin)), h.ListAdmin)
@@ -93,6 +95,44 @@ func (h *Handler) ListShopOrders(c *fiber.Ctx) error {
 		return err
 	}
 	return c.JSON(fiber.Map{"success": true, "data": orders, "meta": meta})
+}
+
+// CreatePublic handles POST /orders/public — guest checkout for visitors of
+// published storefronts. No authentication required; the order is created with
+// source "guest" and must include a customer phone and delivery address.
+func (h *Handler) CreatePublic(c *fiber.Ctx) error {
+	var req CreateOrderRequest
+	if err := c.BodyParser(&req); err != nil {
+		return errors.Validation("invalid_body", "تعذر قراءة بيانات الطلب")
+	}
+
+	// Map nested customer object to flat fields (frontend compatibility).
+	if req.Customer != nil {
+		if req.Customer.Phone != "" && (req.CustomerPhone == nil || *req.CustomerPhone == "") {
+			phone := req.Customer.Phone
+			req.CustomerPhone = &phone
+		}
+		if req.Customer.Address != "" && (req.DeliveryAddressManual == nil || *req.DeliveryAddressManual == "") {
+			addr := req.Customer.Address
+			if req.Customer.City != "" {
+				addr = req.Customer.City + ", " + addr
+			}
+			if req.Customer.District != "" {
+				addr = req.Customer.District + ", " + addr
+			}
+			req.DeliveryAddressManual = &addr
+		}
+	}
+
+	if err := validate.Struct(req); err != nil {
+		return err
+	}
+
+	order, err := h.service.CreateGuestOrder(c.UserContext(), req)
+	if err != nil {
+		return err
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"success": true, "data": order})
 }
 
 func (h *Handler) Create(c *fiber.Ctx) error {

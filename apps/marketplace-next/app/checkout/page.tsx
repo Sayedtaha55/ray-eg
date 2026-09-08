@@ -36,17 +36,16 @@ export default function CheckoutPage() {
     setError('');
 
     try {
-      if (!getStoredAuthToken()) {
-        router.push('/login?returnTo=/checkout');
-        return;
-      }
+      // Guest checkout: visitors without an account order via the public endpoint.
+      const isGuest = !getStoredAuthToken();
+      const endpoint = isGuest ? '/orders/public' : '/orders';
 
       const orders: any[] = [];
       const shopEntries = Object.entries(shopGroups);
 
       for (const [shopId, shopItems] of shopEntries) {
         const shopTotal = shopItems.reduce((s, i) => s + i.price * i.quantity, 0);
-        const order = await jsonRequest<any>('/orders', {
+        const order = await jsonRequest<any>(endpoint, {
           method: 'POST',
           body: JSON.stringify({
             shopId,

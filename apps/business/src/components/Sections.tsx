@@ -1,51 +1,28 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import {
   TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
   Globe, Shield, Star, Store, Smartphone, CreditCard, Truck, Users,
   Sparkles, Package, Rocket, Target, Award, Layers, Code2, Headphones,
-  Image as ImageIcon, Eye, LayoutDashboard,
+  Image as ImageIcon, Eye,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
 
-const marqueeItems = [
-  'أفضل الثيمات المطورة في العالم',
-  'تصميم عالمي المستوى',
-  'أداء فائق السرعة',
-  'دعم على مدار الساعة',
-  'أمان من الطراز الأول',
-];
-
-const themeShowcase = [
-  {
-    tag: 'الأكثر طلباً',
-    title: 'ثيم "متجر التجزئة"',
-    desc: 'مثالي لعرض المنتجات بشبكة أنيقة وفلاتر سريعة',
-    primary: '#0369A1', secondary: '#1E293B', header: '#F8FAFC', footer: '#E2E8F0',
-    accent: '#0EA5E9', mode: 'list',
-  },
-  {
-    tag: 'جديد',
-    title: 'ثيم "المطاعم والكافيهات"',
-    desc: 'قوائم طعام تفاعلية وحجز طاولات مدمج',
-    primary: '#C2410C', secondary: '#7C2D12', header: '#FFF7ED', footer: '#431407',
-    accent: '#F97316', mode: 'cards',
-  },
-  {
-    tag: 'مميز',
-    title: 'ثيم "الخدمات الاحترافية"',
-    desc: 'صفحات حجز مواعيد وعرض أعمال أنيق',
-    primary: '#0EA5E9', secondary: '#0369A1', header: '#FFFFFF', footer: '#FFFFFF',
-    accent: '#38BDF8', mode: 'booking',
-  },
-  {
-    tag: 'الأكثر تقييماً',
-    title: 'ثيم "الأزياء والموضة"',
-    desc: 'تجربة تسوق بصرية غنية بالحركة والتفاصيل',
-    primary: '#BE185D', secondary: '#831843', header: '#FDF2F8', footer: '#500724',
-    accent: '#EC4899', mode: 'fashion',
-  },
+const industryThemes = [
+  { label: 'مطاعم', url: 'restaurant.myshop.com', desc: 'قوائم رقمية تفاعلية، حجز طاولات، وتوصيل مباشر للعملاء.', primary: '#EA580C', accent: '#F97316' },
+  { label: 'تجزئة', url: 'retail.myshop.com', desc: 'عرض منتجاتك بشبكة أنيقة، فلاتر سريعة، ودفع إلكتروني مدمج.', primary: '#0369A1', accent: '#0EA5E9' },
+  { label: 'صالونات', url: 'salon.myshop.com', desc: 'حجز مواعيد أسهل، قائمة خدمات واضحة، وتذكيرات لعملائك.', primary: '#BE185D', accent: '#EC4899' },
+  { label: 'عيادات', url: 'clinic.myshop.com', desc: 'إدارة مواعيد المرضى، تذكيرات تلقائية، وبيانات آمنة.', primary: '#0F766E', accent: '#14B8A6' },
+  { label: 'سيارات', url: 'cars.myshop.com', desc: 'عرض سياراتك بشكل احترافي، حجز اختبار قيادة، وطلب صيانة.', primary: '#4338CA', accent: '#6366F1' },
+  { label: 'عقارات', url: 'realestate.myshop.com', desc: 'نشر إعلانات، تصفّح العقارات، وتواصل مباشر مع المهتمين.', primary: '#047857', accent: '#10B981' },
+  { label: 'خدمات', url: 'services.myshop.com', desc: 'حجز مواعيد، استقبال طلبات، وعرض لخدماتك بوضوح.', primary: '#0E7490', accent: '#22D3EE' },
+  { label: 'تعليم', url: 'study.myshop.com', desc: 'مناهج منظمة، حجز حصص، وتواصل مع الطلاب وأولياء الأمور.', primary: '#7C3AED', accent: '#A78BFA' },
+  { label: 'رياضة', url: 'sport.myshop.com', desc: 'اشتراكات، حجز مدرب، ومتابعة تقدم الأعضاء.', primary: '#CA8A04', accent: '#FACC15' },
+  { label: 'فعاليات', url: 'events.myshop.com', desc: 'حجز تذاكر، برنامج الفعالية، وإدارة الحضور من مكان واحد.', primary: '#C026D3', accent: '#E879F9' },
+  { label: 'جملة', url: 'wholesale.myshop.com', desc: 'كروت أسعار بالجملة، قنوات بيع متعددة، وتتبع المخزون.', primary: '#1D4ED8', accent: '#3B82F6' },
+  { label: 'شركات', url: 'company.myshop.com', desc: 'موقع مؤسسي يعرض خدماتك وأعمالك ويسهّل تواصل عملائك.', primary: '#0F172A', accent: '#475569' },
 ];
 
 const features = [
@@ -61,163 +38,112 @@ const steps = [
   { icon: Rocket, title: 'ابدأ البيع', desc: 'أضف منتجاتك، فعّل طرق الدفع، وابدأ استقبال الطلبات فوراً.', num: '03' },
 ];
 
-const dashboardPages = [
-  { icon: ShoppingCart, title: 'إدارة الطلبات', desc: 'تابع كل الطلبات من مكان واحد — من استلام الطلب حتى التوصيل. فلترة سريعة، بحث فوري، وتحديث الحالة بنقرة واحدة.', image: '/images/dashboard/orders.jpg', color: 'from-cyan-500 to-blue-500', bg: 'bg-slate-50' },
-  { icon: BarChart3, title: 'تحليلات ومبيعات', desc: 'رؤية كاملة لمبيعاتك وأدائك — رسوم بيانية تفاعلية، تقارير يومية وشهرية، ومقارنة بين الفترات لاتخاذ قرارات أفضل.', image: '/images/dashboard/analytics.jpg', color: 'from-violet-500 to-purple-500', bg: 'bg-white' },
-  { icon: Package, title: 'إدارة المنتجات', desc: 'أضف وعدّل منتجاتك بسهولة — صور، أسعار، مخزون، تصنيفات، وخصومات. كل شيء في واجهة واحدة بسيطة.', image: '/images/dashboard/products.jpg', color: 'from-amber-500 to-orange-500', bg: 'bg-slate-50' },
-  { icon: Users, title: 'إدارة العملاء', desc: 'تعرف على عملائك أكثر — سجل المشتريات، نقاط الولاء، وتواصل مباشر. احتفظ بعملائك وسعّم علاقاتك معهم.', image: '/images/dashboard/customers.jpg', color: 'from-emerald-500 to-green-500', bg: 'bg-white' },
-  { icon: Palette, title: 'مصمم الصفحات', desc: 'صمم متجرك بنفسك بدون برمجة — اسحب وأفلت العناصر، غيّر الألوان والخطوط، واختر الثيم اللي يناسب هويتك.', image: '/images/dashboard/design.jpg', color: 'from-pink-500 to-rose-500', bg: 'bg-slate-50' },
-];
-
-export function TrustMarquee() {
-  return (
-    <section className="relative bg-white border-y border-slate-100 py-5 md:py-6 overflow-hidden">
-      <div className="bl-marquee-track">
-        {[...marqueeItems, ...marqueeItems].map((item, i) => (
-          <div key={i} className="flex items-center gap-3 px-6 md:px-8 shrink-0">
-            <span className="text-slate-600 font-bold text-sm md:text-base whitespace-nowrap">{item}</span>
-            <Sparkles className="w-4 h-4 text-cyan-500 shrink-0" />
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function ThemeShowcase() {
+  const [active, setActive] = useState(0);
+  const t = industryThemes[active];
+
   return (
-    <section id="themes" className="relative bg-white py-20 md:py-32 sticky top-0 z-10">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        <RevealSection className="text-center mb-12 md:mb-16">
+    <section id="themes" className="relative bg-white py-20 md:py-32 overflow-hidden">
+      {/* خلفية توهّجية تتفاعل مع لون النشاط المختار */}
+      <div
+        className="pointer-events-none absolute -top-24 left-1/2 -translate-x-1/2 w-[900px] h-80 blur-[130px] opacity-30 transition-colors duration-700"
+        style={{ backgroundColor: t.accent }}
+      />
+      <div
+        className="pointer-events-none absolute -right-20 top-10 w-72 h-72 rounded-full blur-[120px] opacity-20 transition-colors duration-700"
+        style={{ backgroundColor: t.primary }}
+      />
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
+        <RevealSection className="text-center mb-10 md:mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-600 text-xs font-bold uppercase tracking-widest mb-5">
             <Eye className="w-3.5 h-3.5" />
-            شاهد الفرق بنفسك
+            ابدأ من قطاعك
           </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            نصمم <span className="text-cyan-600">أفضل الثيمات المطورة في العالم</span>
+            واجهة <span className="text-cyan-600">على مقاس نشاطك</span>
           </h2>
           <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            كل ثيم مبني بمعايير تصميم عالمية، ومُختبر على أعلى أداء وسرعة تحميل
+            مش قالب واحد للجميع — اختار قطاعك وشاهد واجهتك بتتبدل خطوة بخطوة، بتصميم نضيف بيشتغل بسرعة على كل الأجهزة.
           </p>
         </RevealSection>
 
-        <div className="flex overflow-x-auto gap-5 md:gap-6 pb-4 snap-x snap-mandatory scrollbar-hide">
-          {themeShowcase.map((theme, i) => (
-            <RevealSection
-              key={i}
-              delay={i * 90}
-              className="group relative rounded-3xl border border-slate-200 bg-white overflow-hidden flex-shrink-0 w-[85vw] sm:w-[45vw] md:w-[400px] snap-start shadow-sm hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300"
+        {/* مربعات الأنشطة */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 mb-8">
+          {industryThemes.map((it, i) => (
+            <button
+              key={it.label}
+              type="button"
+              onClick={() => setActive(i)}
+              className={`rounded-2xl px-3 py-4 text-sm font-bold border transition-all duration-300 ${
+                active === i
+                  ? 'bg-slate-900 text-white border-slate-900 shadow-lg scale-[1.03]'
+                  : 'bg-white text-slate-700 border-slate-200 hover:border-slate-400 hover:-translate-y-0.5'
+              }`}
             >
-              {/* CSS Theme Mockup */}
-              <div className="relative aspect-[16/10] overflow-hidden" style={{ background: theme.header }}>
-
-                {/* Navbar */}
-                <div className="absolute top-0 inset-x-0 h-7 flex items-center px-3 gap-1.5 z-10" style={{ background: theme.header, borderBottom: `1px solid ${theme.primary}20` }}>
-                  <div className="w-3.5 h-3.5 rounded-sm" style={{ background: theme.primary }} />
-                  <div className="h-1.5 w-12 rounded-full" style={{ background: theme.secondary + '35' }} />
-                  <div className="flex-1" />
-                  <div className="h-1.5 w-7 rounded-full" style={{ background: theme.secondary + '30' }} />
-                  <div className="h-1.5 w-7 rounded-full" style={{ background: theme.secondary + '30' }} />
-                  <div className="h-4 w-10 rounded-md" style={{ background: theme.primary }} />
-                </div>
-
-                {/* Hero */}
-                <div className="absolute top-7 inset-x-0 h-[72px] flex items-center px-4 gap-3" style={{ background: `linear-gradient(135deg, ${theme.secondary}ee, ${theme.primary}cc)` }}>
-                  <div className="flex-1 space-y-1.5">
-                    <div className="h-2.5 w-24 rounded-full bg-white/85" />
-                    <div className="h-1.5 w-16 rounded-full bg-white/50" />
-                    <div className="h-4 w-14 rounded-lg mt-0.5" style={{ background: theme.accent }} />
-                  </div>
-                  {theme.mode === 'fashion' && (
-                    <div className="w-14 h-14 rounded-xl bg-white/20 flex-shrink-0" />
-                  )}
-                  {theme.mode === 'booking' && (
-                    <div className="w-20 h-12 rounded-xl bg-white/15 flex-shrink-0 p-1.5 space-y-1">
-                      <div className="h-1.5 w-full rounded bg-white/50" />
-                      <div className="h-1.5 w-3/4 rounded bg-white/30" />
-                      <div className="h-3 w-full rounded" style={{ background: theme.accent }} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Content area */}
-                <div className="absolute inset-x-0 px-3 pt-2" style={{ top: '79px', bottom: '18px', background: theme.header }}>
-                  {theme.mode === 'list' ? (
-                    <div className="space-y-1.5">
-                      {[0,1,2].map(j => (
-                        <div key={j} className="flex items-center gap-2 p-1.5 rounded-lg" style={{ background: theme.secondary + '08', border: `1px solid ${theme.secondary}12` }}>
-                          <div className="w-8 h-8 rounded-md flex-shrink-0" style={{ background: `linear-gradient(135deg, ${theme.primary}35, ${theme.accent}35)` }} />
-                          <div className="flex-1 space-y-1">
-                            <div className="h-1.5 w-20 rounded-full" style={{ background: theme.secondary + '45' }} />
-                            <div className="h-1.5 w-12 rounded-full" style={{ background: theme.primary + '55' }} />
-                          </div>
-                          <div className="h-4 w-9 rounded-md" style={{ background: theme.primary }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : theme.mode === 'booking' ? (
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {[0,1,2,3].map(j => (
-                        <div key={j} className="p-2 rounded-xl" style={{ background: theme.primary + '0f', border: `1px solid ${theme.primary}22` }}>
-                          <div className="h-1.5 w-full rounded-full mb-1" style={{ background: theme.primary + '40' }} />
-                          <div className="h-1.5 w-3/4 rounded-full mb-2" style={{ background: theme.secondary + '30' }} />
-                          <div className="h-4 w-full rounded-md" style={{ background: theme.primary }} />
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {[0,1,2,3,4,5].map(j => (
-                        <div key={j} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${theme.secondary}12` }}>
-                          <div className="aspect-square" style={{ background: `linear-gradient(135deg, ${theme.primary}22, ${theme.accent}22)` }} />
-                          <div className="px-1 py-0.5" style={{ background: theme.header }}>
-                            <div className="h-1.5 w-full rounded-full" style={{ background: theme.secondary + '35' }} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Footer strip */}
-                <div className="absolute bottom-0 inset-x-0 h-[18px]" style={{ background: theme.footer }} />
-
-                {/* Tag badge */}
-                <span className="absolute top-9 left-3 px-2 py-0.5 rounded-full text-white text-[10px] font-black shadow-md" style={{ background: theme.accent }}>
-                  {theme.tag}
-                </span>
-
-                {/* Hover overlay */}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: theme.secondary + 'CC' }}>
-                  <span className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white font-bold text-sm" style={{ color: theme.secondary }}>
-                    <Eye className="w-4 h-4" />
-                    معاينة الثيم
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-5 md:p-6">
-                <div className="flex gap-1.5 mb-3">
-                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.primary }} />
-                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.accent }} />
-                  <div className="w-4 h-4 rounded-full border-2 border-white shadow" style={{ background: theme.footer }} />
-                </div>
-                <h3 className="text-slate-900 font-bold text-lg mb-1.5">{theme.title}</h3>
-                <p className="text-slate-500 text-sm leading-relaxed">{theme.desc}</p>
-              </div>
-            </RevealSection>
+              {it.label}
+            </button>
           ))}
         </div>
 
-        <RevealSection className="text-center mt-10 md:mt-12">
-          <a
-            href="#"
-            className="inline-flex items-center justify-center gap-2 bg-slate-100 border border-slate-200 text-slate-700 px-8 py-4 rounded-2xl font-bold hover:bg-slate-200 transition-all duration-300 cursor-pointer"
-          >
-            استعراض جميع الثيمات
-            <ArrowLeft className="w-4 h-4" />
-          </a>
-        </RevealSection>
+        {/* المعاينة التفاعلية */}
+        <div
+          key={t.label}
+          className="animate-fade-up grid lg:grid-cols-2 gap-6 md:gap-8 items-center rounded-3xl border border-slate-200 bg-white p-5 md:p-8 shadow-xl shadow-slate-200/60"
+        >
+          <div className="rounded-2xl border border-slate-200 overflow-hidden bg-white shadow-2xl shadow-slate-900/10">
+            <div className="h-9 bg-slate-100 border-b border-slate-200 flex items-center gap-1.5 px-3">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+              <span className="ml-2 h-5 flex-1 max-w-[220px] rounded-md bg-white border border-slate-200 text-[10px] text-slate-400 flex items-center px-2 truncate">
+                {t.url}
+              </span>
+            </div>
+            <div className="p-4 sm:p-5 bg-white">
+              <div className="flex items-center justify-between pb-4">
+                <div className="w-6 h-6 rounded-lg" style={{ background: t.primary }} />
+                <div className="flex gap-2">
+                  <div className="h-1.5 w-10 rounded-full" style={{ background: t.accent }} />
+                  <div className="h-1.5 w-10 rounded-full bg-slate-300" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <div className="col-span-2 space-y-2.5">
+                  <div className="h-3.5 w-full rounded" style={{ background: t.primary }} />
+                  <div className="h-2.5 w-2/3 rounded" style={{ background: t.accent }} />
+                  <div className="h-7 w-24 rounded-lg" style={{ background: t.primary }} />
+                </div>
+                <div
+                  className="rounded-xl flex flex-col items-center justify-center gap-1 text-white text-xs font-black"
+                  style={{ background: `linear-gradient(135deg, ${t.accent}, ${t.primary})` }}
+                >
+                  {t.label}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black mb-4"
+              style={{ background: t.accent + '14', color: t.primary }}
+            >
+              {t.label}
+            </span>
+            <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-2">
+              {t.label} بتصميم يفهم نشاطك
+            </h3>
+            <p className="text-slate-500 text-lg leading-relaxed mb-7">{t.desc}</p>
+            <Link
+              href="/#products"
+              className="inline-flex items-center gap-2 px-7 py-3.5 rounded-2xl text-white font-bold transition-transform hover:-translate-y-0.5"
+              style={{ background: t.primary }}
+            >
+              ابدأ متجرك
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -225,20 +151,19 @@ export function ThemeShowcase() {
 
 export function AboutSection() {
   return (
-    <section id="about" className="relative bg-slate-900 py-20 md:py-32 overflow-hidden z-20">
+    <section id="about" className="relative bg-white py-20 md:py-32 overflow-hidden z-20">
       <div className="hidden md:block absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-cyan-500/5 blur-[100px]" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-violet-500/5 blur-[100px]" />
       </div>
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-slate-950 to-transparent" />
 
       <div className="max-w-7xl mx-auto px-5 sm:px-6 relative">
         <RevealSection className="text-center mb-16 md:mb-20">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-sm font-bold mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-600 text-sm font-bold mb-6">
             <Sparkles className="w-4 h-4" />
             من نحن
           </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight mb-4">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
             نحن هنا لمساعدة التجار على النجاح في العالم الرقمي
           </h2>
         </RevealSection>
@@ -250,13 +175,13 @@ export function AboutSection() {
             { icon: Users, title: 'مجتمعنا', desc: 'نبني مجتمعاً من التجار الناجحين وندعمهم في كل خطوة', color: 'from-pink-500 to-rose-500' },
           ].map((item, i) => (
             <RevealSection key={i} delay={i * 120}>
-              <div className="group relative overflow-hidden rounded-3xl bg-slate-800/50 border border-white/10 p-6 md:p-8 transition-all duration-300 hover:border-white/20 hover:-translate-y-1">
-                <div className={`absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-20 blur-3xl transition-opacity duration-500`} />
+              <div className="group relative overflow-hidden rounded-3xl bg-slate-50 border border-slate-200 p-6 md:p-8 transition-all duration-300 hover:border-slate-300 hover:shadow-lg hover:shadow-slate-200/50 hover:-translate-y-1">
+                <div className={`absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br ${item.color} opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500`} />
                 <div className={`inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${item.color} mb-5 shadow-lg`}>
                   <item.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold text-white mb-3">{item.title}</h3>
-                <p className="text-white/60 text-sm md:text-base leading-relaxed">{item.desc}</p>
+                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">{item.title}</h3>
+                <p className="text-slate-500 text-sm md:text-base leading-relaxed">{item.desc}</p>
               </div>
             </RevealSection>
           ))}
@@ -264,20 +189,20 @@ export function AboutSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <RevealSection>
-            <div className="relative rounded-3xl overflow-hidden border border-white/10 bg-slate-800/50 p-8 md:p-12">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl" />
+            <div className="relative rounded-3xl overflow-hidden border border-slate-200 bg-slate-50 p-8 md:p-12">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-200/40 rounded-full blur-3xl" />
               <div className="relative">
-                <h3 className="text-2xl md:text-3xl font-black text-white mb-4">قصتنا</h3>
-                <p className="text-white/50 text-base leading-relaxed mb-6">
+                <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4">قصتنا</h3>
+                <p className="text-slate-500 text-base leading-relaxed mb-6">
                   بدأنا برؤية بسيطة: جعل التجارة الإلكترونية متاحة للجميع. اليوم، نساعد آلاف التجار على تحقيق أحلامهم.
                 </p>
-                <div className="flex items-center gap-4 pt-4 border-t border-white/10">
-                  <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
-                    <Rocket className="w-6 h-6 text-cyan-400" />
+                <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
+                  <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
+                    <Rocket className="w-6 h-6 text-cyan-600" />
                   </div>
                   <div>
-                    <div className="text-white font-bold text-sm">تأسست 2024</div>
-                    <div className="text-white/40 text-xs">القاهرة، مصر</div>
+                    <div className="text-slate-900 font-bold text-sm">تأسست 2024</div>
+                    <div className="text-slate-400 text-xs">القاهرة، مصر</div>
                   </div>
                 </div>
               </div>
@@ -285,18 +210,18 @@ export function AboutSection() {
           </RevealSection>
           <RevealSection delay={200}>
             <div className="space-y-6">
-              <h3 className="text-2xl md:text-3xl font-black text-white mb-4">لماذا تختارنا؟</h3>
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 mb-4">لماذا تختارنا؟</h3>
               {[
-                { icon: Shield, label: 'أمان عالمي مع تشفير متقدم وحماية لبياناتك', color: 'text-blue-400' },
-                { icon: Zap, label: 'سرعة فائقة وأداء محسن لتجربة مستخدم سلسة', color: 'text-amber-400' },
-                { icon: Globe, label: 'دعم متعدد اللغات مع واجهة عربية بالكامل', color: 'text-emerald-400' },
-                { icon: Headphones, label: 'دعم فني متاح 24/7 لمساعدتك في أي وقت', color: 'text-rose-400' },
+                { icon: Shield, label: 'أمان عالمي مع تشفير متقدم وحماية لبياناتك', color: 'text-blue-600' },
+                { icon: Zap, label: 'سرعة فائقة وأداء محسن لتجربة مستخدم سلسة', color: 'text-amber-600' },
+                { icon: Globe, label: 'دعم متعدد اللغات مع واجهة عربية بالكامل', color: 'text-emerald-600' },
+                { icon: Headphones, label: 'دعم فني متاح 24/7 لمساعدتك في أي وقت', color: 'text-rose-600' },
               ].map((item, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 rounded-2xl border border-white/10 bg-white/5 hover:border-white/20 transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center flex-shrink-0">
+                <div key={i} className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200 bg-slate-50 hover:border-slate-300 transition-all">
+                  <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center flex-shrink-0">
                     <item.icon className={`w-5 h-5 ${item.color}`} />
                   </div>
-                  <p className="text-white/70 text-sm md:text-base leading-relaxed">{item.label}</p>
+                  <p className="text-slate-600 text-sm md:text-base leading-relaxed">{item.label}</p>
                 </div>
               ))}
             </div>
@@ -309,7 +234,7 @@ export function AboutSection() {
 
 export function FeaturesSection() {
   return (
-    <section id="features" className="relative z-20 bg-gradient-to-b from-white to-slate-50 py-20 md:py-32">
+    <section id="features" className="relative z-20 bg-white py-20 md:py-32">
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <RevealSection className="text-center mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-bold mb-6">
@@ -403,73 +328,6 @@ export function HowItWorks() {
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-export function DashboardPreview() {
-  return (
-    <div className="relative z-20 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 pt-12 md:pt-24 pb-6 md:pb-8 text-center">
-        <RevealSection>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-bold mb-4">
-            <LayoutDashboard className="w-4 h-4" />
-            لوحة تحكم قوية وبسيطة
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-3">
-            لوحة تحكم قوية وبسيطة
-          </h2>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            كل ما تحتاج لمعرفته عن متجرك في شاشة واحدة — مبيعات، طلبات، عملاء، وأكثر.
-          </p>
-        </RevealSection>
-      </div>
-
-      {dashboardPages.map((page, i) => (
-        <section
-          key={i}
-          className={`relative ${page.bg} sticky top-0 min-h-[70vh] md:min-h-screen flex items-center py-10 md:py-24 overflow-hidden`}
-          style={{ zIndex: 30 + i }}
-        >
-          <div className={`hidden md:block absolute top-1/2 ${i % 2 === 0 ? 'left-0' : 'right-0'} w-[40vw] h-[40vw] rounded-full bg-gradient-to-br ${page.color} opacity-[0.04] blur-[100px]`} />
-          <div className="max-w-7xl mx-auto px-4 sm:px-5 md:px-6 relative w-full">
-            <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-16 items-center ${i % 2 === 1 ? 'lg:flex-row-reverse' : ''}`}>
-              <RevealSection className={i % 2 === 1 ? 'lg:order-2' : ''}>
-                <div className={`inline-flex items-center justify-center w-12 h-12 md:w-16 md:h-16 rounded-2xl bg-gradient-to-br ${page.color} mb-4 md:mb-6 shadow-lg`}>
-                  <page.icon className="w-6 h-6 md:w-8 md:h-8 text-white" />
-                </div>
-                <h3 className="text-xl sm:text-2xl md:text-4xl font-black text-slate-900 tracking-tight mb-3 md:mb-4">
-                  {page.title}
-                </h3>
-                <p className="text-slate-500 text-sm md:text-lg leading-relaxed max-w-lg">
-                  {page.desc}
-                </p>
-              </RevealSection>
-              <RevealSection delay={150} className={i % 2 === 1 ? 'lg:order-1' : ''}>
-                <div className="relative rounded-xl md:rounded-2xl overflow-hidden border border-slate-200 shadow-xl md:shadow-2xl bg-slate-100 aspect-[16/10]">
-                  <img
-                    src={page.image}
-                    alt={page.title}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling as HTMLElement | null;
-                      if (fallback) fallback.style.display = 'flex';
-                    }}
-                  />
-                  <div className="hidden absolute inset-0 items-center justify-center bg-gradient-to-br from-slate-100 to-slate-200">
-                    <div className="text-center">
-                      <page.icon className="w-10 h-10 md:w-12 md:h-12 text-slate-300 mx-auto mb-2 md:mb-3" />
-                      <p className="text-slate-400 text-xs md:text-sm font-medium">{page.title}</p>
-                    </div>
-                  </div>
-                </div>
-              </RevealSection>
-            </div>
-          </div>
-        </section>
-      ))}
     </div>
   );
 }

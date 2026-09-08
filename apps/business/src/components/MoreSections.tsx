@@ -5,11 +5,11 @@ import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
 import {
   TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
-  Globe, Shield, Star, Smartphone, Package,
+  Shield, Smartphone, Package,
   Building2, Utensils, Scissors, Stethoscope, Car, Home as HomeIcon,
   Wrench, GraduationCap, Dumbbell, Ticket, ShoppingBag,
   MessageSquare, Bell, Headphones, Rocket, Target, Award, Layers,
-  Code2, Image as ImageIcon, Quote, Eye, MapPin,
+  Code2, Image as ImageIcon,
   LayoutDashboard, Settings, ChevronDown, Sparkles,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
@@ -77,7 +77,7 @@ export function IndustriesSection() {
 
 export function GrowthSection() {
   return (
-    <section className="relative z-20 bg-gradient-to-b from-white to-slate-50 py-20 md:py-32">
+    <section className="relative z-20 bg-white py-20 md:py-32">
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <div>
@@ -177,70 +177,9 @@ function GrowthChartMockup() {
   );
 }
 
-export function TestimonialsSection() {
-  return (
-    <section className="relative bg-slate-50 py-20 md:py-32">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        <RevealSection className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-bold mb-6">
-            <Star className="w-4 h-4" />
-            تجار يثقون بنا
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            تجار يثقون بنا
-          </h2>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            انضم لمئات التجار الذين ينمون أعمالهم معنا
-          </p>
-        </RevealSection>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {[
-            { name: 'أحمد', role: 'صاحب متجر إلكترونيات', text: 'زادت مبيعاتي 3 أضعاف في 6 أشهر فقط. لوحة التحكم سهلة جداً.' },
-            { name: 'سارة', role: 'مديرة صالون', text: 'نظام الحجوزات وفّر عليّ وقت كبير. العملاء يحبون التجربة.' },
-            { name: 'محمد', role: 'صاحب مطعم', text: 'إدارة الطلبات والطلبات أصبحت أسهل بكثير. دعم فني ممتاز.' },
-          ].map((testimonial, i) => (
-            <RevealSection
-              key={i}
-              delay={i * 100}
-              className="relative p-6 md:p-8 rounded-3xl bg-white border border-slate-200 hover:shadow-lg hover:shadow-slate-200/50 transition-all duration-300 hover:-translate-y-1"
-            >
-              <Quote className="w-8 h-8 text-cyan-200 mb-2" />
-              <div className="flex gap-1 mb-4">
-                {Array.from({ length: 5 }).map((_, j) => (
-                  <Star key={j} className="w-4 h-4 fill-cyan-500 text-cyan-500" />
-                ))}
-              </div>
-              <p className="text-slate-600 text-sm md:text-base leading-relaxed mb-6">
-                "{testimonial.text}"
-              </p>
-              <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-[#00E5FF] to-blue-500 flex items-center justify-center text-slate-900 font-black text-sm">
-                  <img
-                    src={`/images/testimonials/customer-${i + 1}.jpg`}
-                    alt={testimonial.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    loading="lazy"
-                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-                  />
-                  <span className="relative z-0">{testimonial.name.charAt(0)}</span>
-                </div>
-                <div>
-                  <p className="text-slate-900 font-bold text-sm">{testimonial.name}</p>
-                  <p className="text-slate-400 text-xs">{testimonial.role}</p>
-                </div>
-              </div>
-            </RevealSection>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function AboutSection2() {
   return (
-    <section className="relative z-20 bg-gradient-to-b from-slate-50 to-white py-20 md:py-32">
+    <section className="relative z-20 bg-white py-20 md:py-32">
       <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           <RevealSection>
@@ -373,7 +312,7 @@ export function ProductsSection() {
 
 export function FaqSection() {
   return (
-    <section id="faq" className="relative z-20 bg-slate-50 py-20 md:py-32">
+    <section id="faq" className="relative z-20 bg-white py-20 md:py-32">
       <div className="max-w-4xl mx-auto px-5 sm:px-6">
         <RevealSection className="text-center mb-12 md:mb-16">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 text-slate-600 text-sm font-bold mb-6">
@@ -410,104 +349,6 @@ export function FaqSection() {
               </div>
             </RevealSection>
           ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-export function MapSection() {
-  return (
-    <section id="map-register" className="relative z-20 bg-white py-20 md:py-32">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        <RevealSection className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-bold mb-6">
-            <MapPin className="w-4 h-4" />
-            سجل موقعك الخارجي على الخريطة
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            سجل موقعك الخارجي على الخريطة
-          </h2>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            عندك موقع بالفعل؟ مش محتاج تنقل كل حاجة، سجل موقعك على الخريطة وخلّي عملاءك يلاقوك
-          </p>
-        </RevealSection>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
-          <RevealSection>
-            <div className="relative rounded-3xl bg-slate-50 border border-slate-200 p-6 md:p-8 transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/50">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-cyan-500/5 rounded-full blur-3xl" />
-              <div className="relative">
-                <div className="inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-500 mb-5 shadow-lg">
-                  <MapPin className="w-6 h-6 md:w-7 md:h-7 text-white" />
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">
-                  أضف موقعك الخارجي للخريطة
-                </h3>
-                <p className="text-slate-500 text-sm md:text-base leading-relaxed mb-6">
-                  لو عندك موقع أو متجر إلكتروني خارجي، تقدر تسجله على خريطتنا بدون ما تنقل أي حاجة. العملاء هتلاقيك على الخريطة وتقدر تتابع عدد الزوار والمشاهدات
-                </p>
-                <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 h-48 md:h-56 mb-6">
-                  <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'linear-gradient(rgba(6,182,212,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.3) 1px, transparent 1px)', backgroundSize: '30px 30px' }} />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="relative">
-                      <div className="absolute -inset-4 rounded-full bg-cyan-400/20 animate-ping" />
-                      <div className="relative w-12 h-12 rounded-full bg-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                        <MapPin className="w-6 h-6 text-white" />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-white/90 backdrop-blur-sm text-slate-600 text-xs font-medium">
-                    معاينة الموقع على الخريطة
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-4 mb-6">
-                  {[
-                    { value: '1.2K', label: 'إجمالي الزوار' },
-                    { value: '340', label: 'هذا الأسبوع' },
-                    { value: '89', label: 'اليوم' },
-                  ].map((stat, i) => (
-                    <div key={i} className="text-center p-3 rounded-xl bg-white border border-slate-200">
-                      <div className="text-xl md:text-2xl font-black text-cyan-600">{stat.value}</div>
-                      <div className="text-slate-400 text-xs mt-1">{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/map/add-listing"
-                  className="inline-flex items-center justify-center gap-2 w-full bg-cyan-500 text-white px-6 py-3.5 rounded-xl font-black text-sm hover:bg-cyan-600 hover:shadow-lg hover:shadow-cyan-500/30 transition-all"
-                >
-                  <MapPin className="w-4 h-4" />
-                  سجل موقعك على الخريطة
-                </Link>
-              </div>
-            </div>
-          </RevealSection>
-
-          <RevealSection delay={150}>
-            <div className="space-y-4">
-              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-4">
-                إيه اللي بنقدمه لك؟
-              </h3>
-              {[
-                { icon: Globe, title: 'تسجيل موقع خارجي', desc: 'عندك موقع خارجي؟ سجله على الخريطة بدون ما تنقل بياناتك أو تبدأ من جديد' },
-                { icon: MapPin, title: 'ظهور على الخريطة التفاعلية', desc: 'موقعك هيظهر على الخريطة لكل العملاء اللي بيدوروا عليك في منطقتك' },
-                { icon: Eye, title: 'تتبع الزوار والمشاهدات', desc: 'اعرف كم واحد شاف موقعك وكم واحد زارك، مع إحصائيات تفصيلية' },
-                { icon: TrendingUp, title: 'تحليلات ونمو', desc: 'تقارير عن أداء موقعك ومعدل الزوار والنمو شهرياً' },
-                { icon: Smartphone, title: 'متاح على الموبايل', desc: 'العملاء تقدر تلاقيك وتتواصل معاك من الموبايل بسهولة' },
-              ].map((service, i) => (
-                <div key={i} className="flex items-start gap-4 p-4 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-50 flex items-center justify-center flex-shrink-0">
-                    <service.icon className="w-5 h-5 text-cyan-600" />
-                  </div>
-                  <div>
-                    <h4 className="text-slate-900 font-bold text-sm mb-1">{service.title}</h4>
-                    <p className="text-slate-500 text-xs md:text-sm leading-relaxed">{service.desc}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </RevealSection>
         </div>
       </div>
     </section>

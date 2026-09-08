@@ -905,7 +905,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                             id: `cart_${node.id}`,
                             title: node.props.title || 'سيارة فاخرة',
                             price: rawPrice,
-                            priceFormatted: node.props.price || `${rawPrice.toLocaleString()} ر.س`,
+                            priceFormatted: node.props.price || `${rawPrice.toLocaleString()} ج.م`,
                             image: node.props.image || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
                             badge: node.props.badge || 'فئة أولى',
                           });
@@ -1148,7 +1148,7 @@ export const ComponentRenderer: React.FC<ComponentRendererProps> = ({
                   const formattedPrice =
                     typeof prod.price === 'string'
                       ? prod.price
-                      : `${rawPrice.toLocaleString()} ر.س`;
+                      : `${rawPrice.toLocaleString()} ج.م`;
 
                   return (
                     <div

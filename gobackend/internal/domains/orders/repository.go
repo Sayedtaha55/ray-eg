@@ -181,7 +181,7 @@ func (r *Repository) CreateOrder(ctx context.Context, order *Order, decrementSto
 			user_id, shop_id, courier_id, source, created_at, updated_at
 		) VALUES (
 			gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NULL, $14, NOW(), NOW()
-		) RETURNING ` + orderColumns
+		) RETURNING ` + orderColumnsNoAlias
 	err = tx.QueryRow(ctx, orderQuery,
 		order.Total, order.Status, order.PaymentMethod, order.PaymentStatus, order.Notes,
 		order.CustomerPhone, order.DeliveryAddressManual, order.DeliveryLat, order.DeliveryLng,
@@ -249,7 +249,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status OrderSt
 	}
 
 	args = append(args, id)
-	query := "UPDATE orders SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", idx) + orderColumns
+	query := "UPDATE orders SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", idx) + orderColumnsNoAlias
 	row := r.pool.QueryRow(ctx, query, args...)
 	return scanOrder(row)
 }
@@ -257,7 +257,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status OrderSt
 // UpdateNotes updates order notes only.
 func (r *Repository) UpdateNotes(ctx context.Context, id string, notes *string) (*Order, error) {
 	row := r.pool.QueryRow(ctx,
-		"UPDATE orders SET notes = $1, updated_at = NOW() WHERE id = $2 RETURNING "+orderColumns,
+		"UPDATE orders SET notes = $1, updated_at = NOW() WHERE id = $2 RETURNING "+orderColumnsNoAlias,
 		notes, id,
 	)
 	return scanOrder(row)
@@ -266,7 +266,7 @@ func (r *Repository) UpdateNotes(ctx context.Context, id string, notes *string) 
 // MarkCodCollected records COD collection.
 func (r *Repository) MarkCodCollected(ctx context.Context, id string) (*Order, error) {
 	row := r.pool.QueryRow(ctx,
-		"UPDATE orders SET cod_collected_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING "+orderColumns,
+		"UPDATE orders SET cod_collected_at = NOW(), updated_at = NOW() WHERE id = $1 RETURNING "+orderColumnsNoAlias,
 		id,
 	)
 	return scanOrder(row)
@@ -275,7 +275,7 @@ func (r *Repository) MarkCodCollected(ctx context.Context, id string) (*Order, e
 // AssignCourier sets the order courier.
 func (r *Repository) AssignCourier(ctx context.Context, id, courierID string) (*Order, error) {
 	row := r.pool.QueryRow(ctx,
-		"UPDATE orders SET courier_id = $1, updated_at = NOW() WHERE id = $2 RETURNING "+orderColumns,
+		"UPDATE orders SET courier_id = $1, updated_at = NOW() WHERE id = $2 RETURNING "+orderColumnsNoAlias,
 		courierID, id,
 	)
 	return scanOrder(row)
@@ -301,7 +301,7 @@ func (r *Repository) CourierUpdate(ctx context.Context, id string, status *Order
 		return r.FindByID(ctx, id)
 	}
 	args = append(args, id)
-	query := "UPDATE orders SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", idx) + orderColumns
+	query := "UPDATE orders SET " + strings.Join(set, ", ") + fmt.Sprintf(" WHERE id = $%d RETURNING ", idx) + orderColumnsNoAlias
 	row := r.pool.QueryRow(ctx, query, args...)
 	return scanOrder(row)
 }
@@ -354,6 +354,16 @@ const orderColumns = `
 	o.delivery_address_manual, o.delivery_lat, o.delivery_lng, o.delivery_note, o.customer_note,
 	o.user_id, o.shop_id, o.courier_id, o.handed_to_courier_at, o.cod_collected_at, o.delivered_at,
 	o.source, o.created_at, o.updated_at
+`
+
+// orderColumnsNoAlias is used in INSERT/UPDATE ... RETURNING clauses where the
+// target table has no alias (Postgres would fail with "missing FROM-clause
+// entry for table o" if the aliased columns were used there).
+const orderColumnsNoAlias = `
+	id, total, status, payment_method, payment_status, notes, customer_phone,
+	delivery_address_manual, delivery_lat, delivery_lng, delivery_note, customer_note,
+	user_id, shop_id, courier_id, handed_to_courier_at, cod_collected_at, delivered_at,
+	source, created_at, updated_at
 `
 
 const selectOrder = "SELECT " + orderColumns + " FROM orders o"

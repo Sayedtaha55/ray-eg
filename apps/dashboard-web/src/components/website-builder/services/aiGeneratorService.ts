@@ -585,9 +585,9 @@ export default function CyberpunkBanner() {
     <div class="calc-row">
       <label class="calc-label">باقة الخدمة المطلوبة:</label>
       <select id="calc-plan" class="calc-select" onchange="window.updateCalc && window.updateCalc()">
-        <option value="1500">باقة الانطلاق السريع (1,500 ر.س)</option>
-        <option value="3500" selected>باقة الشركات المتقدمة (3,500 ر.س)</option>
-        <option value="7500">باقة المؤسسات الشاملة VIP (7,500 ر.س)</option>
+        <option value="1500">باقة الانطلاق السريع (1,500 ج.م)</option>
+        <option value="3500" selected>باقة الشركات المتقدمة (3,500 ج.م)</option>
+        <option value="7500">باقة المؤسسات الشاملة VIP (7,500 ج.م)</option>
       </select>
     </div>
     <div class="calc-row">
@@ -598,9 +598,9 @@ export default function CyberpunkBanner() {
       </div>
     </div>
     <div class="calc-summary">
-      <div class="summary-line"><span>السعر الأساسي:</span><span id="calc-base-price">3,500 ر.س</span></div>
-      <div class="summary-line text-emerald"><span id="calc-discount-label">الخصم المطبق:</span><span id="calc-discount-val">0 ر.س</span></div>
-      <div class="summary-total"><span>الإجمالي النهائي:</span><span id="calc-total-price">3,500 ر.س</span></div>
+      <div class="summary-line"><span>السعر الأساسي:</span><span id="calc-base-price">3,500 ج.م</span></div>
+      <div class="summary-line text-emerald"><span id="calc-discount-label">الخصم المطبق:</span><span id="calc-discount-val">0 ج.م</span></div>
+      <div class="summary-total"><span>الإجمالي النهائي:</span><span id="calc-total-price">3,500 ج.م</span></div>
     </div>
     <button class="calc-submit-btn" onclick="alert('تم حجز الباقة بالسعر المخفض!')">تأكيد الحجز الفوري &larr;</button>
   </div>
@@ -715,9 +715,9 @@ window.updateCalc = function() {
   const discVal = base * window.couponDiscount;
   const total = base - discVal;
   
-  document.getElementById('calc-base-price').innerText = base.toLocaleString() + ' ر.س';
-  document.getElementById('calc-discount-val').innerText = '-' + discVal.toLocaleString() + ' ر.س';
-  document.getElementById('calc-total-price').innerText = total.toLocaleString() + ' ر.س';
+  document.getElementById('calc-base-price').innerText = base.toLocaleString() + ' ج.م';
+  document.getElementById('calc-discount-val').innerText = '-' + discVal.toLocaleString() + ' ج.م';
+  document.getElementById('calc-total-price').innerText = total.toLocaleString() + ' ج.م';
 };
 
 window.applyCoupon = function() {
@@ -741,7 +741,7 @@ export default function PricingCalculator() {
       <h3 className="font-bold text-lg mb-4">حاسبة الأسعار التفاعلية</h3>
       <div className="flex justify-between font-mono font-bold text-xl text-blue-600">
         <span>الإجمالي:</span>
-        <span>{(plan - discount).toLocaleString()} ر.س</span>
+        <span>{(plan - discount).toLocaleString()} ج.م</span>
       </div>
     </div>
   );
@@ -1001,7 +1001,7 @@ export function generateStructuredAiPatch(
       const newTier = {
         id: `tier_ai_${Date.now()}`,
         title: extractedQuote || 'باقة VIP الشاملة',
-        price: '4,900 ر.س',
+        price: '4,900 ج.م',
         period: 'مشروع كامل',
         badge: 'الأكثر طلباً ⭐',
         isPopular: true,
@@ -1049,9 +1049,9 @@ export function generateStructuredAiPatch(
           title: 'اختر باقتك واحصل على خصم فوري',
           subtitle: 'حساب شفاف ومباشر لكافة التكاليف مع دعم كوبونات الخصم.',
           tiers: [
-            { id: 'p1', title: 'الباقة الأساسية', price: '1,500 ر.س', features: ['فحص أولي معتمد', 'تقرير فني شامل', 'ضمان شهرين'], ctaText: 'طلب الباقة' },
-            { id: 'p2', title: 'باقة التميز VIP', price: '3,500 ر.س', badge: 'الأكثر اختياراً', isPopular: true, features: ['فحص 150 نقطة بالكمبيوتر', 'صيانة دورية مجانية', 'ضمان سنتين معتمد'], ctaText: 'حجز فوري VIP' },
-            { id: 'p3', title: 'باقة الشركات والمؤسسات', price: '7,500 ر.س', features: ['تغطية شاملة لكافة الأسطول', 'مستشار VIP مخصص', 'ضمان 5 سنوات'], ctaText: 'تواصل للتعاقد' },
+            { id: 'p1', title: 'الباقة الأساسية', price: '1,500 ج.م', features: ['فحص أولي معتمد', 'تقرير فني شامل', 'ضمان شهرين'], ctaText: 'طلب الباقة' },
+            { id: 'p2', title: 'باقة التميز VIP', price: '3,500 ج.م', badge: 'الأكثر اختياراً', isPopular: true, features: ['فحص 150 نقطة بالكمبيوتر', 'صيانة دورية مجانية', 'ضمان سنتين معتمد'], ctaText: 'حجز فوري VIP' },
+            { id: 'p3', title: 'باقة الشركات والمؤسسات', price: '7,500 ج.م', features: ['تغطية شاملة لكافة الأسطول', 'مستشار VIP مخصص', 'ضمان 5 سنوات'], ctaText: 'تواصل للتعاقد' },
           ],
         },
         styles: {
@@ -1409,7 +1409,7 @@ export function generateCompleteAiWebsite(
           {
             id: 'prod_1',
             title: 'الباقة الماسية الحصرية VIP',
-            price: '850,000 ر.س',
+            price: '850,000 ج.م',
             image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
             badge: 'الأكثر طلباً ⭐',
             specs: ['تسليم فوري خلال 24 ساعة', 'ضمان ممتد 5 سنوات مجاناً', 'خدمة مساعدة ومستشار شخصي'],
@@ -1417,7 +1417,7 @@ export function generateCompleteAiWebsite(
           {
             id: 'prod_2',
             title: 'الباقة البلاتينية المتقدمة',
-            price: '520,000 ر.س',
+            price: '520,000 ج.م',
             image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80',
             badge: 'إصدار خاص',
             specs: ['فحص وتأمين شامل', 'صيانة دورية معتمدة', 'تسهيلات تمويل فورية'],
@@ -1425,7 +1425,7 @@ export function generateCompleteAiWebsite(
           {
             id: 'prod_3',
             title: 'الباقة الذهبية الذكية',
-            price: '340,000 ر.س',
+            price: '340,000 ج.م',
             image: 'https://images.unsplash.com/photo-1542282088-72c9c27ed0cd?w=800&auto=format&fit=crop&q=80',
             badge: 'قيمة استثنائية',
             specs: ['أداء عالي واستهلاك اقتصادي', 'ضمان سنتين', 'دعم فني 24/7'],

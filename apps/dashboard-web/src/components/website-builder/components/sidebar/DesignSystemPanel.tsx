@@ -511,7 +511,7 @@ export const DesignSystemPanel: React.FC = () => {
                 معاينة الخط والسمة
               </span>
               <span style={{ color: theme?.colors?.primary || '#1d4ed8' }} className="font-extrabold font-mono text-xs">
-                999 ر.س
+                999 ج.م
               </span>
             </div>
             <p className="text-[11px] text-slate-500">

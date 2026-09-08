@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/audit"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/middleware"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/validate"
@@ -13,9 +14,10 @@ import (
 
 // Handler exposes authentication HTTP endpoints.
 type Handler struct {
-	service *Service
-	cfg     AuthCookieConfig
-	appCfg  *config.Config
+	service     *Service
+	auditService *audit.Service
+	cfg         AuthCookieConfig
+	appCfg      *config.Config
 }
 
 // AuthCookieConfig holds cookie settings for the auth handlers.
@@ -28,8 +30,8 @@ type AuthCookieConfig struct {
 }
 
 // NewHandler creates a handler for auth routes.
-func NewHandler(service *Service, cookieCfg AuthCookieConfig, appCfg *config.Config) *Handler {
-	return &Handler{service: service, cfg: cookieCfg, appCfg: appCfg}
+func NewHandler(service *Service, auditService *audit.Service, cookieCfg AuthCookieConfig, appCfg *config.Config) *Handler {
+	return &Handler{service: service, auditService: auditService, cfg: cookieCfg, appCfg: appCfg}
 }
 
 // RegisterRoutes wires the auth endpoints under the provided router.
@@ -77,6 +79,10 @@ func (h *Handler) Logout(c *fiber.Ctx) error {
 		if err := h.service.Logout(c.UserContext(), token, extractMeta(c)); err != nil {
 			return err
 		}
+		// Record logout event
+		if h.auditService != nil {
+			_ = h.auditService.RecordLogout(c.UserContext(), token)
+		}
 	}
 
 	h.clearAuthCookie(c)
@@ -114,6 +120,20 @@ func (h *Handler) Login(c *fiber.Ctx) error {
 		return err
 	}
 	h.setAuthCookie(c, resp.Token.RefreshToken)
+
+	// Record login audit event
+	if h.auditService != nil && resp.User.ID != "" {
+		_, _ = h.auditService.RecordLogin(
+			c.UserContext(),
+			resp.User.ID,
+			resp.User.Email,
+			string(resp.User.Role),
+			c.IP(),
+			c.Get("User-Agent"),
+			resp.Token.RefreshToken,
+		)
+	}
+
 	return c.JSON(fiber.Map{"success": true, "data": resp})
 }
 

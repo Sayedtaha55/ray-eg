@@ -48,10 +48,6 @@
   0%, 100% { box-shadow: 0 0 20px rgba(0, 229, 255, 0.15); }
   50% { box-shadow: 0 0 40px rgba(0, 229, 255, 0.35); }
 }
-@keyframes bl-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
 @keyframes bl-spin-slow {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
@@ -103,12 +99,6 @@
   color: transparent;
   animation: bl-gradient-text 4s ease-in-out infinite;
 }
-.bl-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: bl-marquee 26s linear infinite;
-}
-.bl-marquee-track:hover { animation-play-state: paused; }
 .bl-hero-dot { transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
 .bl-hero-dot.active { animation: bl-dot-pulse 1.6s ease-in-out infinite; }
 .bl-img-zoom { overflow: hidden; }
@@ -135,11 +125,17 @@
   transform: translateY(-2px);
 }
 
+.animate-fade-up { animation: bl-fade-up 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes bl-fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .bl-anim-gradient, .bl-anim-float, .bl-anim-float-slow,
   .bl-anim-shimmer, .bl-anim-pulse-glow, .bl-anim-spin-slow,
   .bl-anim-bounce, .bl-reveal, .bl-hero-slide, .bl-gradient-text,
-  .bl-marquee-track, .bl-hero-dot, .bl-ken-burns, .bl-tilt-card,
+  .bl-hero-dot, .bl-ken-burns, .bl-tilt-card,
   .bl-img-zoom img {
     animation: none !important;
     transition: none !important;

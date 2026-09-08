@@ -787,7 +787,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       image: 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80',
       title: 'مرسيدس AMG GT Coupe 2025',
-      price: '745,000 ر.س',
+      price: '745,000 ج.م',
       badge: 'جديدة تماماً',
       specs: ['محرك V8 توين تيربو', '577 حصان', 'تسارع 0-100 في 3.2 ث'],
       ctaText: 'طلب فحص وتجربة',
@@ -813,7 +813,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=800&auto=format&fit=crop&q=80',
       title: 'بورش 911 GT3 RS 2025',
-      price: '920,000 ر.س',
+      price: '920,000 ج.م',
       badge: 'نسخة حصرية',
       specs: ['محرك 4.0L تنفس طبيعي', '518 حصان', 'جناح هوائي أوتوماتيكي'],
       ctaText: 'طلب فحص وتجربة',
@@ -839,7 +839,7 @@ export const initialAutomotiveComponents: Record<string, ComponentNode> = {
     props: {
       image: 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=800&auto=format&fit=crop&q=80',
       title: 'رينج روفر أوتوبيوغرافي LWB',
-      price: '890,000 ر.س',
+      price: '890,000 ج.م',
       badge: 'الأكثر طلباً',
       specs: ['محرك V8 سوبرتشارج', '523 حصان', 'مقاعد مساج VIP وتنفيذي'],
       ctaText: 'طلب فحص وتجربة',

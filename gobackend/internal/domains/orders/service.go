@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/notification"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/errors"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/logger"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/pagination"
@@ -15,20 +16,33 @@ import (
 
 // Service implements the Orders domain business logic.
 type Service struct {
-	cfg  *config.Config
-	repo *Repository
+	cfg   *config.Config
+	repo  *Repository
+	notif *notification.Service
 }
 
-// NewService creates a new orders service.
-func NewService(cfg *config.Config, repo *Repository) *Service {
-	return &Service{cfg: cfg, repo: repo}
+// NewService creates a new orders service. notifSvc is optional and used to
+// push real-time notifications to the shop when a new order arrives.
+func NewService(cfg *config.Config, repo *Repository, notifSvc *notification.Service) *Service {
+	return &Service{cfg: cfg, repo: repo, notif: notifSvc}
 }
 
-// CreateOrder creates an order from a cart payload.
+// CreateOrder creates an order from a cart payload (authenticated users).
 func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userID, actorRole string) (*Order, error) {
 	if userID == "" {
 		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
 	}
+	return s.createOrderCore(ctx, req, userID, actorRole, false)
+}
+
+// CreateGuestOrder creates an order from a public storefront visitor without
+// login (guest checkout). The visitor must provide a phone number and a
+// delivery address; the order source is marked as "guest".
+func (s *Service) CreateGuestOrder(ctx context.Context, req CreateOrderRequest) (*Order, error) {
+	return s.createOrderCore(ctx, req, "", "GUEST", true)
+}
+
+func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, userID, actorRole string, allowGuest bool) (*Order, error) {
 	shopID := strings.TrimSpace(req.ShopID)
 	if shopID == "" {
 		return nil, errors.Validation("shopId_required", "shopId مطلوب")
@@ -46,6 +60,10 @@ func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userI
 		}
 	}
 
+	if allowGuest && source == "customer" {
+		source = "guest"
+	}
+
 	customerPhone := ""
 	if req.CustomerPhone != nil {
 		customerPhone = strings.TrimSpace(*req.CustomerPhone)
@@ -55,7 +73,9 @@ func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userI
 		manual = strings.TrimSpace(*req.DeliveryAddressManual)
 	}
 
-	if source != "pos" && !s.cfg.IsProduction() {
+	// Guests (public storefront checkout) must always provide a phone and a
+	// delivery address — in every environment.
+	if source != "pos" && (allowGuest || !s.cfg.IsProduction()) {
 		if customerPhone == "" {
 			return nil, errors.Validation("customer_phone_required", "رقم الهاتف مطلوب")
 		}
@@ -136,6 +156,23 @@ func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userI
 	if err != nil {
 		logger.Global().Error("create order failed", zap.Error(err))
 		return nil, errors.Internal("create_order_failed", err)
+	}
+
+	// Fire-and-forget: notify the shop about the new order (bell ring on
+	// dashboard + push). Source distinguishes website vs POS/cashier orders.
+	if s.notif != nil {
+		notifSvc := s.notif
+		shopID := created.ShopID
+		orderID := created.ID
+		orderSource := created.Source
+		orderTotal := created.Total
+		go func() {
+			notifCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			if err := notifSvc.NotifyNewOrder(notifCtx, shopID, orderID, orderID, orderSource, orderTotal); err != nil {
+				logger.Global().Warn("notify new order failed", zap.Error(err))
+			}
+		}()
 	}
 
 	return created, nil

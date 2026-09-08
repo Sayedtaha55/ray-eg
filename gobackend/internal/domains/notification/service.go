@@ -3,6 +3,7 @@ package notification
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/jobs"
@@ -220,19 +221,28 @@ func (s *Service) NotifyNewFollower(ctx context.Context, shopID string, follower
 	return err
 }
 
-// NotifyNewOrder sends a notification when a new order is placed
-func (s *Service) NotifyNewOrder(ctx context.Context, shopID string, orderID string, orderNumber string, total float64) error {
+// NotifyNewOrder sends an urgent notification to the shop when a new order
+// arrives. source is "customer"/"website" (website) or "pos" (point of sale /
+// cashier) so the dashboard can ring a different bell per source.
+func (s *Service) NotifyNewOrder(ctx context.Context, shopID string, orderID string, orderNumber string, source string, total float64) error {
+	isPOS := strings.EqualFold(strings.TrimSpace(source), "pos")
+	sourceLabel := "الموقع"
+	if isPOS {
+		sourceLabel = "نقطة البيع"
+	}
+
 	data := &NotificationData{
 		Type:     NotificationTypeNewOrder,
-		Title:    "طلب جديد",
-		Content:  fmt.Sprintf("طلب #%s بقيمة %.2f", orderNumber, total),
+		Title:    fmt.Sprintf("🔔 طلب جديد من %s", sourceLabel),
+		Content:  fmt.Sprintf("طلب جديد #%s بقيمة %.2f جنيه من %s", orderNumber, total, sourceLabel),
 		ShopID:   &shopID,
 		OrderID:  &orderID,
-		Priority: NotificationPriorityHigh,
+		Priority: NotificationPriorityUrgent,
 		Channels: []NotificationChannel{NotificationChannelInApp, NotificationChannelPush},
 		Metadata: map[string]interface{}{
 			"order_id":     orderID,
 			"order_number": orderNumber,
+			"order_source": map[bool]string{true: "pos", false: "website"}[isPOS],
 			"total":        total,
 		},
 	}

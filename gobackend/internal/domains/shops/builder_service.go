@@ -111,21 +111,114 @@ func (s *BuilderService) PublishBuilderConfig(ctx context.Context, shopID string
 		return errors.NotFound("config_not_found", "التكوين غير موجود")
 	}
 
-	// Mark as published (you might want to add a published_at field)
-	// For now, we'll just update the updated_at timestamp
-	_, err = s.repo.pool.Exec(ctx, `
-		UPDATE shops
-		SET updated_at = NOW()
-		WHERE id = $1
-	`, shopID)
-
-	if err != nil {
-		s.logger.Error("Failed to publish builder config", zap.Error(err), zap.String("shopId", shopID))
+	// Mark as published: record the publish timestamp so the public
+	// website endpoint can serve this config to visitors.
+	if _, err := s.repo.pool.Exec(ctx,
+		"UPDATE shops SET builder_published_at = NOW(), updated_at = NOW() WHERE id = $1",
+		shopID); err != nil {
+		s.logger.Error("Failed to mark builder config published", zap.Error(err), zap.String("shopId", shopID))
 		return err
 	}
 
 	s.logger.Info("Builder config published", zap.String("shopId", shopID))
 	return nil
+}
+
+// ListPublishedSlugs returns the slugs of approved shops whose website has
+// been published. Exposed publicly for sitemap generation only.
+func (s *BuilderService) ListPublishedSlugs(ctx context.Context) ([]string, error) {
+	rows, err := s.repo.pool.Query(ctx, `
+		SELECT slug FROM shops
+		WHERE status = 'APPROVED' AND builder_published_at IS NOT NULL
+		ORDER BY builder_published_at DESC
+		LIMIT 5000
+	`)
+	if err != nil {
+		s.logger.Error("Failed to list published slugs", zap.Error(err))
+		return nil, err
+	}
+	defer rows.Close()
+
+	slugs := []string{}
+	for rows.Next() {
+		var slug string
+		if err := rows.Scan(&slug); err != nil {
+			return nil, err
+		}
+		slugs = append(slugs, slug)
+	}
+	return slugs, rows.Err()
+}
+
+// PublicWebsite is the public payload served to visitors of a published site.
+type PublicWebsite struct {
+	Published   bool           `json:"published"`
+	PublishedAt *time.Time     `json:"publishedAt,omitempty"`
+	Shop        PublicShopInfo `json:"shop"`
+	Config      *BuilderConfig `json:"config"`
+}
+
+// PublicShopInfo is the minimal shop info exposed publicly.
+type PublicShopInfo struct {
+	ID       string  `json:"id"`
+	Name     string  `json:"name"`
+	Slug     string  `json:"slug"`
+	LogoURL  *string `json:"logoUrl,omitempty"`
+	Phone    *string `json:"phone,omitempty"`
+	Address  *string `json:"address,omitempty"`
+}
+
+// GetPublicWebsiteBySlug returns the published website config for a shop by
+// its slug. This is the endpoint the public storefront renders from.
+func (s *BuilderService) GetPublicWebsiteBySlug(ctx context.Context, slug string) (*PublicWebsite, error) {
+	var (
+		shopID      string
+		shopName    string
+		logoURL     *string
+		phone       *string
+		address     *string
+		configJSON  []byte
+		publishedAt *time.Time
+	)
+
+	err := s.repo.pool.QueryRow(ctx, `
+		SELECT id, name, logo_url, phone, address,
+		       builder_config, builder_published_at
+		FROM shops
+		WHERE slug = $1 AND status = 'APPROVED'
+	`, slug).Scan(&shopID, &shopName, &logoURL, &phone, &address, &configJSON, &publishedAt)
+
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, errors.NotFound("shop_not_found", "المتجر غير موجود")
+		}
+		s.logger.Error("Failed to get public website", zap.Error(err), zap.String("slug", slug))
+		return nil, err
+	}
+
+	var config BuilderConfig
+	if len(configJSON) > 0 {
+		if err := json.Unmarshal(configJSON, &config); err != nil {
+			s.logger.Error("Failed to unmarshal builder config", zap.Error(err))
+			return nil, errors.Internal("invalid_config", err)
+		}
+	} else {
+		config = s.getDefaultConfig()
+	}
+
+	return &PublicWebsite{
+		Published:   publishedAt != nil,
+		PublishedAt: publishedAt,
+		Shop: PublicShopInfo{
+			ID:      shopID,
+			Name:    shopName,
+			Slug:    slug,
+			LogoURL: logoURL,
+			Phone:   phone,
+			Address: address,
+		},
+		Config: &config,
+	}, nil
 }
 
 // getDefaultConfig returns the default builder configuration.

@@ -249,7 +249,7 @@ export const CartDrawer: React.FC = () => {
                   )}
 
                   <div className="text-xs font-extrabold text-blue-700 font-mono">
-                    {item.priceFormatted || `${item.price.toLocaleString()} ر.س`}
+                    {item.priceFormatted || `${item.price.toLocaleString()} ج.م`}
                   </div>
 
                   {/* Quantity controls */}
@@ -275,7 +275,7 @@ export const CartDrawer: React.FC = () => {
                     </div>
 
                     <span className="text-[11px] text-slate-400">
-                      الإجمالي: {(item.price * item.quantity).toLocaleString()} ر.س
+                      الإجمالي: {(item.price * item.quantity).toLocaleString()} ج.م
                     </span>
                   </div>
                 </div>
@@ -323,25 +323,25 @@ export const CartDrawer: React.FC = () => {
             <div className="space-y-1.5 text-xs pt-1 border-t border-slate-200/80">
               <div className="flex justify-between text-slate-600">
                 <span>المجموع الفرعي:</span>
-                <span className="font-mono font-bold">{cartTotal.toLocaleString()} ر.س</span>
+                <span className="font-mono font-bold">{cartTotal.toLocaleString()} ج.م</span>
               </div>
 
               {appliedDiscount > 0 && (
                 <div className="flex justify-between text-emerald-600 font-semibold">
                   <span>الخصم ({appliedDiscount * 100}%):</span>
-                  <span className="font-mono">-{discountAmount.toLocaleString()} ر.س</span>
+                  <span className="font-mono">-{discountAmount.toLocaleString()} ج.م</span>
                 </div>
               )}
 
               <div className="flex justify-between text-slate-600">
                 <span>ضريبة القيمة المضافة (15%):</span>
-                <span className="font-mono">{vatAmount.toLocaleString()} ر.س</span>
+                <span className="font-mono">{vatAmount.toLocaleString()} ج.م</span>
               </div>
 
               <div className="flex justify-between text-sm font-black text-slate-900 pt-1.5 border-t border-slate-200">
                 <span>المبلغ الإجمالي المستحق:</span>
                 <span className="font-mono text-blue-700 text-base">
-                  {Math.round(finalTotal).toLocaleString()} ر.س
+                  {Math.round(finalTotal).toLocaleString()} ج.م
                 </span>
               </div>
             </div>
@@ -369,7 +369,7 @@ export const CartDrawer: React.FC = () => {
                     {cartMode === 'standalone' ? 'متابعة الدفع وحجز الطلب' : 'ترحيل الطلب للسلة الموحدة'}
                   </span>
                   <span className="font-mono font-normal opacity-80">
-                    ({Math.round(finalTotal).toLocaleString()} ر.س)
+                    ({Math.round(finalTotal).toLocaleString()} ج.م)
                   </span>
                 </>
               )}
