@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "postapiv1authsignupregisternewuser",
+    "description": "Test user registration endpoint with valid customer and merchant details to ensure account creation and proper response status 201."
+  },
+  {
+    "id": "TC002",
+    "title": "postapiv1authloginuserauthentication",
+    "description": "Verify user login with valid email and password returns 200 with authenticated session or JWT payload."
+  },
+  {
+    "id": "TC003",
+    "title": "postapiv1authpasswordforgotrequestresetemail",
+    "description": "Test password reset email request with registered email returns 200 confirming reset email sent."
+  },
+  {
+    "id": "TC004",
+    "title": "postapiv1authpasswordresetresetpasswordwithtoken",
+    "description": "Verify password reset with valid token and new password returns 200 confirming password change."
+  },
+  {
+    "id": "TC005",
+    "title": "postapiv1shopscreatenewshop",
+    "description": "Test creating a new shop with authenticated merchant data returns 201 with new shop record."
+  },
+  {
+    "id": "TC006",
+    "title": "getapiv1shopsmeshopsretrieval",
+    "description": "Verify retrieval of current user's shop returns 200 with correct shop data for authenticated user."
+  },
+  {
+    "id": "TC007",
+    "title": "postapiv1orderscreateorder",
+    "description": "Test order creation with authenticated customer details returns 201 with created order data."
+  },
+  {
+    "id": "TC008",
+    "title": "getapiv1ordersmegetmerchantshoporders",
+    "description": "Verify retrieval of current merchant shop orders returns 200 with order list."
+  },
+  {
+    "id": "TC009",
+    "title": "postapiv1reservationscreatereservation",
+    "description": "Test creating a reservation with authenticated user details returns 201 with reservation data."
+  },
+  {
+    "id": "TC010",
+    "title": "postapiv1offerscreateoffer",
+    "description": "Verify creating a new promotional offer with authenticated merchant details returns 201 with offer data."
+  }
+]
