@@ -39,7 +39,13 @@ export function Navbar() {
     if (token) {
       fetch(apiPath('/notifications/me/unread-count'), {
         headers: { Authorization: `Bearer ${token}` },
-      }).then(r => r.ok ? r.json() : null).then(d => setUnreadNotifs(d?.unread_count || d?.count || 0)).catch(() => {});
+      }).then(r => {
+        if (r.status === 401) {
+          setUnreadNotifs(0);
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      }).then(d => setUnreadNotifs(d?.unread_count || d?.count || 0)).catch(() => {});
     } else {
       setUnreadNotifs(0);
     }

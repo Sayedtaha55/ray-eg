@@ -1,4 +1,4 @@
-const VERSION = 'mnmknk-v1';
+const VERSION = 'mnmknk-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGES_CACHE = `${VERSION}-pages`;
 

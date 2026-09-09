@@ -3,17 +3,15 @@
 import Navbar from '@/components/Navbar';
 import Hero from '@/components/Hero';
 import {
-  ThemeShowcase,
-  AboutSection,
-  FeaturesSection,
-  HowItWorks,
+  GrowthJourney,
+  ConnectedEcosystem,
+  ShopTypes,
+  BeforeAfter,
+  MahallyShowcase,
 } from '@/components/Sections';
 import {
-  IndustriesSection,
-  GrowthSection,
-  AboutSection2,
-  ProductsSection,
   FaqSection,
+  FinalCta,
   Footer,
 } from '@/components/MoreSections';
 import { useScrollReveal, useBackToTop } from '@/lib/hooks';
@@ -28,15 +26,13 @@ export default function HomePage() {
     <div className="min-h-screen bg-white">
       <Navbar />
       <Hero />
-      <ThemeShowcase />
-      <AboutSection />
-      <FeaturesSection />
-      <HowItWorks />
-      <IndustriesSection />
-      <GrowthSection />
-      <AboutSection2 />
-      <ProductsSection />
+      <GrowthJourney />
+      <ConnectedEcosystem />
+      <ShopTypes />
+      <BeforeAfter />
       <FaqSection />
+      <MahallyShowcase />
+      <FinalCta />
       <Footer />
 
       {show && (
@@ -61,3 +57,4 @@ export default function HomePage() {
     </div>
   );
 }
+

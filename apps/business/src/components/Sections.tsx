@@ -6,6 +6,8 @@ import {
   TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
   Globe, Shield, Star, Store, Smartphone, CreditCard, Truck, Users,
   Sparkles, Package, Rocket, Target, Award, Layers, Code2, Headphones,
+  Building2, Send, MapPin, Navigation,
+  MessageSquare, LayoutGrid, Check, Boxes,
   Image as ImageIcon, Eye,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
@@ -55,10 +57,6 @@ export function ThemeShowcase() {
       />
       <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
         <RevealSection className="text-center mb-10 md:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-50 border border-cyan-100 text-cyan-600 text-xs font-bold uppercase tracking-widest mb-5">
-            <Eye className="w-3.5 h-3.5" />
-            ابدأ من قطاعك
-          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
             واجهة <span className="text-cyan-600">على مقاس نشاطك</span>
           </h2>
@@ -232,56 +230,414 @@ export function AboutSection() {
   );
 }
 
-export function FeaturesSection() {
-  return (
-    <section id="features" className="relative z-20 bg-white py-20 md:py-32">
-      <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        <RevealSection className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-100 border border-slate-200 text-slate-600 text-sm font-bold mb-6">
-            <Zap className="w-4 h-4" />
-            كل ما يحتاجه متجرك في مكان واحد
-          </div>
-          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
-            كل ما يحتاجه متجرك في مكان واحد
-          </h2>
-          <p className="text-slate-500 text-lg max-w-2xl mx-auto">
-            أدوات قوية وسهلة الاستخدام لإدارة وتنمية أعمالك بكفاءة عالية
-          </p>
-        </RevealSection>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-          {features.map((feature, i) => (
-            <RevealSection
-              key={i}
-              delay={i * 80}
-              className={`group relative overflow-hidden rounded-3xl bg-white border border-slate-200 p-6 md:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 hover:border-slate-300 ${feature.span}`}
-            >
-              <div className={`absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500`} />
-              <div className={`inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${feature.color} mb-5 shadow-lg`}>
-                <feature.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
-              </div>
-              <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">{feature.title}</h3>
-              <p className="text-slate-600 text-sm md:text-base leading-relaxed">{feature.desc}</p>
-            </RevealSection>
-          ))}
+
+export function GrowthJourney() {
+  const cards = [
+    { img: '/images/new/journey-store.png', title: 'أول محل', desc: 'ابدأ صح من أول فاتورة، ونظّم شغلك من اليوم الأول.' },
+    { img: '/images/new/journey-growth.png', title: 'تجارة بتتوسع', desc: 'فروع أكتر، منتجات أكتر، عملاء أكتر.. وإدارة أسهل.' },
+    { img: '/images/new/journey-enterprise.png', title: 'بزنس على مستوى أكبر', desc: 'تحكّم في عملياتك وفروعك وبياناتك من مكان واحد.' },
+  ];
+
+  return (
+    <section className="relative overflow-hidden bg-white py-16 md:py-24">
+      <div className="max-w-7xl mx-auto px-5 sm:px-6">
+        {/* العنوان */}
+        <div className="text-center mb-10 md:mb-14">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.35]">
+            مهما كانت تجارتك النهارده..
+            <br />
+            إحنا جاهزين لبكرة.
+          </h2>
+          <p className="mt-4 text-slate-500 text-sm sm:text-base md:text-lg">
+            من أول محل صغير.. لأكبر شركة، نمِّي تجارتك بخطوات أسهل.
+          </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mt-4 md:mt-6">
-          {[
-            { icon: Smartphone, label: 'متجرك على الموبايل' },
-            { icon: CreditCard, label: 'دفع آمن' },
-            { icon: Truck, label: 'إدارة الشحن' },
-            { icon: Users, label: 'إدارة العملاء' },
-          ].map((item, i) => (
-            <RevealSection
-              key={i}
-              delay={i * 60}
-              className="flex items-center gap-3 p-4 md:p-5 rounded-2xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-sm transition-all"
+        <div className="flex flex-col lg:flex-row items-center lg:items-start gap-10 lg:gap-8">
+          {/* النص والسهم — على اليمين في الديسكتوب (أول عنصر = يمين في RTL) */}
+          <div className="w-full lg:w-[300px] shrink-0 text-center lg:pt-10 order-1 lg:order-1">
+            <div className="inline-block lg:block text-center">
+              <Send className="w-8 h-8 text-blue-600 mb-3 mx-auto" fill="currentColor" />
+              <h3 className="text-2xl md:text-[28px] font-black text-slate-900 leading-snug mb-2">
+                من أول عملية بيع.. لأكبر فرع.
+              </h3>
+              <p className="text-slate-500 text-sm md:text-base mb-6">
+                من محل واحد.. لمنظومة كاملة.
+              </p>
+              {/* سهم منقّط منحني — معكوس */}
+              <svg viewBox="0 0 220 60" className="w-48 h-12 mx-auto mb-4 text-blue-600" fill="none">
+                <path
+                  d="M205 8 C 150 45, 80 50, 25 32"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeDasharray="8 7"
+                  strokeLinecap="round"
+                />
+                <path d="M32 22 L14 30 L30 40 Z" fill="currentColor" />
+              </svg>
+              <Link
+                href="/signup"
+                className="inline-block text-blue-600 font-bold text-sm md:text-base hover:gap-3 gap-2 transition-all"
+              >
+                ابدأ من مكانك الحالي وكبَّر واحنا معاك.
+              </Link>
+            </div>
+          </div>
+
+          {/* الكروت — على الشمال (تاني عنصر = شمال في RTL) */}
+          <div className="flex-1 w-full grid grid-cols-1 sm:grid-cols-3 gap-5 md:gap-6 order-2 lg:order-2">
+            {cards.map((c, i) => (
+              <div
+                key={i}
+                className="reveal bg-white rounded-[2rem] border border-sky-100 shadow-[0_20px_60px_-20px_rgba(2,132,199,0.25)] p-6 md:p-7 text-center flex flex-col items-center hover:-translate-y-1.5 hover:shadow-[0_28px_70px_-20px_rgba(2,132,199,0.35)] transition-all duration-300"
+              >
+                <div className="w-full h-44 md:h-52 rounded-3xl overflow-hidden bg-sky-50 border border-sky-100 mb-5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.img} alt={c.title} className="w-full h-full object-cover" loading="lazy" />
+                </div>
+                <h3 className="text-lg md:text-xl font-black text-slate-900 mb-2.5">{c.title}</h3>
+                <p className="text-slate-500 text-sm md:text-[15px] leading-relaxed">{c.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ConnectedEcosystem() {
+  const orbit = [
+    { icon: Boxes, label: 'المخزون', pos: 'top-[2%] left-1/2 -translate-x-1/2' },
+    { icon: BarChart3, label: 'المبيعات', pos: 'top-[18%] left-[6%] md:left-[14%]' },
+    { icon: Users, label: 'العملاء', pos: 'top-[18%] right-[6%] md:right-[14%]' },
+    { icon: Users, label: 'الموظفين', pos: 'top-[52%] left-[0%] md:left-[6%]' },
+    { icon: Truck, label: 'الشحن', pos: 'top-[52%] right-[0%] md:right-[6%]' },
+    { icon: MessageSquare, label: 'الرسائل', pos: 'bottom-[13%] right-[10%] md:right-[18%]' },
+    { icon: Globe, label: 'الدومينات', pos: 'bottom-[13%] left-[10%] md:left-[18%]' },
+    { icon: LayoutGrid, label: 'صفحات البيع', pos: 'bottom-[0%] left-1/2 -translate-x-1/2' },
+  ];
+
+  const list = [
+    'إدارة المبيعات',
+    'إدارة المخزون',
+    'إدارة العملاء',
+    'إدارة الموظفين',
+    'التقارير والتحليلات',
+    'الشحن والدفع',
+    'صفحات البيع والدومينات',
+  ];
+
+  return (
+    <section dir="rtl" className="relative overflow-hidden bg-[#001845] py-16 md:py-24">
+      {/* توهج خلفي */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[640px] h-[640px] rounded-full bg-blue-600/25 blur-[140px]" />
+        <div className="absolute inset-x-0 top-0 h-40 bg-gradient-to-b from-black/30 to-transparent" />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
+        {/* العنوان */}
+        <div className="text-center mb-10 md:mb-14">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-[1.4]">
+            كل حاجة متصلة
+          </h2>
+          <p className="mt-3 text-slate-300/90 text-sm sm:text-base md:text-lg">
+            نربط كل أدوات تجارتك في منظومة واحدة.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-6 items-center">
+          {/* النص + الزر — يمين في الديسكتوب (أول عنصر في RTL) */}
+          <div className="text-center lg:text-right order-1">
+            <h3 className="text-xl sm:text-2xl md:text-[26px] font-black text-white leading-[1.9]">
+              إنت شايف عملية بيع.
+              <br />
+              إحنا شايفين تجارتك كلها.
+            </h3>
+            <p className="mt-4 text-slate-300/80 text-sm md:text-base leading-[2.1]">
+              كل فاتورة، كل منتج، كل حركة في المخزون، وكل عميل..
+              <br />
+              بنتحول لبيانات تساعدك تعرف إيه اللي بيحصل في
+              <br />
+              تجارتك وإيه اللي محتاج يتغير.
+            </p>
+            <Link
+              href="/solutions"
+              className="mt-7 inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/5 px-7 py-3 text-white font-bold text-sm md:text-base hover:bg-white/10 transition-colors"
             >
-              <item.icon className="w-5 h-5 text-cyan-600 flex-shrink-0" />
-              <span className="text-slate-700 text-sm font-medium">{item.label}</span>
-            </RevealSection>
+              اكتشف كل الحلول
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </div>
+
+          {/* المدار — النص في الوسط */}
+          <div className="relative mx-auto w-full max-w-[420px] aspect-square order-2">
+            {/* خطوط الربط */}
+            <svg viewBox="0 0 400 400" className="absolute inset-0 w-full h-full text-cyan-400/50" fill="none">
+              {[
+                'M200 40 L200 130',
+                'M110 95 L155 145',
+                'M290 95 L245 145',
+                'M70 210 L135 190',
+                'M330 210 L265 190',
+                'M290 310 L245 250',
+                'M110 310 L155 250',
+                'M200 365 L200 275',
+              ].map((d, i) => (
+                <path key={i} d={d} stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 5" strokeLinecap="round" />
+              ))}
+            </svg>
+
+            {/* المتجر في النص */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+              <div className="absolute inset-0 -m-8 rounded-[2.5rem] bg-blue-500/40 blur-3xl" />
+              <div className="relative w-32 h-32 md:w-36 md:h-36 rounded-[1.8rem] overflow-hidden border border-cyan-300/40 shadow-[0_0_60px_-10px_rgba(34,211,238,0.7)] bg-[#02163f]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/new/store-island.webp" alt="متجرك" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            </div>
+
+            {/* الحبوب المدارية */}
+            {orbit.map((o, i) => (
+              <span
+                key={i}
+                className={`absolute ${o.pos} inline-flex items-center gap-1.5 rounded-full border border-cyan-300/25 bg-[#021a4d]/90 px-3.5 py-1.5 text-[13px] font-bold text-slate-100 shadow-lg whitespace-nowrap`}
+              >
+                {o.label}
+                <o.icon className="w-4 h-4 text-cyan-300" />
+              </span>
+            ))}
+          </div>
+
+          {/* حلولنا تشمل — شمال في الديسكتوب */}
+          <div className="order-3">
+            <div className="mx-auto lg:mx-0 max-w-[320px] rounded-[2rem] border border-cyan-300/20 bg-[#022064]/60 backdrop-blur p-7 md:p-8 text-center">
+              <h4 className="text-white font-black text-lg md:text-xl mb-5">حلولنا تشمل</h4>
+              <ul className="space-y-3.5">
+                {list.map((t, i) => (
+                  <li key={i} className="flex items-center justify-center lg:justify-start gap-2.5 text-slate-200 text-sm md:text-[15px]">
+                    <span className="w-6 h-6 rounded-full bg-cyan-400/15 border border-cyan-300/20 flex items-center justify-center shrink-0">
+                      <Check className="w-3.5 h-3.5 text-cyan-300" strokeWidth={3} />
+                    </span>
+                    {t}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function ShopTypes() {
+  const types = [
+    { title: 'التجزئة', desc: 'كل رف له قصة', img: '/images/new/type-retail.png' },
+    { title: 'الملابس', desc: 'من المخزن لحد العميل', img: '/images/new/type-fashion.png' },
+    { title: 'المطاعم', desc: 'طلبات أكتر، فوضى أقل', img: '/images/new/type-restaurant.png' },
+    { title: 'السوبر ماركت', desc: 'آلاف المنتجات وإدارة أبسط', img: '/images/new/type-supermarket.png' },
+    { title: 'الفروع', desc: 'كل فروعك في مكان واحد', img: '/images/new/type-branches.png' },
+    { title: 'الشركات', desc: 'إدارة أكثر احترافية', img: '/images/new/type-enterprise.png' },
+  ];
+
+  return (
+    <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
+      {/* توهج علوي خفيف */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -top-20 left-1/2 -translate-x-1/2 w-[720px] h-[320px] rounded-full bg-sky-100/80 blur-[100px]" />
+      </div>
+
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6">
+        <div className="text-center mb-10 md:mb-14">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.4]">
+            مصممة لكل أنواع التجارة
+          </h2>
+          <p className="mt-3 text-slate-500 text-sm sm:text-base md:text-lg">
+            من المحلات الصغيرة إلى الشركات الكبيرة، حلول تناسب كل نشاط.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-5">
+          {types.map((t, i) => (
+            <div
+              key={i}
+              className="group rounded-[2rem] border border-slate-100 bg-white p-3 pb-5 text-center shadow-[0_10px_40px_-15px_rgba(2,132,199,0.15)] hover:shadow-[0_20px_50px_-15px_rgba(2,132,199,0.3)] hover:-translate-y-1 transition-all duration-300"
+            >
+              <div className="rounded-[1.5rem] bg-sky-50/80 overflow-hidden aspect-square flex items-center justify-center">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={t.img}
+                  alt={t.title}
+                  loading="lazy"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                />
+              </div>
+              <h3 className="mt-4 font-black text-slate-900 text-sm md:text-base">{t.title}</h3>
+              <p className="mt-1 text-slate-500 text-[11px] md:text-xs leading-relaxed">{t.desc}</p>
+            </div>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function BeforeAfter() {
+  const before = [
+    'دفاتر وورق وكشوف مبعثرة',
+    'مش عارف المخزون خلص إمتى',
+    'أرقام المبيعات متأخرة يوم أو اتنين',
+    'كل فرع بيشتغل لوحده',
+  ];
+  const after = [
+    'كل حاجة مسجلة في مكان واحد',
+    'المخزون يتحدث مع كل عملية بيع',
+    'المبيعات قدامك أول بأول',
+    'الفروع كلها تحت عينك',
+  ];
+
+  return (
+    <section dir="rtl" className="relative overflow-hidden bg-white py-16 md:py-24">
+      {/* توهج أزرق خفيف */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[480px] rounded-full bg-sky-100/70 blur-[110px]" />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-6">
+        <div className="text-center mb-10 md:mb-14">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.4]">
+            الفرق اللي هتحسه من أول أسبوع
+          </h2>
+          <p className="mt-3 text-slate-500 text-sm sm:text-base md:text-lg">
+            نفس المحل.. بس بطريقة إدارة مختلفة تمامًا.
+          </p>
+        </div>
+
+        <div className="relative flex flex-col md:flex-row items-stretch justify-center gap-6 md:gap-0">
+          {/* كارت بعد */}
+          <div className="flex-1 rounded-[2rem] bg-white border border-slate-100 shadow-[0_20px_60px_-20px_rgba(2,132,199,0.25)] p-6 md:p-10 md:ml-10">
+            <div className="text-[#0066FF] font-black text-sm md:text-base mb-5">بعد</div>
+            <ul className="space-y-4 md:space-y-5">
+              {after.map((t, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-green-50 flex items-center justify-center">
+                    <Check className="w-4 h-4 text-green-500" strokeWidth={3} />
+                  </span>
+                  <span className="font-bold text-slate-900 text-sm md:text-lg">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* زر التحويل */}
+          <div className="flex md:absolute md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2 items-center justify-center z-10">
+            <span className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#0066FF] shadow-lg shadow-blue-500/40 flex items-center justify-center rotate-90 md:rotate-0">
+              <ArrowLeft className="w-6 h-6 text-white rotate-180" />
+            </span>
+          </div>
+
+          {/* كارت قبل */}
+          <div className="flex-1 rounded-[2rem] bg-sky-50/60 border border-sky-100/60 p-6 md:p-10 md:mr-10">
+            <div className="text-slate-700 font-black text-sm md:text-base mb-5">قبل</div>
+            <ul className="space-y-4 md:space-y-5">
+              {before.map((t, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="shrink-0 w-7 h-7 rounded-full bg-red-50 flex items-center justify-center">
+                    <span className="text-red-500 font-black text-sm leading-none">×</span>
+                  </span>
+                  <span className="text-slate-500 text-sm md:text-lg">{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+export function MahallyShowcase() {
+  const points = [
+    { icon: Navigation, text: 'متجرك يظهر للي حواليك على الخريطة — أول ما يدوروا يلاقوك.' },
+    { icon: Zap, text: 'عروضك ومنتجاتك توصل لعملاء جاهزين يشتروا النهارده.' },
+    { icon: TrendingUp, text: 'كل زيارة من التطبيق بتتحول لعملية بيع في متجرك.' },
+    { icon: Store, text: 'اربط فروعك ومخزونك — والعميل يوصلك من أقرب فرع.' },
+  ];
+
+  return (
+    <section dir="rtl" className="relative overflow-hidden bg-white pb-16 md:pb-24 pt-0">
+      {/* توهج بألواننا */}
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[900px] h-[400px] rounded-full bg-sky-100/70 blur-[110px]" />
+      </div>
+
+      <div className="relative max-w-6xl mx-auto px-5 sm:px-6">
+        <div className="relative overflow-hidden rounded-[2rem] biz-hero !min-h-0 px-6 py-8 md:p-10">
+          <div className="relative grid md:grid-cols-2 gap-10 items-center">
+            {/* النص */}
+            <div>
+              <div className="flex items-center gap-3 mb-5">
+                <span className="w-14 h-14 rounded-2xl bg-white border border-sky-100 shadow-lg shadow-sky-500/20 flex items-center justify-center overflow-hidden p-1.5">
+                  <img src="/brand/logo.png" alt="من مكانك" className="w-full h-full object-contain" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-black text-2xl text-slate-900">من مكانك</span>
+                  <span className="block font-bold text-sm text-sky-600 -mt-0.5" dir="ltr">men makanak</span>
+                </span>
+              </div>
+
+              <h2 className="text-3xl sm:text-4xl font-black text-slate-900 leading-[1.5]">
+                العملاء اللي حواليك.. <span className="text-sky-600">بقوا عملاءك</span>
+              </h2>
+              <p className="mt-3 text-slate-500 text-sm sm:text-base leading-relaxed">
+                «من مكانك» يوصّل متجرك لعملاء حواليك مستعدين يشتروا — يشوفوك على الخريطة، يتصفحوا منتجاتك، ويوصلوا لباب محلك.
+              </p>
+
+              <ul className="mt-6 space-y-4">
+                {points.map((p, i) => (
+                  <li key={i} className="flex items-center gap-3 justify-start">
+                    <span className="shrink-0 w-10 h-10 rounded-xl bg-white border border-sky-100 shadow-sm flex items-center justify-center">
+                      <p.icon className="w-5 h-5 text-sky-600" />
+                    </span>
+                    <span className="font-bold text-slate-800 text-sm sm:text-base leading-relaxed">{p.text}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-8 flex flex-wrap gap-4">
+                <span className="relative flex items-center gap-3 rounded-xl bg-white text-slate-900 px-6 py-3.5 border border-slate-200 border-b-4 border-b-[#00CFFF] shadow-sm cursor-not-allowed select-none overflow-visible">
+                  <span className="absolute -top-2.5 right-4 rounded-full bg-gradient-to-l from-sky-500 to-cyan-400 text-white text-[10px] font-black px-2.5 py-0.5 shadow">قريبًا</span>
+                  <span className="leading-tight text-right">
+                    <span className="block text-[11px] text-slate-500">حمّل التطبيق من</span>
+                    <span className="block font-black text-lg">متجر أبل ستور</span>
+                  </span>
+                  <svg viewBox="0 0 24 24" className="w-8 h-8 fill-slate-900" aria-hidden="true"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8.98-.2 1.92-.87 3.03-.83 1.32.11 2.31.63 2.97 1.57-2.73 1.63-2.28 5.21.45 6.21-.5 1.31-1.14 2.61-2.53 3.22zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" /></svg>
+                </span>
+                <span className="relative flex items-center gap-3 rounded-xl bg-white text-slate-900 px-6 py-3.5 border border-slate-200 border-b-4 border-b-[#00CFFF] shadow-sm cursor-not-allowed select-none overflow-visible">
+                  <span className="absolute -top-2.5 right-4 rounded-full bg-gradient-to-l from-sky-500 to-cyan-400 text-white text-[10px] font-black px-2.5 py-0.5 shadow">قريبًا</span>
+                  <span className="leading-tight text-right">
+                    <span className="block text-[11px] text-slate-500">حمّل التطبيق من</span>
+                    <span className="block font-black text-lg">متجر جوجل بلاي</span>
+                  </span>
+                  <svg viewBox="0 0 24 24" className="w-8 h-8" aria-hidden="true"><path fill="#00A0FF" d="M3.6 2.3c-.3.3-.5.8-.5 1.4v16.6c0 .6.2 1.1.5 1.4l.1.1 9.3-9.3v-.2L3.7 2.2l-.1.1z" /><path fill="#FFCE00" d="m16.9 8.5-3.9 3.9L3.6 21.7c.4.4 1 .4 1.6.1l11.7-6.6c.8-.5.8-1.2 0-1.7L16.9 8.5z" opacity=".9" /><path fill="#FF3A44" d="m16.9 8.5 2.3 1.3c.8.5.8 1.2 0 1.7l-2.3 1.3-3.9-3.9 3.9-3.9 3.9 3.5z" opacity=".85" /><path fill="#00F076" d="m13 12.4-9.4 9.3c.3.3.8.4 1.4.2l11.7-6.6-3.7-2.9z" opacity=".85" /><path fill="#00A0FF" d="M13 12.4 4.9 4.1c-.6-.2-1.1-.1-1.4.2L13 12.4z" opacity=".6" /></svg>
+                </span>
+              </div>
+            </div>
+
+            {/* الموبايل — لازق في آخر الشمال */}
+            <div className="relative flex justify-center md:justify-end md:pl-0 md:-ml-10">
+              <img
+                src="/images/new/men-makanak-app.png"
+                alt="تطبيق من مكانك"
+                className="w-[280px] sm:w-[320px] md:w-[360px] rounded-[2.2rem] border-[6px] border-slate-900 shadow-[0_30px_60px_-20px_rgba(2,132,199,0.35)] object-cover bg-white"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

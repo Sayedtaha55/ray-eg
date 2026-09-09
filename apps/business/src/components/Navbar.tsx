@@ -3,34 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Sparkles, ChevronDown, ShoppingCart, LayoutDashboard, Palette, BarChart3, Smartphone, CalendarCheck, Shield, Store, Utensils, ShoppingBag, Scissors, Stethoscope, Car, Home as HomeIcon, Wrench, GraduationCap, Dumbbell, Ticket, Package, Building2 } from 'lucide-react';
+import { Sparkles, ChevronDown } from 'lucide-react';
 import { businessBrand } from '@/lib/brand';
-
-const industries = [
-  { icon: Utensils, label: 'مطاعم' },
-  { icon: ShoppingBag, label: 'تجزئة' },
-  { icon: Scissors, label: 'صالونات' },
-  { icon: Stethoscope, label: 'عيادات' },
-  { icon: Car, label: 'سيارات' },
-  { icon: HomeIcon, label: 'عقارات' },
-  { icon: Wrench, label: 'خدمات' },
-  { icon: GraduationCap, label: 'تعليم' },
-  { icon: Dumbbell, label: 'رياضة' },
-  { icon: Ticket, label: 'فعاليات' },
-  { icon: Package, label: 'جملة' },
-  { icon: Building2, label: 'شركات' },
-];
-
-const solutions = [
-  { icon: Store, title: 'المتجر الإلكتروني', desc: 'متجر متكامل لإدارة منتجاتك وطلباتك', href: '/#products' },
-  { icon: ShoppingCart, title: 'نقطة البيع (POS)', desc: 'حوّل أي موبايل لكاشير ذكي لمحلك', href: '/#products' },
-  { icon: CalendarCheck, title: 'الحجوزات والمواعيد', desc: 'نظام حجز ذكي للعيادات والصالونات', href: '/#products' },
-  { icon: Palette, title: 'مصمم الصفحات', desc: 'صمم متجرك بالسحب والإفلات بدون برمجة', href: '/#products' },
-  { icon: BarChart3, title: 'التحليلات والتقارير', desc: 'تقارير مفصلة عن المبيعات والعملاء', href: '/#products' },
-  { icon: LayoutDashboard, title: 'لوحة التحكم', desc: 'إدارة كل جوانب نشاطك من مكان واحد', href: '/#products' },
-  { icon: Smartphone, title: 'تطبيق الموبايل', desc: 'أدر أعمالك من أي مكان وفي أي وقت', href: '/#products' },
-  { icon: Shield, title: 'الأمان والحماية', desc: 'حماية متقدمة لبياناتك وبيانات عملائك', href: '/#products' },
-];
+import { industries, solutions } from '@/lib/siteData';
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);

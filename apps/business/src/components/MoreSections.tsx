@@ -5,30 +5,14 @@ import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
 import {
   TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
-  Shield, Smartphone, Package,
-  Building2, Utensils, Scissors, Stethoscope, Car, Home as HomeIcon,
-  Wrench, GraduationCap, Dumbbell, Ticket, ShoppingBag,
-  MessageSquare, Bell, Headphones, Rocket, Target, Award, Layers,
+  Shield, Smartphone, Package, Send, Heart,
+  Building2, MessageSquare, Bell, Headphones, Rocket, Target, Award, Layers,
   Code2, Image as ImageIcon,
   LayoutDashboard, Settings, ChevronDown, Sparkles,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
 import FooterVideoBackground from '@/components/FooterVideoBackground';
-
-const industries = [
-  { icon: Utensils, label: 'مطاعم' },
-  { icon: ShoppingBag, label: 'تجزئة' },
-  { icon: Scissors, label: 'صالونات' },
-  { icon: Stethoscope, label: 'عيادات' },
-  { icon: Car, label: 'سيارات' },
-  { icon: HomeIcon, label: 'عقارات' },
-  { icon: Wrench, label: 'خدمات' },
-  { icon: GraduationCap, label: 'تعليم' },
-  { icon: Dumbbell, label: 'رياضة' },
-  { icon: Ticket, label: 'فعاليات' },
-  { icon: Package, label: 'جملة' },
-  { icon: Building2, label: 'شركات' },
-];
+import { industries } from '@/lib/siteData';
 
 const growthPoints = [
   { icon: Target, title: 'وصول أوسع', desc: 'اجعل متجرك متاحاً للجميع على الإنترنت وفوق الخريطة.' },
@@ -356,53 +340,81 @@ export function FaqSection() {
 }
 
 export function FinalCta() {
-  return null;
+  return (
+    <section dir="rtl" className="biz-hero relative overflow-hidden">
+      {/* سحاب زي الهيرو */}
+      <span className="biz-cloud biz-cloud-top" aria-hidden="true"><i /><i /><i /></span>
+      <span className="biz-cloud biz-cloud-right" aria-hidden="true"><i /><i /><i /></span>
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
+        <div className="grid md:grid-cols-2 gap-10 items-center">
+          {/* النص — يمين */}
+          <div className="text-center md:text-right">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 leading-[1.5]">
+              تجارتك تكبر على أرض الواقع..
+              <br />
+              <span className="text-[#0057FF]">وإحنا نكبرها معاك.</span>
+            </h2>
+            <p className="mt-4 text-slate-500 text-sm sm:text-base md:text-lg">
+              جاهز تبدأ خطوتك؟
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
+              {[
+                { icon: Send, text: 'أدوات أقوى' },
+                { icon: Heart, text: 'دعم حقيقي' },
+                { icon: TrendingUp, text: 'نمو مستمر' },
+              ].map((p, i) => (
+                <span
+                  key={i}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-slate-100 shadow-sm text-slate-800 text-xs sm:text-sm font-bold"
+                >
+                  {p.text}
+                  <p.icon className="w-4 h-4 text-[#0057FF]" />
+                </span>
+              ))}
+            </div>
+            <div className="mt-8">
+              <Link
+                href="/signup"
+                className="group inline-flex items-center justify-center gap-2 bg-[#0057FF] hover:bg-[#0046CC] text-white px-10 py-4 rounded-full font-black text-base sm:text-lg shadow-lg shadow-blue-600/25 hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              >
+                ابدأ الآن
+                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          {/* الصورة — شمال */}
+          <div className="relative">
+            <div className="absolute -inset-4 bg-[#0057FF]/10 rounded-[2rem] blur-2xl" aria-hidden />
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/images/new/cta-store.png"
+                alt="متجر Bluora — تجارتك تكبر على أرض الواقع"
+                loading="lazy"
+                className="w-full h-auto object-contain drop-shadow-2xl"
+                onError={(e) => {
+                  // لو صورة المتجر لسه متحطتش — اعرض الصورة الموجودة مؤقتاً
+                  const el = e.target as HTMLImageElement;
+                  if (!el.src.includes('store-island')) el.src = '/images/new/store-island.webp';
+                  else el.style.display = 'none';
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function Footer() {
   return (
     <footer className="relative z-20">
       <FooterVideoBackground
-        videoIndex={0}
         overlayClassName="bg-slate-950/50"
         className="pt-20 md:pt-32 pb-8"
       >
-        {/* ── CTA ── */}
-        <div className="max-w-4xl mx-auto px-5 sm:px-6 text-center pb-20 md:pb-28">
-          <RevealSection>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-sm font-bold mb-6 backdrop-blur-sm">
-              <Sparkles className="w-4 h-4" />
-              جاهز تبدأ؟
-            </div>
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight mb-6 leading-tight drop-shadow-lg">
-              ابدأ رحلتك التجارية اليوم
-            </h2>
-            <p className="text-white/75 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
-              انضم لآلاف التجار الذين يثقون في منصتنا لبناء متاجرهم وتنمية أعمالهم
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/signup"
-                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-cyan-500 text-white px-10 py-5 rounded-2xl font-black text-lg shadow-xl shadow-cyan-500/40 hover:shadow-2xl hover:shadow-cyan-500/60 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
-              >
-                ابدأ مجاناً الآن
-                <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href="/login"
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white/15 backdrop-blur-sm border border-white/30 text-white px-10 py-5 rounded-2xl font-bold text-lg hover:bg-white/25 transition-all duration-300 cursor-pointer"
-              >
-                تسجيل الدخول
-              </Link>
-            </div>
-          </RevealSection>
-        </div>
-
-        {/* فاصل */}
-        <div className="max-w-7xl mx-auto px-5 sm:px-6">
-          <div className="border-t border-white/10 mb-12" />
-        </div>
-
         {/* ── Footer links ── */}
         <div className="max-w-7xl mx-auto px-5 sm:px-6">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12">

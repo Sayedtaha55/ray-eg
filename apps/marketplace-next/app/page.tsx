@@ -64,7 +64,7 @@ export default async function HomePage() {
       {/* Hero Section */}
       <section className="relative w-full overflow-hidden bg-brand-black">
         {/* Banner Images Slider */}
-        <div className="relative w-full h-[280px] sm:h-[340px] md:h-[420px] lg:h-[500px] overflow-hidden">
+        <div className="relative w-full aspect-[5/4] sm:aspect-[2/1] overflow-hidden">
           <HeroSlider />
         </div>
 

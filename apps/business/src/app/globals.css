@@ -147,8 +147,11 @@
 /* ===== هيرو صفحة البزنس — خلفية زي صفحة "جديد" (نمي أعمالك) ===== */
 @keyframes bl-cloud-drift { 50% { transform: translateX(18px); } }
 .biz-hero {
-  --sky: oklch(.88 .10 224); --sky-light: oklch(.96 .035 220);
+  --sky: oklch(.955 .03 224); --sky-light: oklch(.985 .012 220);
   --blue: oklch(.39 .18 257); --blue-deep: oklch(.31 .18 259);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
   --primary: oklch(0.208 0.042 265.755); --background: oklch(0.91 0.075 223);
   background: linear-gradient(180deg, var(--sky) 0%, var(--sky-light) 37%, var(--sky) 73%, var(--sky-light) 100%);
 }
@@ -157,7 +160,7 @@
   background: radial-gradient(circle at 70% 22%, color-mix(in oklab, white 70%, transparent) 0 8%, transparent 30%),
               linear-gradient(180deg, transparent 65%, color-mix(in oklab, white 34%, transparent));
 }
-.biz-hero > div { position: relative; z-index: 1; }
+.biz-hero > div { position: relative; z-index: 1; width: 100%; }
 .biz-cloud {
   position: absolute; z-index: 0; display: block; width: 10rem; height: 3.8rem;
   border-radius: 999px; pointer-events: none;

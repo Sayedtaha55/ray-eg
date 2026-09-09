@@ -21,13 +21,13 @@ export default function Hero() {
             </div>
 
             <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight mb-3 md:mb-5 leading-[1.1] text-slate-900">
-              دير ونمي اعمالك
+              تجارتك على أرض الواقع..
               <br />
-              <span className="bl-gradient-text">من مكانك</span>
+              <span className="bl-gradient-text">وإدارتها في إيدك.</span>
             </h1>
 
             <p className="text-slate-600 text-sm sm:text-lg md:text-xl max-w-xl md:mx-0 mx-auto mb-6 md:mb-8 leading-relaxed">
-              أنشئ متجرك الإلكتروني في دقائق، مع أدوات تحليلات وتسويق ودفع متكاملة تكبر معك خطوة بخطوة.
+              من أول محل.. لأكبر منظومة. أدوات تساعدك تبيع، تدير، تتابع وتكبّر — كل ده في مكان واحد.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center md:items-start gap-3 mb-6">
@@ -35,8 +35,14 @@ export default function Hero() {
                 href="/signup"
                 className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#00E5FF] text-slate-900 px-8 py-3.5 rounded-2xl font-black text-sm sm:text-base shadow-lg shadow-cyan-500/25 hover:shadow-xl hover:shadow-cyan-500/40 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
               >
-                ابدأ مجاناً الآن
+                ابدأ تجارتك بشكل أذكى
                 <ArrowLeft className="w-4 h-4 sm:w-5 sm:h-5 group-hover:-translate-x-1 transition-transform" />
+              </Link>
+              <Link
+                href="/features"
+                className="group w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white text-slate-800 px-8 py-3.5 rounded-2xl font-bold text-sm sm:text-base border border-slate-200 shadow-sm hover:bg-slate-50 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+              >
+                تعرّف على الحلول
               </Link>
             </div>
 
@@ -62,7 +68,7 @@ export default function Hero() {
             <div className="absolute -inset-4 bg-[#00E5FF]/10 rounded-[2rem] blur-2xl" aria-hidden />
             <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-cyan-500/20 border border-white/60">
               <img
-                src="/videos/business-hero-poster.webp"
+                src="/videos/business-hero-poster.png"
                 alt="لوحة تحكم من مكانك بيزنس"
                 className="w-full h-auto object-cover"
               />

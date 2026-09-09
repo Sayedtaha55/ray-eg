@@ -34,7 +34,7 @@ export function HeroSlider() {
   }, []);
 
   useEffect(() => {
-    const timer = setInterval(goToNext, 8000);
+    const timer = setInterval(goToNext, 6000);
     return () => clearInterval(timer);
   }, [current, goToNext]);
 

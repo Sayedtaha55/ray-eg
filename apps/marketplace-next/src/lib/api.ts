@@ -125,6 +125,12 @@ async function apiFetch<T>(path: string, options?: ApiOptions & { method?: strin
   });
 
   if (!res.ok) {
+    // Handle 401 gracefully - don't throw for unauthorized on public endpoints
+    if (res.status === 401) {
+      const errorBody = await res.json().catch(() => null);
+      const error = extractErrorMessage(errorBody, 'Unauthorized');
+      throw new ApiError(error.message, 401, error.code || 'unauthorized', error.details);
+    }
     let message = `API Error: ${res.status} ${res.statusText}`;
     try {
       const body = await res.json();
