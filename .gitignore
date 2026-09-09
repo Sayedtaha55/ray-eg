@@ -112,3 +112,8 @@ _archive/
 
 # Local dev log files (root) generated when launching services
 /logs-*.txt
+
+# Binaries / runtime junk
+*.exe
+*.pid
+testsprite_tests/tmp/

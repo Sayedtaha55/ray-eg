@@ -349,24 +349,18 @@ function SignupContent() {
     const active = activity.id === activityId;
     const group = activity.groupId;
     const gradient = groupAccentColors[group] || groupAccentColors.other;
-    const isPopular = ['restaurant', 'grocery', 'fashion', 'carShowroom', 'realEstate', 'bookings'].includes(activity.id);
     return (
       <button
         type="button"
         onClick={() => applyActivity(activity)}
-        className={`relative text-right p-4 rounded-2xl border transition-all hover:shadow-xl ${active ? 'border-cyan-400 bg-cyan-50/40 shadow-cyan-100/50 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-200'}`}
+        className={`relative text-right p-4 rounded-2xl border transition-all hover:shadow-lg hover:-translate-y-0.5 ${active ? 'border-cyan-400 bg-cyan-50/50 shadow-lg shadow-cyan-100/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
       >
         {active && <span className="absolute top-4 left-4"><CheckCircle2 className="w-5 h-5 text-cyan-600" /></span>}
-        {isPopular && !active && (
-          <span className="absolute top-4 left-4 px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-[10px] font-black flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> شائع
-          </span>
-        )}
         <div className="flex items-center gap-2 mb-3">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-base font-black shadow-md`}>
+          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-base font-black shadow-sm`}>
             {getActivityLabel(activity).charAt(0)}
           </div>
-          <div className="text-[10px] font-black text-slate-400">{activity.groupTitle}</div>
+          <div className="text-[10px] font-black text-slate-400 leading-4">{activity.groupTitle}</div>
         </div>
         <div className="font-black text-base text-slate-900 mb-1">{getActivityLabel(activity)}</div>
         <p className="text-xs font-bold text-slate-500 leading-5 line-clamp-2">{activity.description}</p>
@@ -387,22 +381,6 @@ function SignupContent() {
         />
       </div>
 
-      {!activitySearch && (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span className="text-sm font-black text-slate-900">الأكثر اختياراً</span>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
-            {['restaurant', 'grocery', 'fashion', 'carShowroom', 'realEstate', 'bookings'].map((id) => {
-              const activity = ACTIVITIES.find((a) => a.id === id);
-              if (!activity) return null;
-              return <ActivityCard key={activity.id} activity={activity} />;
-            })}
-          </div>
-        </div>
-      )}
-
       <div className="space-y-6">
         <div className="flex items-center gap-2">
           <LayoutDashboard className="w-4 h-4 text-slate-400" />
@@ -417,7 +395,7 @@ function SignupContent() {
             const groupTitle = activities[0]?.groupTitle || groupId;
             const visible = expanded ? activities : activities.slice(0, 3);
             return (
-              <div key={groupId} className="rounded-[2rem] border border-slate-100 p-5 md:p-6 bg-slate-50/40">
+              <div key={groupId} className="pt-2">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-sm font-black`}>
@@ -432,9 +410,10 @@ function SignupContent() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
                   {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
                 </div>
+                <div className="h-6 border-b border-slate-100 mt-4" />
               </div>
             );
           })
@@ -457,7 +436,7 @@ function SignupContent() {
         </div>
 
         {selectedActivity.specialties.length > 0 && (
-          <div className="rounded-[2.5rem] border border-slate-100 bg-slate-50/40 p-6">
+          <div className="rounded-[2.5rem] border border-slate-100 p-6 bg-white">
             <div className="font-black text-slate-900 text-base mb-4">التخصصات الشائعة</div>
             <div className="flex flex-wrap gap-2">
               {selectedActivity.specialties.map((specialty) => (
@@ -467,7 +446,7 @@ function SignupContent() {
           </div>
         )}
 
-        <div className="rounded-[2.5rem] border border-slate-100 bg-slate-50/40 p-6">
+        <div className="rounded-[2.5rem] border border-slate-100 p-6 bg-white">
           <div className="font-black text-slate-900 text-base mb-3">تخصص غير موجود؟ اكتبه</div>
           <div className="flex gap-2 max-w-md mx-auto flex-row-reverse">
             <input
@@ -738,7 +717,7 @@ function SignupContent() {
   }[step];
 
   return (
-    <div className="min-h-screen bg-slate-50/60" dir="rtl">
+    <div className="min-h-screen bg-white" dir="rtl">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-10 md:py-16">
         <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '80rem' }}>
           <div className="flex items-center justify-between mb-6">
@@ -772,24 +751,31 @@ function SignupContent() {
             {step === 'modules' && renderModulesStep()}
             {step === 'data' && renderDataStep()}
 
-            <div className="mt-10 flex flex-col md:flex-row gap-3">
-              {step !== 'activity' && (
-                <button type="button" disabled={loading} onClick={goBack}
-                  className="md:w-40 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
-                  <ChevronLeft size={18} /> رجوع
-                </button>
-              )}
-              <button type="button" disabled={loading} onClick={goNext}
-                className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 'data' ? 'إنشاء الحساب' : <>{'التالي'} <ArrowRight size={18} /></>}
-              </button>
-            </div>
-
             {renderSummary()}
 
           </div>
+
+          {/* شريط تنقل عائم ثابت أسفل الشاشة */}
+          <div className="fixed bottom-0 inset-x-0 z-50 pointer-events-none">
+            <div className="max-w-[80rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent">
+              <div className="pointer-events-auto flex gap-3 rounded-3xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)]">
+                {step !== 'activity' && (
+                  <button type="button" disabled={loading} onClick={goBack}
+                    className="w-32 shrink-0 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                    <ChevronLeft size={18} /> رجوع
+                  </button>
+                )}
+                <button type="button" disabled={loading} onClick={goNext}
+                  className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70">
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 'data' ? 'إنشاء الحساب' : <>{'التالي'} <ArrowRight size={18} /></>}
+                </button>
+              </div>
+            </div>
+          </div>
         </MotionDiv>
       </div>
+      {/* مساحة أسفل حتى لا يغطي الشريط العائم المحتوى */}
+      <div className="h-28" />
     </div>
   );
 }

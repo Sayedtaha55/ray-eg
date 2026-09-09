@@ -1,4 +1,4 @@
-# 7) دليل النشر والتشغيل الإنتاجي الشامل
+﻿# 7) دليل النشر والتشغيل الإنتاجي الشامل
 
 ## 7.1 نموذج النشر (Deployment Model)
 
@@ -17,7 +17,7 @@
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │                  Backend API (Go 1.25 + Fiber)            │
-│                   (Railway/DigitalOcean/AWS)             │
+│                   (Back4app/DigitalOcean/AWS)             │
 │                   المصدر: `gobackend/` فقط              │
 └─────────────────────┬───────────────────────────────────┘
                       │
@@ -42,17 +42,17 @@
 - الاستضافة: **Vercel** (موصى به لـ Next.js) / Netlify / CloudFront+S3 / Cloudflare Pages
 
 **Backend API (Go + Fiber):**
-- **Railway** (موصى به)
+- **Back4app Containers** (موصى به)
 - **DigitalOcean** (بديل اقتصادي)
 - **AWS EC2/ECS** أو **Google Cloud Run**
 - الصور: `gobackend/Dockerfile` للـ API و`Dockerfile.worker` للـ worker (بناء متعدد المراحل)
 
 **Database:**
-- **Railway PostgreSQL** (موصى به)
+- **Supabase PostgreSQL** (موصى به)
 - **AWS RDS** / **Neon** / **Supabase**
 
 **Cache Layer:**
-- **Railway Redis** (موصى به)
+- **Upstash Redis** (موصى به)
 - **Redis Cloud** / **AWS ElastiCache** / **Upstash**
 
 ## 7.2 أوامر البناء (Build Commands)
@@ -327,7 +327,7 @@ fi
 # اضبط NEXT_PUBLIC_BACKEND_URL على رابط الـ API المنتج.
 ```
 
-### 7.9.2 Railway (باك Go)
+### 7.9.2 Back4app Containers (باك Go)
 ```bash
 # Root Directory: gobackend
 # Build: go build -o api ./cmd/api
@@ -420,3 +420,4 @@ fi
 - [ ] Access controls تعمل (الأخطاء بصيغة {success:false, error, message})
 
 هذا الدليل الشامل يغطي جميع جوانب النشر والتشغيل الإنتاجي لمشروع Ray (باك Go 1.25 + Fiber في `gobackend/`)، مع التركيز على الأمان والأداء والموثوقية.
+

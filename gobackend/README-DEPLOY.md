@@ -1,4 +1,4 @@
-# Deploy Guide — Supabase + Render/Railway (Go backend)
+# Deploy Guide — Supabase + Back4app Containers (Go backend)
 
 > الباك الوحيد: Go 1.25 + Fiber في `gobackend/` (المنفذ `4000`). باك NestJS القديم حُذف 2026-08-24.
 
@@ -10,7 +10,7 @@
 | Upstash | Redis (`REDIS_URL`) | upstash.com |
 | Cloudflare R2 | File storage (اختياري — تحذير `s3 client not available` تحذير فقط) | cloudflare.com |
 | Resend | Email | resend.com |
-| Render / Railway | Hosting الـ Go API + الـ Worker | render.com |
+| Back4app Containers | Hosting الـ Go API + الـ Worker | back4app.com |
 
 الصور: `gobackend/Dockerfile` للـ API و`gobackend/Dockerfile.worker` للـ worker (بناء متعدد المراحل).
 
