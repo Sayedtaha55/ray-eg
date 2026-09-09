@@ -4,6 +4,11 @@ Dockerfile.dev
 docker-compose.yml
 docker-compose.dev.yml
 
+# Git (prevents kaniko "worktree contains unstaged changes")
+.git
+.gitignore
+.gitattributes
+
 # Docker volumes
 uploads/
 ssl/

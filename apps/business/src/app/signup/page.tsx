@@ -25,6 +25,47 @@ const SIGNUP_MODULES = OPTIONAL_MODULES.filter((m) => m.id !== 'bookings');
 
 const MotionDiv = motion.div as any;
 
+// أيقونة خاصة بكل نشاط
+const ACTIVITY_ICONS: Record<string, string> = {
+  restaurant: '🍽️',
+  grocery: '🛒',
+  fashion: '👗',
+  homeTextiles: '🧵',
+  fabricStore: '🧶',
+  curtainsBlinds: '🪟',
+  sofasUpholstery: '🛋️',
+  mattressesBedding: '🛏️',
+  furniture: '🪑',
+  homeGoods: '🏺',
+  goldJewelry: '💍',
+  silverAccessories: '📿',
+  watchesGifts: '⌚',
+  realEstate: '🏠',
+  lands: '🌍',
+  contractors: '🏗️',
+  building_supplies: '🧱',
+  carShowroom: '🚗',
+  auto_services: '🔧',
+  auto_parts: '⚙️',
+  agri_supplies: '🌾',
+  nurseries_landscaping: '🌱',
+  livestock: '🐄',
+  fisheries: '🐟',
+  energy: '⚡',
+  serviceCompanies: '🏢',
+  individualTechnicians: '🛠️',
+  workshops: '🏭',
+  electronics: '📱',
+  health: '💊',
+  bookings: '📅',
+  factories: '🏭',
+  tradeCompanies: '📦',
+  tourismTravel: '✈️',
+  professionalServices: '💼',
+  homeServices: '🧹',
+  other: '🏷️',
+};
+
 type Step = 'activity' | 'specialty' | 'modules' | 'data';
 
 const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
@@ -349,35 +390,40 @@ function SignupContent() {
     const active = activity.id === activityId;
     const group = activity.groupId;
     const gradient = groupAccentColors[group] || groupAccentColors.other;
+    const icon = activity.icon || ACTIVITY_ICONS[activity.id];
     return (
       <button
         type="button"
         onClick={() => applyActivity(activity)}
-        className={`relative text-right p-4 rounded-2xl border transition-all hover:shadow-lg hover:-translate-y-0.5 ${active ? 'border-cyan-400 bg-cyan-50/50 shadow-lg shadow-cyan-100/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+        className={`relative text-right p-3 rounded-xl border transition-all hover:shadow-md ${active ? 'border-cyan-400 bg-cyan-50/50 shadow-md shadow-cyan-100/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
       >
-        {active && <span className="absolute top-4 left-4"><CheckCircle2 className="w-5 h-5 text-cyan-600" /></span>}
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-base font-black shadow-sm`}>
-            {getActivityLabel(activity).charAt(0)}
-          </div>
-          <div className="text-[10px] font-black text-slate-400 leading-4">{activity.groupTitle}</div>
+        {active && <span className="absolute top-2.5 left-2.5"><CheckCircle2 className="w-4 h-4 text-cyan-600" /></span>}
+        <div className="flex items-center gap-2 mb-1.5">
+          {icon ? (
+            <span className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-lg leading-none">{icon}</span>
+          ) : (
+            <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-sm font-black`}>
+              {getActivityLabel(activity).charAt(0)}
+            </span>
+          )}
+          <div className="text-[9px] font-black text-slate-400 leading-3 line-clamp-2">{activity.groupTitle}</div>
         </div>
-        <div className="font-black text-base text-slate-900 mb-1">{getActivityLabel(activity)}</div>
-        <p className="text-xs font-bold text-slate-500 leading-5 line-clamp-2">{activity.description}</p>
+        <div className="font-black text-sm text-slate-900 mb-0.5">{getActivityLabel(activity)}</div>
+        <p className="text-[11px] font-bold text-slate-500 leading-4 line-clamp-2">{activity.description}</p>
       </button>
     );
   };
 
   const renderActivityStep = () => (
-    <div className="space-y-8">
+    <div className="space-y-5">
       <div className="relative max-w-md mx-auto">
-        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         <input
           type="text"
           value={activitySearch}
           onChange={(e) => setActivitySearch(e.target.value)}
           placeholder="دور على نشاط..."
-          className="w-full pr-12 pl-4 py-4 rounded-2xl bg-slate-50 border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 transition-colors text-sm"
+          className="w-full pr-11 pl-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 transition-colors text-sm"
         />
       </div>
 
@@ -395,14 +441,14 @@ function SignupContent() {
             const groupTitle = activities[0]?.groupTitle || groupId;
             const visible = expanded ? activities : activities.slice(0, 3);
             return (
-              <div key={groupId} className="pt-2">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-sm font-black`}>
+              <div key={groupId} className="pt-1">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-xs font-black`}>
                       {groupTitle.charAt(0)}
                     </div>
-                    <span className="font-black text-slate-900">{groupTitle}</span>
-                    <span className="text-xs font-black text-slate-400">({activities.length})</span>
+                    <span className="font-black text-sm md:text-base text-slate-900">{groupTitle}</span>
+                    <span className="text-[11px] font-black text-slate-400">({activities.length})</span>
                   </div>
                   {!activitySearch && activities.length > 3 && (
                     <button type="button" onClick={() => toggleGroup(groupId)} className="text-xs font-black text-cyan-700 hover:text-cyan-800 transition-colors">
@@ -410,10 +456,10 @@ function SignupContent() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 md:gap-3">
                   {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
                 </div>
-                <div className="h-6 border-b border-slate-100 mt-4" />
+                <div className="h-5 border-b border-slate-100 mt-3" />
               </div>
             );
           })
@@ -425,19 +471,26 @@ function SignupContent() {
   const renderSpecialtyStep = () => {
     if (!selectedActivity) return null;
     return (
-      <div className="space-y-8">
+      <div className="space-y-6 max-w-3xl mx-auto">
         <div className="text-center">
-          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2">
+          <div className="text-xl md:text-2xl font-black text-slate-900 mb-1.5">
             اختار تخصص {selectedActivity.title}
           </div>
-          <p className="text-slate-500 font-bold text-sm md:text-base">
-            حدد التخصص الدقيق لنشاطك. لو مش موجود اكتبه عشان نضيفه.
+          <p className="text-slate-500 font-bold text-xs md:text-sm">
+            حدد التخصص الدقيق لنشاطك — اختاري اختياري. لو مش موجود اكتبه.
           </p>
         </div>
 
         {selectedActivity.specialties.length > 0 && (
-          <div className="rounded-[2.5rem] border border-slate-100 p-6 bg-white">
-            <div className="font-black text-slate-900 text-base mb-4">التخصصات الشائعة</div>
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <div className="font-black text-slate-900 text-sm">التخصصات المتاحة</div>
+              {selectedSpecialties.size > 0 && (
+                <span className="text-[11px] font-black text-cyan-700 bg-cyan-50 border border-cyan-100 px-2.5 py-1 rounded-full">
+                  مختار {selectedSpecialties.size}
+                </span>
+              )}
+            </div>
             <div className="flex flex-wrap gap-2">
               {selectedActivity.specialties.map((specialty) => (
                 <SpecialtyChip key={specialty} label={specialty} checked={selectedSpecialties.has(specialty)} onClick={() => toggleSpecialty(specialty)} />
@@ -446,29 +499,31 @@ function SignupContent() {
           </div>
         )}
 
-        <div className="rounded-[2.5rem] border border-slate-100 p-6 bg-white">
-          <div className="font-black text-slate-900 text-base mb-3">تخصص غير موجود؟ اكتبه</div>
-          <div className="flex gap-2 max-w-md mx-auto flex-row-reverse">
+        <div>
+          <div className="font-black text-slate-900 text-sm mb-3">تخصص غير موجود؟ اكتبه</div>
+          <div className="flex gap-2 max-w-md flex-row-reverse">
             <input
               type="text"
               value={customSpecialtyInput}
               onChange={(e) => setCustomSpecialtyInput(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') addCustomSpecialty(); }}
               placeholder="مثال: مطعم سمك مشوي"
-              className="flex-1 px-4 py-3 rounded-2xl bg-white border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 text-sm"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 text-sm"
             />
-            <button type="button" onClick={addCustomSpecialty} className="px-4 py-3 rounded-2xl bg-slate-900 text-white hover:bg-black transition-colors">
-              <Plus className="w-5 h-5" />
+            <button type="button" onClick={addCustomSpecialty} className="px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-black transition-colors shrink-0">
+              <Plus className="w-4 h-4" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2 mt-4">
-            {Array.from(selectedSpecialties).filter((s) => !selectedActivity.specialties.includes(s)).map((specialty) => (
-              <span key={specialty} className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-black">
-                {specialty}
-                <button type="button" onClick={() => removeCustomSpecialty(specialty)}><X className="w-3.5 h-3.5" /></button>
-              </span>
-            ))}
-          </div>
+          {Array.from(selectedSpecialties).filter((s) => !selectedActivity.specialties.includes(s)).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {Array.from(selectedSpecialties).filter((s) => !selectedActivity.specialties.includes(s)).map((specialty) => (
+                <span key={specialty} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-black">
+                  {specialty}
+                  <button type="button" onClick={() => removeCustomSpecialty(specialty)}><X className="w-3.5 h-3.5" /></button>
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -718,9 +773,9 @@ function SignupContent() {
 
   return (
     <div className="min-h-screen bg-white" dir="rtl">
-      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-10 md:py-16">
+      <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-5 md:py-8">
         <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '80rem' }}>
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-3">
             <button type="button" onClick={goHome} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-black text-sm transition-colors">
               <Home className="w-4 h-4" /> العودة للرئيسية
             </button>
@@ -729,14 +784,14 @@ function SignupContent() {
             </div>
           </div>
 
-          <div className="text-center mb-8">
-            <h1 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 mb-3">ابدأ مشروعك</h1>
-            <p className="text-slate-500 font-bold text-sm md:text-base max-w-xl mx-auto">{stepHint}</p>
+          <div className="text-center mb-4">
+            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900 mb-2">ابدأ مشروعك</h1>
+            <p className="text-slate-500 font-bold text-xs md:text-sm max-w-xl mx-auto">{stepHint}</p>
           </div>
 
           <Stepper />
 
-          <div className="bg-white border border-slate-100 rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.08)]">
+          <div className="pt-6">
             <AnimatePresence>
               {error && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
