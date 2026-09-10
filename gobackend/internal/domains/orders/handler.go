@@ -177,7 +177,7 @@ func (h *Handler) Create(c *fiber.Ctx) error {
 		return err
 	}
 
-	order, err := h.service.CreateOrder(c.UserContext(), req, user.ID, user.Role)
+	order, err := h.service.CreateOrder(c.UserContext(), req, user.ID, user.Role, user.ShopID)
 	if err != nil {
 		return err
 	}

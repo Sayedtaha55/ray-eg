@@ -2,11 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, Bell, Search, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, Bell, Search, LogOut, User, ChevronDown, PanelTop } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { useOrderBell } from '@/hooks/useOrderBell';
 
-export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
+export default function Header({ onMenuClick, onSwitchNav }: { onMenuClick: () => void; onSwitchNav?: () => void }) {
   const router = useRouter();
   const { user, logout } = useAuth();
   const { unreadCount } = useOrderBell();
@@ -36,19 +36,28 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <header className="h-16 bg-white border-b border-slate-100 flex items-center justify-between px-4 md:px-6 shrink-0">
+    <header className="h-16 bg-[#1A1A1A] border-b border-white/10 flex items-center justify-between px-4 md:px-6 shrink-0">
       <div className="flex items-center gap-3 flex-1">
-        <button onClick={onMenuClick} className="md:hidden p-2 hover:bg-slate-50 rounded-xl">
-          <Menu size={20} className="text-slate-600" />
+        <button onClick={onMenuClick} className="md:hidden p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
+          <Menu size={20} />
         </button>
         <div className="relative hidden md:block">
-          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300" />
-          <input type="text" placeholder="بحث..." className="w-64 bg-slate-50 border-none rounded-xl py-2.5 pr-10 pl-4 text-sm font-bold outline-none focus:bg-white focus:ring-2 focus:ring-[#00E5FF]/20 transition-all" />
+          <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40" />
+          <input type="text" placeholder="بحث..." className="w-64 bg-white/10 border border-white/10 rounded-xl py-2.5 pr-10 pl-4 text-sm font-bold text-white placeholder:text-white/40 outline-none focus:bg-white/15 focus:border-[#00E5FF]/40 transition-all" />
         </div>
       </div>
 
       <div className="flex items-center gap-3">
-        <button onClick={handleBellClick} className="relative p-2 hover:bg-slate-50 rounded-xl transition-colors">
+        {onSwitchNav && (
+          <button
+            onClick={onSwitchNav}
+            title="التبديل إلى الهدر العلوي"
+            className="hidden md:block p-2 text-white/70 hover:text-[#00E5FF] hover:bg-white/10 rounded-xl transition-colors"
+          >
+            <PanelTop size={20} />
+          </button>
+        )}
+        <button onClick={handleBellClick} className="relative p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors">
           <Bell size={20} className="text-slate-600" />
           {unreadCount > 0 && (
             <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-black flex items-center justify-center">
@@ -58,12 +67,12 @@ export default function Header({ onMenuClick }: { onMenuClick: () => void }) {
         </button>
 
         <div className="relative" ref={dropdownRef}>
-          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 p-1.5 hover:bg-slate-50 rounded-xl transition-all">
+          <button onClick={() => setDropdownOpen(!dropdownOpen)} className="flex items-center gap-2 p-1.5 hover:bg-white/10 rounded-xl transition-all">
             <div className="w-9 h-9 bg-gradient-to-tr from-[#00E5FF] to-[#BD00FF] rounded-xl flex items-center justify-center">
               <span className="text-white font-black text-sm">{userInitial}</span>
             </div>
-            <span className="hidden md:block text-xs font-black text-slate-700">{userName}</span>
-            <ChevronDown size={14} className="hidden md:block text-slate-400" />
+            <span className="hidden md:block text-xs font-black text-white/90">{userName}</span>
+            <ChevronDown size={14} className="hidden md:block text-white/50" />
           </button>
 
           {dropdownOpen && (

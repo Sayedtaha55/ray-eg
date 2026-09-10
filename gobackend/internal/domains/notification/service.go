@@ -157,6 +157,16 @@ func (s *Service) MarkAllAsReadForShop(ctx context.Context, shopID string) error
 	return s.repo.MarkAllAsReadForShop(ctx, shopID)
 }
 
+// DeleteForUser deletes a notification scoped to a user
+func (s *Service) DeleteForUser(ctx context.Context, userID, notificationID string) error {
+	return s.repo.DeleteForUser(ctx, userID, notificationID)
+}
+
+// DeleteForShop deletes a notification scoped to a shop
+func (s *Service) DeleteForShop(ctx context.Context, shopID, notificationID string) error {
+	return s.repo.DeleteForShop(ctx, shopID, notificationID)
+}
+
 // RegisterMerchantPushSubscription registers a merchant push subscription
 func (s *Service) RegisterMerchantPushSubscription(ctx context.Context, shopID, endpoint string, subscription map[string]interface{}) (*MerchantPushSubscription, error) {
 	return s.repo.CreateMerchantPushSubscription(ctx, shopID, endpoint, subscription)

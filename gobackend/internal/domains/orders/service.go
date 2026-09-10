@@ -28,27 +28,29 @@ func NewService(cfg *config.Config, repo *Repository, notifSvc *notification.Ser
 }
 
 // CreateOrder creates an order from a cart payload (authenticated users).
-func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userID, actorRole string) (*Order, error) {
+func (s *Service) CreateOrder(ctx context.Context, req CreateOrderRequest, userID, actorRole, actorShopID string) (*Order, error) {
 	if userID == "" {
 		return nil, errors.Unauthorized("unauthenticated", "غير مصرح")
 	}
-	return s.createOrderCore(ctx, req, userID, actorRole, false)
+	return s.createOrderCore(ctx, req, userID, actorRole, actorShopID, false)
 }
 
 // CreateGuestOrder creates an order from a public storefront visitor without
 // login (guest checkout). The visitor must provide a phone number and a
 // delivery address; the order source is marked as "guest".
 func (s *Service) CreateGuestOrder(ctx context.Context, req CreateOrderRequest) (*Order, error) {
-	return s.createOrderCore(ctx, req, "", "GUEST", true)
+	return s.createOrderCore(ctx, req, "", "GUEST", "", true)
 }
 
-func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, userID, actorRole string, allowGuest bool) (*Order, error) {
+func (s *Service) createOrderCore(ctx context.Context, req CreateOrderRequest, userID, actorRole, actorShopID string, allowGuest bool) (*Order, error) {
 	shopID := strings.TrimSpace(req.ShopID)
 	if shopID == "" {
 		return nil, errors.Validation("shopId_required", "shopId مطلوب")
 	}
 	if strings.EqualFold(actorRole, "MERCHANT") {
-		// Merchant creating orders must own the shop; handled by caller via actorShopID comparison.
+		if actorShopID == "" || !strings.EqualFold(actorShopID, shopID) {
+			return nil, errors.Forbidden("shop_ownership", "لا يمكنك إنشاء طلب لمتجر آخر")
+		}
 	}
 
 	source := "customer"

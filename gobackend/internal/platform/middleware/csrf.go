@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
 	"strings"
 
@@ -63,7 +64,8 @@ func CSRF(cfg *config.Config) fiber.Handler {
 			return errors.Forbidden("csrf_token_missing", "رمز الحماية مطلوب")
 		}
 
-		if !strings.EqualFold(headerToken, cookieToken) {
+		// Constant-time comparison prevents timing side-channels on token equality.
+		if subtle.ConstantTimeCompare([]byte(strings.ToLower(headerToken)), []byte(strings.ToLower(cookieToken))) != 1 {
 			return errors.Forbidden("csrf_token_invalid", "رمز الحماية غير صالح")
 		}
 

@@ -1,11 +1,13 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import TopNav from '@/components/TopNav';
 import OrderBellWatcher from '@/components/OrderBellWatcher';
+import RouteProgress from '@/components/RouteProgress';
 import { useAuth } from '@/lib/auth';
 
 export default function DashboardLayout({
@@ -14,8 +16,22 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, loading } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const mainRef = useRef<HTMLElement>(null);
+  // The top header nav is the default experience; the sidebar is opt-in
+  // via the toggle and resets back to header on every fresh entry.
+  const [navMode, setNavMode] = useState<'sidebar' | 'header'>('header');
+
+  const toggleNavMode = useCallback(() => {
+    setNavMode((current) => (current === 'sidebar' ? 'header' : 'sidebar'));
+  }, []);
+
+  // Every navigation starts from the top of the scroll container
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [pathname]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -39,10 +55,56 @@ export default function DashboardLayout({
     );
   }
 
+  const headerMode = navMode === 'header';
+
+  if (headerMode) {
+    return (
+      <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
+        {/* Global order bell watcher — rings on new website / POS orders */}
+        <OrderBellWatcher />
+        <Suspense fallback={null}>
+          <RouteProgress />
+        </Suspense>
+
+        <TopNav onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
+
+        {/* Mobile sidebar overlay (shared with sidebar mode) */}
+        <AnimatePresence>
+          {mobileSidebarOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/40 md:hidden"
+                onClick={() => setMobileSidebarOpen(false)}
+              />
+              <motion.div
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                className="fixed right-0 top-0 bottom-0 z-50 md:hidden"
+              >
+                <Sidebar onClose={() => setMobileSidebarOpen(false)} />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Full-width content — no side menu in header mode */}
+        <main ref={mainRef} className="flex-1 overflow-y-auto">{children}</main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Global order bell watcher — rings on new website / POS orders */}
       <OrderBellWatcher />
+      <Suspense fallback={null}>
+        <RouteProgress />
+      </Suspense>
 
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
@@ -75,8 +137,8 @@ export default function DashboardLayout({
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <Header onMenuClick={() => setMobileSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto">{children}</main>
+        <Header onMenuClick={() => setMobileSidebarOpen(true)} onSwitchNav={toggleNavMode} />
+        <main ref={mainRef} className="flex-1 overflow-y-auto">{children}</main>
       </div>
     </div>
   );
