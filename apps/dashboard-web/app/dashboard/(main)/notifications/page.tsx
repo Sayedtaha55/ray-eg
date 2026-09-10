@@ -32,11 +32,11 @@ function normalizeNotif(n: any): Notif {
   return {
     id: String(n?.id ?? ''),
     title: n?.title || 'إشعار',
-    content: n?.content ?? n?.body ?? n?.message || '',
+    content: n?.content ?? n?.body ?? (n?.message || ''),
     type,
     priority: n?.priority || 'MEDIUM',
     read: Boolean(n?.read ?? n?.is_read),
-    created_at: n?.created_at ?? n?.createdAt ?? n?.sent_at || '',
+    created_at: n?.created_at ?? n?.createdAt ?? (n?.sent_at || ''),
     source,
   };
 }
