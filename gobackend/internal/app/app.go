@@ -19,7 +19,9 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/chat"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/courier"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/customers"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/dashboard"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/feedback"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/finance"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/gallery"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/health"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/hr"
@@ -31,6 +33,8 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/offers"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/orders"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/portal"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/pos"
+	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/productcategories"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/products"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reservation"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reviews"
@@ -88,6 +92,7 @@ type App struct {
 	customersHandler      *customers.Handler
 	galleryHandler        *gallery.Handler
 	feedbackHandler       *feedback.Handler
+	financeHandler        *finance.Handler
 	reviewsHandler        *reviews.Handler
 	seasonalOffersHandler *seasonaloffers.Handler
 	mapHandler            *mapdomain.Handler
@@ -98,6 +103,9 @@ type App struct {
 	appsHandler           *apps.Handler
 	shopImageMapHandler   *shopimagemap.Handler
 	portalHandler         *portal.Handler
+	dashboardHandler      *dashboard.Handler
+	posHandler            *pos.Handler
+	productCategoriesHandler *productcategories.Handler
 	compressionService    *compression.Service
 }
 
@@ -189,6 +197,7 @@ func New(cfg *config.Config) (*App, error) {
 		customersHandler      *customers.Handler
 		galleryHandler        *gallery.Handler
 		feedbackHandler       *feedback.Handler
+		financeHandler        *finance.Handler
 		reviewsHandler        *reviews.Handler
 		seasonalOffersHandler *seasonaloffers.Handler
 		mapHandler            *mapdomain.Handler
@@ -199,6 +208,9 @@ func New(cfg *config.Config) (*App, error) {
 		appsHandler           *apps.Handler
 		shopImageMapHandler   *shopimagemap.Handler
 		portalHandler         *portal.Handler
+		dashboardHandler      *dashboard.Handler
+		posHandler            *pos.Handler
+		productCategoriesHandler *productcategories.Handler
 	)
 	var compressionService *compression.Service
 	if pool != nil {
@@ -372,6 +384,23 @@ func New(cfg *config.Config) (*App, error) {
 		portalSvc := portal.NewService(portalRepo, cfg.Auth.JWTSecret, disableOtp, !cfg.IsProduction())
 		portalHandler = portal.NewHandler(portalSvc, cfg)
 
+		// Initialize dashboard service (computed analytics, entity CRUD, finance reports).
+		dashboardHandler = dashboard.NewHandler(pool, cfg)
+
+		// Initialize POS shifts service.
+		posRepo := pos.NewRepository(pool)
+		posHandler = pos.NewHandler(posRepo, cfg)
+
+		// Initialize product-categories service.
+		productCategoriesRepo := productcategories.NewRepository(pool)
+		productCategoriesSvc := productcategories.NewService(productCategoriesRepo)
+		productCategoriesHandler = productcategories.NewHandler(productCategoriesSvc, cfg)
+
+		// Initialize finance service (accounts, journal, expenses, taxes, wallets, transactions, reports).
+		financeRepo := finance.NewRepository(pool)
+		financeSvc := finance.NewService(financeRepo)
+		financeHandler = finance.NewHandler(financeSvc, cfg)
+
 		if err := authSvc.SeedTestUsers(context.Background()); err != nil {
 			log.Warn("failed to seed test users", zap.Error(err))
 		}
@@ -434,6 +463,10 @@ func New(cfg *config.Config) (*App, error) {
 		appsHandler:           appsHandler,
 		shopImageMapHandler:   shopImageMapHandler,
 		portalHandler:         portalHandler,
+		financeHandler:        financeHandler,
+		dashboardHandler:      dashboardHandler,
+		posHandler:            posHandler,
+		productCategoriesHandler: productCategoriesHandler,
 		compressionService:    compressionService,
 	}
 
@@ -655,6 +688,26 @@ func (a *App) registerRoutes() {
 		a.portalHandler.RegisterRoutes(api)
 	}
 
+	// Dashboard domain routes (computed analytics, entity CRUD, finance reports).
+	if a.dashboardHandler != nil {
+		a.dashboardHandler.RegisterRoutes(api)
+	}
+
+	// POS domain routes (shift management).
+	if a.posHandler != nil {
+		a.posHandler.RegisterRoutes(api)
+	}
+
+	// Product-categories domain routes.
+	if a.productCategoriesHandler != nil {
+		a.productCategoriesHandler.RegisterRoutes(api)
+	}
+
+	// Finance domain routes (accounts, journal, expenses, taxes, wallets, reports).
+	if a.financeHandler != nil {
+		a.financeHandler.RegisterRoutes(api)
+	}
+
 	api.Get("/status", a.statusHandler)
 }
 
@@ -668,7 +721,9 @@ func (a *App) statusHandler(c *fiber.Ctx) error {
 		"chat":           a.chatHandler != nil,
 		"courier":        a.courierHandler != nil,
 		"customers":      a.customersHandler != nil,
+		"dashboard":       a.dashboardHandler != nil,
 		"feedback":       a.feedbackHandler != nil,
+		"finance":         a.financeHandler != nil,
 		"gallery":        a.galleryHandler != nil,
 		"hr":             a.hrHandler != nil,
 		"invoice":        a.invoiceHandler != nil,
@@ -680,6 +735,8 @@ func (a *App) statusHandler(c *fiber.Ctx) error {
 		"offers":         a.offersHandler != nil,
 		"orders":         a.ordersHandler != nil,
 		"portal":         a.portalHandler != nil,
+		"pos":            a.posHandler != nil,
+		"productCategories": a.productCategoriesHandler != nil,
 		"products":       a.productsHandler != nil,
 		"reservation":    a.reservationHandler != nil,
 		"reviews":        a.reviewsHandler != nil,

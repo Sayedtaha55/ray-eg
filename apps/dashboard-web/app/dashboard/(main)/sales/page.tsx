@@ -53,17 +53,17 @@ type Order = {
 
 type FilterType = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready' | 'handed_to_courier' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rejected' | 'refunded' | 'successful';
 
-const STATUS_META: Record<string, { label: string; cls: string }> = {
-  PENDING: { label: 'قيد الانتظار', cls: 'bg-amber-50 text-amber-700 border-amber-200' },
-  CONFIRMED: { label: 'مؤكد', cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  PREPARING: { label: 'قيد التجهيز', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
-  READY: { label: 'جاهز', cls: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
-  HANDED_TO_COURIER: { label: 'سُلّم للمندوب', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  OUT_FOR_DELIVERY: { label: 'خرج للتوصيل', cls: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
-  DELIVERED: { label: 'تم التوصيل', cls: 'bg-green-50 text-green-700 border-green-200' },
-  CANCELLED: { label: 'ملغي', cls: 'bg-red-50 text-red-700 border-red-200' },
-  REJECTED: { label: 'مرفوض', cls: 'bg-red-100 text-red-700 border-red-200' },
-  REFUNDED: { label: 'مسترجع', cls: 'bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200' },
+const STATUS_META: Record<string, { label: string; cls: string; dot: string }> = {
+  PENDING: { label: 'بانتظار التأكيد', cls: 'bg-amber-50 text-amber-800 border-amber-200', dot: 'bg-amber-500' },
+  CONFIRMED: { label: 'مؤكد', cls: 'bg-emerald-50 text-emerald-800 border-emerald-200', dot: 'bg-emerald-600' },
+  PREPARING: { label: 'قيد التجهيز', cls: 'bg-sky-50 text-sky-800 border-sky-200', dot: 'bg-sky-600' },
+  READY: { label: 'جاهز', cls: 'bg-teal-50 text-teal-800 border-teal-200', dot: 'bg-teal-600' },
+  HANDED_TO_COURIER: { label: 'مع المندوب', cls: 'bg-indigo-50 text-indigo-800 border-indigo-200', dot: 'bg-indigo-600' },
+  OUT_FOR_DELIVERY: { label: 'خارج للتوصيل', cls: 'bg-indigo-50 text-indigo-800 border-indigo-200', dot: 'bg-indigo-600' },
+  DELIVERED: { label: 'تم التسليم', cls: 'bg-green-50 text-green-800 border-green-200', dot: 'bg-green-600' },
+  CANCELLED: { label: 'ملغي', cls: 'bg-slate-100 text-slate-500 border-slate-200', dot: 'bg-slate-400' },
+  REJECTED: { label: 'مرفوض', cls: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500' },
+  REFUNDED: { label: 'مرتجع', cls: 'bg-orange-50 text-orange-800 border-orange-200', dot: 'bg-orange-500' },
 };
 
 const RESTAURANT_FILTERS: { id: FilterType; label: string }[] = [
@@ -459,12 +459,12 @@ export default function SalesPage() {
     return { total, pending, confirmed, delivered, ready, preparing, handedToCourier, outForDelivery, successful, rejected, cancelled, refunded, revenue, avgOrder };
   }, [orders]);
 
-  // 4 stat cards
+  // 4 stat cards — صياغة مصرية مهنية
   const statCards = useMemo(() => [
-    { label: 'إجمالي الطلبات', value: stats.total, icon: ShoppingCart, color: 'text-slate-700', bg: 'bg-slate-100', sub: 'طلب' },
-    { label: 'الإيرادات', value: `ج.م ${stats.revenue.toLocaleString()}`, icon: DollarSign, color: 'text-green-600', bg: 'bg-green-50', sub: 'إجمالي' },
-    { label: 'متوسط قيمة الطلب', value: `ج.م ${stats.avgOrder.toLocaleString()}`, icon: TrendingUp, color: 'text-blue-600', bg: 'bg-blue-50', sub: 'لكل طلب' },
-    { label: 'قيد الانتظار', value: stats.pending, icon: Clock, color: 'text-slate-600', bg: 'bg-slate-100', sub: 'بانتظار' },
+    { label: 'طلبات الفترة', value: stats.total, icon: ShoppingCart, color: 'text-slate-700', bg: 'bg-slate-100', sub: `منها ${stats.pending} جديد` },
+    { label: 'صافي الإيراد', value: `${stats.revenue.toLocaleString('ar-EG')} ج.م`, icon: DollarSign, color: 'text-green-700', bg: 'bg-green-50', sub: 'طلبات مؤكدة ومسلّمة' },
+    { label: 'متوسط الفاتورة', value: `${stats.avgOrder.toLocaleString('ar-EG')} ج.م`, icon: TrendingUp, color: 'text-sky-700', bg: 'bg-sky-50', sub: 'للطلب الواحد' },
+    { label: 'يحتاج متابعة', value: stats.pending, icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50', sub: 'بانتظار التأكيد' },
   ], [stats]);
 
   const toggleSelectAll = useCallback(() => {
@@ -525,134 +525,117 @@ export default function SalesPage() {
   }, [paginatedOrders]);
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-          <ShoppingCart size={24} className="text-[#00E5FF]" />
-        </div>
-        <div className="text-right flex-1">
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900">
-              {isRestaurant ? 'الطلبات' : 'المبيعات'}
-            </h1>
-            <button
-              onClick={() => setGuideOpen(true)}
-              className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
-              title="معلومات / Info"
-            >
-              <Info size={18} />
-            </button>
+    <div className="min-h-full bg-[#F4F5F7] text-slate-900" style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}>
+      {/* شريط علوي مهني: مسار + عنوان + إجراءات */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="px-4 sm:px-6 pt-4 pb-3 max-w-[1400px] mx-auto">
+          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold">
+            <span>الرئيسية</span><span>/</span><span>المبيعات</span><span>/</span>
+            <span className="text-slate-700">{isRestaurant ? 'طلبات الصالة والدليفري' : 'طلبات المتجر'}</span>
           </div>
-          <p className="text-sm font-bold text-slate-400 mt-1">
-            {isRestaurant ? 'إدارة طلبات المطعم' : 'إدارة طلبات المتجر'}
-          </p>
-        </div>
-      </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-right">
-          {error}
-        </div>
-      )}
-
-      {/* Stats - 8 comprehensive cards (from old version) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {statCards.map((s, i) => (
-          <div key={i} className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 ${s.bg} ${s.color}`}>
-              <s.icon size={20} />
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <div className="flex-1 min-w-[220px]">
+              <div className="flex items-center gap-2">
+                <h1 className="text-[20px] leading-7 font-extrabold text-slate-900">
+                  {isRestaurant ? 'طلبات اليوم' : 'إدارة الطلبات'}
+                </h1>
+                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-0.5 tabular-nums">
+                  {stats.total} طلب
+                </span>
+                {stats.pending > 0 && (
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5">
+                    {stats.pending} بانتظار التأكيد
+                  </span>
+                )}
+              </div>
+              <p className="text-[12px] text-slate-500 font-semibold mt-0.5">
+                {shop?.name ? `${shop.name} — ` : ''}تابع التنفيذ لحظة بلحظة: تأكيد، تجهيز، تسليم وطباعة الفاتورة
+              </p>
             </div>
-            <span className="text-slate-500 font-semibold text-xs mb-1">{s.label}</span>
-            <span className="text-xl sm:text-2xl font-bold text-slate-900">{s.value}</span>
-            <span className="text-[10px] text-slate-400 font-bold mt-1">{s.sub}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={exportOrders} className="h-9 px-3 rounded-lg bg-white border border-slate-200 text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5">
+                <Download size={14} /> تصدير
+              </button>
+              <button onClick={() => setShowCreateModal(true)} className="h-9 px-4 rounded-lg bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-800 flex items-center gap-1.5">
+                <Plus size={14} /> طلب يدوي
+              </button>
+            </div>
           </div>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <button
-          onClick={exportOrders}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all"
-        >
-          <Download size={16} />
-          تصدير CSV
-        </button>
-        <button
-          onClick={() => { /* TODO: Import */ }}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all"
-        >
-          <Upload size={16} />
-          استيراد
-        </button>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all"
-        >
-          <Plus size={16} />
-          طلب جديد
-        </button>
-      </div>
-
-      {/* Advanced Filters */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="بحث بالعميل أو رقم الطلب..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-64 px-4 py-2 pr-10 rounded-xl border border-slate-200 text-xs font-bold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/50"
-          />
-          <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          {/* مؤشرات مدمجة — شريط واحد بدل 8 كروت */}
+          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 border border-slate-200 rounded-lg bg-white overflow-hidden divide-x divide-x-reverse divide-slate-100">
+            {statCards.map((s, i) => (
+              <div key={i} className="px-4 py-2.5 flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${s.bg} ${s.color}`}>
+                  <s.icon size={15} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-[15px] font-extrabold tabular-nums leading-5 truncate">{s.value}</div>
+                  <div className="text-[11px] text-slate-500 font-bold leading-4">{s.label} <span className="text-slate-300">•</span> <span className="text-slate-400 font-semibold">{s.sub}</span></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
-
-        <select
-          value={dateRange}
-          onChange={(e) => setDateRange(e.target.value as any)}
-          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/50"
-        >
-          <option value="all">كل التواريخ</option>
-          <option value="today">اليوم</option>
-          <option value="week">آخر 7 أيام</option>
-          <option value="month">آخر 30 يوم</option>
-        </select>
-
-        <select
-          value={amountRange}
-          onChange={(e) => setAmountRange(e.target.value as any)}
-          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/50"
-        >
-          <option value="all">كل المبالغ</option>
-          <option value="under100">أقل من 100</option>
-          <option value="100to500">100 - 500</option>
-          <option value="over500">أكثر من 500</option>
-        </select>
-
-        <select
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value as any)}
-          className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 bg-white focus:outline-none focus:ring-2 focus:ring-[#00E5FF]/50"
-        >
-          <option value="date">ترتيب بالتاريخ</option>
-          <option value="amount">ترتيب بالمبلغ</option>
-          <option value="status">ترتيب بالحالة</option>
-        </select>
-
-        <button
-          onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-          className="p-2 rounded-xl border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
-          title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
-        >
-          <ArrowUpDown size={16} />
-        </button>
       </div>
 
-      {/* Status Filters - Category-specific */}
-      <div className="flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-visible">
-        {(isRestaurant ? RESTAURANT_FILTERS : RETAIL_FILTERS).map((f) => {
-          const isActive = filter === f.id;
+      {/* شريط التشغيل: بحث + فلاتر */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3">
+        <div className="bg-white border border-slate-200 rounded-xl">
+          <div className="px-3 sm:px-4 pt-3 flex flex-col lg:flex-row lg:items-center gap-2.5">
+            <div className="relative flex-1 min-w-[200px]">
+              <input
+                type="text"
+                placeholder="دوّر برقم الطلب، اسم العميل، أو رقم الموبايل…"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full h-10 px-4 rounded-lg border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-900"
+              />
+            </div>
+
+            <div className="flex items-center gap-2">
+              <select
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as any)}
+                className="h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+              >
+                <option value="all">كل الفترات</option>
+                <option value="today">النهاردة</option>
+                <option value="week">آخر ٧ أيام</option>
+                <option value="month">آخر ٣٠ يوم</option>
+              </select>
+              <select
+                value={amountRange}
+                onChange={(e) => setAmountRange(e.target.value as any)}
+                className="h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+              >
+                <option value="all">كل المبالغ</option>
+                <option value="under100">أقل من ١٠٠ ج.م</option>
+                <option value="100to500">١٠٠ – ٥٠٠ ج.م</option>
+                <option value="over500">أكتر من ٥٠٠ ج.م</option>
+              </select>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="hidden md:block h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+              >
+                <option value="date">الأحدث أولاً</option>
+                <option value="amount">الأعلى قيمة</option>
+                <option value="status">حسب الحالة</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="h-10 w-10 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center"
+                title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
+              >
+                <ArrowUpDown size={15} />
+              </button>
+            </div>
+          </div>
+
+          {/* تبويبات الحالة */}
+          <div className="px-3 sm:px-4 py-2.5 flex gap-1.5 overflow-x-auto border-t border-slate-100 mt-2.5">
+            {(isRestaurant ? RESTAURANT_FILTERS : RETAIL_FILTERS).map((f) => {
+              const isActive = filter === f.id;
           const count = f.id === 'all' ? stats.total :
                         f.id === 'successful' ? stats.successful :
                         f.id === 'rejected' ? stats.rejected :
@@ -668,50 +651,60 @@ export default function SalesPage() {
           return (
             <button
               key={f.id}
-              onClick={() => setFilter(f.id)}
-              className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
+              onClick={() => { setFilter(f.id); setCurrentPage(1); }}
+              className={`h-8 px-3 rounded-lg text-[12px] font-bold border whitespace-nowrap flex items-center gap-1.5 ${
                 isActive
                   ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
               }`}
             >
-              {f.label} ({count})
-            </button>
+              {f.label}
+                <span className={`text-[10px] font-extrabold tabular-nums rounded px-1.5 py-0.5 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                  {count}
+                </span>
+              </button>
           );
         })}
+          </div>
+        </div>
       </div>
 
-      {/* Bulk Actions */}
+      {/* إجراءات جماعية */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl border border-slate-200">
-          <span className="text-xs font-bold text-slate-600">تم تحديد {selectedIds.size} طلب</span>
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 rounded-xl text-white">
+          <span className="text-[12px] font-bold">محدد {selectedIds.size} طلب</span>
+          <span className="flex-1" />
           <button
             onClick={() => bulkAction('confirm')}
             disabled={updatingId === 'bulk'}
-            className="px-4 py-2 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100 transition-all disabled:opacity-50"
+            className="h-8 px-3 rounded-lg bg-emerald-500 text-white text-[12px] font-bold hover:bg-emerald-600 disabled:opacity-50"
           >
             تأكيد الكل
           </button>
           <button
             onClick={() => bulkAction('reject')}
             disabled={updatingId === 'bulk'}
-            className="px-4 py-2 rounded-lg bg-red-50 text-red-700 text-xs font-bold hover:bg-red-100 transition-all disabled:opacity-50"
+            className="h-8 px-3 rounded-lg bg-white/10 text-white text-[12px] font-bold hover:bg-white/20 disabled:opacity-50"
           >
             رفض الكل
           </button>
           <button
             onClick={() => setSelectedIds(new Set())}
-            className="px-4 py-2 rounded-lg bg-white text-slate-600 text-xs font-bold hover:bg-slate-100 transition-all"
+            className="h-8 px-3 rounded-lg text-white/70 text-[12px] font-bold hover:text-white"
           >
-            إلغاء التحديد
+            إلغاء
           </button>
+        </div>
         </div>
       )}
 
-      {/* Orders list */}
+      {/* قائمة الطلبات */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3 pb-10">
       {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
+        <div className="bg-white border border-slate-200 rounded-xl py-16 flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-[3px] border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+          <p className="text-[12px] font-bold text-slate-400">جاري تحميل الطلبات…</p>
         </div>
       ) : filteredOrders.length === 0 ? (
         <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
@@ -737,187 +730,60 @@ export default function SalesPage() {
             const deliveryFeeText = renderDeliveryFee(order);
 
             return (
-              <div key={id} className="bg-white rounded-xl border border-slate-200 p-4 sm:p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <button
-                    onClick={() => toggleSelect(id)}
-                    className="shrink-0 p-1"
-                  >
-                    {selectedIds.has(id) ? <CheckSquare size={18} className="text-[#00E5FF]" /> : <Square size={18} className="text-slate-300" />}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-bold text-slate-900 text-sm sm:text-base">{formatItemsSummary(order)}</div>
-                    <div className="text-slate-500 font-medium text-xs mt-1">
-                      {new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG')}
+              <div key={id} className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div className="px-3.5 py-3 flex items-start gap-2.5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="text-[13px] font-extrabold text-slate-900 tabular-nums">#{id.slice(0, 8).toUpperCase()}</span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${meta.cls}`}>{meta.label}</span>
                     </div>
-                    {order.customerNote || order.customer_note ? (
-                      <div className="text-xs text-slate-400 mt-1">
-                        ملاحظة: {order.customerNote || order.customer_note}
-                      </div>
-                    ) : null}
+                    <div className="mt-1 text-[12px] font-bold text-slate-700 truncate">{order.customerName || order.customer_name || order.user?.name || 'عميل'} <span className="text-slate-400 font-semibold" dir="ltr">{order.customerPhone || order.customer_phone || order.user?.phone || order.phone || ''}</span></div>
+                    <div className="text-[11px] text-slate-400 font-semibold tabular-nums">{new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })} • {order.items?.length || 0} أصناف</div>
+                    <div className="mt-1 text-[11px] text-slate-500 font-semibold leading-5 line-clamp-2">{formatOrderItemsSummary(order.items, true) || '—'}</div>
                   </div>
-                  <div className="shrink-0">
-                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold border ${meta.cls}`}>
-                      {meta.label}
-                    </span>
+                  <div className="text-left shrink-0">
+                    <div className="text-[14px] font-extrabold text-slate-900 tabular-nums">{Number(order.total || 0).toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-400">ج.م</span></div>
+                    {busy && <Loader2 size={14} className="animate-spin text-slate-400 mt-1 ml-auto" />}
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2.5 mt-4">
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs font-semibold text-slate-500">عدد المنتجات</div>
-                    <div className="mt-1 font-bold text-slate-900 text-sm">{order.items?.length || 0} عنصر</div>
-                  </div>
-                  <div className="bg-slate-50 rounded-lg p-3">
-                    <div className="text-xs font-semibold text-slate-500">الإجمالي</div>
-                    <div className="mt-1 font-bold text-slate-900 text-sm">ج.م {Number(order.total || 0).toLocaleString()}</div>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
-                  <div className="text-xs text-slate-500">
-                    {deliveryManagedByShop ? (
-                      <span>توصيل ذاتي</span>
-                    ) : (
-                      <span>رسوم التوصيل: {deliveryFeeText}</span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {deliveryManagedByShop && hasLocation && (
-                      <button
-                        onClick={() => {
-                          const loc = parseLocationFromNotes(order.notes);
-                          const addr = getDeliveryAddress(order);
-                          
-                          if (loc?.lat && loc?.lng) {
-                            window.open(`https://www.google.com/maps/search/?api=1&query=${loc.lat},${loc.lng}`, '_blank');
-                          } else if (addr) {
-                            window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
-                          }
-                        }}
-                        className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-emerald-600 transition-all"
-                        title="عرض على الخريطة"
-                      >
-                        <MapPin size={18} />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {address && !deliveryManagedByShop && (
-                  <div className="flex items-center gap-2 mt-2 text-xs text-slate-500">
-                    <MapPin size={14} className="shrink-0" />
-                    <span className="truncate">{address}</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 mt-4 flex-wrap">
-                  <button
-                    onClick={() => printInvoice(order)}
-                    className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
-                    title="طباعة الفاتورة"
-                  >
-                    <Printer size={18} />
-                  </button>
-                  <button
-                    onClick={() => setSelectedOrder(order)}
-                    className="p-2.5 bg-white border border-slate-200 rounded-xl text-slate-400 hover:text-slate-900 transition-all"
-                  >
-                    <Eye size={18} />
-                  </button>
-                  <div className="relative">
-                    <button
-                      onClick={() => setOpenMenuId(openMenuId === id ? '' : id)}
-                      disabled={busy}
-                      className={`p-2.5 bg-white border border-slate-200 rounded-xl transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
-                    >
-                      {busy ? <Loader2 size={18} className="animate-spin" /> : <MoreVertical size={18} />}
-                    </button>
-                    {openMenuId === id && (
+                {(canAccept || canPrepare || canReady || canReject) && !busy && (
+                  <div className="px-3.5 pb-3 flex gap-1.5">
+                    {canAccept && (
                       <>
-                        <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId('')} />
-                        <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50">
-                          {canAccept && (
-                            <button
-                              onClick={() => updateStatus(id, 'CONFIRMED')}
-                              className="w-full text-right px-4 py-3 font-bold text-xs text-emerald-700 hover:bg-emerald-50"
-                            >
-                              تأكيد الطلب
-                            </button>
-                          )}
-                          {canPrepare && (
-                            <button
-                              onClick={() => updateStatus(id, 'PREPARING')}
-                              className="w-full text-right px-4 py-3 font-bold text-xs text-amber-700 hover:bg-amber-50"
-                            >
-                              بدء التجهيز
-                            </button>
-                          )}
-                          {canReady && (
-                            <button
-                              onClick={() => updateStatus(id, 'READY')}
-                              className="w-full text-right px-4 py-3 font-bold text-xs text-blue-700 hover:bg-blue-50"
-                            >
-                              {isRestaurant ? 'جاهز للتقديم' : 'جاهز للتوصيل'}
-                            </button>
-                          )}
-                          {canReady && !isRestaurant && (
-                            <button
-                              onClick={() => updateStatus(id, 'HANDED_TO_COURIER')}
-                              className="w-full text-right px-4 py-3 font-bold text-xs text-indigo-700 hover:bg-indigo-50"
-                            >
-                              سُلّم للمندوب
-                            </button>
-                          )}
-                          {!isRestaurant && (
-                            <button
-                              onClick={() => updateStatus(id, 'DELIVERED')}
-                              className="w-full text-right px-4 py-3 font-bold text-xs text-green-700 hover:bg-green-50"
-                            >
-                              تم التوصيل
-                            </button>
-                          )}
-                          {canReject && (
-                            <>
-                              <div className="border-t border-slate-100" />
-                              <button
-                                onClick={() => updateStatus(id, 'CANCELLED')}
-                                className="w-full text-right px-4 py-3 font-bold text-xs text-red-700 hover:bg-red-50"
-                              >
-                                رفض الطلب
-                              </button>
-                            </>
-                          )}
-                        </div>
+                        <button onClick={() => updateStatus(id, 'CONFIRMED')} className="flex-1 h-9 rounded-lg bg-emerald-600 text-white text-[12px] font-bold">تأكيد</button>
+                        <button onClick={() => updateStatus(id, 'CANCELLED')} className="flex-1 h-9 rounded-lg bg-white border border-red-200 text-red-600 text-[12px] font-bold">رفض</button>
                       </>
                     )}
+                    {canPrepare && !canAccept && <button onClick={() => updateStatus(id, 'PREPARING')} className="flex-1 h-9 rounded-lg bg-slate-900 text-white text-[12px] font-bold">بدء التجهيز</button>}
+                    {canReady && !canAccept && !canPrepare && <button onClick={() => updateStatus(id, 'READY')} className="flex-1 h-9 rounded-lg bg-slate-900 text-white text-[12px] font-bold">{isRestaurant ? 'جاهز للتقديم' : 'جاهز'}</button>}
+                    <button onClick={() => setSelectedOrder(order)} className="h-9 px-3 rounded-lg bg-slate-50 border border-slate-200 text-slate-600 text-[12px] font-bold">التفاصيل</button>
                   </div>
-                </div>
+                )}
               </div>
+
             );
           })}
         </div>
 
         {/* Desktop table view */}
-        <div className="hidden md:block overflow-x-auto touch-auto mt-6">
-          <table className="w-full text-right border-collapse min-w-[1250px]">
+        <div className="hidden md:block bg-white border border-slate-200 rounded-xl mt-3 overflow-hidden">
+          <table className="w-full text-right border-collapse min-w-[980px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="p-4 w-10">
+              <tr className="bg-slate-50/80 border-b border-slate-200">
+                <th className="px-3 py-2.5 w-10">
                   <button onClick={toggleSelectAll} className="p-1">
-                    {selectedIds.size === paginatedOrders.length && paginatedOrders.length > 0 ? <CheckSquare size={18} className="text-[#00E5FF]" /> : <Square size={18} className="text-slate-300" />}
+                    {selectedIds.size === paginatedOrders.length && paginatedOrders.length > 0 ? <CheckSquare size={16} className="text-slate-900" /> : <Square size={16} className="text-slate-300" />}
                   </button>
                 </th>
-                <th className="p-4 text-xs font-semibold text-slate-500">المنتجات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">العميل</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">التاريخ والوقت</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">العدد</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الحالة</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">التوصيل</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإجمالي</th>
-                <th className="p-4 text-xs font-semibold text-slate-500">الإجراءات</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 text-left">التفاصيل</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الطلب</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">العميل</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الأصناف</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الحالة</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">التوصيل</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الإجمالي</th>
+                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">إجراء سريع</th>
+                <th className="px-3 py-2.5 w-16"></th>
               </tr>
             </thead>
             <tbody>
@@ -935,134 +801,75 @@ export default function SalesPage() {
                 const deliveryFeeText = renderDeliveryFee(order);
 
                 return (
-                  <tr key={id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-4">
+                  <tr key={id} className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${status === 'PENDING' ? 'bg-amber-50/40' : ''}`}>
+                    <td className="px-3 py-3">
                       <button onClick={() => toggleSelect(id)} className="p-1">
-                        {selectedIds.has(id) ? <CheckSquare size={18} className="text-[#00E5FF]" /> : <Square size={18} className="text-slate-300" />}
+                        {selectedIds.has(id) ? <CheckSquare size={16} className="text-slate-900" /> : <Square size={16} className="text-slate-300" />}
                       </button>
                     </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{formatItemsSummary(order)}</div>
+                    <td className="px-3 py-3">
+                      <div className="text-[13px] font-extrabold text-slate-900 tabular-nums">#{id.slice(0, 8).toUpperCase()}</div>
+                      <div className="text-[11px] text-slate-400 font-semibold tabular-nums">{new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
                     </td>
-                    <td className="p-4">
-                      <div className="font-semibold text-slate-900 text-sm">{order.customerName || order.customer_name || order.user?.name || '-'}</div>
-                      <div className="text-xs text-slate-400">{order.customerPhone || order.customer_phone || order.user?.phone || order.phone || '-'}</div>
+                    <td className="px-3 py-3">
+                      <div className="text-[12px] font-bold text-slate-800 max-w-[150px] truncate">{order.customerName || order.customer_name || order.user?.name || 'عميل'}</div>
+                      <div className="text-[11px] text-slate-400 font-semibold tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>{order.customerPhone || order.customer_phone || order.user?.phone || order.phone || '—'}</div>
                     </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">
-                        {new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG')}
-                      </div>
+                    <td className="px-3 py-3">
+                      <div className="text-[11px] text-slate-600 font-semibold max-w-[220px] truncate" title={formatOrderItemsSummary(order.items, true)}>{formatOrderItemsSummary(order.items, true) || '—'}</div>
+                      <div className="text-[11px] text-slate-400 font-bold">{order.items?.length || 0} أصناف</div>
                     </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">{order.items?.length || 0} عنصر</div>
-                    </td>
-                    <td className="p-4">
-                      <span className={`px-3 py-1.5 rounded-full text-[10px] font-bold border ${meta.cls}`}>
+                    <td className="px-3 py-3">
+                      <span className={`inline-flex items-center text-[11px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${meta.cls}`}>
                         {meta.label}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <div className="text-slate-600 text-sm">
-                        {deliveryManagedByShop ? 'توصيل ذاتي' : deliveryFeeText}
+                    <td className="px-3 py-3">
+                      <div className="text-[12px] text-slate-600 font-bold whitespace-nowrap">
+                        {deliveryManagedByShop ? 'استلام ذاتي' : deliveryFeeText}
                       </div>
                       {address && !deliveryManagedByShop && (
-                        <div className="text-xs text-slate-400 mt-1 truncate max-w-[200px]">{address}</div>
+                        <div className="text-[11px] text-slate-400 font-semibold truncate max-w-[160px]">{address}</div>
                       )}
                     </td>
-                    <td className="p-4">
-                      <div className="font-bold text-slate-900 text-sm">ج.م {Number(order.total || 0).toLocaleString()}</div>
+                    <td className="px-3 py-3">
+                      <div className="text-[13px] font-extrabold text-slate-900 tabular-nums whitespace-nowrap">{Number(order.total || 0).toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-400">ج.م</span></div>
                     </td>
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => printInvoice(order)}
-                          className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-900 transition-all"
-                          title="طباعة الفاتورة"
-                        >
-                          <Printer size={16} />
-                        </button>
-                        <div className="relative">
-                          <button
-                            onClick={() => setOpenMenuId(openMenuId === id ? '' : id)}
-                            disabled={busy}
-                            className={`p-2 bg-white border border-slate-200 rounded-lg transition-all ${busy ? 'text-slate-300 cursor-not-allowed' : 'text-slate-400 hover:text-slate-900'}`}
-                          >
-                            {busy ? <Loader2 size={16} className="animate-spin" /> : <MoreVertical size={16} />}
-                          </button>
-                          {openMenuId === id && (
-                            <>
-                              <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId('')} />
-                              <div className="absolute right-0 mt-2 w-48 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden z-50">
-                                {canAccept && (
-                                  <button
-                                    onClick={() => updateStatus(id, 'CONFIRMED')}
-                                    className="w-full text-right px-4 py-3 font-bold text-xs text-emerald-700 hover:bg-emerald-50"
-                                  >
-                                    تأكيد الطلب
-                                  </button>
-                                )}
-                                {canPrepare && (
-                                  <button
-                                    onClick={() => updateStatus(id, 'PREPARING')}
-                                    className="w-full text-right px-4 py-3 font-bold text-xs text-amber-700 hover:bg-amber-50"
-                                  >
-                                    بدء التجهيز
-                                  </button>
-                                )}
-                                {canReady && (
-                                  <button
-                                    onClick={() => updateStatus(id, 'READY')}
-                                    className="w-full text-right px-4 py-3 font-bold text-xs text-blue-700 hover:bg-blue-50"
-                                  >
-                                    {isRestaurant ? 'جاهز للتقديم' : 'جاهز للتوصيل'}
-                                  </button>
-                                )}
-                                {canReady && !isRestaurant && (
-                                  <button
-                                    onClick={() => updateStatus(id, 'HANDED_TO_COURIER')}
-                                    className="w-full text-right px-4 py-3 font-bold text-xs text-indigo-700 hover:bg-indigo-50"
-                                  >
-                                    سُلّم للمندوب
-                                  </button>
-                                )}
-                                {!isRestaurant && (
-                                  <button
-                                    onClick={() => updateStatus(id, 'DELIVERED')}
-                                    className="w-full text-right px-4 py-3 font-bold text-xs text-green-700 hover:bg-green-50"
-                                  >
-                                    تم التوصيل
-                                  </button>
-                                )}
-                                {canReject && (
-                                  <>
-                                    <div className="border-t border-slate-100" />
-                                    <button
-                                      onClick={() => updateStatus(id, 'CANCELLED')}
-                                      className="w-full text-right px-4 py-3 font-bold text-xs text-red-700 hover:bg-red-50"
-                                    >
-                                      رفض الطلب
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            </>
-                          )}
-                        </div>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {busy ? (
+                          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1"><Loader2 size={13} className="animate-spin" /> جاري…</span>
+                        ) : (
+                          <>
+                            {canAccept && (
+                              <>
+                                <button onClick={() => updateStatus(id, 'CONFIRMED')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700">تأكيد</button>
+                                <button onClick={() => updateStatus(id, 'CANCELLED')} className="h-8 px-3 rounded-lg bg-white border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50">رفض</button>
+                              </>
+                            )}
+                            {canPrepare && <button onClick={() => updateStatus(id, 'PREPARING')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">تجهيز</button>}
+                            {canReady && <button onClick={() => updateStatus(id, 'READY')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">{isRestaurant ? 'جاهز للتقديم' : 'جاهز'}</button>}
+                            {!canAccept && !canPrepare && !canReady && <span className="text-[11px] font-bold text-slate-300">—</span>}
+                          </>
+                        )}
                       </div>
                     </td>
-                    <td className="p-4 text-left">
-                      <button
-                        onClick={() => setSelectedOrder(order)}
-                        className="p-2 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-slate-900 transition-all"
-                      >
-                        <Eye size={16} />
-                      </button>
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="التفاصيل">
+                          <Eye size={15} />
+                        </button>
+                        <button onClick={() => printInvoice(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="طباعة">
+                          <Printer size={15} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
+          </div>
         </div>
 
         {/* Pagination */}
@@ -1092,15 +899,15 @@ export default function SalesPage() {
             </div>
           </div>
         )}
-      </>
+        </>
       )}
+      </div>
 
-      {/* Order details modal */}
       {selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setSelectedOrder(null)}>
-          <div className="bg-white rounded-2xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-6 flex-row-reverse">
-              <h2 className="text-xl font-black text-slate-900">تفاصيل الطلب</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setSelectedOrder(null)}>
+          <div className="bg-white rounded-xl max-w-lg w-full max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white border-b border-slate-200 px-5 py-4 flex items-center justify-between">
+              <h2 className="text-[15px] font-extrabold text-slate-900">تفاصيل الطلب <span className="text-slate-400 font-bold">#{String(selectedOrder.id || '').slice(0, 8).toUpperCase()}</span></h2>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => printInvoice(selectedOrder)}
@@ -1114,10 +921,10 @@ export default function SalesPage() {
                 </button>
               </div>
             </div>
-            <div className="space-y-4 text-right">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-slate-50 rounded-lg p-3">
-                  <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">رقم الطلب</div>
+            <div className="px-5 py-4 space-y-4">
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="border border-slate-200 rounded-lg p-3">
+                  <div className="text-[11px] font-bold text-slate-400">رقم الطلب</div>
                   <div className="mt-2 font-bold text-slate-900 text-sm truncate">#{String(selectedOrder.id || '').slice(0, 8).toUpperCase() || '-'}</div>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-3">
