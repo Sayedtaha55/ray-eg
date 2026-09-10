@@ -868,10 +868,7 @@ export default function SalesPage() {
                 );
               })}
             </tbody>
-          </table>
-          </div>
-        </div>
-
+          </table>\r\n          </div>\r\n
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex items-center justify-between mt-6">
