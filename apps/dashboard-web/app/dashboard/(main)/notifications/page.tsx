@@ -1,47 +1,65 @@
-'use client';
+﻿'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   Bell, CheckCheck, BellOff, ShoppingBag, Store,
   Volume2, VolumeX, RefreshCw, AlertTriangle, Info,
+  Trash2, Search, X,
 } from 'lucide-react';
 import { useOrderBell } from '@/hooks/useOrderBell';
+import { apiRequest } from '@/lib/auth';
 
 type TabKey = 'all' | 'orders' | 'unread';
 
-type Notif = ReturnType<typeof normalizeNotif>;
+type Notif = {
+  id: string;
+  title: string;
+  content: string;
+  type: string;
+  priority: string;
+  read: boolean;
+  created_at: string;
+  source: 'pos' | 'website' | null;
+};
 
-function normalizeNotif(n: any) {
+function normalizeNotif(n: any): Notif {
+  const type = (n?.type || '').toUpperCase();
+  let source: 'pos' | 'website' | null = null;
+  if (type === 'NEW_ORDER') {
+    const src = n?.metadata?.order_source || n?.meta?.order_source;
+    source = src === 'pos' ? 'pos' : 'website';
+  }
   return {
     id: String(n?.id ?? ''),
-    title: n?.title,
-    content: n?.content ?? n?.body ?? n?.message,
-    type: n?.type,
-    priority: n?.priority,
+    title: n?.title || 'إشعار',
+    content: n?.content ?? n?.body ?? n?.message || '',
+    type,
+    priority: n?.priority || 'MEDIUM',
     read: Boolean(n?.read ?? n?.is_read),
-    created_at: n?.created_at ?? n?.createdAt ?? n?.sent_at,
-    metadata: n?.metadata ?? n?.meta ?? {},
+    created_at: n?.created_at ?? n?.createdAt ?? n?.sent_at || '',
+    source,
   };
 }
 
-function sourceOf(n: Notif): 'pos' | 'website' | null {
-  if ((n.type || '').toUpperCase() !== 'NEW_ORDER') return null;
-  return n.metadata?.order_source === 'pos' ? 'pos' : 'website';
-}
-
-function priorityStyle(p?: string) {
-  switch ((p || '').toUpperCase()) {
-    case 'URGENT':
-      return { badge: 'bg-red-100 text-red-700', label: 'عاجل' };
-    case 'HIGH':
-      return { badge: 'bg-orange-100 text-orange-700', label: 'مهم' };
-    case 'MEDIUM':
-      return { badge: 'bg-slate-100 text-slate-600', label: 'عادي' };
-    default:
-      return { badge: 'bg-slate-100 text-slate-500', label: 'منخفض' };
+function priorityStyle(p: string) {
+  switch (p.toUpperCase()) {
+    case 'URGENT': return { badge: 'bg-red-100 text-red-700 border-red-200', label: 'عاجل' };
+    case 'HIGH': return { badge: 'bg-orange-100 text-orange-700 border-orange-200', label: 'مهم' };
+    case 'MEDIUM': return { badge: 'bg-slate-100 text-slate-600 border-slate-200', label: 'عادي' };
+    default: return { badge: 'bg-slate-100 text-slate-500 border-slate-200', label: 'منخفض' };
   }
 }
 
+function timeAgo(iso: string): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'الآن';
+  if (m < 60) return `منذ ${m} دقيقة`;
+  if (m < 1440) return `منذ ${Math.floor(m / 60)} ساعة`;
+  const d = Math.floor(m / 1440);
+  return `منذ ${d} ${d === 1 ? 'يوم' : 'أيام'}`;
+}
 export default function NotificationsPage() {
   const {
     notifications: rawList,
@@ -52,199 +70,147 @@ export default function NotificationsPage() {
     markAllRead,
     markRead,
   } = useOrderBell();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [tab, setTab] = useState<TabKey>('all');
 
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 1200);
-    return () => clearTimeout(t);
-  }, []);
+  const [tab, setTab] = useState<TabKey>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const notifications = useMemo(() => rawList.map(normalizeNotif), [rawList]);
 
   const filtered = useMemo(() => {
-    if (tab === 'orders') return notifications.filter((n) => sourceOf(n) !== null);
-    if (tab === 'unread') return notifications.filter((n) => !n.read);
-    return notifications;
-  }, [notifications, tab]);
+    let list = notifications;
+    if (tab === 'orders') list = list.filter((n) => n.source !== null);
+    if (tab === 'unread') list = list.filter((n) => !n.read);
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((n) =>
+        n.title.toLowerCase().includes(q) || n.content.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [notifications, tab, searchQuery]);
 
   const ordersCount = useMemo(
-    () => notifications.filter((n) => sourceOf(n) !== null).length,
+    () => notifications.filter((n) => n.source !== null).length,
     [notifications]
   );
 
   const handleRefresh = useCallback(async () => {
-    setError('');
-    try {
-      await refresh();
-    } catch (err: any) {
-      setError(err?.message || 'فشل تحديث الإشعارات');
-    }
+    try { await refresh(); } catch { /* silent */ }
   }, [refresh]);
 
+  const handleDelete = useCallback(async (id: string) => {
+    setDeleting(id);
+    try {
+      await apiRequest(`/notifications/me/${id}`, { method: 'DELETE' });
+      await refresh();
+    } catch { /* silent */ }
+    finally { setDeleting(null); }
+  }, [refresh]);
+
+  const tabs: { key: TabKey; label: string; count: number }[] = [
+    { key: 'all', label: 'الكل', count: notifications.length },
+    { key: 'orders', label: 'الطلبات', count: ordersCount },
+    { key: 'unread', label: 'غير مقروء', count: unreadCount },
+  ];
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-4 flex-row-reverse">
-        <div className="flex items-center gap-4 flex-row-reverse">
-          <div className="relative w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center shrink-0">
-            <Bell size={24} className="text-[#00E5FF]" />
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-4">
+          <div className="relative w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center shadow-lg">
+            <Bell size={26} className="text-[#00E5FF]" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center animate-pulse">
+              <span className="absolute -top-2 -right-2 min-w-[24px] h-[24px] px-1.5 rounded-full bg-red-500 text-white text-[11px] font-black flex items-center justify-center shadow-lg animate-pulse">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
           </div>
-          <div className="text-right">
+          <div>
             <h1 className="text-2xl sm:text-3xl font-black text-slate-900">الإشعارات</h1>
-            <p className="text-sm font-bold text-slate-400 mt-1">
-              {unreadCount > 0 ? `${unreadCount} إشعار غير مقروء` : 'لا توجد إشعارات غير مقروءة'}
+            <p className="text-sm font-medium text-slate-500 mt-0.5">
+              {unreadCount > 0 ? `لديك ${unreadCount} إشعارات غير مقروءة` : 'لا توجد إشعارات جديدة'}
             </p>
           </div>
         </div>
-
-        <div className="flex items-center gap-2 flex-row-reverse flex-wrap">
-          <button
-            onClick={toggleSound}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-bold transition-all ${
-              soundOn ? 'border-[#00E5FF]/40 bg-cyan-50 text-slate-800' : 'border-slate-200 text-slate-400'
-            }`}
-            title={soundOn ? 'إيقاف صوت الرنة' : 'تشغيل صوت الرنة'}
-          >
-            {soundOn ? <Volume2 size={16} className="text-[#00E5FF]" /> : <VolumeX size={16} />}
-            <span>{soundOn ? 'الرنة مفعّلة' : 'الرنة مغلقة'}</span>
+        <div className="flex items-center gap-2">
+          <button onClick={toggleSound} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-xs font-bold transition-all ${soundOn ? 'border-[#00E5FF]/30 bg-[#00E5FF]/5 text-[#00B8CC]' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+            {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+            <span className="hidden sm:inline">{soundOn ? 'الصوت مفعل' : 'الصوت مغلق'}</span>
           </button>
-          <button
-            onClick={handleRefresh}
-            className="w-9 h-9 rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-50"
-            title="تحديث"
-          >
+          <button onClick={handleRefresh} className="p-2.5 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-all" title="تحديث">
             <RefreshCw size={16} />
           </button>
           {unreadCount > 0 && (
-            <button
-              onClick={markAllRead}
-              className="flex items-center gap-2 px-4 py-2.5 bg-slate-900 text-white rounded-xl font-bold text-sm hover:bg-black transition-all"
-            >
-              <CheckCheck size={18} />
-              <span>تعليم الكل كمقروء</span>
+            <button onClick={markAllRead} className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-800 transition-all">
+              <CheckCheck size={16} />
+              <span>قراءة الكل</span>
             </button>
           )}
         </div>
       </div>
-
-      {error && (
-        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm font-bold text-right">
-          {error}
-        </div>
-      )}
+      {/* Search */}
+      <div className="relative">
+        <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input type="text" placeholder="بحث في الإشعارات..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl py-2.5 pr-10 pl-4 text-sm font-medium outline-none focus:border-[#00E5FF]/50 focus:ring-2 focus:ring-[#00E5FF]/10 transition-all" />
+        {searchQuery && (
+          <button onClick={() => setSearchQuery('')} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+            <X size={14} />
+          </button>
+        )}
+      </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 flex-row-reverse flex-wrap">
-        {([
-          { key: 'all', label: 'الكل', count: notifications.length },
-          { key: 'orders', label: 'الطلبات الجديدة', count: ordersCount },
-          { key: 'unread', label: 'غير مقروء', count: unreadCount },
-        ] as { key: TabKey; label: string; count: number }[]).map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${
-              tab === t.key
-                ? 'bg-slate-900 text-white'
-                : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <span>{t.label}</span>
-            <span
-              className={`px-1.5 rounded-md text-[11px] ${
-                tab === t.key ? 'bg-white/20' : 'bg-slate-100 text-slate-500'
-              }`}
-            >
-              {t.count}
-            </span>
+      <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 p-1">
+        {tabs.map((t) => (
+          <button key={t.key} onClick={() => setTab(t.key)} className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-xs font-bold transition-all ${tab === t.key ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-50'}`}>
+            {t.label}
+            {t.count > 0 && (
+              <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-black flex items-center justify-center ${tab === t.key ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {t.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
-
-      {/* Notifications list */}
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <div className="w-10 h-10 border-4 border-slate-200 border-t-[#00E5FF] rounded-full animate-spin" />
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
-          <BellOff size={32} className="mx-auto mb-3 text-slate-300" />
-          <p className="text-slate-400 font-bold text-sm">لا توجد إشعارات هنا</p>
+      {/* List */}
+      {filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center mb-4">
+            <BellOff size={32} className="text-slate-300" />
+          </div>
+          <p className="text-lg font-bold text-slate-400">لا توجد إشعارات</p>
+          <p className="text-sm text-slate-400 mt-1">{searchQuery ? 'جرب البحث بكلمات مختلفة' : 'ستظهر الإشعارات الجديدة هنا'}</p>
         </div>
       ) : (
         <div className="space-y-2">
           {filtered.map((notif) => {
             const isUnread = !notif.read;
-            const src = sourceOf(notif);
             const prio = priorityStyle(notif.priority);
             return (
-              <div
-                key={notif.id}
-                className={`bg-white rounded-xl border p-4 shadow-sm transition-all cursor-pointer ${
-                  src === 'pos'
-                    ? 'border-r-4 border-r-amber-400'
-                    : src === 'website'
-                    ? 'border-r-4 border-r-[#00E5FF]'
-                    : ''
-                } ${isUnread ? 'border-[#00E5FF]/30 bg-cyan-50/30' : 'border-slate-200'}`}
-                onClick={() => !notif.read && markRead(notif.id)}
-              >
-                <div className="flex items-start gap-3 flex-row-reverse">
-                  <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      src === 'pos'
-                        ? 'bg-amber-100'
-                        : src === 'website'
-                        ? 'bg-slate-900'
-                        : 'bg-slate-100'
-                    }`}
-                  >
-                    {src === 'pos' ? (
-                      <Store size={18} className="text-amber-600" />
-                    ) : src === 'website' ? (
-                      <ShoppingBag size={18} className="text-[#00E5FF]" />
-                    ) : prio.label === 'عاجل' || prio.label === 'مهم' ? (
-                      <AlertTriangle size={18} className="text-orange-500" />
-                    ) : (
-                      <Info size={18} className="text-slate-400" />
-                    )}
+              <div key={notif.id} className={`group bg-white rounded-xl border p-4 shadow-sm transition-all hover:shadow-md ${notif.source === 'pos' ? 'border-r-4 border-r-amber-400' : notif.source === 'website' ? 'border-r-4 border-r-[#00E5FF]' : isUnread ? 'border-[#00E5FF]/30 bg-cyan-50/20' : 'border-slate-200'}`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${notif.source === 'pos' ? 'bg-amber-100' : notif.source === 'website' ? 'bg-slate-900' : notif.priority === 'URGENT' || notif.priority === 'HIGH' ? 'bg-red-100' : 'bg-slate-100'}`}>
+                    {notif.source === 'pos' ? <Store size={18} className="text-amber-600" /> : notif.source === 'website' ? <ShoppingBag size={18} className="text-[#00E5FF]" /> : notif.priority === 'URGENT' || notif.priority === 'HIGH' ? <AlertTriangle size={18} className="text-red-500" /> : <Info size={18} className="text-slate-400" />}
                   </div>
-                  <div className="flex-1 text-right">
-                    <div className="flex items-center gap-2 justify-end flex-wrap">
-                      <div className="font-bold text-slate-900 text-sm">{notif.title || 'إشعار'}</div>
-                      {src === 'pos' && (
-                        <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-black">
-                          نقطة البيع / الكاشير
-                        </span>
-                      )}
-                      {src === 'website' && (
-                        <span className="px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-700 text-[10px] font-black">
-                          طلب من الموقع
-                        </span>
-                      )}
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black ${prio.badge}`}>
-                        {prio.label}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button onClick={() => isUnread && markRead(notif.id)} className={`font-bold text-sm ${isUnread ? 'text-slate-900' : 'text-slate-600'}`}>
+                        {notif.title}
+                      </button>
+                      {notif.source === 'pos' && <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[10px] font-black">نقطة البيع</span>}
+                      {notif.source === 'website' && <span className="px-2 py-0.5 rounded-md bg-cyan-100 text-cyan-700 text-[10px] font-black">من الموقع</span>}
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black border ${prio.badge}`}>{prio.label}</span>
                     </div>
-                    {notif.content && (
-                      <div className="text-xs text-slate-500 mt-1">{notif.content}</div>
-                    )}
-                    <div className="flex items-center gap-2 justify-end mt-2">
-                      {notif.created_at && (
-                        <div className="text-[10px] text-slate-400">
-                          {new Date(notif.created_at).toLocaleString('ar-EG')}
-                        </div>
-                      )}
-                      {isUnread && <div className="w-2 h-2 rounded-full bg-[#00E5FF]" />}
+                    {notif.content && <p className="text-xs text-slate-500 mt-1 line-clamp-2">{notif.content}</p>}
+                    <div className="flex items-center gap-3 mt-2">
+                      {notif.created_at && <span className="text-[11px] font-medium text-slate-400">{timeAgo(notif.created_at)}</span>}
+                      {isUnread && <button onClick={() => markRead(notif.id)} className="text-[11px] font-bold text-[#00B8CC] hover:text-[#00E5FF] transition-colors">تحديد كمقروء</button>}
                     </div>
                   </div>
+                  <button onClick={() => handleDelete(notif.id)} disabled={deleting === notif.id} className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50" title="حذف">
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               </div>
             );
