@@ -15,13 +15,16 @@ type Branch = {
   status: 'active' | 'paused';
 };
 
-const emptyForm = { name: '', address: '', phone: '', manager: '', type: 'sub' as const, monthlyTarget: '', status: 'active' as const };
+const emptyForm = { name: '', address: '', phone: '', manager: '', type: 'sub' as 'main' | 'sub', monthlyTarget: '', status: 'active' as 'active' | 'paused' };
 
 export default function BranchesPage() {
   const { items: branches, ready, add, update, remove } = useLocalCollection<Branch>('branches');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Branch | null>(null);
-  const [form, setForm] = useState<typeof emptyForm>(emptyForm);
+  const [form, setForm] = useState<{
+    name: string; address: string; phone: string; manager: string;
+    type: 'main' | 'sub'; monthlyTarget: string; status: 'active' | 'paused';
+  }>(emptyForm);
   const [saving, setSaving] = useState(false);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm); setModalOpen(true); };

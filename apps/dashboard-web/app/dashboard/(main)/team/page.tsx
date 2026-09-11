@@ -23,14 +23,14 @@ const ROLES = [
   { id: 'marketer', label: 'مسوق', desc: 'التسويق والعروض' },
 ];
 
-const emptyForm = { name: '', phone: '', role: 'cashier', branchId: '', status: 'active' as const };
+const emptyForm = { name: '', phone: '', role: 'cashier', branchId: '', status: 'active' as 'active' | 'suspended' };
 
 export default function TeamPage() {
   const { items: members, ready, add, update, remove } = useLocalCollection<Member>('team-members');
   const { items: branches } = useCollection<{ id: string; name: string }>('branches');
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<Member | null>(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState<{ name: string; phone: string; role: string; branchId: string; status: 'active' | 'suspended' }>(emptyForm);
 
   const openAdd = () => { setEditing(null); setForm(emptyForm); setModalOpen(true); };
   const openEdit = (m: Member) => { setEditing(m); setForm({ ...m }); setModalOpen(true); };
