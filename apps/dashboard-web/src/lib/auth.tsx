@@ -46,7 +46,41 @@ function clearStoredToken() {
   localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 
-async function apiRequest(path: string, options: RequestInit = {}) {
+let refreshInFlight: Promise<string | null> | null = null;
+
+// Silently exchange the ray_session refresh cookie for a fresh access token.
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshInFlight) {
+    refreshInFlight = (async () => {
+      try {
+        const res = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: '{}',
+        });
+        if (!res.ok) return null;
+        const data = await res.json().catch(() => null);
+        const accessToken = data?.data?.token?.accessToken || data?.token?.accessToken;
+        if (!accessToken) return null;
+        storeToken(accessToken);
+        const user = data?.data?.user || data?.user;
+        if (user && typeof window !== 'undefined') {
+          localStorage.setItem(USER_KEY, JSON.stringify(user));
+          window.dispatchEvent(new Event('ray-user-refreshed'));
+        }
+        return accessToken as string;
+      } catch {
+        return null;
+      } finally {
+        refreshInFlight = null;
+      }
+    })();
+  }
+  return refreshInFlight;
+}
+
+async function apiRequest(path: string, options: RequestInit = {}, _retried = false) {
   const token = getStoredToken();
   const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
   const headers = new Headers(options.headers);
@@ -63,7 +97,22 @@ async function apiRequest(path: string, options: RequestInit = {}) {
     credentials: 'include',
   });
   const data = await res.json().catch(() => null);
-  if (!res.ok) throw { status: res.status, message: data?.message || 'Request failed' };
+  if (!res.ok) {
+    // access token lives only 15 min — on expiry, exchange the refresh cookie
+    // silently and retry the original request exactly once
+    const msg = String(data?.message || data?.error || '');
+    if (res.status === 401 && !_retried && /expired|invalid token|invalid_token/i.test(msg)) {
+      const newToken = await refreshAccessToken();
+      if (newToken) {
+        return apiRequest(path, options, true);
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('ray-session-expired'));
+      }
+      throw { status: 401, message: 'انتهت الجلسة، من فضلك سجل الدخول من جديد' };
+    }
+    throw { status: res.status, message: data?.message || data?.error || 'Request failed' };
+  }
   return data?.data !== undefined ? data.data : data;
 }
 
@@ -111,6 +160,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     refreshUser();
   }, [refreshUser]);
+
+  useEffect(() => {
+    const onSessionExpired = () => {
+      clearStoredToken();
+      if (typeof window !== 'undefined') localStorage.removeItem(USER_KEY);
+      setUser(null);
+    };
+    const onUserRefreshed = () => {
+      try {
+        const stored = typeof window !== 'undefined' ? localStorage.getItem(USER_KEY) : null;
+        if (stored) setUser(JSON.parse(stored));
+      } catch { /* keep current user */ }
+    };
+    window.addEventListener('ray-session-expired', onSessionExpired);
+    window.addEventListener('ray-user-refreshed', onUserRefreshed);
+    return () => {
+      window.removeEventListener('ray-session-expired', onSessionExpired);
+      window.removeEventListener('ray-user-refreshed', onUserRefreshed);
+    };
+  }, []);
 
   const login = useCallback(async (email: string, password: string) => {
     const data = await apiRequest('/auth/login', {

@@ -1,7 +1,9 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth';
 import { I18nProvider } from '@/lib/I18nProvider';
+import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
+import BreachNotice from '@ray-eg/shared/components/common/BreachNotice';
 
 export const metadata: Metadata = {
   title: 'لوحة التحكم | نمّي أعمالك',
@@ -28,7 +30,11 @@ export default function RootLayout({
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <I18nProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <BreachNotice />
+            {children}
+            <ConsentBanner />
+          </AuthProvider>
         </I18nProvider>
       </body>
     </html>

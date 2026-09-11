@@ -15,6 +15,8 @@ export type BellNotification = {
   is_read?: boolean;
   created_at?: string;
   createdAt?: string;
+  shop_id?: string | null;
+  user_id?: string | null;
   metadata?: Record<string, unknown>;
   meta?: Record<string, unknown>;
 };
@@ -48,6 +50,8 @@ function normalize(n: any): BellNotification {
     priority: n?.priority,
     read: n?.read ?? n?.is_read ?? false,
     created_at: n?.created_at ?? n?.createdAt ?? n?.sent_at,
+    shop_id: n?.shop_id ?? null,
+    user_id: n?.user_id ?? null,
     metadata: n?.metadata ?? n?.meta ?? {},
   };
 }
@@ -58,12 +62,20 @@ function orderSourceOf(n: BellNotification): 'pos' | 'website' {
   return 'website';
 }
 
-function isRead(n: BellNotification): boolean {
-  return Boolean(n.read);
+function currentShopId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const u = JSON.parse(localStorage.getItem('ray_user') || '{}');
+    return u?.shopId || u?.shop_id || '';
+  } catch {
+    return '';
+  }
 }
 
 /**
- * Polls /notifications/me and fires the right bell when a NEW_ORDER arrives.
+ * Polls both /notifications/me and /notifications/shop/:shopId (merchants
+ * receive order notifications on the shop channel, personal ones on the user
+ * channel), dedupes them, and fires the right bell when a NEW_ORDER arrives.
  * - website order  → رنة الموقع
  * - pos order      → رنة نقطة البيع
  */
@@ -82,23 +94,52 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
 
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await apiRequest('/notifications/me?take=30');
-      const raw = Array.isArray(res) ? res : (res?.notifications || res?.data || res?.items || []);
-      const list: BellNotification[] = (Array.isArray(raw) ? raw : []).map(normalize);
-      setNotifications(list);
+      const shopId = currentShopId();
 
-      // count unread
-      let count = list.filter((n) => !isRead(n)).length;
+      const [userRes, shopRes] = await Promise.allSettled([
+        apiRequest('/notifications/me?limit=30'),
+        shopId ? apiRequest(`/notifications/shop/${shopId}?limit=30`) : Promise.resolve(null),
+      ]);
+
+      const pick = (v: any) =>
+        Array.isArray(v) ? v : v?.data || v?.notifications || v?.items || [];
+
+      const merged: BellNotification[] = [];
+      const seen = new Set<string>();
+      for (const res of [userRes, shopRes]) {
+        if (res.status !== 'fulfilled') continue;
+        for (const raw of pick(res.value)) {
+          const n = normalize(raw);
+          if (!n.id || seen.has(n.id)) continue;
+          seen.add(n.id);
+          merged.push(n);
+        }
+      }
+      // newest first
+      merged.sort((a, b) =>
+        new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+      );
+      setNotifications(merged);
+
+      // unread from the authoritative counter endpoint, fallback to list
+      let count = merged.filter((n) => !n.read).length;
       try {
-        const cnt = await apiRequest('/notifications/me/unread-count');
-        const c = Number(cnt?.unread_count ?? cnt?.count ?? cnt ?? 0);
+        let cntVal: any = null;
+        if (shopId) {
+          const s = await apiRequest(`/notifications/shop/${shopId}/unread-count`);
+          cntVal = s;
+        }
+        if (cntVal == null) {
+          cntVal = await apiRequest('/notifications/me/unread-count');
+        }
+        const c = Number(cntVal?.unread_count ?? cntVal?.UnreadCount ?? cntVal ?? 0);
         if (!Number.isNaN(c) && c > 0) count = c;
       } catch {}
       setUnreadCount(count);
 
       // detect new order notifications created after our last checkpoint
       if (!firstLoad.current) {
-        for (const n of list) {
+        for (const n of merged) {
           const ts = n.created_at ? new Date(n.created_at).getTime() : 0;
           if (!ts || ts <= lastSeenTs.current) continue;
           if ((n.type || '').toUpperCase() !== 'NEW_ORDER') continue;
@@ -131,18 +172,34 @@ export function useOrderBell(onOrder?: (evt: OrderBellEvent) => void) {
   }, []);
 
   const markAllRead = useCallback(async () => {
-    await apiRequest('/notifications/me/read', { method: 'PATCH' });
+    const shopId = currentShopId();
+    // notifications live on both channels — clear the shop one first (orders
+    // arrive there), then the user one. One of them may 404; that's fine.
+    const results = await Promise.allSettled([
+      shopId
+        ? apiRequest(`/notifications/shop/${shopId}/read`, { method: 'PATCH' })
+        : Promise.resolve(null),
+      apiRequest('/notifications/me/read', { method: 'PATCH' }),
+    ]);
+    if (results.every((r) => r.status === 'rejected')) {
+      throw new Error('فشل تعليم الإشعارات كمقروءة');
+    }
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     setUnreadCount(0);
   }, []);
 
   const markRead = useCallback(async (id: string) => {
-    await apiRequest(`/notifications/me/${id}/read`, { method: 'PATCH' });
+    const n = notifications.find((x) => x.id === id);
+    const path =
+      n?.shop_id && currentShopId()
+        ? `/notifications/shop/${currentShopId()}/${id}/read`
+        : `/notifications/me/${id}/read`;
+    await apiRequest(path, { method: 'PATCH' });
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((x) => (x.id === id ? { ...x, read: true } : x))
     );
     setUnreadCount((c) => Math.max(0, c - 1));
-  }, []);
+  }, [notifications]);
 
   return {
     notifications,

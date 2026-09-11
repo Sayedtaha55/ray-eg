@@ -90,10 +90,24 @@ func (r *Repository) CreateNotification(ctx context.Context, data *NotificationD
 }
 
 // GetNotificationsByUserID retrieves notifications for a specific user
+// pgTsToRFC3339 normalizes a Postgres timestamp text value to RFC3339.
+func pgTsToRFC3339(s string) string {
+	if s == "" {
+		return ""
+	}
+	for _, layout := range []string{"2006-01-02 15:04:05.999", "2006-01-02 15:04:05", time.RFC3339Nano, time.RFC3339} {
+		if t, err := time.Parse(layout, s); err == nil {
+			return t.UTC().Format(time.RFC3339)
+		}
+	}
+	return s
+}
+
 func (r *Repository) GetNotificationsByUserID(ctx context.Context, userID string, limit, offset int) ([]Notification, int64, error) {
 	query := `
-		SELECT id, title, content, type, priority, shop_id, user_id, order_id,
-			channels, metadata, is_read, read_at, sent_at, created_at, updated_at
+		SELECT id, title, content, type, COALESCE(priority, 'MEDIUM'), shop_id, user_id, order_id,
+			COALESCE(channels, '[]'::jsonb), COALESCE(metadata, '{}'::jsonb), is_read, read_at, sent_at,
+			created_at::text, updated_at::text
 		FROM notifications
 		WHERE user_id = $1
 		ORDER BY created_at DESC
@@ -151,20 +165,21 @@ func (r *Repository) GetNotificationsByUserID(ctx context.Context, userID string
 			notification.SentAt = sentAt.Time.UTC().Format(time.RFC3339)
 		}
 		
-		notification.CreatedAt = notification.CreatedAt[:len("2006-01-02T15:04:05.999Z")]
-		notification.UpdatedAt = notification.UpdatedAt[:len("2006-01-02T15:04:05.999Z")]
-		
+		notification.CreatedAt = pgTsToRFC3339(notification.CreatedAt)
+		notification.UpdatedAt = pgTsToRFC3339(notification.UpdatedAt)
+
 		notifications = append(notifications, notification)
 	}
-	
+
 	return notifications, total, nil
 }
 
 // GetNotificationsByShopID retrieves notifications for a specific shop
 func (r *Repository) GetNotificationsByShopID(ctx context.Context, shopID string, limit, offset int) ([]Notification, int64, error) {
 	query := `
-		SELECT id, title, content, type, priority, shop_id, user_id, order_id,
-			channels, metadata, is_read, read_at, sent_at, created_at, updated_at
+		SELECT id, title, content, type, COALESCE(priority, 'MEDIUM'), shop_id, user_id, order_id,
+			COALESCE(channels, '[]'::jsonb), COALESCE(metadata, '{}'::jsonb), is_read, read_at, sent_at,
+			created_at::text, updated_at::text
 		FROM notifications
 		WHERE shop_id = $1
 		ORDER BY created_at DESC
@@ -222,12 +237,12 @@ func (r *Repository) GetNotificationsByShopID(ctx context.Context, shopID string
 			notification.SentAt = sentAt.Time.UTC().Format(time.RFC3339)
 		}
 		
-		notification.CreatedAt = notification.CreatedAt[:len("2006-01-02T15:04:05.999Z")]
-		notification.UpdatedAt = notification.UpdatedAt[:len("2006-01-02T15:04:05.999Z")]
-		
+		notification.CreatedAt = pgTsToRFC3339(notification.CreatedAt)
+		notification.UpdatedAt = pgTsToRFC3339(notification.UpdatedAt)
+
 		notifications = append(notifications, notification)
 	}
-	
+
 	return notifications, total, nil
 }
 
@@ -310,6 +325,34 @@ func (r *Repository) MarkAllAsReadForShop(ctx context.Context, shopID string) er
 		return fmt.Errorf("failed to mark all notifications as read: %w", err)
 	}
 	
+	return nil
+}
+
+// DeleteForUser deletes a notification scoped to a user
+func (r *Repository) DeleteForUser(ctx context.Context, userID, notificationID string) error {
+	tag, err := r.pool.Exec(ctx,
+		"DELETE FROM notifications WHERE id = $1 AND user_id = $2",
+		notificationID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete notification: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("notification not found")
+	}
+	return nil
+}
+
+// DeleteForShop deletes a notification scoped to a shop
+func (r *Repository) DeleteForShop(ctx context.Context, shopID, notificationID string) error {
+	tag, err := r.pool.Exec(ctx,
+		"DELETE FROM notifications WHERE id = $1 AND shop_id = $2",
+		notificationID, shopID)
+	if err != nil {
+		return fmt.Errorf("failed to delete notification: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("notification not found")
+	}
 	return nil
 }
 

@@ -29,7 +29,11 @@ const GoogleIcon: React.FC<{ size?: number; className?: string }> = ({ size = 20
   </svg>
 );
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : 'https://api.mnmknk.com');
+// In development, call same-origin /api/* via the Next.js rewrite proxy to
+// avoid CSP/CORS blocks on http://localhost:4000. Production uses https.
+const API_BASE = process.env.NODE_ENV === 'development'
+  ? ''
+  : (process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com');
 
 function LoginContent() {
   const router = useRouter();
@@ -77,7 +81,7 @@ function LoginContent() {
     if (followShopId) q.set('followShopId', followShopId);
     q.set('target', '/business/dashboard');
     const qs = q.toString();
-    window.location.href = `${API_URL}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
+    window.location.href = `${API_BASE}/api/v1/auth/google${qs ? `?${qs}` : ''}`;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -86,7 +90,7 @@ function LoginContent() {
     setError('');
 
     try {
-      const res = await fetch(`${API_URL}/api/v1/auth/login`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
@@ -117,7 +121,7 @@ function LoginContent() {
     setForgotLoading(true);
     setForgotResult(null);
     try {
-      const res = await fetch(`${API_URL}/api/v1/auth/password/forgot`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/password/forgot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: e }),

@@ -243,6 +243,15 @@ func (r *Repository) SetOwnerActive(ctx context.Context, ownerID, shopID string)
 	return err
 }
 
+// SetOwnerInactive deactivates the owner account (merchant lock).
+func (r *Repository) SetOwnerInactive(ctx context.Context, ownerID string) error {
+	_, err := r.pool.Exec(ctx,
+		"UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1",
+		ownerID,
+	)
+	return err
+}
+
 const shopColumns = `
 	s.id, s.name, s.slug, s.description, s.category, s.activity, s.governorate, s.city, s.address,
 	s.address_detailed, s.display_address, s.map_label, s.latitude, s.longitude,

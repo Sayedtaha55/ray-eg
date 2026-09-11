@@ -1,122 +1,111 @@
+﻿# ============================================================
+# .gitignore - Ray Marketplace (organized & comprehensive)
+# ============================================================
 
-# Dependencies
+# --- Dependencies ---
 node_modules/
 .pnp
 .pnp.js
 
-# Testing
-coverage/
-
-# Production
+# --- Build / Dist ---
 build/
 dist/
 dist-backend/
 dist-electron/
+out/
+dev-dist/
 release/
-
-# Next.js
 .next/
 
-# Env / Secrets
+# --- Environment / Secrets ---
 .env
 .env.local
-.env.*
-.env.development.local
-.env.test.local
-.env.production.local
-
+.env*.local
+.env*.production
 !.env.example
+!.env.production.example
+*.pem
+*.pfx
+*.p12
+*.key
+certs/localhost.crt
+apps/marketplace-next/certificates/
 
-# OS Files
-.DS_Store
-Thumbs.db
-
-# Logs
+# --- Logs ---
+*.log
+*.pid
+logs/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-logs/
-*.log
-*.pid
-business.log
-dashboard-web.log
-gobackend.log
-gobackend.pid
 reports/i18n-dashboard-report.csv
-prisma/dev.db
-backend/prisma/dev.db
+/logs-*.txt
 
-uploads/
-
-# IDEs
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
 .vscode/
 .idea/
 *.swp
 *.swo
-
-# Cursor MCP (local)
 .cursor/
 
-dy
-.vercel
-.env*.local
-
-# Additional ignores
-# Vite/Build outputs
-out/
-build/
-dev-dist/
-
-# Cache and tool folders
+# --- Cache / Tool folders ---
 .cache/
 .parcel-cache/
 .esbuild-cache/
 .turbo/
 .vite/
+.vercel
 
-# Package manager stores
+# --- Package manager ---
 pnpm-lock.yaml
 .pnpm/
 
-# Generated public media
-public/videos/
+# --- Testing / Coverage ---
+coverage/
+*.test
+*.out
 
-# SQLite / DB local files
+# --- Database local ---
 *.sqlite
 *.db
+prisma/dev.db
+backend/prisma/dev.db
 
-# Go backend
+# --- Go backend ---
 gobackend/bin/
 gobackend/*.exe
 gobackend/vendor/
 gobackend/go.work
 gobackend/go.work.sum
 
-# Go test artifacts
-*.test
-*.out
-coverage/
+# --- Binaries / Runtime junk ---
+*.exe
 
+# --- Uploads / Generated media ---
+uploads/
+public/videos/
 
-testsprite_tests\tmp\config.json
-
-# Temp files with tokens/data
+# --- Temp / Token files ---
 temp_*.json
-utputFormat
 
-# Local backup of old Vite/React code
+# --- Archive (old NestJS code, not tracked) ---
 _archive/
 
-# YoYo AI version control directory
+# --- AI tool directories ---
 .yoyo/
+.qodo/
+.opencode/
+.windsurf/
+.ai/
+.devin/
 
-# Local dev log files (root) generated when launching services
-/logs-*.txt
+# --- Test artifacts ---
+testsprite_tests/
 
-# Binaries / runtime junk
-*.exe
-*.pid
-testsprite_tests/tmp/
+# --- Cline checkpoint junk (mangled names) ---
+*clineproceed*
 
 # Accidental shell/log artifacts (cleanup)
 *.log'

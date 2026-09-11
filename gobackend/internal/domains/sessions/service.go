@@ -24,7 +24,7 @@ func (s *Service) RecordLogin(ctx context.Context, userID, email, name, role, ip
 	event.LoginAt = time.Now().UTC()
 	
 	if err := s.repo.Insert(ctx, event); err != nil {
-		logger.Global().Failed to record login event", zap.Error(err))
+		logger.Global().Warn("Failed to record login event", zap.Error(err))
 		return nil, err
 	}
 	

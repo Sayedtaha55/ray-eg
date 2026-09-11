@@ -42,12 +42,14 @@ func (h *Handler) RegisterRoutes(app fiber.Router) {
 	notifications.Get("/me/unread-count", middleware.RequireAuth(h.config), h.UnreadCountMine)
 	notifications.Patch("/me/read", middleware.RequireAuth(h.config), h.MarkAllMineRead)
 	notifications.Patch("/me/:id/read", middleware.RequireAuth(h.config), h.MarkMineRead)
+	notifications.Delete("/me/:id", middleware.RequireAuth(h.config), h.DeleteMine)
 
 	// Shop notification routes
 	notifications.Get("/shop/:shopId", middleware.RequireAuth(h.config), h.ListShop)
 	notifications.Get("/shop/:shopId/unread-count", middleware.RequireAuth(h.config), h.UnreadCountShop)
 	notifications.Patch("/shop/:shopId/read", middleware.RequireAuth(h.config), h.MarkAllShopRead)
 	notifications.Patch("/shop/:shopId/:id/read", middleware.RequireAuth(h.config), h.MarkShopNotificationRead)
+	notifications.Delete("/shop/:shopId/:id", middleware.RequireAuth(h.config), h.DeleteShopNotification)
 
 	// Preferences routes
 	notifications.Get("/preferences", middleware.RequireAuth(h.config), h.GetPreferences)
@@ -551,4 +553,51 @@ func (h *Handler) UpdatePreferences(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(PreferencesResponse{Success: true})
+}
+
+// DeleteMine deletes a user-scoped notification
+func (h *Handler) DeleteMine(c *fiber.Ctx) error {
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(PushSubscriptionResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+	}
+
+	if err := h.service.DeleteForUser(c.Context(), user.ID, c.Params("id")); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(PushSubscriptionResponse{
+			Success: false,
+			Error:   "Failed to delete notification",
+		})
+	}
+
+	return c.JSON(PushSubscriptionResponse{Success: true})
+}
+
+// DeleteShopNotification deletes a shop-scoped notification
+func (h *Handler) DeleteShopNotification(c *fiber.Ctx) error {
+	shopID := c.Params("shopId")
+	user, ok := middleware.AuthUserFromContext(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(PushSubscriptionResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+	}
+	if user.Role != "admin" && user.Role != "ADMIN" && user.ShopID != shopID {
+		return c.Status(fiber.StatusForbidden).JSON(PushSubscriptionResponse{
+			Success: false,
+			Error:   "Unauthorized",
+		})
+	}
+
+	if err := h.service.DeleteForShop(c.Context(), shopID, c.Params("id")); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(PushSubscriptionResponse{
+			Success: false,
+			Error:   "Failed to delete notification",
+		})
+	}
+
+	return c.JSON(PushSubscriptionResponse{Success: true})
 }

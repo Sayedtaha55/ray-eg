@@ -2,12 +2,21 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  AreaChart as RAreaChart, Area as RArea, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell,
+} from 'recharts';
 import {
   ShoppingCart, Eye, Users, DollarSign, Package, Star, RefreshCw, Download,
-  TrendingUp, TrendingDown, Bell, Plus, Megaphone, Calendar, FileText,
-  Settings as SettingsIcon, LogIn, Activity, AlertTriangle, Store, ChevronLeft,
+  TrendingUp, TrendingDown, Bell, Plus, Megaphone, Calendar, Store,
+  Settings as SettingsIcon, LogIn, AlertTriangle, ChevronLeft, Wallet, Boxes, BarChart3,
+  History, PieChart as PieIcon, ArrowRight,
 } from 'lucide-react';
 import { useAuth, apiRequest } from '@/lib/auth';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { palette, chartColors, shadows, iconTint, cardClass } from '@/lib/ui/tokens';
 
 /* ============================================================
  * Types (matching backend responses)
@@ -22,115 +31,92 @@ type AnalyticsOverview = {
   weekly_data: WeeklyPoint[];
   top_products: TopProduct[];
 };
-
+type SalesReport = {
+  shop_id: string;
+  stats: Array<{ label: string; label_ar: string; value: string; change: string; up: boolean }>;
+  trend: Array<{ date: string; revenue: number; orders: number }>;
+};
 type Shop = {
-  id?: string;
-  name?: string;
-  status?: string;
-  isActive?: boolean;
-  followers?: number;
-  visitors?: number;
-  logoUrl?: string | null;
+  id?: string; name?: string; slug?: string; status?: string; isActive?: boolean;
+  category?: string; governorate?: string; city?: string;
+  followers?: number; visitors?: number; rating?: number; logoUrl?: string | null;
 };
-
 type Order = {
-  id?: string;
-  total?: number;
-  status?: string;
-  createdAt?: string;
-  customerName?: string;
-  customerPhone?: string;
-  items?: Array<{ productName?: string; quantity?: number; price?: number }>;
+  id?: string; total?: number; status?: string; createdAt?: string;
+  customerName?: string; customerPhone?: string;
 };
-
 type AppNotification = {
-  id: string;
-  title?: string;
-  content?: string;
-  type?: string;
-  created_at?: string;
-  createdAt?: string;
+  id: string; title?: string; content?: string; type?: string;
+  created_at?: string; createdAt?: string;
 };
-
 type LoginSession = {
-  ID?: string;
-  id?: string;
-  UserEmail?: string;
-  userEmail?: string;
-  UserRole?: string;
-  userRole?: string;
-  LoginAt?: string;
-  loginAt?: string;
-  LogoutAt?: string | null;
-  logoutAt?: string | null;
-  DurationMin?: number | null;
-  durationMin?: number | null;
-  IPAddress?: string;
-  ipAddress?: string;
+  ID?: string; id?: string; UserEmail?: string; userEmail?: string;
+  LoginAt?: string; loginAt?: string; LogoutAt?: string | null; logoutAt?: string | null;
 };
 
 /* ============================================================
- * Formatting helpers
+ * Helpers
  * ============================================================ */
 
 const LOCALE = 'ar-EG-u-nu-latn';
 
-const fmtEGP = (n: number) =>
-  `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
+// اختصارات افتراضية تظهر لما مفيش تاريخ زيارات لسه
+const DEFAULT_SHORTCUTS: { href: string; labelAr: string }[] = [
+  { href: '/dashboard/sales', labelAr: 'كل الطلبات' },
+  { href: '/dashboard/inventory', labelAr: 'المنتجات' },
+  { href: '/dashboard/notifications', labelAr: 'الإشعارات' },
+  { href: '/dashboard/pos', labelAr: 'الكاشير' },
+  { href: '/dashboard/analytics', labelAr: 'التحليلات' },
+  { href: '/dashboard/marketing', labelAr: 'التسويق' },
+];
 
-const fmtNum = (n: number) =>
-  (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
-
+const fmtEGP = (n: number) => `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
+const fmtNum = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
+const fmtCompact = (n: number) => {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}م`;
+  if (n >= 1_000) return `${(n / 1_000).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}ألف`;
+  return fmtNum(n);
+};
 const fmtShortId = (id?: string) => {
   const s = id || '';
   return s.length > 10 ? `#${s.slice(0, 8)}…` : `#${s}`;
 };
-
 const fmtDate = (iso?: string | null, opts: Intl.DateTimeFormatOptions = {}) => {
   if (!iso) return '—';
   const d = new Date(iso);
   if (isNaN(d.getTime())) return '—';
-  try {
-    return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', ...opts });
-  } catch {
-    return d.toLocaleDateString();
-  }
+  try { return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', ...opts }); } catch { return d.toLocaleDateString(); }
 };
-
 const timeAgo = (iso?: string | null) => {
   if (!iso) return '—';
-  const diff = Date.now() - new Date(iso).getTime();
-  const m = Math.floor(diff / 60000);
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
   if (m < 1) return 'الآن';
   if (m < 60) return `منذ ${fmtNum(m)} د`;
   if (m < 1440) return `منذ ${fmtNum(Math.floor(m / 60))} س`;
   return fmtDate(iso);
 };
-
-const fmtDayAr = (day: string) => {
-  const map: Record<string, string> = { Sun: 'أحد', Mon: 'اثنين', Tue: 'ثلاثاء', Wed: 'أربعاء', Thu: 'خميس', Fri: 'جمعة', Sat: 'سبت' };
-  return map[day] || day;
+const greeting = () => {
+  const h = new Date().getHours();
+  if (h < 12) return 'صباح الخير';
+  if (h < 17) return 'نهار سعيد';
+  return 'مساء الخير';
+};
+const todayLong = () => {
+  try { return new Date().toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); }
+  catch { return ''; }
 };
 
-/* ============================================================
- * Order status metadata
- * ============================================================ */
-
-const STATUS_META: Record<string, { label: string; chip: string; dot: string; color: string }> = {
-  PENDING: { label: 'قيد الانتظار', chip: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500', color: '#d97706' },
-  CONFIRMED: { label: 'مؤكد', chip: 'bg-blue-50 text-blue-700 border-blue-200', dot: 'bg-blue-500', color: '#2563eb' },
-  PREPARING: { label: 'قيد التحضير', chip: 'bg-violet-50 text-violet-700 border-violet-200', dot: 'bg-violet-500', color: '#7c3aed' },
-  READY: { label: 'جاهز', chip: 'bg-teal-50 text-teal-700 border-teal-200', dot: 'bg-teal-500', color: '#0d9488' },
-  DELIVERED: { label: 'مكتمل', chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500', color: '#059669' },
-  CANCELLED: { label: 'ملغي', chip: 'bg-red-50 text-red-700 border-red-200', dot: 'bg-red-500', color: '#dc2626' },
-  REFUNDED: { label: 'مسترجع', chip: 'bg-slate-100 text-slate-600 border-slate-200', dot: 'bg-slate-400', color: '#64748b' },
+const STATUS_META: Record<string, { label: string; chip: string; color: string }> = {
+  PENDING: { label: 'قيد الانتظار', chip: 'bg-amber-50 text-amber-700 border-amber-200', color: '#d97706' },
+  CONFIRMED: { label: 'مؤكد', chip: 'bg-blue-50 text-blue-700 border-blue-200', color: '#2563eb' },
+  PREPARING: { label: 'قيد التحضير', chip: 'bg-violet-50 text-violet-700 border-violet-200', color: '#7c3aed' },
+  READY: { label: 'جاهز', chip: 'bg-teal-50 text-teal-700 border-teal-200', color: '#0d9488' },
+  DELIVERED: { label: 'مكتمل', chip: 'bg-emerald-50 text-emerald-700 border-emerald-200', color: '#059669' },
+  CANCELLED: { label: 'ملغي', chip: 'bg-red-50 text-red-700 border-red-200', color: '#dc2626' },
+  REFUNDED: { label: 'مسترجع', chip: 'bg-slate-100 text-slate-600 border-slate-200', color: '#64748b' },
 };
 const statusMeta = (s?: string) =>
-  STATUS_META[String(s || '').toUpperCase()] || { label: s || 'أخرى', chip: 'bg-slate-100 text-slate-600 border-slate-200', dot: 'bg-slate-400', color: '#94a3b8' };
-
-/* ============================================================
- * Period definitions
- * ============================================================ */
+  STATUS_META[String(s || '').toUpperCase()] || { label: s || 'أخرى', chip: 'bg-slate-100 text-slate-600 border-slate-200', color: '#94a3b8' };
 
 type PeriodKey = '7' | '30' | '90' | '365';
 const PERIODS: Array<{ key: PeriodKey; label: string; timeRange: string }> = [
@@ -139,10 +125,7 @@ const PERIODS: Array<{ key: PeriodKey; label: string; timeRange: string }> = [
   { key: '90', label: '90 يوم', timeRange: 'last_90_days' },
   { key: '365', label: 'السنة', timeRange: 'this_year' },
 ];
-
 const isoDate = (d: Date) => d.toISOString().slice(0, 10);
-
-// Previous equal-length window, for computing real period-over-period deltas.
 function previousWindow(key: PeriodKey): { start_date: string; end_date: string } {
   const now = new Date();
   if (key === '365') {
@@ -154,51 +137,149 @@ function previousWindow(key: PeriodKey): { start_date: string; end_date: string 
   const start = new Date(now); start.setDate(start.getDate() - days * 2);
   return { start_date: isoDate(start), end_date: isoDate(end) };
 }
-
-const pctDelta = (current: number, previous: number): number | null => {
-  if (!Number.isFinite(current) || !Number.isFinite(previous) || previous <= 0) return null;
-  return ((current - previous) / previous) * 100;
+const pctDelta = (cur: number, prev: number): number | null => {
+  if (!Number.isFinite(cur) || !Number.isFinite(prev) || prev <= 0) return null;
+  return ((cur - prev) / prev) * 100;
 };
 
 /* ============================================================
- * Small UI primitives
+ * Tiny sparkline (SVG polyline)
+ * ============================================================ */
+
+const AXIS_STYLE = { fontSize: 10, fill: chartColors.axis, fontWeight: 600 };
+
+function TrendTooltip({ active, payload, label, format }: any) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg bg-slate-900 text-white px-2.5 py-1.5 shadow-lg text-[11px] font-bold whitespace-nowrap">
+      <span className="text-slate-400 font-semibold">{label} — </span>{format(payload[0].value)}
+    </div>
+  );
+}
+
+/** سباركلاين مصغّر لكروت المؤشرات (Recharts Area) */
+function Sparkline({ values, color = chartColors.revenue }: { values: number[]; color?: string }) {
+  const data = (values || []).map((v, i) => ({ i, v }));
+  if (data.length < 2) return null;
+  const gid = `spark-${color.replace('#', '')}`;
+  return (
+    <div className="w-16 h-7" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <RAreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <RArea type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#${gid})`} />
+        </RAreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** دونات توزيع حالات الطلبات — من بيانات الطلبات الحقيقية */
+function StatusDonut({ data, total }: {
+  data: Array<{ name: string; value: number; color: string }>;
+  total: number;
+}) {
+  const shown = data.length > 0 ? data : [{ name: 'لا طلبات', value: 1, color: '#F1F5F9' }];
+  return (
+    <div className="relative h-[170px]" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={shown} dataKey="value" innerRadius={56} outerRadius={80} paddingAngle={data.length > 1 ? 2 : 0} strokeWidth={0} animationDuration={450}>
+            {shown.map((d, i) => (
+              <Cell key={i} fill={d.color} />
+            ))}
+          </Pie>
+          <RTooltip content={({ active, payload }: any) => {
+            if (!active || !payload?.length || data.length === 0) return null;
+            const p = payload[0].payload;
+            return (
+              <div className="rounded-lg bg-slate-900 text-white px-2.5 py-1.5 shadow-lg text-[11px] font-bold whitespace-nowrap">
+                {p.name}: {fmtNum(p.value)} ({total > 0 ? Math.round((p.value / total) * 100) : 0}%)
+              </div>
+            );
+          }} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" dir="rtl">
+        <span className="text-xl font-extrabold text-slate-900 tabular-nums leading-6">{fmtNum(total)}</span>
+        <span className="text-[10px] font-semibold text-slate-400">طلب</span>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+ * Big area chart (hand-rolled SVG, smooth curve + gradient)
+ * ============================================================ */
+
+/** الرسم الرئيسي — أداء المتجر (منحنى ناعم + gradient + tooltip) */
+function PerformanceAreaChart({ data, color, formatY, formatTip }: {
+  data: Array<{ x: string; y: number }>;
+  color: string;
+  formatY: (n: number) => string;
+  formatTip: (n: number) => string;
+}) {
+  if (!data || data.length < 2) {
+    return (
+      <div className="h-[260px] flex flex-col items-center justify-center gap-2.5">
+        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300"><BarChart3 size={24} /></div>
+        <p className="text-sm font-bold text-slate-500">لا توجد مبيعات في هذه الفترة بعد</p>
+        <p className="text-[11px] font-medium text-slate-400">أول عملية بيع سترسم المنحنى هنا تلقائيًا.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="h-[260px] w-full" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <RAreaChart data={data} margin={{ top: 10, right: 4, bottom: 0, left: 4 }}>
+          <defs>
+            <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke={chartColors.grid} vertical={false} />
+          <XAxis dataKey="x" tick={AXIS_STYLE} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} reversed />
+          <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} tickFormatter={formatY} width={46} orientation="right" />
+          <RTooltip content={<TrendTooltip format={formatTip} />} cursor={{ stroke: chartColors.cursor }} />
+          <RArea
+            type="monotone" dataKey="y" stroke={color} strokeWidth={2.5} fill="url(#perfFill)"
+            activeDot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: color }}
+            animationDuration={450}
+          />
+        </RAreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/* ============================================================
+ * UI primitives — نظام موحد للكروت والحالات
  * ============================================================ */
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`${cardClass} ${className}`}>{children}</div>;
+}
+
+/** كارت بحركة ظهور ناعمة + رفع خفيف عند الـ hover */
+function MotionCard({ children, className = '', delay = 0 }: {
+  children: React.ReactNode; className?: string; delay?: number;
+}) {
   return (
-    <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -2, boxShadow: shadows.lift }}
+      className={`${cardClass} transition-shadow duration-200 ${className}`}
+    >
       {children}
-    </div>
-  );
-}
-
-function CardHeader({ title, action }: { title: string; action?: React.ReactNode }) {
-  return (
-    <div className="flex items-center justify-between gap-2 px-5 pt-4 pb-3 border-b border-slate-100">
-      <h3 className="text-sm font-bold text-slate-800">{title}</h3>
-      {action}
-    </div>
-  );
-}
-
-function LinkBtn({ label, onClick }: { label: string; onClick?: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="text-xs font-semibold text-cyan-700 hover:text-cyan-800 hover:underline inline-flex items-center gap-0.5">
-      {label}
-      <ChevronLeft size={12} />
-    </button>
-  );
-}
-
-function DeltaPill({ delta }: { delta: number | null }) {
-  if (delta === null || !Number.isFinite(delta)) return null;
-  const up = delta >= 0;
-  return (
-    <span className={`inline-flex items-center gap-1 text-[11px] font-bold rounded px-1.5 py-0.5 tabular-nums ${up ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
-      {up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-      {Math.abs(delta).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}%
-      <span className="font-medium text-slate-400">عن الفترة السابقة</span>
-    </span>
+    </motion.div>
   );
 }
 
@@ -206,101 +287,62 @@ function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`bg-slate-100 rounded-md animate-pulse ${className}`} />;
 }
 
-function Empty({ icon, title, actionLabel, onAction }: {
-  icon: React.ReactNode; title: string; actionLabel?: string; onAction?: () => void;
+function SectionHead({ title, sub, icon, actionLabel, onAction }: {
+  title: string; sub?: string; icon?: React.ReactNode;
+  actionLabel?: string; onAction?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">{icon}</div>
-      <p className="text-sm font-medium text-slate-400">{title}</p>
+    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {icon && <span className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 shrink-0">{icon}</span>}
+        <div className="min-w-0">
+          <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">{title}</h3>
+          {sub && <p className="text-[11px] font-medium text-slate-400 leading-4 truncate">{sub}</p>}
+        </div>
+      </div>
       {actionLabel && onAction && (
-        <button type="button" onClick={onAction} className="text-xs font-bold text-cyan-700 hover:underline">{actionLabel}</button>
+        <button type="button" onClick={onAction} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-0.5 shrink-0">
+          {actionLabel} <ChevronLeft size={12} />
+        </button>
       )}
     </div>
   );
 }
 
-/* ============================================================
- * Charts
- * ============================================================ */
-
-function WeeklyBars({ data, loading }: { data: WeeklyPoint[]; loading?: boolean }) {
-  if (loading) return <Skeleton className="h-48" />;
-  const points = data || [];
-  if (points.length === 0) return <Empty icon={<Activity size={20} />} title="لا توجد مبيعات مسجلة في آخر 7 أيام" />;
-  const max = Math.max(...points.map((p) => p.value), 1);
+function Empty({ icon, title, desc, actionLabel, onAction, secondaryLabel, onSecondary }: {
+  icon: React.ReactNode; title: string; desc?: string;
+  actionLabel?: string; onAction?: () => void;
+  secondaryLabel?: string; onSecondary?: () => void;
+}) {
   return (
-    <div className="px-5 pb-4">
-      <div className="flex items-end gap-2 h-44 pt-6 border-b border-slate-200">
-        {points.map((p, i) => (
-          <div key={i} className="flex-1 h-full flex flex-col items-center justify-end gap-1 group relative">
-            <span className="absolute -top-1 text-[10px] font-bold text-slate-600 bg-white border border-slate-200 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap tabular-nums">
-              {fmtEGP(p.value)}
-            </span>
-            <div
-              className={`w-full max-w-10 rounded-t transition-all ${p.value > 0 ? 'bg-cyan-600 group-hover:bg-cyan-500' : 'bg-slate-100'}`}
-              style={{ height: `${Math.max((p.value / max) * 100, 2)}%` }}
-            />
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2 mt-1.5">
-        {points.map((p, i) => (
-          <span key={i} className="flex-1 text-center text-[10px] font-medium text-slate-400">{fmtDayAr(p.day)}</span>
-        ))}
+    <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">{icon}</div>
+      <p className="text-sm font-bold text-slate-700">{title}</p>
+      {desc && <p className="text-[11px] font-medium text-slate-400 leading-5 max-w-[280px]">{desc}</p>}
+      <div className="flex items-center gap-2 mt-1.5">
+        {actionLabel && onAction && (
+          <button type="button" onClick={onAction} className="h-8 px-3.5 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-800 transition-colors">
+            {actionLabel}
+          </button>
+        )}
+        {secondaryLabel && onSecondary && (
+          <button type="button" onClick={onSecondary} className="h-8 px-3.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 transition-colors">
+            {secondaryLabel}
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function StatusDonut({ orders, loading }: { orders: Order[]; loading?: boolean }) {
-  if (loading) return <div className="px-5 pb-5"><Skeleton className="h-40" /></div>;
-  const counts: Record<string, number> = {};
-  (orders || []).forEach((o) => {
-    const s = String(o.status || 'PENDING').toUpperCase();
-    counts[s] = (counts[s] || 0) + 1;
-  });
-  const entries = Object.entries(counts).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
-  const total = entries.reduce((s, [, v]) => s + v, 0);
-  if (total === 0) return <div className="px-5"><Empty icon={<Package size={20} />} title="لا توجد طلبات بعد" /></div>;
-
-  let cumulative = 0;
-  const slices = entries.map(([key, value]) => {
-    const start = cumulative;
-    cumulative += (value / total) * 100;
-    return { key, value, pct: (value / total) * 100, start, color: statusMeta(key).color };
-  });
-  const r = 38, cx = 50, cy = 50, circ = 2 * Math.PI * r;
-
+function DeltaInline({ delta }: { delta: number | null }) {
+  if (delta === null || !Number.isFinite(delta)) return <span className="text-[10px] font-semibold text-slate-300">—</span>;
+  const up = delta >= 0;
   return (
-    <div className="px-5 pb-5 flex items-center gap-5">
-      <div className="relative w-28 h-28 shrink-0">
-        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-          <circle cx={cx} cy={cy} r={r} fill="none" stroke="#f1f5f9" strokeWidth="11" />
-          {slices.map((s, i) => (
-            <circle
-              key={i} cx={cx} cy={cy} r={r} fill="none"
-              stroke={s.color} strokeWidth="11"
-              strokeDasharray={`${(s.pct / 100) * circ} ${circ - (s.pct / 100) * circ}`}
-              strokeDashoffset={-(s.start / 100) * circ}
-            />
-          ))}
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-bold text-slate-900 tabular-nums">{fmtNum(total)}</span>
-          <span className="text-[9px] text-slate-400">طلب</span>
-        </div>
-      </div>
-      <div className="flex-1 space-y-1.5 min-w-0">
-        {slices.map((s, i) => (
-          <div key={i} className="flex items-center gap-2 text-xs">
-            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: s.color }} />
-            <span className="text-slate-600 font-medium truncate">{statusMeta(s.key).label}</span>
-            <span className="text-slate-400 font-semibold mr-auto tabular-nums">{fmtNum(s.value)}</span>
-          </div>
-        ))}
-      </div>
-    </div>
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-extrabold tabular-nums rounded-full px-1.5 py-0.5 ${up ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
+      {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
+      {Math.abs(delta).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}%
+    </span>
   );
 }
 
@@ -308,14 +350,18 @@ function StatusDonut({ orders, loading }: { orders: Order[]; loading?: boolean }
  * Page
  * ============================================================ */
 
+type Metric = 'revenue' | 'orders';
+
 export default function DashboardOverview() {
   const router = useRouter();
   const { user } = useAuth();
   const [period, setPeriod] = useState<PeriodKey>('30');
+  const [metric, setMetric] = useState<Metric>('revenue');
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [shop, setShop] = useState<Shop | null>(null);
   const [current, setCurrent] = useState<AnalyticsOverview | null>(null);
   const [previous, setPrevious] = useState<AnalyticsOverview | null>(null);
-  const [last7, setLast7] = useState<AnalyticsOverview | null>(null);
+  const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [sessions, setSessions] = useState<LoginSession[]>([]);
@@ -324,13 +370,16 @@ export default function DashboardOverview() {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // آخر ما اطّلع عليه — زيارات حقيقية متتبّعة من الـ layout
+  const visited = useRecentlyViewed();
+  const recentItems = showAllRecent ? visited : visited.slice(0, 6);
+
   const load = useCallback(async (p: PeriodKey) => {
     setRefreshing(true);
     setError(null);
     try {
-      // 1) Shop context first (needed to scope analytics calls).
       let shopData: Shop | null = null;
-      try { shopData = await apiRequest('/shops/me'); } catch { /* keeps previous */ }
+      try { shopData = await apiRequest('/shops/me'); } catch { /* keep null */ }
       setShop(shopData);
       const shopId = shopData?.id || user?.shopId;
       if (!shopId) throw new Error('لا يوجد متجر مرتبط بهذا الحساب');
@@ -338,23 +387,37 @@ export default function DashboardOverview() {
       const periodDef = PERIODS.find((x) => x.key === p)!;
       const prev = previousWindow(p);
 
-      // 2) Everything else in parallel, each failure isolated.
-      const [curRes, prevRes, wRes, ordersRes, notifRes, sessRes] = await Promise.allSettled([
+      const [curRes, prevRes, salesRes, ordersRes, notifUserRes, notifShopRes, sessRes] = await Promise.allSettled([
         apiRequest(`/analytics/shop/${shopId}/overview?time_range=${periodDef.timeRange}`),
         apiRequest(`/analytics/shop/${shopId}/overview?time_range=custom&start_date=${prev.start_date}&end_date=${prev.end_date}`),
-        apiRequest(`/analytics/shop/${shopId}/overview?time_range=last_7_days`),
+        apiRequest(`/analytics/shop/${shopId}/sales-report?time_range=last_30_days`),
         apiRequest('/orders?page=1&limit=50'),
         apiRequest('/notifications/me?limit=5'),
+        apiRequest(`/notifications/shop/${shopId}?limit=5`),
         apiRequest('/audit/sessions/me?limit=8'),
       ]);
 
       if (curRes.status === 'fulfilled') setCurrent(curRes.value);
       if (prevRes.status === 'fulfilled') setPrevious(prevRes.value);
-      if (wRes.status === 'fulfilled') setLast7(wRes.value);
+      if (salesRes.status === 'fulfilled') setSalesReport(salesRes.value);
       setOrders(ordersRes.status === 'fulfilled' ? (Array.isArray(ordersRes.value) ? ordersRes.value : ordersRes.value?.data || []) : []);
-      setNotifications(notifRes.status === 'fulfilled' ? (Array.isArray(notifRes.value) ? notifRes.value : notifRes.value?.data || []) : []);
+      {
+        // merge user + shop channel notifications, newest first
+        const pick = (v: any) => (Array.isArray(v) ? v : v?.data || []);
+        const merged: AppNotification[] = [];
+        const seen = new Set<string>();
+        for (const res of [notifUserRes, notifShopRes]) {
+          if (res.status !== 'fulfilled') continue;
+          for (const n of pick(res.value)) {
+            if (!n?.id || seen.has(n.id)) continue;
+            seen.add(n.id);
+            merged.push(n);
+          }
+        }
+        merged.sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+        setNotifications(merged);
+      }
       setSessions(sessRes.status === 'fulfilled' ? (Array.isArray(sessRes.value) ? sessRes.value : sessRes.value?.data || []) : []);
-
       setLastUpdated(new Date());
     } catch (e: any) {
       setError(e?.message || 'تعذر تحميل البيانات');
@@ -366,25 +429,44 @@ export default function DashboardOverview() {
 
   useEffect(() => { load(period); }, [period, load]);
 
-  // KPI values parsed from the real stats array + real deltas vs previous window.
   const statByLabel = useMemo(() => {
     const map: Record<string, number> = {};
     (current?.stats || []).forEach((s) => { map[s.label] = parseFloat(s.value) || 0; });
     return map;
   }, [current]);
-
   const prevByLabel = useMemo(() => {
     const map: Record<string, number> = {};
     (previous?.stats || []).forEach((s) => { map[s.label] = parseFloat(s.value) || 0; });
     return map;
   }, [previous]);
 
+  const trend = useMemo(() => salesReport?.trend || [], [salesReport]);
+  const trendPoints = useMemo(() => {
+    if (period === '7') return trend.slice(-7);
+    return trend; // 30-day daily trend; 90/365 not available daily from backend
+  }, [trend, period]);
+
   const kpis = useMemo(() => ([
-    { key: 'Revenue', label: 'إيرادات الفترة', value: fmtEGP(statByLabel.Revenue || 0), delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0), icon: <DollarSign size={18} /> },
-    { key: 'Orders', label: 'الطلبات', value: fmtNum(statByLabel.Orders || 0), delta: pctDelta(statByLabel.Orders || 0, prevByLabel.Orders || 0), icon: <ShoppingCart size={18} /> },
-    { key: 'Customers', label: 'عملاء اشتروا', value: fmtNum(statByLabel.Customers || 0), delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0), icon: <Users size={18} /> },
-    { key: 'Views', label: 'زوار المتجر', value: fmtNum(statByLabel.Views || 0), delta: null, icon: <Eye size={18} /> },
-  ]), [statByLabel, prevByLabel]);
+    {
+      key: 'Revenue', label: 'الإيرادات', value: fmtEGP(statByLabel.Revenue || 0),
+      delta: pctDelta(statByLabel.Revenue || 0, prevByLabel.Revenue || 0),
+      spark: trend.map((t) => t.revenue), icon: <DollarSign size={14} />,
+    },
+    {
+      key: 'Orders', label: 'الطلبات', value: fmtNum(statByLabel.Orders || 0),
+      delta: pctDelta(statByLabel.Orders || 0, prevByLabel.Orders || 0),
+      spark: trend.map((t) => t.orders), icon: <ShoppingCart size={14} />,
+    },
+    {
+      key: 'Customers', label: 'عملاء اشتروا', value: fmtNum(statByLabel.Customers || 0),
+      delta: pctDelta(statByLabel.Customers || 0, prevByLabel.Customers || 0),
+      spark: [] as number[], icon: <Users size={14} />,
+    },
+    {
+      key: 'Views', label: 'زوار المتجر', value: fmtNum(statByLabel.Views || 0),
+      delta: null, spark: [] as number[], icon: <Eye size={14} />,
+    },
+  ]), [statByLabel, prevByLabel, trend]);
 
   const pendingCount = useMemo(
     () => orders.filter((o) => String(o.status).toUpperCase() === 'PENDING').length,
@@ -396,42 +478,62 @@ export default function DashboardOverview() {
     rows.push('المؤشر,القيمة');
     kpis.forEach((k) => rows.push(`${k.label},"${k.value}"`));
     rows.push('');
-    rows.push('اليوم,الإيرادات (آخر 7 أيام)');
-    (last7?.weekly_data || []).forEach((w) => rows.push(`${fmtDayAr(w.day)},${w.value}`));
+    rows.push('التاريخ,الإيرادات,الطلبات');
+    trend.forEach((t) => rows.push(`${t.date},${t.revenue},${t.orders}`));
     rows.push('');
-    rows.push('المنتج,الكمية المبيعة,الإيراد');
+    rows.push('المنتج,الكمية,الإيراد');
     (current?.top_products || []).forEach((p) => rows.push(`"${p.name}",${p.sales},${p.revenue.toFixed(2)}`));
     const blob = new Blob(['\uFEFF' + rows.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `dashboard-overview-${isoDate(new Date())}.csv`;
+    a.download = `dashboard-${isoDate(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
 
   const isActive = shop ? ((shop.isActive ?? (String(shop.status || '').toLowerCase() === 'active'))) : true;
+  const chartData = useMemo(() => trendPoints.map((t) => ({
+    x: fmtDate(t.date),
+    y: metric === 'revenue' ? t.revenue : t.orders,
+  })), [trendPoints, metric]);
+  const trendTotal = useMemo(
+    () => trendPoints.reduce((s, t) => s + (metric === 'revenue' ? t.revenue : t.orders), 0),
+    [trendPoints, metric],
+  );
+
+  // توزيع حالات الطلبات — من بيانات الطلبات الحقيقية
+  const statusDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    orders.forEach((o) => {
+      const s = String(o.status || '').toUpperCase();
+      counts.set(s, (counts.get(s) || 0) + 1);
+    });
+    const known = ['DELIVERED', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'CANCELLED', 'REFUNDED'];
+    const out: { name: string; value: number; color: string }[] = [];
+    known.forEach((k) => {
+      const v = counts.get(k);
+      if (v) out.push({ name: statusMeta(k).label, value: v, color: statusMeta(k).color });
+    });
+    counts.forEach((v, k) => {
+      if (!known.includes(k)) out.push({ name: statusMeta(k).label, value: v, color: '#94A3B8' });
+    });
+    return out;
+  }, [orders]);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1400px] mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1500px] mx-auto">
 
-      {/* ===== Header ===== */}
+      {/* ===== Header — هوية الصفحة ===== */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-xl font-bold text-slate-900">نظرة عامة</h1>
-            {shop && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-full px-2.5 py-0.5">
-                <Store size={12} />
-                {shop.name}
-                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                <span className={isActive ? 'text-emerald-700' : 'text-red-700'}>{isActive ? 'فعّال' : 'موقوف'}</span>
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            {lastUpdated ? `آخر تحديث ${lastUpdated.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}` : 'جارٍ التحميل…'}
-            {refreshing && ' — جارٍ التحديث…'}
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            {greeting()}، {user?.name || shop?.name || 'صاحب المتجر'}.
+          </h1>
+          <p className="text-xs text-slate-400 mt-1.5 font-medium">
+            إليك ما يحدث في متجرك — {todayLong()}
+            {lastUpdated && <span className="text-slate-300"> • آخر تحديث {lastUpdated.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}</span>}
+            {refreshing && <span className="text-indigo-600 font-bold"> • جارٍ التحديث…</span>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -450,23 +552,51 @@ export default function DashboardOverview() {
             type="button"
             onClick={() => load(period)}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
+            title="تحديث"
           >
-            <RefreshCw size={13} className={refreshing ? 'animate-spin' : ''} />
-            تحديث
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
           </button>
           <button
             type="button"
             onClick={exportCsv}
-            className="flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
           >
             <Download size={13} />
-            تصدير CSV
+            تصدير
           </button>
         </div>
       </div>
+      {/* ===== آخر ما اطّلع عليه (Recent shortcuts) ===== */}
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <History size={15} className="text-slate-500" />
+            <h2 className="text-sm font-bold text-slate-800">آخر ما اطّلع عليه</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAllRecent((v) => !v)}
+            className="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            {showAllRecent ? 'إخفاء' : 'استعراض الكل'}
+          </button>
+        </div>
+        <div className="px-5 py-3 flex flex-wrap items-center">
+          {(recentItems.length === 0 ? DEFAULT_SHORTCUTS : recentItems).map((it, idx, arr) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`group flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors rounded-lg ${idx !== arr.length - 1 ? 'border-l border-slate-100' : ''}`}
+            >
+              <Star size={13} className="text-slate-300 group-hover:text-amber-400 transition-colors shrink-0" />
+              <span className="truncate">{it.labelAr}</span>
+            </Link>
+          ))}
+        </div>
+      </Card>
 
-      {/* ===== Real errors / alerts ===== */}
+      {/* ===== Alerts ===== */}
       {error && (
         <div className="flex items-center gap-2 p-3 rounded-lg border border-red-200 bg-red-50 text-xs font-semibold text-red-800">
           <AlertTriangle size={14} className="text-red-500 shrink-0" />
@@ -491,60 +621,168 @@ export default function DashboardOverview() {
         </button>
       )}
 
-      {/* ===== KPI cards ===== */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {kpis.map((k) => (
-          <Card key={k.key} className="p-4 sm:p-5">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-500">{k.label}</span>
-              <span className="text-slate-300">{k.icon}</span>
+      {/* ===== KPIs — المؤشرات الرئيسية ===== */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {kpis.map((k, i) => (
+          <MotionCard key={k.key} delay={0.05 + i * 0.04} className="p-5">
+            <div className="flex items-start justify-between gap-2">
+              <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconTint[['primary', 'violet', 'info', 'success'][i] || 'neutral']}`}>
+                {k.icon}
+              </span>
+              <DeltaInline delta={k.delta} />
             </div>
+            <p className="mt-3 text-[11px] font-semibold text-slate-400">{k.label}</p>
             {loading ? (
-              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-7 w-24 mt-1" />
             ) : (
-              <div className="text-xl sm:text-2xl font-bold text-slate-900 tabular-nums">{k.value}</div>
+              <div className="flex items-end justify-between gap-2 mt-0.5">
+                <span className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-7">{k.value}</span>
+                <Sparkline values={k.spark} color={['#4F46E5', '#7C3AED', '#2563EB', '#059669'][i]} />
+              </div>
             )}
-            <div className="mt-2 min-h-[22px]">
-              {loading ? <Skeleton className="h-4 w-28" /> : <DeltaPill delta={k.delta} />}
-            </div>
-          </Card>
+          </MotionCard>
         ))}
       </div>
 
-      {/* ===== Charts row ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Card className="lg:col-span-2">
-          <CardHeader
-            title="الإيرادات — آخر 7 أيام"
-            action={<span className="text-[10px] font-semibold text-slate-400 bg-slate-50 border border-slate-100 rounded px-2 py-0.5">يوميًا</span>}
-          />
-          <div className="pt-2">
-            <WeeklyBars data={last7?.weekly_data || []} loading={loading} />
+      {/* ===== Main grid: الأداء + الجانب ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+
+        {/* --- كارت الأداء الرئيسي (أعلى وزن بصري) --- */}
+        <MotionCard className="xl:col-span-2 p-0" delay={0.15}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><BarChart3 size={15} /></span>
+              <div>
+                <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">أداء المتجر</h3>
+                <p className="text-[11px] font-medium text-slate-400 leading-4">آخر {fmtNum(trendPoints.length)} يوم</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg p-0.5">
+                {([
+                  { key: 'revenue', label: 'الإيرادات' },
+                  { key: 'orders', label: 'الطلبات' },
+                ] as { key: Metric; label: string }[]).map((m) => (
+                  <button
+                    key={m.key}
+                    onClick={() => setMetric(m.key)}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${metric === m.key ? 'bg-white text-slate-900 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 tabular-nums">
+                {metric === 'revenue' ? fmtEGP(trendTotal) : fmtNum(trendTotal)}
+              </span>
+            </div>
           </div>
-        </Card>
-        <Card>
-          <CardHeader title="حالة الطلبات" action={<span className="text-[10px] font-semibold text-slate-400">آخر {fmtNum(orders.length)} طلب</span>} />
-          <div className="pt-3">
-            <StatusDonut orders={orders} loading={loading} />
+
+          <div className="px-3 pb-3 pt-1">
+            {loading ? <Skeleton className="h-64 m-2" /> : (
+              <PerformanceAreaChart
+                data={chartData}
+                color={metric === 'revenue' ? chartColors.revenue : chartColors.orders}
+                formatY={fmtCompact}
+                formatTip={(n) => (metric === 'revenue' ? fmtEGP(n) : `${fmtNum(n)} طلب`)}
+              />
+            )}
           </div>
-        </Card>
+        </MotionCard>
+
+        {/* --- Right column --- */}
+        <div className="space-y-4">
+          {/* Shop card */}
+          <MotionCard className="p-5" delay={0.2}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
+                  {shop?.logoUrl
+                    ? // eslint-disable-next-line @next/next/no-img-element
+                    <img src={shop.logoUrl} alt={shop?.name || ''} className="w-full h-full object-cover" />
+                    : (shop?.name || 'م')?.charAt(0)}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900 truncate">{shop?.name || '—'}</p>
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {[shop?.category, shop?.city && shop?.governorate].filter(Boolean).join(' • ') || 'متجر على منصة نمّي'}
+                  </p>
+                </div>
+              </div>
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold rounded-full px-2 py-0.5 border shrink-0 ${isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                {isActive ? 'فعّال' : 'موقوف'}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-slate-100">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-1 text-amber-500 mb-0.5">
+                  <Star size={12} fill="currentColor" />
+                  <span className="text-sm font-bold text-slate-900 tabular-nums">{(shop?.rating || 0).toFixed(1)}</span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-semibold">التقييم</span>
+              </div>
+              <div className="text-center border-x border-slate-100">
+                <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtNum(shop?.followers || 0)}</span>
+                <div className="text-[10px] text-slate-400 font-semibold mt-0.5">متابع</div>
+              </div>
+              <div className="text-center">
+                <span className="text-sm font-bold text-slate-900 tabular-nums">{fmtNum(shop?.visitors || 0)}</span>
+                <div className="text-[10px] text-slate-400 font-semibold mt-0.5">زيارة</div>
+              </div>
+            </div>
+          </MotionCard>
+
+          {/* Quick actions — list style */}
+          <MotionCard className="p-2" delay={0.25}>
+            {[
+              { label: 'إضافة منتج جديد', desc: 'وسّع كتالوج متجرك', icon: <Plus size={16} />, href: '/dashboard/inventory' },
+              { label: 'طلب جديد', desc: 'سجّل بيع من الكاشير', icon: <ShoppingCart size={16} />, href: '/dashboard/pos' },
+              { label: 'حجز جديد', desc: 'احجز موعدًا لعميل', icon: <Calendar size={16} />, href: '/dashboard/bookings' },
+              { label: 'حملة إعلانية', desc: 'أطلق عرضًا لعملائك', icon: <Megaphone size={16} />, href: '/dashboard/marketing' },
+              { label: 'تقرير مالي', desc: 'راجع أرباحك ومصروفاتك', icon: <Wallet size={16} />, href: '/dashboard/finance' },
+              { label: 'إعدادات المتجر', desc: 'بيانات المتجر والрؤية', icon: <SettingsIcon size={16} />, href: '/dashboard/settings' },
+            ].map((a) => (
+              <button
+                key={a.label}
+                type="button"
+                onClick={() => router.push(a.href)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-right"
+              >
+                <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  {a.icon}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-xs font-bold text-slate-800">{a.label}</span>
+                  <span className="block text-[10px] text-slate-400">{a.desc}</span>
+                </span>
+                <ChevronLeft size={14} className="text-slate-300 shrink-0" />
+              </button>
+            ))}
+          </MotionCard>
+        </div>
       </div>
 
       {/* ===== Orders + Notifications ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <Card className="lg:col-span-2">
-          <CardHeader
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <MotionCard className="xl:col-span-2 p-0" delay={0.2}>
+          <SectionHead
             title="أحدث الطلبات"
-            action={<LinkBtn label="كل الطلبات" onClick={() => router.push('/dashboard/sales')} />}
+            icon={<ShoppingCart size={14} />}
+            actionLabel="كل الطلبات"
+            onAction={() => router.push('/dashboard/sales')}
           />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
           ) : orders.length === 0 ? (
             <Empty
               icon={<ShoppingCart size={20} />}
-              title="لا توجد طلبات بعد — أول طلب هيظهر هنا فورًا"
+              title="لا توجد طلبات بعد"
+              desc="ابدأ بإضافة منتجاتك ومشاركة رابط متجرك مع عملائك — أول طلب هيظهر هنا فورًا."
               actionLabel="إنشاء طلب من الكاشير"
               onAction={() => router.push('/dashboard/pos')}
+              secondaryLabel="إضافة منتج"
+              onSecondary={() => router.push('/dashboard/inventory')}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -577,12 +815,15 @@ export default function DashboardOverview() {
               </table>
             </div>
           )}
-        </Card>
+        </MotionCard>
 
-        <Card>
-          <CardHeader
-            title="الإشعارات"
-            action={<LinkBtn label="الكل" onClick={() => router.push('/dashboard/notifications')} />}
+        <div className="space-y-4">
+        <MotionCard className="p-0" delay={0.25}>
+          <SectionHead
+            title="آخر الإشعارات"
+            icon={<Bell size={14} />}
+            actionLabel="الكل"
+            onAction={() => router.push('/dashboard/notifications')}
           />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
@@ -590,7 +831,7 @@ export default function DashboardOverview() {
             <Empty icon={<Bell size={20} />} title="لا توجد إشعارات" />
           ) : (
             <div className="px-3 py-2 divide-y divide-slate-50">
-              {notifications.map((n) => (
+              {notifications.slice(0, 5).map((n) => (
                 <div key={n.id} className="py-2.5 px-2 rounded-lg hover:bg-slate-50/60 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <p className="text-xs font-bold text-slate-800 leading-5">{n.title || 'إشعار'}</p>
@@ -601,113 +842,121 @@ export default function DashboardOverview() {
               ))}
             </div>
           )}
-        </Card>
+          </MotionCard>
+
+          <MotionCard className="p-0" delay={0.3}>
+            <SectionHead
+              title="آخر جلسات الدخول"
+              icon={<LogIn size={14} />}
+              sub={`${fmtNum(sessions.length)} جلسة`}
+            />
+            {loading ? (
+              <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
+            ) : sessions.length === 0 ? (
+              <Empty icon={<LogIn size={20} />} title="لا توجد سجلات دخول" desc="سجلات الدخول لحسابك تظهر هنا لأمانك." />
+            ) : (
+              <div className="px-5 py-3 divide-y divide-slate-50">
+                {sessions.slice(0, 5).map((e, i) => {
+                  const email = e.UserEmail || e.userEmail || '—';
+                  const loginAt = e.LoginAt || e.loginAt;
+                  const logoutAt = e.LogoutAt || e.logoutAt;
+                  const online = !logoutAt;
+                  return (
+                    <div key={e.ID || e.id || i} className="flex items-center gap-2.5 py-2.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${online ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-semibold text-slate-700 truncate">{email}</span>
+                        <span className="block text-[10px] text-slate-400">{fmtDate(loginAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                      </span>
+                      {online ? (
+                        <span className="text-[10px] font-bold text-emerald-600 shrink-0">متصل الآن</span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 shrink-0">{fmtDate(logoutAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </MotionCard>
+        </div>
       </div>
 
-      {/* ===== Top products + Login sessions ===== */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <Card>
-          <CardHeader
+      {/* ===== توزيع الطلبات + الأكثر مبيعًا ===== */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <MotionCard className="p-0" delay={0.3}>
+          <SectionHead title="توزيع الطلبات" icon={<PieIcon size={14} />} sub="حسب الحالة" />
+          {loading ? (
+            <div className="p-5"><Skeleton className="h-40" /></div>
+          ) : (
+            <>
+              <div className="px-4 pt-3">
+                <StatusDonut data={statusDistribution} total={orders.length} />
+              </div>
+              {statusDistribution.length === 0 && (
+                <p className="text-[11px] font-medium text-slate-400 text-center pb-4 -mt-1">بمجرد وصول أول طلب هتتوزع حالاته هنا تلقائيًا.</p>
+              )}
+              {statusDistribution.length > 0 && (
+                <div className="px-5 pb-4 pt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {statusDistribution.slice(0, 6).map((d) => (
+                    <div key={d.name} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                      <span className="truncate">{d.name}</span>
+                      <span className="ml-auto font-extrabold text-slate-800 tabular-nums">{fmtNum(d.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </MotionCard>
+
+        <MotionCard className="xl:col-span-2 p-0" delay={0.35}>
+          <SectionHead
             title="الأكثر مبيعًا"
-            action={<LinkBtn label="إدارة المنتجات" onClick={() => router.push('/dashboard/inventory')} />}
+            icon={<Boxes size={14} />}
+            actionLabel="إدارة المنتجات"
+            onAction={() => router.push('/dashboard/inventory')}
           />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
           ) : (current?.top_products || []).length === 0 ? (
             <Empty
-              icon={<Star size={20} />}
+              icon={<Boxes size={20} />}
               title="لا توجد مبيعات منتجات بعد"
+              desc="أضف منتجاتك الأولى وشاركها مع عملائك — أكثر المنتجات مبيعًا ستظهر هنا."
               actionLabel="إضافة منتج"
               onAction={() => router.push('/dashboard/inventory')}
             />
           ) : (
             <div className="px-5 py-3 space-y-1">
-              {(current?.top_products || []).slice(0, 5).map((p, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-                  <span className="w-6 h-6 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-500 tabular-nums">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{p.name || 'منتج'}</p>
-                    <p className="text-[10px] text-slate-400 tabular-nums">{fmtNum(p.sales)} مبيعة</p>
+              {(current?.top_products || []).slice(0, 5).map((p, i) => {
+                const maxRev = Math.max(...(current?.top_products || []).map((x) => x.revenue || 0), 1);
+                return (
+                  <div key={i} className="py-2 border-b border-slate-50 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-extrabold tabular-nums shrink-0 ${i === 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-500'}`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">{p.name || 'منتج'}</p>
+                        <div className="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.max(4, Math.round(((p.revenue || 0) / maxRev) * 100))}%`, background: i === 0 ? '#4F46E5' : '#A5B4FC' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-left shrink-0">
+                        <span className="block text-xs font-extrabold text-slate-900 tabular-nums">{fmtEGP(p.revenue)}</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold tabular-nums">{fmtNum(p.sales)} مبيعة</span>
+                      </div>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-slate-900 tabular-nums">{fmtEGP(p.revenue)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
-        </Card>
-
-        <Card>
-          <CardHeader title="آخر جلسات الدخول" action={<span className="text-[10px] font-semibold text-slate-400">{fmtNum(sessions.length)} جلسة</span>} />
-          {loading ? (
-            <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
-          ) : sessions.length === 0 ? (
-            <Empty icon={<LogIn size={20} />} title="لا توجد سجلات دخول" />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-right">
-                <thead>
-                  <tr className="border-b border-slate-100">
-                    <th className="text-[10px] font-semibold text-slate-400 pb-2 pr-5">المستخدم</th>
-                    <th className="text-[10px] font-semibold text-slate-400 pb-2">الدخول</th>
-                    <th className="text-[10px] font-semibold text-slate-400 pb-2 pl-5">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.slice(0, 5).map((e, i) => {
-                    const email = e.UserEmail || e.userEmail || '—';
-                    const loginAt = e.LoginAt || e.loginAt;
-                    const logoutAt = e.LogoutAt || e.logoutAt;
-                    const online = !logoutAt;
-                    return (
-                      <tr key={e.ID || e.id || i} className="border-b border-slate-50 last:border-0">
-                        <td className="py-2.5 pr-5">
-                          <div className="flex items-center gap-2">
-                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${online ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                            <span className="text-xs font-semibold text-slate-700 truncate max-w-[140px]">{email}</span>
-                          </div>
-                        </td>
-                        <td className="py-2.5 text-[11px] text-slate-400 whitespace-nowrap">{fmtDate(loginAt, { hour: '2-digit', minute: '2-digit' })}</td>
-                        <td className="py-2.5 pl-5">
-                          {online ? (
-                            <span className="text-[10px] font-bold text-emerald-600">متصل الآن</span>
-                          ) : (
-                            <span className="text-[10px] text-slate-400">{fmtDate(logoutAt, { hour: '2-digit', minute: '2-digit' })}</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
+        </MotionCard>
       </div>
-
-      {/* ===== Quick actions ===== */}
-      <Card className="p-5">
-        <h3 className="text-sm font-bold text-slate-800 mb-4">إجراءات سريعة</h3>
-        <div className="grid grid-cols-3 lg:grid-cols-6 gap-2">
-          {[
-            { label: 'منتج جديد', icon: <Plus size={17} />, href: '/dashboard/inventory' },
-            { label: 'طلب جديد', icon: <ShoppingCart size={17} />, href: '/dashboard/sales' },
-            { label: 'الكاشير', icon: <FileText size={17} />, href: '/dashboard/pos' },
-            { label: 'حجز جديد', icon: <Calendar size={17} />, href: '/dashboard/bookings' },
-            { label: 'حملة إعلانية', icon: <Megaphone size={17} />, href: '/dashboard/marketing' },
-            { label: 'الإعدادات', icon: <SettingsIcon size={17} />, href: '/dashboard/settings' },
-          ].map((a) => (
-            <button
-              key={a.label}
-              type="button"
-              onClick={() => router.push(a.href)}
-              className="flex flex-col items-center gap-2 py-4 px-2 rounded-lg border border-slate-100 hover:border-slate-300 hover:bg-slate-50 transition-colors"
-            >
-              <span className="text-slate-500">{a.icon}</span>
-              <span className="text-[11px] font-semibold text-slate-600">{a.label}</span>
-            </button>
-          ))}
-        </div>
-      </Card>
     </div>
   );
 }
