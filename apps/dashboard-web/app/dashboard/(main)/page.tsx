@@ -3,14 +3,20 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { motion } from 'framer-motion';
+import {
+  AreaChart as RAreaChart, Area as RArea, XAxis, YAxis, CartesianGrid,
+  Tooltip as RTooltip, ResponsiveContainer, PieChart, Pie, Cell,
+} from 'recharts';
 import {
   ShoppingCart, Eye, Users, DollarSign, Package, Star, RefreshCw, Download,
   TrendingUp, TrendingDown, Bell, Plus, Megaphone, Calendar, Store,
   Settings as SettingsIcon, LogIn, AlertTriangle, ChevronLeft, Wallet, Boxes, BarChart3,
-  History,
+  History, PieChart as PieIcon, ArrowRight,
 } from 'lucide-react';
 import { useAuth, apiRequest } from '@/lib/auth';
 import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
+import { palette, chartColors, shadows, iconTint, cardClass } from '@/lib/ui/tokens';
 
 /* ============================================================
  * Types (matching backend responses)

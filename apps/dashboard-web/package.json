@@ -13,6 +13,7 @@
     "@ray-eg/shared": "file:../../packages/shared",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.0",
+    "recharts": "^3.6.0",
     "i18next": "^23.15.0",
     "i18next-resources-to-backend": "^1.2.1",
     "leaflet": "^1.9.4",
