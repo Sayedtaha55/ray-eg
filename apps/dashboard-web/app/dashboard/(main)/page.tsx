@@ -146,22 +146,70 @@ const pctDelta = (cur: number, prev: number): number | null => {
  * Tiny sparkline (SVG polyline)
  * ============================================================ */
 
-function Sparkline({ values, color = '#0891b2', width = 64, height = 24 }: {
-  values: number[]; color?: string; width?: number; height?: number;
-}) {
-  const pts = values || [];
-  if (pts.length < 2) return null;
-  const max = Math.max(...pts, 1);
-  const min = Math.min(...pts, 0);
-  const range = max - min || 1;
-  const step = width / (pts.length - 1);
-  const d = pts
-    .map((v, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(height - 2 - ((v - min) / range) * (height - 4)).toFixed(1)}`)
-    .join(' ');
+const AXIS_STYLE = { fontSize: 10, fill: chartColors.axis, fontWeight: 600 };
+
+function TrendTooltip({ active, payload, label, format }: any) {
+  if (!active || !payload?.length) return null;
   return (
-    <svg width={width} height={height} className="overflow-visible">
-      <path d={d} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <div className="rounded-lg bg-slate-900 text-white px-2.5 py-1.5 shadow-lg text-[11px] font-bold whitespace-nowrap">
+      <span className="text-slate-400 font-semibold">{label} — </span>{format(payload[0].value)}
+    </div>
+  );
+}
+
+/** سباركلاين مصغّر لكروت المؤشرات (Recharts Area) */
+function Sparkline({ values, color = chartColors.revenue }: { values: number[]; color?: string }) {
+  const data = (values || []).map((v, i) => ({ i, v }));
+  if (data.length < 2) return null;
+  const gid = `spark-${color.replace('#', '')}`;
+  return (
+    <div className="w-16 h-7" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <RAreaChart data={data} margin={{ top: 2, right: 0, bottom: 0, left: 0 }}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="100%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <RArea type="monotone" dataKey="v" stroke={color} strokeWidth={1.5} fill={`url(#${gid})`} />
+        </RAreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+/** دونات توزيع حالات الطلبات — من بيانات الطلبات الحقيقية */
+function StatusDonut({ data, total }: {
+  data: Array<{ name: string; value: number; color: string }>;
+  total: number;
+}) {
+  const shown = data.length > 0 ? data : [{ name: 'لا طلبات', value: 1, color: '#F1F5F9' }];
+  return (
+    <div className="relative h-[170px]" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie data={shown} dataKey="value" innerRadius={56} outerRadius={80} paddingAngle={data.length > 1 ? 2 : 0} strokeWidth={0} animationDuration={450}>
+            {shown.map((d, i) => (
+              <Cell key={i} fill={d.color} />
+            ))}
+          </Pie>
+          <RTooltip content={({ active, payload }: any) => {
+            if (!active || !payload?.length || data.length === 0) return null;
+            const p = payload[0].payload;
+            return (
+              <div className="rounded-lg bg-slate-900 text-white px-2.5 py-1.5 shadow-lg text-[11px] font-bold whitespace-nowrap">
+                {p.name}: {fmtNum(p.value)} ({total > 0 ? Math.round((p.value / total) * 100) : 0}%)
+              </div>
+            );
+          }} />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none" dir="rtl">
+        <span className="text-xl font-extrabold text-slate-900 tabular-nums leading-6">{fmtNum(total)}</span>
+        <span className="text-[10px] font-semibold text-slate-400">طلب</span>
+      </div>
+    </div>
   );
 }
 
@@ -169,122 +217,129 @@ function Sparkline({ values, color = '#0891b2', width = 64, height = 24 }: {
  * Big area chart (hand-rolled SVG, smooth curve + gradient)
  * ============================================================ */
 
-function AreaChart({ data, color = '#0891b2', formatY, formatTip }: {
+/** الرسم الرئيسي — أداء المتجر (منحنى ناعم + gradient + tooltip) */
+function PerformanceAreaChart({ data, color, formatY, formatTip }: {
   data: Array<{ x: string; y: number }>;
-  color?: string;
+  color: string;
   formatY: (n: number) => string;
-  formatTip: (p: { x: string; y: number }) => string;
+  formatTip: (n: number) => string;
 }) {
-  const [hover, setHover] = useState<number | null>(null);
-  const W = 800, H = 260, PL = 44, PR = 12, PT = 14, PB = 26;
   if (!data || data.length < 2) {
     return (
-      <div className="h-[240px] flex flex-col items-center justify-center gap-2 text-slate-300">
-        <BarChart3 size={28} />
-        <p className="text-xs font-semibold text-slate-400">لا توجد مبيعات في هذه الفترة بعد</p>
+      <div className="h-[260px] flex flex-col items-center justify-center gap-2.5">
+        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300"><BarChart3 size={24} /></div>
+        <p className="text-sm font-bold text-slate-500">لا توجد مبيعات في هذه الفترة بعد</p>
+        <p className="text-[11px] font-medium text-slate-400">أول عملية بيع سترسم المنحنى هنا تلقائيًا.</p>
       </div>
     );
   }
-  const max = Math.max(...data.map((d) => d.y), 1);
-  // round up to a nice ceiling (1/2/5 × 10^n) for clean axis ticks
-  const mag = Math.pow(10, Math.floor(Math.log10(max)));
-  const niceMax = [1, 2, 5, 10].map((m) => m * mag).find((m) => m >= max * 1.05) ?? max * 1.1;
-  const iw = W - PL - PR, ih = H - PT - PB;
-  const px = (i: number) => PL + (i / (data.length - 1)) * iw;
-  const py = (v: number) => PT + ih - (v / niceMax) * ih;
-
-  // smooth path (quadratic midpoint smoothing)
-  let path = `M${px(0)},${py(data[0].y)}`;
-  for (let i = 1; i < data.length; i++) {
-    const xc = (px(i - 1) + px(i)) / 2;
-    const yc = (py(data[i - 1].y) + py(data[i].y)) / 2;
-    path += ` Q${xc.toFixed(1)},${yc.toFixed(1)} ${px(i).toFixed(1)},${py(data[i].y).toFixed(1)}`;
-  }
-  const area = `${path} L${px(data.length - 1)},${PT + ih} L${px(0)},${PT + ih} Z`;
-  const yTicks = [0, 0.5, 1].map((t) => niceMax * t);
-  const xLabelEvery = Math.max(1, Math.ceil(data.length / 6));
-  const id = React.useId();
-
   return (
-    <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ direction: 'ltr' }}
-        onMouseLeave={() => setHover(null)}
-        onMouseMove={(e) => {
-          const rect = (e.currentTarget as SVGSVGElement).getBoundingClientRect();
-          const x = ((e.clientX - rect.left) / rect.width) * W;
-          const i = Math.round(((x - PL) / iw) * (data.length - 1));
-          setHover(Math.max(0, Math.min(data.length - 1, i)));
-        }}
-      >
-        <defs>
-          <linearGradient id={`g${id}`} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-            <stop offset="100%" stopColor={color} stopOpacity="0.01" />
-          </linearGradient>
-        </defs>
-        {yTicks.map((t, i) => (
-          <g key={i}>
-            <line x1={PL} x2={W - PR} y1={py(t)} y2={py(t)} stroke="#f1f5f9" strokeWidth="1" />
-            <text x={PL - 6} y={py(t) + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{formatY(t)}</text>
-          </g>
-        ))}
-        <path d={area} fill={`url(#g${id})`} />
-        <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" />
-        {data.map((d, i) => (
-          i % xLabelEvery === 0 ? (
-            <text key={i} x={px(i)} y={H - 8} textAnchor="middle" fontSize="9" fill="#94a3b8">{d.x}</text>
-          ) : null
-        ))}
-        {hover !== null && (
-          <g>
-            <line x1={px(hover)} x2={px(hover)} y1={PT} y2={PT + ih} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity="0.4" />
-            <circle cx={px(hover)} cy={py(data[hover].y)} r="4" fill="white" stroke={color} strokeWidth="2" />
-          </g>
-        )}
-      </svg>
-      {hover !== null && (
-        <div
-          className="absolute pointer-events-none bg-slate-900 text-white text-[10px] font-bold rounded-md px-2 py-1 whitespace-nowrap -translate-x-1/2"
-          style={{ left: `${(px(hover) / W) * 100}%`, top: 0 }}
-        >
-          {formatTip(data[hover])}
-        </div>
-      )}
+    <div className="h-[260px] w-full" dir="ltr">
+      <ResponsiveContainer width="100%" height="100%">
+        <RAreaChart data={data} margin={{ top: 10, right: 4, bottom: 0, left: 4 }}>
+          <defs>
+            <linearGradient id="perfFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity={0.22} />
+              <stop offset="100%" stopColor={color} stopOpacity={0.02} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid stroke={chartColors.grid} vertical={false} />
+          <XAxis dataKey="x" tick={AXIS_STYLE} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={24} reversed />
+          <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} tickFormatter={formatY} width={46} orientation="right" />
+          <RTooltip content={<TrendTooltip format={formatTip} />} cursor={{ stroke: chartColors.cursor }} />
+          <RArea
+            type="monotone" dataKey="y" stroke={color} strokeWidth={2.5} fill="url(#perfFill)"
+            activeDot={{ r: 4, strokeWidth: 2, fill: '#fff', stroke: color }}
+            animationDuration={450}
+          />
+        </RAreaChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 /* ============================================================
- * Small UI primitives
+ * UI primitives — نظام موحد للكروت والحالات
  * ============================================================ */
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`bg-white border border-slate-200 rounded-xl ${className}`}>{children}</div>;
+  return <div className={`${cardClass} ${className}`}>{children}</div>;
+}
+
+/** كارت بحركة ظهور ناعمة + رفع خفيف عند الـ hover */
+function MotionCard({ children, className = '', delay = 0 }: {
+  children: React.ReactNode; className?: string; delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -2, boxShadow: shadows.lift }}
+      className={`${cardClass} transition-shadow duration-200 ${className}`}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 function Skeleton({ className = '' }: { className?: string }) {
   return <div className={`bg-slate-100 rounded-md animate-pulse ${className}`} />;
 }
 
-function Empty({ icon, title, actionLabel, onAction }: {
-  icon: React.ReactNode; title: string; actionLabel?: string; onAction?: () => void;
+function SectionHead({ title, sub, icon, actionLabel, onAction }: {
+  title: string; sub?: string; icon?: React.ReactNode;
+  actionLabel?: string; onAction?: () => void;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-      <div className="w-10 h-10 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-300">{icon}</div>
-      <p className="text-sm font-medium text-slate-400">{title}</p>
+    <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {icon && <span className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center text-slate-500 shrink-0">{icon}</span>}
+        <div className="min-w-0">
+          <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">{title}</h3>
+          {sub && <p className="text-[11px] font-medium text-slate-400 leading-4 truncate">{sub}</p>}
+        </div>
+      </div>
       {actionLabel && onAction && (
-        <button type="button" onClick={onAction} className="text-xs font-bold text-cyan-700 hover:underline">{actionLabel}</button>
+        <button type="button" onClick={onAction} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 inline-flex items-center gap-0.5 shrink-0">
+          {actionLabel} <ChevronLeft size={12} />
+        </button>
       )}
     </div>
   );
 }
 
+function Empty({ icon, title, desc, actionLabel, onAction, secondaryLabel, onSecondary }: {
+  icon: React.ReactNode; title: string; desc?: string;
+  actionLabel?: string; onAction?: () => void;
+  secondaryLabel?: string; onSecondary?: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 py-10 px-6 text-center">
+      <div className="w-12 h-12 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-400">{icon}</div>
+      <p className="text-sm font-bold text-slate-700">{title}</p>
+      {desc && <p className="text-[11px] font-medium text-slate-400 leading-5 max-w-[280px]">{desc}</p>}
+      <div className="flex items-center gap-2 mt-1.5">
+        {actionLabel && onAction && (
+          <button type="button" onClick={onAction} className="h-8 px-3.5 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-800 transition-colors">
+            {actionLabel}
+          </button>
+        )}
+        {secondaryLabel && onSecondary && (
+          <button type="button" onClick={onSecondary} className="h-8 px-3.5 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 transition-colors">
+            {secondaryLabel}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function DeltaInline({ delta }: { delta: number | null }) {
-  if (delta === null || !Number.isFinite(delta)) return <span className="text-[10px] text-slate-300">—</span>;
+  if (delta === null || !Number.isFinite(delta)) return <span className="text-[10px] font-semibold text-slate-300">—</span>;
   const up = delta >= 0;
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold tabular-nums ${up ? 'text-emerald-600' : 'text-red-600'}`}>
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-extrabold tabular-nums rounded-full px-1.5 py-0.5 ${up ? 'text-emerald-700 bg-emerald-50' : 'text-red-700 bg-red-50'}`}>
       {up ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
       {Math.abs(delta).toLocaleString(LOCALE, { maximumFractionDigits: 1 })}%
     </span>
