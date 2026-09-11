@@ -98,14 +98,17 @@ type CreateShopRequest struct {
 	Description     string   `json:"description,omitempty"`
 	Address         string   `json:"address,omitempty"`
 	AddressDetailed string   `json:"addressDetailed,omitempty"`
-	Governorate     string   `json:"governorate" validate:"required"`
-	City            string   `json:"city" validate:"required"`
+	Governorate     string   `json:"governorate,omitempty"`
+	City            string   `json:"city,omitempty"`
 	OpeningHours    string   `json:"openingHours,omitempty"`
 	Activity        string   `json:"activity,omitempty"`
 	ActivityID      string   `json:"activityId,omitempty"`
 	EnabledModules  []string `json:"enabledModules,omitempty"`
 	Specialties     []string `json:"specialties,omitempty"`
 	ModuleFeatures  any      `json:"moduleFeatures,omitempty"`
+	// LayoutConfig from self-serve onboarding (enabledFeatures chosen through
+	// the signup questions) — merged over defaultDashboardConfig.
+	LayoutConfig map[string]any `json:"layoutConfig,omitempty"`
 }
 
 // UpdateShopRequest is the payload to update shop settings.

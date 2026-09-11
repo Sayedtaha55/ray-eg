@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu,
+  LayoutDashboard, ShieldAlert, Users, Settings, LogOut, Bell, Menu, Sparkles,
   MessageSquare, CreditCard, Store, BarChart3, FileText, Truck, Headphones,
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -13,6 +13,7 @@ import { ToastProvider } from '@/components/settings/ToastProvider';
 
 const NAV_ITEMS = [
   { href: '/admin/dashboard', label: 'نظرة عامة', icon: LayoutDashboard },
+  { href: '/admin/new-shops', label: 'المتاجر الجديدة', icon: Sparkles },
   { href: '/admin/approvals', label: 'الموافقات', icon: ShieldAlert },
   { href: '/admin/shops', label: 'المتاجر', icon: Store },
   { href: '/admin/users', label: 'المستخدمون', icon: Users },

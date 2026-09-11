@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
-  CheckCircle2, Clock, XCircle, Eye, Loader2,
-  ShoppingCart, DollarSign, Package2, Printer, ReceiptText,
+  CheckCircle2, XCircle, Eye, Loader2,
+  Package2, Printer, ReceiptText,
   X, Info, Target, BookOpen, Zap, Link2, ClipboardList,
-  Download, Plus, Filter, CheckSquare, Square,
-  ArrowUpDown, ChevronLeft, ChevronRight,
-  Package, TrendingUp, Truck, MessageCircle,
+  Plus, CheckSquare, Square, Search,
+  ArrowUpDown, ChevronLeft, ChevronRight, ChevronDown,
+  Package, Truck, MessageCircle, Columns3, RotateCcw,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
 import { fetchMyOrders } from '@/lib/api/orders';
@@ -45,6 +45,8 @@ type Order = {
     address?: string;
   };
   phone?: string;
+  source?: string;
+  paymentMethod?: string;
 };
 
 type FilterType = 'all' | 'pending' | 'confirmed' | 'preparing' | 'ready' | 'handed_to_courier' | 'out_for_delivery' | 'delivered' | 'cancelled' | 'rejected' | 'refunded' | 'successful';
@@ -407,6 +409,42 @@ export default function SalesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
+  // تخصيص الأعمدة — محفوظ في المتصفح
+  const COL_DEFS: Array<{ key: string; label: string }> = [
+    { key: 'order', label: 'رقم الطلب' },
+    { key: 'customer', label: 'العميل' },
+    { key: 'items', label: 'الأصناف' },
+    { key: 'status', label: 'الحالة' },
+    { key: 'delivery', label: 'التوصيل' },
+    { key: 'total', label: 'الإجمالي' },
+    { key: 'quick', label: 'إجراء سريع' },
+  ];
+  const ALL_COLS = { order: true, customer: true, items: true, status: true, delivery: true, total: true, quick: true };
+  const [visibleCols, setVisibleCols] = useState<Record<string, boolean>>(() => {
+    if (typeof window === 'undefined') return ALL_COLS;
+    try {
+      const saved = JSON.parse(localStorage.getItem('ray_sales_cols') || 'null');
+      if (saved && typeof saved === 'object') return { ...ALL_COLS, ...saved };
+    } catch { /* defaults */ }
+    return ALL_COLS;
+  });
+  const [colsOpen, setColsOpen] = useState(false);
+  const [colsDraft, setColsDraft] = useState<Record<string, boolean>>(visibleCols);
+  const showCol = (k: string) => visibleCols[k] !== false;
+  const saveCols = useCallback(() => {
+    setVisibleCols(colsDraft);
+    try { localStorage.setItem('ray_sales_cols', JSON.stringify(colsDraft)); } catch { /* ignore */ }
+    setColsOpen(false);
+  }, [colsDraft]);
+  const resetCols = useCallback(() => {
+    setColsDraft(ALL_COLS);
+    setVisibleCols(ALL_COLS);
+    try { localStorage.setItem('ray_sales_cols', JSON.stringify(ALL_COLS)); } catch { /* ignore */ }
+  }, []);
+
+  // صف مُوسَّع — سهم التفاصيل
+  const [expandedId, setExpandedId] = useState('');
+
   // Get shop data for category-based customization
   const { shop } = useShop();
   const shopCategory = shop?.category?.toUpperCase() || 'RETAIL';
@@ -595,14 +633,6 @@ export default function SalesPage() {
     return { total, pending, confirmed, delivered, ready, preparing, handedToCourier, outForDelivery, successful, rejected, cancelled, refunded, revenue, avgOrder };
   }, [orders]);
 
-  // 4 stat cards — صياغة مصرية مهنية
-  const statCards = useMemo(() => [
-    { label: 'طلبات الفترة', value: stats.total, icon: ShoppingCart, color: 'text-slate-700', bg: 'bg-slate-100', sub: `منها ${stats.pending} جديد` },
-    { label: 'صافي الإيراد', value: `${stats.revenue.toLocaleString('ar-EG')} ج.م`, icon: DollarSign, color: 'text-green-700', bg: 'bg-green-50', sub: 'طلبات مؤكدة ومسلّمة' },
-    { label: 'متوسط الفاتورة', value: `${stats.avgOrder.toLocaleString('ar-EG')} ج.م`, icon: TrendingUp, color: 'text-sky-700', bg: 'bg-sky-50', sub: 'للطلب الواحد' },
-    { label: 'يحتاج متابعة', value: stats.pending, icon: Clock, color: 'text-amber-700', bg: 'bg-amber-50', sub: 'بانتظار التأكيد' },
-  ], [stats]);
-
   const toggleSelectAll = useCallback(() => {
     if (selectedIds.size === paginatedOrders.length) {
       setSelectedIds(new Set());
@@ -662,69 +692,75 @@ export default function SalesPage() {
 
   return (
     <div className="min-h-full bg-[#F4F5F7] text-slate-900" style={{ fontFamily: "'Cairo','Tajawal',system-ui,sans-serif" }}>
-      {/* شريط علوي مهني: مسار + عنوان + إجراءات */}
+      {/* هيدر بسيط: عنوان + وصف — الإجراءات في الطرف المقابل */}
       <div className="bg-white border-b border-slate-200">
-        <div className="px-4 sm:px-6 pt-4 pb-3 max-w-[1400px] mx-auto">
-          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-semibold">
-            <span>الرئيسية</span><span>/</span><span>المبيعات</span><span>/</span>
-            <span className="text-slate-700">{isRestaurant ? 'طلبات الصالة والدليفري' : 'طلبات المتجر'}</span>
+        <div className="px-4 sm:px-6 py-5 max-w-[1400px] mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-slate-900">قائمة الطلبات</h1>
+            <p className="text-xs text-slate-400 mt-0.5">
+              جميع طلبات متجرك هنا
+              {stats.pending > 0 && <span className="text-amber-600 font-semibold"> — {stats.pending} بانتظار التأكيد</span>}
+            </p>
           </div>
-          <div className="mt-2 flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[220px]">
-              <div className="flex items-center gap-2">
-                <h1 className="text-[20px] leading-7 font-extrabold text-slate-900">
-                  {isRestaurant ? 'طلبات اليوم' : 'إدارة الطلبات'}
-                </h1>
-                <span className="text-[11px] font-bold text-slate-500 bg-slate-100 border border-slate-200 rounded-md px-2 py-0.5 tabular-nums">
-                  {stats.total} طلب
-                </span>
-                {stats.pending > 0 && (
-                  <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-2 py-0.5">
-                    {stats.pending} بانتظار التأكيد
-                  </span>
-                )}
-              </div>
-              <p className="text-[12px] text-slate-500 font-semibold mt-0.5">
-                {shop?.name ? `${shop.name} — ` : ''}تابع التنفيذ لحظة بلحظة: تأكيد، تجهيز، تسليم وطباعة الفاتورة
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <button onClick={exportOrders} className="h-9 px-3 rounded-lg bg-white border border-slate-200 text-[12px] font-bold text-slate-700 hover:bg-slate-50 flex items-center gap-1.5">
-                <Download size={14} /> تصدير
-              </button>
-              <button onClick={() => setShowCreateModal(true)} className="h-9 px-4 rounded-lg bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-800 flex items-center gap-1.5">
-                <Plus size={14} /> طلب يدوي
-              </button>
-            </div>
-          </div>
-          {/* مؤشرات مدمجة — شريط واحد بدل 8 كروت */}
-          <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 border border-slate-200 rounded-lg bg-white overflow-hidden divide-x divide-x-reverse divide-slate-100">
-            {statCards.map((s, i) => (
-              <div key={i} className="px-4 py-2.5 flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 ${s.bg} ${s.color}`}>
-                  <s.icon size={15} />
-                </div>
-                <div className="min-w-0">
-                  <div className="text-[15px] font-extrabold tabular-nums leading-5 truncate">{s.value}</div>
-                  <div className="text-[11px] text-slate-500 font-bold leading-4">{s.label} <span className="text-slate-300">•</span> <span className="text-slate-400 font-semibold">{s.sub}</span></div>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center gap-2">
+            <button onClick={exportOrders} className="h-10 px-4 rounded-full border border-slate-200 bg-white text-[12px] font-bold text-slate-700 hover:bg-slate-50">
+              تصدير
+            </button>
+            <button onClick={() => setShowCreateModal(true)} className="h-10 px-5 rounded-full bg-slate-900 text-white text-[12px] font-bold hover:bg-slate-700">
+              إنشاء طلب
+            </button>
           </div>
         </div>
       </div>
 
-      {/* شريط التشغيل: بحث + فلاتر */}
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-3">
+      {/* شريط التشغيل: التابات فوق — البحث والفلاتر تحت */}
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 mt-4">
         <div className="bg-white border border-slate-200 rounded-xl">
-          <div className="px-3 sm:px-4 pt-3 flex flex-col lg:flex-row lg:items-center gap-2.5">
+          {/* تبويبات الحالة — نصية بلا مربعات */}
+          <div className="px-2 sm:px-3 py-2 flex gap-0.5 overflow-x-auto">
+            {(isRestaurant ? RESTAURANT_FILTERS : RETAIL_FILTERS).map((f) => {
+              const isActive = filter === f.id;
+              const count = f.id === 'all' ? stats.total :
+                            f.id === 'successful' ? stats.successful :
+                            f.id === 'rejected' ? stats.rejected :
+                            f.id === 'pending' ? stats.pending :
+                            f.id === 'confirmed' ? stats.confirmed :
+                            f.id === 'preparing' ? stats.preparing :
+                            f.id === 'ready' ? stats.ready :
+                            f.id === 'handed_to_courier' ? stats.handedToCourier :
+                            f.id === 'out_for_delivery' ? stats.outForDelivery :
+                            f.id === 'delivered' ? stats.delivered :
+                            f.id === 'cancelled' ? stats.cancelled :
+                            f.id === 'refunded' ? stats.refunded : 0;
+              return (
+                <button
+                  key={f.id}
+                  onClick={() => { setFilter(f.id); setCurrentPage(1); }}
+                  className={`h-8 px-3 rounded-full text-[12px] font-semibold whitespace-nowrap flex items-center gap-1.5 transition-colors ${
+                    isActive ? 'bg-slate-100 text-slate-900' : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  {f.label}
+                  <span className={`min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold flex items-center justify-center tabular-nums ${
+                    isActive ? 'bg-white text-slate-900 shadow-sm' : 'bg-slate-100 text-slate-400'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* بحث + فلاتر */}
+          <div className="px-3 sm:px-4 py-2.5 flex flex-col lg:flex-row lg:items-center gap-2.5 border-t border-slate-100">
             <div className="relative flex-1 min-w-[200px]">
+              <Search size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="دوّر برقم الطلب، اسم العميل، أو رقم الموبايل…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full h-10 px-4 rounded-lg border border-slate-200 bg-slate-50 text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:bg-white focus:border-slate-900"
+                className="w-full h-10 pr-10 pl-4 rounded-full border border-slate-200 bg-white text-[13px] font-semibold text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-slate-400"
               />
             </div>
 
@@ -732,7 +768,7 @@ export default function SalesPage() {
               <select
                 value={dateRange}
                 onChange={(e) => setDateRange(e.target.value as any)}
-                className="h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+                className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
               >
                 <option value="all">كل الفترات</option>
                 <option value="today">النهاردة</option>
@@ -742,7 +778,7 @@ export default function SalesPage() {
               <select
                 value={amountRange}
                 onChange={(e) => setAmountRange(e.target.value as any)}
-                className="h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+                className="h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
               >
                 <option value="all">كل المبالغ</option>
                 <option value="under100">أقل من ١٠٠ ج.م</option>
@@ -752,55 +788,58 @@ export default function SalesPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value as any)}
-                className="hidden md:block h-10 px-3 rounded-lg border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
+                className="hidden md:block h-10 px-3 rounded-full border border-slate-200 text-[12px] font-bold text-slate-600 bg-white focus:outline-none"
               >
                 <option value="date">الأحدث أولاً</option>
                 <option value="amount">الأعلى قيمة</option>
                 <option value="status">حسب الحالة</option>
               </select>
+              <div className="relative">
+                <button
+                  onClick={() => { setColsDraft(visibleCols); setColsOpen(!colsOpen); }}
+                  className={`h-10 w-10 rounded-full border flex items-center justify-center transition-colors ${colsOpen ? 'border-slate-900 text-slate-900' : 'border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50'}`}
+                  title="تخصيص الأعمدة"
+                >
+                  <Columns3 size={15} />
+                </button>
+                {colsOpen && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setColsOpen(false)} />
+                    <div className="absolute top-12 left-0 z-40 w-56 bg-white border border-slate-200 rounded-xl shadow-lg p-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-bold text-slate-800">تخصيص الأعمدة</span>
+                        <button onClick={resetCols} className="p-1 rounded text-slate-400 hover:text-slate-900 hover:bg-slate-50" title="استعادة الكل">
+                          <RotateCcw size={13} />
+                        </button>
+                      </div>
+                      <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                        {COL_DEFS.map((c) => (
+                          <label key={c.key} className="flex items-center justify-between gap-2 px-1 py-1 rounded hover:bg-slate-50 cursor-pointer">
+                            <span className="text-xs font-semibold text-slate-700">{c.label}</span>
+                            <input
+                              type="checkbox"
+                              checked={colsDraft[c.key] !== false}
+                              onChange={(e) => setColsDraft((p) => ({ ...p, [c.key]: e.target.checked }))}
+                              className="w-4 h-4 accent-slate-900"
+                            />
+                          </label>
+                        ))}
+                      </div>
+                      <button onClick={saveCols} className="w-full h-8 mt-2 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">
+                        حفظ
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                className="h-10 w-10 rounded-lg border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center"
+                className="h-10 w-10 rounded-full border border-slate-200 text-slate-400 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center"
                 title={sortOrder === 'asc' ? 'تصاعدي' : 'تنازلي'}
               >
                 <ArrowUpDown size={15} />
               </button>
             </div>
-          </div>
-
-          {/* تبويبات الحالة */}
-          <div className="px-3 sm:px-4 py-2.5 flex gap-1.5 overflow-x-auto border-t border-slate-100 mt-2.5">
-            {(isRestaurant ? RESTAURANT_FILTERS : RETAIL_FILTERS).map((f) => {
-              const isActive = filter === f.id;
-          const count = f.id === 'all' ? stats.total :
-                        f.id === 'successful' ? stats.successful :
-                        f.id === 'rejected' ? stats.rejected :
-                        f.id === 'pending' ? stats.pending :
-                        f.id === 'confirmed' ? stats.confirmed :
-                        f.id === 'preparing' ? stats.preparing :
-                        f.id === 'ready' ? stats.ready :
-                        f.id === 'handed_to_courier' ? stats.handedToCourier :
-                        f.id === 'out_for_delivery' ? stats.outForDelivery :
-                        f.id === 'delivered' ? stats.delivered :
-                        f.id === 'cancelled' ? stats.cancelled :
-                        f.id === 'refunded' ? stats.refunded : 0;
-          return (
-            <button
-              key={f.id}
-              onClick={() => { setFilter(f.id); setCurrentPage(1); }}
-              className={`h-8 px-3 rounded-lg text-[12px] font-bold border whitespace-nowrap flex items-center gap-1.5 ${
-                isActive
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {f.label}
-                <span className={`text-[10px] font-extrabold tabular-nums rounded px-1.5 py-0.5 ${isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                  {count}
-                </span>
-              </button>
-          );
-        })}
           </div>
         </div>
       </div>
@@ -914,13 +953,13 @@ export default function SalesPage() {
                     {selectedIds.size === paginatedOrders.length && paginatedOrders.length > 0 ? <CheckSquare size={16} className="text-slate-900" /> : <Square size={16} className="text-slate-300" />}
                   </button>
                 </th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الطلب</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">العميل</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الأصناف</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الحالة</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">التوصيل</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الإجمالي</th>
-                <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">إجراء سريع</th>
+                {showCol('order') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الطلب</th>}
+                {showCol('customer') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">العميل</th>}
+                {showCol('items') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الأصناف</th>}
+                {showCol('status') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الحالة</th>}
+                {showCol('delivery') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">التوصيل</th>}
+                {showCol('total') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">الإجمالي</th>}
+                {showCol('quick') && <th className="px-3 py-2.5 text-[11px] font-bold text-slate-500">إجراء سريع</th>}
                 <th className="px-3 py-2.5 w-16"></th>
               </tr>
             </thead>
@@ -938,65 +977,90 @@ export default function SalesPage() {
                 const address = getDeliveryAddress(order);
                 const deliveryManagedByShop = isDeliveryDisabledOrder(order);
                 const deliveryFeeText = renderDeliveryFee(order);
+                const expanded = expandedId === id;
+                const colCount = 2 + (['order', 'customer', 'items', 'status', 'delivery', 'total', 'quick'].filter(showCol).length);
+                // أرقام الفاتورة الحقيقية من الطلب
+                const _items = Array.isArray(order.items) ? order.items : [];
+                const itemsSubtotal = _items.reduce((s: number, it: any) => s + Number(it?.quantity ?? it?.qty ?? 0) * Number(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0), 0);
+                const _notes = parseOrderNotes(order);
+                const itemsDeliveryFee = Math.max(Number(order.total || 0) - itemsSubtotal - _notes.discount - _notes.tip, 0);
+                const customerPhone = order.customerPhone || order.customer_phone || order.user?.phone || order.phone || '';
+                const customerNameFull = order.customerName || order.customer_name || order.user?.name || '';
+                const sourceLabel = order.source === 'pos' ? 'من الكاشير' : order.source === 'manual' ? 'طلب يدوي' : order.source === 'website' || !order.source ? 'من الموقع' : order.source;
 
                 return (
-                  <tr key={id} className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${status === 'PENDING' ? 'bg-amber-50/40' : ''}`}>
+                  <React.Fragment key={id}>
+                  <tr className={`border-b border-slate-100 hover:bg-slate-50/70 transition-colors ${status === 'PENDING' ? 'bg-amber-50/40' : ''} ${expanded ? 'bg-slate-50/70' : ''}`}>
                     <td className="px-3 py-3">
                       <button onClick={() => toggleSelect(id)} className="p-1">
                         {selectedIds.has(id) ? <CheckSquare size={16} className="text-slate-900" /> : <Square size={16} className="text-slate-300" />}
                       </button>
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="text-[13px] font-extrabold text-slate-900 tabular-nums">#{id.slice(0, 8).toUpperCase()}</div>
-                      <div className="text-[11px] text-slate-400 font-semibold tabular-nums">{new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="text-[12px] font-bold text-slate-800 max-w-[150px] truncate">{order.customerName || order.customer_name || order.user?.name || 'عميل'}</div>
-                      <div className="text-[11px] text-slate-400 font-semibold tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>{order.customerPhone || order.customer_phone || order.user?.phone || order.phone || '—'}</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="text-[11px] text-slate-600 font-semibold max-w-[220px] truncate" title={formatOrderItemsSummary(order.items, true)}>{formatOrderItemsSummary(order.items, true) || '—'}</div>
-                      <div className="text-[11px] text-slate-400 font-bold">{order.items?.length || 0} أصناف</div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <span className={`inline-flex items-center text-[11px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${meta.cls}`}>
-                        {meta.label}
-                      </span>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="text-[12px] text-slate-600 font-bold whitespace-nowrap">
-                        {deliveryManagedByShop ? 'استلام ذاتي' : deliveryFeeText}
-                      </div>
-                      {address && !deliveryManagedByShop && (
-                        <div className="text-[11px] text-slate-400 font-semibold truncate max-w-[160px]">{address}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="text-[13px] font-extrabold text-slate-900 tabular-nums whitespace-nowrap">{Number(order.total || 0).toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-400">ج.م</span></div>
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {busy ? (
-                          <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1"><Loader2 size={13} className="animate-spin" /> جاري…</span>
-                        ) : (
-                          <>
-                            {canAccept && (
-                              <>
-                                <button onClick={() => updateStatus(id, 'CONFIRMED')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700">تأكيد</button>
-                                <button onClick={() => updateStatus(id, 'CANCELLED')} className="h-8 px-3 rounded-lg bg-white border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50">رفض</button>
-                              </>
-                            )}
-                            {canPrepare && <button onClick={() => updateStatus(id, 'PREPARING')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">تجهيز</button>}
-                            {canReady && <button onClick={() => updateStatus(id, 'READY')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">{isRestaurant ? 'جاهز للتقديم' : 'جاهز'}</button>}
-                            {canDeliver && <button onClick={() => updateStatus(id, 'DELIVERED')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700">تم التسليم</button>}
-                            {!canAccept && !canPrepare && !canReady && !canDeliver && <span className="text-[11px] font-bold text-slate-300">—</span>}
-                          </>
+                    {showCol('order') && (
+                      <td className="px-3 py-3">
+                        <div className="text-[13px] font-extrabold text-slate-900 tabular-nums">#{id.slice(0, 8).toUpperCase()}</div>
+                        <div className="text-[11px] text-slate-400 font-semibold tabular-nums">{new Date(order.createdAt || order.created_at || Date.now()).toLocaleString('ar-EG', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}</div>
+                      </td>
+                    )}
+                    {showCol('customer') && (
+                      <td className="px-3 py-3">
+                        <div className="text-[12px] font-bold text-slate-800 max-w-[150px] truncate">{customerNameFull || 'عميل'}</div>
+                        <div className="text-[11px] text-slate-400 font-semibold tabular-nums" dir="ltr" style={{ textAlign: 'right' }}>{customerPhone || '—'}</div>
+                      </td>
+                    )}
+                    {showCol('items') && (
+                      <td className="px-3 py-3">
+                        <div className="text-[11px] text-slate-600 font-semibold max-w-[220px] truncate" title={formatOrderItemsSummary(order.items, true)}>{formatOrderItemsSummary(order.items, true) || '—'}</div>
+                        <div className="text-[11px] text-slate-400 font-bold">{order.items?.length || 0} أصناف</div>
+                      </td>
+                    )}
+                    {showCol('status') && (
+                      <td className="px-3 py-3">
+                        <span className={`inline-flex items-center text-[11px] font-bold px-2 py-1 rounded-md border whitespace-nowrap ${meta.cls}`}>
+                          {meta.label}
+                        </span>
+                      </td>
+                    )}
+                    {showCol('delivery') && (
+                      <td className="px-3 py-3">
+                        <div className="text-[12px] text-slate-600 font-bold whitespace-nowrap">
+                          {deliveryManagedByShop ? 'استلام ذاتي' : deliveryFeeText}
+                        </div>
+                        {address && !deliveryManagedByShop && (
+                          <div className="text-[11px] text-slate-400 font-semibold truncate max-w-[160px]">{address}</div>
                         )}
-                      </div>
-                    </td>
+                      </td>
+                    )}
+                    {showCol('total') && (
+                      <td className="px-3 py-3">
+                        <div className="text-[13px] font-extrabold text-slate-900 tabular-nums whitespace-nowrap">{Number(order.total || 0).toLocaleString('ar-EG')} <span className="text-[10px] font-bold text-slate-400">ج.م</span></div>
+                      </td>
+                    )}
+                    {showCol('quick') && (
+                      <td className="px-3 py-3">
+                        <div className="flex items-center gap-1.5">
+                          {busy ? (
+                            <span className="text-[11px] font-bold text-slate-400 flex items-center gap-1"><Loader2 size={13} className="animate-spin" /> جاري…</span>
+                          ) : (
+                            <>
+                              {canAccept && (
+                                <>
+                                  <button onClick={() => updateStatus(id, 'CONFIRMED')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700">تأكيد</button>
+                                  <button onClick={() => updateStatus(id, 'CANCELLED')} className="h-8 px-3 rounded-lg bg-white border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50">رفض</button>
+                                </>
+                              )}
+                              {canPrepare && <button onClick={() => updateStatus(id, 'PREPARING')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">تجهيز</button>}
+                              {canReady && <button onClick={() => updateStatus(id, 'READY')} className="h-8 px-3 rounded-lg bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">{isRestaurant ? 'جاهز للتقديم' : 'جاهز'}</button>}
+                              {canDeliver && <button onClick={() => updateStatus(id, 'DELIVERED')} className="h-8 px-3 rounded-lg bg-emerald-600 text-white text-[11px] font-bold hover:bg-emerald-700">تم التسليم</button>}
+                              {!canAccept && !canPrepare && !canReady && !canDeliver && <span className="text-[11px] font-bold text-slate-300">—</span>}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    )}
                     <td className="px-3 py-3">
                       <div className="flex items-center gap-1">
-                        <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="التفاصيل">
+                        <button onClick={() => setSelectedOrder(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="عرض الطلب">
                           <Eye size={15} />
                         </button>
                         <button onClick={() => printInvoice(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="طباعة الفاتورة">
@@ -1005,9 +1069,121 @@ export default function SalesPage() {
                         <button onClick={() => printWaybill(order)} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100" title="طباعة بوليصة التوصيل">
                           <Truck size={15} />
                         </button>
+                        <button
+                          onClick={() => setExpandedId(expanded ? '' : id)}
+                          className={`p-1.5 rounded-lg transition-colors ${expanded ? 'text-slate-900 bg-slate-100' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
+                          title={expanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+                        >
+                          <ChevronDown size={15} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+                        </button>
                       </div>
                     </td>
                   </tr>
+                  {expanded && (
+                    <tr className="border-b border-slate-100">
+                      <td colSpan={colCount} className="px-0 py-0 bg-slate-50/60">
+                        <div className="p-4 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                          {/* منتجات الطلب */}
+                          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="px-4 py-2.5 border-b border-slate-100 text-xs font-bold text-slate-700">منتجات الطلب</div>
+                            {_items.length === 0 ? (
+                              <div className="px-4 py-4 text-[11px] text-slate-400 font-semibold">لا توجد أصناف مسجلة</div>
+                            ) : (
+                              <table className="w-full text-right">
+                                <thead>
+                                  <tr className="bg-slate-50 border-b border-slate-100">
+                                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400">المنتج</th>
+                                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400">السعر</th>
+                                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400">الكمية</th>
+                                    <th className="px-3 py-2 text-[10px] font-bold text-slate-400">الإجمالي</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {_items.map((it: any, idx: number) => {
+                                    const qty = Number(it?.quantity ?? it?.qty ?? 0);
+                                    const unit = Number(it?.unitPrice ?? it?.unit_price ?? it?.price ?? 0);
+                                    return (
+                                      <tr key={idx} className="border-b border-slate-50 last:border-0">
+                                        <td className="px-3 py-2 text-[11px] font-bold text-slate-700">{it?.product?.name || it?.name || '—'}</td>
+                                        <td className="px-3 py-2 text-[11px] text-slate-500 tabular-nums">{unit.toLocaleString('ar-EG')}</td>
+                                        <td className="px-3 py-2 text-[11px] text-slate-500 tabular-nums">{qty}</td>
+                                        <td className="px-3 py-2 text-[11px] font-bold text-slate-800 tabular-nums">{(qty * unit).toLocaleString('ar-EG')}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            )}
+                          </div>
+
+                          {/* الفاتورة */}
+                          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="px-4 py-2.5 border-b border-slate-100 text-xs font-bold text-slate-700">الفاتورة</div>
+                            <div className="px-4 py-2 divide-y divide-slate-50">
+                              {[
+                                { label: 'قيمة المنتجات', value: itemsSubtotal },
+                                _notes.discount > 0 && { label: 'الخصم', value: -_notes.discount },
+                                _notes.tip > 0 && { label: 'إكرامية', value: _notes.tip },
+                                itemsDeliveryFee > 0 && { label: 'الشحن', value: itemsDeliveryFee },
+                              ].filter(Boolean).map((r: any, i: number) => (
+                                <div key={i} className="flex items-center justify-between py-2">
+                                  <span className="text-[11px] font-semibold text-slate-500">{r.label}</span>
+                                  <span className="text-[11px] font-bold text-slate-700 tabular-nums">{r.value.toLocaleString('ar-EG')} ج.م</span>
+                                </div>
+                              ))}
+                              <div className="flex items-center justify-between py-2">
+                                <span className="text-xs font-bold text-slate-900">الإجمالي</span>
+                                <span className="text-sm font-extrabold text-slate-900 tabular-nums">{Number(order.total || 0).toLocaleString('ar-EG')} ج.م</span>
+                              </div>
+                              <div className="flex items-center justify-between py-2">
+                                <span className="text-[11px] font-semibold text-slate-500">الدفع</span>
+                                <span className="text-[11px] font-bold text-slate-700">{String(order.paymentMethod || 'COD').toUpperCase() === 'COD' ? 'دفع عند الاستلام' : String(order.paymentMethod || '').toUpperCase()}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* العميل */}
+                          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                            <div className="px-4 py-2.5 border-b border-slate-100 text-xs font-bold text-slate-700">العميل</div>
+                            <div className="px-4 py-2 divide-y divide-slate-50">
+                              <div className="flex items-center justify-between py-2">
+                                <span className="text-[11px] font-semibold text-slate-500">الاسم</span>
+                                <span className="text-[11px] font-bold text-slate-800">{customerNameFull || '—'}</span>
+                              </div>
+                              <div className="flex items-center justify-between py-2">
+                                <span className="text-[11px] font-semibold text-slate-500">رقم الهاتف</span>
+                                <span className="text-[11px] font-bold text-slate-800 tabular-nums" dir="ltr">{customerPhone || '—'}</span>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 py-2">
+                                <span className="text-[11px] font-semibold text-slate-500 shrink-0">العنوان</span>
+                                <span className="text-[11px] font-semibold text-slate-700 text-left">{address || 'استلام من المتجر'}</span>
+                              </div>
+                              <div className="flex items-center justify-between py-2">
+                                <span className="text-[11px] font-semibold text-slate-500">المصدر</span>
+                                <span className="text-[10px] font-bold text-slate-600 bg-slate-100 rounded px-2 py-0.5">{sourceLabel}</span>
+                              </div>
+                            </div>
+                            <div className="px-4 pb-3 pt-2 flex items-center gap-2">
+                              <button onClick={() => setSelectedOrder(order)} className="h-8 px-4 rounded-full bg-slate-900 text-white text-[11px] font-bold hover:bg-slate-700">
+                                عرض
+                              </button>
+                              {customerPhone && (
+                                <a
+                                  href={`https://wa.me/2${customerPhone.replace(/\D/g, '')}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="h-8 px-4 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold hover:bg-emerald-100 flex items-center"
+                                >
+                                  واتساب
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

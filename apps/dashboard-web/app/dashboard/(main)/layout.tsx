@@ -8,6 +8,7 @@ import Header from '@/components/Header';
 import TopNav from '@/components/TopNav';
 import OrderBellWatcher from '@/components/OrderBellWatcher';
 import RouteProgress from '@/components/RouteProgress';
+import { RecentlyViewedTracker } from '@/hooks/useRecentlyViewed';
 import { useAuth } from '@/lib/auth';
 
 export default function DashboardLayout({
@@ -62,6 +63,7 @@ export default function DashboardLayout({
       <div className="flex flex-col h-screen overflow-hidden bg-slate-50">
         {/* Global order bell watcher — rings on new website / POS orders */}
         <OrderBellWatcher />
+        <RecentlyViewedTracker />
         <Suspense fallback={null}>
           <RouteProgress />
         </Suspense>
@@ -102,6 +104,7 @@ export default function DashboardLayout({
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Global order bell watcher — rings on new website / POS orders */}
       <OrderBellWatcher />
+      <RecentlyViewedTracker />
       <Suspense fallback={null}>
         <RouteProgress />
       </Suspense>

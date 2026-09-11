@@ -1,4 +1,4 @@
-package app
+﻿package app
 
 import (
 	"context"
@@ -43,6 +43,10 @@ import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/shopimagemap"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/shops"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/support"
+"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/consent"
+"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/dsr"
+"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/breach"
+"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/reports"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/domains/users"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/compression"
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
@@ -106,6 +110,10 @@ type App struct {
 	dashboardHandler      *dashboard.Handler
 	posHandler            *pos.Handler
 	productCategoriesHandler *productcategories.Handler
+consentHandler          *consent.Handler
+dsrHandler              *dsr.Handler
+breachHandler           *breach.Handler
+reportsHandler          *reports.Handler
 	compressionService    *compression.Service
 }
 
@@ -211,6 +219,10 @@ func New(cfg *config.Config) (*App, error) {
 		dashboardHandler      *dashboard.Handler
 		posHandler            *pos.Handler
 		productCategoriesHandler *productcategories.Handler
+consentHandler          *consent.Handler
+dsrHandler              *dsr.Handler
+breachHandler           *breach.Handler
+reportsHandler          *reports.Handler
 	)
 	var compressionService *compression.Service
 	if pool != nil {
@@ -317,6 +329,23 @@ func New(cfg *config.Config) (*App, error) {
 		supportRepo := support.NewRepository(pool)
 		supportSvc := support.NewService(supportRepo)
 		supportHandler = support.NewHandler(supportSvc, cfg)
+
+	// Compliance domains
+	consentRepo := consent.NewRepository(pool)
+	consentSvc := consent.NewService(cfg, consentRepo)
+	consentHandler = consent.NewHandler(cfg, consentSvc)
+
+	dsrRepo := dsr.NewRepository(pool)
+	dsrSvc := dsr.NewService(cfg, dsrRepo)
+	dsrHandler = dsr.NewHandler(cfg, dsrSvc)
+
+	breachRepo := breach.NewRepository(pool)
+	breachSvc := breach.NewService(cfg, breachRepo)
+	breachHandler = breach.NewHandler(cfg, breachSvc)
+
+	reportsRepo := reports.NewRepository(pool)
+	reportsSvc := reports.NewService(cfg, reportsRepo)
+	reportsHandler = reports.NewHandler(cfg, reportsSvc)
 
 		// Initialize courier service
 		courierRepo := courier.NewRepository(pool)
@@ -621,6 +650,18 @@ func (a *App) registerRoutes() {
 	if a.supportHandler != nil {
 		a.supportHandler.RegisterRoutes(api)
 	}
+	if a.consentHandler != nil {
+		a.consentHandler.RegisterRoutes(api)
+	}
+	if a.dsrHandler != nil {
+		a.dsrHandler.RegisterRoutes(api)
+	}
+	if a.breachHandler != nil {
+		a.breachHandler.RegisterRoutes(api)
+	}
+	if a.reportsHandler != nil {
+		a.reportsHandler.RegisterRoutes(api)
+	}
 
 	// Courier domain routes.
 	if a.courierHandler != nil {
@@ -746,6 +787,10 @@ func (a *App) statusHandler(c *fiber.Ctx) error {
 		"shopImageMap":   a.shopImageMapHandler != nil,
 		"shops":          a.shopsHandler != nil,
 		"support":        a.supportHandler != nil,
+		"consent":        a.consentHandler != nil,
+		"dsr":            a.dsrHandler != nil,
+		"breach":         a.breachHandler != nil,
+		"reports":        a.reportsHandler != nil,
 		"users":          a.usersHandler != nil,
 	}
 
@@ -823,3 +868,7 @@ func parseBodyLimit(limit string) int {
 	}
 	return value * int(multiplier)
 }
+
+
+
+

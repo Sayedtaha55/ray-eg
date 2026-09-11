@@ -2,12 +2,15 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   ShoppingCart, Eye, Users, DollarSign, Package, Star, RefreshCw, Download,
   TrendingUp, TrendingDown, Bell, Plus, Megaphone, Calendar, Store,
   Settings as SettingsIcon, LogIn, AlertTriangle, ChevronLeft, Wallet, Boxes, BarChart3,
+  History,
 } from 'lucide-react';
 import { useAuth, apiRequest } from '@/lib/auth';
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed';
 
 /* ============================================================
  * Types (matching backend responses)
@@ -50,6 +53,17 @@ type LoginSession = {
  * ============================================================ */
 
 const LOCALE = 'ar-EG-u-nu-latn';
+
+// اختصارات افتراضية تظهر لما مفيش تاريخ زيارات لسه
+const DEFAULT_SHORTCUTS: { href: string; labelAr: string }[] = [
+  { href: '/dashboard/sales', labelAr: 'كل الطلبات' },
+  { href: '/dashboard/inventory', labelAr: 'المنتجات' },
+  { href: '/dashboard/notifications', labelAr: 'الإشعارات' },
+  { href: '/dashboard/pos', labelAr: 'الكاشير' },
+  { href: '/dashboard/analytics', labelAr: 'التحليلات' },
+  { href: '/dashboard/marketing', labelAr: 'التسويق' },
+];
+
 const fmtEGP = (n: number) => `${(Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} ج.م`;
 const fmtNum = (n: number) => (Number.isFinite(n) ? n : 0).toLocaleString(LOCALE, { maximumFractionDigits: 0 });
 const fmtCompact = (n: number) => {
@@ -282,6 +296,7 @@ export default function DashboardOverview() {
   const { user } = useAuth();
   const [period, setPeriod] = useState<PeriodKey>('30');
   const [metric, setMetric] = useState<Metric>('revenue');
+  const [showAllRecent, setShowAllRecent] = useState(false);
   const [shop, setShop] = useState<Shop | null>(null);
   const [current, setCurrent] = useState<AnalyticsOverview | null>(null);
   const [previous, setPrevious] = useState<AnalyticsOverview | null>(null);
@@ -293,6 +308,10 @@ export default function DashboardOverview() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // آخر ما اطّلع عليه — زيارات حقيقية متتبّعة من الـ layout
+  const visited = useRecentlyViewed();
+  const recentItems = showAllRecent ? visited : visited.slice(0, 6);
 
   const load = useCallback(async (p: PeriodKey) => {
     setRefreshing(true);
@@ -468,6 +487,34 @@ export default function DashboardOverview() {
           </button>
         </div>
       </div>
+      {/* ===== آخر ما اطّلع عليه (Recent shortcuts) ===== */}
+      <Card className="p-0 overflow-hidden">
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
+          <div className="flex items-center gap-2">
+            <History size={15} className="text-slate-500" />
+            <h2 className="text-sm font-bold text-slate-800">آخر ما اطّلع عليه</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAllRecent((v) => !v)}
+            className="text-[11px] font-bold text-slate-400 hover:text-slate-700 transition-colors"
+          >
+            {showAllRecent ? 'إخفاء' : 'استعراض الكل'}
+          </button>
+        </div>
+        <div className="px-5 py-3 flex flex-wrap items-center">
+          {(recentItems.length === 0 ? DEFAULT_SHORTCUTS : recentItems).map((it, idx, arr) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`group flex items-center gap-1.5 px-3.5 py-2 text-[12px] font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors rounded-lg ${idx !== arr.length - 1 ? 'border-l border-slate-100' : ''}`}
+            >
+              <Star size={13} className="text-slate-300 group-hover:text-amber-400 transition-colors shrink-0" />
+              <span className="truncate">{it.labelAr}</span>
+            </Link>
+          ))}
+        </div>
+      </Card>
 
       {/* ===== Alerts ===== */}
       {error && (

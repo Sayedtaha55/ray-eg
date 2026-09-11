@@ -1,4 +1,4 @@
-package middleware
+﻿package middleware
 
 import (
 	"github.com/Sayedtaha55/ray-eg/gobackend/internal/config"
@@ -28,7 +28,16 @@ func SecurityHeaders(cfg *config.Config) fiber.Handler {
 		csp := buildCSP(isDev, frontend)
 		c.Set("Content-Security-Policy", csp)
 
-		return c.Next()
+	// X-Powered-By removal
+	c.Set("X-Powered-By", "")
+
+	// Cache-Control: no-store for API responses (prevents caching of sensitive data)
+	path := c.Path()
+	if len(path) >= 8 && path[:8] == "/api/v1/" {
+		c.Set("Cache-Control", "no-store")
+	}
+
+	return c.Next()
 	}
 }
 
@@ -59,3 +68,4 @@ func buildCSP(isDev bool, frontend string) string {
 		"base-uri 'self'; " +
 		"form-action 'self';"
 }
+

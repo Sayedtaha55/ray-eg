@@ -56,6 +56,18 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 	activityID := strings.TrimSpace(req.ActivityID)
 	layoutConfig := defaultDashboardConfig(ShopCategory(req.Category), activityID)
 
+	// Self-serve onboarding: the signup wizard sends the layout the merchant
+	// actually configured (enabledFeatures from his answers) — it wins over
+	// the category defaults so "no cashier" really means no cashier.
+	if len(req.LayoutConfig) > 0 {
+		for k, v := range req.LayoutConfig {
+			if v == nil {
+				continue
+			}
+			layoutConfig[k] = v
+		}
+	}
+
 	// Build module config for builder_config
 	var builderConfig map[string]any
 	if len(req.EnabledModules) > 0 || len(req.Specialties) > 0 || req.ModuleFeatures != nil {
@@ -79,16 +91,25 @@ func (s *Service) CreateShop(ctx context.Context, ownerID string, req CreateShop
 		Phone:           req.Phone,
 		Email:           strPtr(req.Email),
 		OpeningHours:    strPtr(req.OpeningHours),
-		Status:          ShopStatusPending,
-		LayoutConfig:    layoutConfig,
-		BuilderConfig:   builderConfig,
-		Theme:           strPtr("default"),
-		OwnerID:         &ownerID,
+		// Self-serve onboarding: merchants start approved on a free trial
+		// instead of waiting for admin approval. Admins can still lock any
+		// merchant (SUSPENDED) at any time from the admin panel.
+		Status:        ShopStatusApproved,
+		LayoutConfig:  layoutConfig,
+		BuilderConfig: builderConfig,
+		Theme:         strPtr("default"),
+		OwnerID:       &ownerID,
 	}
 
 	created, err := s.repo.Create(ctx, shop)
 	if err != nil {
 		return nil, errors.Internal("create_shop_failed", err)
+	}
+
+	// Activate the owner account and link the shop immediately (the same
+	// step the approval flow used to perform).
+	if err := s.repo.SetOwnerActive(ctx, ownerID, created.ID); err != nil {
+		logger.Global().Warn("failed to activate owner after signup", zap.Error(err))
 	}
 
 	logger.Global().Info("shop created", zap.String("shop_id", created.ID), zap.String("owner_id", ownerID))
@@ -206,7 +227,8 @@ func (s *Service) UpdateAdminShop(ctx context.Context, shopID string, body map[s
 	return s.repo.UpdateSettings(ctx, shopID, fields)
 }
 
-// UpdateStatus changes a shop status and activates the owner when approved.
+// UpdateStatus changes a shop status: approving activates the owner,
+// suspending locks the owner out of the platform until re-approved.
 func (s *Service) UpdateStatus(ctx context.Context, shopID string, status ShopStatus) (*Shop, error) {
 	shop, err := s.repo.UpdateStatus(ctx, shopID, status)
 	if err != nil {
@@ -216,12 +238,19 @@ func (s *Service) UpdateStatus(ctx context.Context, shopID string, status ShopSt
 		return nil, errors.NotFound("shop", shopID)
 	}
 
-	if status == ShopStatusApproved && shop.OwnerID != nil {
-		if err := s.repo.SetOwnerActive(ctx, *shop.OwnerID, shop.ID); err != nil {
-			logger.Global().Warn("failed to activate owner after approval", zap.Error(err))
-		}
-		if err := s.sendApprovalEmail(ctx, shop); err != nil {
-			logger.Global().Warn("failed to send approval email", zap.Error(err))
+	if shop.OwnerID != nil {
+		switch status {
+		case ShopStatusApproved:
+			if err := s.repo.SetOwnerActive(ctx, *shop.OwnerID, shop.ID); err != nil {
+				logger.Global().Warn("failed to activate owner after approval", zap.Error(err))
+			}
+			if err := s.sendApprovalEmail(ctx, shop); err != nil {
+				logger.Global().Warn("failed to send approval email", zap.Error(err))
+			}
+		case ShopStatusSuspended:
+			if err := s.repo.SetOwnerInactive(ctx, *shop.OwnerID); err != nil {
+				logger.Global().Warn("failed to lock owner after suspension", zap.Error(err))
+			}
 		}
 	}
 

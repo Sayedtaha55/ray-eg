@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from 'next';
+﻿import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
 import { CartProvider } from '@/lib/cart';
@@ -6,6 +6,8 @@ import { WishlistProvider } from '@/lib/wishlist';
 import { AppChrome } from '@/components/AppChrome';
 import { PwaInstallPrompt } from '@/components/PwaInstallPrompt';
 import { siteConfig } from '@/lib/config';
+import ConsentBanner from '@ray-eg/shared/components/common/ConsentBanner';
+import BreachNotice from '@ray-eg/shared/components/common/BreachNotice';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -81,8 +83,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppProvider>
           <CartProvider>
             <WishlistProvider>
+              <BreachNotice />
               <AppChrome>{children}</AppChrome>
               <PwaInstallPrompt />
+              <ConsentBanner />
             </WishlistProvider>
           </CartProvider>
         </AppProvider>

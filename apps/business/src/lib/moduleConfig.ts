@@ -663,7 +663,7 @@ export function computeSystemSummary(enabledModuleIds: ModuleId[]): SystemSummar
   };
 }
 
-const BOOKING_ACTIVITIES = new Set([
+export const BOOKING_ACTIVITIES = new Set([
   'bookings', 'clinic', 'dentalClinic', 'vetClinic', 'salon', 'spa',
   'gym', 'yogaStudio', 'sportsCenter', 'hotel', 'travelAgency',
   'drivingSchool', 'musicSchool', 'tutoringCenter', 'photographyStudio',

@@ -2,26 +2,22 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useMemo, useState, useCallback, Suspense } from 'react';
+import { useMemo, useState, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckCircle2, AlertTriangle, ChevronLeft, Search, Home, ArrowRight,
-  Sparkles, LayoutDashboard, Calendar, Plus, X, User, Store, Mail, Lock, Phone,
-  Loader2, Eye, EyeOff, Check, ChevronDown,
+  AlertTriangle, ChevronLeft, Search, Home, ArrowRight, Sparkles,
+  User, Store, Mail, Lock, Phone, Loader2, Eye, EyeOff, Check, CheckCircle2,
+  LayoutDashboard, SkipForward, Building2, HelpCircle,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   BUSINESS_ACTIVITIES, groupAccentColors, ActivityWithGroup,
 } from '@/lib/activities';
+import { BOOKING_ACTIVITIES, MODULE_DEFINITIONS, resolveDependencies, getActivityDefaultModules, type ModuleId } from '@/lib/moduleConfig';
 import {
-  MODULE_DEFINITIONS, MODULE_MAP, OPTIONAL_MODULES,
-  toggleModule, resolveDependencies, computeSystemSummary,
-  getActivityDefaultModules, getActivityDefaultFeatures,
-  PAGE_LABEL_AR, type ModuleId,
-} from '@/lib/moduleConfig';
-import SystemSummary from '@/components/SystemSummary';
-
-const SIGNUP_MODULES = OPTIONAL_MODULES.filter((m) => m.id !== 'bookings');
+  getQuestionsForActivity, modulesFromAnswers, specialtiesFromAnswers,
+  dashboardEnabledFeatures, getBaseModules, type ActivityQuestion,
+} from '@/lib/activityQuestions';
 
 const MotionDiv = motion.div as any;
 
@@ -66,55 +62,37 @@ const ACTIVITY_ICONS: Record<string, string> = {
   other: '🏷️',
 };
 
-type Step = 'activity' | 'specialty' | 'modules' | 'data';
+type Step = 'account' | 'activity' | 'questions' | 'data';
 
 const ACTIVITIES: ActivityWithGroup[] = BUSINESS_ACTIVITIES;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || (process.env.NODE_ENV === 'development' ? 'http://localhost:4000' : 'https://api.mnmknk.com');
-
-const FormField = ({ id, label, value, onChange, type = 'text', required, icon: Icon, placeholder, multiline }: {
-  id: string; label: string; value: string; onChange: (value: string) => void; type?: string; required?: boolean;
-  icon?: React.ComponentType<{ className?: string }>; placeholder?: string; multiline?: boolean;
-}) => (
-  <div className="space-y-2">
-    <label htmlFor={id} className="text-xs font-black text-slate-600 uppercase tracking-widest mr-4 flex items-center gap-2">
-      {Icon && <Icon className="w-4 h-4 text-cyan-600" />}
-      <span className="text-slate-800">{label}</span>
-      {required && <span className="text-red-500">*</span>}
-    </label>
-    {multiline ? (
-      <textarea id={id} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={3}
-        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none resize-none" />
-    ) : (
-      <input id={id} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} required={required}
-        className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 px-6 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none" />
-    )}
-  </div>
-);
+// In development, call same-origin /api/* and let the Next.js rewrite proxy
+// it to the backend — avoids CSP/CORS blocks on http://localhost:4000.
+// In production, call the API origin directly (https is CSP-safe).
+const API_BASE = process.env.NODE_ENV === 'development'
+  ? ''
+  : (process.env.NEXT_PUBLIC_API_URL || 'https://api.mnmknk.com');
 
 function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo') || '';
 
-  const [step, setStep] = useState<Step>('activity');
+  const [step, setStep] = useState<Step>('account');
   const [activityId, setActivityId] = useState<string>('');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<Set<string>>(new Set());
-  const [customSpecialtyInput, setCustomSpecialtyInput] = useState('');
-  const [enabledModuleIds, setEnabledModuleIds] = useState<ModuleId[]>([]);
-  const [moduleFeatures, setModuleFeatures] = useState<Record<string, string[]>>({});
-  const [expandedModuleId, setExpandedModuleId] = useState<ModuleId | null>(null);
-  const [dependencyError, setDependencyError] = useState('');
-  const [error, setError] = useState('');
+  const [answers, setAnswers] = useState<Record<string, string[]>>({});
+  const [skipped, setSkipped] = useState(false);
   const [activitySearch, setActivitySearch] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showPassword, setShowPassword] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: '', email: '', password: '', phone: '',
-    shopName: '', governorate: '', city: '',
-    shopPhone: '', openingHours: '', shopEmail: '',
-    addressDetailed: '', shopDescription: '',
+    shopName: '', phone: '',
+    email: '', password: '',
+    governorate: '', city: '', shopPhone: '',
+    addressDetailed: '', shopDescription: '', openingHours: '',
   });
 
   const selectedActivity = useMemo(
@@ -141,86 +119,36 @@ function SignupContent() {
 
   const groupIds = useMemo(() => Object.keys(groupedActivities), [groupedActivities]);
 
+  const questions: ActivityQuestion[] = useMemo(() => {
+    if (!selectedActivity) return [];
+    return getQuestionsForActivity(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
+  }, [selectedActivity]);
+
+  const answeredCount = questions.filter((q) => (answers[q.id] || []).length > 0).length;
+
+  const finalModules = useMemo(() => {
+    if (!selectedActivity) return [] as ModuleId[];
+    // The wizard is the source of truth: the activity baseline (its simple
+    // essentials) plus ONLY the modules the merchant opted into. Nothing else.
+    const base = getBaseModules(selectedActivity.id, BOOKING_ACTIVITIES.has(selectedActivity.id));
+    if (skipped) return resolveDependencies(base);
+    return resolveDependencies(modulesFromAnswers(base, questions, answers));
+  }, [selectedActivity, skipped, questions, answers]);
+
   const applyActivity = (a: ActivityWithGroup) => {
     setActivityId(a.id);
-    const initialModules = getActivityDefaultModules(a.id);
-    setEnabledModuleIds(initialModules);
-    const initialFeatures = getActivityDefaultFeatures(a.id);
-    setModuleFeatures(initialFeatures);
-    setExpandedModuleId(null);
-    setSelectedSpecialties(new Set());
-    setCustomSpecialtyInput('');
+    setAnswers({});
+    setSkipped(false);
     setError('');
-    setDependencyError('');
   };
 
-  const hasSpecialties = selectedActivity && selectedActivity.specialties.length > 0;
-
-  const summary = useMemo(
-    () => computeSystemSummary(enabledModuleIds),
-    [enabledModuleIds],
-  );
-
-  const handleToggleModule = useCallback((moduleId: ModuleId) => {
-    setDependencyError('');
-    setEnabledModuleIds((prev) => {
-      const result = toggleModule(prev, moduleId);
-      if (result.blocked.length > 0) {
-        const mod = MODULE_MAP[moduleId];
-        if (mod && !mod.optional) {
-          setDependencyError(`${mod.nameAr || mod.name}: وحدة أساسية لا يمكن تعطيلها`);
-        } else {
-          const blockedNames = result.blocked
-            .map((id) => MODULE_MAP[id]?.nameAr || MODULE_MAP[id]?.name || id)
-            .join(', ');
-          setDependencyError(`لا يمكن التعديل — مطلوب بواسطة: ${blockedNames}`);
-        }
-        return prev;
+  const toggleAnswer = (q: ActivityQuestion, optionId: string) => {
+    setAnswers((prev) => {
+      const current = prev[q.id] || [];
+      if (q.multi) {
+        return { ...prev, [q.id]: current.includes(optionId) ? current.filter((x) => x !== optionId) : [...current, optionId] };
       }
-      if (result.removed.length > 1) {
-        const removedNames = result.removed
-          .map((id) => {
-            const m = MODULE_MAP[id];
-            return m?.nameAr || m?.name || id;
-          })
-          .join(', ');
-        setDependencyError(`تم تعطيل: ${removedNames}`);
-      }
-      return result.next;
-    });
-  }, []);
-
-  const handleToggleFeature = (moduleId: string, featureId: string) => {
-    setModuleFeatures((prev) => {
-      const current = prev[moduleId] || [];
-      const next = current.includes(featureId)
-        ? current.filter((id) => id !== featureId)
-        : [...current, featureId];
-      return { ...prev, [moduleId]: next };
-    });
-  };
-
-  const toggleSpecialty = (specialty: string) => {
-    setSelectedSpecialties((prev) => {
-      const next = new Set(prev);
-      if (next.has(specialty)) next.delete(specialty);
-      else next.add(specialty);
-      return next;
-    });
-  };
-
-  const addCustomSpecialty = () => {
-    const value = customSpecialtyInput.trim();
-    if (!value) return;
-    setSelectedSpecialties((prev) => new Set([...Array.from(prev), value]));
-    setCustomSpecialtyInput('');
-  };
-
-  const removeCustomSpecialty = (value: string) => {
-    setSelectedSpecialties((prev) => {
-      const next = new Set(prev);
-      next.delete(value);
-      return next;
+      return { ...prev, [q.id]: current.includes(optionId) ? [] : [optionId] };
     });
   };
 
@@ -230,7 +158,7 @@ function SignupContent() {
       setStep('activity');
       return;
     }
-    if (!formData.name || !formData.email || !formData.password || !formData.phone || !formData.shopName) {
+    if (!formData.shopName || !formData.email || !formData.password || !formData.phone) {
       setError('يرجى ملء الحقول المطلوبة');
       return;
     }
@@ -246,11 +174,13 @@ function SignupContent() {
       const userPayload: any = {
         email: formData.email,
         password: formData.password,
-        name: formData.name,
+        // No separate name field — the store name is the account identity;
+        // the merchant can edit it later from settings.
+        name: formData.shopName,
         phone: e164Phone,
         role: 'MERCHANT',
       };
-      const res = await fetch(`${API_URL}/api/v1/auth/signup`, {
+      const res = await fetch(`${API_BASE}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(userPayload),
@@ -262,36 +192,73 @@ function SignupContent() {
         return;
       }
 
-      // Step 2: Create shop with module config
+      // Step 2: Create shop — modules come from activity defaults + answers,
+      // specialties from the answers; the merchant can upgrade everything later.
+      const finalSpecialties = skipped
+        ? []
+        : specialtiesFromAnswers(questions, answers);
       const shopPayload: any = {
         name: formData.shopName,
         category: selectedActivity.category,
         phone: formData.shopPhone || formData.phone,
-        email: formData.shopEmail || formData.email,
+        email: formData.email,
         description: formData.shopDescription,
         addressDetailed: formData.addressDetailed,
         governorate: formData.governorate,
         city: formData.city,
         openingHours: formData.openingHours,
         activityId: selectedActivity.id,
-        enabledModules: Array.from(resolveDependencies(enabledModuleIds)),
-        specialties: Array.from(selectedSpecialties),
+        activity: selectedActivity.title,
+        enabledModules: Array.from(resolveDependencies(finalModules)),
+        specialties: finalSpecialties,
         moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
-          resolveDependencies(enabledModuleIds).includes(m.id),
+          resolveDependencies(finalModules).includes(m.id),
         ).map((m) => ({
           moduleId: m.id,
           features: m.features.map((f) => ({
             id: f.id,
             label: f.label,
-            enabled: (moduleFeatures[m.id] || []).includes(f.id),
+            enabled: true,
           })),
         })),
+        onboarding: { skipped, answers },
       };
 
       const accessToken = data?.token?.accessToken || data?.data?.token?.accessToken || data?.session?.access_token;
       const user = data?.user || data?.data?.user;
 
-      const shopRes = await fetch(`${API_URL}/api/v1/shops`, {
+      const resolvedModules = Array.from(resolveDependencies(finalModules));
+      const shopPayload: any = {
+        name: formData.shopName,
+        category: selectedActivity.category,
+        phone: formData.shopPhone || formData.phone,
+        email: formData.email,
+        description: formData.shopDescription,
+        addressDetailed: formData.addressDetailed,
+        governorate: formData.governorate,
+        city: formData.city,
+        openingHours: formData.openingHours,
+        activityId: selectedActivity.id,
+        activity: selectedActivity.title,
+        enabledModules: resolvedModules,
+        specialties: finalSpecialties,
+        // The dashboard layout the merchant actually chose — this is what
+        // makes his answers real: only these sections appear in his panel.
+        layoutConfig: {
+          enabledFeatures: dashboardEnabledFeatures(resolvedModules),
+          onboarding: { skipped, answers },
+        },
+        moduleFeatures: MODULE_DEFINITIONS.filter((m) =>
+          resolvedModules.includes(m.id),
+        ).map((m) => ({
+          moduleId: m.id,
+          features: m.features.map((f) => ({
+            id: f.id,
+            label: f.label,
+            enabled: f.defaultEnabled !== false,
+          })),
+        })),
+      };
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -320,23 +287,35 @@ function SignupContent() {
 
   const goNext = () => {
     setError('');
-    setDependencyError('');
-    if (step === 'activity') {
-      if (!selectedActivity) { setError('اختر نشاطك أولاً'); return; }
-      setStep(hasSpecialties ? 'specialty' : 'modules');
+    if (step === 'account') {
+      if (!formData.shopName.trim() || !formData.phone.trim()) {
+        setError('اكمل اسم المتجر ورقم الموبايل عشان نكمل');
+        return;
+      }
+      setStep('activity');
       return;
     }
-    if (step === 'specialty') { setStep('modules'); return; }
-    if (step === 'modules') { setStep('data'); return; }
+    if (step === 'activity') {
+      if (!selectedActivity) { setError('اختر نشاطك أولاً'); return; }
+      setStep('questions');
+      return;
+    }
+    if (step === 'questions') { setStep('data'); return; }
     if (step === 'data') { submitSignup(); return; }
   };
 
   const goBack = () => {
     setError('');
-    setDependencyError('');
-    if (step === 'modules') setStep(hasSpecialties ? 'specialty' : 'activity');
-    else if (step === 'specialty') setStep('activity');
-    else if (step === 'data') setStep('modules');
+    if (step === 'activity') setStep('account');
+    else if (step === 'questions') setStep('activity');
+    else if (step === 'data') setStep(skipped ? 'activity' : 'questions');
+  };
+
+  const skipToManual = () => {
+    setSkipped(true);
+    setAnswers({});
+    setError('');
+    setStep('data');
   };
 
   const goHome = () => router.push('/');
@@ -352,18 +331,20 @@ function SignupContent() {
 
   const Stepper = () => {
     const steps = [
-      { key: 'activity', label: 'النشاط', num: 1 },
-      { key: 'specialty', label: 'التخصص', num: 2 },
-      { key: 'modules', label: 'الوحدات', num: 3 },
-      { key: 'data', label: 'البيانات', num: 4 },
+      { key: 'account', label: 'حسابك', num: 1 },
+      { key: 'activity', label: 'نشاطك', num: 2 },
+      { key: 'questions', label: 'أسئلة سريعة', num: 3 },
+      { key: 'data', label: 'التسجيل', num: 4 },
     ];
-    const activeNum = step === 'activity' ? 1 : step === 'specialty' ? 2 : step === 'modules' ? 3 : 4;
+    const activeNum = step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4;
     return (
       <div className="flex items-center justify-center gap-2 mb-8 flex-wrap">
         {steps.map((s, idx) => (
           <div key={s.key} className="flex items-center gap-2">
-            <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-black transition-all ${s.num <= activeNum ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500'}`}>
-              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">{s.num}</span>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-black transition-all ${s.num <= activeNum ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-400'}`}>
+              <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center text-xs">
+                {s.num < activeNum ? <Check className="w-3.5 h-3.5" /> : s.num}
+              </span>
               {s.label}
             </div>
             {idx < steps.length - 1 && <div className="w-8 h-px bg-slate-200" />}
@@ -372,19 +353,6 @@ function SignupContent() {
       </div>
     );
   };
-
-  const SpecialtyChip = ({ label, checked, onClick }: { label: string; checked: boolean; onClick: () => void }) => (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-4 py-2.5 rounded-xl text-xs font-black border transition-all ${checked ? 'bg-cyan-50 border-cyan-400 text-cyan-800' : 'bg-white border-slate-100 text-slate-600 hover:border-slate-200'}`}
-    >
-      <span className="flex items-center gap-2">
-        {checked && <CheckCircle2 className="w-3.5 h-3.5 text-cyan-600" />}
-        {label}
-      </span>
-    </button>
-  );
 
   const ActivityCard = ({ activity }: { activity: ActivityWithGroup }) => {
     const active = activity.id === activityId;
@@ -395,24 +363,68 @@ function SignupContent() {
       <button
         type="button"
         onClick={() => applyActivity(activity)}
-        className={`relative text-right p-3 rounded-xl border transition-all hover:shadow-md ${active ? 'border-cyan-400 bg-cyan-50/50 shadow-md shadow-cyan-100/50' : 'border-slate-200 bg-white hover:border-slate-300'}`}
+        className={`relative text-right p-4 rounded-2xl border-2 transition-all hover:shadow-lg hover:-translate-y-0.5 ${active ? 'border-slate-900 bg-slate-900 text-white shadow-xl' : 'border-slate-100 bg-white hover:border-slate-300'}`}
       >
-        {active && <span className="absolute top-2.5 left-2.5"><CheckCircle2 className="w-4 h-4 text-cyan-600" /></span>}
-        <div className="flex items-center gap-2 mb-1.5">
-          {icon ? (
-            <span className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-lg leading-none">{icon}</span>
-          ) : (
-            <span className={`w-8 h-8 rounded-lg bg-gradient-to-br ${gradient} text-white flex items-center justify-center text-sm font-black`}>
+        {active && (
+          <span className="absolute top-3 left-3 w-6 h-6 rounded-full bg-[#00E5FF] flex items-center justify-center">
+            <Check className="w-4 h-4 text-black" strokeWidth={3} />
+          </span>
+        )}
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-3 ${active ? 'bg-white/10' : 'bg-slate-50 border border-slate-100'}`}>
+          {icon || (
+            <span className={`bg-gradient-to-br ${gradient} bg-clip-text text-transparent font-black text-xl`}>
               {getActivityLabel(activity).charAt(0)}
             </span>
           )}
-          <div className="text-[9px] font-black text-slate-400 leading-3 line-clamp-2">{activity.groupTitle}</div>
         </div>
-        <div className="font-black text-sm text-slate-900 mb-0.5">{getActivityLabel(activity)}</div>
-        <p className="text-[11px] font-bold text-slate-500 leading-4 line-clamp-2">{activity.description}</p>
+        <div className="font-black text-sm mb-1">{getActivityLabel(activity)}</div>
+        <p className={`text-[11px] font-bold leading-4 line-clamp-2 ${active ? 'text-white/60' : 'text-slate-400'}`}>
+          {activity.description}
+        </p>
       </button>
     );
   };
+
+  const renderAccountStep = () => (
+    <div className="max-w-lg mx-auto">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white border border-slate-100 rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] p-8"
+      >
+        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-700 flex items-center justify-center mb-5">
+          <Sparkles className="w-7 h-7 text-[#00E5FF]" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-1">أهلاً بيك 👋</h2>
+        <p className="text-slate-400 font-bold text-sm mb-7">عرفنا بمتجرك في 30 ثانية، وبعدها نظبط لوحك على نشاطك بالظبط</p>
+        <div className="space-y-5">
+          <div>
+            <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
+              <Store className="w-4 h-4 text-[#00E5FF]" /> اسم المتجر / المحل <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text" value={formData.shopName}
+              onChange={(e) => setFormData((p) => ({ ...p, shopName: e.target.value }))}
+              placeholder=""
+              className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-right text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
+              <Phone className="w-4 h-4 text-[#00E5FF]" /> رقم الموبايل <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="tel" value={formData.phone} dir="ltr"
+              onChange={(e) => setFormData((p) => ({ ...p, phone: e.target.value }))}
+              placeholder="01xxxxxxxxx"
+              className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
+            />
+            <p className="text-[10px] font-bold text-slate-400 mt-2">هنستخدم الرقم للتواصل معاك وتفعيل حسابك — مفيش رسائل مزعجة</p>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
 
   const renderActivityStep = () => (
     <div className="space-y-5">
@@ -422,376 +434,271 @@ function SignupContent() {
           type="text"
           value={activitySearch}
           onChange={(e) => setActivitySearch(e.target.value)}
-          placeholder="دور على نشاط..."
-          className="w-full pr-11 pl-4 py-3 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 transition-colors text-sm"
+          placeholder="دور على نشاطك... (مطعم، سوبر ماركت، عيادة)"
+          className="w-full pr-11 pl-4 py-3.5 rounded-2xl bg-white border-2 border-slate-100 text-slate-900 font-bold outline-none focus:border-[#00E5FF] transition-colors text-sm shadow-sm"
         />
       </div>
 
-      <div className="space-y-6">
-        <div className="flex items-center gap-2">
-          <LayoutDashboard className="w-4 h-4 text-slate-400" />
-          <span className="text-sm font-black text-slate-900">كل الأنشطة</span>
-        </div>
-        {groupIds.length === 0 ? (
-          <div className="text-center py-10"><p className="text-slate-400 font-bold">لا توجد أنشطة مطابقة لبحثك.</p></div>
-        ) : (
-          groupIds.map((groupId) => {
-            const activities = groupedActivities[groupId];
-            const expanded = expandedGroups.has(groupId) || activitySearch.length > 0;
-            const groupTitle = activities[0]?.groupTitle || groupId;
-            const visible = expanded ? activities : activities.slice(0, 3);
-            return (
-              <div key={groupId} className="pt-1">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-xs font-black`}>
-                      {groupTitle.charAt(0)}
-                    </div>
-                    <span className="font-black text-sm md:text-base text-slate-900">{groupTitle}</span>
-                    <span className="text-[11px] font-black text-slate-400">({activities.length})</span>
+      {groupIds.length === 0 ? (
+        <div className="text-center py-10"><p className="text-slate-400 font-bold">لا توجد أنشطة مطابقة لبحثك.</p></div>
+      ) : (
+        groupIds.map((groupId) => {
+          const activities = groupedActivities[groupId];
+          const expanded = expandedGroups.has(groupId) || activitySearch.length > 0 || activityId !== '';
+          const groupTitle = activities[0]?.groupTitle || groupId;
+          const visible = expanded ? activities : activities.slice(0, 4);
+          return (
+            <div key={groupId} className="pt-1">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${groupAccentColors[groupId] || groupAccentColors.other} text-white flex items-center justify-center text-sm font-black`}>
+                    {activities[0]?.icon || groupTitle.charAt(0)}
                   </div>
-                  {!activitySearch && activities.length > 3 && (
-                    <button type="button" onClick={() => toggleGroup(groupId)} className="text-xs font-black text-cyan-700 hover:text-cyan-800 transition-colors">
-                      {expanded ? 'عرض أقل' : 'عرض المزيد'}
-                    </button>
-                  )}
+                  <span className="font-black text-sm md:text-base text-slate-900">{groupTitle}</span>
+                  <span className="text-[11px] font-black text-slate-300">({activities.length})</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2 md:gap-3">
-                  {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
-                </div>
-                <div className="h-5 border-b border-slate-100 mt-3" />
+                {!activitySearch && activities.length > 4 && (
+                  <button type="button" onClick={() => toggleGroup(groupId)} className="text-xs font-black text-slate-500 hover:text-slate-900 transition-colors">
+                    {expanded ? 'عرض أقل' : `عرض كل ${activities.length}`}
+                  </button>
+                )}
               </div>
-            );
-          })
-        )}
-      </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 md:gap-3">
+                {visible.map((activity) => <ActivityCard key={activity.id} activity={activity} />)}
+              </div>
+            </div>
+          );
+        })
+      )}
     </div>
   );
 
-  const renderSpecialtyStep = () => {
+  const renderQuestionsStep = () => {
     if (!selectedActivity) return null;
     return (
-      <div className="space-y-6 max-w-3xl mx-auto">
-        <div className="text-center">
-          <div className="text-xl md:text-2xl font-black text-slate-900 mb-1.5">
-            اختار تخصص {selectedActivity.title}
+      <div className="max-w-2xl mx-auto space-y-4">
+        <div className="text-center mb-2">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-slate-900 text-white text-xs font-black mb-3">
+            <span>{selectedActivity.icon || ACTIVITY_ICONS[selectedActivity.id] || '🏷️'}</span>
+            {getActivityLabel(selectedActivity)}
           </div>
-          <p className="text-slate-500 font-bold text-xs md:text-sm">
-            حدد التخصص الدقيق لنشاطك — اختاري اختياري. لو مش موجود اكتبه.
+          <h2 className="text-2xl font-black text-slate-900 mb-1.5">سؤالين سريعين ونظبطلك كل حاجة</h2>
+          <p className="text-slate-400 font-bold text-xs md:text-sm">
+            بناءً على إجاباتك هنفتح الأزرار اللي محتاجها فعلاً — والباقي كل هيتلاقي في الترقية لما تحتاجه
           </p>
         </div>
 
-        {selectedActivity.specialties.length > 0 && (
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <div className="font-black text-slate-900 text-sm">التخصصات المتاحة</div>
-              {selectedSpecialties.size > 0 && (
-                <span className="text-[11px] font-black text-cyan-700 bg-cyan-50 border border-cyan-100 px-2.5 py-1 rounded-full">
-                  مختار {selectedSpecialties.size}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {selectedActivity.specialties.map((specialty) => (
-                <SpecialtyChip key={specialty} label={specialty} checked={selectedSpecialties.has(specialty)} onClick={() => toggleSpecialty(specialty)} />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div>
-          <div className="font-black text-slate-900 text-sm mb-3">تخصص غير موجود؟ اكتبه</div>
-          <div className="flex gap-2 max-w-md flex-row-reverse">
-            <input
-              type="text"
-              value={customSpecialtyInput}
-              onChange={(e) => setCustomSpecialtyInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') addCustomSpecialty(); }}
-              placeholder="مثال: مطعم سمك مشوي"
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-100 text-slate-900 font-bold outline-none focus:border-cyan-300 text-sm"
-            />
-            <button type="button" onClick={addCustomSpecialty} className="px-4 py-2.5 rounded-xl bg-slate-900 text-white hover:bg-black transition-colors shrink-0">
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-          {Array.from(selectedSpecialties).filter((s) => !selectedActivity.specialties.includes(s)).length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3">
-              {Array.from(selectedSpecialties).filter((s) => !selectedActivity.specialties.includes(s)).map((specialty) => (
-                <span key={specialty} className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-50 border border-cyan-200 text-cyan-800 text-xs font-black">
-                  {specialty}
-                  <button type="button" onClick={() => removeCustomSpecialty(specialty)}><X className="w-3.5 h-3.5" /></button>
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const renderModulesStep = () => {
-    if (!selectedActivity) return null;
-    return (
-      <div className="space-y-6">
-        <div className="text-center mb-4">
-          <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2">تطبيقات نظامك</div>
-          <p className="text-slate-500 font-bold text-sm">
-            تطبيقات موصى بها لـ: {selectedActivity ? getActivityLabel(selectedActivity) : ''}
-          </p>
-        </div>
-
-        {dependencyError && (
-          <div className={`flex items-start gap-3 p-4 rounded-xl border text-xs font-bold ${
-            dependencyError.startsWith('لا يمكن') || dependencyError.includes('أساسية')
-              ? 'bg-amber-50 border-amber-200 text-amber-800'
-              : 'bg-sky-50 border-sky-200 text-sky-700'
-          }`}>
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{dependencyError}</span>
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-          {SIGNUP_MODULES.map((mod) => {
-            const isEnabled = enabledModuleIds.includes(mod.id);
-            const isExpanded = expandedModuleId === mod.id;
-            const IconComp = mod.icon;
-            const enabledFeatureCount = (moduleFeatures[mod.id] || []).length;
-
-            return (
-              <div
-                key={mod.id}
-                className={`rounded-2xl border-2 transition-all overflow-hidden ${
-                  isExpanded ? 'col-span-2 sm:col-span-3 lg:col-span-4' : ''
-                } ${isEnabled ? 'border-slate-200 bg-white' : 'border-slate-100 bg-white/50'}`}
-              >
-                <button
-                  type="button"
-                  onClick={() => setExpandedModuleId(isExpanded ? null : mod.id)}
-                  className="w-full p-4 flex flex-col items-center text-center group"
-                >
-                  <div className="relative mb-3">
-                    <div
-                      className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
-                        isEnabled ? 'text-white shadow-lg' : 'bg-slate-50 text-slate-300 group-hover:bg-slate-100'
-                      }`}
-                      style={isEnabled ? { backgroundColor: mod.color } : {}}
-                    >
-                      <IconComp className="w-7 h-7" />
-                    </div>
-                    {isEnabled && (
-                      <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-white border-2 flex items-center justify-center shadow-sm" style={{ borderColor: mod.color }}>
-                        <Check className="w-3 h-3" style={{ color: mod.color }} />
-                      </div>
-                    )}
-                  </div>
-                  <div className={`font-black text-sm mb-1 ${isEnabled ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {mod.nameAr || mod.name}
-                  </div>
-                  <p className={`text-[10px] font-bold leading-4 line-clamp-2 ${isEnabled ? 'text-slate-400' : 'text-slate-300'}`}>
-                    {mod.descriptionAr || mod.description}
-                  </p>
-                  {isEnabled && (
-                    <div className="mt-2 flex items-center gap-1 text-[10px] font-black text-emerald-600">
-                      <Check className="w-3 h-3" />
-                      <span>{enabledFeatureCount} ميزة مفعّلة</span>
-                    </div>
-                  )}
-                  {!isEnabled && mod.dependencies.length > 0 && (
-                    <div className="mt-2 text-[9px] font-bold text-slate-300">
-                      يحتاج: {mod.dependencies.map((dep) => MODULE_MAP[dep]?.nameAr || MODULE_MAP[dep]?.name).join('، ')}
-                    </div>
-                  )}
-                </button>
-
-                <AnimatePresence>
-                  {isExpanded && (
-                    <MotionDiv
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 border-t border-slate-50 pt-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider">
-                            دليل الميزات
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleToggleModule(mod.id)}
-                            className={`px-3 py-1.5 rounded-lg text-[11px] font-black transition-all ${
-                              isEnabled
-                                ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                                : 'bg-slate-900 text-white hover:bg-black'
-                            }`}
-                          >
-                            {isEnabled ? 'مفعّل ✓' : 'تفعيل التطبيق'}
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {mod.features.map((feature) => {
-                            const featureEnabled = (moduleFeatures[mod.id] || []).includes(feature.id);
-                            return (
-                              <button
-                                key={feature.id}
-                                type="button"
-                                onClick={() => handleToggleFeature(mod.id, feature.id)}
-                                className={`flex items-center gap-2 p-2 rounded-lg transition-all text-right ${
-                                  featureEnabled ? 'bg-emerald-50 text-emerald-900' : 'bg-slate-50 text-slate-400'
-                                }`}
-                              >
-                                <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 ${
-                                  featureEnabled ? 'bg-emerald-100' : 'bg-slate-100'
-                                }`}>
-                                  {featureEnabled && <Check className="w-2.5 h-2.5 text-emerald-600" />}
-                                </div>
-                                <span className="text-[11px] font-bold">
-                                  {feature.labelAr || feature.label}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-
-                        {mod.pages.length > 0 && (
-                          <>
-                            <div className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-2 mt-4">
-                              صفحات التطبيق
-                            </div>
-                            <div className="flex flex-wrap gap-2">
-                              {mod.pages.map((page) => (
-                                <span key={page.id} className="px-2.5 py-1 rounded-lg bg-slate-50 text-[11px] font-bold text-slate-500">
-                                  {PAGE_LABEL_AR[page.label] || page.label}
-                                </span>
-                              ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </MotionDiv>
-                  )}
-                </AnimatePresence>
+        {questions.map((q, idx) => {
+          const selected = answers[q.id] || [];
+          return (
+            <motion.div
+              key={q.id}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white border border-slate-100 rounded-3xl p-5 shadow-sm"
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <HelpCircle className="w-4 h-4 text-[#00E5FF]" />
+                <h3 className="font-black text-slate-900 text-sm">{q.question}</h3>
+                {selected.length > 0 && (
+                  <span className="mr-auto text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">تم ✓</span>
+                )}
               </div>
-            );
-          })}
-        </div>
+              {q.hint && <p className="text-[11px] font-bold text-slate-400 mb-3">{q.hint}</p>}
+              <div className="flex flex-wrap gap-2">
+                {q.options.map((opt) => {
+                  const active = selected.includes(opt.id);
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => toggleAnswer(q, opt.id)}
+                      className={`px-4 py-2.5 rounded-xl text-xs font-black border-2 transition-all ${
+                        active
+                          ? 'bg-slate-900 border-slate-900 text-white shadow-md'
+                          : 'bg-white border-slate-100 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {active && <Check className="w-3.5 h-3.5 text-[#00E5FF]" strokeWidth={3} />}
+                        {opt.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          );
+        })}
 
-        <div className="lg:sticky lg:top-24 self-start">
-          <SystemSummary enabledModuleIds={enabledModuleIds} />
+        {/* Skip + manual */}
+        <div className="text-center pt-2">
+          <button
+            type="button"
+            onClick={skipToManual}
+            className="inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-white border-2 border-dashed border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-400 text-xs font-black transition-all"
+          >
+            <SkipForward className="w-4 h-4" />
+            تخطي وعمل يدوي — هندخل البيانات بنفسي والأزرار الأساسية بس
+          </button>
+          <p className="text-[10px] font-bold text-slate-300 mt-2">أسئلة {answeredCount} من {questions.length} مُجابة · مش إجباري تجاوب على كله</p>
         </div>
       </div>
     );
   };
-
 
   const renderDataStep = () => (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="text-center mb-4">
-        <div className="text-2xl md:text-3xl font-black text-slate-900 mb-2">بياناتك وبيانات المتجر</div>
-        <p className="text-slate-500 font-bold text-sm">أدخل بياناتك وبيانات المتجر</p>
-      </div>
-
-      <div className="bg-white border border-slate-200 rounded-[2.5rem] p-6 md:p-8 space-y-6 shadow-sm">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField id="merchant-name" label="الاسم الكامل" value={formData.name} onChange={(v) => setFormData((p) => ({ ...p, name: v }))} required icon={User} placeholder="محمد أحمد" />
-          <FormField id="merchant-phone" label="رقم الجوال" value={formData.phone} onChange={(v) => setFormData((p) => ({ ...p, phone: v }))} required type="tel" icon={Phone} placeholder="01234567890" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField id="merchant-email" label="البريد الإلكتروني" value={formData.email} onChange={(v) => setFormData((p) => ({ ...p, email: v }))} required type="email" icon={Mail} placeholder="name@example.com" />
-          <div className="space-y-2">
-            <label htmlFor="merchant-password" className="text-xs font-black text-slate-600 uppercase tracking-widest mr-4 flex items-center gap-2">
-              <Lock className="w-4 h-4 text-cyan-600" />
-              <span className="text-slate-800">كلمة المرور</span>
-              <span className="text-red-500">*</span>
+    <div className="space-y-6 max-w-lg mx-auto">
+      <div className="bg-white border border-slate-100 rounded-[2rem] shadow-[0_20px_60px_-20px_rgba(0,0,0,0.15)] p-8">
+        <h2 className="text-xl font-black text-slate-900 mb-1">آخر خطوة — حساب الدخول</h2>
+        <p className="text-slate-400 font-bold text-xs mb-6">الإيميل وكلمة السر اللي هتدخل بيهم للوحة التحكم</p>
+        <div className="space-y-5">
+          <div>
+            <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
+              <Mail className="w-4 h-4 text-[#00E5FF]" /> البريد الإلكتروني <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="email" value={formData.email} dir="ltr" autoFocus
+              onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
+              placeholder="name@example.com"
+              className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
+            />
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-xs font-black text-slate-600 mb-2">
+              <Lock className="w-4 h-4 text-[#00E5FF]" /> كلمة المرور <span className="text-red-500">*</span>
             </label>
             <div className="relative">
-              <input id="merchant-password" type={showPassword ? 'text' : 'password'} value={formData.password}
-                onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))} placeholder="••••••••" required
-                className="w-full bg-slate-50 border border-slate-200 rounded-2xl py-4 pr-6 pl-14 font-black text-right text-slate-900 placeholder:text-slate-400 focus:bg-white focus:border-cyan-400 transition-all outline-none" />
-              <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition-colors">
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+              <input
+                type={showPassword ? 'text' : 'password'} value={formData.password} dir="ltr"
+                onChange={(e) => setFormData((p) => ({ ...p, password: e.target.value }))}
+                placeholder="••••••••"
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 px-5 pl-12 font-black text-left text-slate-900 placeholder:text-slate-300 focus:bg-white focus:border-[#00E5FF] transition-all outline-none"
+              />
+              <button type="button" onClick={() => setShowPassword((p) => !p)} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
         </div>
+      </div>
 
-        <div className="border-t border-slate-200 pt-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Store className="w-4 h-4 text-[#00E5FF]" />
-            <span className="font-black text-slate-900">بيانات المتجر</span>
+      {/* Optional store details — the manual part */}
+      <button
+        type="button"
+        onClick={() => setShowDetails((p) => !p)}
+        className="w-full flex items-center justify-between px-5 py-4 rounded-2xl bg-white border border-slate-100 text-right hover:border-slate-200 transition-colors"
+      >
+        <span className="flex items-center gap-2 text-xs font-black text-slate-600">
+          <Building2 className="w-4 h-4 text-slate-400" />
+          بيانات المتجر التفصيلية (اختياري)
+        </span>
+        <ChevronLeft className={`w-4 h-4 text-slate-400 transition-transform ${showDetails ? '-rotate-90' : ''}`} />
+      </button>
+      <AnimatePresence>
+        {showDetails && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="bg-white border border-slate-100 rounded-[2rem] p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">المحافظة</label>
+                  <input value={formData.governorate} onChange={(e) => setFormData((p) => ({ ...p, governorate: e.target.value }))} placeholder="القاهرة"
+                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 mb-1.5">المدينة</label>
+                  <input value={formData.city} onChange={(e) => setFormData((p) => ({ ...p, city: e.target.value }))} placeholder="مدينة نصر"
+                    className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">هاتف المتجر (لو مختلف)</label>
+                <input value={formData.shopPhone} onChange={(e) => setFormData((p) => ({ ...p, shopPhone: e.target.value }))} placeholder="02xxxxxxxx"
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">مواعيد العمل</label>
+                <input value={formData.openingHours} onChange={(e) => setFormData((p) => ({ ...p, openingHours: e.target.value }))} placeholder="9 ص - 10 م"
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">العنوان التفصيلي</label>
+                <textarea value={formData.addressDetailed} onChange={(e) => setFormData((p) => ({ ...p, addressDetailed: e.target.value }))} rows={2} placeholder="شارع ... عمارة ... دور ..."
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none" />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-slate-400 mb-1.5">وصف قصير للمتجر</label>
+                <textarea value={formData.shopDescription} onChange={(e) => setFormData((p) => ({ ...p, shopDescription: e.target.value }))} rows={2} placeholder="نبذة مختصرة عن نشاطك..."
+                  className="w-full bg-slate-50 rounded-xl py-3 px-4 text-xs font-bold outline-none focus:ring-2 focus:ring-[#00E5FF]/30 resize-none" />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Summary card */}
+      <div className="bg-slate-900 rounded-[2rem] p-6 text-white">
+        <div className="text-[10px] font-black text-white/40 uppercase tracking-widest mb-3">ملخص حسابك</div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <div className="text-[10px] font-bold text-white/40 mb-1">الموبايل</div>
+            <div className="text-sm font-black" dir="ltr">{formData.phone || '—'}</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <FormField id="shop-name" label="اسم المتجر" value={formData.shopName} onChange={(v) => setFormData((p) => ({ ...p, shopName: v }))} required icon={Store} placeholder="متجر ري" />
-            <FormField id="shop-phone" label="هاتف المتجر" value={formData.shopPhone} onChange={(v) => setFormData((p) => ({ ...p, shopPhone: v }))} type="tel" icon={Phone} placeholder="01234567890" />
+          <div>
+            <div className="text-[10px] font-bold text-white/40 mb-1">المتجر</div>
+            <div className="text-sm font-black">{formData.shopName || '—'}</div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <FormField id="shop-governorate" label="المحافظة" value={formData.governorate} onChange={(v) => setFormData((p) => ({ ...p, governorate: v }))} icon={Search} placeholder="القاهرة" />
-            <FormField id="shop-city" label="المدينة" value={formData.city} onChange={(v) => setFormData((p) => ({ ...p, city: v }))} icon={Search} placeholder="مدينة نصر" />
+          <div>
+            <div className="text-[10px] font-bold text-white/40 mb-1">النشاط</div>
+            <div className="text-sm font-black">{selectedActivity ? getActivityLabel(selectedActivity) : '—'}</div>
           </div>
-          <FormField id="shop-email" label="بريد المتجر" value={formData.shopEmail} onChange={(v) => setFormData((p) => ({ ...p, shopEmail: v }))} type="email" icon={Mail} placeholder="shop@example.com" />
-          <div className="mt-6"><FormField id="shop-address" label="العنوان التفصيلي" value={formData.addressDetailed} onChange={(v) => setFormData((p) => ({ ...p, addressDetailed: v }))} multiline icon={Search} placeholder="شارع ... عمارة ... دور ..." /></div>
-          <div className="mt-6"><FormField id="shop-description" label="وصف المتجر" value={formData.shopDescription} onChange={(v) => setFormData((p) => ({ ...p, shopDescription: v }))} multiline icon={Sparkles} placeholder="نبذة مختصرة عن نشاطك..." /></div>
-          <div className="mt-6"><FormField id="shop-hours" label="مواعيد العمل" value={formData.openingHours} onChange={(v) => setFormData((p) => ({ ...p, openingHours: v }))} icon={Calendar} placeholder="9 ص - 10 م" /></div>
+          <div>
+            <div className="text-[10px] font-bold text-white/40 mb-1">لوحة التحكم</div>
+            <div className="text-sm font-black text-[#00E5FF]">{finalModules.length} تطبيق · {skipped ? 'الأساسيات' : 'على مقاس نشاطك'}</div>
+          </div>
         </div>
       </div>
     </div>
   );
 
-  const renderSummary = () => {
-    if (step !== 'data') return null;
-    return (
-      <div className="mt-8 bg-slate-50 border border-slate-100 rounded-[2.5rem] p-6">
-        <div className="font-black text-lg text-slate-900 mb-2">ملخص اختياراتك</div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-          <div className="bg-white border border-slate-100 rounded-2xl p-4">
-            <div className="text-slate-400 text-xs font-black mb-1">النشاط</div>
-            <div className="font-black text-slate-900">{selectedActivity ? getActivityLabel(selectedActivity) : '-'}</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-2xl p-4">
-            <div className="text-slate-400 text-xs font-black mb-1">التخصصات</div>
-            <div className="font-black text-slate-900">{selectedSpecialties.size || 'غير محدد'}</div>
-          </div>
-          <div className="bg-white border border-slate-100 rounded-2xl p-4">
-            <div className="text-slate-400 text-xs font-black mb-1">الوحدات المفعّلة</div>
-            <div className="font-black text-slate-900">
-              {summary.moduleCount} وحدة · {summary.totalFeatures} ميزة
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
   const stepHint = {
-    activity: 'اختر نشاطك أولاً — ثم اضبط الوحدات.',
-    specialty: 'حدد التخصص الدقيق لنشاطك',
-    modules: 'فعّل أو عطّل الوحدات حسب احتياج نشاطك — ووسّع أي وحدة لضبط الميزات.',
-    data: 'أدخل بياناتك وبيانات المتجر',
+    account: 'عرفنا بنفسك — الاسم والمتجر والموبايل',
+    activity: 'اختار نشاطك عشان نظبط اللوحة علي مقاسه',
+    questions: 'سؤالين سريعين — وإحنا نظبط كل حاجة',
+    data: 'حساب الدخول وآخر خطوة وهتدخل لوحتك على طول',
   }[step];
 
   return (
-    <div className="min-h-screen bg-white" dir="rtl">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white" dir="rtl">
       <div className="max-w-[1400px] mx-auto px-4 md:px-6 py-5 md:py-8">
-        <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '80rem' }}>
+        <MotionDiv initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="w-full mx-auto" style={{ maxWidth: step === 'activity' ? '90rem' : '60rem' }}>
           <div className="flex items-center justify-between mb-3">
-            <button type="button" onClick={goHome} className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-black text-sm transition-colors">
-              <Home className="w-4 h-4" /> العودة للرئيسية
+            <button type="button" onClick={goHome} className="inline-flex items-center gap-2 text-slate-400 hover:text-slate-900 font-black text-sm transition-colors">
+              <Home className="w-4 h-4" /> الرئيسية
             </button>
-            <div className="text-xs font-black text-slate-400">
-              الخطوة {step === 'activity' ? 1 : step === 'specialty' ? 2 : step === 'modules' ? 3 : 4} من 4
+            <div className="text-xs font-black text-slate-300">
+              الخطوة {step === 'account' ? 1 : step === 'activity' ? 2 : step === 'questions' ? 3 : 4} من 4
             </div>
           </div>
 
           <div className="text-center mb-4">
-            <h1 className="text-2xl md:text-4xl font-black tracking-tight text-slate-900 mb-2">ابدأ مشروعك</h1>
-            <p className="text-slate-500 font-bold text-xs md:text-sm max-w-xl mx-auto">{stepHint}</p>
+            <div className="inline-flex items-center gap-2 mb-2">
+              <LayoutDashboard className="w-5 h-5 text-[#00E5FF]" />
+              <span className="font-black text-slate-900">نمّي أعمالك</span>
+            </div>
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-slate-900 mb-1.5">ابدأ مشروعك في دقيقتين</h1>
+            <p className="text-slate-400 font-bold text-xs md:text-sm">{stepHint}</p>
           </div>
 
           <Stepper />
 
-          <div className="pt-6">
+          <div className="pt-4">
             <AnimatePresence>
               {error && (
                 <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
@@ -801,28 +708,25 @@ function SignupContent() {
               )}
             </AnimatePresence>
 
+            {step === 'account' && renderAccountStep()}
             {step === 'activity' && renderActivityStep()}
-            {step === 'specialty' && renderSpecialtyStep()}
-            {step === 'modules' && renderModulesStep()}
+            {step === 'questions' && renderQuestionsStep()}
             {step === 'data' && renderDataStep()}
-
-            {renderSummary()}
-
           </div>
 
           {/* شريط تنقل عائم ثابت أسفل الشاشة */}
           <div className="fixed bottom-0 inset-x-0 z-50 pointer-events-none">
-            <div className="max-w-[80rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent">
+            <div className="max-w-[60rem] mx-auto px-4 md:px-6 pb-4 pt-8 bg-gradient-to-t from-white via-white/90 to-transparent">
               <div className="pointer-events-auto flex gap-3 rounded-3xl border border-slate-200 bg-white/95 backdrop-blur p-3 shadow-[0_10px_40px_-10px_rgba(0,0,0,0.25)]">
-                {step !== 'activity' && (
+                {step !== 'account' && (
                   <button type="button" disabled={loading} onClick={goBack}
-                    className="w-32 shrink-0 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                    className="w-28 shrink-0 py-4 rounded-2xl bg-white border border-slate-200 text-slate-700 font-black hover:bg-slate-50 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
                     <ChevronLeft size={18} /> رجوع
                   </button>
                 )}
                 <button type="button" disabled={loading} onClick={goNext}
                   className="flex-1 py-4 rounded-2xl bg-slate-900 text-white font-black hover:bg-black transition-all flex items-center justify-center gap-2 disabled:opacity-70">
-                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 'data' ? 'إنشاء الحساب' : <>{'التالي'} <ArrowRight size={18} /></>}
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : step === 'data' ? <>إنشاء الحساب والدخول للوحة <CheckCircle2 size={18} className="text-[#00E5FF]" /></> : <>{'التالي'} <ArrowRight size={18} /></>}
                 </button>
               </div>
             </div>
