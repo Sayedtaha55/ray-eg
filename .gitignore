@@ -106,3 +106,11 @@ testsprite_tests/
 
 # --- Cline checkpoint junk (mangled names) ---
 *clineproceed*
+
+# Accidental shell/log artifacts (cleanup)
+*.log'
+*.tmp
+buildcheck.txt
+build_err.txt
+temp-ppar
+tatus --short

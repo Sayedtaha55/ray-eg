@@ -35,7 +35,7 @@ Environment variables supported:
 Example:
 
 ```bash
-BASE_URL=https://api.your-domain.com TARGET_SHOP_SLUG=my-shop npm run loadtest:k6
+BASE_URL=https://api.mnmknk.com TARGET_SHOP_SLUG=my-shop npm run loadtest:k6
 ```
 
 ---
