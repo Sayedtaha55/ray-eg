@@ -132,5 +132,5 @@ func scanDSRs(rows rowsScanner) ([]DataSubjectRequest, error) {
 type rowsScanner interface {
 	Next() bool
 	Scan(dest ...any) error
-	Close() error
+	Close()
 }

@@ -2,10 +2,9 @@
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
-
-	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
 )
 
 // KYCData represents KYC submission data for a shop.

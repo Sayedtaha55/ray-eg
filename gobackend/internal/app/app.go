@@ -1,4 +1,4 @@
-﻿package app
+package app
 
 import (
 	"context"
@@ -332,20 +332,20 @@ reportsHandler          *reports.Handler
 
 	// Compliance domains
 	consentRepo := consent.NewRepository(pool)
-	consentSvc := consent.NewService(cfg, consentRepo)
-	consentHandler = consent.NewHandler(cfg, consentSvc)
+	consentSvc := consent.NewService(consentRepo)
+	consentHandler = consent.NewHandler(consentSvc, cfg)
 
 	dsrRepo := dsr.NewRepository(pool)
-	dsrSvc := dsr.NewService(cfg, dsrRepo)
-	dsrHandler = dsr.NewHandler(cfg, dsrSvc)
+	dsrSvc := dsr.NewService(dsrRepo)
+	dsrHandler = dsr.NewHandler(dsrSvc, cfg)
 
 	breachRepo := breach.NewRepository(pool)
-	breachSvc := breach.NewService(cfg, breachRepo)
-	breachHandler = breach.NewHandler(cfg, breachSvc)
+	breachSvc := breach.NewService(breachRepo)
+	breachHandler = breach.NewHandler(breachSvc, cfg)
 
 	reportsRepo := reports.NewRepository(pool)
-	reportsSvc := reports.NewService(cfg, reportsRepo)
-	reportsHandler = reports.NewHandler(cfg, reportsSvc)
+	reportsSvc := reports.NewService(reportsRepo)
+	reportsHandler = reports.NewHandler(reportsSvc, cfg)
 
 		// Initialize courier service
 		courierRepo := courier.NewRepository(pool)
@@ -496,6 +496,10 @@ reportsHandler          *reports.Handler
 		dashboardHandler:      dashboardHandler,
 		posHandler:            posHandler,
 		productCategoriesHandler: productCategoriesHandler,
+		consentHandler:        consentHandler,
+		dsrHandler:            dsrHandler,
+		breachHandler:         breachHandler,
+		reportsHandler:        reportsHandler,
 		compressionService:    compressionService,
 	}
 

@@ -502,19 +502,38 @@ export default function DashboardOverview() {
     [trendPoints, metric],
   );
 
+  // توزيع حالات الطلبات — من بيانات الطلبات الحقيقية
+  const statusDistribution = useMemo(() => {
+    const counts = new Map<string, number>();
+    orders.forEach((o) => {
+      const s = String(o.status || '').toUpperCase();
+      counts.set(s, (counts.get(s) || 0) + 1);
+    });
+    const known = ['DELIVERED', 'PENDING', 'CONFIRMED', 'PREPARING', 'READY', 'CANCELLED', 'REFUNDED'];
+    const out: { name: string; value: number; color: string }[] = [];
+    known.forEach((k) => {
+      const v = counts.get(k);
+      if (v) out.push({ name: statusMeta(k).label, value: v, color: statusMeta(k).color });
+    });
+    counts.forEach((v, k) => {
+      if (!known.includes(k)) out.push({ name: statusMeta(k).label, value: v, color: '#94A3B8' });
+    });
+    return out;
+  }, [orders]);
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-5 max-w-[1500px] mx-auto">
 
-      {/* ===== Header ===== */}
+      {/* ===== Header — هوية الصفحة ===== */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
             {greeting()}، {user?.name || shop?.name || 'صاحب المتجر'}.
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1.5 font-medium">
             إليك ما يحدث في متجرك — {todayLong()}
             {lastUpdated && <span className="text-slate-300"> • آخر تحديث {lastUpdated.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' })}</span>}
-            {refreshing && <span className="text-cyan-700"> • جارٍ التحديث…</span>}
+            {refreshing && <span className="text-indigo-600 font-bold"> • جارٍ التحديث…</span>}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -533,7 +552,7 @@ export default function DashboardOverview() {
             type="button"
             onClick={() => load(period)}
             disabled={refreshing}
-            className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 transition-colors disabled:opacity-50"
+            className="w-9 h-9 flex items-center justify-center bg-white border border-slate-200 rounded-lg text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors disabled:opacity-50"
             title="تحديث"
           >
             <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
@@ -541,7 +560,7 @@ export default function DashboardOverview() {
           <button
             type="button"
             onClick={exportCsv}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors"
           >
             <Download size={13} />
             تصدير
@@ -602,74 +621,79 @@ export default function DashboardOverview() {
         </button>
       )}
 
-      {/* ===== Main grid: chart + side ===== */}
+      {/* ===== KPIs — المؤشرات الرئيسية ===== */}
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+        {kpis.map((k, i) => (
+          <MotionCard key={k.key} delay={0.05 + i * 0.04} className="p-5">
+            <div className="flex items-start justify-between gap-2">
+              <span className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${iconTint[['primary', 'violet', 'info', 'success'][i] || 'neutral']}`}>
+                {k.icon}
+              </span>
+              <DeltaInline delta={k.delta} />
+            </div>
+            <p className="mt-3 text-[11px] font-semibold text-slate-400">{k.label}</p>
+            {loading ? (
+              <Skeleton className="h-7 w-24 mt-1" />
+            ) : (
+              <div className="flex items-end justify-between gap-2 mt-0.5">
+                <span className="text-[22px] font-extrabold text-slate-900 tabular-nums leading-7">{k.value}</span>
+                <Sparkline values={k.spark} color={['#4F46E5', '#7C3AED', '#2563EB', '#059669'][i]} />
+              </div>
+            )}
+          </MotionCard>
+        ))}
+      </div>
+
+      {/* ===== Main grid: الأداء + الجانب ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
 
-        {/* --- Big chart card with stats strip --- */}
-        <Card className="xl:col-span-2">
-          {/* stats strip */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-x-reverse divide-slate-100 border-b border-slate-100">
-            {kpis.map((k) => (
-              <div key={k.key} className="px-5 py-4">
-                <div className="flex items-center gap-1.5 text-slate-400 mb-1.5">
-                  {k.icon}
-                  <span className="text-[11px] font-semibold">{k.label}</span>
-                </div>
-                {loading ? (
-                  <Skeleton className="h-6 w-20" />
-                ) : (
-                  <div className="flex items-end justify-between gap-2">
-                    <div>
-                      <div className="text-lg font-bold text-slate-900 tabular-nums leading-6">{k.value}</div>
-                      <div className="mt-0.5"><DeltaInline delta={k.delta} /></div>
-                    </div>
-                    {k.spark.length > 1 && <Sparkline values={k.spark} />}
-                  </div>
-                )}
+        {/* --- كارت الأداء الرئيسي (أعلى وزن بصري) --- */}
+        <MotionCard className="xl:col-span-2 p-0" delay={0.15}>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 pt-4 pb-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600"><BarChart3 size={15} /></span>
+              <div>
+                <h3 className="text-[14px] font-extrabold text-slate-900 leading-5">أداء المتجر</h3>
+                <p className="text-[11px] font-medium text-slate-400 leading-4">آخر {fmtNum(trendPoints.length)} يوم</p>
               </div>
-            ))}
-          </div>
-
-          {/* metric tabs */}
-          <div className="flex items-center justify-between px-5 pt-4">
-            <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg p-0.5">
-              {([
-                { key: 'revenue', label: 'الإيرادات' },
-                { key: 'orders', label: 'الطلبات' },
-              ] as { key: Metric; label: string }[]).map((m) => (
-                <button
-                  key={m.key}
-                  onClick={() => setMetric(m.key)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${metric === m.key ? 'bg-white text-slate-900 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                >
-                  {m.label}
-                </button>
-              ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-slate-900 tabular-nums">
+              <div className="flex items-center gap-1 bg-slate-50 border border-slate-100 rounded-lg p-0.5">
+                {([
+                  { key: 'revenue', label: 'الإيرادات' },
+                  { key: 'orders', label: 'الطلبات' },
+                ] as { key: Metric; label: string }[]).map((m) => (
+                  <button
+                    key={m.key}
+                    onClick={() => setMetric(m.key)}
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${metric === m.key ? 'bg-white text-slate-900 border border-slate-200 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-base sm:text-lg font-extrabold text-slate-900 tabular-nums">
                 {metric === 'revenue' ? fmtEGP(trendTotal) : fmtNum(trendTotal)}
               </span>
-              <span className="text-[10px] text-slate-400 font-semibold">آخر {fmtNum(trendPoints.length)} يوم</span>
             </div>
           </div>
 
           <div className="px-3 pb-3 pt-1">
-            {loading ? <Skeleton className="h-56 m-2" /> : (
-              <AreaChart
+            {loading ? <Skeleton className="h-64 m-2" /> : (
+              <PerformanceAreaChart
                 data={chartData}
-                color={metric === 'revenue' ? '#0891b2' : '#7c3aed'}
-                formatY={(n) => (metric === 'revenue' ? fmtCompact(n) : fmtCompact(n))}
-                formatTip={(p) => `${p.x} — ${metric === 'revenue' ? fmtEGP(p.y) : `${fmtNum(p.y)} طلب`}`}
+                color={metric === 'revenue' ? chartColors.revenue : chartColors.orders}
+                formatY={fmtCompact}
+                formatTip={(n) => (metric === 'revenue' ? fmtEGP(n) : `${fmtNum(n)} طلب`)}
               />
             )}
           </div>
-        </Card>
+        </MotionCard>
 
         {/* --- Right column --- */}
         <div className="space-y-4">
           {/* Shop card */}
-          <Card className="p-5">
+          <MotionCard className="p-5" delay={0.2}>
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-11 h-11 rounded-xl bg-slate-900 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
@@ -707,10 +731,10 @@ export default function DashboardOverview() {
                 <div className="text-[10px] text-slate-400 font-semibold mt-0.5">زيارة</div>
               </div>
             </div>
-          </Card>
+          </MotionCard>
 
           {/* Quick actions — list style */}
-          <Card className="p-2">
+          <MotionCard className="p-2" delay={0.25}>
             {[
               { label: 'إضافة منتج جديد', desc: 'وسّع كتالوج متجرك', icon: <Plus size={16} />, href: '/dashboard/inventory' },
               { label: 'طلب جديد', desc: 'سجّل بيع من الكاشير', icon: <ShoppingCart size={16} />, href: '/dashboard/pos' },
@@ -718,14 +742,14 @@ export default function DashboardOverview() {
               { label: 'حملة إعلانية', desc: 'أطلق عرضًا لعملائك', icon: <Megaphone size={16} />, href: '/dashboard/marketing' },
               { label: 'تقرير مالي', desc: 'راجع أرباحك ومصروفاتك', icon: <Wallet size={16} />, href: '/dashboard/finance' },
               { label: 'إعدادات المتجر', desc: 'بيانات المتجر والрؤية', icon: <SettingsIcon size={16} />, href: '/dashboard/settings' },
-            ].map((a, i, arr) => (
+            ].map((a) => (
               <button
                 key={a.label}
                 type="button"
                 onClick={() => router.push(a.href)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-right ${i < arr.length - 1 ? '' : ''}`}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors text-right"
               >
-                <span className="w-8 h-8 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-500 shrink-0">
+                <span className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
                   {a.icon}
                 </span>
                 <span className="flex-1 min-w-0">
@@ -735,27 +759,30 @@ export default function DashboardOverview() {
                 <ChevronLeft size={14} className="text-slate-300 shrink-0" />
               </button>
             ))}
-          </Card>
+          </MotionCard>
         </div>
       </div>
 
       {/* ===== Orders + Notifications ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="xl:col-span-2">
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">أحدث الطلبات</h3>
-            <button type="button" onClick={() => router.push('/dashboard/sales')} className="text-xs font-semibold text-cyan-700 hover:underline inline-flex items-center gap-0.5">
-              كل الطلبات <ChevronLeft size={12} />
-            </button>
-          </div>
+        <MotionCard className="xl:col-span-2 p-0" delay={0.2}>
+          <SectionHead
+            title="أحدث الطلبات"
+            icon={<ShoppingCart size={14} />}
+            actionLabel="كل الطلبات"
+            onAction={() => router.push('/dashboard/sales')}
+          />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
           ) : orders.length === 0 ? (
             <Empty
               icon={<ShoppingCart size={20} />}
-              title="لا توجد طلبات بعد — أول طلب هيظهر هنا فورًا"
+              title="لا توجد طلبات بعد"
+              desc="ابدأ بإضافة منتجاتك ومشاركة رابط متجرك مع عملائك — أول طلب هيظهر هنا فورًا."
               actionLabel="إنشاء طلب من الكاشير"
               onAction={() => router.push('/dashboard/pos')}
+              secondaryLabel="إضافة منتج"
+              onSecondary={() => router.push('/dashboard/inventory')}
             />
           ) : (
             <div className="overflow-x-auto">
@@ -788,15 +815,16 @@ export default function DashboardOverview() {
               </table>
             </div>
           )}
-        </Card>
+        </MotionCard>
 
-        <Card>
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">آخر الإشعارات</h3>
-            <button type="button" onClick={() => router.push('/dashboard/notifications')} className="text-xs font-semibold text-cyan-700 hover:underline inline-flex items-center gap-0.5">
-              الكل <ChevronLeft size={12} />
-            </button>
-          </div>
+        <div className="space-y-4">
+        <MotionCard className="p-0" delay={0.25}>
+          <SectionHead
+            title="آخر الإشعارات"
+            icon={<Bell size={14} />}
+            actionLabel="الكل"
+            onAction={() => router.push('/dashboard/notifications')}
+          />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
           ) : notifications.length === 0 ? (
@@ -814,77 +842,120 @@ export default function DashboardOverview() {
               ))}
             </div>
           )}
-        </Card>
+          </MotionCard>
+
+          <MotionCard className="p-0" delay={0.3}>
+            <SectionHead
+              title="آخر جلسات الدخول"
+              icon={<LogIn size={14} />}
+              sub={`${fmtNum(sessions.length)} جلسة`}
+            />
+            {loading ? (
+              <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
+            ) : sessions.length === 0 ? (
+              <Empty icon={<LogIn size={20} />} title="لا توجد سجلات دخول" desc="سجلات الدخول لحسابك تظهر هنا لأمانك." />
+            ) : (
+              <div className="px-5 py-3 divide-y divide-slate-50">
+                {sessions.slice(0, 5).map((e, i) => {
+                  const email = e.UserEmail || e.userEmail || '—';
+                  const loginAt = e.LoginAt || e.loginAt;
+                  const logoutAt = e.LogoutAt || e.logoutAt;
+                  const online = !logoutAt;
+                  return (
+                    <div key={e.ID || e.id || i} className="flex items-center gap-2.5 py-2.5">
+                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${online ? 'bg-emerald-500' : 'bg-slate-300'}`} />
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-semibold text-slate-700 truncate">{email}</span>
+                        <span className="block text-[10px] text-slate-400">{fmtDate(loginAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                      </span>
+                      {online ? (
+                        <span className="text-[10px] font-bold text-emerald-600 shrink-0">متصل الآن</span>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 shrink-0">{fmtDate(logoutAt, { hour: '2-digit', minute: '2-digit' })}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </MotionCard>
+        </div>
       </div>
 
-      {/* ===== Top products + Sessions ===== */}
+      {/* ===== توزيع الطلبات + الأكثر مبيعًا ===== */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="xl:col-span-2">
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">الأكثر مبيعًا</h3>
-            <button type="button" onClick={() => router.push('/dashboard/inventory')} className="text-xs font-semibold text-cyan-700 hover:underline inline-flex items-center gap-0.5">
-              إدارة المنتجات <ChevronLeft size={12} />
-            </button>
-          </div>
+        <MotionCard className="p-0" delay={0.3}>
+          <SectionHead title="توزيع الطلبات" icon={<PieIcon size={14} />} sub="حسب الحالة" />
+          {loading ? (
+            <div className="p-5"><Skeleton className="h-40" /></div>
+          ) : (
+            <>
+              <div className="px-4 pt-3">
+                <StatusDonut data={statusDistribution} total={orders.length} />
+              </div>
+              {statusDistribution.length === 0 && (
+                <p className="text-[11px] font-medium text-slate-400 text-center pb-4 -mt-1">بمجرد وصول أول طلب هتتوزع حالاته هنا تلقائيًا.</p>
+              )}
+              {statusDistribution.length > 0 && (
+                <div className="px-5 pb-4 pt-2 grid grid-cols-2 gap-x-3 gap-y-1.5">
+                  {statusDistribution.slice(0, 6).map((d) => (
+                    <div key={d.name} className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: d.color }} />
+                      <span className="truncate">{d.name}</span>
+                      <span className="ml-auto font-extrabold text-slate-800 tabular-nums">{fmtNum(d.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </MotionCard>
+
+        <MotionCard className="xl:col-span-2 p-0" delay={0.35}>
+          <SectionHead
+            title="الأكثر مبيعًا"
+            icon={<Boxes size={14} />}
+            actionLabel="إدارة المنتجات"
+            onAction={() => router.push('/dashboard/inventory')}
+          />
           {loading ? (
             <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
           ) : (current?.top_products || []).length === 0 ? (
             <Empty
               icon={<Boxes size={20} />}
               title="لا توجد مبيعات منتجات بعد"
+              desc="أضف منتجاتك الأولى وشاركها مع عملائك — أكثر المنتجات مبيعًا ستظهر هنا."
               actionLabel="إضافة منتج"
               onAction={() => router.push('/dashboard/inventory')}
             />
           ) : (
             <div className="px-5 py-3 space-y-1">
-              {(current?.top_products || []).slice(0, 5).map((p, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-                  <span className="w-6 h-6 rounded bg-slate-50 border border-slate-100 flex items-center justify-center text-[11px] font-bold text-slate-500 tabular-nums">{i + 1}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-slate-800 truncate">{p.name || 'منتج'}</p>
-                    <p className="text-[10px] text-slate-400 tabular-nums">{fmtNum(p.sales)} مبيعة</p>
-                  </div>
-                  <span className="text-xs font-bold text-slate-900 tabular-nums">{fmtEGP(p.revenue)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-slate-100">
-            <h3 className="text-sm font-bold text-slate-800">آخر جلسات الدخول</h3>
-            <span className="text-[10px] font-semibold text-slate-400">{fmtNum(sessions.length)} جلسة</span>
-          </div>
-          {loading ? (
-            <div className="p-5 space-y-2"><Skeleton className="h-9" /><Skeleton className="h-9" /><Skeleton className="h-9" /></div>
-          ) : sessions.length === 0 ? (
-            <Empty icon={<LogIn size={20} />} title="لا توجد سجلات دخول" />
-          ) : (
-            <div className="px-5 py-3 divide-y divide-slate-50">
-              {sessions.slice(0, 5).map((e, i) => {
-                const email = e.UserEmail || e.userEmail || '—';
-                const loginAt = e.LoginAt || e.loginAt;
-                const logoutAt = e.LogoutAt || e.logoutAt;
-                const online = !logoutAt;
+              {(current?.top_products || []).slice(0, 5).map((p, i) => {
+                const maxRev = Math.max(...(current?.top_products || []).map((x) => x.revenue || 0), 1);
                 return (
-                  <div key={e.ID || e.id || i} className="flex items-center gap-2.5 py-2.5">
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${online ? 'bg-emerald-500' : 'bg-slate-300'}`} />
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-xs font-semibold text-slate-700 truncate">{email}</span>
-                      <span className="block text-[10px] text-slate-400">{fmtDate(loginAt, { hour: '2-digit', minute: '2-digit' })}</span>
-                    </span>
-                    {online ? (
-                      <span className="text-[10px] font-bold text-emerald-600 shrink-0">متصل الآن</span>
-                    ) : (
-                      <span className="text-[10px] text-slate-400 shrink-0">{fmtDate(logoutAt, { hour: '2-digit', minute: '2-digit' })}</span>
-                    )}
+                  <div key={i} className="py-2 border-b border-slate-50 last:border-0">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-6 h-6 rounded-md flex items-center justify-center text-[11px] font-extrabold tabular-nums shrink-0 ${i === 0 ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-50 text-slate-500'}`}>{i + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">{p.name || 'منتج'}</p>
+                        <div className="mt-1 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{ width: `${Math.max(4, Math.round(((p.revenue || 0) / maxRev) * 100))}%`, background: i === 0 ? '#4F46E5' : '#A5B4FC' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-left shrink-0">
+                        <span className="block text-xs font-extrabold text-slate-900 tabular-nums">{fmtEGP(p.revenue)}</span>
+                        <span className="block text-[10px] text-slate-400 font-semibold tabular-nums">{fmtNum(p.sales)} مبيعة</span>
+                      </div>
+                    </div>
                   </div>
                 );
               })}
             </div>
           )}
-        </Card>
+        </MotionCard>
       </div>
     </div>
   );

@@ -3,8 +3,6 @@
 import (
 	"context"
 	"time"
-
-	"github.com/Sayedtaha55/ray-eg/gobackend/internal/platform/db"
 )
 
 // UserConsent represents a user consent record.
