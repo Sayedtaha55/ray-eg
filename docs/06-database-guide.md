@@ -1,6 +1,6 @@
 # 6) دليل قاعدة البيانات (PostgreSQL فقط)
 
-> لا Prisma ولا SQLite في هذا المشروع. قاعدة البيانات الوحيدة هي PostgreSQL، والهجرات ملفات SQL مرقمة تُطبَّق عبر golang-migrate، وكود الوصول للبيانات مكتوب يدويًا بـ pgx/v5.
+> Backend هذا المشروع مكتوب بـ Go، وقاعدة البيانات الوحيدة هي PostgreSQL 15. الهجرات ملفات SQL مرقمة تُطبَّق عبر golang-migrate، وكود الوصول للبيانات مكتوب يدويًا بـ pgx/v5.
 
 ## 6.1 ملفات الهجرات المتاحة
 
@@ -28,8 +28,8 @@ DATABASE_URL=postgresql://ray_user:ray_password@localhost:5433/ray_marketplace?s
 
 **التوصية:**
 - استخدم PostgreSQL دائمًا.
-- المنفذ على المضيف هو `5433` (يُ映射 إلى `5432` داخل الحاوية) لتفادي التعارض مع نسخ محلية.
-- لا يوجد `file:./dev.db` ولا `schema.prisma` ولا `schema-sqlite.prisma`.
+- المنفذ على المضيف هو `5433` (يُربَط بـ `5432` داخل الحاوية) لتفادي التعارض مع نسخ محلية.
+- لا توجد قواعد بيانات ملفية محلية ولا أدوات ORM؛ PostgreSQL هي القاعدة الوحيدة في التطوير والإنتاج.
 
 ## 6.2 تشغيل PostgreSQL وRedis
 
@@ -64,14 +64,11 @@ ls gobackend/migrations/ | tail -20
 # الأحدث حتى 000049_*
 ```
 
-### 6.2.5 ملاحظة عن أوامر Prisma المحذوفة
-لا تستخدم أيًا من:
-- `prisma generate` / `npm run prisma:generate`
-- `prisma studio` / `npm run prisma:studio`
-- `prisma db push` / `prisma migrate dev|deploy`
-- `prisma validate` / `prisma format` / `prisma db seed`
-
-المقابل الجديد: هجرات SQL + `DB_MIGRATE_ON_BOOT=true` + مستودعات pgx/v5 اليدوية.
+### 6.2.5 أدوات إدارة المخطط
+إدارة المخطط تتم عبر ملفات SQL المرقمة في `gobackend/migrations/` و golang-migrate فقط:
+- تُطبَّق الهجرات تلقائيًا عند الإقلاع عندما يكون `DB_MIGRATE_ON_BOOT=true`.
+- أي تغيير في المخطط يكون ملف migration جديدًا (up + down) كما في القسم 6.3.
+- الاستعلامات اليومية تُكتب يدويًا بـ pgx/v5 داخل طبقة repository لكل دومين.
 
 ## 6.3 استراتيجية الترحيلات (Migration Strategy)
 
@@ -236,7 +233,7 @@ pool, err := pgxpool.NewWithConfig(ctx, cfg)
 ## 6.6 كود المستودعات (pgx/v5 يدويًا + sqlc اختياري)
 
 ### 6.6.1 المبدأ
-- لا يوجد Prisma Client. كل استعلام SQL مكتوب يدويًا بـ pgx/v5 داخل طبقة repository لكل دومين.
+- كل استعلام SQL مكتوب يدويًا بـ pgx/v5 داخل طبقة repository لكل دومين.
 - يوجد `sqlc.yaml` اختياري لتوليد بعض الكود — لكن الأساس اليدوي يبقى المرجع.
 
 ### 6.6.2 مثال مستودع (نمط)
@@ -282,7 +279,6 @@ defer tx.Rollback(ctx)
 ## 6.7 البيانات الأولية (Seeding)
 
 ### 6.7.1 المبدأ
-- لا يوجد `prisma/seed.ts` ولا `npx prisma db seed`.
 - أي بيانات أولية تكون عبر migration من نوع seed (صفوف افتراضية) أو سكربت Go صريح — وحسب الحاجة فقط.
 
 ### 6.7.2 مثال seed عبر migration
@@ -414,7 +410,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 ### 6.11.3 التحقق من البيانات
 - [ ] الاتصال يعمل (`SELECT 1`)
 - [ ] الجداول والعلاقات والـ indexes صحيحة
-- [ ] لا توجد أي بقايا Prisma/SQLite
+- [ ] لا توجد أي بقايا من أدوات ORM أو قواعد بيانات ملفية محلية
 
 ### 6.11.4 التحقق من الأداء
 - [ ] الاستعلامات الأساسية تعمل بكفاءة

@@ -117,3 +117,11 @@ _archive/
 *.exe
 *.pid
 testsprite_tests/tmp/
+
+# Accidental shell/log artifacts (cleanup)
+*.log'
+*.tmp
+buildcheck.txt
+build_err.txt
+temp-ppar
+tatus --short

@@ -204,7 +204,7 @@ ray-eg/
 │   ├── cmd/api/main.go    # نقطة الدخول
 │   ├── cmd/worker/        # عامل المهام الخلفية (asynq)
 │   ├── internal/app/      # تجميع التطبيق
-│   ├── internal/modules/  # موديولات الدومين الـ 29
+│   ├── internal/domains/  # دومينات الـ 29
 │   └── migrations/        # هجرات SQL (golang-migrate)
 ├── _archive/               # كود NestJS القديم (مرجع فقط — لا يُستخدم)
 ├── docs/                   # Documentation
@@ -363,8 +363,8 @@ SMTP_PASS="your-sendgrid-api-key"
 
 ### 📧 Contact Information / معلومات الاتصال:
 - **Email:** support@ray-eg.com
-- **Website:** https://ray-eg.com
-- **GitHub:** https://github.com/your-org/ray-eg
+- **Website:** https://mnmknk.com
+- **GitHub:** https://github.com/Sayedtaha55/ray-eg
 
 ---
 

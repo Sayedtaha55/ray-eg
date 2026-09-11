@@ -115,9 +115,9 @@ ADMIN_BOOTSTRAP_TOKEN="قيمة-غير-الافتراضية"
 CSRF_DISABLED=false
 
 # CORS والواجهات — ممنوع استخدام * في الإنتاج
-CORS_ORIGIN="https://your-domain.com,https://www.your-domain.com"
-FRONTEND_URL="https://your-domain.com"
-FRONTEND_APP_URL="https://your-domain.com"
+CORS_ORIGIN="https://mnmknk.com,https://www.mnmknk.com"
+FRONTEND_URL="https://mnmknk.com"
+FRONTEND_APP_URL="https://mnmknk.com"
 
 # Redis — واحد منهما إلزامي
 REDIS_URL="redis://host:6379"
@@ -172,7 +172,7 @@ DATABASE_URL="postgresql://username:password@host:5432/database"
 JWT_SECRET="32-حرف-على-الأقل-وغير-القيمة-الافتراضية"
 ADMIN_BOOTSTRAP_TOKEN="غير-القيمة-الافتراضية"
 CSRF_DISABLED=false
-CORS_ORIGIN="https://your-domain.com"   # بدون * إطلاقًا
+CORS_ORIGIN="https://mnmknk.com"   # بدون * إطلاقًا
 REDIS_URL="redis://host:6379"           # أو REDIS_HOST
 ```
 
@@ -210,7 +210,7 @@ UPLOAD_DIR="./uploads"
 MAX_FILE_SIZE="10485760"  # 10MB
 
 # CDN
-CDN_URL="https://cdn.your-domain.com"
+CDN_URL="https://cdn.mnmknk.com"
 ```
 
 ## 7.5 صحة الخدمة والمراقبة (Health & Monitoring)
