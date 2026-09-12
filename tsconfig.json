@@ -10,10 +10,7 @@
     "forceConsistentCasingInFileNames": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": [
-      "node",
-      "jest"
-    ],
+    "types": ["node", "jest"],
     "isolatedModules": true,
     "moduleDetection": "force",
     "allowJs": true,
@@ -28,17 +25,10 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": [
-    "apps/**/*",
-    "packages/**/*",
-    "scripts/**/*",
-    "test/**/*",
-    "*.ts",
-    "*.tsx",
-    "*.js",
-    "*.mjs"
-  ],
+  "include": ["packages/**/*", "test/**/*", "*.ts", "*.tsx"],
   "exclude": [
+    "apps",
+    "scripts",
     "_archive",
     "node_modules",
     "dist",

@@ -98,7 +98,11 @@ interface BuilderWebsite {
 
 // ─── getComputedStyles ────────────────────────────────────────────────────────
 
-function getComputedStyles(node: ComponentNode, theme: BuilderWebsite['theme'], isMobileClient = false): React.CSSProperties {
+function getComputedStyles(
+  node: ComponentNode,
+  theme: BuilderWebsite['theme'],
+  isMobileClient = false
+): React.CSSProperties {
   const d = node.styles.desktop || {};
   const t = node.styles.tablet || {};
   const m = node.styles.mobile || {};
@@ -160,7 +164,9 @@ function getComputedStyles(node: ComponentNode, theme: BuilderWebsite['theme'], 
   };
 
   // Remove undefined keys so they don't override inherited values
-  return Object.fromEntries(Object.entries(css).filter(([, v]) => v !== undefined)) as React.CSSProperties;
+  return Object.fromEntries(
+    Object.entries(css).filter(([, v]) => v !== undefined)
+  ) as React.CSSProperties;
 }
 
 // ─── NodeRenderer (recursive, stateful) ───────────────────────────────────────
@@ -194,7 +200,8 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
 
   // scroll to anchor helper
   const scrollTo = (anchor: string) => {
-    const el = document.getElementById(anchor) || document.querySelector(`[data-section="${anchor}"]`);
+    const el =
+      document.getElementById(anchor) || document.querySelector(`[data-section="${anchor}"]`);
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -229,10 +236,29 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
         )}
       </>
     );
-    if (tag === 'h1') return <h1 id={node.id} style={computed}>{content}</h1>;
-    if (tag === 'h3') return <h3 id={node.id} style={computed}>{content}</h3>;
-    if (tag === 'h4') return <h4 id={node.id} style={computed}>{content}</h4>;
-    return <h2 id={node.id} style={computed}>{content}</h2>;
+    if (tag === 'h1')
+      return (
+        <h1 id={node.id} style={computed}>
+          {content}
+        </h1>
+      );
+    if (tag === 'h3')
+      return (
+        <h3 id={node.id} style={computed}>
+          {content}
+        </h3>
+      );
+    if (tag === 'h4')
+      return (
+        <h4 id={node.id} style={computed}>
+          {content}
+        </h4>
+      );
+    return (
+      <h2 id={node.id} style={computed}>
+        {content}
+      </h2>
+    );
   }
 
   // ── paragraph ─────────────────────────────────────────────────────────────
@@ -258,9 +284,11 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
   if (node.type === 'image') {
     return (
       <div id={node.id} style={computed} className="overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={node.props.src || 'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80'}
+          src={
+            node.props.src ||
+            'https://images.unsplash.com/photo-1617788138017-80ad40651399?w=800&auto=format&fit=crop&q=80'
+          }
           alt={node.props.alt || ''}
           className="w-full h-full object-cover"
           referrerPolicy="no-referrer"
@@ -300,8 +328,14 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
   if (node.type === 'products') {
     // Support both `products` (retail/auto) and `items` (restaurant)
     const rawList: any[] = node.props.items || node.props.products || [];
-    const categories: string[] = ['all', ...Array.from(new Set(rawList.map((i: any) => i.category).filter(Boolean)))];
-    const filtered = activeCategory === 'all' ? rawList : rawList.filter((i: any) => i.category === activeCategory);
+    const categories: string[] = [
+      'all',
+      ...Array.from(new Set(rawList.map((i: any) => i.category).filter(Boolean))),
+    ];
+    const filtered =
+      activeCategory === 'all'
+        ? rawList
+        : rawList.filter((i: any) => i.category === activeCategory);
 
     return (
       <section id={node.id} style={computed} data-section="products">
@@ -311,14 +345,19 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
               {node.props.badge && (
                 <span
-                  style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary }}
+                  style={{
+                    backgroundColor: `${theme.colors.primary}18`,
+                    color: theme.colors.primary,
+                  }}
                   className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                 >
                   {node.props.badge}
                 </span>
               )}
               {node.props.title && (
-                <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
+                <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+                  {node.props.title}
+                </h2>
               )}
               {node.props.subtitle && (
                 <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
@@ -333,7 +372,11 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  style={activeCategory === cat ? { backgroundColor: theme.colors.primary, color: '#fff' } : {}}
+                  style={
+                    activeCategory === cat
+                      ? { backgroundColor: theme.colors.primary, color: '#fff' }
+                      : {}
+                  }
                   className={`px-4 py-1.5 rounded-full text-sm font-bold border transition-all ${
                     activeCategory === cat
                       ? 'border-transparent shadow-md'
@@ -362,7 +405,6 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                   >
                     {image && (
                       <div className="relative aspect-video overflow-hidden bg-slate-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={image}
                           alt={title}
@@ -379,17 +421,29 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                     <div className="p-5 flex-1 flex flex-col justify-between space-y-3">
                       <div className="space-y-1">
                         <div className="flex items-baseline justify-between gap-2">
-                          <h3 className="text-base font-bold text-slate-900 line-clamp-1">{title}</h3>
+                          <h3 className="text-base font-bold text-slate-900 line-clamp-1">
+                            {title}
+                          </h3>
                           {price && (
-                            <span style={{ color: theme.colors.primary }} className="text-base font-extrabold font-mono shrink-0">
+                            <span
+                              style={{ color: theme.colors.primary }}
+                              className="text-base font-extrabold font-mono shrink-0"
+                            >
                               {price}
                             </span>
                           )}
                         </div>
-                        {desc && <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">{desc}</p>}
+                        {desc && (
+                          <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                            {desc}
+                          </p>
+                        )}
                       </div>
                       <button
-                        style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius?.lg || '10px' }}
+                        style={{
+                          backgroundColor: theme.colors.primary,
+                          borderRadius: theme.radius?.lg || '10px',
+                        }}
                         className="w-full py-2.5 text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-98 transition-all cursor-pointer flex items-center justify-center gap-1.5"
                       >
                         <ShoppingBag className="w-3.5 h-3.5" />
@@ -425,7 +479,10 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                 شكراً لك. سنتواصل معك قريباً لتأكيد الطلب.
               </p>
               <button
-                onClick={() => { setFormSubmitted(false); setInputValues({}); }}
+                onClick={() => {
+                  setFormSubmitted(false);
+                  setInputValues({});
+                }}
                 className="mt-2 text-xs font-semibold text-emerald-800 underline hover:text-emerald-950 cursor-pointer"
               >
                 إرسال طلب جديد
@@ -443,14 +500,21 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <div className="text-center mb-8 space-y-2">
               {node.props.badge && (
                 <span
-                  style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary }}
+                  style={{
+                    backgroundColor: `${theme.colors.primary}18`,
+                    color: theme.colors.primary,
+                  }}
                   className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                 >
                   {node.props.badge}
                 </span>
               )}
-              {node.props.title && <h2 className="text-2xl font-extrabold text-slate-900">{node.props.title}</h2>}
-              {node.props.subtitle && <p className="text-sm text-slate-600">{node.props.subtitle}</p>}
+              {node.props.title && (
+                <h2 className="text-2xl font-extrabold text-slate-900">{node.props.title}</h2>
+              )}
+              {node.props.subtitle && (
+                <p className="text-sm text-slate-600">{node.props.subtitle}</p>
+              )}
             </div>
           )}
           <div className="bg-white border border-slate-200 rounded-2xl shadow-sm p-6 space-y-4">
@@ -467,7 +531,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                     >
                       <option value="">اختر...</option>
                       {(field.options || []).map((opt: string, oi: number) => (
-                        <option key={oi} value={opt}>{opt}</option>
+                        <option key={oi} value={opt}>
+                          {opt}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -502,7 +568,10 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             })}
             <button
               onClick={() => setFormSubmitted(true)}
-              style={{ backgroundColor: theme.colors.primary, borderRadius: theme.radius?.lg || '10px' }}
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: theme.radius?.lg || '10px',
+              }}
               className="w-full py-3 text-white font-bold text-sm shadow-sm hover:opacity-90 active:scale-98 transition-all cursor-pointer"
             >
               {buttonText}
@@ -524,14 +593,21 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
               {node.props.badge && (
                 <span
-                  style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary }}
+                  style={{
+                    backgroundColor: `${theme.colors.primary}18`,
+                    color: theme.colors.primary,
+                  }}
                   className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                 >
                   {node.props.badge}
                 </span>
               )}
-              {node.props.title && <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>}
-              {node.props.subtitle && <p className="text-sm text-slate-600">{node.props.subtitle}</p>}
+              {node.props.title && (
+                <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>
+              )}
+              {node.props.subtitle && (
+                <p className="text-sm text-slate-600">{node.props.subtitle}</p>
+              )}
             </div>
           )}
           {reviews.length > 0 && (
@@ -547,7 +623,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                         <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                       ))}
                     </div>
-                    <p className="text-sm text-slate-700 leading-relaxed italic">"{r.text || r.quote}"</p>
+                    <p className="text-sm text-slate-700 leading-relaxed italic">
+                      "{r.text || r.quote}"
+                    </p>
                   </div>
                   <div className="pt-2 border-t border-slate-100">
                     <h4 className="text-xs font-bold text-slate-900">{r.name || r.author}</h4>
@@ -575,14 +653,21 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
               {node.props.badge && (
                 <span
-                  style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary }}
+                  style={{
+                    backgroundColor: `${theme.colors.primary}18`,
+                    color: theme.colors.primary,
+                  }}
                   className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                 >
                   {node.props.badge}
                 </span>
               )}
-              {node.props.title && <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>}
-              {node.props.subtitle && <p className="text-sm text-slate-600">{node.props.subtitle}</p>}
+              {node.props.title && (
+                <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>
+              )}
+              {node.props.subtitle && (
+                <p className="text-sm text-slate-600">{node.props.subtitle}</p>
+              )}
             </div>
           )}
           {featuresList.length > 0 && (
@@ -593,16 +678,26 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                   className="p-6 bg-white rounded-2xl border border-slate-200 hover:border-blue-300 hover:shadow-lg transition-all duration-300 space-y-3"
                 >
                   <div
-                    style={{ backgroundColor: `${theme.colors.primary}15`, color: theme.colors.primary }}
+                    style={{
+                      backgroundColor: `${theme.colors.primary}15`,
+                      color: theme.colors.primary,
+                    }}
                     className="w-12 h-12 rounded-xl flex items-center justify-center"
                   >
-                    {feat.icon === 'ShieldCheck' ? <ShieldCheck className="w-6 h-6" /> :
-                     feat.icon === 'Truck' ? <Truck className="w-6 h-6" /> :
-                     feat.icon === 'CreditCard' ? <CreditCard className="w-6 h-6" /> :
-                     <CheckCircle className="w-6 h-6" />}
+                    {feat.icon === 'ShieldCheck' ? (
+                      <ShieldCheck className="w-6 h-6" />
+                    ) : feat.icon === 'Truck' ? (
+                      <Truck className="w-6 h-6" />
+                    ) : feat.icon === 'CreditCard' ? (
+                      <CreditCard className="w-6 h-6" />
+                    ) : (
+                      <CheckCircle className="w-6 h-6" />
+                    )}
                   </div>
                   <h3 className="text-base font-bold text-slate-900">{feat.title}</h3>
-                  {feat.description && <p className="text-xs text-slate-500 leading-relaxed">{feat.description}</p>}
+                  {feat.description && (
+                    <p className="text-xs text-slate-500 leading-relaxed">{feat.description}</p>
+                  )}
                 </div>
               ))}
             </div>
@@ -623,13 +718,18 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <div className="text-center mb-10 space-y-2 max-w-2xl mx-auto">
               {node.props.badge && (
                 <span
-                  style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary }}
+                  style={{
+                    backgroundColor: `${theme.colors.primary}18`,
+                    color: theme.colors.primary,
+                  }}
                   className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider inline-block"
                 >
                   {node.props.badge}
                 </span>
               )}
-              {node.props.title && <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>}
+              {node.props.title && (
+                <h2 className="text-3xl font-extrabold text-slate-900">{node.props.title}</h2>
+              )}
             </div>
           )}
           {tiers.length > 0 && (
@@ -640,7 +740,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                   <div
                     key={tier.id || idx}
                     className={`bg-white rounded-2xl border p-6 flex flex-col justify-between relative transition-all ${
-                      isPopular ? 'border-blue-600 shadow-xl ring-2 ring-blue-600/30' : 'border-slate-200 shadow-sm'
+                      isPopular
+                        ? 'border-blue-600 shadow-xl ring-2 ring-blue-600/30'
+                        : 'border-slate-200 shadow-sm'
                     }`}
                   >
                     {tier.badge && (
@@ -651,8 +753,15 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                     <div className="space-y-4">
                       <h3 className="text-lg font-bold">{tier.title}</h3>
                       <div className="flex items-baseline gap-1">
-                        <span style={{ color: theme.colors.primary }} className="text-3xl font-black font-mono">{tier.price}</span>
-                        {tier.period && <span className="text-xs text-slate-500">/{tier.period}</span>}
+                        <span
+                          style={{ color: theme.colors.primary }}
+                          className="text-3xl font-black font-mono"
+                        >
+                          {tier.price}
+                        </span>
+                        {tier.period && (
+                          <span className="text-xs text-slate-500">/{tier.period}</span>
+                        )}
                       </div>
                       {tier.features && (
                         <div className="space-y-2 text-xs text-slate-700 pt-2 border-t border-slate-100">
@@ -666,7 +775,10 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
                       )}
                     </div>
                     <button
-                      style={{ backgroundColor: isPopular ? theme.colors.primary : '#0f172a', borderRadius: theme.radius?.lg || '10px' }}
+                      style={{
+                        backgroundColor: isPopular ? theme.colors.primary : '#0f172a',
+                        borderRadius: theme.radius?.lg || '10px',
+                      }}
                       className="w-full mt-6 py-3 text-white font-bold text-xs shadow-sm hover:opacity-90 active:scale-98 transition-all cursor-pointer text-center"
                     >
                       {tier.ctaText || 'اختيار الخطة'}
@@ -697,7 +809,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             <p className="text-sm text-slate-700 leading-relaxed italic">"{node.props.quote}"</p>
             <div className="pt-2 border-t border-slate-200/60">
               <h4 className="text-xs font-bold text-slate-900">{node.props.author}</h4>
-              {node.props.role && <span className="text-[11px] text-slate-500">{node.props.role}</span>}
+              {node.props.role && (
+                <span className="text-[11px] text-slate-500">{node.props.role}</span>
+              )}
             </div>
           </div>
           {renderChildren()}
@@ -710,7 +824,11 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
       return (
         <div id={node.id} style={computed} className="space-y-3">
           <div
-            style={{ backgroundColor: `${theme.colors.primary}18`, color: theme.colors.primary, borderRadius: theme.radius?.md || '10px' }}
+            style={{
+              backgroundColor: `${theme.colors.primary}18`,
+              color: theme.colors.primary,
+              borderRadius: theme.radius?.md || '10px',
+            }}
             className="w-12 h-12 flex items-center justify-center"
           >
             {node.props.icon === 'ShieldCheck' && <ShieldCheck className="w-6 h-6" />}
@@ -718,7 +836,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
             {node.props.icon === 'CreditCard' && <CreditCard className="w-6 h-6" />}
           </div>
           <h3 className="text-lg font-bold text-slate-900">{node.props.title}</h3>
-          {node.props.description && <p className="text-sm text-slate-600 leading-relaxed">{node.props.description}</p>}
+          {node.props.description && (
+            <p className="text-sm text-slate-600 leading-relaxed">{node.props.description}</p>
+          )}
           {renderChildren()}
         </div>
       );
@@ -739,7 +859,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
               {isFaqOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
             </span>
           </div>
-          {isFaqOpen && <p className="text-xs text-slate-600 leading-relaxed">{node.props.answer}</p>}
+          {isFaqOpen && (
+            <p className="text-xs text-slate-600 leading-relaxed">{node.props.answer}</p>
+          )}
           {renderChildren()}
         </div>
       );
@@ -762,8 +884,12 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
           <span className="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full uppercase tracking-wider">
             {node.props.badge}
           </span>
-          <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">{node.props.title}</h2>
-          {node.props.subtitle && <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>}
+          <h2 className="text-3xl font-extrabold text-slate-900 leading-tight">
+            {node.props.title}
+          </h2>
+          {node.props.subtitle && (
+            <p className="text-sm text-slate-600 leading-relaxed">{node.props.subtitle}</p>
+          )}
         </div>
       )}
       {/* Stats item */}
@@ -780,10 +906,14 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
       {/* Footer column with heading + links */}
       {node.props.heading && node.props.links && (
         <div className="space-y-2.5">
-          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">{node.props.heading}</h4>
+          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+            {node.props.heading}
+          </h4>
           <div className="flex flex-col gap-1.5 text-xs text-slate-400">
             {(node.props.links as string[]).map((link, i) => (
-              <span key={i} className="hover:text-white cursor-pointer transition-colors">{link}</span>
+              <span key={i} className="hover:text-white cursor-pointer transition-colors">
+                {link}
+              </span>
             ))}
           </div>
         </div>
@@ -791,7 +921,9 @@ function NodeRenderer({ nodeId, website }: { nodeId: string; website: BuilderWeb
       {/* Footer column with heading + info */}
       {node.props.heading && node.props.info && (
         <div className="space-y-2.5">
-          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">{node.props.heading}</h4>
+          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">
+            {node.props.heading}
+          </h4>
           <div className="flex flex-col gap-1.5 text-xs text-slate-400">
             {(node.props.info as string[]).map((inf, i) => (
               <span key={i}>{inf}</span>

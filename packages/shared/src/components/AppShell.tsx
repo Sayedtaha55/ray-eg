@@ -16,7 +16,10 @@ const ScrollToTop = () => {
   return null;
 };
 
-const RoleRedirector: React.FC<{ authReady: boolean; allowedRoles?: string[] }> = ({ authReady, allowedRoles }) => {
+const RoleRedirector: React.FC<{ authReady: boolean; allowedRoles?: string[] }> = ({
+  authReady,
+  allowedRoles,
+}) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [authTick, setAuthTick] = useState(0);
@@ -40,14 +43,20 @@ const RoleRedirector: React.FC<{ authReady: boolean; allowedRoles?: string[] }> 
       const role = String(user?.role || '').toLowerCase();
       const pathname = String(location?.pathname || '');
       const isRootLike = pathname === '/' || pathname === '/login' || pathname === '/signup';
-      const isBusinessAuth = pathname === '/business' || pathname === '/business/' || pathname.startsWith('/business/login');
+      const isBusinessAuth =
+        pathname === '/business' ||
+        pathname === '/business/' ||
+        pathname.startsWith('/business/login');
 
       if (role === 'courier' && !pathname.startsWith('/courier')) {
         navigate('/courier/orders', { replace: true });
         return;
       }
 
-      if (role === 'admin' && (isRootLike || pathname.startsWith('/admin/gate') || pathname.startsWith('/login'))) {
+      if (
+        role === 'admin' &&
+        (isRootLike || pathname.startsWith('/admin/gate') || pathname.startsWith('/login'))
+      ) {
         navigate('/admin/dashboard', { replace: true });
         return;
       }
@@ -77,11 +86,19 @@ interface AppShellProps {
   disableRoleRedirect?: boolean;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ children, seoManager, disableRoleRedirect }) => {
-  const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '').trim().toLowerCase();
+export const AppShell: React.FC<AppShellProps> = ({
+  children,
+  seoManager,
+  disableRoleRedirect,
+}) => {
+  const routerMode = String(((import.meta as any)?.env?.VITE_ROUTER_MODE as string) || '')
+    .trim()
+    .toLowerCase();
   const Router = routerMode === 'browser' ? BrowserRouter : HashRouter;
   const shouldStoreBearerToken =
-    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '').trim().toLowerCase() === 'true';
+    String(((import.meta as any)?.env?.VITE_ENABLE_BEARER_TOKEN as any) || '')
+      .trim()
+      .toLowerCase() === 'true';
   const [authReady, setAuthReady] = useState(false);
 
   useEffect(() => {
@@ -92,9 +109,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children, seoManager, disabl
     startAuthSync();
     setAuthReady(true);
 
-    const hasStoredSession = Boolean(getStoredUser()) || Boolean(
-      typeof window !== 'undefined' ? window.localStorage.getItem('ray_token') : '',
-    );
+    const hasStoredSession =
+      Boolean(getStoredUser()) ||
+      Boolean(typeof window !== 'undefined' ? window.localStorage.getItem('ray_token') : '');
 
     const cancelScheduledBootstrap = () => {
       if (idleHandle !== null && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
@@ -123,12 +140,16 @@ export const AppShell: React.FC<AppShellProps> = ({ children, seoManager, disabl
     const scheduleBootstrap = (delayMs: number) => {
       if (!active) return;
       cancelScheduledBootstrap();
-      const idle = (window as any)?.requestIdleCallback as undefined | ((cb: () => void, options?: { timeout?: number }) => number);
+      const idle = (window as any)?.requestIdleCallback as
+        undefined | ((cb: () => void, options?: { timeout?: number }) => number);
       if (typeof idle === 'function') {
-        idleHandle = idle(() => {
-          idleHandle = null;
-          void runBootstrap();
-        }, { timeout: delayMs });
+        idleHandle = idle(
+          () => {
+            idleHandle = null;
+            void runBootstrap();
+          },
+          { timeout: delayMs }
+        );
         return;
       }
 
@@ -154,7 +175,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children, seoManager, disabl
   }, [shouldStoreBearerToken]);
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <Router>
       <ScrollToTop />
       {!disableRoleRedirect && <RoleRedirector authReady={authReady} />}
       {seoManager}

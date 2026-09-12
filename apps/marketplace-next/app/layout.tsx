@@ -1,6 +1,7 @@
 ﻿import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { AppProvider } from '@/components/AppProvider';
+import { QueryProvider } from '@/components/QueryProvider';
 import { CartProvider } from '@/lib/cart';
 import { WishlistProvider } from '@/lib/wishlist';
 import { AppChrome } from '@/components/AppChrome';
@@ -80,16 +81,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body suppressHydrationWarning>
-        <AppProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <BreachNotice />
-              <AppChrome>{children}</AppChrome>
-              <PwaInstallPrompt />
-              <ConsentBanner />
-            </WishlistProvider>
-          </CartProvider>
-        </AppProvider>
+        <QueryProvider>
+          <AppProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <BreachNotice />
+                <AppChrome>{children}</AppChrome>
+                <PwaInstallPrompt />
+                <ConsentBanner />
+              </WishlistProvider>
+            </CartProvider>
+          </AppProvider>
+        </QueryProvider>
       </body>
     </html>
   );

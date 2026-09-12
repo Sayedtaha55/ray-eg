@@ -13,7 +13,7 @@ interface ShopPoliciesProps {
   shopSlug: string;
 }
 
-const policyIcons: Record<string, React.ElementType> = {
+const policyIcons: Record<string, React.ComponentType<{ className?: string }>> = {
   refund: RefreshCw,
   exchange: Package,
   shipping: Truck,

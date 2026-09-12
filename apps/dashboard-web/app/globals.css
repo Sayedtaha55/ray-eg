@@ -1,11 +1,10 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@config "../tailwind.config.ts";
 
 :root {
-  --brand-primary: #00E5FF;
-  --brand-secondary: #BD00FF;
-  --brand-dark: #1A1A1A;
+  --brand-primary: #00e5ff;
+  --brand-secondary: #bd00ff;
+  --brand-dark: #1a1a1a;
 }
 
 * {
@@ -17,12 +16,16 @@ html {
 }
 
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    sans-serif;
   background: #ffffff;
   color: #0f172a;
 }
 
-[dir="rtl"] {
+[dir='rtl'] {
   text-align: right;
 }
 

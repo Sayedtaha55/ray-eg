@@ -1,11 +1,185 @@
 'use client';
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import Link from 'next/link';
 import {
-  BarChart3, TrendingUp, TrendingDown, ShoppingCart, DollarSign,
-  Users, Eye, Activity, Loader2, Calendar, Info, Target, BookOpen, Zap, Link2, ChevronRight, Lightbulb, XCircle
+  BarChart3,
+  TrendingUp,
+  TrendingDown,
+  ShoppingCart,
+  DollarSign,
+  Users,
+  Eye,
+  Activity,
+  Loader2,
+  Calendar,
+  Info,
+  Target,
+  BookOpen,
+  Zap,
+  Link2,
+  ChevronRight,
+  ChevronLeft,
+  Lightbulb,
+  XCircle,
+  LayoutGrid,
+  ChartPie,
+  PackageSearch,
+  Boxes,
+  Heart,
+  MousePointerClick,
+  Landmark,
+  Megaphone,
+  Workflow,
+  Banknote,
+  Truck,
 } from 'lucide-react';
 import { apiRequest } from '@/lib/auth';
+
+/* ============================================================
+ * Analytics Hub — كل التحليلات
+ * فهرس لكل صفحات التحليلات والتقارير (15 صفحة)
+ * ============================================================ */
+
+type HubPage = {
+  id: string;
+  label: string;
+  desc: string;
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  href: string;
+  /** true = placeholder page under development */
+  soon?: boolean;
+  tile: string; // icon tile colors
+};
+
+const ANALYTICS_PAGES: HubPage[] = [
+  {
+    id: 'allAnalytics',
+    label: 'كل التحليلات',
+    desc: 'نظرة سريعة على أداء متجرك كله',
+    icon: LayoutGrid,
+    href: '/dashboard/analytics',
+    tile: 'bg-slate-100 text-slate-700',
+  },
+  {
+    id: 'kpi',
+    label: 'المؤشرات',
+    desc: 'أهم الأرقام اللي بتقيس صحة متجرك',
+    icon: Activity,
+    href: '/dashboard/analytics/kpi',
+    tile: 'bg-cyan-50 text-cyan-600',
+  },
+  {
+    id: 'charts',
+    label: 'الرسوم البيانية',
+    desc: 'كل الرسوم والاتجاهات في شكل مرئي',
+    icon: ChartPie,
+    href: '/dashboard/analytics/charts',
+    tile: 'bg-violet-50 text-violet-600',
+  },
+  {
+    id: 'salesPerformance',
+    label: 'أداء المبيعات',
+    desc: 'مين بيبيع وإمتى وإيه أكتر الفترات ربحًا',
+    icon: TrendingUp,
+    href: '/dashboard/analytics/sales-performance',
+    tile: 'bg-green-50 text-green-600',
+  },
+  {
+    id: 'productPerformance',
+    label: 'أداء المنتجات',
+    desc: 'أكتر المنتجات مبيعًا والأقل مبيعًا',
+    icon: PackageSearch,
+    href: '/dashboard/analytics/product-performance',
+    tile: 'bg-indigo-50 text-indigo-600',
+  },
+  {
+    id: 'inventoryReports',
+    label: 'تقارير المخزون',
+    desc: 'المنتجات اللي قربت تخلص قبل ما تفقدها',
+    icon: Boxes,
+    href: '/dashboard/analytics/inventory',
+    tile: 'bg-amber-50 text-amber-600',
+  },
+  {
+    id: 'customerInsights',
+    label: 'تحليلات العملاء',
+    desc: 'عرف عملاءك: الجدد والمتكررين وأكتر اللي بيشتروا',
+    icon: Users,
+    href: '/dashboard/analytics/customer-insights',
+    tile: 'bg-purple-50 text-purple-600',
+  },
+  {
+    id: 'engagementAnalytics',
+    label: 'تحليلات المشاركة',
+    desc: 'تفاعل العملاء مع منتجاتك على الموقع',
+    icon: Heart,
+    href: '/dashboard/analytics/engagement',
+    soon: true,
+    tile: 'bg-fuchsia-50 text-fuchsia-600',
+  },
+  {
+    id: 'visitors',
+    label: 'الزوار',
+    desc: 'مين زار متجرك ومنين وفي أي وقت',
+    icon: Eye,
+    href: '/dashboard/analytics/visitors',
+    tile: 'bg-blue-50 text-blue-600',
+  },
+  {
+    id: 'conversions',
+    label: 'التحويلات',
+    desc: 'الزوار اللي بقوا عملاء — ونسبة التحويل',
+    icon: MousePointerClick,
+    href: '/dashboard/analytics/conversions',
+    tile: 'bg-teal-50 text-teal-600',
+  },
+  {
+    id: 'financeAnalytics',
+    label: 'تقارير المالية',
+    desc: 'الإيرادات والمصروفات والأرباح والتدفق النقدي',
+    icon: Landmark,
+    href: '/dashboard/analytics/finance',
+    soon: true,
+    tile: 'bg-emerald-50 text-emerald-600',
+  },
+  {
+    id: 'marketingAnalytics',
+    label: 'تحليلات التسويق',
+    desc: 'أداء الحملات والكوبونات والخصومات',
+    icon: Megaphone,
+    href: '/dashboard/analytics/marketing',
+    soon: true,
+    tile: 'bg-rose-50 text-rose-600',
+  },
+  {
+    id: 'operationsAnalytics',
+    label: 'تحليلات العمليات',
+    desc: 'أوقات الذروة وأداء الكاشير ودورة الطلب',
+    icon: Workflow,
+    href: '/dashboard/analytics/operations',
+    soon: true,
+    tile: 'bg-orange-50 text-orange-600',
+  },
+  {
+    id: 'paymentsAnalytics',
+    label: 'تقارير المدفوعات',
+    desc: 'طرق الدفع والتحصيلات والمعاملات',
+    icon: Banknote,
+    href: '/dashboard/analytics/payments',
+    soon: true,
+    tile: 'bg-lime-50 text-lime-600',
+  },
+  {
+    id: 'logisticsAnalytics',
+    label: 'تقارير اللوجستيات',
+    desc: 'الشحن والتوصيل والمخازن',
+    icon: Truck,
+    href: '/dashboard/analytics/logistics',
+    soon: true,
+    tile: 'bg-sky-50 text-sky-600',
+  },
+];
 
 /* ============================================================
  * Analytics Guide System
@@ -41,7 +215,9 @@ const GuideSectionBlock: React.FC<{
 }> = ({ icon: Icon, iconColor, iconBg, heading, children }) => (
   <div className="rounded-xl border border-slate-100 p-4 bg-white">
     <div className="flex items-center gap-2.5 mb-3">
-      <div className={`flex items-center justify-center w-8 h-8 rounded-lg ${iconBg} ${iconColor} shrink-0`}>
+      <div
+        className={`flex items-center justify-center w-8 h-8 rounded-lg ${iconBg} ${iconColor} shrink-0`}
+      >
         <Icon size={16} />
       </div>
       <h4 className="font-bold text-slate-900 text-sm">{heading}</h4>
@@ -52,15 +228,30 @@ const GuideSectionBlock: React.FC<{
 
 const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide }) => (
   <div className="space-y-4">
-    <GuideSectionBlock icon={Target} iconColor="text-blue-600" iconBg="bg-blue-50" heading="وظيفة الصفحة / Page Purpose">
+    <GuideSectionBlock
+      icon={Target}
+      iconColor="text-blue-600"
+      iconBg="bg-blue-50"
+      heading="وظيفة الصفحة / Page Purpose"
+    >
       <p className="text-slate-600 text-sm leading-relaxed">{guide.purpose}</p>
     </GuideSectionBlock>
 
-    <GuideSectionBlock icon={Calendar} iconColor="text-amber-600" iconBg="bg-amber-50" heading="متى تستخدمها / When to Use">
+    <GuideSectionBlock
+      icon={Calendar}
+      iconColor="text-amber-600"
+      iconBg="bg-amber-50"
+      heading="متى تستخدمها / When to Use"
+    >
       <p className="text-slate-600 text-sm leading-relaxed">{guide.whenToUse}</p>
     </GuideSectionBlock>
 
-    <GuideSectionBlock icon={BookOpen} iconColor="text-purple-600" iconBg="bg-purple-50" heading="ماذا ستجد داخلها / What's Inside">
+    <GuideSectionBlock
+      icon={BookOpen}
+      iconColor="text-purple-600"
+      iconBg="bg-purple-50"
+      heading="ماذا ستجد داخلها / What's Inside"
+    >
       <ul className="space-y-1.5">
         {guide.whatsInside.map((item, i) => (
           <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
@@ -72,11 +263,18 @@ const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide 
     </GuideSectionBlock>
 
     {guide.steps.length > 0 && (
-      <GuideSectionBlock icon={Zap} iconColor="text-cyan-600" iconBg="bg-cyan-50" heading="خطوات الاستخدام / How to Use">
+      <GuideSectionBlock
+        icon={Zap}
+        iconColor="text-cyan-600"
+        iconBg="bg-cyan-50"
+        heading="خطوات الاستخدام / How to Use"
+      >
         <ol className="space-y-2">
           {guide.steps.map((step, i) => (
             <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
-              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0">{i + 1}</span>
+              <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-slate-500 text-xs font-bold shrink-0">
+                {i + 1}
+              </span>
               <div>
                 <div className="font-semibold text-slate-900">{step.title}</div>
                 <div className="text-slate-500">{step.description}</div>
@@ -88,7 +286,12 @@ const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide 
     )}
 
     {guide.bestPractices.length > 0 && (
-      <GuideSectionBlock icon={Target} iconColor="text-green-600" iconBg="bg-green-50" heading="أفضل الممارسات / Best Practices">
+      <GuideSectionBlock
+        icon={Target}
+        iconColor="text-green-600"
+        iconBg="bg-green-50"
+        heading="أفضل الممارسات / Best Practices"
+      >
         <ul className="space-y-1.5">
           {guide.bestPractices.map((practice, i) => (
             <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
@@ -101,7 +304,12 @@ const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide 
     )}
 
     {guide.tips.length > 0 && (
-      <GuideSectionBlock icon={Lightbulb} iconColor="text-amber-600" iconBg="bg-amber-50" heading="نصائح / Tips">
+      <GuideSectionBlock
+        icon={Lightbulb}
+        iconColor="text-amber-600"
+        iconBg="bg-amber-50"
+        heading="نصائح / Tips"
+      >
         <ul className="space-y-1.5">
           {guide.tips.map((tip, i) => (
             <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
@@ -114,7 +322,12 @@ const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide 
     )}
 
     {guide.shortcuts.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-indigo-600" iconBg="bg-indigo-50" heading="اختصارات / Shortcuts">
+      <GuideSectionBlock
+        icon={Link2}
+        iconColor="text-indigo-600"
+        iconBg="bg-indigo-50"
+        heading="اختصارات / Shortcuts"
+      >
         <ul className="space-y-1.5">
           {guide.shortcuts.map((shortcut, i) => (
             <li key={i} className="flex items-start gap-2 text-slate-600 text-sm leading-relaxed">
@@ -127,7 +340,12 @@ const AnalyticsGuideContent: React.FC<{ guide: AnalyticsGuideData }> = ({ guide 
     )}
 
     {guide.relatedLinks && guide.relatedLinks.length > 0 && (
-      <GuideSectionBlock icon={Link2} iconColor="text-slate-600" iconBg="bg-slate-100" heading="روابط ذات صلة / Related Links">
+      <GuideSectionBlock
+        icon={Link2}
+        iconColor="text-slate-600"
+        iconBg="bg-slate-100"
+        heading="روابط ذات صلة / Related Links"
+      >
         <div className="flex flex-wrap gap-2">
           {guide.relatedLinks.map((link, i) => (
             <button
@@ -160,13 +378,19 @@ const InfoDrawer: React.FC<{
           <Info size={20} className="text-slate-400" />
           {title}
         </h3>
-        <button onClick={onClose} className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all">
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
+        >
           <XCircle size={20} />
         </button>
       </div>
       <div className="px-6 py-5 space-y-5 text-sm text-slate-600 leading-relaxed">{children}</div>
       <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3">
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+        <button
+          onClick={onClose}
+          className="w-full py-2.5 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors"
+        >
           حسناً
         </button>
       </div>
@@ -185,42 +409,52 @@ export default function AnalyticsPage() {
 
   const analyticsGuide: AnalyticsGuideData = {
     purpose: 'لوحة تحليلية شاملة لتتبع أداء المتجر والمبيعات والعملاء مع رسوم بيانية تفاعلية.',
-    whenToUse: 'استخدم هذه الصفحة يومياً لمتابعة أداء المتجر، تحليل المبيعات، واتخاذ قرارات مبنية على البيانات.',
+    whenToUse:
+      'استخدم هذه الصفحة يومياً لمتابعة أداء المتجر، تحليل المبيعات، واتخاذ قرارات مبنية على البيانات.',
     whatsInside: [
       'إحصائيات المبيعات الرئيسية',
       'رسوم بيانية تفاعلية',
       'تحليل أداء الطلبات',
       'إحصائيات العملاء',
       'تصفية حسب الفترة الزمنية',
-      'مقارنات الأداء'
+      'مقارنات الأداء',
     ],
     steps: [
-      { title: 'اختر الفترة', description: 'حدد الفترة الزمنية لعرض التحليلات (7 أيام، 30 يوم، 6 أشهر، سنة)' },
+      {
+        title: 'اختر الفترة',
+        description: 'حدد الفترة الزمنية لعرض التحليلات (7 أيام، 30 يوم، 6 أشهر، سنة)',
+      },
       { title: 'راجع الإحصائيات', description: 'اطلع على إجمالي الطلبات والإيرادات ومتوسط الطلب' },
-      { title: 'حلل الرسوم البيانية', description: 'دراسة الرسوم البيانية لفهم الاتجاهات والأنماط' },
-      { title: 'قارن الأداء', description: 'قارن بين الفترات المختلفة لقياس التقدم' }
+      {
+        title: 'حلل الرسوم البيانية',
+        description: 'دراسة الرسوم البيانية لفهم الاتجاهات والأنماط',
+      },
+      { title: 'قارن الأداء', description: 'قارن بين الفترات المختلفة لقياس التقدم' },
     ],
     bestPractices: [
       'راجع التحليلات يومياً أو أسبوعياً',
       'قارن بين الفترات المختلفة',
       'ركز على المؤشرات الرئيسية',
-      'استخدم البيانات لاتخاذ قرارات'
+      'استخدم البيانات لاتخاذ قرارات',
     ],
     tips: [
       'الرسوم البيانية تفاعلية - مرر عليها للتفاصيل',
       'يمكنك تصفية البيانات حسب الفترة',
-      'الألوان المختلفة تشير إلى مؤشرات مختلفة'
+      'الألوان المختلفة تشير إلى مؤشرات مختلفة',
     ],
-    shortcuts: [
-      'اضغط على الأزرار لتغيير الفترة الزمنية',
-      'استخدم F5 لتحديث البيانات'
-    ],
+    shortcuts: ['اضغط على الأزرار لتغيير الفترة الزمنية', 'استخدم F5 لتحديث البيانات'],
     relatedLinks: [
-      { label: 'المؤشرات', onClick: () => window.location.href = '/dashboard/analytics/kpi' },
-      { label: 'الرسوم البيانية', onClick: () => window.location.href = '/dashboard/analytics/charts' },
-      { label: 'أداء المبيعات', onClick: () => window.location.href = '/dashboard/analytics/sales-performance' },
-      { label: 'الزوار', onClick: () => window.location.href = '/dashboard/analytics/visitors' }
-    ]
+      { label: 'المؤشرات', onClick: () => (window.location.href = '/dashboard/analytics/kpi') },
+      {
+        label: 'الرسوم البيانية',
+        onClick: () => (window.location.href = '/dashboard/analytics/charts'),
+      },
+      {
+        label: 'أداء المبيعات',
+        onClick: () => (window.location.href = '/dashboard/analytics/sales-performance'),
+      },
+      { label: 'الزوار', onClick: () => (window.location.href = '/dashboard/analytics/visitors') },
+    ],
   };
 
   useEffect(() => {
@@ -241,7 +475,9 @@ export default function AnalyticsPage() {
         ]);
         if (analyticsRes.status === 'fulfilled') setAnalytics(analyticsRes.value || {});
         if (ordersRes.status === 'fulfilled') {
-          const list = Array.isArray(ordersRes.value) ? ordersRes.value : (ordersRes.value?.orders || []);
+          const list = Array.isArray(ordersRes.value)
+            ? ordersRes.value
+            : ordersRes.value?.orders || [];
           setOrders(Array.isArray(list) ? list : []);
         }
         if (customerRes.status === 'fulfilled') setCustomerStats(customerRes.value);
@@ -294,12 +530,18 @@ export default function AnalyticsPage() {
           </div>
           <div className="text-right">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">التحليلات</h1>
-              <button onClick={() => setGuideOpen(true)} className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all" title="معلومات / Info">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">كل التحليلات</h1>
+              <button
+                onClick={() => setGuideOpen(true)}
+                className="p-1.5 rounded-full text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-all"
+                title="معلومات / Info"
+              >
                 <Info size={18} />
               </button>
             </div>
-            <p className="text-sm font-bold text-slate-400 mt-1">تقارير الأداء والمبيعات</p>
+            <p className="text-sm font-bold text-slate-400 mt-1">
+              كل صفحات التحليلات والتقارير في مكان واحد
+            </p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -313,7 +555,9 @@ export default function AnalyticsPage() {
               key={r.id}
               onClick={() => setRange(r.id as any)}
               className={`px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                range === r.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'
+                range === r.id
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-600 border border-slate-200'
               }`}
             >
               {r.label}
@@ -341,28 +585,36 @@ export default function AnalyticsPage() {
                 <ShoppingCart size={20} />
               </div>
               <span className="text-slate-500 font-semibold text-xs mb-1">إجمالي الطلبات</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">{orderStats.total}</span>
+              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+                {orderStats.total}
+              </span>
             </div>
             <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-green-50 text-green-600">
                 <DollarSign size={20} />
               </div>
               <span className="text-slate-500 font-semibold text-xs mb-1">إجمالي الإيرادات</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">ج.م {orderStats.revenue.toLocaleString()}</span>
+              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+                ج.م {orderStats.revenue.toLocaleString()}
+              </span>
             </div>
             <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-cyan-50 text-cyan-600">
                 <TrendingUp size={20} />
               </div>
               <span className="text-slate-500 font-semibold text-xs mb-1">متوسط الطلب</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">ج.م {Math.round(orderStats.avgOrder).toLocaleString()}</span>
+              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+                ج.م {Math.round(orderStats.avgOrder).toLocaleString()}
+              </span>
             </div>
             <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm text-right flex flex-col items-end">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-3 bg-purple-50 text-purple-600">
                 <Users size={20} />
               </div>
               <span className="text-slate-500 font-semibold text-xs mb-1">العملاء</span>
-              <span className="text-xl sm:text-2xl font-bold text-slate-900">{customerStats?.totalCustomers || analytics?.totalCustomers || 0}</span>
+              <span className="text-xl sm:text-2xl font-bold text-slate-900">
+                {customerStats?.totalCustomers || analytics?.totalCustomers || 0}
+              </span>
             </div>
           </div>
 
@@ -373,7 +625,9 @@ export default function AnalyticsPage() {
               <h2 className="font-bold text-slate-900 text-sm">مبيعات يومية</h2>
             </div>
             {chartData.length === 0 ? (
-              <div className="text-center py-12 text-slate-400 font-bold text-sm">لا توجد بيانات كافية</div>
+              <div className="text-center py-12 text-slate-400 font-bold text-sm">
+                لا توجد بيانات كافية
+              </div>
             ) : (
               <div className="flex items-end gap-2 h-40 sm:h-48">
                 {chartData.map((d: any, i: number) => (
@@ -383,7 +637,9 @@ export default function AnalyticsPage() {
                       style={{ height: `${Math.max((Number(d.sales || 0) / maxChart) * 100, 3)}%` }}
                       title={`${d.name}: ج.م ${Number(d.sales || 0).toLocaleString()}`}
                     />
-                    <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">{d.name}</span>
+                    <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap">
+                      {d.name}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -401,7 +657,10 @@ export default function AnalyticsPage() {
               </div>
               <div className="text-2xl font-black text-slate-900">{orderStats.delivered}</div>
               <div className="text-xs text-slate-500 mt-1">
-                {orderStats.total > 0 ? `${Math.round((orderStats.delivered / orderStats.total) * 100)}%` : '0%'} من الإجمالي
+                {orderStats.total > 0
+                  ? `${Math.round((orderStats.delivered / orderStats.total) * 100)}%`
+                  : '0%'}{' '}
+                من الإجمالي
               </div>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
@@ -413,7 +672,10 @@ export default function AnalyticsPage() {
               </div>
               <div className="text-2xl font-black text-slate-900">{orderStats.cancelled}</div>
               <div className="text-xs text-slate-500 mt-1">
-                {orderStats.total > 0 ? `${Math.round((orderStats.cancelled / orderStats.total) * 100)}%` : '0%'} من الإجمالي
+                {orderStats.total > 0
+                  ? `${Math.round((orderStats.cancelled / orderStats.total) * 100)}%`
+                  : '0%'}{' '}
+                من الإجمالي
               </div>
             </div>
             <div className="bg-white rounded-xl border border-slate-200 p-5 text-right">
@@ -427,11 +689,54 @@ export default function AnalyticsPage() {
               <div className="text-xs text-slate-500 mt-1">إجمالي الزوار</div>
             </div>
           </div>
+
+          {/* استكشف كل التحليلات — فهرس كل صفحات التحليلات */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <LayoutGrid size={16} className="text-fuchsia-500" />
+              <h2 className="font-black text-slate-900 text-base">استكشف كل التحليلات</h2>
+              <span className="text-[10px] font-semibold text-slate-400 bg-slate-100 border border-slate-100 rounded px-2 py-0.5 tabular-nums">
+                {ANALYTICS_PAGES.length} صفحة
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {ANALYTICS_PAGES.map((p) => (
+                <Link
+                  key={p.id}
+                  href={p.href}
+                  className="group bg-white border border-slate-200 rounded-xl p-4 text-right hover:border-slate-300 hover:shadow-sm transition-all"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${p.tile}`}
+                    >
+                      <p.icon size={18} />
+                    </div>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {p.soon && (
+                        <span className="px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-700 text-[8px] font-black leading-none shrink-0">
+                          قيد التطوير
+                        </span>
+                      )}
+                      <ChevronLeft
+                        size={14}
+                        className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0"
+                      />
+                    </div>
+                  </div>
+                  <h3 className="text-sm font-bold text-slate-900 mt-3">{p.label}</h3>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-1 leading-relaxed">
+                    {p.desc}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          </div>
         </>
       )}
 
       {guideOpen && (
-        <InfoDrawer title="التحليلات" onClose={() => setGuideOpen(false)}>
+        <InfoDrawer title="كل التحليلات" onClose={() => setGuideOpen(false)}>
           <AnalyticsGuideContent guide={analyticsGuide} />
         </InfoDrawer>
       )}

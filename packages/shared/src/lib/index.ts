@@ -1,7 +1,7 @@
 export * from './cart-session';
 export * from './geolocation';
+export type { CompressionOptions } from './image-utils';
 export {
-  CompressionOptions,
   generateVideoThumbnail,
   VARIANT_WIDTHS,
   detectImageFormatSupport,

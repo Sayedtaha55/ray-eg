@@ -67,6 +67,10 @@ coverage/
 *.test
 *.out
 
+# --- TypeScript build info ---
+*.tsbuildinfo
+next-env.d.ts.bak
+
 # --- Database local ---
 *.sqlite
 *.db

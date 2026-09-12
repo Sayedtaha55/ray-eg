@@ -22,6 +22,23 @@ const DEFAULT_FEATURES: Record<string, string[]> = {
   crm: ['customers', 'customerStatements', 'creditLimits', 'wholesalePricing'],
   pos: ['posCheckout'],
   website: ['website'],
+  analytics: [
+    'allAnalytics',
+    'kpi',
+    'charts',
+    'salesPerformance',
+    'productPerformance',
+    'inventoryReports',
+    'customerInsights',
+    'engagementAnalytics',
+    'visitors',
+    'conversions',
+    'financeAnalytics',
+    'marketingAnalytics',
+    'operationsAnalytics',
+    'paymentsAnalytics',
+    'logisticsAnalytics',
+  ],
 };
 
 const FEATURE_ALIASES: Record<string, string> = {
@@ -61,7 +78,10 @@ export default function useVisibleSections() {
       if (detail?.enabledFeatures) {
         setShop((current) => ({
           ...(current || {}),
-          layoutConfig: { ...(current?.layoutConfig || {}), enabledFeatures: detail.enabledFeatures },
+          layoutConfig: {
+            ...(current?.layoutConfig || {}),
+            enabledFeatures: detail.enabledFeatures,
+          },
         }));
       }
     };
@@ -97,9 +117,12 @@ export default function useVisibleSections() {
         merged[key] = v.map((f) => String(f).toLowerCase());
       }
     }
-    return Object.fromEntries(Object.entries(merged).map(([moduleId, features]) => [
-      moduleId.toLowerCase(), new Set(features),
-    ])) as Record<string, Set<string>>;
+    return Object.fromEntries(
+      Object.entries(merged).map(([moduleId, features]) => [
+        moduleId.toLowerCase(),
+        new Set(features),
+      ])
+    ) as Record<string, Set<string>>;
   }, [shop]);
 
   const visibleSections: SidebarSection[] = useMemo(() => {
@@ -113,29 +136,41 @@ export default function useVisibleSections() {
           }))
           .filter((section) => section.items.length > 0)
       : sidebarSections;
-    return base.map((section) => {
-      // Always show dashboard and settings
-      if (section.id === 'dashboard' || section.id === 'settings') return section;
-      if (!section.moduleId) return section;
+    return base
+      .map((section) => {
+        // Always show dashboard and settings
+        if (section.id === 'dashboard' || section.id === 'settings') return section;
+        // Analytics is a reporting core: always show every analytics page.
+        // Shops saved before the analytics pages existed carry stale
+        // enabledFeatures.analytics lists that would silently hide pages.
+        if (section.id === 'analytics') return section;
+        if (!section.moduleId) return section;
 
-      const moduleId = (MODULE_ALIASES[section.moduleId.toLowerCase()] || section.moduleId).toLowerCase();
-      const activeFeatures = enabledFeatures[moduleId] || new Set<string>();
-      const items = section.items.filter((item) => {
-        const featureId = (FEATURE_ALIASES[item.id] || item.id).toLowerCase();
-        return activeFeatures.has(featureId);
-      });
-      if (items.length === 0) return null;
-      return { ...section, items };
-    }).filter((section): section is SidebarSection => Boolean(section)).filter((section) => {
-      if (section.moduleId) {
-        const mod = section.moduleId.toLowerCase();
-        if (mod === 'bookings' || mod === 'reservations') {
-          return (enabledFeatures.bookings?.size || 0) > 0 || (enabledFeatures.reservations?.size || 0) > 0;
+        const moduleId = (
+          MODULE_ALIASES[section.moduleId.toLowerCase()] || section.moduleId
+        ).toLowerCase();
+        const activeFeatures = enabledFeatures[moduleId] || new Set<string>();
+        const items = section.items.filter((item) => {
+          const featureId = (FEATURE_ALIASES[item.id] || item.id).toLowerCase();
+          return activeFeatures.has(featureId);
+        });
+        if (items.length === 0) return null;
+        return { ...section, items };
+      })
+      .filter((section): section is SidebarSection => Boolean(section))
+      .filter((section) => {
+        if (section.moduleId) {
+          const mod = section.moduleId.toLowerCase();
+          if (mod === 'bookings' || mod === 'reservations') {
+            return (
+              (enabledFeatures.bookings?.size || 0) > 0 ||
+              (enabledFeatures.reservations?.size || 0) > 0
+            );
+          }
+          return section.items.length > 0;
         }
-        return section.items.length > 0;
-      }
-      return true;
-    });
+        return true;
+      });
   }, [enabledFeatures]);
 
   return visibleSections;

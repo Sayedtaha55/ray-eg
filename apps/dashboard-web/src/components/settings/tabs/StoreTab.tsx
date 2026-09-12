@@ -1,7 +1,17 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter, Label, Input, Button } from '../ui';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+  Label,
+  Input,
+  Button,
+} from '../ui';
 import { useToast } from '../ToastProvider';
 import { apiRequest } from '@/lib/auth';
 
@@ -16,31 +26,54 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
   const [togglingActive, setTogglingActive] = useState(false);
   const [isActive, setIsActive] = useState<boolean>(Boolean(shop?.isActive));
   const [togglingPublicDisabled, setTogglingPublicDisabled] = useState(false);
-  const [publicDisabled, setPublicDisabled] = useState<boolean>(Boolean(shop?.publicDisabled ?? shop?.public_disabled));
+  const [publicDisabled, setPublicDisabled] = useState<boolean>(
+    Boolean(shop?.publicDisabled ?? shop?.public_disabled)
+  );
   const [togglingDeliveryDisabled, setTogglingDeliveryDisabled] = useState(false);
-  const [deliveryDisabled, setDeliveryDisabled] = useState<boolean>(Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled));
+  const [deliveryDisabled, setDeliveryDisabled] = useState<boolean>(
+    Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled)
+  );
 
-  useEffect(() => { setIsActive(Boolean(shop?.isActive)); }, [shop?.isActive]);
-  useEffect(() => { setPublicDisabled(Boolean(shop?.publicDisabled ?? shop?.public_disabled)); }, [shop?.publicDisabled, shop?.public_disabled]);
-  useEffect(() => { setDeliveryDisabled(Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled)); }, [shop?.deliveryDisabled, shop?.delivery_disabled]);
+  useEffect(() => {
+    setIsActive(Boolean(shop?.isActive));
+  }, [shop?.isActive]);
+  useEffect(() => {
+    setPublicDisabled(Boolean(shop?.publicDisabled ?? shop?.public_disabled));
+  }, [shop?.publicDisabled, shop?.public_disabled]);
+  useEffect(() => {
+    setDeliveryDisabled(Boolean(shop?.deliveryDisabled ?? shop?.delivery_disabled));
+  }, [shop?.deliveryDisabled, shop?.delivery_disabled]);
 
-  const initial = useMemo(() => ({
-    whatsapp: String(shop?.layoutConfig?.whatsapp || ''),
-    customDomain: String(shop?.layoutConfig?.customDomain || ''),
-    openingHours: String(shop?.openingHours || shop?.opening_hours || ''),
-    displayAddress: String(shop?.displayAddress || shop?.display_address || ''),
-    mapLabel: String(shop?.mapLabel || shop?.map_label || ''),
-  }), [shop]);
+  const initial = useMemo(
+    () => ({
+      whatsapp: String(shop?.layoutConfig?.whatsapp || ''),
+      customDomain: String(shop?.layoutConfig?.customDomain || ''),
+      openingHours: String(shop?.openingHours || shop?.opening_hours || ''),
+      displayAddress: String(shop?.displayAddress || shop?.display_address || ''),
+      mapLabel: String(shop?.mapLabel || shop?.map_label || ''),
+    }),
+    [shop]
+  );
 
   const [form, setForm] = useState(initial);
   const formRef = useRef(form);
-  useEffect(() => { formRef.current = form; }, [form]);
+  useEffect(() => {
+    formRef.current = form;
+  }, [form]);
 
   const [latitude, setLatitude] = useState<number | null>(
-    typeof shop?.latitude === 'number' ? shop.latitude : typeof shop?.lat === 'number' ? shop.lat : null,
+    typeof shop?.latitude === 'number'
+      ? shop.latitude
+      : typeof shop?.lat === 'number'
+        ? shop.lat
+        : null
   );
   const [longitude, setLongitude] = useState<number | null>(
-    typeof shop?.longitude === 'number' ? shop.longitude : typeof shop?.lng === 'number' ? shop.lng : null,
+    typeof shop?.longitude === 'number'
+      ? shop.longitude
+      : typeof shop?.lng === 'number'
+        ? shop.lng
+        : null
   );
   const [locatingShop, setLocatingShop] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -48,7 +81,9 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
   const mapRef = useRef<any>(null);
   const markerRef = useRef<any>(null);
 
-  useEffect(() => { setForm(initial); }, [initial]);
+  useEffect(() => {
+    setForm(initial);
+  }, [initial]);
 
   // Leaflet map
   useEffect(() => {
@@ -56,7 +91,6 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
     let cancelled = false;
     (async () => {
       try {
-        // @ts-ignore
         await import('leaflet/dist/leaflet.css');
         const leaflet: any = await import('leaflet');
         if (cancelled) return;
@@ -91,8 +125,13 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
         };
 
         if (!mapRef.current) {
-          mapRef.current = L.map(mapContainerRef.current, { zoomControl: true, attributionControl: false }).setView([centerLat, centerLng], defaultZoom);
-          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(mapRef.current);
+          mapRef.current = L.map(mapContainerRef.current, {
+            zoomControl: true,
+            attributionControl: false,
+          }).setView([centerLat, centerLng], defaultZoom);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(
+            mapRef.current
+          );
           mapRef.current.on('click', (e: any) => {
             const p = e?.latlng;
             if (!p) return;
@@ -114,7 +153,9 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [latitude, longitude]);
 
   useEffect(() => {
@@ -139,7 +180,11 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       (Number(latitude ?? -999) !== Number(shop?.latitude ?? shop?.lat ?? -999) ? 1 : 0) +
       (Number(longitude ?? -999) !== Number(shop?.longitude ?? shop?.lng ?? -999) ? 1 : 0);
     try {
-      window.dispatchEvent(new CustomEvent('merchant-settings-section-changes', { detail: { sectionId: 'store', count } }));
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-section-changes', {
+          detail: { sectionId: 'store', count },
+        })
+      );
     } catch {}
   }, [form, latitude, longitude, initial, shop]);
 
@@ -160,7 +205,7 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
         setLocatingShop(false);
         setLocationError('فشل في تحديد موقعك');
       },
-      { enableHighAccuracy: true, timeout: 8000 },
+      { enableHighAccuracy: true, timeout: 8000 }
     );
   };
 
@@ -177,7 +222,11 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       toast({ title: 'تم التحديث', description: next ? 'تم فتح المتجر' : 'تم إغلاق المتجر' });
       onSaved();
     } catch (e: any) {
-      toast({ title: 'خطأ', description: e?.message || 'فشل تحديث حالة المتجر', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: e?.message || 'فشل تحديث حالة المتجر',
+        variant: 'destructive',
+      });
     } finally {
       setTogglingActive(false);
     }
@@ -187,12 +236,22 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
     setTogglingPublicDisabled(true);
     const next = !publicDisabled;
     try {
-      await apiRequest('/shops/me', { method: 'PATCH', body: JSON.stringify({ publicDisabled: next }) });
+      await apiRequest('/shops/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ publicDisabled: next }),
+      });
       setPublicDisabled(next);
-      toast({ title: 'تم التحديث', description: next ? 'تم تعطيل الصفحة العامة' : 'تم تفعيل الصفحة العامة' });
+      toast({
+        title: 'تم التحديث',
+        description: next ? 'تم تعطيل الصفحة العامة' : 'تم تفعيل الصفحة العامة',
+      });
       onSaved();
     } catch (e: any) {
-      toast({ title: 'خطأ', description: e?.message || 'فشل تحديث الصفحة العامة', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: e?.message || 'فشل تحديث الصفحة العامة',
+        variant: 'destructive',
+      });
     } finally {
       setTogglingPublicDisabled(false);
     }
@@ -202,12 +261,19 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
     setTogglingDeliveryDisabled(true);
     const next = !deliveryDisabled;
     try {
-      await apiRequest('/shops/me', { method: 'PATCH', body: JSON.stringify({ deliveryDisabled: next }) });
+      await apiRequest('/shops/me', {
+        method: 'PATCH',
+        body: JSON.stringify({ deliveryDisabled: next }),
+      });
       setDeliveryDisabled(next);
       toast({ title: 'تم التحديث', description: next ? 'تم تعطيل التوصيل' : 'تم تفعيل التوصيل' });
       onSaved();
     } catch (e: any) {
-      toast({ title: 'خطأ', description: e?.message || 'فشل تحديث حالة التوصيل', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: e?.message || 'فشل تحديث حالة التوصيل',
+        variant: 'destructive',
+      });
     } finally {
       setTogglingDeliveryDisabled(false);
     }
@@ -233,7 +299,11 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       onSaved();
       return true;
     } catch (e: any) {
-      toast({ title: 'خطأ', description: e?.message || 'فشل حفظ إعدادات المتجر', variant: 'destructive' });
+      toast({
+        title: 'خطأ',
+        description: e?.message || 'فشل حفظ إعدادات المتجر',
+        variant: 'destructive',
+      });
       throw e;
     } finally {
       setSaving(false);
@@ -242,7 +312,11 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
 
   useEffect(() => {
     try {
-      window.dispatchEvent(new CustomEvent('merchant-settings-register-save-handler', { detail: { sectionId: 'store', handler: saveStoreSettings } }));
+      window.dispatchEvent(
+        new CustomEvent('merchant-settings-register-save-handler', {
+          detail: { sectionId: 'store', handler: saveStoreSettings },
+        })
+      );
     } catch {}
   }, [saveStoreSettings]);
 
@@ -256,10 +330,17 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       <Card>
         <CardHeader>
           <CardTitle>حالة المتجر</CardTitle>
-          <CardDescription>{isActive ? 'المتجر مفتوح ويستقبل الطلبات' : 'المتجر مغلق مؤقتاً'}</CardDescription>
+          <CardDescription>
+            {isActive ? 'المتجر مفتوح ويستقبل الطلبات' : 'المتجر مغلق مؤقتاً'}
+          </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end">
-          <Button type="button" onClick={handleToggleActive} disabled={togglingActive} variant={isActive ? 'destructive' : 'default'}>
+          <Button
+            type="button"
+            onClick={handleToggleActive}
+            disabled={togglingActive}
+            variant={isActive ? 'destructive' : 'default'}
+          >
             {togglingActive ? 'جاري التحديث...' : isActive ? 'إغلاق المتجر' : 'فتح المتجر'}
           </Button>
         </CardFooter>
@@ -268,11 +349,22 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       <Card>
         <CardHeader>
           <CardTitle>الصفحة العامة</CardTitle>
-          <CardDescription>{publicDisabled ? 'الصفحة العامة معطّلة' : 'الصفحة العامة مفعّلة'}</CardDescription>
+          <CardDescription>
+            {publicDisabled ? 'الصفحة العامة معطّلة' : 'الصفحة العامة مفعّلة'}
+          </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end">
-          <Button type="button" onClick={handleTogglePublicDisabled} disabled={togglingPublicDisabled} variant={publicDisabled ? 'default' : 'destructive'}>
-            {togglingPublicDisabled ? 'جاري التحديث...' : publicDisabled ? 'تفعيل الصفحة' : 'تعطيل الصفحة'}
+          <Button
+            type="button"
+            onClick={handleTogglePublicDisabled}
+            disabled={togglingPublicDisabled}
+            variant={publicDisabled ? 'default' : 'destructive'}
+          >
+            {togglingPublicDisabled
+              ? 'جاري التحديث...'
+              : publicDisabled
+                ? 'تفعيل الصفحة'
+                : 'تعطيل الصفحة'}
           </Button>
         </CardFooter>
       </Card>
@@ -280,11 +372,22 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
       <Card>
         <CardHeader>
           <CardTitle>التوصيل</CardTitle>
-          <CardDescription>{deliveryDisabled ? 'خدمة التوصيل معطّلة' : 'خدمة التوصيل مفعّلة'}</CardDescription>
+          <CardDescription>
+            {deliveryDisabled ? 'خدمة التوصيل معطّلة' : 'خدمة التوصيل مفعّلة'}
+          </CardDescription>
         </CardHeader>
         <CardFooter className="flex justify-end">
-          <Button type="button" onClick={handleToggleDeliveryDisabled} disabled={togglingDeliveryDisabled} variant={deliveryDisabled ? 'default' : 'destructive'}>
-            {togglingDeliveryDisabled ? 'جاري التحديث...' : deliveryDisabled ? 'تفعيل التوصيل' : 'تعطيل التوصيل'}
+          <Button
+            type="button"
+            onClick={handleToggleDeliveryDisabled}
+            disabled={togglingDeliveryDisabled}
+            variant={deliveryDisabled ? 'default' : 'destructive'}
+          >
+            {togglingDeliveryDisabled
+              ? 'جاري التحديث...'
+              : deliveryDisabled
+                ? 'تفعيل التوصيل'
+                : 'تعطيل التوصيل'}
           </Button>
         </CardFooter>
       </Card>
@@ -299,16 +402,31 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="whatsapp">واتساب</Label>
-                <Input id="whatsapp" value={form.whatsapp} onChange={onChange('whatsapp')} placeholder="+2010..." />
+                <Input
+                  id="whatsapp"
+                  value={form.whatsapp}
+                  onChange={onChange('whatsapp')}
+                  placeholder="+2010..."
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="customDomain">نطاق مخصص</Label>
-                <Input id="customDomain" value={form.customDomain} onChange={onChange('customDomain')} placeholder="shop.example.com" />
+                <Input
+                  id="customDomain"
+                  value={form.customDomain}
+                  onChange={onChange('customDomain')}
+                  placeholder="shop.example.com"
+                />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="openingHours">ساعات العمل</Label>
-              <Input id="openingHours" value={form.openingHours} onChange={onChange('openingHours')} placeholder="10:00 - 22:00" />
+              <Input
+                id="openingHours"
+                value={form.openingHours}
+                onChange={onChange('openingHours')}
+                placeholder="10:00 - 22:00"
+              />
             </div>
           </CardContent>
         </Card>
@@ -324,11 +442,21 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="displayAddress">عنوان مختصر</Label>
-                <Input id="displayAddress" value={form.displayAddress} onChange={onChange('displayAddress')} placeholder="القاهرة، مصر" />
+                <Input
+                  id="displayAddress"
+                  value={form.displayAddress}
+                  onChange={onChange('displayAddress')}
+                  placeholder="القاهرة، مصر"
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="mapLabel">اسم الموقع على الخريطة</Label>
-                <Input id="mapLabel" value={form.mapLabel} onChange={onChange('mapLabel')} placeholder="اسم المتجر" />
+                <Input
+                  id="mapLabel"
+                  value={form.mapLabel}
+                  onChange={onChange('mapLabel')}
+                  placeholder="اسم المتجر"
+                />
               </div>
             </div>
           </CardContent>
@@ -343,12 +471,19 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex justify-end">
-              <Button type="button" onClick={handleUseMyLocation} disabled={locatingShop} variant="outline">
+              <Button
+                type="button"
+                onClick={handleUseMyLocation}
+                disabled={locatingShop}
+                variant="outline"
+              >
                 {locatingShop ? 'جاري تحديد موقعك...' : 'استخدم موقعي الحالي'}
               </Button>
             </div>
             {locationError && (
-              <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">{locationError}</div>
+              <div className="p-3 rounded-xl border border-red-200 bg-red-50 text-red-700 text-sm">
+                {locationError}
+              </div>
             )}
             <div className="rounded-xl overflow-hidden border border-slate-200 bg-white">
               <div ref={mapContainerRef} className="w-full h-72" />
@@ -356,11 +491,15 @@ export default function StoreTab({ shop, onSaved }: StoreTabProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="rounded-xl border border-slate-200 bg-white p-3 text-right">
                 <div className="text-xs text-slate-500">Latitude</div>
-                <div className="font-bold text-slate-900">{latitude == null ? '—' : latitude.toFixed(6)}</div>
+                <div className="font-bold text-slate-900">
+                  {latitude == null ? '—' : latitude.toFixed(6)}
+                </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-3 text-right">
                 <div className="text-xs text-slate-500">Longitude</div>
-                <div className="font-bold text-slate-900">{longitude == null ? '—' : longitude.toFixed(6)}</div>
+                <div className="font-bold text-slate-900">
+                  {longitude == null ? '—' : longitude.toFixed(6)}
+                </div>
               </div>
             </div>
           </CardContent>

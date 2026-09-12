@@ -1,4 +1,3 @@
-
 import React, { useState, createContext, useContext } from 'react';
 import { CheckCircle2, AlertCircle, X, Info } from 'lucide-react';
 import i18n from '../../../i18n';
@@ -10,6 +9,7 @@ interface Toast {
   message: string | any;
   type: ToastType;
 }
+export type { Toast, ToastType };
 
 interface ToastContextType {
   addToast: (message: string | any, type: ToastType) => void;
@@ -51,12 +51,17 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const msgStr = normalizeToastMessage(message, type);
     const key = `${type}:${msgStr}`;
     const now = Date.now();
-    if (lastToastRef.current && lastToastRef.current.key === key && now - lastToastRef.current.at < 1200) {
+    if (
+      lastToastRef.current &&
+      lastToastRef.current.key === key &&
+      now - lastToastRef.current.at < 1200
+    ) {
       return;
     }
     lastToastRef.current = { key, at: now };
 
-    const id = Date.now() * 1000 + ((toastSeqRef.current = (toastSeqRef.current + 1) % 1000) as any);
+    const id =
+      Date.now() * 1000 + ((toastSeqRef.current = (toastSeqRef.current + 1) % 1000) as any);
     setToasts((prev) => {
       if (prev.some((t) => `${t.type}:${normalizeToastMessage(t.message, t.type)}` === key)) {
         return prev;
@@ -69,20 +74,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const removeToast = (id: number) => {
-    setToasts(prev => prev.filter(t => t.id !== id));
+    setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
   return (
     <ToastContext.Provider value={{ addToast, toasts, removeToast }}>
       {children}
       <div className="fixed top-6 left-6 z-[999] flex flex-col gap-3 w-full max-w-sm" dir="rtl">
-        {toasts.map(toast => (
+        {toasts.map((toast) => (
           <div
             key={toast.id}
             className={`p-5 rounded-[1.5rem] shadow-2xl flex items-center justify-between gap-4 backdrop-blur-xl border transition-all duration-200 ${
-              toast.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-600' :
-              toast.type === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
-              'bg-slate-900 border-white/10 text-white'
+              toast.type === 'success'
+                ? 'bg-green-500/10 border-green-500/20 text-green-600'
+                : toast.type === 'error'
+                  ? 'bg-red-500/10 border-red-500/20 text-red-600'
+                  : 'bg-slate-900 border-white/10 text-white'
             }`}
           >
             <div className="flex items-center gap-4">
@@ -90,10 +97,15 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               {toast.type === 'error' && <AlertCircle size={24} />}
               {toast.type === 'info' && <Info size={24} className="text-[#00E5FF]" />}
               <p className="font-black text-sm">
-                {typeof toast.message === 'object' ? JSON.stringify(toast.message) : String(toast.message)}
+                {typeof toast.message === 'object'
+                  ? JSON.stringify(toast.message)
+                  : String(toast.message)}
               </p>
             </div>
-            <button onClick={() => removeToast(toast.id)} className="opacity-40 hover:opacity-100 transition-opacity">
+            <button
+              onClick={() => removeToast(toast.id)}
+              className="opacity-40 hover:opacity-100 transition-opacity"
+            >
               <X size={16} />
             </button>
           </div>
@@ -118,19 +130,18 @@ export const Toaster: React.FC = () => {
         <div
           key={toast.id}
           className={`p-4 rounded-lg shadow-lg flex items-center gap-3 min-w-[300px] ${
-            toast.type === 'success' ? 'bg-green-500' :
-            toast.type === 'error' ? 'bg-red-500' :
-            'bg-blue-500'
+            toast.type === 'success'
+              ? 'bg-green-500'
+              : toast.type === 'error'
+                ? 'bg-red-500'
+                : 'bg-blue-500'
           } text-white`}
         >
           {toast.type === 'success' && <CheckCircle2 size={20} />}
           {toast.type === 'error' && <AlertCircle size={20} />}
           {toast.type === 'info' && <Info size={20} />}
           <span className="flex-1">{toast.message}</span>
-          <button
-            onClick={() => removeToast(toast.id)}
-            className="p-1 hover:bg-white/20 rounded"
-          >
+          <button onClick={() => removeToast(toast.id)} className="p-1 hover:bg-white/20 rounded">
             <X size={16} />
           </button>
         </div>

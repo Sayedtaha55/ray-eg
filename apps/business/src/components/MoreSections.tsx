@@ -4,11 +4,31 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { businessBrand } from '@/lib/brand';
 import {
-  TrendingUp, ArrowLeft, Zap, ShoppingCart, BarChart3, Palette,
-  Shield, Smartphone, Package, Send, Heart,
-  Building2, MessageSquare, Bell, Headphones, Rocket, Target, Award, Layers,
-  Code2, Image as ImageIcon,
-  LayoutDashboard, Settings, ChevronDown, Sparkles,
+  TrendingUp,
+  ArrowLeft,
+  Zap,
+  ShoppingCart,
+  BarChart3,
+  Palette,
+  Shield,
+  Smartphone,
+  Package,
+  Send,
+  Heart,
+  Building2,
+  MessageSquare,
+  Bell,
+  Headphones,
+  Rocket,
+  Target,
+  Award,
+  Layers,
+  Code2,
+  Image as ImageIcon,
+  LayoutDashboard,
+  Settings,
+  ChevronDown,
+  Sparkles,
 } from 'lucide-react';
 import { RevealSection } from '@/lib/hooks';
 import FooterVideoBackground from '@/components/FooterVideoBackground';
@@ -17,8 +37,16 @@ import { industries } from '@/lib/siteData';
 const growthPoints = [
   { icon: Target, title: 'وصول أوسع', desc: 'اجعل متجرك متاحاً للجميع على الإنترنت وفوق الخريطة.' },
   { icon: Zap, title: 'قرارات أذكى', desc: 'تحليلات تساعدك على فهم ما يحبه عملاؤك ومتى يشترون.' },
-  { icon: Award, title: 'ولاء العملاء', desc: 'احتفظ ببيانات عملائك وقدم لهم عروضاً مخصصة لزيادة عودتهم.' },
-  { icon: Layers, title: 'توسعة مستمرة', desc: 'أدوات قابلة للتوسع مع نمو أعمالك — من منتج واحد إلى آلاف.' },
+  {
+    icon: Award,
+    title: 'ولاء العملاء',
+    desc: 'احتفظ ببيانات عملائك وقدم لهم عروضاً مخصصة لزيادة عودتهم.',
+  },
+  {
+    icon: Layers,
+    title: 'توسعة مستمرة',
+    desc: 'أدوات قابلة للتوسع مع نمو أعمالك — من منتج واحد إلى آلاف.',
+  },
 ];
 
 export function IndustriesSection() {
@@ -136,10 +164,28 @@ function GrowthChartMockup() {
             </linearGradient>
           </defs>
           {[40, 80, 120, 160].map((y) => (
-            <line key={y} x1="0" y1={y} x2="400" y2={y} stroke="rgba(15,23,42,0.05)" strokeWidth="1" />
+            <line
+              key={y}
+              x1="0"
+              y1={y}
+              x2="400"
+              y2={y}
+              stroke="rgba(15,23,42,0.05)"
+              strokeWidth="1"
+            />
           ))}
-          <path d="M0,180 L40,160 L80,140 L120,100 L160,120 L200,80 L240,60 L280,40 L320,50 L360,20 L400,10 L400,200 L0,200 Z" fill="url(#growthGradient)" />
-          <path d="M0,180 L40,160 L80,140 L120,100 L160,120 L200,80 L240,60 L280,40 L320,50 L360,20 L400,10" fill="none" stroke="#06b6d4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <path
+            d="M0,180 L40,160 L80,140 L120,100 L160,120 L200,80 L240,60 L280,40 L320,50 L360,20 L400,10 L400,200 L0,200 Z"
+            fill="url(#growthGradient)"
+          />
+          <path
+            d="M0,180 L40,160 L80,140 L120,100 L160,120 L200,80 L240,60 L280,40 L320,50 L360,20 L400,10"
+            fill="none"
+            stroke="#06b6d4"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
           <circle cx="400" cy="10" r="4" fill="#06b6d4" />
           <circle cx="400" cy="10" r="8" fill="#06b6d4" opacity="0.2" />
         </svg>
@@ -223,7 +269,8 @@ export function AboutSection2() {
                 نبني مستقبل التجارة الرقمية
               </h2>
               <p className="text-slate-500 text-lg mb-8 leading-relaxed">
-                منصة عربية متكاملة تمكّن التجار من إدارة أعمالهم بسهولة واحترافية. نؤمن أن كل تاجر يستحق أدوات عالمية بلغته وبسعر يناسبه.
+                منصة عربية متكاملة تمكّن التجار من إدارة أعمالهم بسهولة واحترافية. نؤمن أن كل تاجر
+                يستحق أدوات عالمية بلغته وبسعر يناسبه.
               </p>
             </RevealSection>
             <div className="grid grid-cols-2 gap-4">
@@ -270,21 +317,59 @@ export function ProductsSection() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {[
-            { icon: ShoppingCart, title: 'المتجر الإلكتروني', desc: 'متجر إلكتروني متكامل مع إدارة المنتجات والطلبات والمخزون', color: 'from-cyan-500 to-blue-500' },
-            { icon: LayoutDashboard, title: 'لوحة التحكم', desc: 'لوحة تحكم شاملة لإدارة كل جوانب نشاطك من مكان واحد', color: 'from-violet-500 to-purple-500' },
-            { icon: Palette, title: 'مصمم الصفحات', desc: 'أداة سحب وإفلات لتخصيص تصميم متجرك بدون برمجة', color: 'from-pink-500 to-rose-500' },
-            { icon: BarChart3, title: 'التحليلات والتقارير', desc: 'تقارير مفصلة عن المبيعات والعملاء وأداء المتجر', color: 'from-amber-500 to-orange-500' },
-            { icon: Smartphone, title: 'تطبيق الموبايل', desc: 'إدارة متجرك من أي مكان عبر تطبيق الموبايل', color: 'from-emerald-500 to-green-500' },
-            { icon: Shield, title: 'الأمان والحماية', desc: 'حماية متقدمة لبياناتك وبيانات عملائك', color: 'from-slate-500 to-slate-600' },
+            {
+              icon: ShoppingCart,
+              title: 'المتجر الإلكتروني',
+              desc: 'متجر إلكتروني متكامل مع إدارة المنتجات والطلبات والمخزون',
+              color: 'from-cyan-500 to-blue-500',
+            },
+            {
+              icon: LayoutDashboard,
+              title: 'لوحة التحكم',
+              desc: 'لوحة تحكم شاملة لإدارة كل جوانب نشاطك من مكان واحد',
+              color: 'from-violet-500 to-purple-500',
+            },
+            {
+              icon: Palette,
+              title: 'مصمم الصفحات',
+              desc: 'أداة سحب وإفلات لتخصيص تصميم متجرك بدون برمجة',
+              color: 'from-pink-500 to-rose-500',
+            },
+            {
+              icon: BarChart3,
+              title: 'التحليلات والتقارير',
+              desc: 'تقارير مفصلة عن المبيعات والعملاء وأداء المتجر',
+              color: 'from-amber-500 to-orange-500',
+            },
+            {
+              icon: Smartphone,
+              title: 'تطبيق الموبايل',
+              desc: 'إدارة متجرك من أي مكان عبر تطبيق الموبايل',
+              color: 'from-emerald-500 to-green-500',
+            },
+            {
+              icon: Shield,
+              title: 'الأمان والحماية',
+              desc: 'حماية متقدمة لبياناتك وبيانات عملائك',
+              color: 'from-slate-500 to-slate-600',
+            },
           ].map((product, i) => (
             <RevealSection key={i} delay={i * 80}>
               <div className="group relative overflow-hidden rounded-3xl bg-white border border-slate-200 p-6 md:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 hover:border-slate-300">
-                <div className={`absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br ${product.color} opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500`} />
-                <div className={`inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${product.color} mb-5 shadow-lg`}>
+                <div
+                  className={`absolute -top-12 -right-12 w-40 h-40 rounded-full bg-gradient-to-br ${product.color} opacity-0 group-hover:opacity-10 blur-3xl transition-opacity duration-500`}
+                />
+                <div
+                  className={`inline-flex items-center justify-center w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${product.color} mb-5 shadow-lg`}
+                >
                   <product.icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
                 </div>
-                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">{product.title}</h3>
-                <p className="text-slate-600 text-sm md:text-base leading-relaxed">{product.desc}</p>
+                <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-3">
+                  {product.title}
+                </h3>
+                <p className="text-slate-600 text-sm md:text-base leading-relaxed">
+                  {product.desc}
+                </p>
               </div>
             </RevealSection>
           ))}
@@ -315,11 +400,26 @@ export function FaqSection() {
 
         <div className="space-y-4">
           {[
-            { q: 'كيف أبدأ في استخدام المنصة؟', a: 'ببساطة سجل حساباً مجانياً، اختر نشاطك التجاري، وابدأ في بناء متجرك في دقائق.' },
-            { q: 'هل الدفع مجاني؟', a: 'نعم، يمكنك البدء مجاناً بدون أي التزامات. نقدم خطط مرنة تناسب جميع الأحجام.' },
-            { q: 'هل يمكنني تخصيص تصميم متجري؟', a: 'بالتأكيد! نوفر مصمم صفحات ذكي يتيح لك تخصيص كل تفصيل في متجرك بسهولة.' },
-            { q: 'هل تدعمون الدفع الإلكتروني؟', a: 'نعم، ندعم طرق دفع متعددة بما في ذلك البطاقات والمحافظ الإلكترونية.' },
-            { q: 'كيف يمكنني الحصول على الدعم؟', a: 'فريق الدعم متاح 24/7 لمساعدتك عبر الدردشة أو البريد الإلكتروني.' },
+            {
+              q: 'كيف أبدأ في استخدام المنصة؟',
+              a: 'ببساطة سجل حساباً مجانياً، اختر نشاطك التجاري، وابدأ في بناء متجرك في دقائق.',
+            },
+            {
+              q: 'هل الدفع مجاني؟',
+              a: 'نعم، يمكنك البدء مجاناً بدون أي التزامات. نقدم خطط مرنة تناسب جميع الأحجام.',
+            },
+            {
+              q: 'هل يمكنني تخصيص تصميم متجري؟',
+              a: 'بالتأكيد! نوفر مصمم صفحات ذكي يتيح لك تخصيص كل تفصيل في متجرك بسهولة.',
+            },
+            {
+              q: 'هل تدعمون الدفع الإلكتروني؟',
+              a: 'نعم، ندعم طرق دفع متعددة بما في ذلك البطاقات والمحافظ الإلكترونية.',
+            },
+            {
+              q: 'كيف يمكنني الحصول على الدعم؟',
+              a: 'فريق الدعم متاح 24/7 لمساعدتك عبر الدردشة أو البريد الإلكتروني.',
+            },
           ].map((faq, i) => (
             <RevealSection key={i} delay={i * 80}>
               <div className="group rounded-2xl bg-white border border-slate-200 overflow-hidden hover:shadow-sm transition-all">
@@ -345,8 +445,16 @@ export function FinalCta() {
   return (
     <section dir="rtl" className="relative overflow-hidden bg-white">
       {/* سحاب زي الهيرو */}
-      <span className="biz-cloud biz-cloud-top" aria-hidden="true"><i /><i /><i /></span>
-      <span className="biz-cloud biz-cloud-right" aria-hidden="true"><i /><i /><i /></span>
+      <span className="biz-cloud biz-cloud-top" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
+      <span className="biz-cloud biz-cloud-right" aria-hidden="true">
+        <i />
+        <i />
+        <i />
+      </span>
       <div className="max-w-7xl mx-auto px-5 sm:px-6 py-16 md:py-24">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           {/* النص — يمين */}
@@ -356,9 +464,7 @@ export function FinalCta() {
               <br />
               <span className="text-[#0057FF]">وإحنا نكبرها معاك.</span>
             </h2>
-            <p className="mt-4 text-slate-500 text-sm sm:text-base md:text-lg">
-              جاهز تبدأ خطوتك؟
-            </p>
+            <p className="mt-4 text-slate-500 text-sm sm:text-base md:text-lg">جاهز تبدأ خطوتك؟</p>
             <div className="mt-6 flex flex-wrap items-center justify-center md:justify-start gap-2.5">
               {[
                 { icon: Send, text: 'أدوات أقوى' },
@@ -387,9 +493,11 @@ export function FinalCta() {
 
           {/* الصورة — شمال */}
           <div className="relative">
-            <div className="absolute -inset-4 bg-[#0057FF]/10 rounded-[2rem] blur-2xl" aria-hidden />
+            <div
+              className="absolute -inset-4 bg-[#0057FF]/10 rounded-[2rem] blur-2xl"
+              aria-hidden
+            />
             <div className="relative">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/new/cta-store.png"
                 alt="متجر Bluora — تجارتك تكبر على أرض الواقع"
@@ -413,93 +521,97 @@ export function FinalCta() {
 export function Footer() {
   return (
     <footer className="relative z-20">
-      <FooterVideoBackground
-        className="pt-20 md:pt-32 pb-8"
-      >
+      <FooterVideoBackground className="pt-20 md:pt-32 pb-8">
         {/* ── Footer links ── */}
         <div className="max-w-7xl mx-auto px-5 sm:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12">
-          <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center overflow-hidden">
-                <Image src={businessBrand.logo} alt={businessBrand.name} width={28} height={28} className="w-6 h-6 object-contain" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 mb-12">
+            <div className="col-span-2 md:col-span-1">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-500 flex items-center justify-center overflow-hidden">
+                  <Image
+                    src={businessBrand.logo}
+                    alt={businessBrand.name}
+                    width={28}
+                    height={28}
+                    className="w-6 h-6 object-contain"
+                  />
+                </div>
+                <span className="text-white font-black text-lg">{businessBrand.name}</span>
               </div>
-              <span className="text-white font-black text-lg">{businessBrand.name}</span>
-            </div>
-            <p className="text-slate-400 text-sm leading-relaxed mb-4 max-w-xs">
-              منصة عربية متكاملة لإدارة وتنمية أعمالك التجارية.
-            </p>
-            <div className="flex gap-3">
-              {[
-                { icon: MessageSquare, label: 'WhatsApp' },
-                { icon: Bell, label: 'Notifications' },
-                { icon: Headphones, label: 'Support' },
-              ].map((social, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-slate-300 hover:text-[#00E5FF] hover:border-[#00E5FF]/50 hover:bg-white/15 transition-all duration-300 cursor-pointer"
-                  aria-label={social.label}
-                >
-                  <social.icon className="w-4 h-4" />
-                </a>
-              ))}
-            </div>
-          </div>
-          {[
-            {
-              title: 'المنتج',
-              links: [
-                { label: 'المميزات', href: '#features' },
-                { label: 'مصمم الصفحات', href: '#' },
-                { label: 'لوحة التحكم', href: '#' },
-              ],
-            },
-            {
-              title: 'الشركة',
-              links: [
-                { label: 'من نحن', href: '#about' },
-                { label: 'تواصل معنا', href: '#' },
-                { label: 'المدونة', href: '#' },
-              ],
-            },
-            {
-              title: 'الدعم',
-              links: [
-                { label: 'المساعدة', href: '#' },
-                { label: 'الخصوصية', href: '#' },
-                { label: 'الشروط', href: '#' },
-              ],
-            },
-          ].map((col, i) => (
-            <div key={i}>
-              <h4 className="text-white font-bold text-sm mb-4">{col.title}</h4>
-              <ul className="space-y-3">
-                {col.links.map((link, j) => (
-                  <li key={j}>
-                    <a
-                      href={link.href}
-                      className="text-slate-400 text-sm hover:text-[#00E5FF] transition-colors duration-200"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
+              <p className="text-slate-400 text-sm leading-relaxed mb-4 max-w-xs">
+                منصة عربية متكاملة لإدارة وتنمية أعمالك التجارية.
+              </p>
+              <div className="flex gap-3">
+                {[
+                  { icon: MessageSquare, label: 'WhatsApp' },
+                  { icon: Bell, label: 'Notifications' },
+                  { icon: Headphones, label: 'Support' },
+                ].map((social, i) => (
+                  <a
+                    key={i}
+                    href="#"
+                    className="w-9 h-9 rounded-lg bg-white/10 border border-white/15 flex items-center justify-center text-slate-300 hover:text-[#00E5FF] hover:border-[#00E5FF]/50 hover:bg-white/15 transition-all duration-300 cursor-pointer"
+                    aria-label={social.label}
+                  >
+                    <social.icon className="w-4 h-4" />
+                  </a>
                 ))}
-              </ul>
+              </div>
             </div>
-          ))}
-        </div>
-        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-slate-400 text-xs sm:text-sm">
-            © {new Date().getFullYear()} من مكانك. جميع الحقوق محفوظة.
-          </p>
-          <div className="flex items-center gap-4 text-slate-400 text-xs">
-            <span className="flex items-center gap-1.5">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              كل الأنظمة تعمل
-            </span>
+            {[
+              {
+                title: 'المنتج',
+                links: [
+                  { label: 'المميزات', href: '#features' },
+                  { label: 'مصمم الصفحات', href: '#' },
+                  { label: 'لوحة التحكم', href: '#' },
+                ],
+              },
+              {
+                title: 'الشركة',
+                links: [
+                  { label: 'من نحن', href: '#about' },
+                  { label: 'تواصل معنا', href: '#' },
+                  { label: 'المدونة', href: '#' },
+                ],
+              },
+              {
+                title: 'الدعم',
+                links: [
+                  { label: 'المساعدة', href: '#' },
+                  { label: 'الخصوصية', href: '#' },
+                  { label: 'الشروط', href: '#' },
+                ],
+              },
+            ].map((col, i) => (
+              <div key={i}>
+                <h4 className="text-white font-bold text-sm mb-4">{col.title}</h4>
+                <ul className="space-y-3">
+                  {col.links.map((link, j) => (
+                    <li key={j}>
+                      <a
+                        href={link.href}
+                        className="text-slate-400 text-sm hover:text-[#00E5FF] transition-colors duration-200"
+                      >
+                        {link.label}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
-        </div>
+          <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-slate-400 text-xs sm:text-sm">
+              © {new Date().getFullYear()} من مكانك. جميع الحقوق محفوظة.
+            </p>
+            <div className="flex items-center gap-4 text-slate-400 text-xs">
+              <span className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                كل الأنظمة تعمل
+              </span>
+            </div>
+          </div>
         </div>
       </FooterVideoBackground>
     </footer>
